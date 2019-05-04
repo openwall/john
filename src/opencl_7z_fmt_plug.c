@@ -15,11 +15,19 @@ john_register_one(&fmt_opencl_sevenzip);
 
 #include <stdint.h>
 #include <string.h>
+
+#include "arch.h"
+#if !AC_BUILT
+#define HAVE_LIBZ 1 /* legacy build has -lz in LDFLAGS */
+#endif
+#if HAVE_LIBZ
+#include <zlib.h>
+#endif
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
-#include "arch.h"
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
@@ -334,7 +342,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	type = atoi(p);
 	if (strlen(p) == 0 || type < 0 || type > 128) /* Compression type */
 		goto err;
-	if (type > 2 && type != 128) /* none, LZMA or LZMA2 */
+	if (type > 2 /* LZMA or LZMA2 */
+#if HAVE_LIBZ
+	    && type != 7 /* deflate */
+#endif
+	    && type != 128) /* none */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* NumCyclesPower */
 		goto err;
@@ -393,14 +405,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if (!isdec(p))
 			goto err;
-		if ((p = strtokm(NULL, "$")) == NULL) /* Coder props */
-			goto err;
-		if (!ishexlc(p))
-			goto err;
-		if (type == 1 && strlen(p) != 10)
-			goto err;
-		else if (type == 2 && strlen(p) != 2)
-			goto err;
+		if (type < 7) {
+			if ((p = strtokm(NULL, "$")) == NULL) /* Coder props */
+				goto err;
+			if (!ishexlc(p))
+				goto err;
+			if (type == 1 && strlen(p) != 10)
+				goto err;
+			else if (type == 2 && strlen(p) != 2)
+				goto err;
+		}
 	}
 
 	MEM_FREE(keeptr);
@@ -457,10 +471,12 @@ static void *get_salt(char *ciphertext)
 	if (cs.type && cs.type != 128) {
 		p = strtokm(NULL, "$"); /* CRC length */
 		psalt->crc_len = atoi(p);
-		p = strtokm(NULL, "$"); /* Coder properties */
-		for (i = 0; p[i * 2] ; i++)
-			psalt->props[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		if (cs.type < 7) {
+			p = strtokm(NULL, "$"); /* Coder properties */
+			for (i = 0; p[i * 2] ; i++)
+				psalt->props[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+					+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		}
 	}
 
 	MEM_FREE(keeptr);
@@ -623,12 +639,46 @@ static int sevenzip_decrypt(sevenzip_hash *derived)
 			goto exit_bad;
 		}
 	}
+#if HAVE_LIBZ
+	else if (cur_salt->type == 7) {
+		uint8_t *new_out;
+		int ret;
+		z_stream inf_stream;
+
+		new_out = mem_alloc(cur_salt->crc_len);
+
+		inf_stream.zalloc = Z_NULL;
+		inf_stream.zfree = Z_NULL;
+		inf_stream.opaque = Z_NULL;
+
+		inf_stream.avail_in = aes_len;
+		inf_stream.next_in = out;
+
+		inf_stream.avail_out = cur_salt->crc_len;
+		inf_stream.next_out = new_out;
+
+		inflateInit2(&inf_stream, -MAX_WBITS);
+
+		ret = inflate(&inf_stream, Z_NO_FLUSH);
+
+		inflateEnd(&inf_stream);
+
+		if (ret == Z_OK || ret == Z_STREAM_END) {
+			MEM_FREE(out);
+			out = new_out;
+			crc_len = cur_salt->crc_len;
+		} else {
+			MEM_FREE(new_out);
+			goto exit_bad;
+		}
+	}
+#endif
 
 	/* CRC test */
 	CRC32_Init(&crc);
 	CRC32_Update(&crc, out, crc_len);
 	CRC32_Final(crc_out, crc);
-	ccrc =  _crc_out.crci; /* computed CRC */
+	ccrc = _crc_out.crci; /* computed CRC */
 #if !ARCH_LITTLE_ENDIAN
 	ccrc = JOHNSWAP(ccrc);
 #endif
