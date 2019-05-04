@@ -180,15 +180,15 @@ static void set_salt(void *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	const int count = *pcount;
+	int count = *pcount;
 	int index;
 
 #ifdef _OPENMP
 #ifndef SIMD_COEF_64
 #ifdef PRECOMPUTE_CTX_FOR_SALT
-#pragma omp parallel for default(none) private(index) shared(ctx_salt, saved_key, saved_len, crypt_out)
+#pragma omp parallel for default(none) private(index) shared(count, ctx_salt, saved_key, saved_len, crypt_out)
 #else
-#pragma omp parallel for default(none) private(index) shared(saved_salt, saved_key, saved_len, crypt_out)
+#pragma omp parallel for default(none) private(index) shared(count, saved_salt, saved_key, saved_len, crypt_out)
 #endif
 #else
 #pragma omp parallel for

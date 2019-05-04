@@ -199,7 +199,7 @@ static void set_salt(void *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	const int count = *pcount;
+	int count = *pcount;
 #ifdef SIMD_COEF_32
 	int i = 0;
 #if defined(_OPENMP)
@@ -219,7 +219,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int i;
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(i) shared(ctx_salt, saved_key, saved_len, crypt_out)
+#pragma omp parallel for default(none) private(i) shared(count, ctx_salt, saved_key, saved_len, crypt_out)
 #endif
 	for (i = 0; i < count; i++) {
 		SHA_CTX ctx;
