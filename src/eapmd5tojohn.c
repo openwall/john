@@ -350,7 +350,7 @@ struct eapmd5pass_data {
 	uint8_t		respeapid;
 };
 
-void cleanexit();
+static void cleanexit(int signum);
 void usage();
 int radiotap_offset(pcap_t *p, struct pcap_pkthdr *h);
 void assess_packet(char *user, struct pcap_pkthdr *h, u_int8_t *pkt);
@@ -359,7 +359,7 @@ int extract_eapusername(uint8_t *eap, int eaplen, struct eapmd5pass_data *em);
 int extract_eapchallenge(uint8_t *eap, int eaplen, struct eapmd5pass_data *em);
 int extract_eapresponse(uint8_t *eap, int eaplen, struct eapmd5pass_data *em);
 int extract_eapsuccess(uint8_t *eap, int eaplen, struct eapmd5pass_data *em);
-void break_pcaploop();
+static void break_pcaploop(int signum);
 int main(int argc, char *argv[]);
 
 #endif
@@ -604,7 +604,7 @@ int offset = 0; /* Offset of pcap data to beginning of frame */
 long pcount = 0; /* Total number of packets observed */
 struct eapmd5pass_data em;
 
-void cleanexit()
+static void cleanexit(int signum)
 {
 	if (p != NULL) {
 		pcap_close(p);
@@ -1033,7 +1033,7 @@ int extract_eapsuccess(uint8_t *eap, int len, struct eapmd5pass_data *em)
 }
 
 /* Called by signal SIGALRM */
-void break_pcaploop()
+static void break_pcaploop(int signum)
 {
 	if (__verbosity > 2) {
 		printf("Calling pcap_breakloop.\n");
