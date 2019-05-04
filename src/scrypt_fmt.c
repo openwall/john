@@ -413,12 +413,12 @@ static char *get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	const int count = *pcount;
+	int count = *pcount;
 	int index;
 	int failed = 0;
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(index) shared(failed, max_threads, local, saved_salt, buffer)
+#pragma omp parallel for default(none) private(index) shared(count, failed, max_threads, local, saved_salt, buffer)
 #endif
 	for (index = 0; index < count; index++) {
 #ifdef _OPENMP

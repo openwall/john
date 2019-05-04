@@ -198,13 +198,13 @@ static void set_salt(void *salt)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	const int count = *pcount;
+	int count = *pcount;
 	int index;
 	int failed = 0;
 	yescrypt_params_t params = { .N = 1ULL << cur_salt->N, .r = cur_salt->r, .p = cur_salt->p };
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(index) shared(failed, params, max_threads, local, saved_key, cur_salt, crypt_out)
+#pragma omp parallel for default(none) private(index) shared(count, failed, params, max_threads, local, saved_key, cur_salt, crypt_out)
 #endif
 	for (index = 0; index < count; index++) {
 #ifdef _OPENMP
