@@ -242,6 +242,11 @@ fi
       JTR_NOWARN_CHECK([format-overflow], 1)
    fi
 
+   dnl False positives from gcc 9
+   if (test "x$asan" != xyes); then
+      JTR_NOWARN_CHECK([format-truncation], 1)
+   fi
+
    dnl Really silly clang warnings stopping us from doing sanity checks
    JTR_NOWARN_CHECK([tautological-constant-out-of-range-compare], 1)
 
