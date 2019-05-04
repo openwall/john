@@ -665,12 +665,10 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
+	size_t *lws = (local_work_size && !(count % local_work_size)) ?
+		&local_work_size : NULL;
 
-	size_t *lws = local_work_size ? &local_work_size : NULL;
-
-	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
-
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand%d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
+	global_work_size = count;
 
 	if (keys_changed) {
 	// copy keys to the device
