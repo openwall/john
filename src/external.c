@@ -200,6 +200,9 @@ void ext_init(char *mode, struct db_main *db)
 	ext_cipher_limit = maxlen = options.eff_maxlength;
 	ext_target_utf8 = (options.target_enc == UTF_8);
 
+	if (ext_utf32 && ext_target_utf8)
+		maxlen = MIN(4 * maxlen, db->format->params.plaintext_length);
+
 	/* This is second time we are called, just update the above */
 	if (db && db->format)
 		return;
