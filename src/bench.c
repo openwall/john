@@ -500,6 +500,9 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 	if (!cfg_get_bool(SECTION_DEBUG, NULL, "Benchmarks_1_8", 0))
 		current = NULL;
+	else
+		if (options.flags & FLG_MASK_CHK)
+			error_msg("\nLegacy benchmark is not supported with --mask option\n");
 
 	bench_set_keys(format, current, pass++);
 
