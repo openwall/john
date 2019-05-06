@@ -63,10 +63,16 @@ extern CRC32_t JTR_CRC32_tableC[256];
  */
 extern void CRC32_UpdateC(CRC32_t *value, void *data, unsigned int size);
 
-#if __SSE4_2__
-#include <nmmintrin.h>
+#if !JOHN_NO_SIMD && __SSE4_2__
+#include "simd-intrinsics.h"
 #define jtr_crc32c(crc,byte) (_mm_crc32_u8(crc, byte))
+
+#if __AVX__
+#define CRC32_C_ALGORITHM_NAME			"AVX"
+#else
 #define CRC32_C_ALGORITHM_NAME			"SSE4.2"
+#endif
+
 #else
 #define jtr_crc32c(crc,byte) (JTR_CRC32_tableC[(unsigned char)((crc)^(byte))] ^ ((crc) >> 8))
 #define CRC32_C_ALGORITHM_NAME			"32/" ARCH_BITS_STR
