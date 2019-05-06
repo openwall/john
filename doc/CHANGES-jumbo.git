@@ -1,6 +1,6 @@
 The following changes were made between 1.8.0-jumbo-1 and 1.9-0-jumbo-1:
 
-magnum (2576):
+magnum (2592):
 	inc.c: Instead of sending a "" to crk_process_key(), use a safe static
 	  buffer of PLAINTEXT_BUFFER_SIZE. No problem seen here but in other
 	  places with similar code.
@@ -4226,6 +4226,27 @@ magnum (2576):
 	RACF: Adjust OMP scale after testing on super, see #3091
 	Re-tune krb5-db and o5logon for super. See #3091
 	Avoid inconsistent messages from -test -mask, closes #3875
+	Update CREDITS-jumbo and CHANGES-jumbo.git
+	loader.c: Only sort salts for real db's. See #3091.
+	OMP auto-tune: Print any messages to stdout instead of stderr.
+	formats.c: Add a missing space in error message.
+	Fix a logic bug in self-tests.
+	7z formats: Add support for "deflate" compression, kudos to philsmd.
+	SL3 and salted-sha1 opencl formats: Revert to using LWS=NULL when
+	  count is lower than GWS. I just can't find whatever bug is triggered
+	  by not doing this. Closes #3880.
+	Mute warnings from gcc 9 and from new OpenCL headers.
+	CRC32C: Report AVX if applicable Stribog: Report AVX if applicable
+	  Pomelo: Report AVX/AVX2 if applicable
+	Drop raw-sha1-ng format. It's obsolete. See #3881
+	Drop raw-sha256-ng format. It's obsolete. See #3881
+	Drop raw-sha512-ng format. It's obsolete. See #3881
+	Drop Alain's good old NT format. It's finally obsolete. #3881
+	Drop Pomelo format, it's obsolete and probably not used anywhere. See
+	  #3881
+	External mode: Fix a problem with UTF-32 -> UTF-8 length, so we behave
+	  like the comments in eg. dumb32.conf says we do.
+	Suppress "Many salts" benchmarks where appropriate. Closes #3795.
 
 JimF (1545):
 	configure: removed many function checks (for #910)
@@ -6872,7 +6893,7 @@ Dhiru Kholia (532):
 	Make DiskCryptor format functional on BE machines
 	Add support for cracking encrypted VMware VMX files
 
-Claudio André (310):
+Claudio André (317):
 	OpenCL: AMD devices have some weird bug when using pinned buffers.
 	  Forgotten file: see ec080119f45ffef07f7f1dd36e120ee56d5d6734
 	OpenCL: Updates to get_processor_family().
@@ -7222,6 +7243,13 @@ Claudio André (310):
 	docs: drop non-updated jumbo-specific documentation files (#3865)
 	docs: cosmetic change in badges (#3866)
 	OpenCL: hash_ids uninitialized allocation (#3868)
+	docs: update the link for the Windows Build
+	CI: revamp all automated testing
+	CI: refactor and small tweaks
+	OpenCL: SHA256 and SHA512 force tune after fmt_done()
+	autotools: fix AVX512BW detection
+	autotools: fix AVX512BW detection
+	CI: run some tests only after merge
 
 Sayantan Datta (266):
 	DEScrypt OpenCL: Use a "safer" kernel for some devices (drivers) that
@@ -8028,7 +8056,7 @@ Kai Zhao (84):
 	Detect FMT_SPLIT_UNIFIES_CASE error
 	Change to 'FAILED' when there is a FMT_SPLIT warning or error
 
-Solar (60):
+Solar (62):
 	Fix a bug in truecrypt for non-x86 archs. Closes #912.
 	Early (contest) version of AVX2 support for DES.
 	Fix a compile error in dynamic_compiler_plug.c
@@ -8099,6 +8127,8 @@ Solar (60):
 	Use yescrypt_kdf() instead of crypto_scrypt()
 	Fix many format-specific benchmark oddities (issue #3795, PR #3873)
 	aix-smd5: Trivial optimizations (#3876)
+	Workaround gcc 9 change for const vs. OpenMP shared() (#3884)
+	eapmd5tojohn: Use proper signal handler prototypes
 
 Apingis (58):
 	descrypt-ztex format; includes library for operating ZTEX hardware and
