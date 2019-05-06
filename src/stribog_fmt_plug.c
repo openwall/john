@@ -40,7 +40,11 @@ john_register_one(&fmt_stribog_512);
 #define TAG512_LENGTH           (sizeof(TAG512)-1)
 #define TAG_LENGTH              TAG256_LENGTH
 #define FORMAT_TAG              TAG256
+#if __AVX__
+#define ALGORITHM_NAME          "GOST R 34.11-2012 128/128 AVX 1x"
+#else
 #define ALGORITHM_NAME          "GOST R 34.11-2012 128/128 SSE4.1 1x"
+#endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        64 - 1
