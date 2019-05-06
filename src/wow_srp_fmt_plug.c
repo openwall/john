@@ -86,7 +86,7 @@ john_register_one(&fmt_blizzard);
 #define ALGORITHM_NAME		"SHA1 32/" ARCH_BITS_STR EXP_STR
 
 #define BENCHMARK_COMMENT	""
-#define BENCHMARK_LENGTH	0x108
+#define BENCHMARK_LENGTH	8
 
 #define WOWSIG			"$WoWSRP$"
 #define WOWSIGLEN		(sizeof(WOWSIG)-1)

@@ -46,7 +46,7 @@ john_register_one(&fmt_ecryptfs1);
 #define FORMAT_NAME             ""
 #define ALGORITHM_NAME          "SHA512 " SHA512_ALGORITHM_NAME
 #define BENCHMARK_COMMENT       " (65536x)"  // good luck with that!
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        125
 #define REAL_BINARY_SIZE        8
 #define HEX_BINARY_SIZE         (REAL_BINARY_SIZE*2)

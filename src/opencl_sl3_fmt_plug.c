@@ -39,6 +39,7 @@ john_register_one(&FMT_STRUCT);
 
 #define FORMAT_LABEL        "SL3-opencl"
 #define ALGORITHM_NAME      "SHA1 OpenCL"
+#define BENCHMARK_LENGTH    0x10f
 
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
 

@@ -84,7 +84,7 @@ john_register_one(&fmt_sapH);
 
 
 #define BENCHMARK_COMMENT		" (SHA1x1024)"
-#define BENCHMARK_LENGTH		7
+#define BENCHMARK_LENGTH		0x507
 
 #define SALT_LENGTH             16  /* the max used sized salt */
 #define CIPHERTEXT_LENGTH       132 /* max salt+sha512 + 2^32 iterations */

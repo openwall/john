@@ -37,6 +37,7 @@ john_register_one(&fmt_sl3);
 
 #define FORMAT_LABEL        "SL3"
 #define ALGORITHM_NAME      "SHA1 " SHA1_ALGORITHM_NAME
+#define BENCHMARK_LENGTH    15
 
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)

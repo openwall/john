@@ -1,4 +1,4 @@
-/*
+1/*
  * JtR OpenCL format to crack OpenBSD-SoftRAID hashes.
  *
  * This software is Copyright (c) 2017, Dhiru Kholia <dhiru at openwall.com>,
@@ -35,7 +35,7 @@ john_register_one(&fmt_opencl_openbsd_softraid);
 #define FORMAT_LABEL            "OpenBSD-SoftRAID-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA1 AES OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        7
+#define BENCHMARK_LENGTH        0x507
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define PLAINTEXT_LENGTH        64
