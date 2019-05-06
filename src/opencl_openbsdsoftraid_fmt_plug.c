@@ -1,4 +1,4 @@
-1/*
+/*
  * JtR OpenCL format to crack OpenBSD-SoftRAID hashes.
  *
  * This software is Copyright (c) 2017, Dhiru Kholia <dhiru at openwall.com>,
