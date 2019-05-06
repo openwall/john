@@ -382,9 +382,6 @@ static void john_register_all(void)
 	/* Add all plug-in formats */
 #include "fmt_registers.h"
 
-	/* This format is deprecated so registers after plug-in NT formats */
-	john_register_one(&fmt_NT);
-
 #ifndef DYNAMIC_DISABLED
 	/* Add dynamic formats last so they never have precedence */
 	cnt = dynamic_Register_formats(&selfs);

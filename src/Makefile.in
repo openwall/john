@@ -82,7 +82,6 @@ JOHN_OBJS = \
 	AFS_fmt.o \
 	LM_fmt.o \
 	trip_fmt.o \
-	NT_fmt.o \
 	KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o \
 	whirlpool.o haval.o skein.o md2.o panama.o \
 	timer.o omp_autotune.o \
@@ -420,8 +419,6 @@ mkvlib.o:	mkvlib.c arch.h misc.h jumbo.h autoconfig.h params.h memory.h mkvlib.h
 mmap-windows.o:	mmap-windows.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h memory.h
 
 nonstd.o:	nonstd.c
-
-NT_fmt.o:	NT_fmt.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h formats.h params.h options.h list.h loader.h getopt.h unicode.h aligned.h johnswap.h os.h os-autoconf.h
 
 omp_autotune.o:	timer.h
 
