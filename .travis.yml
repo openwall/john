@@ -58,17 +58,12 @@ matrix:
     env: OPENCL="yes"
 
   # #########################################
-  # #### Tests allowed to fail
+  # #### Extra Testing Scheme
   # #########################################
-  - os: linux
-    compiler: gcc
-    env: DOCKER="yes" OPENCL="yes"
-
-  fast_finish: true
-  allow_failures:
 
   # #### OpenCL formats Docker based testing
-  - os: linux
+  - if: branch = bleeding-jumbo
+    os: linux
     compiler: gcc
     env: DOCKER="yes" OPENCL="yes"
 

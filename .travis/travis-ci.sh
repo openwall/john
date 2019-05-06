@@ -28,7 +28,7 @@ else
     export ASAN_OPTIONS=symbolize=1
     export ASAN_SYMBOLIZER_PATH=$(which llvm-symbolizer)
 
-    if [[ "$OPENCL" == "yes" ]]; then
+    if [[ "$OPENCL" == "yes" && "$TRAVIS_DIST" == "trusty" ]]; then
         # Fix the OpenCL stuff
         mkdir -p /etc/OpenCL/vendors
         sudo ln -sf /usr/lib/fglrx/etc/OpenCL/vendors/amdocl64.icd /etc/OpenCL/vendors/amd.icd
