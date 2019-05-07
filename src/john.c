@@ -1235,8 +1235,9 @@ static void john_load(void)
 			if (options.acc_devices->count &&
 			  !(strstr(database.format->params.label, "-opencl") ||
 			    strstr(database.format->params.label, "-ztex"))) {
-				fprintf(stderr,
-				    "The \"--devices\" option is valid only for OpenCL or ZTEX formats\n");
+				if (john_main_process)
+					fprintf(stderr,
+					        "The \"--devices\" option is valid only for OpenCL or ZTEX formats\n");
 				error();
 			}
 #endif
