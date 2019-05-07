@@ -982,9 +982,11 @@ next:
 		printf("%u out of %u tests have FAILED\n", failed, total);
 	else if (total > 1 && !event_abort)
 		if (john_main_process) {
+#ifndef BENCH_BUILD
 			if (options.flags & FLG_MASK_CHK)
 				printf("%u formats benchmarked.\n", total);
 			else
+#endif
 				printf("All %u formats passed self-tests!\n",
 				       total);
 		}
