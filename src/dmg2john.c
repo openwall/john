@@ -249,7 +249,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 
 	// fprintf(stderr, "Header version %d detected\n", headerver);
 	if (headerver == 1) {
-		if (lseek(fd, 0 - (off_t)sizeof(cencrypted_v1_header), SEEK_END) < 0) {
+		if (lseek(fd, -(off_t)sizeof(cencrypted_v1_header), SEEK_END) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			goto bailout;
 		}
