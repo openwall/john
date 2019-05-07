@@ -198,10 +198,8 @@ void ext_init(char *mode, struct db_main *db)
 {
 	ext_minlen = options.eff_minlength;
 	ext_cipher_limit = maxlen = options.eff_maxlength;
-	ext_target_utf8 = (options.target_enc == UTF_8);
-
-	if (ext_utf32 && ext_target_utf8)
-		maxlen = MIN(4 * maxlen, db->format->params.plaintext_length);
+	ext_target_utf8 =
+		(options.target_enc <= CP_UNDEF || options.target_enc == UTF_8);
 
 	/* This is second time we are called, just update the above */
 	if (db && db->format)
@@ -473,6 +471,9 @@ void do_external_crack(struct db_main *db)
 	int my_words, their_words;
 
 	log_event("Proceeding with external mode: %.100s", ext_mode);
+
+	if (ext_utf32 && ext_target_utf8)
+		maxlen = MIN(4 * maxlen, db->format->params.plaintext_length);
 
 	if (rec_restored && john_main_process) {
 		fprintf(stderr, "Proceeding with external:%s", ext_mode);
