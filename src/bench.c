@@ -361,6 +361,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	void *salt, *two_salts[2];
 	int index, max;
 #ifndef BENCH_BUILD
+	struct db_salt *two_salts_db[2];
 	unsigned int t_cost[2][FMT_TUNABLE_COSTS];
 	int ntests, pruned, i;
 #endif
@@ -458,8 +459,20 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		     format->methods.tunable_cost_value[i] != NULL; i++)
 			t_cost[index][i] =
 				format->methods.tunable_cost_value[i](salt);
+
+		struct db_salt *dbsalt = test_db->salts;
+		if (format->params.salt_size)
+		while (dbsalt && dyna_salt_cmp(dbsalt->salt, two_salts[index], format->params.salt_size))
+			dbsalt = dbsalt->next;
+		if (dbsalt) {
+			two_salts_db[index] = dbsalt;
+		} else {
+			puts("Warning: Could not find salt in db");
+			two_salts_db[index] = test_db->salts;
+		}
 #endif
 	}
+
 	/*
 	 * Core john doesn't have this set_salt at all, only later under
 	 * "if (salts > 1)". I first added it only "if (salts == 1)" but
@@ -548,6 +561,11 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #endif
 	crypts = 0;
 
+#ifndef BENCH_BUILD
+	if (salts <= 1)
+		two_salts_db[1] = two_salts_db[0];
+#endif
+
 	index = salts;
 	max = format->params.max_keys_per_crypt;
 	do {
@@ -569,7 +587,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		if (salts > 1) format->methods.set_salt(two_salts[index & 1]);
 #ifndef BENCH_BUILD
 		format->methods.cmp_all(binary,
-		    format->methods.crypt_all(&count, test_db->salts));
+		    format->methods.crypt_all(&count, two_salts_db[index & 1]));
 #else
 		format->methods.cmp_all(binary,
 		    format->methods.crypt_all(&count, NULL));
@@ -924,7 +942,7 @@ AGAIN:
 		    !(options.flags & FLG_MASK_CHK) &&
 #endif
 		    john_main_process)
-			fprintf(stderr, "Note: This format may also be benchmarked using --mask (see doc/MASK).\n");
+			fprintf(stderr, "Note: This format should be used and benchmarked with --mask (see doc/MASK).\n");
 
 		benchmark_cps(results_m.crypts, results_m.real, s_real);
 		benchmark_cps(results_m.crypts, results_m.virtual, s_virtual);
