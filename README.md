@@ -7,24 +7,29 @@
 [![Search hit](https://img.shields.io/github/search/magnumripper/JohnTheRipper/goto.svg?label=GitHub%20Hits)](https://github.com/search?utf8=%E2%9C%93&q=john%20the%20ripper&type=)
 
 John the Ripper
-====================
+===============
 
-This is a community-enhanced, "jumbo" version of John the Ripper.
-It has a lot of code, documentation, and data contributed by the
-user community.  This is not "official" John the Ripper code.  It is
-very easy for new code to be added to jumbo: the quality requirements
-are low.  This means that you get a lot of functionality that is not
-"mature" enough or is otherwise inappropriate for the official JtR,
-which in turn also means that bugs in this code are to be expected.
+This is the community-enhanced, "jumbo" version of John the Ripper.
+It has a lot of code, documentation, and data contributed by jumbo
+developers and the user community.  It is easy for new code to be added
+to jumbo, and the quality requirements are low, although lately we've
+started subjecting all contributions to quite some automated testing.
+This means that you get a lot of functionality that is not necessarily
+"mature", which in turn means that bugs in this code are to be expected.
 
 If you have any comments on this release or on JtR in general, please
-join the john-users mailing list and post in there.
+join the john-users mailing list and post in there:
+
+https://www.openwall.com/lists/john-users/
 
 Licensing info:
-http://openwall.info/wiki/john/licensing
+
+https://openwall.info/wiki/john/licensing
 
 For contributions to John the Ripper Jumbo, please use a
 [pull requested (PR) on GitHub](https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/CONTRIBUTING.md).
+
+Included below is basic John the Ripper core documentation.
 
 ---
 
@@ -89,7 +94,7 @@ choose the executable that fits your system best, e.g. "john-omp" to
 take advantage of multiple CPUs and/or CPU cores.
 
 
-	Features and performance.
+	Features.
 
 John the Ripper is designed to be both feature-rich and fast.  It
 combines several cracking modes in one program and is fully
@@ -138,21 +143,19 @@ these larger files for cracking, a corresponding bundled *2john program
 should be used first, and then its output fed into JtR -jumbo.
 
 
-        Graphical User Interface (GUI).
+	Graphical User Interface (GUI).
 
 There is an official GUI for John the Ripper: Johnny.
 
-Despite the fact that Johnny is oriented onto core john, all basic
-functionality is supposed to work in all versions, even Jumbo. So,
-password could be loaded from file and cracked with different
-options.
+Despite the fact that Johnny is oriented onto JtR core, all basic
+functionality is supposed to work in all versions, including jumbo.
 
-Johnny is a separate program, therefore, you need to have John the
-Ripper installed in order to use it.
+Johnny is a separate program, therefore you need to have John the Ripper
+installed in order to use it.
 
-You could find more info about releases and Johnny on the wiki:
+More information about Johnny and its releases is on the wiki:
 
-  http://openwall.info/wiki/john/johnny
+https://openwall.info/wiki/john/johnny
 
 
 	Documentation.
@@ -162,23 +165,21 @@ the recommended order of reading:
 
 * INSTALL - installation instructions
 * OPTIONS - command line options and additional utilities
-* EXAMPLES - usage examples - strongly recommended
 * MODES - cracking modes: what they are
-* FAQ - frequently asked questions
-* BUGS - list of known bugs
-* DYNAMIC - how to use dynamic format in JtR
-* DYNAMIC COMPILER FORMATS - List of known hash formats built using the dynamic compiler
-* DYNAMIC_SCRIPTING - how to build/optimise a format that uses dynamic
-* README.bash-completion - how to enable bash completion for JtR
-* CONTACT (*) - how to contact the author or otherwise obtain support
 * CONFIG (*) - how to customize
-* EXTERNAL (*) - defining an external mode
 * RULES (*) - wordlist rules syntax
+* EXTERNAL (*) - defining an external mode
+* EXAMPLES - usage examples - strongly recommended
+* FAQ - guess
 * CHANGES (*) - history of changes
+* CONTACT (*) - how to contact the author or otherwise obtain support
 * CREDITS (*) - credits
 * LICENSE - copyrights and licensing terms
 * COPYING - GNU GPL version 2, as referenced by LICENSE above
 
 (*) most users can safely skip these.
+
+There are a lot of additional documentation files in jumbo's "doc"
+directory, which you'll also want to explore.
 
 Happy reading!
