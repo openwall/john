@@ -41,7 +41,7 @@ john_register_one(&fmt_lastpass_cli);
 #define ALGORITHM_NAME          "PBKDF2-SHA256 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        7
+#define BENCHMARK_LENGTH        7 // FIXME: add costs (but this is OK)
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             16
 #define SALT_SIZE               sizeof(struct custom_salt)
