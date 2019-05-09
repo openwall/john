@@ -742,8 +742,9 @@ AGAIN:
 			continue;
 
 /* Hack for scripting raw/one/many tests, only test salted formats */
-		if (!cfg_get_bool(SECTION_DEBUG, NULL, "BenchmarkMany", 0)) {
-			if (!format->params.salt_size)
+		if (cfg_get_bool(SECTION_DEBUG, NULL, "BenchmarkMany", 0)) {
+			if (!format->params.salt_size ||
+			    (format->params.flags & FMT_DYNAMIC))
 				continue;
 			format->params.benchmark_length &= ~0x500;
 		}
