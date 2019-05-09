@@ -718,6 +718,13 @@ int benchmark_all(void)
 	}
 #endif
 
+	/* Hack for scripting raw/one/many tests, only test salted formats */
+	if (!cfg_get_bool(SECTION_DEBUG, NULL, "BenchmarkMany", 0)) {
+		if (!format->params.salt_size)
+			continue;
+		format->params.benchmark_length &= ~0x500;
+	}
+
 #ifndef BENCH_BUILD
 #if defined(WITH_ASAN) || defined(WITH_UBSAN) || defined(DEBUG)
 	if (benchmark_time)
