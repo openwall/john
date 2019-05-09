@@ -47,7 +47,7 @@ john_register_one(&fmt_gost);
 #define ALGORITHM_NAME          "32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x507 // FIXME document why!
+#define BENCHMARK_LENGTH        0x507 // Actually unsalted but two variants
 #define PLAINTEXT_LENGTH        125
 #define CIPHERTEXT_LENGTH       64
 #define BINARY_SIZE             32
