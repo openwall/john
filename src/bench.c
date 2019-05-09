@@ -718,13 +718,6 @@ int benchmark_all(void)
 	}
 #endif
 
-	/* Hack for scripting raw/one/many tests, only test salted formats */
-	if (!cfg_get_bool(SECTION_DEBUG, NULL, "BenchmarkMany", 0)) {
-		if (!format->params.salt_size)
-			continue;
-		format->params.benchmark_length &= ~0x500;
-	}
-
 #ifndef BENCH_BUILD
 #if defined(WITH_ASAN) || defined(WITH_UBSAN) || defined(DEBUG)
 	if (benchmark_time)
@@ -747,6 +740,13 @@ AGAIN:
 /* Silently skip formats for which we have no tests, unless forced */
 		if (!format->params.tests && format != fmt_list)
 			continue;
+
+/* Hack for scripting raw/one/many tests, only test salted formats */
+		if (!cfg_get_bool(SECTION_DEBUG, NULL, "BenchmarkMany", 0)) {
+			if (!format->params.salt_size)
+				continue;
+			format->params.benchmark_length &= ~0x500;
+		}
 
 /* Just test the encoding-aware formats if --encoding was used explicitly */
 		if (!options.default_enc && options.target_enc != ASCII &&
