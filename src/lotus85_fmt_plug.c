@@ -33,7 +33,7 @@ john_register_one(&fmt_lotus_85);
 #define FORMAT_NAME           "Lotus Notes/Domino 8.5"
 #define ALGORITHM_NAME        "8/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT     ""
-#define BENCHMARK_LENGTH      0x107
+#define BENCHMARK_LENGTH      7
 #define PLAINTEXT_LENGTH      32
 #define CIPHERTEXT_LENGTH     (LOTUS85_MAX_BLOB_SIZE * 2)
 #define BINARY_SIZE           0

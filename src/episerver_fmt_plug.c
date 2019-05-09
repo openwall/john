@@ -62,7 +62,7 @@ john_register_one(&fmt_episerver);
 #define FORMAT_TAG              "$episerver$*"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        7
+#define BENCHMARK_LENGTH        0x107
 #define BINARY_SIZE             32 /* larger of the two */
 #define BINARY_ALIGN            4
 #define SALT_SIZE               sizeof(struct custom_salt)

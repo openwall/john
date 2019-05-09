@@ -44,7 +44,7 @@ john_register_one(&fmt_postgres);
 #define FORMAT_TAG2_LEN         (sizeof(FORMAT_TAG2)-1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        32
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            MEM_ALIGN_WORD

@@ -42,7 +42,7 @@ john_register_one(&fmt_lastpass);
 #define ALGORITHM_NAME          "PBKDF2-SHA256 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x507
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)

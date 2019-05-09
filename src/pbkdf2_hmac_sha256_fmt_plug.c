@@ -43,7 +43,6 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-SHA256"
 #define FORMAT_NAME		""
-#define BENCHMARK_LENGTH        0x107
 
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
