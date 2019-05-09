@@ -112,7 +112,7 @@ JOHN_OBJS = \
 	jumbo.o john_mpi.o \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \
-	MD5_fmt.o MD5_std.o md5crypt_common.o \
+	MD5_fmt.o MD5_std.o md5crypt_common.o md5crypt_long_fmt.o \
 	BF_fmt.o BF_std.o BF_common.o \
 	scrypt_fmt.o \
 	yescrypt/yescrypt-opt.o yescrypt/yescrypt-common.o \
