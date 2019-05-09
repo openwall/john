@@ -28,7 +28,7 @@
 #endif
 
 #define FORMAT_LABEL			"md5crypt"
-#define FORMAT_NAME			"crypt(3) $1$"
+#define FORMAT_NAME			"crypt(3) $1$ (and variants)"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		7

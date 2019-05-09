@@ -74,7 +74,7 @@ JOHN_OBJS = \
 	jumbo.o john_mpi.o \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \
-	MD5_fmt.o MD5_std.o md5crypt_common.o \
+	MD5_fmt.o MD5_std.o md5crypt_common.o md5crypt_long_fmt.o \
 	BF_fmt.o BF_std.o BF_common.o \
 	scrypt_fmt.o \
 	yescrypt/yescrypt-opt.o yescrypt/yescrypt-common.o \
@@ -394,6 +394,8 @@ md5.o:	md5.c md5.h arch.h os.h os-autoconf.h autoconfig.h jumbo.h memory.h
 MD5_fmt.o:	MD5_fmt.c arch.h misc.h jumbo.h autoconfig.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h MD5_std.h formats.h params.h md5crypt_common.h os.h os-autoconf.h
 
 MD5_std.o:	MD5_std.c arch.h common.h memory.h MD5_std.h os.h os-autoconf.h autoconfig.h jumbo.h
+
+md5crypt_long_fmt.o:	md5crypt_long_fmt.c md5crypt_common.h md5.h arch.h misc.h jumbo.h autoconfig.h common.h memory.h formats.h params.h omp_autotune.h options.h list.h loader.h getopt.h john_mpi.h common-get-hash.h
 
 md_helper.o:	md_helper.c
 

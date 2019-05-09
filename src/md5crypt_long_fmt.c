@@ -2,18 +2,17 @@
  * AIX smd5 cracker for JtR. Hacked together during April of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>.
  *
- * This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com> and
- * it is hereby released to the general public under the following terms:
+ * Also supports standard md5crypt hashes (of lengths up to 125 unlike the
+ * optimized SIMD format) and now supports Apache $apr1$ hashes as well.
+ *
+ * This software is
+ * Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com>
+ * Copyright (c) 2019 magnum
+ * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
-
-#if FMT_EXTERNS_H
-extern struct fmt_main fmt_smd5;
-#elif FMT_REGISTERS_H
-john_register_one(&fmt_smd5);
-#else
 
 #include <string.h>
 
@@ -28,13 +27,16 @@ john_register_one(&fmt_smd5);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
+#include "md5crypt_common.h"
 
-#define FORMAT_LABEL            "aix-smd5"
-#define FORMAT_NAME             "AIX LPA {smd5} (modified md5crypt)"
+#define FORMAT_LABEL            "md5crypt-long"
+#define FORMAT_NAME             "crypt(3) $1$ (and variants)"
 #define FORMAT_TAG              "{smd5}"
 #define FORMAT_TAG1             "$1$"
-#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
-#define FORMAT_TAG1_LEN         (sizeof(FORMAT_TAG1)-1)
+#define FORMAT_TAG2             "$apr1$"
+#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG) - 1)
+#define FORMAT_TAG1_LEN         (sizeof(FORMAT_TAG1) - 1)
+#define FORMAT_TAG2_LEN         (sizeof(FORMAT_TAG2) - 1)
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
@@ -51,15 +53,69 @@ john_register_one(&fmt_smd5);
 #endif
 
 static struct fmt_tests smd5_tests[] = {
-	/* following hashes are AIX non-standard smd5 hashes */
+	{"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
+	{"$1$7Uu2iTBB$Y4hQl2WvrOA3LBbLDxbAf0", "12345"},
+	{"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
+	{"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
+	{"$1$$qRPK7m23GJusamGpoGLby/", ""},
+	{"$apr1$a2Jqm...$grFrwEgiQleDr0zR4Jx1b.", "15 chars is max"},
+	{"$1$$AuJCr07mI7DSew03TmBIv/", "no salt"},
+	{"$1$`!@#%^&*$E6hD76/pKTS8qToBCkux30", "invalid salt"},
+	{"$1$12345678$xek.CpjQUVgdf/P2N9KQf/", ""},
+	{"$1$1234$BdIMOAWFOV2AQlLsrN/Sw.", "1234"},
+	{"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
+	{"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
+	{"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
+	{"$1$bb$19smCEBG0Q1pVil0/HqK./", "aaaaa"},
+	{"$1$coin$rebm0t9KJ56mgGWJF5o5M0", "lapin"},
+	{"$1$pouet$/Ecz/vyk.zCYvrr6wB78h0", "canard"},
+	{"$1$test2$02MCIATVoxq3IhgK6XRkb1", "test1"},
+	{"$1$aussi$X67z3kXsWo92F15uChx1H1", "felicie"},
+	{"$1$boire$gf.YM2y3InYEu9.NbVr.v0", "manger"},
+	{"$1$bas$qvkmmWnVHRCSv/6LQ1doH/", "haut"},
+	{"$1$gauche$EPvd6LZlrgb0MMFPxUrJN1", "droite"},
+	/* The following 3 hashes are AIX non-standard smd5 hashes */
 	{"{smd5}s8/xSJ/v$uGam4GB8hOjTLQqvBfxJ2/", "password"},
 	{"{smd5}alRJaSLb$aKM3H1.h1ycXl5GEVDH1e1", "aixsucks?"},
 	{"{smd5}eLB0QWeS$Eg.YfWY8clZuCxF0xNrKg.", "0123456789ABCDE"},
-	/* following hashes are AIX standard smd5 hashes (with corrected tag)
-	 * lpa_options = std_hash=true */
+	/* The following 3 hashes are AIX w/ lpa_options = std_hash=true */
 	{"$1$JVDbGx8K$T9h8HK4LZxeLPMTAxCfpc1", "password"},
 	{"$1$1Cu6fEvv$42kuaJ5fMEqyVStPuFG040", "0123456789ABCDE"},
 	{"$1$ql5x.xXL$vYVDhExol2xUBBpERRWcn1", "jtr>hashcat"},
+	{"$1$27iyq7Ya$miN09fW1Scj0DHVNyewoU/", ""},
+	{"$1$84Othc1n$v1cuReaa5lRdGuHaOa76n0", "a"},
+	{"$1$4zq0BsCR$U2ua9WZtDEhzy4gFSiLxN1", "aa"},
+	{"$1$DKwjKWxp$PY6PdlPZsXjOppPDoFOz4.", "aaa"},
+	{"$1$OKDV6ppN$viTVmH48bSePiCrMvXT/./", "aaaa"},
+	{"$1$QEWsCY0O$xrTTMKTepiHMp7Oxgz0pX/", "aaaaa"},
+	{"$1$5dfdk2dF$XiJBPNrfKcCgdQ/kcoB40/", "aaaaaa"},
+	{"$1$Ps6A1Cy6$WsvLg9cQhm9JU0rXkLEtz.", "aaaaaaa"},
+	{"$1$9IK7nZ4M$4nx7Mdj05KGPJX/mZaDrh.", "aaaaaaaa"},
+	{"$1$l3pNTqwT$GAc.dcRaxCvC20CFGCjp4/", "aaaaaaaaa"},
+	{"$1$jSAARhJR$6daQ/ekjAL0MgOUgGJyp10", "aaaaaaaaaa"},
+	{"$1$wk3Xwqqg$2AtdiucwJvJgbaVT1jWpb0", "aaaaaaaaaaa"},
+	{"$1$G6Fn69Ei$d7AKJUOIdz/gO4Utc0TQP1", "aaaaaaaaaaaa"},
+	{"$1$A7XJ7lGK$W5jTnH/4lW4XwZ.6F7n1N.", "aaaaaaaaaaaaa"},
+	{"$1$Rcm46RfA$LfdIK/OP16yHzMYHSlx/B.", "aaaaaaaaaaaaaa"},
+	{"$1$4bCSSJMN$TcYKTsukD4SFJE1n4MwMZ/", "aaaaaaaaaaaaaaa"},
+	{"$1$mJxBkkl8$u7OHfWCPmNxvf0um7hH89.", "aaaaaaaaaaaaaaaa"},
+	{"$1$Ub1gBUt4$TNaLxU7Pq5mk/MiDEb60b/", "aaaaaaaaaaaaaaaaa"},
+	{"$1$8ot7QScR$x.p4vjIgdFxxS83x29PkJ0", "aaaaaaaaaaaaaaaaaa"},
+	{"$1$wRi4OjD3$eJjKD2AwLMWfOTRYA30zn.", "aaaaaaaaaaaaaaaaaaa"},
+	{"$1$lmektrsg$2KSRY4EUFzsYNMg80fG4/0", "aaaaaaaaaaaaaaaaaaaa"},
+	{"$1$tgVBKBmE$YRvzsi7qHP2MC1Atg8VCV.", "aaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$oTsk88YC$Eh435T1BQzmjQekfqkHof/", "aaaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$ykxSZEfP$hJrFeGOFk049L.94Mgggj/", "aaaaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$LBK4p5tD$5/gAIx8/7hpTVwDC/.KQv/", "aaaaaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$fkEasaUI$G7CelOWHkol2nVHN8XQP40", "aaaaaaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$gRevVzeY$eMMQrsl5OHL5dP1p/ktJc/", "aaaaaaaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$164TNEjj$ppoV6Ju6Vu63j1OlM4zit/", "aaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$ErPmhjp2$lZZstb2M455Xhk50eeH4i/", "aaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$NUssS5fT$QaS4Ywt0IwzxbE0FAGnXn0", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$NxlTyiJ7$gxkXTEJdeTzY8P6tqKmcz.", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$Cmy9x7gW$kamvHI42Kh1CH4Shy6g6S/", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$IsuapfCX$4Yq0Adq5nNZgl0LwbSl5Y0", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+	{"$1$rSZfNcKX$N4XPvGrfhKsyoEcRSaqmG0", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
 	{NULL}
 };
 
@@ -87,36 +143,6 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	char *p;
-	char *ctcopy;
-	char *keeptr;
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0 &&
-		strncmp(ciphertext, FORMAT_TAG1, FORMAT_TAG1_LEN))
-		return 0;
-
-	ctcopy = strdup(ciphertext);
-	keeptr = ctcopy;
-
-	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
-		ctcopy += FORMAT_TAG_LEN;
-	else
-		ctcopy += FORMAT_TAG1_LEN;
-
-	if ((p = strtokm(ctcopy, "$")) == NULL)	/* salt */
-		goto err;
-	if (strlen(p) != 8)
-		goto err;
-	if ((p = strtokm(NULL, "$")) == NULL)	/* hash */
-		goto err;
-	MEM_FREE(keeptr);
-	return 1;
-err:
-	MEM_FREE(keeptr);
-	return 0;
-}
-
 static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
@@ -130,9 +156,12 @@ static void *get_salt(char *ciphertext)
 		ctcopy += FORMAT_TAG_LEN;
 		cs.is_standard = 0;
 	}
-	else {
+	else if (!strncmp(ciphertext, FORMAT_TAG1, FORMAT_TAG1_LEN)) {
 		ctcopy += FORMAT_TAG1_LEN;
 		cs.is_standard = 1;
+	} else {
+		ctcopy += FORMAT_TAG2_LEN;
+		cs.is_standard = 2;
 	}
 
 	p = strtokm(ctcopy, "$");
@@ -166,8 +195,10 @@ static void* get_binary(char *ciphertext)
 
 	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		pos = ciphertext + FORMAT_TAG_LEN;
-	else
+	else if (!strncmp(ciphertext, FORMAT_TAG1, FORMAT_TAG1_LEN))
 		pos = ciphertext + FORMAT_TAG1_LEN;
+	else
+		pos = ciphertext + FORMAT_TAG2_LEN;
 
 	while (*pos++ != '$');
 
@@ -205,8 +236,8 @@ static void set_salt(void *salt)
 
 static void crypt_md5(char *pw, char *salt, int is_standard, char *passwd)
 {
-#define magic FORMAT_TAG1
-#define magiclen FORMAT_TAG1_LEN
+	const char *magic = (is_standard - 1) ? FORMAT_TAG2 : FORMAT_TAG1;
+	const int magiclen = (is_standard - 1) ? FORMAT_TAG2_LEN : FORMAT_TAG1_LEN;
 	char *sp, *ep;
 	unsigned char final[16];
 	int sl, pl, i, j, k;
@@ -216,7 +247,7 @@ static void crypt_md5(char *pw, char *salt, int is_standard, char *passwd)
 	sp = salt;
 
 	/* If it starts with the magic string, then skip that */
-	if (!strncmp(sp, magic, magiclen))
+	if (is_standard && !strncmp(sp, magic, magiclen))
 		sp += magiclen;
 
 	/* It stops at the first '$', max 8 chars */
@@ -363,14 +394,14 @@ struct fmt_main fmt_smd5 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ FORMAT_TAG, FORMAT_TAG1 },
+		{ FORMAT_TAG, FORMAT_TAG1, FORMAT_TAG2 },
 		smd5_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
 		fmt_default_prepare,
-		valid,
+		cryptmd5_common_valid,
 		fmt_default_split,
 		get_binary,
 		get_salt,
@@ -401,5 +432,3 @@ struct fmt_main fmt_smd5 = {
 		cmp_exact
 	}
 };
-
-#endif /* plugin stanza */
