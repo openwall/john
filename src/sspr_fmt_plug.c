@@ -38,7 +38,7 @@ john_register_one(&fmt_sspr);
 #define FORMAT_LABEL            "sspr"
 #define ALGORITHM_NAME          "MD5/SHA1/SHA256/SHA512 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x507
+#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)

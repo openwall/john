@@ -46,7 +46,7 @@ john_register_one(&fmt_blockchain);
 #define ALGORITHM_NAME          "PBKDF2-SHA1 AES 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       " (v2 x5000)"
-#define BENCHMARK_LENGTH        0x507
+#define BENCHMARK_LENGTH        0x507 // Iteration count differs
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define PLAINTEXT_LENGTH        125
