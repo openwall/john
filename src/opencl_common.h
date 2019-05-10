@@ -31,6 +31,10 @@
 #include <CL/cl_ext.h>
 #endif
 
+#if !CL_VERSION_1_2
+#error We need minimum OpenCL 1.2 to build with OpenCL support. The headers currently used does not comply.
+#endif
+
 #include "gpu_common.h"
 #include "arch.h"
 #include "misc.h"
