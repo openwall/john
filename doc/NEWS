@@ -39,13 +39,13 @@ These are old (introduced in 2011-2012), mostly ex-Bitcoin-miner boards with fou
 
 - Full Unicode/codepage support even for OpenCL - most notably for formats like NT and LM. [magnum; 2014-2019]
 
-- On-device mask mode (and compare) implemented in nearly all OpenCL formats that need device-side mask acceleration.  Unlike most (maybe all) other crackers, we can do full speed cracking (or e.g. hybrid wordlist + mask) beyond ASCII, e.g. cracking Russian or Greek NT hashes just as easy as "Latin-1" - and without any significant speed penalty. [Claudio, magnum; 2015-2019]
+- On-device mask mode (and compare) implemented in nearly all OpenCL formats that need device-side mask acceleration.  Unlike most (maybe all) other crackers, we can do full speed cracking (or e.g. hybrid wordlist + mask) beyond ASCII, e.g. cracking Russian or Greek NT hashes just as easy as "Latin-1" - and without any significant speed penalty. [Sayantan, Claudio, magnum; 2015-2019]
 
-- Nearly all OpenCL formats now do all post-processing on GPU, so don't need more than one CPU core.  Post-processing on CPU is kept where it presumably wouldn't run well on a GPU (e.g. RAR or ZIP decompression) but for them we often have excellent early-reject - often even on device-side. [magnum; 2018-2019]
+- Nearly all OpenCL formats now do all post-processing on GPU, so don't need more than one CPU core.  Post-processing on CPU is kept where it presumably wouldn't run well on a GPU (e.g. RAR or ZIP decompression) but for them we often have excellent early-reject - often even on device-side. [magnum, Dhiru; 2018-2019]
 
-- Many improvements to mask mode, including incrementing lengths with stretching of masks (so you can say e.g. "-mask=?a -min-len=5 -max-len=7". [magnum; 2018]
+- Many improvements to mask mode, including incrementing lengths with stretching of masks (so you can say e.g. "-mask=?a -min-len=5 -max-len=7". [Sayantan, magnum; 2015, 2018]
 
-- Uppercase ?W in mask mode, which is same as ?w (takes another cracking mode's output "word" for construction of a hybrid mode) but toggles case of all characters in that "word". [magnum; 2015]
+- Uppercase ?W in mask mode, which is same as ?w (takes another cracking mode's output "word" for construction of a hybrid mode) but toggles case of all characters in that "word". [Sayantan; 2015]
 
 - Stacking of cracking modes improved.  Mask can now be stacked after any other cracking mode.  The experimental "--regex" mode can be stacked before mask mode and after any other cracking mode. [magnum; 2015]
 
