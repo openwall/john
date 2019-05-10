@@ -87,7 +87,7 @@ These are old (introduced in 2011-2012), mostly ex-Bitcoin-miner boards with fou
 
 - More efficient session interrupt/restore with many salts.  Previously, we'd retest the current set of buffered candidate passwords against all salts; now we (re)test them only against previously untouched salts.  This matters a lot when the candidate password buffers are large (e.g., for a GPU), target hash type is slow, and different salt count is large. [JimF; 2016-2017]
 
-- Hybrid external mode added.  This means external mode can produce lots of candidates from a single base word. [magnum; 2016]
+- Hybrid external mode added.  This means external mode can produce lots of candidates from a single base word. [JimF; 2016]
 
 - A negative figure for "--max-run-time=N" will now abort after N seconds of not cracking anything. [magnum; 2016]
 
