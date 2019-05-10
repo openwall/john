@@ -1,6 +1,6 @@
 The following changes were made between 1.8.0-jumbo-1 and 1.9-0-jumbo-1:
 
-magnum (2592):
+magnum (2608):
 	inc.c: Instead of sending a "" to crk_process_key(), use a safe static
 	  buffer of PLAINTEXT_BUFFER_SIZE. No problem seen here but in other
 	  places with similar code.
@@ -4247,6 +4247,26 @@ magnum (2592):
 	External mode: Fix a problem with UTF-32 -> UTF-8 length, so we behave
 	  like the comments in eg. dumb32.conf says we do.
 	Suppress "Many salts" benchmarks where appropriate. Closes #3795.
+	Update CHANGES-jumbo-git and CREDITS-jumbo. See #1911.
+	Just demonstrating why even I should always go through bot checks :-/
+	Bail out with message if running legacy benchmarks with --mask.
+	Fix legacy builds, see #3875
+	Avoid a problem casting size_t to negative and then to off_t (#3904)
+	Bugfix (again) for UTF-32 vs. UTF-8 length issues with external mode.
+	  This needs to be fully reworked post release of 1.9.0-Jumbo-1, it's
+	  still messy and we've got catch-22's.
+	john.c: Avoid printing many of same error message under MPI.
+	Add the debug code for #3795 as a config option.
+	Move bench debug code to correct position
+	Fix and complete one/many salts debugging
+	Unsplit test vectors that were split through use of backslashes inside
+	  the string constant. See #3896.
+	Fix one/many vs. raw benchmark output for a number of formats (#3906)
+	Repurpose and refactor aix-smd5 to md5crypt-long. Closes #3872.
+	Drop doc/BUGS
+	Move NEWS from GitHub wiki to doc/NEWS
+	Check OpenCL headers version and bail out if 1.2 is not supported. See
+	  #3918.
 
 JimF (1545):
 	configure: removed many function checks (for #910)
@@ -8056,7 +8076,7 @@ Kai Zhao (84):
 	Detect FMT_SPLIT_UNIFIES_CASE error
 	Change to 'FAILED' when there is a FMT_SPLIT warning or error
 
-Solar (62):
+Solar (68):
 	Fix a bug in truecrypt for non-x86 archs. Closes #912.
 	Early (contest) version of AVX2 support for DES.
 	Fix a compile error in dynamic_compiler_plug.c
@@ -8129,6 +8149,14 @@ Solar (62):
 	aix-smd5: Trivial optimizations (#3876)
 	Workaround gcc 9 change for const vs. OpenMP shared() (#3884)
 	eapmd5tojohn: Use proper signal handler prototypes
+	[skip ci] Add usage examples to doc/MASK
+	ztex: suppress "Many salts" benchmarks (#3899)
+	Pass correct salt into crypt_all() in benchmarks (#3898)
+	[skip ci] Update README*
+	Fix "make -f Makefile.legacy generic" again, was broken by #3894
+	  (#3914)
+	Update NEWS: mostly adjust magnum's added credits/years for style
+	  (#3913)
 
 Apingis (58):
 	descrypt-ztex format; includes library for operating ZTEX hardware and
