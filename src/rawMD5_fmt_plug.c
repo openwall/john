@@ -25,7 +25,6 @@ john_register_one(&fmt_rawMD5);
 #endif
 
 #include "md5.h"
-#include "misc.h"	// error()
 #include "common.h"
 #include "johnswap.h"
 #include "formats.h"
@@ -54,7 +53,7 @@ john_register_one(&fmt_rawMD5);
 #define CIPHERTEXT_LENGTH		32
 
 #define DIGEST_SIZE				16
-#define BINARY_SIZE				16
+#define BINARY_SIZE				DIGEST_SIZE
 #define BINARY_ALIGN			4
 #define SALT_SIZE				0
 #define SALT_ALIGN				1
@@ -248,7 +247,6 @@ static char *source(char *source, void *binary)
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
-#define SSEi_REVERSE_STEPS 0
 #endif
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -277,11 +275,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x, y;
-#if 1
 	const unsigned int c = (count + SIMD_COEF_32 - 1) / SIMD_COEF_32;
-#else
-	const unsigned int c = SIMD_PARA_MD5;
-#endif
 	for (y = 0; y < c; y++)
 		for (x = 0; x < SIMD_COEF_32; x++)
 		{
@@ -292,9 +286,7 @@ static int cmp_all(void *binary, int count) {
 #else
 	unsigned int index;
 
-#if 1
 	for (index = 0; index < count; index++)
-#endif
 		if (!memcmp(binary, crypt_key[index], BINARY_SIZE))
 			return 1;
 	return 0;

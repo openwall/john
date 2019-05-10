@@ -20,37 +20,24 @@ john_register_one(&fmt_rawMD4);
 
 #include "arch.h"
 
-#include "md4.h"
-#include "common.h"
-#include "johnswap.h"
-#include "formats.h"
 
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
-
-//#undef SIMD_COEF_32
-//#undef SIMD_PARA_MD4
-
-/*
- * Only effective for SIMD.
- * Undef to disable reversing steps for benchmarking.
- */
-#define REVERSE_STEPS
-
 #ifdef _OPENMP
-#ifdef SIMD_COEF_32
-#ifndef OMP_SCALE
-#define OMP_SCALE               1024
-#endif
-#else
-#ifndef OMP_SCALE
-#define OMP_SCALE				2048
-#endif
-#endif
 #include <omp.h>
 #endif
+
+#include "md4.h"
+#include "common.h"
+#include "johnswap.h"
+#include "formats.h"
+#define REVERSE_STEPS
 #include "simd-intrinsics.h"
+
+#ifndef OMP_SCALE
+#define OMP_SCALE				16
+#endif
 
 #define FORMAT_LABEL			"Raw-MD4"
 #define FORMAT_NAME			""
@@ -104,12 +91,12 @@ static struct fmt_tests tests[] = {
 #ifdef SIMD_COEF_32
 #define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
-#define MAX_KEYS_PER_CRYPT		NBKEYS
+#define MAX_KEYS_PER_CRYPT		(NBKEYS * 32)
 #include "common-simd-getpos.h"
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		1
+#define MAX_KEYS_PER_CRYPT		256
 #endif
 
 #ifdef SIMD_COEF_32
@@ -123,9 +110,7 @@ static uint32_t (*crypt_key)[4];
 
 static void init(struct fmt_main *self)
 {
-#ifdef _OPENMP
 	omp_autotune(self, OMP_SCALE);
-#endif
 #ifndef SIMD_COEF_32
 	saved_len = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_len));
@@ -166,13 +151,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
+	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1] = FORMAT_TAG;
 
 	if (ciphertext[0] == '$' &&
 			!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		ciphertext += TAG_LENGTH;
 
-	memcpy(out, FORMAT_TAG, TAG_LENGTH);
 	memcpylwr(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
 	return out;
 }
@@ -246,14 +230,13 @@ static char *source(char *source, void *binary)
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
-#define SSEi_REVERSE_STEPS 0
 #endif
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
-	int loops = (count + MAX_KEYS_PER_CRYPT - 1) / MAX_KEYS_PER_CRYPT;
+	int loops = (count + MIN_KEYS_PER_CRYPT - 1) / MIN_KEYS_PER_CRYPT;
 
 #ifdef _OPENMP
 #pragma omp parallel for
@@ -275,17 +258,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
 	unsigned int x, y;
-#ifdef _OPENMP
 	const unsigned int c = (count + SIMD_COEF_32 - 1) / SIMD_COEF_32;
-#else
-	const unsigned int c = SIMD_PARA_MD4;
-#endif
-	for (y = 0; y < c; y++) {
-		for (x = 0; x < SIMD_COEF_32; x++) {
+	for (y = 0; y < c; y++)
+		for (x = 0; x < SIMD_COEF_32; x++)
+		{
 			if ( ((uint32_t*)binary)[1] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x+SIMD_COEF_32] )
 				return 1;
 		}
-	}
 
 	return 0;
 #else
@@ -306,7 +285,7 @@ static int cmp_one(void *binary, int index)
 
 	return ((uint32_t*)binary)[1] == ((uint32_t*)crypt_key)[x+y*SIMD_COEF_32*4+SIMD_COEF_32];
 #else
-	return !memcmp(binary, crypt_key, BINARY_SIZE);
+	return !memcmp(binary, crypt_key[index], DIGEST_SIZE);
 #endif
 }
 
@@ -343,13 +322,13 @@ static int get_hash_4(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & P
 static int get_hash_5(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_5; }
 static int get_hash_6(int index) { return ((uint32_t*)crypt_key)[SIMD_INDEX] & PH_MASK_6; }
 #else
-static int get_hash_0(int index) { return ((uint32_t*)crypt_key)[1] & PH_MASK_0; }
-static int get_hash_1(int index) { return ((uint32_t*)crypt_key)[1] & PH_MASK_1; }
-static int get_hash_2(int index) { return ((uint32_t*)crypt_key)[1] & PH_MASK_2; }
-static int get_hash_3(int index) { return ((uint32_t*)crypt_key)[1] & PH_MASK_3; }
-static int get_hash_4(int index) { return ((uint32_t*)crypt_key)[1] & PH_MASK_4; }
-static int get_hash_5(int index) { return ((uint32_t*)crypt_key)[1] & PH_MASK_5; }
-static int get_hash_6(int index) { return ((uint32_t*)crypt_key)[1] & PH_MASK_6; }
+static int get_hash_0(int index) { return ((uint32_t*)crypt_key[index])[1] & PH_MASK_0; }
+static int get_hash_1(int index) { return ((uint32_t*)crypt_key[index])[1] & PH_MASK_1; }
+static int get_hash_2(int index) { return ((uint32_t*)crypt_key[index])[1] & PH_MASK_2; }
+static int get_hash_3(int index) { return ((uint32_t*)crypt_key[index])[1] & PH_MASK_3; }
+static int get_hash_4(int index) { return ((uint32_t*)crypt_key[index])[1] & PH_MASK_4; }
+static int get_hash_5(int index) { return ((uint32_t*)crypt_key[index])[1] & PH_MASK_5; }
+static int get_hash_6(int index) { return ((uint32_t*)crypt_key[index])[1] & PH_MASK_6; }
 #endif
 
 static int binary_hash_0(void * binary) { return ((uint32_t*)binary)[1] & PH_MASK_0; }
