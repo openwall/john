@@ -47,7 +47,7 @@ These are old (introduced in 2011-2012), mostly ex-Bitcoin-miner boards with fou
 
 - Uppercase ?W in mask mode, which is same as ?w (takes another cracking mode's output "word" for construction of a hybrid mode) but toggles case of all characters in that "word". [Sayantan; 2015]
 
-- Stacking of cracking modes improved.  Mask can now be stacked after any other cracking mode.  The experimental "--regex" mode can be stacked before mask mode and after any other cracking mode. [magnum; 2015]
+- Stacking of cracking modes improved.  Mask can now be stacked after any other cracking mode.  The experimental "--regex" mode can be stacked before mask mode and after any other cracking mode. [magnum, JimF; 2015-2016]
 
 - Rules stacking.  The new option "--rules-stack" can add rules to ANY cracking mode, or after the normal "--rules" option (so you get rules x rules). [magnum; 2018]
 
