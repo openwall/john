@@ -1,6 +1,6 @@
 The following changes were made between 1.8.0-jumbo-1 and 1.9-0-jumbo-1:
 
-magnum (2608):
+magnum (2614):
 	inc.c: Instead of sending a "" to crk_process_key(), use a safe static
 	  buffer of PLAINTEXT_BUFFER_SIZE. No problem seen here but in other
 	  places with similar code.
@@ -4267,6 +4267,14 @@ magnum (2608):
 	Move NEWS from GitHub wiki to doc/NEWS
 	Check OpenCL headers version and bail out if 1.2 is not supported. See
 	  #3918.
+	Update CHANGES-jumbo.git and CREDITS-jumbo, see #1911
+	Re-unify raw-md4 and raw_md5 formats, fixing bugs in the former.
+	  Closes #3916.
+	Fold long lines in doc/NEWS
+	Ensure we never benchmark less than two salts for "Many salts".
+	  (#3922)
+	Save the script used for #3795 under unused
+	Save my template bisect script under unused
 
 JimF (1545):
 	configure: removed many function checks (for #910)
