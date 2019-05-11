@@ -608,14 +608,12 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #else
 	end_real = times(&buf);
 #endif
-	if (end_real == start_real) end_real++;
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 	end_virtual = end_real;
 #else
 	end_virtual = buf.tms_utime + buf.tms_stime;
 	end_virtual += buf.tms_cutime + buf.tms_cstime;
-	if (end_virtual == start_virtual) end_virtual++;
 #endif
 
 	results->real = end_real - start_real;
@@ -634,6 +632,11 @@ char *benchmark_format(struct fmt_main *format, int salts,
 
 void benchmark_cps(uint64_t crypts, clock_t time, char *buffer)
 {
+	if (!time) {
+		strcpy(buffer, "UNKNOWN");
+		return;
+	}
+
 	unsigned int cps = crypts * clk_tck / time;
 	uint64_t cpsl = crypts * clk_tck / time;
 
@@ -957,12 +960,13 @@ AGAIN:
 		benchmark_cps(results_m.crypts, results_m.virtual, s_virtual);
 		if (john_main_process && benchmark_time) {
 #if !defined(__DJGPP__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
-			printf("%s:\t%s c/s real, %s c/s virtual%s\n",
-			       msg_m, s_real, s_virtual, s_gpu);
-#else
-			printf("%s:\t%s c/s%s\n",
-			       msg_m, s_real, s_gpu);
+			if (results_m.virtual)
+				printf("%s:\t%s c/s real, %s c/s virtual%s\n",
+				       msg_m, s_real, s_virtual, s_gpu);
+			else
 #endif
+				printf("%s:\t%s c/s%s\n",
+				       msg_m, s_real, s_gpu);
 		}
 #if HAVE_OPENCL
 		}
@@ -980,12 +984,13 @@ AGAIN:
 
 		if (john_main_process && benchmark_time) {
 #if !defined(__DJGPP__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
-			printf("%s:\t%s c/s real, %s c/s virtual\n\n",
-			       msg_1, s_real, s_virtual);
-#else
-			printf("%s:\t%s c/s\n\n",
-			       msg_1, s_real);
+			if (results_1.virtual)
+				printf("%s:\t%s c/s real, %s c/s virtual\n\n",
+				       msg_1, s_real, s_virtual);
+			else
 #endif
+				printf("%s:\t%s c/s\n\n",
+				       msg_1, s_real);
 		}
 
 next:
