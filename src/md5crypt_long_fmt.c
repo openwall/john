@@ -8,6 +8,7 @@
  * This software is
  * Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com>
  * Copyright (c) 2019 magnum
+ * Copyright (c) 2019 Solar Designer
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -52,7 +53,7 @@
 #define OMP_SCALE               2 // Tuned w/ MKPC for core i7
 #endif
 
-static struct fmt_tests smd5_tests[] = {
+static struct fmt_tests tests[] = {
 	{"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
 	{"$1$7Uu2iTBB$Y4hQl2WvrOA3LBbLDxbAf0", "12345"},
 	{"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
@@ -240,8 +241,12 @@ static void crypt_md5(char *pw, char *salt, int is_standard, char *passwd)
 	const int magiclen = (is_standard - 1) ? FORMAT_TAG2_LEN : FORMAT_TAG1_LEN;
 	char *sp, *ep;
 	unsigned char final[16];
-	int sl, pl, i, j, k;
-	MD5_CTX ctx, ctx1;
+	int sl, pl, i, j;
+	MD5_CTX ctx;
+
+	int pwlen = strlen(pw);
+	if (pwlen > PLAINTEXT_LENGTH)
+		pwlen = PLAINTEXT_LENGTH;
 
 	/* Refine the Salt first */
 	sp = salt;
@@ -258,9 +263,14 @@ static void crypt_md5(char *pw, char *salt, int is_standard, char *passwd)
 	sl = ep - sp;
 
 	MD5_Init(&ctx);
+	MD5_Update(&ctx, pw, pwlen);
+	MD5_Update(&ctx, sp, sl);
+	MD5_Update(&ctx, pw, pwlen);
+	MD5_Final(final, &ctx);
+
+	MD5_Init(&ctx);
 
 	/* The password first, since that is what is most unknown */
-	int pwlen = strlen(pw);
 	MD5_Update(&ctx, pw, pwlen);
 
 	/* Then our magic string */
@@ -270,58 +280,59 @@ static void crypt_md5(char *pw, char *salt, int is_standard, char *passwd)
 	/* Then the raw salt */
 	MD5_Update(&ctx, sp, sl);
 
-	/* Then just as many characters of the MD5_(pw,salt,pw) */
-	MD5_Init(&ctx1);
-	MD5_Update(&ctx1, pw, pwlen);
-	MD5_Update(&ctx1, sp, sl);
-	MD5_Update(&ctx1, pw, pwlen);
-
-	MD5_Final(final,&ctx1);
-
+	/* Then something really weird... */
 	for (pl = pwlen; pl > 0; pl -= 16)
 		MD5_Update(&ctx, final, (pl > 16) ? 16 : pl);
 
-	/* Then something really weird... */
-	for (i = pwlen; i; i >>= 1)
+	for (i = pwlen; i; i >>= 1) {
 		if (i & 1)
 			MD5_Update(&ctx, "", 1);
 		else
 			MD5_Update(&ctx, pw, 1);
+	}
 
-	MD5_Final(final,&ctx);
+	MD5_Final(final, &ctx);
 
-	/*
-	 * and now, just to make sure things don't run too fast
-	 * On a 60 Mhz Pentium this takes 34 msec, so you would
-	 * need 30 seconds to build a 1000 entry dictionary...
-	 */
-	i = 500; j = k = 1;
+	unsigned char buf[8 * 2 + PLAINTEXT_LENGTH * 3];
+	memcpy(buf, sp, sl);
+	memcpy(&buf[sl], pw, pwlen);
+	memcpy(&buf[sl + pwlen], pw, pwlen);
+	memcpy(&buf[sl + (pwlen << 1)], sp, sl);
+	memcpy(&buf[sl + (pwlen << 1) + sl], pw, pwlen);
+
+	unsigned char *bufp[6];
+	unsigned int bufl[6];
+	bufp[0] = &buf[sl];
+	bufl[0] = pwlen;
+	bufp[1] = bufp[0];
+	bufl[1] = pwlen << 1;
+	bufp[2] = buf;
+	bufl[2] = sl + pwlen;
+	bufp[3] = bufp[2];
+	bufl[3] = bufl[2] + pwlen;
+	bufp[4] = &buf[sl + pwlen];
+	bufl[4] = bufl[2];
+	bufp[5] = bufp[4];
+	bufl[5] = bufl[4] + pwlen;
+
+	static const uint8_t map[42] = {
+		0, 5, 3, 1, 3, 5, 1, 4, 3, 1, 3, 5, 1, 5, 2, 1, 3, 5, 1, 5, 3,
+		0, 3, 5, 1, 5, 3, 1, 2, 5, 1, 5, 3, 1, 3, 4, 1, 5, 3, 1, 3, 5
+	};
+
+	i = 500; j = 0;
 	do {
-		MD5_Init(&ctx1);
-		MD5_Update(&ctx1, final, 16);
-		if (--j)
-			MD5_Update(&ctx1, sp, sl);
-		else
-			j = 3;
-		if (--k)
-			MD5_Update(&ctx1, pw, pwlen);
-		else
-			k = 7;
-		MD5_Update(&ctx1, pw, pwlen);
-		MD5_Final(final,&ctx1);
+		MD5_Init(&ctx);
+		MD5_Update(&ctx, final, 16);
+		MD5_Update(&ctx, bufp[map[j]], bufl[map[j]]);
+		MD5_Final(final, &ctx);
 
-		MD5_Init(&ctx1);
-		MD5_Update(&ctx1, pw, pwlen);
-		if (--j)
-			MD5_Update(&ctx1, sp, sl);
-		else
-			j = 3;
-		if (--k)
-			MD5_Update(&ctx1, pw, pwlen);
-		else
-			k = 7;
-		MD5_Update(&ctx1, final, 16);
-		MD5_Final(final, &ctx1);
+		MD5_Init(&ctx);
+		MD5_Update(&ctx, bufp[map[j + 1]], bufl[map[j + 1]]);
+		if ((j += 2) >= 42)
+			j = 0;
+		MD5_Update(&ctx, final, 16);
+		MD5_Final(final, &ctx);
 	} while (--i);
 
 	memcpy(passwd, final, 16);
@@ -362,7 +373,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void smd5_set_key(char *key, int index)
+static void md5crypt_long_set_key(char *key, int index)
 {
 	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
@@ -377,7 +388,7 @@ static int salt_hash(void *salt)
 	return *(unsigned int*)salt & (SALT_HASH_SIZE - 1);
 }
 
-struct fmt_main fmt_smd5 = {
+struct fmt_main fmt_md5crypt_long = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -395,7 +406,7 @@ struct fmt_main fmt_smd5 = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
 		{ FORMAT_TAG, FORMAT_TAG1, FORMAT_TAG2 },
-		smd5_tests
+		tests
 	}, {
 		init,
 		done,
@@ -419,7 +430,7 @@ struct fmt_main fmt_smd5 = {
 		salt_hash,
 		NULL,
 		set_salt,
-		smd5_set_key,
+		md5crypt_long_set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
