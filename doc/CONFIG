@@ -220,7 +220,7 @@ point on, the john-local.conf file is the users file. The version control
 system will not touch it, and configure will not touch it again.
 
 
-	Multiple .pot files (new addition in 1.8.0-jumbo-2)
+	Multiple .pot files (new addition in 1.9.0-jumbo-1).
 
 This new config list section allows john to read additional .pot files
 when loading hashes.
@@ -232,8 +232,8 @@ someother.pot
 mylast.pot
 
 These additional .pot files will be used to scrub off candidates which
-were already found, but which are not in the .pot file we want john to
-write to. Names of files that does not exist will be silently ignored.
+were already found, but which are not in the .pot file we want John to
+write to.  Names of files that do not exist will be silently ignored.
 
 
 	Defining an external mode.
