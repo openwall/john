@@ -40,10 +40,10 @@ john_register_one(&fmt_opencl_ab);
 #define MAX_KEYS_PER_CRYPT      1
 
 #define BINARY_SIZE             0
-#define BINARY_ALIGN            MEM_ALIGN_WORD
+#define BINARY_ALIGN            1
 #define PLAINTEXT_LENGTH        64
 #define SALT_SIZE               sizeof(*cur_salt)
-#define SALT_ALIGN              MEM_ALIGN_WORD
+#define SALT_ALIGN              sizeof(uint32_t)
 
 typedef struct {
 	unsigned int cracked;
