@@ -186,7 +186,9 @@ void clk_tck_init(void)
 {
 	if (clk_tck) return;
 
-#if defined(_SC_CLK_TCK) || !defined(CLK_TCK)
+#if defined (__MINGW32__) || defined (_MSC_VER)
+	clk_tck = CLOCKS_PER_SEC;
+#elif defined(_SC_CLK_TCK) || !defined(CLK_TCK)
 	clk_tck = sysconf(_SC_CLK_TCK);
 #else
 	clk_tck = CLK_TCK;

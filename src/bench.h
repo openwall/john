@@ -37,7 +37,7 @@ struct bench_results {
 
 /*
  * Clock ticks per second - either as obtained via sysconf(_SC_CLK_TCK)
- * or the constant CLK_TCK.
+ * or the constant CLK_TCK or (MinGW/MVC) CLOCKS_PER_SEC
  */
 extern long clk_tck;
 
