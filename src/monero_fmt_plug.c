@@ -48,7 +48,7 @@ john_register_one(&fmt_monero);
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              sizeof(uint64_t)
+#define SALT_ALIGN              sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 

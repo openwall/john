@@ -50,7 +50,7 @@ john_register_one(&fmt_ab);
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              sizeof(uint64_t)
+#define SALT_ALIGN              sizeof(uint32_t)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA1 * 4)
