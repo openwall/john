@@ -57,7 +57,7 @@ OMPFLAGS =
 #ICCOMPFLAGS = -openmp
 
 # This should be commented out in Git but active in release tarballs
-#RELEASE_BLD = -DJTR_RELEASE_BUILD
+RELEASE_BLD = -DJTR_RELEASE_BUILD
 
 # Try to auto-detect GMP libs. The grep is needed in case some of the
 # paths does not exist, because find will return false even though finding a
