@@ -91,7 +91,7 @@ extern "C" {
     size_t   buflen;
     uint8_t  last_node;
   } blake2b_state;
-#if !defined(__SSE2__) && !defined(__SSE4_1__) && !defined(__XOP__)
+#if defined(JOHN_NO_SIMD) || (!defined(__SSE2__) && !defined(__SSE4_1__) && !defined(__XOP__))
   typedef struct __blake2sp_state
 #else
   JTR_ALIGN( 64 ) typedef struct __blake2sp_state
@@ -103,7 +103,7 @@ extern "C" {
     size_t  buflen;
   } blake2sp_state;
 
-#if !defined(__SSE2__) && !defined(__SSE4_1__) && !defined(__XOP__)
+#if defined(JOHN_NO_SIMD) || (!defined(__SSE2__) && !defined(__SSE4_1__) && !defined(__XOP__))
   typedef struct __blake2bp_state
 #else
   JTR_ALIGN( 64 ) typedef struct __blake2bp_state
