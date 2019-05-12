@@ -34,7 +34,7 @@
  * details. Eg. it mutes output of OpenCL run-time build log unless the build
  * failed.
  */
-//#define JTR_RELEASE_BUILD 1
+#define JTR_RELEASE_BUILD 1
 
 /*
  * Jumbo's version number. Note that we must uncomment JTR_RELEASE_BUILD
