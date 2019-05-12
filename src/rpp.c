@@ -56,8 +56,10 @@ int rpp_init(struct rpp_context *ctx, const char *subsection)
 		cp = strtokm(buf, ",");
 		while (cp) {
 			struct cfg_line *lp;
-			if ((list = cfg_get_list(SECTION_RULES, cp))==NULL)
+			if ((list = cfg_get_list(SECTION_RULES, cp)) == NULL) {
+				fprintf(stderr, "\"%s\" not found; ", cp);
 				return 1;
+			}
 			lp = list->head;
 			while (lp) {
 				if (!first) {
