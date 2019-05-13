@@ -14,7 +14,7 @@ system.
 
 == How to install on Fedora
 
-   If anything below fails, run 'sudo dnf update' and re-try.
+    If anything below fails, run 'sudo dnf update' and re-try.
 
 === Preconditions and Required stuff
 
@@ -24,6 +24,19 @@ system.
 ==== Recommended (extra formats and performance)
 
     sudo dnf install yasm gmp-devel libpcap-devel bzip2-devel
+
+==== Optional MPI support
+
+    You probably do not need MPI, it's only for multi-machine clusters with
+    shared network storage.  Merely having it compiled in (even if unused)
+    may have security and reliability drawbacks.  Most users should read up
+    on the --fork options instead, which gets compiled in automagically if
+    your system supports it.  Having said all this, if you're sure you do
+    need MPI support: Read README.mpi for instructions.
+
+    Please also note that OpenMP (Open Multi-Processing) is not the same
+    as Open MPI (Message Passing Interface).  You do get OpenMP if your
+    system supports it.
 
 === Clone latest bleeding-edge Jumbo and build
 
@@ -36,7 +49,6 @@ system.
 ==== Build
 
     cd ~/src/john/src
-    # For MPI, use './configure --enable-mpi' below
     ./configure && make -s clean && make -sj4
 
 === Install TAB-completion
