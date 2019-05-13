@@ -269,10 +269,8 @@
 #define SIMD_PARA_SHA1			2
 #elif defined(__llvm__)
 #define SIMD_PARA_SHA1			2
-#elif defined(__GNUC__) && GCC_VERSION < 40504	// 4.5.4
-#define SIMD_PARA_SHA1			1
-#elif !defined(__AVX__) && defined(__GNUC__) && GCC_VERSION > 40700 // 4.7.0
-#define SIMD_PARA_SHA1			1
+#elif defined(__XOP__)
+#define SIMD_PARA_SHA1			2
 #else
 #define SIMD_PARA_SHA1			1
 #endif
