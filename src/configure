@@ -704,7 +704,6 @@ build_os
 build_vendor
 build_cpu
 build
-HT
 LD
 AR
 AS
@@ -787,7 +786,6 @@ YASM
 AS
 AR
 LD
-HT
 MPICC
 CC
 CFLAGS
@@ -1436,7 +1434,6 @@ Some influential environment variables:
   AS          full pathname of assembler to use
   AR          full pathname of "ar" to use
   LD          full pathname of linker to use
-  HT          pre processor macro for telling us we have Hyperthreading
   MPICC       MPI C compiler command
   CC          C compiler command
   CFLAGS      C compiler flags
@@ -3403,7 +3400,6 @@ ac_config_headers="$ac_config_headers autoconfig.h"
 # - add Makefiles
 # - set ZTEX_SUBDIRS, ZTEX_LIBS
 #
-
 
 
 
