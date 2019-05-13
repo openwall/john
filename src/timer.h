@@ -44,7 +44,7 @@ typedef LARGE_INTEGER hr_timer;
 #include <sys/time.h>
 typedef struct timeval hr_timer;
 #define HRZERO(X)             (X).tv_sec = (X).tv_usec = 0
-#define HRSETCURRENT(X)       { struct timezone tz; gettimeofday (&(X), &tz); }
+#define HRSETCURRENT(X)       { gettimeofday (&(X), NULL); }
 #define HRGETTICKS(X)         ((double)(X).tv_sec * 1000000.0 +	\
                                (double)(X).tv_usec)
 #define HRGETTICKS_PER_SEC(X) (X) = 1000000.0

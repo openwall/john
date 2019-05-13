@@ -20,6 +20,13 @@
 #define NEED_OS_FLOCK
 #include "os.h"
 
+#include <unistd.h>
+#if HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+#if HAVE_SYS_TIMES_H
+#include <sys/times.h>
+#endif
 #if !AC_BUILT
  #include <string.h>
  #ifndef _MSC_VER
@@ -47,18 +54,6 @@
 #define HAVE_LIBDL 1
 #endif
 
-#include "arch.h"
-#include "simd-intrinsics.h"
-#include "jumbo.h"
-#include "params.h"
-#include "path.h"
-#include "formats.h"
-#include "options.h"
-#include "unicode.h"
-#include "dynamic.h"
-#include "dynamic_types.h"
-#include "config.h"
-
 #if HAVE_LIBGMP
 #if HAVE_GMP_GMP_H
 #include <gmp/gmp.h>
@@ -71,18 +66,31 @@
 #include <gnu/libc-version.h>
 #endif
 
+#include "arch.h"
+#include "simd-intrinsics.h"
+#include "jumbo.h"
+#include "params.h"
+#include "path.h"
+#include "formats.h"
+#include "options.h"
+#include "unicode.h"
+#include "dynamic.h"
+#include "dynamic_types.h"
+#include "config.h"
+#include "bench.h"
+#include "timer.h"
+#include "misc.h"
 #include "regex.h"
+#include "opencl_common.h"
+#include "mask_ext.h"
+#include "version.h"
+#include "listconf.h" /* must be included after version.h */
 
 #ifdef NO_JOHN_BLD
 #define JOHN_BLD "unk-build-type"
 #else
 #include "john_build_rule.h"
 #endif
-
-#include "opencl_common.h"
-#include "mask_ext.h"
-#include "version.h"
-#include "listconf.h" /* must be included after version.h */
 
 #if CPU_DETECT
 extern char CPU_req_name[];
@@ -134,6 +142,10 @@ static void listconf_list_build_info(void)
 #ifdef __GNU_MP_VERSION
 	int gmp_major, gmp_minor, gmp_patchlevel;
 #endif
+	sTimer test;
+
+	sTimer_Init(&test);
+
 	puts("Version: " JTR_GIT_VERSION);
 	puts("Build: " JOHN_BLD _MP_VERSION DEBUG_STRING ASAN_STRING UBSAN_STRING);
 #ifdef SIMD_COEF_32
@@ -305,6 +317,22 @@ static void listconf_list_build_info(void)
 #define memmem_func	"JtR internal"
 #endif
 	printf("memmem(): " memmem_func "\n");
+
+	printf("clock(3) CLOCKS_PER_SEC: %u\n", (uint32_t)CLOCKS_PER_SEC);
+	clk_tck_init();
+#if defined(_SC_CLK_TCK) || !defined(CLK_TCK)
+	printf("times(2) sysconf(_SC_CLK_TCK) is %ld\n", clk_tck);
+#else
+	printf("times(2) CLK_TCK is %ld\n", clk_tck);
+#endif
+#if defined (__MINGW32__) || defined (_MSC_VER)
+	printf("Using clock(3) for timers, claimed resolution %ss, actual seen %ss\n",
+	       human_prefix_small(1.0 / CLOCKS_PER_SEC),
+	       human_prefix_small(sm_cPrecision));
+#else
+	printf("Using times(2) for timers, resolution %ss\n", human_prefix_small(1.0 / clk_tck));
+#endif
+	printf("HR timer claimed resolution %ss, actual seen %ss\n", human_prefix_small(1.0 / sm_HRTicksPerSec), human_prefix_small(sm_hrPrecision));
 
 // OK, now append debugging options, BUT only output  something if
 // one or more of them is set. IF none set, be silent.

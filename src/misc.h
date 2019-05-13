@@ -196,6 +196,12 @@ const char *jtr_ulltoa(uint64_t num, char *result, int result_len, int base);
 extern char *human_prefix(uint64_t num);
 
 /*
+ * Change some tiny number to a string possibly using SI prefix
+ * eg. 0.123 -> "123 m"
+ */
+extern char *human_prefix_small(double num);
+
+/*
  * Compute the least common multiple, lowest common multiple, or smallest
  * common multiple of two integers x and y, usually denoted by LCM(x, y),
  * is the smallest positive integer that is divisible by both x and y.
