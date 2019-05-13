@@ -579,6 +579,25 @@ char *human_prefix(uint64_t num)
 	return out;
 }
 
+char *human_prefix_small(double num)
+{
+	char *out = mem_alloc_tiny(16, MEM_ALIGN_NONE);
+	char prefixes[] = "\0munp";
+	char *p = prefixes;
+
+	while (p[1] && num > 0 && num < 1) {
+		num *= 1000;
+		p++;
+	}
+
+	if (*p)
+		snprintf(out, 16, "%u %c", (uint32_t)num, *p);
+	else
+		snprintf(out, 16, "%u ", (uint32_t)num);
+
+	return out;
+}
+
 unsigned int lcm(unsigned int x, unsigned int y)
 {
 	unsigned int tmp, a, b;
