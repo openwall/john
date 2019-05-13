@@ -8,6 +8,8 @@
  * are permitted.
  */
 
+#if !__s390__
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_enpass;
 #elif FMT_REGISTERS_H
@@ -224,3 +226,11 @@ struct fmt_main fmt_enpass = {
 };
 
 #endif /* plugin stanza */
+
+#else /* __s390__ */
+
+#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
+#warning ": Enpass: Format disabled on this arch"
+#endif
+
+#endif /* __s390__ */
