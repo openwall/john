@@ -28,7 +28,7 @@ ge25519_full_to_pniels(ge25519_pniels *p, const ge25519 *r) {
 /*
 	adding & doubling
 */
-
+#if 0
 static void
 ge25519_add_p1p1(ge25519_p1p1 *r, const ge25519 *p, const ge25519 *q) {
 	bignum25519 a,b,c,d,t,u;
@@ -48,7 +48,7 @@ ge25519_add_p1p1(ge25519_p1p1 *r, const ge25519 *p, const ge25519 *q) {
 	curve25519_add_after_basic(r->z, d, c);
 	curve25519_sub_after_basic(r->t, d, c);
 }
-
+#endif
 
 static void
 ge25519_double_p1p1(ge25519_p1p1 *r, const ge25519 *p) {
@@ -118,14 +118,14 @@ ge25519_double(ge25519 *r, const ge25519 *p) {
 	ge25519_double_p1p1(&t, p);
 	ge25519_p1p1_to_full(r, &t);
 }
-
+#if 0
 static void
 ge25519_add(ge25519 *r, const ge25519 *p,  const ge25519 *q) {
 	ge25519_p1p1 t;
 	ge25519_add_p1p1(&t, p, q);
 	ge25519_p1p1_to_full(r, &t);
 }
-
+#endif
 static void
 ge25519_nielsadd2(ge25519 *r, const ge25519_niels *q) {
 	bignum25519 a,b,c,e,f,g,h;

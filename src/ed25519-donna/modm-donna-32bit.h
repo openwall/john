@@ -377,7 +377,7 @@ contract256_slidingwindow_modm(signed char r[256], const bignum256modm s, int wi
 /*
 	helpers for batch verifcation, are allowed to be vartime
 */
-
+#if 0
 /* out = a - b, a must be larger than b */
 static void
 sub256_modm_batch(bignum256modm out, const bignum256modm a, const bignum256modm b, size_t limbsize) {
@@ -467,3 +467,4 @@ isatmost128bits256_modm_batch(const bignum256modm a) {
 
 	return (mask == 0);
 }
+#endif
