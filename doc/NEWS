@@ -181,7 +181,7 @@ Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
   (AVX and XOP were already present from 1.8 core), making it possible for
   distros to build a full-featured fallback chain for "any" x86 CPU (including
   along with fallback from OpenMP-enabled to non-OpenMP builds when only one
-  thread would be run).  [magnum; 2015, 2017, 2018]
+  thread would be run).  See doc/README-DISTROS.  [magnum; 2015, 2017, 2018]
 
 - Countless performance improvements (in terms of faster code, better early
   rejection, and/or things moved from host to device-side), sometimes to single
@@ -193,12 +193,18 @@ Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
   "--tune=auto" and maybe also with "--verbosity=5" to see what it does) for
   all CPU formats, both with and without OpenMP.  [magnum; 2018-2019]
 
-- Many improvements to OpenCL auto-tuning, where we try to arrive at an
-  optimal combination of global and local work sizes, including addition of a
-  backwards pass to retry lower global work sizes in case the device was not
-  yet fully warmed up to its high-performance clock rate when the auto-tuning
-  started (important for NVIDIA GTX 10xx series and above).  [Claudio, magnum,
-  Solar; 2015, 2019]
+- Many OpenCL formats optimized and/or re-tuned to be friendly to newer NVIDIA
+  and AMD GPUs, and to newer driver and OpenCL backend versions.  Some OpenCL
+  formats gained generally beneficial optimizations (for older hardware too),
+  and notably our md5crypt-opencl is now about twice faster on older AMD GPUs
+  as well.  [Claudio, Solar, magnum; 2019]
+
+- Many improvements to OpenCL auto-tuning (which is enabled by default), where
+  we try to arrive at an optimal combination of global and local work sizes,
+  including addition of a backwards pass to retry lower global work sizes in
+  case the device was not yet fully warmed up to its high-performance clock
+  rate when the auto-tuning started (important for NVIDIA GTX 10xx series and
+  above).  [Claudio, magnum, Solar; 2015, 2019]
 
 - When auto-tuning an OpenCL format for a real run (not "--test"), tune for the
   actually loaded hashes (as opposed to test vectors) and in some cases for an
@@ -216,6 +222,10 @@ Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
   the limit, thereby adjusting the duty cycle to keep the temperature around
   the limit.  (Applies to NVIDIA and old AMD drivers.  We do not yet have GPU
   temperature monitoring for new AMD drivers.)  [Claudio, Solar; 2019]
+
+- We've switched from 0-based to 1-based OpenCL device numbers for consistency
+  with hashcat.  (We also use 1-based numbers for ZTEX FPGA boards now.)
+  [Claudio, magnum, Solar; 2019]
 
 - More efficient session interrupt/restore with many salts.  Previously, we'd
   retest the current set of buffered candidate passwords against all salts; now
