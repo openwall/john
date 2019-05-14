@@ -1,4 +1,4 @@
-The following changes were made between 1.8.0-jumbo-1 and 1.9-0-jumbo-1:
+The following changes were made between 1.8.0-jumbo-1 and 1.9.0-jumbo-1:
 
 magnum (2623):
 	inc.c: Instead of sending a "" to crk_process_key(), use a safe static
