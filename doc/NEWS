@@ -1,27 +1,63 @@
-Changes made between 1.8.0-jumbo-1 (December 2014) and 1.9.0-jumbo-1 (May 2019):
+Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
-- FPGA support for 7 hash types for ZTEX 1.15y boards ("./configure
-  --enable-ztex", requires libusb).  Specifically, we support: bcrypt, descrypt,
-  sha512crypt & Drupal7, sha256crypt, and md5crypt (including its Apache apr1
-  and AIX smd5 revisions) & phpass.  As far as we're aware, several of these
-  are implemented on FPGA for the very first time.  For bcrypt, our ~119k c/s
-  at cost 5 in ~27W greatly outperforms latest high-end GPUs per board, per
-  dollar, and per Watt.  For descrypt (where we have ~970M c/s in ~34W) and to
-  a lesser extent for sha512crypt & Drupal7 and for sha256crypt, our FPGA
-  results are comparable to current GPUs'.  For md5crypt & phpass our FPGA
-  results are much worse than current GPUs'; we provide support for those
-  hashes to allow for more (re)uses of those boards.  We also support
-  multi-board clusters (tested by Royce Williams for up to 16 boards, thus 64
-  FPGAs, all sharing a USB 2.0 port on a Raspberry Pi 2 host).  For all 7 hash
-  types, we have on-device candidate password generation for mask mode (and
-  hybrid modes applying a mask on top of host-provided candidates from another
-  cracking mode) and on-device hash comparison (of computed hashes against
-  those loaded for cracking).  We provide pre-built bitstreams (5 of them, two
-  of which support two hash types each due to our use of multi-threaded soft
-  CPU cores interfacing to cryptographic cores) and full source project trees.
-  [Hardware design and host code by Denis Burykin, project coordination by
-  Solar Designer, testing also by Royce Williams, Aleksey Cherepanov, and
-  teraflopgroup.  2016-2019.]
+- Updated to 1.9.0 core, which brought the following relevant major changes:
+
+  - Optimizations for faster handling of large password hash files (such as
+    with tens or hundreds million hashes), including loading, cracking, and
+    "--show".  These include avoidance of unnecessary parsing (some of which
+    creeped into the loader in prior jumbo versions), use of larger hash
+    tables, optional use of SSE prefetch instructions on groups of many hash
+    table lookups instead of doing the lookups one by one, and data layout
+    changes to improve locality of reference.  [Solar; 2015-2017]
+
+  - Benchmark using all-different candidate passwords of length 7 by default
+    (except for a few formats where the length is different - e.g., WPA's is 8
+    as that's the shortest valid), which resembles actual cracking and hashcat
+    benchmarks closer.  [Solar, magnum; 2019]
+
+  - Bitslice DES implementation supporting more SIMD instruction sets than
+    before (in addition to our prior support of MMX through AVX and XOP on
+    x86(-64), NEON on 32-bit ARM, and AltiVec on POWER):
+    - On x86(-64): AVX2, AVX-512 (including for second generation Xeon Phi),
+      and MIC (for first generation Xeon Phi).
+    - On Aarch64: Advanced SIMD (ASIMD).
+    [Solar, magnum; 2015-2019]
+
+  - Bitslice DES S-box expressions using AVX-512's "ternary logic" (actually,
+    3-input LUT) instructions (the _mm512_ternarylogic_epi32() intrinsic).
+    [DeepLearningJohnDoe, Roman Rusakov, Solar; 2015, 2019]
+
+    (In jumbo, we now also use those expressions in OpenCL on NVIDIA Maxwell
+    and above - in fact, that was their initial target, for which they were
+    implemented in both JtR jumbo and hashcat earlier than the reuse of these
+    expressions on AVX-512.)
+
+  See also:
+
+  - https://www.openwall.com/lists/announce/2019/04/12/1 1.9.0 core release
+
+- Added FPGA support for 7 hash types for ZTEX 1.15y boards ("./configure
+  --enable-ztex", requires libusb).  Specifically, we support: bcrypt,
+  descrypt (including its bigcrypt extension), sha512crypt & Drupal7,
+  sha256crypt, md5crypt (including its Apache apr1 and AIX smd5 variations) &
+  phpass.  As far as we're aware, several of these are implemented on FPGA
+  for the very first time.  For bcrypt, our ~119k c/s at cost 5 in ~27W greatly
+  outperforms latest high-end GPUs per board, per dollar, and per Watt.  For
+  descrypt (where we have ~970M c/s in ~34W) and to a lesser extent for
+  sha512crypt & Drupal7 and for sha256crypt, our FPGA results are comparable to
+  current GPUs'.  For md5crypt & phpass our FPGA results are much worse than
+  current GPUs'; we provide support for those hashes to allow for more (re)uses
+  of those boards.  We also support multi-board clusters (tested by Royce
+  Williams for up to 16 boards, thus 64 FPGAs, all sharing a USB 2.0 port on a
+  Raspberry Pi 2 host).  For all 7 hash types, we have on-device candidate
+  password generation for mask mode (and hybrid modes applying a mask on top of
+  host-provided candidates from another cracking mode) and on-device hash
+  comparison (of computed hashes against those loaded for cracking).  We
+  provide pre-built bitstreams (5 of them, two of which support two hash types
+  each due to our use of multi-threaded soft CPU cores interfacing to
+  cryptographic cores) and full source project trees.  [Hardware design and
+  host code by Denis Burykin, project coordination by Solar Designer, testing
+  also by Royce Williams, Aleksey Cherepanov, and teraflopgroup.  2016-2019.
 
   See also:
 
@@ -29,9 +65,9 @@ Changes made between 1.8.0-jumbo-1 (December 2014) and 1.9.0-jumbo-1 (May 2019):
   - [List.ZTEX:Devices] and [ZTEX:*] john.conf sections
   - https://www.openwall.com/lists/john-users/2019/03/26/3 bcrypt
   - https://www.openwall.com/lists/john-users/2019/03/29/1 descrypt
-  - https://www.openwall.com/lists/john-users/2019/02/03/1 sha512crypt & Drupal7
+  - https://www.openwall.com/lists/john-users/2019/02/03/1 sha512crypt, Drupal7
   - https://www.openwall.com/lists/john-users/2019/01/12/1 sha256crypt
-  - https://www.openwall.com/lists/john-users/2019/04/01/1 md5crypt & phpass
+  - https://www.openwall.com/lists/john-users/2019/04/01/1 md5crypt, phpass
   - https://www.techsolvency.com/passwords/ztex/ Royce Williams' cluster
   - https://www.ztex.de/usb-fpga-1/usb-fpga-1.15y.e.html board specifications
 
@@ -49,16 +85,87 @@ Changes made between 1.8.0-jumbo-1 (December 2014) and 1.9.0-jumbo-1 (May 2019):
   better than CUDA did for us before, due to our runtime auto-tuning and
   greater focus on getting OpenCL right).
 
-- We now have 88 OpenCL formats, up from 47 in 1.8.0-jumbo-1.
+- We now have 88 OpenCL formats, up from 47 in 1.8.0-jumbo-1.  (The formats may
+  be listed with "--list=formats --format=opencl".)
 
-- We now have 407 CPU formats, up from 381 in 1.8.0-jumbo-1 (both figures
-  including pre-defined dynamic modes) despite having dropped a handful of
-  obsolete ones.  Many formats now make better use of shared code, often with
-  optimizations and/or SIMD support that was previously lacking. [Nearly all
-  new formats thanks to Dhiru Kholia, as usual; 2015-2019]
+  - Added 47 OpenCL formats: androidbackup-opencl, ansible-opencl,
+    axcrypt-opencl, axcrypt2-opencl, bitlocker-opencl, bitwarden-opencl,
+    cloudkeychain-opencl, dashlane-opencl, diskcryptor-aes-opencl,
+    diskcryptor-opencl, electrum-modern-opencl, enpass-opencl, ethereum-opencl,
+    ethereum-presale-opencl, fvde-opencl, geli-opencl, iwork-opencl,
+    keepass-opencl, keystore-opencl, krb5asrep-aes-opencl, lm-opencl,
+    lp-opencl, lpcli-opencl, mscash-opencl, notes-opencl, office-opencl,
+    openbsd-softraid-opencl, pbkdf2-hmac-md4-opencl, pbkdf2-hmac-md5-opencl,
+    pem-opencl, pfx-opencl, pgpdisk-opencl, pgpsda-opencl, pgpwde-opencl,
+    raw-sha512-free-opencl, salted-sha1-opencl, sappse-opencl, sl3-opencl,
+    solarwinds-opencl, ssh-opencl, sspr-opencl, telegram-opencl, tezos-opencl,
+    truecrypt-opencl, vmx-opencl, wpapsk-pmk-opencl, xsha512-free-opencl.
+
+  - Dropped 6 OpenCL formats (functionality merged into other OpenCL formats):
+    odf-aes-opencl, office2007-opencl, office2010-opencl, office2013-opencl,
+    ssha-opencl, sxc-opencl.
+
+  [Dhiru Kholia, magnum, Sayantan Datta, Elena Ago, terrybwest, Ivan Freed;
+  2015-2019]
+
+- We now have 407 CPU formats, up from 381 in 1.8.0-jumbo-1 (including
+  pre-defined dynamic formats), or 262 non-dynamic CPU formats, up from 194 in
+  1.8.0-jumbo-1, despite having dropped many obsolete ones.  (The formats may
+  be listed with "--list=formats --format=cpu".)
+
+  - Added 80 CPU formats (not including pre-defined dynamic formats): adxcrypt,
+    andotp, androidbackup, ansible, argon2, as400-des, as400-ssha1, axcrypt,
+    azuread, bestcrypt, bitlocker, bitshares, bitwarden, bks, dashlane,
+    diskcryptor, dominosec8, dpapimk, electrum, enpass, ethereum, fortigate256,
+    fvde, geli, has-160, itunes-backup, iwork, krb5-17, krb5-3, krb5asrep,
+    krb5tgs, leet, lp, lpcli, md5crypt-long, monero, money, multibit, net-ah,
+    notes, nsec3, o10glogon, o3logon, oracle12c, ospf, padlock, palshop,
+    pbkdf2-hmac-md4, pbkdf2-hmac-md5, pem, pgpdisk, pgpsda, pgpwde, phps2,
+    plaintext, qnx, racf-kdfaes, radius, raw-sha1-axcrypt, raw-sha3, saph,
+    sappse, scram, securezip, signal, sl3, snmp, solarwinds, sspr, stribog-256,
+    stribog-512, tacacs-plus, tc_ripemd160boot, telegram, tezos, vdi, vmx,
+    wpapsk-pmk, xmpp-scram, zipmonster.
+
+  - Dropped 12 CPU formats (not including pre-defined dynamic formats):
+    aix-smd5, efs, md4-gen, nsldap, nt2, raw-sha, raw-sha1-ng, raw-sha256-ng,
+    raw-sha512-ng, sha1-gen, ssh-ng, sxc.  Their functionality is available in
+    other formats - e.g., AIX smd5 hashes are now supported by our main
+    md5crypt* formats.
+
+  [Dhiru Kholia, JimF, magnum, Fist0urs, Rob Schoemaker, MrTchuss,
+  Michael Kramer, Ralf Sager, bigendiansmalls, Agnieszka Bielec, Ivan Freed,
+  Elena Ago, Claudio Andre, Solar; 2015-2019]
+
+- Several old formats got support for additional underlying hash, KDF, and/or
+  cipher types under their previous format names, making them more general -
+  e.g., the OpenBSD-SoftRAID format now supports bcrypt-pbkdf.  [Dhiru, others]
+
+- Several file archive formats got better support for file format variations,
+  large file support, and/or more complete verification (no longer producing
+  false positives, and thus no longer needing to continue running after a first
+  seemingly successful guess).  [magnum, philsmd, JimF, others?]
+
+- Added many new pre-defined dynamic format recipes.  See run/dynamic.conf.
+  [Dhiru, JimF, Remi Dubois, Ivan Novikov; 2015-2018]
+
+- Added dynamic compiler mode that can handle simple custom algorithms on CPU
+  (including with automatic use of SIMD) - e.g. "sha1(md5($p).$s)" - without
+  any programming - just state that very string on the command line as
+  "--format=dynamic='sha1(md5($p).$s)'".  This is somewhat of a hack, but it
+  has clever self-testing so if it seems to work chances are it really does.
+  Available features include tens of fast hash functions (from common like MD5
+  to exotic ones like Whirlpool), string concatenation, encoding/decoding,
+  conversion to lowercase or uppercase, and references to the password, salt,
+  username, and string constants.  See doc/DYNAMIC_EXPRESSIONS.  [JimF; 2015]
+
+- Many formats now make better use of shared code, often with optimizations
+  and/or SIMD support that was previously lacking.  [magnum, JimF; 2015-2019]
+
+- Shared code for reversing steps in MD4/MD5/SHA-1/SHA-2, boosting several fast
+  hash formats.  [magnum; 2015]
 
 - We added a terrific "pseudo-intrinsics" abstraction layer, which lets us use
-  the one same SIMD source code for many architectures and widths. [Zhang Lei,
+  the one same SIMD source code for many architectures and widths.  [Zhang Lei,
   magnum, JimF; GSoC 2015, 2015-2019]
 
 - Where relevant, all SIMD formats now support AVX2, AVX-512 (taking advantage
@@ -68,65 +175,94 @@ Changes made between 1.8.0-jumbo-1 (December 2014) and 1.9.0-jumbo-1 (May 2019):
   [magnum, Zhang Lei, JimF, Solar; GSoC 2015, 2015-2019]
 
 - When AES-NI is available, we now use it more or less globally, sometimes with
-  quite significant boost. [magnum; 2015]
+  quite significant boost.  [magnum; 2015]
 
-- Shared code for reversing steps in MD4/5/SHA-1/SHA-2, boosting several
-  formats. [magnum; 2015]
+- Runtime CPUID tests for SSSE3, SSE4.1, SSE4.2, AVX2, AVX512F, and AVX512BW
+  (AVX and XOP were already present from 1.8 core), making it possible for
+  distros to build a full-featured fallback chain for "any" x86 CPU (including
+  along with fallback from OpenMP-enabled to non-OpenMP builds when only one
+  thread would be run).  [magnum; 2015, 2017, 2018]
 
-- PRINCE mode added due to kind contribution by atom of hashcat project.  It's
-  not a rewrite but atom's original code, with additions for JtR session resume
-  and some extras. [atom, magnum; 2015]
+- Countless performance improvements (in terms of faster code, better early
+  rejection, and/or things moved from host to device-side), sometimes to single
+  formats, sometimes to all formats using a certain hash type, sometimes
+  globally.  [magnum, Claudio, Solar, others; 2015-2019]
 
-- Subsets cracking mode added.  A similar mode was already present as an
-  external mode but the new mode is way faster, has full Unicode support
-  (UTF-32 with no limitations whatsoever) and unlike that external mode it also
-  supports session restore. [magnum; 2019]
+- Better tuning (by our team) of candidate password buffering for hundreds of
+  CPU formats, as well as optional auto-tuning (on user's system, with
+  "--tune=auto" and maybe also with "--verbosity=5" to see what it does) for
+  all CPU formats, both with and without OpenMP.  [magnum; 2018-2019]
 
-- Dynamic "compiler" mode that can do "any" custom algorithms (e.g.
-  "sha1(md5($p).$s)") without any programming or even scripting - just state
-  that very string on the command line as "--format=dynamic='sha1(md5($p).$s)'".
-  This is somewhat of a hack, but it has clever self-testing so if it seems to
-  work chances are it really does.  See also: doc/DYNAMIC_EXPRESSIONS.
-  [JimF; 2015]
+- Many improvements to OpenCL auto-tuning, where we try to arrive at an
+  optimal combination of global and local work sizes, including addition of a
+  backwards pass to retry lower global work sizes in case the device was not
+  yet fully warmed up to its high-performance clock rate when the auto-tuning
+  started (important for NVIDIA GTX 10xx series and above).  [Claudio, magnum,
+  Solar; 2015, 2019]
 
-- Many new pre-defined Dynamic format recipes. [Dhiru and few others]
-
-- Full Unicode/codepage support even for OpenCL - most notably for formats like
-  NT and LM. [magnum; 2014-2019]
-
-- On-device mask mode (and compare) implemented in nearly all OpenCL formats
-  that need device-side mask acceleration.  Unlike most (maybe all) other
-  crackers, we can do full speed cracking (or e.g. hybrid wordlist + mask)
-  beyond ASCII, e.g. cracking Russian or Greek NT hashes just as easy as
-  "Latin-1" - and without any significant speed penalty. [Sayantan, Claudio,
-  magnum; 2015-2019]
+- When auto-tuning an OpenCL format for a real run (not "--test"), tune for the
+  actually loaded hashes (as opposed to test vectors) and in some cases for an
+  actual candidate password length (inferred from the requested cracking mode
+  and its settings).  [magnum; 2017, 2019]
 
 - Nearly all OpenCL formats now do all post-processing on GPU, so don't need
   more than one CPU core.  Post-processing on CPU is kept where it presumably
-  wouldn't run well on a GPU (e.g. RAR or ZIP decompression) but for them we
-  often have excellent early-reject - often even on device-side. [magnum,
+  wouldn't run well on a GPU (e.g. RAR or ZIP decompression), but for them we
+  often have excellent early-reject - often even on device-side.  [magnum,
   Dhiru; 2018-2019]
 
-- Many improvements to mask mode, including incrementing lengths with
-  stretching of masks (so you can say e.g. "-mask=?a -min-len=5 -max-len=7".
-  [Sayantan, magnum; 2015, 2018]
+- Graceful handling of GPU overheating - rather than terminate the process,
+  JtR will now optionally (and by default) sleep until the temperature is below
+  the limit, thereby adjusting the duty cycle to keep the temperature around
+  the limit.  (Applies to NVIDIA and old AMD drivers.  We do not yet have GPU
+  temperature monitoring for new AMD drivers.)  [Claudio, Solar; 2019]
 
-- Uppercase ?W in mask mode, which is same as ?w (takes another cracking mode's
-  output "word" for construction of a hybrid mode) but toggles case of all
-  characters in that "word". [Sayantan; 2015]
+- More efficient session interrupt/restore with many salts.  Previously, we'd
+  retest the current set of buffered candidate passwords against all salts; now
+  we (re)test them only against previously untouched salts.  This matters a lot
+  when the candidate password buffers are large (e.g., for a GPU), target hash
+  type is slow, and different salt count is large.  [JimF; 2016-2017]
+
+- PRINCE cracking mode ("--prince[=FILE]") added due to kind contribution by
+  atom of hashcat project.  It's not a rewrite but atom's original code, with
+  additions for JtR session restore and some extras.  PRINCE is a wordlist-like
+  mode, but it combines multiple words from a wordlist to form progressively
+  longer candidate passwords.  See doc/PRINCE.  [atom, magnum; 2015]
+
+- Subsets cracking mode added ("--subsets[=CHARSET]"), which exploits the
+  weakness of having too few different characters in a password even if those
+  come from a much larger set of potential characters.  A similar mode was
+  already present as an external mode (originally by Solar) but the new mode is
+  way faster, has full Unicode support (UTF-32 with no limitations whatsoever)
+  and unlike that external mode it also supports session restore.
+  See doc/SUBSETS.  [magnum; 2019]
+
+- Hybrid external mode added.  This means external mode can produce lots of
+  candidates from a single base word.  See "External Hybrid Scripting" in
+  doc/EXTERNAL and "Hybrid_example", "Leet", and "Case" external modes in the
+  default john.conf and the "HybridLeet" external mode in hybrid.conf.
+  [JimF, Christien Rioux; 2016]
 
 - Stacking of cracking modes improved.  Mask can now be stacked after any other
-  cracking mode.  The experimental "--regex" mode can be stacked before mask
-  mode and after any other cracking mode. [magnum, JimF; 2015-2016]
+  cracking mode, referring to that other mode's output "word" as "?w" in the
+  mask.  See doc/MASK.  The experimental "--regex" mode can be stacked before
+  mask mode and after any other cracking mode.  [magnum, JimF; 2015-2016]
 
-- Rules stacking.  The new option "--rules-stack" can add rules to ANY cracking
+- Rules stacking.  The new option "--rules-stack" can add rules to any cracking
   mode, or after the normal "--rules" option (so you get rules x rules).
   [magnum; 2018]
 
 - Support for what used to be hashcat-specific rules.  The ones that did not
   clash with our existing commands just work out-of-the-box.  Support for the
   ones that clash can be turned on/off at will within a rule set (using lines
-  "!! hashcat logic ON" / "!! hashcat logic OFF"). [JimF, magnum; 2016, 2018]
+  "!! hashcat logic ON" / "!! hashcat logic OFF").  See doc/RULES-hashcat.
+  [JimF, magnum; 2016, 2018]
+
+- Added third-party hashcat rule sets to run/rules/ and referenced them from
+  separate sections as well as from [List.Rules:hashcat] in default john.conf,
+  so "--rules=hashcat" activates most of them.  Our "--rules=all" also invokes
+  these rules, but only as the last step after completing our usual rule sets.
+  [magnum, individual rule set authors; 2018]
 
 - Support for giving short rule commands directly on the command line,
   including with preprocessor, e.g. "--rules=:[luc]$[0-9]" to request
@@ -136,109 +272,121 @@ Changes made between 1.8.0-jumbo-1 (December 2014) and 1.9.0-jumbo-1 (May 2019):
   [JimF; 2016]
 
 - Support for running several rule sets once after another, e.g.
-  "--rules=wordlist,shifttoggle". [JimF; 2016]
+  "--rules=wordlist,shifttoggle".  [JimF; 2016]
 
-- JSON interface for frontends (like Johnny the GUI) to use in the future for
-  querying stuff. [magnum, Aleksey Cherepanov; 2017, 2019]
+- Enhanced the "single crack" mode (which targets hashes with candidate
+  passwords derived from related information such as their corresponding
+  usernames) to be reasonable to use on massively-parallel devices such as
+  GPUs in some cases, which was never the case before (we advised for this mode
+  to always be used purely on CPU).  This is achieved through buffering of much
+  larger numbers of candidate passwords per target salt (deriving them from
+  application of a larger number of mangling rules) and teaching the rest of
+  this mode's logic to cope up with such extensive buffering.  As part of this
+  change, means were added for limiting this mode's memory usage (relevant when
+  hashes having a lot of different salts are loaded for cracking), most notably
+  the "SingleMaxBufferSize" setting in john.conf (4 GB by default).
+  See doc/MODES.  [magnum; 2018]
+
+- Added means for supplying global seed words for "single crack" mode, from
+  command line ("--single-seed=WORD[,...]") or file ("--single-wordlist=FILE").
+  [magnum; 2016]
+
+- Wordlist mode: Better suppression of UTF-8 BOMs at a little performance cost.
+  [magnum; 2016]
 
 - Unicode support is now at version 11.0.0, and we also added a few legacy
-  codepages. [magnum; 2018]
+  codepages.  [magnum; 2018]
+
+- UTF-32 support in external modes.  This made an awesome boost to Dumb16/32
+  and Repeats16/32 modes.  [magnum; 2018]
+
+- Use our own invention "UTF-32-8" in subsets mode, for a significant boost in
+  final conversion to UTF-8.  In the future we will likely make much more use
+  of this trick.  [magnum; 2018]
+
+- Full Unicode/codepage support even for OpenCL - most notably for formats like
+  NT and LM.  [magnum; 2014-2019]
+
+- Perfect hash tables for quick matching of computed against loaded hashes on
+  GPU, used by many of our fast hash OpenCL formats.  So far, tested for up to
+  320 million SHA-1 hashes, which used up 10 GB of GPU memory and 63 GB of host
+  memory.  For comparison, when using CPU only (and bitmaps along with simpler
+  non-perfect hash tables), the same hashes need 25 GB on host only, but the
+  attack runs slower (than on-device mask mode, see below).  [Sayantan; 2015]
+
+- On-device mask mode (and compare) implemented in nearly all OpenCL formats
+  that need device-side mask acceleration.  Unlike most (maybe all) other
+  crackers, we can do full speed cracking (or e.g. hybrid wordlist + mask)
+  beyond ASCII, e.g. cracking Russian or Greek NT hashes just as easy as
+  "Latin-1" - and without any significant speed penalty.  [Sayantan, Claudio,
+  magnum; 2015-2019]
+
+- Many improvements to mask mode, including incrementing lengths with
+  stretching of masks (so you can say e.g. "-mask=?a -min-len=5 -max-len=7".
+  [Sayantan, magnum; 2015, 2018]
+
+- Uppercase ?W in mask mode, which is similar to ?w (takes another cracking
+  mode's output "word" for construction of a hybrid mode) but toggles case of
+  all characters in that "word".  [Sayantan; 2015]
+
+- Extra (read-only) pot files that will be considered when loading hashes (such
+  as to exclude hashes previously cracked on other systems, etc.)
+  [magnum, JimF; 2015]
+
+- Improved support for huge "hashes" (e.g. RAR archives) by introducing
+  shortened pot entries and an alternate read line function that can read
+  arbitrarily long lines.  [magnum, JimF; 2016]
+
+- A negative figure for "--max-run-time=N" will now abort after N seconds of
+  not cracking anything.  [magnum; 2016]
+
+- Improved logging with optional full date/time stamp ("LogDateFormat",
+  "LogDateFormatUTC", "LogDateStderrFormat" in john.conf).  [JimF; 2016]
+
+- JSON interface for frontends (like Johnny the GUI) to use in the future for
+  querying stuff.  [magnum, Aleksey Cherepanov; 2017, 2019]
+
+- Many updates to *2john programs for supporting more/newer input formats and
+  runtime environments (e.g., Python 3 compatibility).
+  [Dhiru, magnum, philsmd, Albert Veli, others; 2015-2018]
 
 - wpapcap2john: Support for more link types, more/newer packet types,
   more/newer algorithms e.g. 802.11n, anonce fuzzing, pcap-ng input format;
   dropped hard-coded limits in favor of dynamic allocations.
   [magnum; 2014-2018]
 
-- Extra (read-only) pot files that will be considered when loading hashes (to
-  exclude hashes previously cracked on other systems, etc.).
-  [magnum, JimF; 2015]
-
-- UTF-32 support in external modes.  This made an awesome boost to dumb16/32
-  and repeats16/32 modes. [magnum; 2018]
-
-- Use our own invention "UTF-32-8" in subsets mode, for a significant boost in
-  final conversion to UTF-8.  In the future we will likely make much more use
-  of this trick. [magnum; 2018]
-
-- OpenCL: Many improvements to auto-tuning, where we try to arrive at an
-  optimal combination of global and local work sizes, including addition of a
-  backwards pass to retry lower global work sizes in case the device was not
-  yet fully warmed up to its high-performance clock rate when the auto-tuning
-  started (important for NVIDIA GTX 10xx series and above). [Claudio, magnum,
-  Solar; 2015, 2019]
-
-- OpenCL: When auto-tuning for a real run (not benchmark), tune for the
-  actually loaded hashes (as opposed to test vectors) and in some cases for an
-  actual candidate password length (inferred from the requested cracking mode
-  and its settings). [magnum; 2017, 2019]
-
-- Single mode: Added some means of limiting/controlling/showing memory use when
-  a lot of salts are loaded. [magnum; 2018]
-
-- Wordlist mode: Better suppression of UTF-8 BOMs at a little performance cost.
-
-- Improved support for huge "hashes" (e.g. RAR archives) by introducing
-  truncated pot entries and an alternate fgetl() that can read arbitrarily long
-  files. [magnum, JimF; 2016]
-
-- Runtime CPUID tests for SSSE3, SSE4.1, SSE4.2, AVX2, AVX512F, and AVX512BW
-  (AVX and XOP were already present from 1.8 core), making it possible for
-  distros to build a full-featured fallback chain for "any" x86 CPU (including
-  along with fallback from OpenMP-enabled to non-OpenMP builds when only one
-  thread would be run). [magnum; 2015, 2017, 2018]
-
-- Better tuning (by our team) of candidate password buffering for hundreds of
-  CPU formats, as well as optional auto-tuning (on user's system, with
-  "--tune=auto") for all CPU formats, both with and without OpenMP.
-  [magnum; 2018-2019]
-
-- Improved logging with optional full date/time stamp ("LogDateFormat",
-  "LogDateFormatUTC", "LogDateStderrFormat" in john.conf). [JimF; 2016]
-
-- More efficient session interrupt/restore with many salts.  Previously, we'd
-  retest the current set of buffered candidate passwords against all salts; now
-  we (re)test them only against previously untouched salts.  This matters a lot
-  when the candidate password buffers are large (e.g., for a GPU), target hash
-  type is slow, and different salt count is large. [JimF; 2016-2017]
-
-- Hybrid external mode added.  This means external mode can produce lots of
-  candidates from a single base word. [JimF; 2016]
-
-- A negative figure for "--max-run-time=N" will now abort after N seconds of
-  not cracking anything. [magnum; 2016]
-
-- Added means for supplying global seed words for Single mode, from command
-  line ("--single-seed=WORD[,...]") or file ("--single-wordlist=FILE").
-  [magnum; 2016]
-
-- Several file archive formats got better support for various versions/formats,
-  large file support, and/or more complete verification (no longer producing
-  false positives, and thus no longer needing to continue running after a first
-  seemingly successful guess). [magnum, philsmd, JimF, others?]
-
-- Countless performance improvements (in terms of faster code, better early
-  rejection, and/or things moved from host to device-side), sometimes to single
-  formats, sometimes to all formats using a certain hash type, sometimes
-  globally.
-
 - More extensive self-tests with "--test-full" and optional builtin formats
   fuzzer with "--fuzz" (when built with "./configure --enable-fuzz").
   [Kai Zhao; GSoC 2015]
 
-- Graceful handling of GPU overheating - rather than terminate the process,
-  JtR will now optionally (and by default) sleep until the temperature is below
-  the limit, thereby adjusting the duty cycle to keep the temperature around
-  the limit.  (Applies to NVIDIA and old AMD drivers.  We do not yet have GPU
-  temperature monitoring for new AMD drivers.) [Claudio, Solar; 2019]
+- "configure" options "--enable-ubsan" and "--enable-ubsantrap" for building
+  with UndefinedBehaviorSanitizer (we already had "--enable-asan" for building
+  with AddressSanitizer in 1.8.0-jumbo-1).  [Frank, JimF; 2015, 2017]
 
-- Options for building with ASan and/or UbSan.
+- "configure" options "--disable-simd" and "--enable-simd=foo" to easily build
+  without SIMD support or for a particular SIMD instruction set (other than the
+  build host's best).  [magnum, JimF; 2017]
+
+- Default to not enable OpenMP for fast hash formats where OpenMP scalability
+  is too poor and we strongly recommend use of "--fork" instead.  Accordingly,
+  "configure" option "--disable-openmp-for-fast-formats" is replaced with its
+  opposite "--enable-openmp-for-fast-formats".  [magnum; 2015]
+
+- Lots of improvements and tweaks to our usage of autoconf.  [magnum]
 
 - Many bug fixes, cleanups, unifications, and so on.  Many fixes initiated from
   source code, static, or runtime checking tools like ASan, UbSan, and fuzzers.
+  [magnum, Frank, Claudio, Solar, Christien Rioux, others; 2015-2019]
 
 - Many fixes for big-endian architectures and/or for those that don't allow
   unaligned access.
-
-- Lots of improvements and tweaks to our usage of autoconf.
+  [magnum, JimF, Claudio, Frank, Solar, others]
 
 - Many improvements to documentation, although we're still lagging behind.
+  [magnum, Frank, Solar, others]
+
+- Far more extensive use of Continuous Integration (CI), where pull requests
+  can't be merged until passing numerous tests on different platforms.  This is
+  mostly part of our development process and not the release, although some
+  CI-related files do exist in our released tree.
+  [Claudio, magnum; 2015-2019]
