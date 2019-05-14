@@ -18,7 +18,10 @@ src/Makefile.in export-subst
 src/Makefile.legacy export-subst
 
 # Files/directories to be ignored for git archive
+.ci export-ignore
 .circle export-ignore
+.circleci export-ignore
+.git export-ignore
 .gitattributes export-ignore
 .github export-ignore
 .gitignore export-ignore
