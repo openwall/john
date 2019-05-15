@@ -9,14 +9,12 @@
 #ifndef _JOHN_DES_BS_H
 #define _JOHN_DES_BS_H
 
+#include <fcntl.h>
+
 #include "arch.h"
 #include "opencl_common.h"
 #include "opencl_DES_hst_dev_shared.h"
 #include "loader.h"
-
-#if (!AC_BUILT || HAVE_FCNTL_H)
-#include <fcntl.h>		// For file locks.
-#endif
 
 #define DES_BS_OPENCL_ALGORITHM_NAME	"DES OpenCL"
 

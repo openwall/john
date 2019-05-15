@@ -17,10 +17,9 @@
 #define _BSD_SOURCE 1
 #define _DEFAULT_SOURCE 1
 #endif
-#define NEED_OS_FLOCK
-#include "os.h"
 
 #include <unistd.h>
+#include <fcntl.h>
 #if HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
@@ -300,13 +299,11 @@ static void listconf_list_build_info(void)
 	       JS_REGEX_MAJOR_VERSION, JS_REGEX_MINOR_VERSION,
 	       rexgen_version());
 #endif
-
-#if FCNTL_LOCKS
-	puts("File locking: fcntl()");
-#elif OS_FLOCK
-	puts("File locking: flock()");
-#else
+#if defined(F_SETLK) && defined(F_SETLKW) && defined(F_UNLCK)	  \
+	&& defined(F_RDLCK) && defined(F_WRLCK)
 	puts("File locking: NOT supported by this build - do not run concurrent sessions!");
+#else
+	puts("File locking: fcntl()");
 #endif
 	printf("fseek(): " STR_MACRO(jtr_fseek64) "\n");
 	printf("ftell(): " STR_MACRO(jtr_ftell64) "\n");

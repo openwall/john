@@ -21,13 +21,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <fcntl.h>
+
 #if !AC_BUILT || HAVE_LIMITS_H
 #include <limits.h>
 #endif
-#include <sys/types.h>
-#if !AC_BUILT || HAVE_FCNTL_H
-#include <fcntl.h>
-#endif
+
 #include "memory.h"
 #include "jumbo.h"
 #if _MSC_VER

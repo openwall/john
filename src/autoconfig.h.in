@@ -57,9 +57,6 @@
 /* Define to 1 if you have the `DSA_get0_pqg' function. */
 #undef HAVE_DSA_GET0_PQG
 
-/* Define to 1 if you have the <fcntl.h> header file. */
-#undef HAVE_FCNTL_H
-
 /* Define to 1 if you have the `fopen64' function. */
 #undef HAVE_FOPEN64
 

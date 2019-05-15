@@ -61,7 +61,6 @@ dnl Cludge for endian (if not auto detected)
 AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target if it doesn't detect properly])],,[endian=unknown])
 dnl -DJOHN_SYSTEMWIDE
 AC_ARG_WITH(systemwide, [AS_HELP_STRING([--with-systemwide],[install for all users])],,[with_systemwide=no])
-AC_ARG_WITH(flock, [AS_HELP_STRING([--with-flock],[use flock() file locking instead of fcntl()])],,[with_flock=no])
 
 AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSanitizer])], [asan=$enableval], [asan=no])
 AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer])], [ubsan=$enableval], [ubsan=no])
@@ -741,7 +740,7 @@ AX_ZTEX
 
 dnl Checks for header files.
 dnl Eg. if sys/times.h is found, the below will define HAVE_SYS_TIMES_H
-AC_CHECK_HEADERS([arpa/inet.h crypt.h dirent.h fcntl.h limits.h locale.h \
+AC_CHECK_HEADERS([arpa/inet.h crypt.h dirent.h limits.h locale.h \
                   malloc.h net/ethernet.h netdb.h netinet/in.h \
                   netinet/in_systm.h string.h strings.h \
                   sys/ethernet.h sys/file.h sys/param.h sys/socket.h \

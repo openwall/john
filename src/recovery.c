@@ -19,9 +19,6 @@
 #endif
 #endif
 
-#define NEED_OS_FLOCK
-#include "os.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
@@ -33,14 +30,13 @@
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#if (!AC_BUILT || HAVE_FCNTL_H)
 #include <fcntl.h>
-#endif
+#include <errno.h>
+#include <string.h>
+
 #if !AC_BUILT || HAVE_SYS_FILE_H
 #include <sys/file.h>
 #endif
-#include <errno.h>
-#include <string.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -102,103 +98,47 @@ static void rec_name_complete(void)
 	rec_name_completed = 1;
 }
 
-#if OS_FLOCK || FCNTL_LOCKS
+#if !(__MINGW32__ || _MSC_VER)
 static void rec_lock(int shared)
 {
-	int lockmode;
-#if FCNTL_LOCKS
-	int blockmode;
-	struct flock lock;
-#endif
+	int cmd = F_SETLK, type = F_RDLCK;
 
 	/*
 	 * In options.c, MPI code path call rec_restore_args(mpi_p)
-	 * relying on anything >1 meaning LOCK_SH. After restore, the
+	 * relying on anything >1 meaning F_RDLCK. After restore, the
 	 * root node must block, in case some other node has not yet
 	 * closed the original file
 	 */
 	if (shared == 1) {
-#if FCNTL_LOCKS
-		lockmode = F_WRLCK;
-		blockmode = F_SETLKW;
-#else
-		lockmode = LOCK_EX;
-#endif
+		type = F_WRLCK;
 #ifdef HAVE_MPI
 		if (!rec_restored || mpi_id || mpi_p == 1)
+			cmd = F_SETLKW;
 #endif
-#if FCNTL_LOCKS
-			blockmode = F_SETLK;
-#else
-			lockmode |= LOCK_NB;
-#endif
-	} else
-#if FCNTL_LOCKS
-	{
-		lockmode = F_RDLCK;
-		blockmode = F_SETLK;
 	}
 
-#else
-		lockmode = LOCK_SH | LOCK_NB;
-#endif
-
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locking session file...\n", __FUNCTION__, options.node_min);
-#endif
-#if FCNTL_LOCKS
-	memset(&lock, 0, sizeof(lock));
-	lock.l_type = lockmode;
-	if (fcntl(rec_fd, blockmode, &lock)) {
-		if (errno == EAGAIN || errno == EACCES) {
-#else
-	if (flock(rec_fd, lockmode)) {
-		if (errno == EWOULDBLOCK) {
-#endif
+	if (jtr_lock(rec_fd, cmd, type, path_expand(rec_name))) {
 #ifdef HAVE_MPI
-			fprintf(stderr, "Node %d@%s: Crash recovery file is"
-			        " locked: %s\n", mpi_id + 1, mpi_name,
-			        path_expand(rec_name));
+		fprintf(stderr, "Node %d@%s: Crash recovery file is locked: %s\n",
+		        mpi_id + 1, mpi_name, path_expand(rec_name));
 #else
-			fprintf(stderr, "Crash recovery file is locked: %s\n",
-				path_expand(rec_name));
+		fprintf(stderr, "Crash recovery file is locked: %s\n",
+		        path_expand(rec_name));
 #endif
-			error();
-		} else
-#if FCNTL_LOCKS
-			pexit("fcntl()");
-#else
-			pexit("flock()");
-#endif
+		error();
 	}
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locked session file (%s)\n", __FUNCTION__, options.node_min, shared == 1 ? "exclusive" : "shared");
-#endif
 }
 
 static void rec_unlock(void)
 {
-#if FCNTL_LOCKS
-	struct flock lock = { 0 };
-	lock.l_type = F_UNLCK;
-#endif
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Unlocking session file\n", __FUNCTION__, options.node_min);
-#endif
-#if FCNTL_LOCKS
-	if (fcntl(rec_fd, F_SETLK, &lock))
-		pexit("fcntl(F_UNLCK)");
-#else
-	if (flock(rec_fd, LOCK_UN))
-		pexit("flock(LOCK_UN)");
-#endif
+	jtr_lock(rec_fd, F_SETLK, F_UNLCK, rec_name);
 }
 #else
-#define rec_lock(lock) \
+#define rec_lock(shared) \
 	{}
 #define rec_unlock() \
 	{}
-#endif
+#endif /* !(__MINGW32__ || _MSC_VER) */
 
 static int is_default(char *name)
 {

@@ -8,6 +8,7 @@
 #ifdef HAVE_OPENCL
 
 #include <string.h>
+#include <fcntl.h>
 
 #include "arch.h"
 #include "common.h"
@@ -16,6 +17,7 @@
 #include "unicode.h"
 #include "bt_interface.h"
 #include "mask_ext.h"
+#include "logger.h"
 
 typedef struct {
 	unsigned char *pxkeys[DES_BS_DEPTH]; /* Pointers into xkeys.c */
@@ -1220,38 +1222,23 @@ char *get_device_name(int id)
 void save_lws_config(const char* config_file, int id_gpu, size_t lws, unsigned int forced_global_key)
 {
 	FILE *file;
-	char config_file_name[500];
+	char config_file_name[PATH_BUFFER_SIZE];
 	char *d_name;
 
 	sprintf(config_file_name, config_file, d_name = get_device_name(id_gpu));
 	MEM_FREE(d_name);
+	strnzcpy(config_file_name, path_expand(config_file_name),
+	         sizeof(config_file_name));
 
-	file = fopen(path_expand(config_file_name), "r");
+	file = fopen(config_file_name, "r");
 	if (file != NULL) {
 		fclose(file);
 		return;
 	}
-	file = fopen(path_expand(config_file_name), "w");
+	file = fopen(config_file_name, "w");
 
-#if OS_FLOCK || FCNTL_LOCKS
-	{
-#if FCNTL_LOCKS
-		struct flock lock;
+	jtr_lock(fileno(file), F_SETLKW, F_WRLCK, config_file_name);
 
-		memset(&lock, 0, sizeof(lock));
-		lock.l_type = F_WRLCK;
-		while (fcntl(fileno(file), F_SETLKW, &lock)) {
-			if (errno != EINTR)
-				pexit("fcntl(F_WRLCK)");
-		}
-#else
-		while (flock(fileno(file), LOCK_EX)) {
-			if (errno != EINTR)
-				pexit("flock(LOCK_EX)");
-		}
-#endif
-	}
-#endif
 	fprintf(file, ""Zu" %u", lws, forced_global_key);
 	fclose(file);
 }
@@ -1259,37 +1246,21 @@ void save_lws_config(const char* config_file, int id_gpu, size_t lws, unsigned i
 int restore_lws_config(const char *config_file, int id_gpu, size_t *lws, size_t extern_lws_limit, unsigned int *forced_global_key)
 {
 	FILE *file;
-	char config_file_name[500];
+	char config_file_name[PATH_BUFFER_SIZE];
 	char *d_name;
 	unsigned int param;
 
 	sprintf(config_file_name, config_file, d_name = get_device_name(id_gpu));
 	MEM_FREE(d_name);
+	strnzcpy(config_file_name, path_expand(config_file_name),
+	         sizeof(config_file_name));
 
-	file = fopen(path_expand(config_file_name), "r");
+	file = fopen(config_file_name, "r");
 	if (file == NULL)
 		return 0;
 
+	jtr_lock(fileno(file), F_SETLKW, F_RDLCK, config_file_name);
 
-#if OS_FLOCK || FCNTL_LOCKS
-	{
-#if FCNTL_LOCKS
-		struct flock lock;
-
-		memset(&lock, 0, sizeof(lock));
-		lock.l_type = F_RDLCK;
-		while (fcntl(fileno(fp), F_SETLKW, &lock)) {
-			if (errno != EINTR)
-				pexit("fcntl(F_RDLCK)");
-		}
-#else
-		while (flock(fileno(fp), LOCK_SH)) {
-			if (errno != EINTR)
-				pexit("flock(LOCK_SH)");
-		}
-#endif
-	}
-#endif
 	if (fscanf(file, ""Zu" %u", lws, &param) != 2 || *lws > extern_lws_limit) {
 		if (forced_global_key)
 			*forced_global_key = param;

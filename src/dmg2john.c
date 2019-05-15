@@ -27,16 +27,15 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <math.h>
-#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
-#include <unistd.h>
-#endif
 #include <string.h>
-#if (!AC_BUILT || HAVE_FCNTL_H)
 #include <fcntl.h>
-#endif
 #include <stdlib.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
+#include <unistd.h>
+#endif
 
 #include "arch.h"
 #include "filevault.h"

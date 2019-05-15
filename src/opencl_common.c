@@ -19,7 +19,6 @@
 #define _BSD_SOURCE 1           // setenv()
 #define _DEFAULT_SOURCE 1       // setenv()
 #define NEED_OS_TIMER
-#define NEED_OS_FLOCK
 #define NEED_OS_FORK
 #include "os.h"
 
@@ -31,9 +30,7 @@
 #include <signal.h>
 #include <limits.h>
 #include <stdlib.h>
-#if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
-#endif
 #include <unistd.h>
 
 #ifdef NO_JOHN_BLD
@@ -1295,9 +1292,6 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	char *build_log, *build_opts;
 	size_t log_size;
 	const char *srcptr[] = { kernel_source };
-#if HAVE_MPI && (OS_FLOCK || FCNTL_LOCKS)
-	int kludge_file = 0;
-#endif
 
 	/* This over-rides binary caching */
 	if (getenv("DUMP_BINARY")) {
@@ -1324,38 +1318,27 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 
 	kernel_source_file = path_expand(kernel_source_file);
 
-#if HAVE_MPI && (OS_FLOCK || FCNTL_LOCKS)
+#if HAVE_MPI
+
+	int kludge_file = 0;
+
 	if (mpi_p > 1) {
 #if RACE_CONDITION_DEBUG
 		if (options.verbosity == VERB_DEBUG)
 			fprintf(stderr, "Node %d %s kludge locking %s...\n",
 			        NODE, __FUNCTION__, kernel_source_file);
 #endif
-		if ((kludge_file = open(kernel_source_file, O_RDWR | O_APPEND)) < 0) {
-			pexit("Error opening kernel file");
-		} else {
-#if FCNTL_LOCKS
-			struct flock lock;
+		if ((kludge_file = open(kernel_source_file, O_RDWR | O_APPEND)) < 0)
+			pexit("Error opening %s", kernel_source_file);
+		else
+			jtr_lock(kludge_file, F_SETLKW, F_WRLCK, kernel_source_file);
 
-			memset(&lock, 0, sizeof(lock));
-			lock.l_type = F_WRLCK;
-			while (fcntl(kludge_file, F_SETLKW, &lock)) {
-				if (errno != EINTR)
-					pexit("fcntl(F_WRLCK)");
-			}
-#else
-			while (flock(kludge_file, LOCK_EX)) {
-				if (errno != EINTR)
-					pexit("flock(LOCK_EX)");
-			}
-#endif /* FCNTL_LOCKS */
-		}
 #if RACE_CONDITION_DEBUG
 		if (options.verbosity == VERB_DEBUG)
 			fprintf(stderr, "Node %d got a kludge lock\n", NODE);
 #endif
 	}
-#endif /* HAVE_MPI && (OS_FLOCK || FCNTL_LOCKS) */
+#endif /* HAVE_MPI */
 
 	build_code = clBuildProgram(*program, 0, NULL,
 	                            build_opts, NULL, NULL);
@@ -1418,33 +1401,16 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 		if (file == NULL)
 			perror("Error creating binary cache file");
 		else {
-#if OS_FLOCK || FCNTL_LOCKS
 #if RACE_CONDITION_DEBUG
 			if (options.verbosity == VERB_DEBUG)
 				fprintf(stderr, "Node %d %s locking %s...\n", NODE, __FUNCTION__, file_name);
 #endif
-			{
-#if FCNTL_LOCKS
-				struct flock lock;
+			jtr_lock(fileno(file), F_SETLKW, F_WRLCK, file_name);
 
-				memset(&lock, 0, sizeof(lock));
-				lock.l_type = F_WRLCK;
-				while (fcntl(fileno(file), F_SETLKW, &lock)) {
-					if (errno != EINTR)
-						pexit("fcntl(F_WRLCK)");
-				}
-#else
-				while (flock(fileno(file), LOCK_EX)) {
-					if (errno != EINTR)
-						pexit("flock(LOCK_EX)");
-				}
-#endif
-			}
 #if RACE_CONDITION_DEBUG
 			if (options.verbosity == VERB_DEBUG)
 				fprintf(stderr, "Node %d got a lock on %s\n", NODE, file_name);
 #endif
-#endif /* OS_FLOCK || FCNTL_LOCKS */
 			if (fwrite(source, source_size, 1, file) != 1)
 				perror("Error caching kernel binary");
 #if RACE_CONDITION_DEBUG
@@ -1456,14 +1422,14 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 		MEM_FREE(source);
 	}
 
-#if HAVE_MPI && (OS_FLOCK || FCNTL_LOCKS)
+#if HAVE_MPI
 #if RACE_CONDITION_DEBUG
 	if (mpi_p > 1 && options.verbosity == VERB_DEBUG)
 		fprintf(stderr, "Node %d releasing kludge lock\n", NODE);
 #endif
 	if (mpi_p > 1)
 		close(kludge_file);
-#endif /* HAVE_MPI && (OS_FLOCK || FCNTL_LOCKS) */
+#endif /* HAVE_MPI */
 }
 
 void opencl_build_from_binary(int sequential_id, cl_program *program, const char *kernel_source, size_t program_size)
@@ -2210,33 +2176,18 @@ size_t opencl_read_source(const char *kernel_filename, char **kernel_source)
 	if (!fp)
 		pexit("Can't read source kernel");
 
-#if OS_FLOCK || FCNTL_LOCKS
 #if RACE_CONDITION_DEBUG
 	if (options.verbosity == VERB_DEBUG)
-		fprintf(stderr, "Node %d %s locking (shared) %s...\n", NODE, __FUNCTION__, kernel_filename);
+		fprintf(stderr, "Node %d %s() locking (shared) %s...\n", NODE, __FUNCTION__, kernel_filename);
 #endif
-	{
-#if FCNTL_LOCKS
-		struct flock lock;
 
-		memset(&lock, 0, sizeof(lock));
-		lock.l_type = F_RDLCK;
-		while (fcntl(fileno(fp), F_SETLKW, &lock)) {
-			if (errno != EINTR)
-				pexit("fcntl(F_RDLCK)");
-		}
-#else
-		while (flock(fileno(fp), LOCK_SH)) {
-			if (errno != EINTR)
-				pexit("flock(LOCK_SH)");
-		}
-#endif
-	}
+	jtr_lock(fileno(fp), F_SETLKW, F_RDLCK, kernel_filename);
+
 #if RACE_CONDITION_DEBUG
 	if (options.verbosity == VERB_DEBUG)
 		fprintf(stderr, "Node %d got a shared lock on %s\n", NODE, kernel_filename);
 #endif
-#endif /* OS_FLOCK || FCNTL_LOCKS */
+
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
 	fseek(fp, 0, SEEK_SET);

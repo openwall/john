@@ -19,16 +19,15 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#if !AC_BUILT || HAVE_FCNTL_H
 #include <fcntl.h>
-#endif
 #include <string.h>
+#include <stdint.h>
+
 #ifdef _MSC_VER
 #include <io.h>
 #pragma warning ( disable : 4996 )
 #define fdopen _fdopen
 #endif
-#include <stdint.h>
 
 #include "arch.h"
 #include "misc.h"

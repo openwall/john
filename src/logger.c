@@ -17,7 +17,6 @@
 #define _GNU_SOURCE /* for strcasestr */
 #endif
 
-#define NEED_OS_FLOCK
 #include "os.h"
 
 #include <stdio.h>
@@ -35,14 +34,12 @@
 #endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#if (!AC_BUILT || HAVE_FCNTL_H)
-#include <fcntl.h>
-#endif
 #include <errno.h>
 #include <time.h>
 #include <stdarg.h>
 #include <string.h>
 #include <signal.h>
+#include <stdlib.h>
 
 #include "arch.h"
 #include "misc.h"
@@ -58,6 +55,7 @@
 #include "john_mpi.h"
 #include "cracker.h"
 #include "signals.h"
+#include "logger.h"
 
 static int cfg_beep;
 static int cfg_log_passwords;
@@ -113,6 +111,63 @@ static struct log_file pot = {NULL, NULL, NULL, 0, -1};
 static char *admin_start, *admin_end, *admin_string, *terminal_reset;
 static int in_logger, show_admins;
 
+#if !(__MINGW32__ || _MSC_VER)
+
+/*
+ * Shared helper for locking a file. Caller uses jtr_lock(fd, cmd, type, name)
+ * with fcntl syntax for cmd and type. jtr_lock is actually a macro adding
+ * __FUNCTION__, __FILE__ and __LINE__ to params and calling log_lock.
+ */
+int log_lock(int fd, int cmd, int type, const char *name,
+             const char *function, const char *source_file, int line)
+{
+	struct flock lock;
+
+	memset(&lock, 0, sizeof(lock));
+#ifdef LOCK_DEBUG
+	fprintf(stderr, "%u: %s(): Locking %s (%s, %s)...\n",
+	        options.node_min, function, name,
+	        type == F_RDLCK ? "F_RDLCK" : type == F_WRLCK ? "F_WRLCK"
+	        : type == F_UNLCK ? "F_UNLCK" : "",
+	        cmd == F_SETLKW ? "F_SETLKW" : cmd == F_SETLK ? "F_SETLK"
+	        : cmd == F_UNLCK ? "F_UNLCK" : "");
+#endif
+
+	lock.l_type = type;
+	while (fcntl(fd, cmd, &lock)) {
+		if (errno == EAGAIN) {
+			static int warned;
+			struct timeval t;
+
+			if (cmd == F_SETLK)
+				return -1;
+
+			if (!warned++) {
+				log_event("Got EAGAIN despite F_SETLKW (only logged once per node) %s:%d %s", source_file, line, function);
+				fprintf(stderr, "Node %d: File locking apparently exhausted, check ulimits and any NFS server limits. This is recoverable but will harm performance (muting further of these messages from same node)\n", NODE);
+				srand(NODE);
+			}
+
+			/* Sleep for a random time of max. ~260 ms */
+			t.tv_sec = 0; t.tv_usec = (rand() & 1023) << 8;
+			select(0, NULL, NULL, NULL, &t);
+			continue;
+		} else if (errno != EINTR)
+			pexit("%s:%d %s() fcntl(%s, %s, %s)",
+			      source_file, line, function, name,
+			      type == F_RDLCK ? "F_RDLCK" : type == F_WRLCK ? "F_WRLCK"
+			      : type == F_UNLCK ? "F_UNLCK" : "",
+			      cmd == F_SETLKW ? "F_SETLKW" : cmd == F_SETLK ? "F_SETLK"
+			      : cmd == F_UNLCK ? "F_UNLCK" : "");
+	}
+
+#ifdef LOCK_DEBUG
+	fprintf(stderr, "%u: %s(): Locked %s\n", options.node_min, function, name);
+#endif
+	return 0;
+}
+#endif /* !(__MINGW32__ || _MSC_VER) */
+
 static void log_file_init(struct log_file *f, char *name, char *perms, int size)
 {
 	perms_t = strtoul(perms, NULL, 8);
@@ -163,48 +218,17 @@ static void log_file_flush(struct log_file *f)
 {
 	int count;
 	long int pos_b4 = 0;
-#if FCNTL_LOCKS
-	struct flock lock;
-#endif
 
 	if (f->fd < 0) return;
 
 	count = f->ptr - f->buffer;
 	if (count <= 0) return;
 
-#if OS_FLOCK || FCNTL_LOCKS
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locking %s...\n",
-	        __FUNCTION__, options.node_min, f->name);
-#endif
-#if FCNTL_LOCKS
-	memset(&lock, 0, sizeof(lock));
-	lock.l_type = F_WRLCK;
-	while (fcntl(f->fd, F_SETLKW, &lock)) {
-		if (errno != EINTR)
-			pexit("fcntl(F_WRLCK)");
-	}
-#else
-	while (flock(f->fd, LOCK_EX)) {
-		if (errno != EINTR)
-			pexit("flock(LOCK_EX)");
-	}
-#endif
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Locked %s exclusively\n",
-	        __FUNCTION__, options.node_min, f->name);
-#endif
-#endif
+	jtr_lock(f->fd, F_SETLKW, F_WRLCK, f->name);
 
-	if (f == &pot) {
+	if (f == &pot)
 		pos_b4 = (long int)lseek(f->fd, 0, SEEK_END);
-#if defined(LOCK_DEBUG)
-		fprintf(stderr,
-		        "%s(%u): writing %d at %ld, ending at %ld to file %s\n",
-		        __FUNCTION__, options.node_min, count, pos_b4,
-		        pos_b4+count, f->name);
-#endif
-	}
+
 
 	if (write_loop(f->fd, f->buffer, count) < 0) pexit("write");
 	f->ptr = f->buffer;
@@ -212,19 +236,7 @@ static void log_file_flush(struct log_file *f)
 	if (f == &pot && pos_b4 == crk_pot_pos)
 		crk_pot_pos += count;
 
-#if OS_FLOCK || FCNTL_LOCKS
-#ifdef LOCK_DEBUG
-	fprintf(stderr, "%s(%u): Unlocking %s\n",
-	        __FUNCTION__, options.node_min, f->name);
-#endif
-#if FCNTL_LOCKS
-	lock.l_type = F_UNLCK;
-	fcntl(f->fd, F_SETLK, &lock);
-#else
-	if (flock(f->fd, LOCK_UN))
-		pexit("flock(LOCK_UN)");
-#endif
-#endif
+	jtr_lock(f->fd, F_SETLK, F_UNLCK, f->name);
 
 #ifdef SIGUSR2
 	/* We don't really send a sync trigger "at crack" but

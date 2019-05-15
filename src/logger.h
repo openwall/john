@@ -17,6 +17,39 @@
 #ifndef _JOHN_LOGGER_H
 #define _JOHN_LOGGER_H
 
+#include <fcntl.h>
+
+#if defined(F_SETLK) && defined(F_SETLKW) && defined(F_UNLCK)	  \
+	&& defined(F_RDLCK) && defined(F_WRLCK)
+/*
+ * File locking helper. Always use the macro!
+ * Return 0 on success, -1 on failure
+ */
+#define jtr_lock(fd, cmd, type, name)	  \
+	log_lock(fd, cmd, type, name, __FUNCTION__, __FILE__, __LINE__)
+
+extern int log_lock(int fd, int cmd, int type, const char *name,
+                    const char *function, const char *file, int line);
+#else
+
+/*
+ * This clause likely only used on MinGW and MSVC.
+ *
+ * Surely someone should be able to write a trivial fcntl emulator for
+ * windows supporting locks, no?!  This is 2019, I simply can't believe
+ * there is none. However, *I* am not going to find or write one.
+ */
+#define jtr_lock(...)
+
+#define F_SETLK
+#define F_SETLKW
+#define F_UNLCK
+#define F_RDLCK
+#define F_WRLCK
+
+#endif /* #if defined(F_SETLK) && defined(F_SETLKW) && defined(F_UNLCK)
+		&& defined(F_RDLCK) && defined(F_WRLCK) */
+
 /*
  * Initializes the logger (opens john.pot and a log file).
  */
