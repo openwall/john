@@ -988,10 +988,10 @@ peflags:
 windows-package: default
 	@echo Deploying for Windows.
 	$(MAKE) peflags
-	$(SED) -i -e 's/\r*$$/\r/' ../doc/*
-	$(SED) -i -e 's/\r*$$/\r/' ../run/*.conf
-	$(SED) -i -e 's/\r*$$/\r/' ../run/password.lst
-	$(FIND) ../doc -type f -not -name "*.txt" -exec $(MV) "{}" "{}".txt \;
+	$(RM) ../doc/README
+	$(FIND) ../doc ../run/rules -type f -exec $(SED) -i -e 's/\r*$$/\r/' {} ';'
+	$(SED) -i -e 's/\r*$$/\r/' ../README.md ../run/*.conf ../run/password.lst
+	$(FIND) ../doc -type f -not -name '*.txt' -not -name '*.md' -exec $(MV) -v '{}' '{}'.txt \;
 
 ### Copy OpenCL stuff to run/kernels
 #
