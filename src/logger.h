@@ -18,6 +18,27 @@
 #define _JOHN_LOGGER_H
 
 /*
+ * Locking helper functions. Always use the macros!
+ *
+ * Return 1 on success, 0 on failure
+ */
+#define jtr_lock(fd, type, mode, name)	  \
+	real_lock(fd, type, mode, name, __FUNCTION__, __FILE__, __LINE__)
+
+#define jtr_unlock(fd, name)	  \
+	real_unlock(fd, name, __FUNCTION__, __FILE__, __LINE__)
+
+#define EXCLUSIVE 1
+#define SHARED 0
+#define WAIT 1
+#define NOWAIT 0
+
+extern int real_lock(int fd, int type, int mode, const char *name,
+                     const char *function, const char *file, int line);
+extern void real_unlock(int fd, const char *name,
+                        const char *function, const char *file, int line);
+
+/*
  * Initializes the logger (opens john.pot and a log file).
  */
 extern void log_init(char *log_name, char *pot_name, char *session);

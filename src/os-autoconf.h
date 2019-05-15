@@ -59,6 +59,7 @@
 #include <sys/file.h>
 #ifdef LOCK_EX
 #define OS_FLOCK			1
+#define LOCK_FUNC "flock"
 #else
 #define OS_FLOCK			0
 #warning LOCK_EX is not available - will skip locking
@@ -67,6 +68,7 @@
 #define OS_FLOCK			0
 #if (HAVE_FCNTL_H)
 #define FCNTL_LOCKS			1
+#define LOCK_FUNC "fcntl"
 #endif
 #endif
 #endif

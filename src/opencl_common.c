@@ -1331,25 +1331,11 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 			fprintf(stderr, "Node %d %s kludge locking %s...\n",
 			        NODE, __FUNCTION__, kernel_source_file);
 #endif
-		if ((kludge_file = open(kernel_source_file, O_RDWR | O_APPEND)) < 0) {
-			pexit("Error opening kernel file");
-		} else {
-#if FCNTL_LOCKS
-			struct flock lock;
+		if ((kludge_file = open(kernel_source_file, O_RDWR | O_APPEND)) < 0)
+			pexit("Error opening %s", kernel_source_file);
+		else
+			jtr_lock(kludge_file, EXCLUSIVE, WAIT, kernel_source_file);
 
-			memset(&lock, 0, sizeof(lock));
-			lock.l_type = F_WRLCK;
-			while (fcntl(kludge_file, F_SETLKW, &lock)) {
-				if (errno != EINTR)
-					pexit("fcntl(F_WRLCK)");
-			}
-#else
-			while (flock(kludge_file, LOCK_EX)) {
-				if (errno != EINTR)
-					pexit("flock(LOCK_EX)");
-			}
-#endif /* FCNTL_LOCKS */
-		}
 #if RACE_CONDITION_DEBUG
 		if (options.verbosity == VERB_DEBUG)
 			fprintf(stderr, "Node %d got a kludge lock\n", NODE);
@@ -1423,23 +1409,8 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 			if (options.verbosity == VERB_DEBUG)
 				fprintf(stderr, "Node %d %s locking %s...\n", NODE, __FUNCTION__, file_name);
 #endif
-			{
-#if FCNTL_LOCKS
-				struct flock lock;
+			jtr_lock(fileno(file), EXCLUSIVE, WAIT, file_name);
 
-				memset(&lock, 0, sizeof(lock));
-				lock.l_type = F_WRLCK;
-				while (fcntl(fileno(file), F_SETLKW, &lock)) {
-					if (errno != EINTR)
-						pexit("fcntl(F_WRLCK)");
-				}
-#else
-				while (flock(fileno(file), LOCK_EX)) {
-					if (errno != EINTR)
-						pexit("flock(LOCK_EX)");
-				}
-#endif
-			}
 #if RACE_CONDITION_DEBUG
 			if (options.verbosity == VERB_DEBUG)
 				fprintf(stderr, "Node %d got a lock on %s\n", NODE, file_name);
@@ -2215,23 +2186,9 @@ size_t opencl_read_source(const char *kernel_filename, char **kernel_source)
 	if (options.verbosity == VERB_DEBUG)
 		fprintf(stderr, "Node %d %s locking (shared) %s...\n", NODE, __FUNCTION__, kernel_filename);
 #endif
-	{
-#if FCNTL_LOCKS
-		struct flock lock;
 
-		memset(&lock, 0, sizeof(lock));
-		lock.l_type = F_RDLCK;
-		while (fcntl(fileno(fp), F_SETLKW, &lock)) {
-			if (errno != EINTR)
-				pexit("fcntl(F_RDLCK)");
-		}
-#else
-		while (flock(fileno(fp), LOCK_SH)) {
-			if (errno != EINTR)
-				pexit("flock(LOCK_SH)");
-		}
-#endif
-	}
+	jtr_lock(fileno(fp), SHARED, WAIT, kernel_filename);
+
 #if RACE_CONDITION_DEBUG
 	if (options.verbosity == VERB_DEBUG)
 		fprintf(stderr, "Node %d got a shared lock on %s\n", NODE, kernel_filename);

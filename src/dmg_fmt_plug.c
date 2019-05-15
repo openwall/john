@@ -71,10 +71,6 @@ john_register_one(&fmt_dmg);
 #include <omp.h>
 #endif
 
-#ifdef DMG_DEBUG
-#define NEED_OS_FLOCK
-#include "os.h"
-#endif
 #include "arch.h"
 #include "aes.h"
 #include "hmac_sha.h"
@@ -86,6 +82,7 @@ john_register_one(&fmt_dmg);
 #include "dmg_common.h"
 #include "pbkdf2_hmac_sha1.h"
 #include "loader.h"
+#include "logger.h"
 
 #define FORMAT_LABEL        "dmg"
 #define FORMAT_NAME         "Apple DMG"
@@ -578,33 +575,22 @@ static void hash_plugin_check_hash(int index)
 		/* Write block as hex, strings or raw to a file. */
 		if (cracked[index+j] && !bench_or_test_running) {
 #if DMG_DEBUG == 4
+			const char debug_file = "dmg.debug.main";
 			int fd;
 
-			if ((fd = open("dmg.debug.main", O_RDWR | O_CREAT | O_TRUNC, 0660)) == -1)
-				perror("open()");
-			else {
-#if FCNTL_LOCKS
-				struct flock lock = { 0 };
+			if ((fd = open(debug_file, O_RDWR | O_CREAT | O_TRUNC, 0660)) == -1)
+				perror("open(%s)", debug_file);
+			else
+				jtr_lock(fd, EXCLUSIVE, WAIT, debug_file);
 
-				lock.l_type = F_WRLCK;
-				while (fcntl(fd, F_SETLKW, &lock)) {
-					if (errno != EINTR)
-						pexit("fcntl(F_WRLCK)");
-				}
-#elif OS_FLOCK
-				while (flock(fd, LOCK_EX)) {
-					if (errno != EINTR)
-						pexit("flock(LOCK_EX)");
-				}
-#endif
-				if ((write(fd, outbuf, cur_salt->data_size) == -1))
+			if ((write(fd, outbuf, cur_salt->data_size) == -1))
+				perror("write()");
+			if (cur_salt->scp == 1)
+				if ((write(fd, outbuf2, 4096) == -1))
 					perror("write()");
-				if (cur_salt->scp == 1)
-					if ((write(fd, outbuf2, 4096) == -1))
-						perror("write()");
-				if (close(fd))
-					perror("close");
-			}
+			if (close(fd))
+				perror("close");
+
 #endif
 #if DMG_DEBUG == 3
 			dump_stuff(outbuf, cur_salt->data_size);
