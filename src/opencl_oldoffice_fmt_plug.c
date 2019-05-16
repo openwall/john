@@ -393,15 +393,14 @@ error:
 /* uid field may contain a meet-in-the-middle hash */
 static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
-	int extra;
 	if (split_fields[0] && valid(split_fields[0], self) && split_fields[1] &&
-	    (hexlen(split_fields[1], &extra) == 10 || extra)) {
+	    hexlen(split_fields[1], 0) == 10) {
 		mitm_catcher.ct_hash = hex_hash(split_fields[0]);
 		memcpy(mitm_catcher.mitm, split_fields[1], 10);
 		return split_fields[0];
 	}
 	else if (valid(split_fields[1], self) && split_fields[2] &&
-	         (hexlen(split_fields[2], &extra) == 10 || extra)) {
+	         hexlen(split_fields[2], 0) == 10) {
 		mitm_catcher.ct_hash = hex_hash(split_fields[1]);
 		memcpy(mitm_catcher.mitm, split_fields[2], 10);
 	}
@@ -484,6 +483,17 @@ static void set_salt(void *salt)
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_benchmark, CL_FALSE, 0, sizeof(self_test_running), &self_test_running, 0, NULL, NULL), "Failed transferring salt");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, sizeof(cs), cur_salt, 0, NULL, NULL), "Failed transferring salt");
+}
+
+static int salt_compare(const void *x, const void *y)
+{
+	int c;
+
+	c = memcmp((*(custom_salt**)x)->salt, (*(custom_salt**)y)->salt, 16);
+	if (c)
+		return c;
+	c = dyna_salt_cmp((void*)x, (void*)y, SALT_SIZE);
+	return c;
 }
 
 /* Returns the last output index for which there might be a match (against the
@@ -688,7 +698,7 @@ struct fmt_main FORMAT_STRUCT = {
 			fmt_default_binary_hash
 		},
 		fmt_default_dyna_salt_hash,
-		NULL,
+		salt_compare,
 		set_salt,
 		set_key,
 		get_key,
