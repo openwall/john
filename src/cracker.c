@@ -181,7 +181,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 
 #if HAVE_OPENCL
 	/* This erases the 'spinning wheel' cursor from self-test */
-	if (john_main_process)
+	if (john_main_process && isatty(fileno(stderr)))
 		fprintf(stderr, " \b");
 #endif
 

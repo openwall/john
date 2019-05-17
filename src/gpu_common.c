@@ -107,7 +107,7 @@ void advance_cursor()
 	static int pos = 0;
 	char cursor[4] = { '/', '-', '\\', '|' };
 
-	if (john_main_process) {
+	if (john_main_process && isatty(fileno(stderr))) {
 		fprintf(stderr, "%c\b", cursor[pos]);
 		pos = (pos + 1) % 4;
 	}
