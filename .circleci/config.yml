@@ -99,23 +99,25 @@ workflows:
   version: 2
   build:
     jobs:
-      - wine-32bits
-      - wine-64bits
-      - encoding-cpu
       - asan
-      - more-tests:
-          type: approval
+      - encoding-cpu
+      - non-SIMD
+      - wine-64bits
 
       - encoding-opencl:
           requires:
-            - more-tests
+            - encoding-cpu
+      - wine-32bits:
+          requires:
+            - wine-64bits
+
+      - more-tests:
+          type: approval
+
       - test-full:
           requires:
             - more-tests
       - fast-formats-omp:
-          requires:
-            - more-tests
-      - non-SIMD:
           requires:
             - more-tests
       - fast-formats-omp-x-non-SIMD:
