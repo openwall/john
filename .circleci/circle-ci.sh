@@ -33,6 +33,10 @@ JTR=../run/john
 # Build and testing
 if [[ $1 == "BUILD" ]]; then
 
+    if [[ "$PLUGS" == "none" ]]; then
+        rm -f *plug.[ch]
+    fi
+
     if [[ -n "$WINE" ]]; then
         do_Copy_Dlls
         export WINEDEBUG=-all
@@ -40,15 +44,19 @@ if [[ $1 == "BUILD" ]]; then
 
     # Configure and build
     if [[ "$TARGET_ARCH" == "i686" ]]; then
-        ./configure --host=i686-w64-mingw32 --build=i686-redhat-linux-gnu --target=i686-w64-mingw32
+        ./configure ${CONF_FLAGS} --host=i686-w64-mingw32 --build=i686-redhat-linux-gnu --target=i686-w64-mingw32
     fi
 
     if [[ "$TARGET_ARCH" == "x86_64" ]]; then
-        ./configure --host=x86_64-w64-mingw32 --build=x86_64-redhat-linux-gnu --target=x86_64-w64-mingw64
+        ./configure ${CONF_FLAGS} --host=x86_64-w64-mingw32 --build=x86_64-redhat-linux-gnu --target=x86_64-w64-mingw64
     fi
 
     if [[ -z "$WINE" ]]; then
         ./configure --enable-werror $BUILD_OPTS
+    fi
+
+    if [[ -n "$UNIT_TESTS" ]]; then
+        make -sj4 unit-tests
     fi
 
     make -sj4
@@ -72,20 +80,23 @@ elif [[ $1 == "TEST" ]]; then
         $WINE $JTR --test=0
 
     elif [[ -n "$ENCODING_TEST" ]]; then
-        echo "-- Running \$JTR -test-full=0 $ENCODING_TEST '--encoding=utf8' --"
-        $JTR -test-full=0 --format="$ENCODING_TEST" --encoding=utf8
+        echo "-- Running \$JTR --test-full=0 --format=$ENCODING_TEST '--encoding=utf8' --"
+        $JTR --test-full=0 --format="$ENCODING_TEST" --encoding=utf8
 
         echo
-        echo "-- Running \$JTR -test-full=0 $ENCODING_TEST '--encoding=cp737' --"
-        $JTR -test-full=0 --format="$ENCODING_TEST" --encoding=cp737
+        echo "-- Running \$JTR --test-full=0 --format=$ENCODING_TEST '--encoding=cp737' --"
+        $JTR --test-full=0 --format="$ENCODING_TEST" --encoding=cp737
 
     elif [[ -n "$ASAN_TEST" && -n "$FULL_TEST" ]]; then
-        echo "-- Running \$JTR test-full=0 --"
-        $JTR -test-full=0
+        echo "-- Running \$JTR --test-full=0 --"
+        $JTR --test-full=0
 
-    elif [[ -n "$ASAN_TEST" ]]; then
-        echo "-- Running \$JTR -test=0 --"
-        $JTR -test=0
+    elif [[ -n "$FORMATS" ]]; then
+        echo "-- Running \$JTR --test=0 --format=$FORMATS --"
+        $JTR --test=0 --format=${FORMATS}
+
+    else
+        echo "-- Running \$JTR --test=0 --"
+        $JTR --test=0
     fi
 fi
-
