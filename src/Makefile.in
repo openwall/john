@@ -984,10 +984,20 @@ peflags:
 	@echo Securing executables.
 	$(PEFLAGS) $(PROJ)
 
+###############################################################################
+# To use it, run
+# $ make -s windows-tiny-link-to-john MAIN_NAME=john-avx2.exe
+# We intentionally do not use CFLAGS here: must not have this binary depend on
+# any non-guaranteed SIMD instruction set.
+###############################################################################
+.PHONY: windows-tiny-link-to-john
+windows-tiny-link-to-john: symlink.c
+	@echo Build a tiny john.exe that calls the best SIMD binary.
+	$(CC) -DMAIN_NAME=\"$(MAIN_NAME)\" symlink.c $(CFLAGS_MAIN) -o ../run/john.exe
+
 .PHONY: windows-package
 windows-package: default
-	@echo Deploying for Windows.
-	$(MAKE) peflags
+	@echo Make JtR suitable for Windows.
 	$(RM) ../doc/README
 	$(FIND) ../doc ../run/rules -type f -exec $(SED) -i -e 's/\r*$$/\r/' {} ';'
 	$(SED) -i -e 's/\r*$$/\r/' ../README.md ../run/*.conf ../run/password.lst

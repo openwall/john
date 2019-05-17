@@ -19,11 +19,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#if !defined (_MSC_VER)
+#ifndef _MSC_VER
 #include <unistd.h>
 #endif
 
+#ifndef MAIN_NAME
 #define MAIN_NAME			"john.exe"
+#endif
 
 int main(int argc, char *argv[])
 {
