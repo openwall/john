@@ -1900,7 +1900,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		}
 
 		/* Erase the 'spinning wheel' cursor */
-		if (john_main_process)
+		if (john_main_process && isatty(fileno(stderr)))
 			fprintf(stderr, " \b");
 
 		if (!endTime)
@@ -2127,8 +2127,8 @@ void opencl_find_best_gws(int step, int max_duration,
 			fprintf(stderr, "!!\n");
 	}
 
-	/* Erase the 'spinning wheel' cursor */
-	if (options.verbosity <= VERB_LEGACY && john_main_process)
+	/* Erase any 'spinning wheel' cursor */
+	if (john_main_process && isatty(fileno(stderr)))
 		fprintf(stderr, " \b");
 
 	// Release profiling queue and create new with profiling disabled
