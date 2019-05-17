@@ -1392,12 +1392,15 @@ static int ldr_salt_cmp_num(const void *x, const void *y) {
 }
 
 static void ldr_gen_salt_md5(struct db_salt *s, int dynamic) {
+#ifndef DYNAMIC_DISABLED
 	if (dynamic) {
 		dynamic_salt_md5(s);
 		return;
 	}
+#endif
 	dyna_salt_md5(s, ldr_fmt_salt_size);
 }
+
 /*
  * If there are more than 1 salt AND the format exports a salt_compare
  * function, then we reorder the salt array into the order the format
