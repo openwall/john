@@ -13,7 +13,7 @@ run/oui.txt text eol=crlf
 run/*.chr binary
 src/john.com binary
 
-# Substitions for git archive
+# Substitutions for git archive
 src/Makefile.in export-subst
 src/Makefile.legacy export-subst
 
@@ -31,3 +31,6 @@ src/Makefile.legacy export-subst
 .travis export-ignore
 .travis.yml export-ignore
 circle.yml export-ignore
+
+# This file should never be included in any branch, fork or archive
+john-local.conf export-ignore
