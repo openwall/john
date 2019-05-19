@@ -38,7 +38,7 @@ password hashing) implementation found in John the Ripper, I have placed
 a derived version of this implementation in the public domain.  This
 derived version may be obtained at:
 
-	http://www.openwall.com/crypt/
+	https://www.openwall.com/crypt/
 
 The intent is to provide modern password hashing for your servers and
 your software (where the GPL restrictions could be a problem).
