@@ -20,7 +20,7 @@ indent_style = space
 indent_size = 4
 
 [doc/*]
-indent_size = 8
+tab_width = 8
 
 # Hashcat guys don't understand the beauty of tabs
 [pp.[ch]]
