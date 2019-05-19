@@ -40,7 +40,7 @@
  * Jumbo's version number. Note that we must uncomment JTR_RELEASE_BUILD
  * above, in any release tar-balls (and only then, never ever in Git).
  */
-#define JUMBO_POSTFIX			"-jumbo-1"
+#define JUMBO_POSTFIX			"-jumbo-2"
 
 #if JTR_RELEASE_BUILD
 #define JUMBO_VERSION			JOHN_VERSION JUMBO_POSTFIX
