@@ -2,7 +2,7 @@
 
 The latest version of this FAQ may be viewed online at:
 
-	http://www.openwall.com/john/doc/FAQ.shtml
+	https://www.openwall.com/john/doc/FAQ.shtml
 
 
 	Help!  I can't run John.
@@ -215,17 +215,17 @@ above).  Other approaches, such as splitting password files naively
 (without regard to salts), are typically less efficient (in some cases
 to the extent where there's no speedup from using multiple nodes at
 all).  Some other approaches, such as using MPI, are listed on the wiki
-at: http://openwall.info/wiki/john/parallelization
+at: https://openwall.info/wiki/john/parallelization
 
 Q: Where do I get wordlists for use with John?
-A: http://www.openwall.com/wordlists/
+A: https://www.openwall.com/wordlists/
 
 Q: Where do I get new versions of John the Ripper?
 Q: Where do I get the source code for John?
 Q: I only have the source code for John the Ripper, where do I get it
 pre-compiled for my OS (if supported)?
 Q: What is the primary website for John the Ripper?
-A: http://www.openwall.com/john/
+A: https://www.openwall.com/john/
 
 Q: How can I contact you (the author)?
 A: See CONTACT.

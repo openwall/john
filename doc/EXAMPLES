@@ -29,7 +29,7 @@ the many utilities that dump Windows password hashes (LM and/or NTLM) in
 Jeremy Allison's PWDUMP output format.  Some of these utilities may be
 obtained here:
 
-	http://www.openwall.com/passwords/pwdump
+	https://www.openwall.com/passwords/pwdump
 
 2. Now, let's assume you've got a password file, "mypasswd", and want to
 crack it.  The simplest way is to let John use its default order of
@@ -46,7 +46,7 @@ default password.lst and edit the "Wordlist = ..." line in the
 configuration file (see CONFIG) before running John.  Some wordlists may
 be obtained here:
 
-	http://www.openwall.com/wordlists/
+	https://www.openwall.com/wordlists/
 
 Of those available in the collection at the URL above, all.lst
 (downloadable as all.gz) and huge.lst (only available on the CD) are
