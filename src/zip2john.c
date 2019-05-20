@@ -52,7 +52,7 @@
  *   CT  Compression type  (0 or 8)  0 is stored, 8 is imploded.
  *   DL  Length of the DA data.
  *   CS  2 bytes of checksum data.
- *   TC  2 bytes of checksun data (fron timestamp)
+ *   TC  2 bytes of checksum data (from timestamp)
  *   DA  This is the 'data'.  It will be hex data if DT == 1 or 2. If DT == 3, then it is a filename (name of the .zip file).
  * END of array item.  There will be C (count) array items.
  * The format string will end with $/pkzip$
