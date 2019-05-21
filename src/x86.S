@@ -1317,6 +1317,8 @@ BF_body:
 #define CV_INTEL			$0x6C65746E
 /* "AuthenticAMD" */
 #define CV_AMD				$0x444D4163
+/* "HygonGenuine" */
+#define CV_Hygon			$0x656E6975
 /* "CentaurHauls" */
 #define CV_CENTAUR			$0x736C7561
 
@@ -1459,6 +1461,8 @@ CPU_detect_end_of_jumbo:
 	orb $1,%al			/* Detected a suitable CPU */
 	cmpl CV_AMD,%ecx
 	je CPU_detect_AMD		/* Is an AMD processor */
+	cmpl CV_Hygon,%ecx
+	je CPU_detect_P1		/* Is an Hygon processor */
 	cmpl CV_CENTAUR,%ecx
 	je CPU_detect_P1		/* Is a Centaur Technology processor */
 	cmpl CV_INTEL,%ecx
