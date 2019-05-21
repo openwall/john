@@ -28,7 +28,11 @@
 
 int ZTEX_DEBUG = 0;
 
-void ztex_error(const char *s, ...) {
+#ifdef __GNUC__
+__attribute__ ((format (printf, 1, 2)))
+#endif
+static void ztex_error(const char *s, ...)
+{
 	va_list ap;
 	va_start(ap, s);
 	vfprintf(stderr, s, ap);
@@ -81,7 +85,7 @@ int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
 	*ztex_dev = NULL;
 	struct ztex_device *dev = malloc(sizeof(struct ztex_device));
 	if (!dev) {
-		ztex_error("malloc: unable to allocate %d bytes\n", sizeof(struct ztex_device));
+		ztex_error("malloc: unable to allocate %u bytes\n", (unsigned int)sizeof(struct ztex_device));
 		return -1;
 	}
 
@@ -120,7 +124,7 @@ int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
 	result = libusb_get_string_descriptor_ascii(dev->handle, desc.iSerialNumber,
 			(unsigned char *)dev->snString_orig, ZTEX_SNSTRING_LEN);
 	if (result < 0) {
-		ztex_error("ztex_device_new: libusb_get_string_descriptor_ascii(iSerialNumber): %s\n",
+		ztex_error("ztex_device_new: libusb_get_string_descriptor_ascii(iSerialNumber) returns %d (%s)\n",
 				result, libusb_error_name(result));
 		ztex_device_delete(dev);
 		return result;
@@ -133,7 +137,7 @@ int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
 	result = libusb_get_string_descriptor_ascii(dev->handle, desc.iProduct,
 			(unsigned char *)dev->product_string, ZTEX_PRODUCT_STRING_LEN);
 	if (result < 0) {
-		ztex_error("ztex_device_new: libusb_get_string_descriptor_ascii(iProduct): %s\n",
+		ztex_error("ztex_device_new: libusb_get_string_descriptor_ascii(iProduct) returns %d (%s)\n",
 				result, libusb_error_name(result));
 		ztex_device_delete(dev);
 		return result;
@@ -618,8 +622,8 @@ int ztex_upload_bitstream(struct ztex_device *dev, FILE *fp)
 	int endpointHS = settings[0];
 	int interfaceHS = settings[1];
 	if (endpointHS <= 0 || interfaceHS < 0) {
-		ztex_error("SN %s: invalid HS Fpga Settings\n",
-				dev->snString, result, libusb_error_name(result));
+		ztex_error("SN %s: invalid High-Speed FPGA settings %d, %d\n",
+				dev->snString, endpointHS, interfaceHS);
 		return -1;
 	}
 
@@ -683,7 +687,7 @@ int ihx_load_data(struct ihx_data *ihx_data, FILE *fp)
 	rewind(fp);
 	char *file_data = malloc(file_size);
 	if (!file_data) {
-		ztex_error("ihx_load_data: malloc(%d) failed\n", file_size);
+		ztex_error("ihx_load_data: malloc(%ld) failed\n", file_size);
 		return -1;
 	}
 
