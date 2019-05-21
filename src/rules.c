@@ -644,11 +644,16 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 		return NULL;
 	}
 
+	if (!*rule && options.flags & FLG_RULE_SKIP_NOP)
+		return NULL;
+
 	while (RULE)
 	switch (LAST) {
 	case ':':
 	case ' ':
 	case '\t':
+		if (options.flags & FLG_RULE_SKIP_NOP)
+			return NULL;
 		break;
 
 	case '-':
