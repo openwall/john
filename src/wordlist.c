@@ -633,7 +633,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 	/* These will ignore --save-memory */
 	if (loopBack || dupeCheck ||
 	    (!options.max_wordfile_memory &&
-	     (options.flags & FLG_RULES)))
+	     (options.flags & FLG_RULES_CHK)))
 		forceLoad = 1;
 
 	/* If we did not give a name for wordlist mode,
@@ -734,7 +734,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 
 		if (ourshare < options.max_wordfile_memory &&
 		    mem_saving_level < 2 &&
-		    (options.flags & FLG_RULES))
+		    (options.flags & FLG_RULES_CHK))
 			forceLoad = 1;
 
 		/* If it's worth it we make a ready-to-use buffer with the

@@ -871,15 +871,15 @@ static void john_load_conf(void)
 				str_alloc_copy(SUBSECTION_SINGLE);
 
 	if ((options.flags & FLG_LOOPBACK_CHK) &&
-	    !(options.flags & FLG_RULES)) {
+	    !(options.flags & FLG_RULES_CHK)) {
 		if ((options.activewordlistrules =
 		     cfg_get_param(SECTION_OPTIONS, NULL,
 		                   "LoopbackRules")))
-			options.flags |= FLG_RULES;
+			options.flags |= FLG_RULES_CHK;
 	}
 
 	if ((options.flags & FLG_WORDLIST_CHK) &&
-	    !(options.flags & FLG_RULES)) {
+	    !(options.flags & FLG_RULES_CHK)) {
 		if ((options.activewordlistrules =
 		     cfg_get_param(SECTION_OPTIONS, NULL,
 		                   "WordlistRules")))
@@ -887,7 +887,7 @@ static void john_load_conf(void)
 			if (strlen(options.activewordlistrules) == 0)
 				options.activewordlistrules = NULL;
 			else
-				options.flags |= FLG_RULES;
+				options.flags |= FLG_RULES_CHK;
 		}
 	}
 
@@ -950,7 +950,7 @@ static void john_load_conf_db(void)
 		/* john.conf alternative for --internal-codepage */
 		if (!options.internal_cp &&
 		    options.target_enc == UTF_8 && options.flags &
-		    (FLG_RULES | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
+		    (FLG_RULES_IN_USE | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
 			if (!(options.internal_cp =
 			    cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
 			    "DefaultInternalCodepage"))))
@@ -1848,12 +1848,12 @@ static void john_run(void)
 		else
 		if (options.flags & FLG_WORDLIST_CHK)
 			do_wordlist_crack(&database, options.wordlist,
-				(options.flags & FLG_RULES) != 0);
+				(options.flags & FLG_RULES_CHK) != 0);
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 		else
 		if (options.flags & FLG_PRINCE_CHK)
 			do_prince_crack(&database, options.wordlist,
-			                (options.flags & FLG_RULES) != 0);
+			                (options.flags & FLG_RULES_CHK) != 0);
 #endif
 		else
 		if (options.flags & FLG_INC_CHK)

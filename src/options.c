@@ -92,7 +92,7 @@ static struct opt_entry opt_list[] = {
 	{"prince-case-permute", FLG_PRINCE_CASE_PERMUTE, 0,
 		FLG_PRINCE_CHK, FLG_PRINCE_MMAP},
 	{"prince-keyspace", FLG_PRINCE_KEYSPACE | FLG_STDOUT, 0,
-		FLG_PRINCE_CHK, FLG_RULES},
+		FLG_PRINCE_CHK, FLG_RULES_IN_USE},
 	{"prince-mmap", FLG_PRINCE_MMAP, 0,
 		FLG_PRINCE_CHK, FLG_PRINCE_CASE_PERMUTE},
 #endif
@@ -112,10 +112,12 @@ static struct opt_entry opt_list[] = {
 #else
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK},
 #endif
-	{"rules", FLG_RULES, FLG_RULES, FLG_RULES_ALLOW, FLG_STDIN_CHK,
+	{"rules", FLG_RULES_SET, FLG_RULES_CHK, FLG_RULES_ALLOW, FLG_STDIN_CHK,
 		OPT_FMT_STR_ALLOC, &options.activewordlistrules},
-	{"rules-stack", FLG_ZERO, FLG_ZERO, 0, OPT_REQ_PARAM,
+	{"rules-stack", FLG_RULES_STACK_SET, FLG_RULES_STACK_CHK, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.rule_stack},
+	{"rules-skip-nop", FLG_RULE_SKIP_NOP, FLG_RULE_SKIP_NOP,
+		FLG_RULES_IN_USE},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"incremental-charcount", FLG_ZERO, 0, FLG_INC_CHK, OPT_REQ_PARAM,
@@ -426,6 +428,8 @@ void opt_print_hidden_usage(void)
 	puts("--max-run-time=[-]N        gracefully exit after this many seconds. If");
 	puts("                           negative, reset timer on each crack");
 	puts("--regen-lost-salts=N       brute force unknown salts (see doc/OPTIONS)");
+	puts("--rules-skip-nop           skip any NOP \":\" rules (if you already ran");
+	puts("                           without rules)");
 	puts("--mkv-stats=FILE           \"Markov\" stats file (see doc/MARKOV)");
 	puts("--reject-printable         reject printable binaries");
 	printf("--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n",
