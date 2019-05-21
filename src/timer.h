@@ -52,11 +52,17 @@ typedef struct timespec hr_timer;
 /* Do we seem to have a (hopefully) nanosecond monotonic clock? */
 #if _POSIX_TIMERS && defined(_POSIX_MONOTONIC_CLOCK)
 
+#ifdef CLOCK_MONOTONIC_RAW
+#define BEST_MONOTONIC CLOCK_MONOTONIC_RAW
+#else
+#define BEST_MONOTONIC CLOCK_MONOTONIC
+#endif
+
 typedef struct timespec hr_timer;
 #define HRZERO(X)             (X).tv_sec = (X).tv_nsec = 0
-#define HRSETCURRENT(X)       clock_gettime(CLOCK_MONOTONIC, &(X))
+#define HRSETCURRENT(X)       clock_gettime(BEST_MONOTONIC, &(X))
 #define HRGETTICKS(X)         ((double)(X).tv_sec * 1E9 + (double)(X).tv_nsec)
-#define HRGETTICKS_PER_SEC(X) { hr_timer r; clock_getres(CLOCK_MONOTONIC, &r); (X) = r.tv_sec + 1E9 / r.tv_nsec; }
+#define HRGETTICKS_PER_SEC(X) { hr_timer r; clock_getres(BEST_MONOTONIC, &r); (X) = r.tv_sec + 1E9 / r.tv_nsec; }
 
 #else /* Fallback to microsecond non-monotonic clock that should be available */
 
@@ -97,7 +103,7 @@ extern double sm_cPrecision;     // clocks (ticks) per second (observed, guess)
 #define sTimer_Start_noclear(t) \
     do { \
     if (sm_HRTicksPerSec != 0.0) { HRSETCURRENT ((t)->m_hrStartTime); } \
-    else { (t)->m_cStartTime = clock (); } \
+    else { (t)->m_cStartTime = clock(); } \
     (t)->m_fRunning = 1; \
     } while (0)
 
