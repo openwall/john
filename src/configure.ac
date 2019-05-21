@@ -627,10 +627,8 @@ else
   fi]
 )
 
-dnl ======================================================================
-dnl libz is found in pkg-config --switch zlib
-dnl ======================================================================
 AC_CHECK_LIB([m],[sqrt],[AC_DEFINE(HAVE_LIBM,1,[Define to 1 if you have the `m' library (-lm).])] [AC_SUBST(M_LIBS, [-lm])],[AC_MSG_FAILURE(JtR requires libm being installed,1)])
+AC_CHECK_LIB([rt],[clock_gettime],[AC_DEFINE(HAVE_LIBRT,1,[Define to 1 if you have clock_gettime in the `rt' library (-lrt).])] [AC_SUBST(RT_LIBS, [-lrt])])
 AC_CHECK_LIB([z],[deflate],[AC_DEFINE(HAVE_LIBZ,1,[Define to 1 if you have the `z' library (-lz).])] [AC_SUBST(Z_LIBS, [-lz])])
 BACKUP_LIBS="$LIBS"
 LIBS=""
