@@ -120,7 +120,7 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"incremental-charcount", FLG_ZERO, 0, FLG_INC_CHK, OPT_REQ_PARAM,
 		"%u", &options.charcount},
-	{"subsets", FLG_SUBSETS_SET, FLG_SUBSETS_CHK,
+	{"subsets", FLG_SUBSETS_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.subset_full},
 	{"subsets-required", FLG_ZERO, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM,
 		"%u", &options.subset_must},
