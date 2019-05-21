@@ -326,13 +326,13 @@ static void listconf_list_build_info(void)
 	printf("times(2) CLK_TCK is %ld\n", clk_tck);
 #endif
 #if defined (__MINGW32__) || defined (_MSC_VER)
-	printf("Using clock(3) for timers, claimed resolution %ss, actual seen %ss\n",
+	printf("Using clock(3) for timers, claimed resolution %ss, observed %ss\n",
 	       human_prefix_small(1.0 / CLOCKS_PER_SEC),
 	       human_prefix_small(sm_cPrecision));
 #else
 	printf("Using times(2) for timers, resolution %ss\n", human_prefix_small(1.0 / clk_tck));
 #endif
-	printf("HR timer claimed resolution %ss, actual seen %ss\n", human_prefix_small(1.0 / sm_HRTicksPerSec), human_prefix_small(sm_hrPrecision));
+	printf("HR timer claimed resolution %ss, observed %ss\n", human_prefix_small(1.0 / sm_HRTicksPerSec), human_prefix_small(sm_hrPrecision));
 
 // OK, now append debugging options, BUT only output  something if
 // one or more of them is set. IF none set, be silent.
