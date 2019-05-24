@@ -393,6 +393,7 @@ void rec_save(void)
 	if (!options.fork && fsync(rec_fd))
 		pexit("fsync");
 #endif
+	sig_reset_timer();
 }
 
 void rec_init_hybrid(void (*save_mode)(FILE *file)) {

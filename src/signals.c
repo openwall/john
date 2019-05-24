@@ -304,6 +304,17 @@ static void sig_handle_reload(int signum);
 #endif
 #endif
 
+void sig_reset_timer(void)
+{
+#ifndef BENCH_BUILD
+#if OS_TIMER
+	timer_save_value = timer_save_interval;
+#else
+	timer_save_value = status_get_time() + timer_save_interval;
+#endif
+#endif
+}
+
 static void sig_handle_timer(int signum)
 {
 	int saved_errno = errno;
@@ -326,7 +337,6 @@ static void sig_handle_timer(int signum)
 #endif
 	}
 	if (!--timer_save_value) {
-		timer_save_value = timer_save_interval;
 		event_save = event_pending = 1;
 		event_reload = options.reload_at_save;
 	}
@@ -565,11 +575,12 @@ void sig_init_late(void)
 	unsigned int time;
 
 #if OS_TIMER
-	timer_save_value = timer_save_interval;
+	timer_save_value = timer_save_interval + ((NODE + 1) & 63);
 
 	time = 0;
 #else
-	timer_save_value = status_get_time() + timer_save_interval;
+	timer_save_value =
+		status_get_time() + timer_save_interval + ((NODE + 1) & 63);
 	time = status_get_time();
 #endif
 #endif

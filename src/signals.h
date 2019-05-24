@@ -78,6 +78,12 @@ extern void sig_init(void);
 extern void sig_init_late(void);
 
 /*
+ * Resets the save timer. This is called after *completing* an event_save
+ * with the rationale of keeping any separation we got by waiting for locks
+ */
+extern void sig_reset_timer(void);
+
+/*
  * Performs additional (re-)initialization after fork().  Assumes that
  * sig_init() has already been called.
  */
