@@ -1,0 +1,163 @@
+######################################################################
+# Copyright (c) 2019 Claudio André <claudioandre.br at gmail.com>
+#
+# This program comes with ABSOLUTELY NO WARRANTY; express or implied.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, as expressed in version 2, seen at
+# http://www.gnu.org/licenses/gpl-2.0.html
+######################################################################
+environment:
+  global:
+    PROJ_FOLDER: C:\projects
+    JTR_FOLDER: C:\projects\JohnTheRipper
+    BUILD_FOLDER: C:\projects\JohnTheRipper\src
+
+  matrix:
+    # CygWin 64bits build on Windows Server 2016
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      arch: x86_64
+      bits: 64
+      doing: test
+      test: yes
+      location: cygwin64
+
+    # CygWin 64bits build
+    - arch: x86_64
+      bits: 64
+      doing: deploy
+      test: yes
+      location: cygwin64
+
+install:
+  - echo '--------------------------------'
+  - systeminfo | findstr /C:"OS"
+  - echo '--------------------------------'
+
+  - cd %BUILD_FOLDER%
+  - git describe --dirty=+ --always 2>nul > __git.tmp
+  - set /p gitDescribe=<__git.tmp
+  - appveyor UpdateBuild -Version "1.9J2-%gitDescribe%"
+  - echo "JtR 1.9J2-%gitDescribe%"
+  - echo '--------------------------------'
+
+  - ps: |
+      $arch = $env:Arch
+      $bits = $env:Bits
+      $doing = $env:Doing
+      $location = $env:Location
+      $buildFolder = $env:BUILD_FOLDER
+      $posixBuildFolder = $buildFolder -Replace '\\', '/'
+      $env:PATH="C:\$location\bin;C:\$location\usr\bin;$env:PATH"
+
+      function shell($command, $dieOnError = $true) {
+
+        Write-Host "Executing '$command'"
+          & "C:\$location\bin\bash" -lc ". /etc/profile && cd $posixBuildFolder && $command"
+
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "'$command' failed with exit code $LASTEXITCODE! " -ForegroundColor Red -NoNewline
+
+          if ($dieOnError) {
+            exit $LASTEXITCODE
+          }
+        }
+      }
+
+before_build:
+  # Install required packages and allow extra formats
+  - ps: |
+      cmd /c "C:\$env:Location\setup-$env:Arch.exe -q -P libssl-devel -P libbz2-devel -P libgmp-devel -P zlib-devel"
+      cmd /c "C:\$env:Location\setup-$env:Arch.exe -q -P libOpenCL-devel -P libcrypt-devel"
+
+build_script:
+  - ps: |
+      Write-Host "--------------------------------------------------------"
+      Write-Host "                 =====  Building  =====                 " -ForegroundColor White
+      Write-Host "--------------------------------------------------------"
+
+  - ps: |
+      echo 'Compiler version'
+      shell "gcc --version"
+      echo '--------------------------------'
+
+      shell "./configure --disable-opencl && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-best"
+      $EXE_NAME = "john-best.exe"
+      }
+      # The "windows-package" make target depends on default,
+      # - So it needs the john.exe I built above
+      shell "cp ../run/$EXE_NAME ../run/john.exe"
+
+      # Make this a Windows package
+      shell "make -s windows-package"
+
+      # Use symlink.c to produce a tiny john.exe that executes the best SIMD
+      shell "make windows-tiny-link-to-john MAIN_NAME=$EXE_NAME "
+      ##########################################################################
+      # I should strip the tiny john.exe at some time in the future
+      # - But I can't call a make target that depends on default
+      # - So, I can't run a make strip here
+      ##########################################################################
+
+after_build:
+  - cd "%JTR_FOLDER%\run"
+
+test_script:
+  - ps: |
+      Write-Host "--------------------------------------------------------"
+      Write-Host "                 =====  Testing  =====                  " -ForegroundColor White
+      Write-Host "--------------------------------------------------------"
+
+  # Build info
+  - john --list=build-info
+
+  - if "%test%" == "yes" (
+        john -test-full=0 --format=cpu
+    )
+
+after_test:
+  # Remove the left-over from testing
+  - del john.log
+  - del john.pot
+
+  # Remove unused/unneeded stuff
+  - rmdir "%JTR_FOLDER%\run\ztex" /s /Q
+
+  # Remove hidden .name files and folders
+  - del "%JTR_FOLDER%\.editorconfig"
+  - del "%JTR_FOLDER%\.gitattributes"
+  - del "%JTR_FOLDER%\.gitignore"
+  - del "%JTR_FOLDER%\.mailmap"
+  - del "%JTR_FOLDER%\.pre-commit.sh"
+  - del "%JTR_FOLDER%\.travis.yml"
+
+  - rmdir "%JTR_FOLDER%\.ci"       /s /Q
+  - rmdir "%JTR_FOLDER%\.circleci" /s /Q
+  - rmdir "%JTR_FOLDER%\.github"   /s /Q
+  - rmdir "%JTR_FOLDER%\.travis"   /s /Q
+
+on_failure:
+  - dir "%JTR_FOLDER%" /s > dir.txt
+  - if exist "dir.txt" 7z a -tzip debug_logs.zip "dir.txt" > nul
+  - if exist "%JTR_FOLDER%\src\config.log" 7z a -tzip debug_logs.zip "%JTR_FOLDER%\src\config.log" > nul
+  - if exist "%JTR_FOLDER%\src\Makefile" 7z a -tzip debug_logs.zip "%JTR_FOLDER%\src\Makefile" > nul
+  - if exist "debug_logs.zip" appveyor PushArtifact "debug_logs.zip"
+
+on_finish:
+  - rmdir "%JTR_FOLDER%\.git" /s /Q
+  - rmdir "%JTR_FOLDER%\src" /s /Q
+
+  - if exist "%JTR_FOLDER%\run\john.exe" 7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=128m -ms=on "win_x%bits%.7z" "%JTR_FOLDER%"
+  - if exist "win_x%bits%.7z" if "%doing%" == "deploy" appveyor PushArtifact "win_x%bits%.7z"
+  - move "win_x%bits%.7z" c:\
+
+  - ps: |
+      if ($Zipfile = Get-ChildItem "c:\win_x$bits.7z") {
+        Get-FileHash "c:\win_x$bits.7z"
+
+      } else {
+        Write-Host "--------------------------------------------------------"
+        Write-Host "            =====  No Files to Upload  =====            " -ForegroundColor Red
+        Write-Host "--------------------------------------------------------"
+      }
