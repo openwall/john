@@ -44,7 +44,7 @@ a user: prepended), then jtr will trim the whitespace off. This is a known
 issue, and this is just a bad side effect of a known wanted behavior where
 the raw hash files are cleaned up during processing.
 DUE to all of these problems, dynamic has been expanded to take this as
-the salt:    $dyanamic_#$base_16_hash$HEX$hex_bytes_of_salt.  In this
+the salt:    $dynamic_#$base_16_hash$HEX$hex_bytes_of_salt.  In this
 format, if the salt was 1234, then $HEX$31323334 would be the equivalent
 value.  This allows salts such as $\x0:\r\nBadSalt to actually be encoded.
 This salt CAN be used, if you use the representation:

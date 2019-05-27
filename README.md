@@ -17,17 +17,19 @@ started subjecting all contributions to quite some automated testing.
 This means that you get a lot of functionality that is not necessarily
 "mature", which in turn means that bugs in this code are to be expected.
 
+John the Ripper homepage is:
+
+https://www.openwall.com/john/
+
 If you have any comments on this release or on JtR in general, please
 join the john-users mailing list and post in there:
 
 https://www.openwall.com/lists/john-users/
 
-Licensing info:
+For contributions to John the Ripper jumbo, please use pull requests on
+GitHub:
 
-https://openwall.info/wiki/john/licensing
-
-For contributions to John the Ripper Jumbo, please use a
-[pull requested (PR) on GitHub](https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/CONTRIBUTING.md).
+https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/CONTRIBUTING.md
 
 Included below is basic John the Ripper core documentation.
 
