@@ -321,6 +321,7 @@ static void process_file(const char *fname)
 				if (cur) {
 					printf("%s", cur);
 					MEM_FREE(cur);  // dirty hack to avoid printing of last hash twice
+					continue;
 				}
 			} else if (flags & 1 && (version == 51 || version == 52 || version >= 61)) {	/* Strong Encryption?, APPNOTE-6.3.4.TXT, bit 6 check doesn't really work */
 				// fseek(fp, filename_length, SEEK_CUR);
