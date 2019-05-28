@@ -301,9 +301,9 @@ static void listconf_list_build_info(void)
 #endif
 #if defined(F_SETLK) && defined(F_SETLKW) && defined(F_UNLCK)	  \
 	&& defined(F_RDLCK) && defined(F_WRLCK)
-	puts("File locking: NOT supported by this build - do not run concurrent sessions!");
-#else
 	puts("File locking: fcntl()");
+#else
+	puts("File locking: NOT supported by this build - do not run concurrent sessions!");
 #endif
 	printf("fseek(): " STR_MACRO(jtr_fseek64) "\n");
 	printf("ftell(): " STR_MACRO(jtr_ftell64) "\n");
