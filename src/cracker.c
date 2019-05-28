@@ -825,6 +825,14 @@ static int crk_password_loop(struct db_salt *salt)
 
 	if (kpc_warn_limit && crk_key_index < kpc_warn) {
 		static int last_warn_kpc, initial_value;
+		int s;
+		uint64_t ps = status.cands;
+
+		if ((s = status_get_time()))
+			ps /= s;
+
+		if (single_running && crk_db->salt_count)
+			ps /= crk_db->salt_count;
 
 		if (!initial_value)
 			initial_value = kpc_warn_limit;
@@ -832,7 +840,10 @@ static int crk_password_loop(struct db_salt *salt)
 		if (kpc_warn > crk_params->min_keys_per_crypt)
 			crk_set_kpc_warn();
 
-		if (crk_key_index < kpc_warn && last_warn_kpc != crk_key_index) {
+		if (crk_key_index < kpc_warn &&
+		    ps <= (kpc_warn - crk_key_index) &&
+		    last_warn_kpc != crk_key_index) {
+
 			last_warn_kpc = crk_key_index;
 			if (options.node_count)
 				fprintf(stderr, "%u: ", NODE);
