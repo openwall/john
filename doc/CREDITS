@@ -65,7 +65,7 @@ compiler.c:
 * The developers of Cygwin - for Cygwin (at the time called Cygnus
 Developer's Kit) that I used for the Win32 port:
 
-	http://www.cygwin.com
+	https://www.cygwin.com
 
 * DJ Delorie - for DJGPP that I used for the DOS port:
 
