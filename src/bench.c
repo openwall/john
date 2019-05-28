@@ -601,9 +601,10 @@ char *benchmark_format(struct fmt_main *format, int salts,
 		sig_timer_emu_tick();
 #endif
 		salts_done++;
-	} while (benchmark_time && (bench_running ||
-		(salts_done < (wait ? salts : MIN(salts, 2)))) &&
-	         !event_abort);
+	} while (benchmark_time && !event_abort &&
+	         (bench_running ||
+	          (salts_done < (wait ? salts : MIN(salts, 2))) ||
+	          (10 * salts_done > 9 * salts && salts_done < salts)));
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
 	end_real = clock();
