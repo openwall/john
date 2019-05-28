@@ -739,7 +739,6 @@ static void john_wait(void)
 
 	log_event("Waiting for %d child%s to terminate",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
-	log_flush();
 	fprintf(stderr, "Waiting for %d child%s to terminate\n",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
 
@@ -1399,8 +1398,7 @@ static void john_load(void)
 		}
 
 #if OS_FORK
-		if (options.fork)
-		{
+		if (options.fork) {
 			/*
 			 * flush before forking, to avoid multiple log entries
 			 */
