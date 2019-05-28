@@ -10,7 +10,7 @@
  *
  * The Boolean expressions corresponding to DES S-boxes have been generated
  * by Roman Rusakov <roman_rus at openwall.com> for use in Openwall's
- * John the Ripper password cracker: http://www.openwall.com/john/
+ * John the Ripper password cracker: https://www.openwall.com/john/
  * Being mathematical formulas, they are not copyrighted and are free for reuse
  * by anyone.
  *
@@ -19,7 +19,7 @@
  * on a Pentium 3 using a brute-force instruction scheduling program running
  * the individual S-boxes in a context similar to that of this file.
  *
- * The effort has been sponsored by Rapid7: http://www.rapid7.com
+ * The effort has been sponsored by Rapid7: https://www.rapid7.com
  *
  * Addition of single DES encryption with no salt by Deepika Dutta Mishra
  * <dipikadutta at gmail.com> in 2013, no rights reserved.

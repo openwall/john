@@ -138,21 +138,23 @@ generate the candidate passwords it tries.  The functions are coded in
 a subset of C and are compiled by John at startup when you request the
 particular external mode on John's command line.  See EXTERNAL.
 
+
 	Markov mode.
 
 This is a stand alone mode, where word-like strings are created based
 upon a complex algorithm based upon 'weights' or likeliness of characters
 following characters.  A full description of this mode and its usage is
-found in the ./doc/MARKOV document.
+found in the MARKOV document.
 
-	MASK mode.
+
+	Mask mode.
 
 This allows creation of a mask of character classes which can be in
 specific positions when building a candidate to test.  There is a full
-description of this mode, and the masks available, in the ./doc/MASK
-document.
+description of this mode, and the masks available, in the MASK document.
 
-	SUBSETS mode.
+
+	Subsets mode.
 
 This mode exploits the weakness of low entropy passwords and was inspired
 by 'subsets' external mode, but has many advantages.  Basically, it will
@@ -160,9 +162,10 @@ try subsets of a given charset with increasing lengths. It divides the
 keyspace in many sets of (subset size, password length) and will always
 try a smaller sub-keyspace before a larger one. For example, it will try
 very long passwords consisting of few unique characters before it tries a
-short one with more unique ones.  See ./doc/SUBSETS for more details.
+short one with more unique ones.  See SUBSETS for more details.
 
-	REGEX mode (experimental, not supported, see README.librexgen).
+
+	Regex mode (experimental, not supported, see README.librexgen).
 
 You can think of this as "reverse regexp".  Regex is similar to mask mode but
 more powerful (and also slower).  Basically, you write a regular expression
@@ -171,16 +174,18 @@ Regex can optionally be used in hybrid (a.k.a stacked) mode, using \0 as a
 placeholder for the parent mode's word.  Eg. a regex of "\0\d\d" will produce
 the same result as a rule adding two digits to the base word.
 
-	Multiple stacking of modes.
+
+	Stacking of multiple modes.
 
 The mask and regex modes can be stacked upon some other mode (any mode except
 single, but including e.g. stdin and loopback modes).  This is sometimes
 referred to as "hybrid mask" or "hybrid regex" modes.  Regex can be a parent
 mode to mask mode even when regex itself runs stacked on some other mode.  In
-that case, mask is always last in chain  (by design, since it can accelerate
+that case, mask is always last in chain (by design, since it can accelerate
 fast GPU formats).  Basically, the first mode is any mode except single, and
-then you can optionally add rules (provided the base mode supports it),  then
+then you can optionally add rules (provided the base mode supports it), then
 optionally regex, then optionally mask and finally an optional external filter.
+
 
 	What modes should I use?
 
