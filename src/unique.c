@@ -350,7 +350,8 @@ static void unique_init(char *name)
 {
 	int fd;
 
-	fprintf(stderr,
+	if (verbose)
+		fprintf(stderr,
 	        "Hash size %d (%s/%sB), input buffer %sB. Total alloc. %sB\n",
 	        (int)log2(unique_hash_size), human_prefix(unique_hash_size),
 	        human_prefix(unique_hash_size * sizeof(*buffer.hash)),
@@ -514,7 +515,7 @@ int unique(int argc, char **argv)
 		fprintf(stderr,
 "Usage: unique [option[s]] OUTPUT-FILE\n\n"
 "Options:\n"
-"-v                 verbose mode, output stats before each slow pass (if any)\n"
+"-v                 verbose mode, output stats even without slow passes\n"
 "-inp=FILE          read from FILE instead of stdin\n"
 "-cut=N             truncate input lines to N bytes\n"
 "-cut=LM            for LM: Split lines longer than 7 in two, and uppercase\n"
