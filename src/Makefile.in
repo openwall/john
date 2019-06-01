@@ -993,7 +993,7 @@ peflags:
 .PHONY: windows-tiny-link-to-john
 windows-tiny-link-to-john: symlink.c
 	@echo Build a tiny john.exe that calls the best SIMD binary.
-	$(CC) -DMAIN_NAME=\"$(MAIN_NAME)\" symlink.c $(CFLAGS_MAIN) -o ../run/john.exe
+	$(CC) -DMAIN_NAME=\"$(MAIN_NAME)\" symlink.c -O2 -Wall -s -o ../run/john.exe
 
 .PHONY: windows-package
 windows-package: default
