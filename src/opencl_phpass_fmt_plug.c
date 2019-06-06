@@ -25,7 +25,7 @@ john_register_one(&fmt_opencl_phpass);
 #include "opencl_common.h"
 #include "phpass_common.h"
 
-#define FORMAT_LABEL            "PHPass-opencl"
+#define FORMAT_LABEL            "phpass-opencl"
 #define FORMAT_NAME             ""
 
 #define ALGORITHM_NAME          "MD5 OpenCL"

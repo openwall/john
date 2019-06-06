@@ -57,7 +57,7 @@ use MIME::Base64;
 #############################################################################
 my @funcs = (qw(DESCrypt BigCrypt BSDIcrypt md5crypt md5crypt_a BCRYPT BCRYPTx
 		BFegg Raw-MD5 Raw-MD5u Raw-SHA1 Raw-SHA1u msCash LM NT pwdump
-		Raw-MD4 PHPass PO hmac-MD5 IPB2 PHPS MD4p MD4s SHA1p SHA1s
+		Raw-MD4 phpass PO hmac-MD5 IPB2 PHPS MD4p MD4s SHA1p SHA1s
 		mysql-sha1 pixMD5 MSSql05 MSSql12 netntlm cisco4 cisco8 cisco9
 		nsldap nsldaps ns XSHA krb5pa-md5 krb5-18 mysql mssql_no_upcase_change
 		mssql oracle oracle_no_upcase_change oracle11 hdaa netntlm_ess
@@ -658,9 +658,9 @@ sub LANMan {
 }
 
 #############################################################################
-# This function does PHPass/Wordpress algorithm.
+# This function does phpass/WordPress algorithm.
 #############################################################################
-sub PHPass_hash {
+sub phpass_hash {
 	my ($pw, $cost, $salt) = @_;
 	$cost = 1<<$cost;
 	my $h = md5($salt.$pw);
@@ -670,7 +670,7 @@ sub PHPass_hash {
 	return $h;
 }
 # this helper converts 11 into 9, 12 into A, 13 into B, etc. This is the byte
-# signature for PHPass, which ends up being 1<<num (num being 7 to 31)
+# signature for phpass, which ends up being 1<<num (num being 7 to 31)
 sub to_phpbyte {
 	if ($_[0] <= 11) {
 		return 0+($_[0]-2);
@@ -2851,7 +2851,7 @@ sub formspring {
 }
 sub phpass {
 	$salt = get_salt(8);
-	my $h = PHPass_hash($_[1], 11, $salt);
+	my $h = phpass_hash($_[1], 11, $salt);
 	return "\$P\$".to_phpbyte(11).$salt.substr(base64i($h),0,22);
 }
 sub po {
@@ -3901,7 +3901,7 @@ sub pad_md64 {
 
 sub dynamic_17 { #dynamic_17 --> phpass ($P$ or $H$)	phpass
 	$salt=get_salt(8);
-	my $h = PHPass_hash($_[1], 11, $salt);
+	my $h = phpass_hash($_[1], 11, $salt);
 	return "\$dynamic_17\$".substr(base64i($h),0,22)."\$".to_phpbyte(11).$salt;
 }
 sub dynamic_19 { #dynamic_19 --> Cisco PIX (MD5)
