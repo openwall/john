@@ -70,7 +70,7 @@ def process_file(filename):
 
     myphdr = data = f.read(luks_header_size)
     if len(data) != luks_header_size:
-        sys.stdout.write("%s : parsing failed\n" % filename)
+        sys.stderr.write("%s : parsing failed\n" % filename)
         return -1
 
     data = struct.unpack(luks_header_fmt, data)
