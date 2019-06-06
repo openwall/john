@@ -82,7 +82,8 @@ yescrypt's drawbacks:
 
  - Not the PHC winner (Argon2 is), but is merely a "special recognition"
 
- - Not available in third-party libraries yet (Argon2 and scrypt are)
+ - Out of major third-party libraries, yescrypt is currently only
+   included in libxcrypt (part of Fedora 29 and above)
 
 Other observations:
 
