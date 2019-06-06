@@ -81,6 +81,11 @@ def process_file(filename):
         sys.stderr.write("%s : not a LUKS file / disk\n" % filename)
         return -2
 
+    if version != 1:
+        sys.stderr.write("%s : Only LUKS1 is supported. Used version: %d\n" %
+                         (filename, version))
+        return -2
+
     if not cipherName.startswith(b"aes\x00"):
         sys.stderr.write("%s : Only AES cipher supported. Used cipher: %s\n" %
                          (filename, cipherName))
