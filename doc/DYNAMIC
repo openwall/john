@@ -421,7 +421,7 @@ examples (this whole list is also found in dynamic.conf).
 #     MGF_KEYS_BASE16_IN1_Offset32 (and the x86 versions).    Note, that MGF_KEYS_INPUT can NOT be used
 #     with this flag.
 #
-#  MGF_PHPassSetup
+#  MGF_phpassSetup
 #     Special flag used to link the salt, set_salt and set_hash members of the format object to the 'special'
 #     functions for phpass encryption.
 #
@@ -433,7 +433,7 @@ examples (this whole list is also found in dynamic.conf).
 #  these functions in any new scripts, and to remove any usage of them.  Since these are depricated, they have
 #  KEPT the already depricated MD5GenBaseFunc__ 'signatures', and have not been 'updated' to the new 'dynamic'
 #  format signature.  These SHOULD NOT be used.
-#	  MD5GenBaseFunc__PHPassSetup   == MGF_PHPassSetup
+#	  MD5GenBaseFunc__phpassSetup   == MGF_phpassSetup
 #	  MD5GenBaseFunc__InitialLoadKeysToInput  ==  MGF_KEYS_INPUT
 #	  MD5GenBaseFunc__InitialLoadKeys_md5crypt_ToOutput2  ==  MGF_KEYS_CRYPT_IN2
 #	  MD5GenBaseFunc__InitialLoadKeys_md5crypt_ToOutput2_Base16_to_Input1  == MGF_KEYS_BASE16_IN1
@@ -1010,7 +1010,7 @@ examples (this whole list is also found in dynamic.conf).
 #     This is the very first call.  It DOES set the length up properly. From that point on,
 #     the other (1000's) of calls are done using DynamicFunc__crypt_md5_to_input_raw_Overwrite_NoLen
 #
-#  DynamicFunc__PHPassCrypt
+#  DynamicFunc__phpassCrypt
 #     Special function for phpass, probably not useful in john.conf scripting
 #
 #  DynamicFunc__POCrypt
@@ -1260,9 +1260,9 @@ SaltLen=32
 [List.Generic:dynamic_1013]
 Expression=dynamic_1013: phpass ($P$ or $H$)
 Flag=MGF_SALTED
-Flag=MGF_PHPassSetup
+Flag=MGF_phpassSetup
 Flag=MGF_INPBASE64
-Func=DynamicFunc__PHPassCrypt
+Func=DynamicFunc__phpassCrypt
 Test=$dynamic_1013$jgypwqm.JsMssPLiS8YQ00$9aaaaaSXB:test1
 Test=$dynamic_1013$5R3ueot5zwV.7MyzAItyg/$912345678:thatsworking
 Test=$dynamic_1013$yhzfTrJXcouTpLleLSbnY/$7aaaaaSXB:test1
@@ -1278,9 +1278,9 @@ SaltLen=9
 ####################################################################
 # Simple DYNAMIC type for phpass-MD5.  Same as dynamic_17
 #  This format shows what happens under the hood, INSIDE of the
-#  DynamicFunc__PHPassCrypt() function.  We ONLY do $P$7, since
+#  DynamicFunc__phpassCrypt() function.  We ONLY do $P$7, since
 #  it is the 'smallest' of the set. To do this WITHOUT the
-#  DynamicFunc__PHPassCrypt() function, we would have to have a
+#  DynamicFunc__phpassCrypt() function, we would have to have a
 #  special format for EACH type.  NOTE the timings will 'appear' to
 #  be MUCH faster than normal phpass. This is due to ONLY checking
 #  a version of phpass that uses 512 crypts.  In the phpass testing

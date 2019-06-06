@@ -215,7 +215,8 @@ PDF MD5 SHA-2 RC4 / AES	PDF
 PFX, PKCS12	pfx
 PHPass MD5	phpass ($P$9)
 phpass MD5 ($P$9)	phpass ($P$9)
-phpass-opencl ($P$9 lengths 0 to 15)	PHPass-opencl ($P$9)
+PHPass-opencl ($P$9)	phpass-opencl ($P$9)
+phpass-opencl ($P$9 lengths 0 to 15)	phpass-opencl ($P$9)
 PHPS -- md5(md5($pass).$salt)	PHPS
 PHPS md5(md5($pass).$salt)	PHPS
 PIX MD5	pix-md5, Cisco PIX

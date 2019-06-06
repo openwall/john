@@ -3186,9 +3186,9 @@ static DYNAMIC_Setup Setups[] =
 	// files, converting them back into proper phpass (with $P$ signature).
 	// this format has been removed from dynamic.
 	#if !ARCH_LITTLE_ENDIAN
-	{ "dynamic_17: phpass ($P$ or $H$)",        _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_PHPassSetup, 9, 38, 38 },
+	{ "dynamic_17: phpass ($P$ or $H$)",        _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_phpassSetup, 9, 38, 38 },
 	#else
-	{ "dynamic_17: phpass ($P$ or $H$)",        _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_PHPassSetup, 9, 38 },
+	{ "dynamic_17: phpass ($P$ or $H$)",        _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_phpassSetup, 9, 38 },
 #endif
 	#endif
 	{ "dynamic_18: md5($s.Y.$p.0xF7.$s) (Post.Office MD5)",  _Funcs_18,_Preloads_18,_Const_18,     MGF_SALTED|MGF_NOTSSE2Safe, MGF_POSetup, 32, 110, 110 },
