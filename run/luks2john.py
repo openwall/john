@@ -70,7 +70,7 @@ def process_file(filename):
 
     myphdr = data = f.read(luks_header_size)
     if len(data) != luks_header_size:
-        sys.stdout.write("%s : parsing failed\n" % filename)
+        sys.stderr.write("%s : parsing failed\n" % filename)
         return -1
 
     data = struct.unpack(luks_header_fmt, data)
@@ -79,6 +79,11 @@ def process_file(filename):
 
     if magic != b"LUKS\xba\xbe":
         sys.stderr.write("%s : not a LUKS file / disk\n" % filename)
+        return -2
+
+    if version != 1:
+        sys.stderr.write("%s : Only LUKS1 is supported. Used version: %d\n" %
+                         (filename, version))
         return -2
 
     if not cipherName.startswith(b"aes\x00"):
