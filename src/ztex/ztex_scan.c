@@ -32,7 +32,7 @@ extern struct list_main *jtr_devices_allow;
 
 static int firmware_is_ok(struct ztex_device *dev)
 {
-	return !strncmp("inouttraffic JtR 1.8.x", dev->product_string, 22);
+	return !strncmp("inouttraffic 1.0.0 JtR", dev->product_string, 22);
 }
 
 // Find Ztex USB devices (of supported type)
