@@ -148,7 +148,7 @@ static void process_file(const char *fname)
 	FILE *fp;
 	uint64_t i;
 	char *cur = NULL, *cp;
-	uint64_t best_len = 0xffffffff;
+	uint64_t best_len = UINT64_MAX;
 
 
 	if (!(fp = fopen(fname, "rb"))) {
@@ -663,7 +663,7 @@ static int LoadZipBlob(FILE *fp, zip_ptr *p, zip_file *zfp, const char *zip_fnam
 		else if (extrafield_length)
 			fseek(fp, extrafield_length, SEEK_CUR);
 
-		if (p->cmp_len == 0 && p->decomp_len == 0)
+		if (p->cmp_len == 0)
 			scan_for_eod(&fp, p, size64);
 
 		if (only_fname && strcmp(only_fname, (char*)filename)) {
