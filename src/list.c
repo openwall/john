@@ -132,3 +132,28 @@ int list_check(struct list_main *list, char *data)
 
 	return 0;
 }
+
+int list_extract_list(struct list_main *dst, struct list_main *src,
+		int off, int cnt)
+{
+	struct list_entry *current;
+	int curr_cnt = 0;
+
+	if (!dst || !src || src->count < off + cnt)
+		return 0;
+
+	for (current = src->head; current; current = current->next)
+		if (curr_cnt == off)
+			break;
+		else
+			curr_cnt++;
+
+	while (1) {
+		if (off + cnt < ++curr_cnt)
+			return 1;
+		list_add(dst, current->data);
+		current = current->next;
+	}
+
+	return 1;
+}

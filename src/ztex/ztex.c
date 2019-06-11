@@ -14,10 +14,12 @@
 #include <errno.h>
 #include <libusb-1.0/libusb.h>
 
+#include "../path.h"
+#include "../list.h"
+
 #include "ztex.h"
 #include "ztex_sn.h"
-
-#include "../path.h"
+#include "../ztex_common.h"
 
 //===============================================================
 //
@@ -93,6 +95,7 @@ int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
 	dev->usb_device = usb_dev;
 	dev->busnum = libusb_get_bus_number(usb_dev);
 	dev->devnum = libusb_get_device_address(usb_dev);
+	dev->iface_claimed = 0;
 
 	result = libusb_open(usb_dev, &dev->handle);
 	if (result < 0) {
@@ -189,8 +192,11 @@ void ztex_device_invalidate(struct ztex_device *dev)
 	if (!dev || !dev->valid)
 		return;
 	dev->valid = 0;
-	if (dev->handle)
+	if (dev->handle) {
+		if (dev->iface_claimed)
+			libusb_release_interface(dev->handle, 0);
 		libusb_close(dev->handle);
+	}
 }
 
 int ztex_device_valid(struct ztex_device *dev)
@@ -262,14 +268,20 @@ void ztex_dev_list_remove(struct ztex_dev_list *dev_list, struct ztex_device *de
 			return;
 		}
 }
-/*
-// not used, not tested
-void ztex_dev_list_remove_invalid(struct ztex_dev_list *dev_list)
+
+void ztex_dev_list_delete(struct ztex_dev_list *dev_list)
 {
-	struct ztex_device *dev;
-	for (dev = dev_list->dev; dev; dev = dev->next) {
+	if (!dev_list)
+		return;
+
+	struct ztex_device *dev, *dev_next;
+
+	for (dev = dev_list->dev; dev; dev = dev_next) {
+		dev_next = dev->next;
+		ztex_device_delete(dev);
 	}
-}*/
+	free(dev_list);
+}
 
 // count only valid devices
 int ztex_dev_list_count(struct ztex_dev_list *dev_list)
@@ -409,11 +421,14 @@ int ztex_check_capability(struct ztex_device *dev, int i, int j)
 	return 0;
 }
 
+int ztex_firmware_is_ok(struct ztex_device *dev)
+{
+	return !strncmp("inouttraffic 1.0.0 JtR", dev->product_string, 22);
+}
 
 // Scans for devices that aren't already in dev_list, adds them to new_dev_list
 // Devices in question:
-// 1. Got ZTEX Vendor & Product ID, also SN
-// 2. Have ZTEX-specific descriptor
+// 1. Got ZTEX Vendor & Product ID, also SN, has ZTEX-specific descriptor
 // If some devices are already opened (e.g. by other process) -
 // skips them, warns if warn_open is set (it can't distinguish device
 // is already opened or other error condition such as permissions).
@@ -421,10 +436,11 @@ int ztex_check_capability(struct ztex_device *dev, int i, int j)
 // >= 0 number of devices added
 // <0 error
 int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list,
-		struct ztex_dev_list *dev_list, int warn_open)
+		struct ztex_dev_list *dev_list, int warn_open,
+		struct list_main *dev_allow)
 {
 	libusb_device **usb_devs;
-	int result;
+	int result, result_open;
 	int count = 0;
 	ssize_t cnt;
 
@@ -434,7 +450,9 @@ int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list,
 		return (int)cnt;
 	}
 
-	int num_fail_open = 0;
+	int num_fail_access = 0, num_fail_other = 0;
+	int num_fail_busy = 0;
+
 	int i;
 	for (i = 0; usb_devs[i]; i++) {
 		libusb_device *usb_dev = usb_devs[i];
@@ -442,54 +460,118 @@ int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list,
 		struct libusb_device_descriptor desc;
 		result = libusb_get_device_descriptor(usb_dev, &desc);
 		if (result < 0) {
-			ztex_error("libusb_get_device_descriptor: %s\n", libusb_error_name(result));
+			ztex_error("libusb_get_device_descriptor: %s\n",
+				libusb_error_name(result));
 			continue;
 		}
 
-		if (ZTEX_DEBUG) printf("ztex_scan_new_devices: USB %04x %04x\n",
-				desc.idVendor, desc.idProduct);
+		//if (ZTEX_DEBUG) printf("ztex_scan_new_devices: USB %04x %04x\n",
+		//		desc.idVendor, desc.idProduct);
 		if (desc.idVendor != ZTEX_IDVENDOR || desc.idProduct != ZTEX_IDPRODUCT)
 			continue;
 
-		if (ztex_find_by_usb_dev(dev_list, usb_dev)) {
+		if (ztex_find_by_usb_dev(dev_list, usb_dev))
 			continue;
-		}
 
+		// Open device. Requires access rights.
+		// On Windows device must not be opened by other process.
 		struct ztex_device *ztex_dev;
-		result = ztex_device_new(usb_dev, &ztex_dev);
-		if (result < 0) {
-			if (result == LIBUSB_ERROR_ACCESS)
-				num_fail_open ++;
-			continue;
+		int retry_num;
+		for (retry_num = 0; retry_num < ZTEX_OPEN_NUM_RETRIES; retry_num++) {
+			result_open = ztex_device_new(usb_dev, &ztex_dev);
+			if (result_open >= 0) {
+				break;
+			} else if (result_open == LIBUSB_ERROR_ACCESS) {
+				if (retry_num < ZTEX_OPEN_NUM_RETRIES - 1) {
+					usleep(ZTEX_OPEN_RETRY_WAIT * 1000);
+				} else {
+					num_fail_access++;
+					break;
+				}
+			} else {
+				num_fail_other++;
+				break;
+			}
 		}
 
 		// found new device
-		if (ZTEX_DEBUG) printf("ztex_scan_new_devices: SN %s productId: %d.%d\n",
-				ztex_dev->snString, ztex_dev->productId[0], ztex_dev->productId[1]);
-/* Check if device is supported by application - moved to application
+		if (ZTEX_DEBUG) printf("found: SN %s productId: %d.%d\n",
+			ztex_dev->snString, ztex_dev->productId[0],
+			ztex_dev->productId[1]);
 
+		// Free file descriptor ASAP
 		// only 1.15y devices supported for now
-		if (ztex_dev->productId[0] == 10 && ztex_dev->productId[1] == 15) {
-			ztex_dev_list_add(new_dev_list, ztex_dev);
-			count++;
-		}
-		else {
-			if (ZTEX_DEBUG) printf("SN %s: unsupported type: %d.%d, skipping\n",
-				ztex_dev->productId[0], ztex_dev->productId[1], ztex_dev->snString);
+		if (ztex_dev->productId[0] != 10 || ztex_dev->productId[1] != 15) {
 			ztex_device_delete(ztex_dev);
-		}*/
+			continue;
+		}
+
+		if (dev_allow->count) {
+			// The board may have SN of unsupported format if firmware is
+			// not uploaded - skip check, proceed to firmware upload.
+			if (!ztex_sn_is_valid(ztex_dev->snString_orig)) {
+				if (ztex_firmware_is_ok(ztex_dev)) {
+					// This shouldn't happen (maybe hardware problem)
+					fprintf(stderr, "Error: firmware_is_ok, SN is of "
+						"unsupported format (%s), skipping\n",
+						ztex_dev->snString_orig);
+					ztex_device_delete(ztex_dev);
+					continue;
+				}
+			}
+			// SN or alias is not in the allowed list
+			else if (!list_check(dev_allow, ztex_dev->snString)
+				&& !(ztex_sn_alias_is_valid(ztex_dev->snString)
+					&& list_check(dev_allow, ztex_dev->snString_orig)) ) {
+				ztex_device_delete(ztex_dev);
+				continue;
+			}
+		}
+
+		result = libusb_claim_interface(ztex_dev->handle, 0);
+		if (result == LIBUSB_ERROR_BUSY) {
+			num_fail_busy++;
+			ztex_device_delete(ztex_dev);
+			continue;
+		} else if (result < 0) {
+			fprintf(stderr, "SN %s: usb_claim_interface error %d (%s)\n",
+				ztex_dev->snString, result,
+				libusb_error_name(result));
+			ztex_device_delete(ztex_dev);
+			continue;
+		}
+		ztex_dev->iface_claimed = 1;
+
 		ztex_dev_list_add(new_dev_list, ztex_dev);
 		count++;
 	}
 
 	libusb_free_device_list(usb_devs, 1);
 
-	if (warn_open && num_fail_open) {
-		fprintf(stderr, "Warning: unable to access %d board(s), could be "
-			"insufficient permissions or\n"
-			"another instance of john running.\n",
-			num_fail_open);
+	if (warn_open && (num_fail_access + num_fail_other)) {
+		fprintf(stderr, "Warning: unable to open %d board(s): ",
+			num_fail_access + num_fail_other);
+		if (!num_fail_other) {
+			fprintf(stderr, "insufficient permissions or "
+				"another instance of john running.\n");
+		} else {
+			fprintf(stderr, "%d insufficient permissions or "
+				"another instance of john running, %d ",
+				num_fail_access, num_fail_other);
+			if (num_fail_other == 1)
+				fprintf(stderr, "error %d: %s\n",
+					result_open, libusb_error_name(result_open));
+			else
+				fprintf(stderr, "other errors, last error: %d %s\n",
+					result_open, libusb_error_name(result_open));
+		}
 	}
+
+	if (warn_open && num_fail_busy)
+		fprintf(stderr, "Warning: unable to claim interfaces of "
+			"%d board(s): another instance of john running.\n",
+			num_fail_busy);
+
 	return count;
 }
 
@@ -593,22 +675,13 @@ int ztex_configureFpgaHS(struct ztex_device *dev, FILE *fp, int endpointHS)
 		return result;
 	}
 
-	if (ZTEX_DEBUG) {
-		result = ztex_getFpgaState(dev, &fpga_state);
-		printf("%s End HS config: ", dev->snString);
-		ztex_printFpgaState(&fpga_state);
-		if (!fpga_state.fpgaConfigured) {
-			printf("UNCONFIGURED!\n");
-			return -1;
-		}
-	}
-
 	return 0;
 }
 
 // upload bitstream (High-Speed) on every FPGA in the device
 int ztex_upload_bitstream(struct ztex_device *dev, FILE *fp)
 {
+#if 0
 	unsigned char settings[2];
 	int result;
 
@@ -626,16 +699,30 @@ int ztex_upload_bitstream(struct ztex_device *dev, FILE *fp)
 				dev->snString, endpointHS, interfaceHS);
 		return -1;
 	}
+#endif
 
-	// device_new() from inouttraffic performs claim_interface()
-	int i;
+	const int num_retries = 3;
+	struct ztex_fpga_state fpga_state;
+	int result;
+	int i, retry_num;
+
 	for (i = 0; i < dev->num_of_fpgas; i++) {
 		result = ztex_select_fpga(dev,i);
 		if (result < 0)
 			return result;
-		result = ztex_configureFpgaHS(dev, fp, endpointHS);
-		if (result < 0)
-			return result;
+		for (retry_num = 0; retry_num < num_retries; retry_num++) {
+			result = ztex_configureFpgaHS(dev, fp, ZTEX_ENDPOINT_HS);
+			if (result < 0)
+				return result;
+			result = ztex_getFpgaState(dev, &fpga_state);
+			if (result < 0)
+				return result;
+			if (fpga_state.fpgaConfigured)
+				break;
+			if (retry_num == num_retries - 1)
+				return -1;
+			usleep(200000);
+		}
 	}
 
 	return 1;

@@ -117,6 +117,9 @@ static int john_omp_threads_new;
 #include "unicode.h"
 #include "gpu_common.h"
 #include "opencl_common.h"
+#ifdef HAVE_ZTEX
+#include "ztex_common.h"
+#endif
 #ifdef NO_JOHN_BLD
 #define JOHN_BLD "unk-build-type"
 #else
@@ -671,6 +674,15 @@ static void john_fork(void)
 				fmt_init(database.format);
 			}
 #endif
+#if HAVE_ZTEX
+			if (strstr(database.format->params.label, "-ztex")) {
+				list_init(&ztex_use_list);
+				list_extract_list(ztex_use_list, ztex_detected_list,
+					i * ztex_devices_per_fork, ztex_devices_per_fork);
+				ztex_fork_num = i;
+				usleep(i * 100000);
+			}
+#endif
 			if (rec_restoring_now) {
 				unsigned int node_id = options.node_min;
 				rec_done(-2);
@@ -695,6 +707,13 @@ static void john_fork(void)
 	    strstr(database.format->params.label, "-opencl")) {
 		/* Postponed format init in mother process */
 		fmt_init(database.format);
+	}
+#endif
+#if HAVE_ZTEX
+	if (strstr(database.format->params.label, "-ztex")) {
+		list_init(&ztex_use_list);
+		list_extract_list(ztex_use_list, ztex_detected_list,
+			0, ztex_devices_per_fork);
 	}
 #endif
 	john_main_process = 1;
@@ -1242,6 +1261,26 @@ static void john_load(void)
 			}
 #endif
 
+#if HAVE_ZTEX
+			if (strstr(database.format->params.label, "-ztex")
+					&& options.fork) {
+				if (ztex_detected_list->count == 1) {
+					fprintf(stderr, "Number of ZTEX devices must be "
+						"a multiple of forks. "
+						"With 1 device \"--fork\" is useless.\n");
+					error();
+				}
+				if (ztex_detected_list->count % options.fork) {
+					fprintf(stderr, "Number of ZTEX devices must be "
+						"a multiple of forks. "
+						"Suggesting to use \"--fork=%d\".\n",
+						ztex_detected_list->count);
+					error();
+				}
+				ztex_devices_per_fork
+					= ztex_detected_list->count / options.fork;
+			}
+#endif
 			/* make sure the format is properly initialized */
 #if HAVE_OPENCL
 			if (!(options.acc_devices->count && options.fork &&

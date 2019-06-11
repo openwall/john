@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2016,2018 Denis Burykin
+ * This software is Copyright (c) 2016,2018-2019 Denis Burykin
  * [denis_burykin yahoo com], [denis-burykin2014 yandex ru]
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -13,12 +13,13 @@
 #include <unistd.h>
 #include <libusb-1.0/libusb.h>
 
+#include "../options.h"
+#include "../list.h"
+
+#include "../ztex_common.h"
 #include "ztex.h"
 #include "inouttraffic.h"
 #include "ztex_scan.h"
-
-#include "../options.h"
-#include "../list.h"
 
 ///////////////////////////////////////////////////////////////////
 //
@@ -28,26 +29,20 @@
 //
 ///////////////////////////////////////////////////////////////////
 
-extern struct list_main *jtr_devices_allow;
-
-static int firmware_is_ok(struct ztex_device *dev)
-{
-	return !strncmp("inouttraffic 1.0.0 JtR", dev->product_string, 22);
-}
-
 // Find Ztex USB devices (of supported type)
 // Check "--devices" command-line option
 // Upload firmware (device resets) if necessary
 // Return number of newly found devices (excluding those that were reset)
 static int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *dev_list,
-		int *fw_upload_count, int warn_open)
+		int *fw_upload_count, int warn_open, struct list_main *dev_allow)
 {
 	static int fw_3rd_party_warning = 0;
 	int fw_3rd_party_count = 0;
 	int count = 0;
 	(*fw_upload_count) = 0;
 
-	int result = ztex_scan_new_devices(new_dev_list, dev_list, warn_open);
+	int result = ztex_scan_new_devices(new_dev_list, dev_list,
+		warn_open, dev_allow);
 	if (result <= 0)
 		return 0;
 
@@ -55,41 +50,8 @@ static int ztex_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 	for (dev = new_dev_list->dev; dev; dev = dev_next) {
 		dev_next = dev->next;
 
-		// If john is invoked with "--devices" command-line option,
-		// use only listed boards.
-		if (jtr_devices_allow->count) {
-			// The board may have SN of unsupported format if firmware is
-			// not uploaded - skip check, proceed to firmware upload.
-			if (!ztex_sn_is_valid(dev->snString_orig)) {
-				if (firmware_is_ok(dev)) {
-					// This shouldn't happen (maybe hardware problem)
-					fprintf(stderr, "Error: firmware_is_ok, SN is of "
-						"unsupported format (%s)\n", dev->snString_orig);
-				}
-			}
-			else if (list_check(jtr_devices_allow, dev->snString)
-				|| (ztex_sn_alias_is_valid(dev->snString)
-					&& list_check(jtr_devices_allow, dev->snString_orig)) ) {
-			}
-			else {
-				ztex_dev_list_remove(new_dev_list, dev);
-				continue;
-			}
-		}
-
-		// Check device type
-		// only 1.15y devices supported for now
-		if (dev->productId[0] == 10 && dev->productId[1] == 15) {
-		}
-		else {
-			if (ZTEX_DEBUG) printf("SN %s: unsupported ZTEX device: %d.%d, skipping\n",
-					dev->snString, dev->productId[0], dev->productId[1]);
-			ztex_dev_list_remove(new_dev_list, dev);
-			continue;
-		}
-
 		// Check firmware
-		if (firmware_is_ok(dev)) {
+		if (ztex_firmware_is_ok(dev)) {
 			count++;
 			continue;
 		}
@@ -140,11 +102,12 @@ int ztex_scan_fw_upload_count = 0;
 // ztex_timely_scan()
 // Function to be invoked timely to scan for new devices.
 // Upload firmware if necessary. After upload device resets.
-// Immediately returns number of ready devices.
+// Immediately returns number of newly found devices.
 //
 ///////////////////////////////////////////////////////////////////
 
-int ztex_timely_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *dev_list)
+int ztex_timely_scan(struct ztex_dev_list *new_dev_list,
+		struct ztex_dev_list *dev_list, struct list_main *dev_allow)
 {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
@@ -155,7 +118,8 @@ int ztex_timely_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 		return 0;
 
 	int count, fw_upload_count;
-	count = ztex_scan(new_dev_list, dev_list, &fw_upload_count, 0);
+	count = ztex_scan(new_dev_list, dev_list, &fw_upload_count, 0,
+		dev_allow);
 	if (ztex_scan_fw_upload_count > count) {
 		// Not exact; better record SNs of devices for fw upload
 		fprintf(stderr, "%d device(s) lost after firmware upload\n",
@@ -178,32 +142,63 @@ int ztex_timely_scan(struct ztex_dev_list *new_dev_list, struct ztex_dev_list *d
 //
 ///////////////////////////////////////////////////////////////////
 
-int ztex_init_scan(struct ztex_dev_list *new_dev_list)
+int ztex_init_scan(struct ztex_dev_list *new_dev_list,
+		struct list_main *dev_allow)
 {
-	int count;
-	count = ztex_scan(new_dev_list, NULL, &ztex_scan_fw_upload_count, 1);
-	// if some devices ready - return immediately
-	gettimeofday(&ztex_scan_prev_time, NULL);
-	if (count)
-		return count;
-	if (!ztex_scan_fw_upload_count)
-		return 0;
-	// no devices ready right now and there're some devices
-	// in reset state after firmware upload
-	usleep(ZTEX_FW_UPLOAD_DELAY* 1000*1000);
+	int count1, count2;
 
-	int fw_upload_count_stage2;
-	count = ztex_scan(new_dev_list, NULL, &fw_upload_count_stage2, 0);
-	//if (fw_upload_count_stage2) { // device just plugged in. wait for timely_scan
-	if (ztex_scan_fw_upload_count > count) {
-		// Not exact; better record SNs of devices for fw upload
-		fprintf(stderr, "%d device(s) lost after firmware upload\n",
-				ztex_scan_fw_upload_count - count);
+	count1 = ztex_scan(new_dev_list, NULL, &ztex_scan_fw_upload_count,
+		1, dev_allow);
+
+	if (ztex_scan_fw_upload_count) {
+		// Some devices are in reset state after firmware upload
+		usleep(ZTEX_FW_UPLOAD_DELAY* 1000*1000);
+
+		int fw_upload_count_stage2;
+		count2 = ztex_scan(new_dev_list, new_dev_list, &fw_upload_count_stage2,
+			0, dev_allow);
+		//if (fw_upload_count_stage2) { // device just plugged in. wait for timely_scan
+		if (ztex_scan_fw_upload_count > count2) {
+			// Not exact; better record SNs of devices for fw upload
+			fprintf(stderr, "%d device(s) lost after firmware upload\n",
+					ztex_scan_fw_upload_count - count2);
+		}
+	} else {
+		count2 = 0;
 	}
 
-	ztex_scan_fw_upload_count = fw_upload_count_stage2;
 	gettimeofday(&ztex_scan_prev_time, NULL);
-	return count;
+	return count1 + count2;
 }
 
+void ztex_detect(struct list_main *dev_allow,
+		struct list_main **ztex_detected_list)
+{
+	struct ztex_dev_list *ztex_dev_list = ztex_dev_list_new();
+	struct ztex_device *dev;
+
+	int result = libusb_init(NULL);
+	if (result < 0) {
+		fprintf(stderr, "libusb_init() returns %d: %s\n",
+				result, libusb_error_name(result));
+		error();
+	}
+
+	if (!ztex_init_scan(ztex_dev_list, dev_allow)) {
+		fprintf(stderr, "No ZTEX devices found.\n");
+		error();
+	}
+
+	ztex_dev_list_print(ztex_dev_list);
+
+	int num_detected = ztex_dev_list_count(ztex_dev_list);
+	if (num_detected > 1)
+		fprintf(stderr, "Detected %d ZTEX devices.\n", num_detected);
+
+	list_init(ztex_detected_list);
+	for (dev = ztex_dev_list->dev; dev; dev = dev->next)
+		list_add((*ztex_detected_list), dev->snString);
+	ztex_dev_list_delete(ztex_dev_list);
+	libusb_exit(NULL);
+}
 
