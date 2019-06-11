@@ -147,6 +147,8 @@ struct device_list *device_list_new(struct ztex_dev_list *ztex_dev_list);
 
 void device_list_add(struct device_list *device_list, struct device *device);
 
+void device_list_delete(struct device_list *device_list);
+
 int device_list_count(struct device_list *device_list);
 
 // After merge, added device list deleted.

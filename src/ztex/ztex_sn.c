@@ -63,7 +63,18 @@ void ztex_sn_init_conf_devices(void)
 
 int ztex_sn_alias_is_valid(char *alias)
 {
-	return isdec(alias);
+	const int num_digits_max = 4;
+	int i;
+
+	if (!alias[0])
+		return 0;
+	for (i = 0; i <= num_digits_max; i++) {
+		if (!alias[i])
+			return 1;
+		if (alias[i] < '0' || alias[i] > '9')
+			return 0;
+	}
+	return 0;
 }
 
 

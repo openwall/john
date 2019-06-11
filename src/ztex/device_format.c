@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
-#include <ctype.h>
+#include <assert.h>
 
 #include "../loader.h"
 #include "../formats.h"
@@ -18,12 +18,12 @@
 #include "../options.h"
 #include "../params.h"
 
+#include "../ztex_common.h"
 #include "jtr_device.h"
 #include "task.h"
 #include "jtr_mask.h"
 #include "device_bitstream.h"
 #include "device_format.h"
-#include "ztex_sn.h"
 
 
 // If some task is not completed in this many seconds,
@@ -69,7 +69,6 @@ int jtr_device_list_printed = 0;
  */
 struct fmt_params *jtr_fmt_params;
 struct device_bitstream *jtr_bitstream;
-struct list_main *jtr_devices_allow;
 int jtr_verbosity;
 
 void device_format_init(struct fmt_main *fmt_main,
@@ -78,34 +77,9 @@ void device_format_init(struct fmt_main *fmt_main,
 {
 	jtr_fmt_params = &fmt_main->params;
 	jtr_bitstream = bitstream;
-	jtr_devices_allow = devices_allow;
 	jtr_verbosity = verbosity;
 
-
-	static int init_conf_devices = 0;
-	if (!init_conf_devices) {
-		// Initialize [List.ZTEX:Devices] configuration section.
-		ztex_sn_init_conf_devices();
-
-		// Check -dev command-line option.
-		struct list_entry *entry;
-		int found_error = 0;
-		for (entry = devices_allow->head; entry; entry = entry->next) {
-			if (ztex_sn_alias_is_valid(entry->data)) {
-				if (!ztex_sn_check_alias(entry->data))
-					found_error = 1;
-			}
-			else if (!ztex_sn_is_valid(entry->data)) {
-				fprintf(stderr, "Error: bad Serial Number '%s'\n", entry->data);
-				found_error = 1;
-			}
-		}
-		if (found_error)
-			error();
-
-		init_conf_devices = 1;
-	}
-
+	ztex_init();
 
 	// Mask issues. 1 mask per JtR run can be specified. Global variables.
 
@@ -157,13 +131,6 @@ void device_format_reset()
 	if (!jtr_device_list_init())
 		error();
 
-	if (!jtr_device_list_printed) {
-		if (jtr_verbosity >= VERB_DEFAULT)
-			jtr_device_list_print();
-		jtr_device_list_print_count();
-		jtr_device_list_printed = 1;
-	}
-
 	// Mask data is ready, calculate and set keys_per_crypt
 	uint64_t keys_per_crypt;
 
@@ -182,7 +149,12 @@ void device_format_reset()
 		keys_per_crypt *= min_template_keys;
 	}
 
-	keys_per_crypt *= jtr_device_list_count();
+	//keys_per_crypt *= jtr_device_list_count();
+	// New approach. Boards detected at start, split for forks
+	// if required, 'keys_per_crypt' is set to corresponding value
+	// regardless of boards being up/down atm.
+	keys_per_crypt *= ztex_use_list->count * 4;
+
 	// Ensure updated *pcount < (1ULL << 31)
 	while (keys_per_crypt * mask_num_cand() >= 1ULL << 31)
 		keys_per_crypt /= 2;
@@ -196,6 +168,8 @@ void device_format_reset()
 				"to the device. "\
 				"Increase mask or expect performance degradation.\n");
 	}
+
+	assert(keys_per_crypt > 0 && keys_per_crypt < 1ULL << 31);
 
 	jtr_fmt_params->max_keys_per_crypt = keys_per_crypt;
 	jtr_fmt_params->min_keys_per_crypt = keys_per_crypt;

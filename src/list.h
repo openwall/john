@@ -89,4 +89,12 @@ extern void list_del_next(struct list_main *list, struct list_entry *prev);
  */
 extern int list_check(struct list_main *list, char *data);
 
+/*
+ * Gets 'cnt' entries starting from offset 'off' from list 'src'.
+ * Adds the above entries to list 'dst'.
+ * Returns 1 on success.
+ */
+int list_extract_list(struct list_main *dst, struct list_main *src,
+		int off, int cnt);
+
 #endif

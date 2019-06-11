@@ -11,6 +11,7 @@
 #include <string.h>
 #include <stdarg.h>
 #include <libusb-1.0/libusb.h>
+#include <assert.h>
 
 #include "../memory.h"
 
@@ -60,6 +61,8 @@ struct jtr_device_list *jtr_device_list_new(struct device_list *device_list)
 {
 	struct jtr_device_list *self = mem_alloc(sizeof(struct jtr_device_list));
 	self->device = NULL;
+
+	assert(device_list != NULL);
 
 	// Create 1 JtR device for each fpga
 	struct device *device;
@@ -125,23 +128,12 @@ PKT_DEBUG = 1; // print erroneous packets recieved from devices
 	if (!device_list) {
 		device_list = device_init_scan(jtr_bitstream);
 
-		int device_count = device_list_count(device_list);
-		if (!device_count) {
-			fprintf(stderr, "no valid ZTEX devices found\n");
-			return NULL;
-		}
-
 	// devices already initialized
 	// - upload bitstream of proper type if necessary
 	// - soft reset, initialize fpgas
+	// This happens when "format" changes (--test).
 	} else {
 		device_list_init(device_list, jtr_bitstream);
-
-		int device_count = device_list_count(device_list);
-		if (!device_count) {
-			fprintf(stderr, "no valid ZTEX devices found\n");
-			return NULL;
-		}
 	}
 
 	// Create jtr_devices from inouttraffic devices
@@ -184,7 +176,7 @@ void jtr_device_list_merge(
 {
 	if (!jtr_device_list || !jtr_device_list_1) {
 		fprintf(stderr, "jtr_device_list_merge: invalid args\n");
-		exit(-1);
+		error();
 	}
 
 	struct jtr_device *dev, *dev_next;
@@ -241,8 +233,8 @@ int jtr_device_list_check()
 			= device_timely_scan(device_list, jtr_bitstream);
 	int found_devices_num = device_list_count(device_list_1);
 	if (found_devices_num) {
-		fprintf(stderr, "Found %d device(s) ZTEX 1.15y\n", found_devices_num);
-		ztex_dev_list_print(device_list_1->ztex_dev_list);
+		//fprintf(stderr, "Found %d device(s) ZTEX 1.15y\n", found_devices_num);
+		//ztex_dev_list_print(device_list_1->ztex_dev_list);
 
 		// found devices - merge into global device list
 		struct jtr_device_list *jtr_device_list_1

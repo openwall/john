@@ -124,7 +124,7 @@ OCL_OBJS = opencl_common.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type
 
 OPENCL_PLUGFORMATS_OBJS = @OPENCL_PLUGFORMATS_OBJS@
 
-ZTEX_OBJS = ztex_descrypt.o ztex_bcrypt.o ztex_sha512crypt.o ztex_drupal7.o ztex_sha256crypt.o ztex_md5crypt.o ztex_phpass.o
+ZTEX_OBJS = ztex_descrypt.o ztex_bcrypt.o ztex_sha512crypt.o ztex_drupal7.o ztex_sha256crypt.o ztex_md5crypt.o ztex_phpass.o ztex_common.o
 
 FUZZ_OBJS = fuzz.o
 

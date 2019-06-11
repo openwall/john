@@ -17,6 +17,7 @@
 #include "../config.h"
 #include "../misc.h"
 
+#include "../ztex_common.h"
 #include "ztex.h"
 #include "inouttraffic.h"
 #include "ztex_scan.h"
@@ -303,7 +304,8 @@ void device_list_init(struct device_list *device_list,
 struct device_list *device_timely_scan(struct device_list *device_list, struct device_bitstream *bitstream)
 {
 	struct ztex_dev_list *ztex_dev_list_1 = ztex_dev_list_new();
-	ztex_timely_scan(ztex_dev_list_1, device_list->ztex_dev_list);
+	ztex_timely_scan(ztex_dev_list_1, device_list->ztex_dev_list,
+		ztex_use_list);
 
 	struct device_list *device_list_1 = device_list_new(ztex_dev_list_1);
 	device_list_init(device_list_1, bitstream);
@@ -314,7 +316,7 @@ struct device_list *device_timely_scan(struct device_list *device_list, struct d
 struct device_list *device_init_scan(struct device_bitstream *bitstream)
 {
 	struct ztex_dev_list *ztex_dev_list = ztex_dev_list_new();
-	ztex_init_scan(ztex_dev_list);
+	ztex_init_scan(ztex_dev_list, ztex_use_list);
 
 	struct device_list *device_list = device_list_new(ztex_dev_list);
 	device_list_init(device_list, bitstream);

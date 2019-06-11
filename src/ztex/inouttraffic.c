@@ -111,22 +111,6 @@ struct device *device_new(struct ztex_device *ztex_device)
 			device->fpga[i].freq[j] = 0;
 	}
 
-	int result;
-	//if (usb_set_configuration(handle, 1) < 0) {
-	//}
-	result = libusb_claim_interface(device->handle, 0);
-	if (result < 0) {
-		//if (DEBUG)
-		printf("SN %s: usb_claim_interface error %d (%s)\n",
-			device->ztex_device->snString, result, libusb_error_name(result));
-		device_delete(device);
-		return NULL;
-	}
-	/*
-	if (result < 0) {
-		device_delete(device);
-		return NULL;
-	}*/
 	device->valid = 1;
 	return device;
 }
@@ -151,7 +135,6 @@ void device_invalidate(struct device *device)
 			pkt_comm_delete(device->fpga[i].comm);
 	}
 
-	libusb_release_interface(device->handle, 0);
 	ztex_device_invalidate(device->ztex_device);
 }
 
@@ -253,6 +236,19 @@ int device_list_merge(struct device_list *device_list, struct device_list *added
 	//added_list->dev = NULL;
 	free(added_list);
 	return count;
+}
+
+void device_list_delete(struct device_list *device_list)
+{
+	if (!device_list)
+		return;
+
+	struct device *dev, *dev_next;
+	for (dev = device_list->device; dev; dev = dev_next) {
+		dev_next = dev->next;
+		device_delete(dev);
+	}
+	free(device_list);
 }
 
 int device_list_count(struct device_list *device_list)
