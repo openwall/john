@@ -101,7 +101,7 @@ static void rec_name_complete(void)
 #if !(__MINGW32__ || _MSC_VER)
 static void rec_lock(int shared)
 {
-	int cmd = F_SETLK, type = F_RDLCK;
+	int cmd = F_SETLKW, type = F_RDLCK;
 
 	/*
 	 * In options.c, MPI code path call rec_restore_args(mpi_p)
@@ -113,7 +113,7 @@ static void rec_lock(int shared)
 		type = F_WRLCK;
 #ifdef HAVE_MPI
 		if (!rec_restored || mpi_id || mpi_p == 1)
-			cmd = F_SETLKW;
+			cmd = F_SETLK;
 #endif
 	}
 
