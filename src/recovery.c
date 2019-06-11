@@ -99,28 +99,39 @@ static void rec_name_complete(void)
 }
 
 #if !(__MINGW32__ || _MSC_VER)
+/*
+ * Foot Gun Warning: This is ridiculously tricky to get right.
+ *
+ * 1. Non-MPI builds always do a non-blocking write lock (even in case
+ *    of fork: We haven't yet forked when resuming the session).
+ *
+ * 2. rec_init() may call rec_lock(1), meaning normal behaviour per above.
+ *
+ * 3. At resume, MPI code path in options.c calls rec_restore_args(mpi_p)
+ *    which in turn calls rec_lock(mpi_p) relying on anything > 1 meaning
+ *    read lock because at this time *all* nodes read the root session file.
+ *    *After* restore, the root node must do a *blocking* write lock, in
+ *    case some other node has not yet closed the root session file.
+ *
+ * Note: rec_restored doesn't mean we HAVE resumed but that we ARE doing so.
+ */
 static void rec_lock(int shared)
 {
-	int cmd = F_SETLKW, type = F_RDLCK;
+	int cmd = F_SETLK, type = F_WRLCK; /* non-blocking write lock */
 
-	/*
-	 * In options.c, MPI code path call rec_restore_args(mpi_p)
-	 * relying on anything >1 meaning F_RDLCK. After restore, the
-	 * root node must block, in case some other node has not yet
-	 * closed the original file
-	 */
-	if (shared == 1) {
-		type = F_WRLCK;
-#ifdef HAVE_MPI
-		if (!rec_restored || mpi_id || mpi_p == 1)
-			cmd = F_SETLK;
-#endif
+#if HAVE_MPI
+	if (shared > 1) {
+		if (rec_restored || mpi_id)
+			type = F_RDLCK; /* non-blocking read lock */
+		else
+			cmd = F_SETLKW; /* blocking write lock */
 	}
+#endif
 
 	if (jtr_lock(rec_fd, cmd, type, path_expand(rec_name))) {
 #ifdef HAVE_MPI
 		fprintf(stderr, "Node %d@%s: Crash recovery file is locked: %s\n",
-		        mpi_id + 1, mpi_name, path_expand(rec_name));
+		        NODE, mpi_name, path_expand(rec_name));
 #else
 		fprintf(stderr, "Crash recovery file is locked: %s\n",
 		        path_expand(rec_name));
@@ -477,8 +488,7 @@ void rec_restore_args(int lock)
 #else
 		if (options.node_min > 1 && errno == ENOENT) {
 #endif
-			fprintf(stderr, "%u Session completed\n",
-			    options.node_min);
+			fprintf(stderr, "%u Session completed\n", NODE);
 			if (options.flags & FLG_STATUS_CHK)
 				return;
 			log_event("No crash recovery file, terminating");
@@ -491,7 +501,7 @@ void rec_restore_args(int lock)
 #ifdef HAVE_MPI
 		if (mpi_p > 1) {
 			fprintf(stderr, "%u@%s: fopen: %s: %s\n",
-				mpi_id + 1, mpi_name,
+				NODE, mpi_name,
 				path_expand(rec_name), strerror(errno));
 			error();
 		}

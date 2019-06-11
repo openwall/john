@@ -126,7 +126,7 @@ int log_lock(int fd, int cmd, int type, const char *name,
 	memset(&lock, 0, sizeof(lock));
 #ifdef LOCK_DEBUG
 	fprintf(stderr, "%u: %s(): Locking %s (%s, %s)...\n",
-	        options.node_min, function, name,
+	        NODE, function, name,
 	        type == F_RDLCK ? "F_RDLCK" : type == F_WRLCK ? "F_WRLCK"
 	        : type == F_UNLCK ? "F_UNLCK" : "",
 	        cmd == F_SETLKW ? "F_SETLKW" : cmd == F_SETLK ? "F_SETLK"
@@ -162,7 +162,7 @@ int log_lock(int fd, int cmd, int type, const char *name,
 	}
 
 #ifdef LOCK_DEBUG
-	fprintf(stderr, "%u: %s(): Locked %s\n", options.node_min, function, name);
+	fprintf(stderr, "%u: %s(): Locked %s\n", NODE, function, name);
 #endif
 	return 0;
 }
@@ -334,7 +334,7 @@ static int log_time(void)
 	if (options.fork || mpi_p > 1) {
 #endif
 		count2 = (int)sprintf(log.ptr + count1,
-		                      "%u ", options.node_min);
+		                      "%u ", NODE);
 		if (count2 < 0)
 			return count2;
 		count1 += count2;
@@ -648,7 +648,7 @@ void log_event(const char *format, ...)
 #else
 		if (options.fork || mpi_p > 1)
 #endif
-			fprintf(stderr, "%u ", options.node_min);
+			fprintf(stderr, "%u ", NODE);
 
 		Time = pot.fd >= 0 ? status_get_time() : status_restored_time;
 
