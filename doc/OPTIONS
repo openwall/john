@@ -637,10 +637,8 @@ Removes duplicates from a wordlist (read from stdin) without changing
 the order of entries.  You might want to use this with John's
 "--stdout" option if you've got a lot of disk space to trade for the
 reduced cracking time (on possibly trying some duplicates as they
-might be produced with word mangling rules).
-This program has been updated.  It is faster, it now can 'cut' the
-lines (in a couple of ways), and can unique the files data, AND also
-unique it against an existing file.
+might be produced with word mangling rules).  Note that this program
+will silently truncate any lines longer than 1023 bytes.
 
 
 	Scripts.

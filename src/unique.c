@@ -517,7 +517,7 @@ int unique(int argc, char **argv)
 "Options:\n"
 "-v                 verbose mode, output stats even without slow passes\n"
 "-inp=FILE          read from FILE instead of stdin\n"
-"-cut=N             truncate input lines to N bytes\n"
+"-cut=N             truncate input lines to max. N bytes (default 1023)\n"
 "-cut=LM            for LM: Split lines longer than 7 in two, and uppercase\n"
 "-hash-size=N       override the hash size (given in log2). The default is\n"
 "                   %u for %sB, memory use doubles for each increment\n"
