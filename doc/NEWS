@@ -1,14 +1,35 @@
 Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Bug fixes, most importantly in OldOffice-opencl format, which could give
-  false negatives on some or many builds.
+  false negatives on some or many builds.  [Solar, magnum, others; 2019]
+
+- Documentation fixes and improvements.  [Solar, magnum, others; 2019]
 
 - Improved our portable hi-res timer for nano-second resolution on most
-  archs.  This timer isn't used much yet, but will replace other timers
-  in the future.
+  archs.  This timer isn't used much yet, but may replace other timers
+  in the future.  [magnum; 2019]
+
+- Never print the "spinning wheel" unless stderr is a tty.  [magnum; 2019]
 
 - Added new option --rules-skip-nop for when you already ran some attack
   on some slow format without rules and now want to run it *with* rules.
+  [magnum; 2019]
+
+- Mute warning about low buffer-fill in case the difference in time appears
+  to correspond to less than one second.  [Solar/magnum; 2019]
+
+- If "Many salts" test exceeded 90% of target, force finish so not to get
+  annoying/confusing messages.  [Solar/magnum; 2019]
+
+- Always use fcntl() locks.  Handle spurious EAGAIN despite waiting for lock
+  (likely due to ulimits or server limits).  [magnum; 2019]
+
+- Implement some tricks for automagically decrease risk of file lock clashes
+  when running a large number of nodes.  [magnum; 2019]
+
+- Bugfix in zip2john for stream archives in certain situations.  [magnum; 2019]
+
+- Add --fork ability to ZTEX formats.  [Denis Burykin; 2019]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
