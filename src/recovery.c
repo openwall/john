@@ -105,31 +105,28 @@ static void rec_name_complete(void)
  * 1. Non-MPI builds always do a non-blocking write lock (even in case
  *    of fork: We haven't yet forked when resuming the session).
  *
- * 2. rec_init() may call rec_lock(1), meaning normal behaviour per above.
- *
- * 3. At resume, MPI code path in options.c calls rec_restore_args(mpi_p)
+ * 2. At resume, MPI code path in options.c calls rec_restore_args(mpi_p)
  *    which in turn calls rec_lock(mpi_p) relying on anything > 1 meaning
  *    read lock because at this time *all* nodes read the root session file.
- *    *After* restore, the root node must do a *blocking* write lock, in
- *    case some other node has not yet closed the root session file.
  *
- * Note: rec_restored doesn't mean we HAVE resumed but that we ARE doing so.
+ * 3. rec_init() may call rec_lock(1), meaning normal behavior except
+ *    for the root node. *After* restore of a multi-node job, the root node
+ *    must do a *blocking* write lock, in case some other node has not yet
+ *    closed the root session file.
  */
 static void rec_lock(int shared)
 {
 	int cmd = F_SETLK, type = F_WRLCK; /* non-blocking write lock */
 
 #if HAVE_MPI
-	if (shared > 1) {
-		if (rec_restored || mpi_id)
-			type = F_RDLCK; /* non-blocking read lock */
-		else
-			cmd = F_SETLKW; /* blocking write lock */
-	}
+	if (shared > 1)
+		type = F_RDLCK; /* non-blocking read lock */
+	else if (rec_restored && mpi_p > 1 && mpi_id == 0)
+		cmd = F_SETLKW; /* blocking write lock */
 #endif
 
 	if (jtr_lock(rec_fd, cmd, type, path_expand(rec_name))) {
-#ifdef HAVE_MPI
+#if HAVE_MPI
 		fprintf(stderr, "Node %d@%s: Crash recovery file is locked: %s\n",
 		        NODE, mpi_name, path_expand(rec_name));
 #else
@@ -238,7 +235,7 @@ static void save_salt_state()
 void rec_save(void)
 {
 	int save_format;
-#ifdef HAVE_MPI
+#if HAVE_MPI
 	int fake_fork;
 #endif
 	int add_argc = 0, add_enc = 1, add_2nd_enc = 1;
@@ -261,7 +258,7 @@ void rec_save(void)
 
 	save_format = !options.format && rec_db->loaded;
 
-#ifdef HAVE_MPI
+#if HAVE_MPI
 	fake_fork = (mpi_p > 1);
 #endif
 	opt = rec_argv;
@@ -274,7 +271,7 @@ void rec_save(void)
 			*opt = "--no-log";
 		/***********************************************/
 		else
-#ifdef HAVE_MPI
+#if HAVE_MPI
 		if (fake_fork && !strncmp(*opt, "--fork", 6))
 			fake_fork = 0;
 		else
@@ -304,7 +301,7 @@ void rec_save(void)
 		add_2nd_enc = 0;
 
 	add_argc = add_enc + add_2nd_enc + add_mkv_stats;
-#ifdef HAVE_MPI
+#if HAVE_MPI
 	add_argc += fake_fork;
 #endif
 #if HAVE_OPENCL
@@ -354,7 +351,7 @@ void rec_save(void)
 
 	if (add_mkv_stats)
 		fprintf(rec_file, "--mkv-stats=%s\n", options.mkv_stats);
-#ifdef HAVE_MPI
+#if HAVE_MPI
 	if (fake_fork)
 		fprintf(rec_file, "--fork=%d\n", mpi_p);
 #endif
@@ -493,12 +490,12 @@ void rec_restore_args(int lock)
 				return;
 			log_event("No crash recovery file, terminating");
 			log_done();
-#ifdef HAVE_MPI
+#if HAVE_MPI
 			mpi_teardown();
 #endif
 			exit(0);
 		}
-#ifdef HAVE_MPI
+#if HAVE_MPI
 		if (mpi_p > 1) {
 			fprintf(stderr, "%u@%s: fopen: %s: %s\n",
 				NODE, mpi_name,
