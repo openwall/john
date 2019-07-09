@@ -593,7 +593,7 @@ kernels: @KERNEL_OBJS@
 # PTHREAD_CFLAGS and OPENMP_CFLAGS may actually contain linker options,
 # like -fopenmp
 ../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a @ZTEX_SUBDIRS@
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a -o $@
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @RT_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a -o $@
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
