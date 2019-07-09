@@ -204,8 +204,11 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		find_best_gws(self, gpu_id, rounds, max_duration, 1);
 	}
 
+	if (options.verbosity >= VERB_DEBUG &&
+	    !(self_test_running && (options.flags & FLG_NOTESTS)))
+		fprintf(stderr, "%s ", autotune_real_db ? "RealDB" : "TestDB");
 #if HAVE_MPI
-	if (autotune_real_db && mpi_p > 1 &&
+	if (autotune_real_db && mpi_p > 1 && !(options.flags & FLG_SHOW_CHK) &&
 	    !(options.lws && options.gws) && !rec_restored &&
 	    cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0)) {
 		uint32_t lws, gws, mpi_lws, mpi_gws;
@@ -219,32 +222,24 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		local_work_size = mpi_lws;
 		global_work_size = mpi_gws;
 
-		if (john_main_process && !(options.flags & FLG_SHOW_CHK) &&
-		    ((autotune_real_db && !mask_increments_len) ||
-		     options.verbosity > VERB_DEFAULT)) {
-			fprintf(stderr,
-"All nodes: Local worksize (LWS) "Zu", global worksize (GWS) "Zu" ("Zu" blocks)\n",
-			        local_work_size, global_work_size,
-			        global_work_size / local_work_size);
+		if (john_main_process && (ocl_always_show_ws ||
+		    !mask_increments_len)) {
+			fprintf(stderr, "All nodes LWS="Zu" GWS="Zu"\n",
+			        local_work_size, global_work_size);
 		}
 	} else
 #endif
 	if (!(options.flags & FLG_SHOW_CHK) && !(options.lws && options.gws) &&
 	    ((autotune_real_db && !mask_increments_len) ||
 	     options.verbosity > VERB_DEFAULT)) {
-		if (benchmark_running)
-			fprintf(stderr, "\n");
 		if (options.node_count)
 			fprintf(stderr, "%u: ", NODE);
-		fprintf(stderr,
-"Local worksize (LWS) "Zu", global worksize (GWS) "Zu" ("Zu" blocks)\n",
-		        local_work_size, global_work_size,
-		        global_work_size / local_work_size);
-	}
-#ifdef DEBUG
-	else if (!(options.flags & FLG_SHOW_CHK))
-		fprintf(stderr, "{"Zu"/"Zu"} ", global_work_size, local_work_size);
-#endif
+		fprintf(stderr, "LWS="Zu", GWS="Zu"\n",
+		        local_work_size, global_work_size);
+	} else
+	if (ocl_always_show_ws)
+		fprintf(stderr, "LWS="Zu" GWS="Zu" ",
+		        local_work_size, global_work_size);
 
 	/* Adjust to the final configuration */
 	release_clobj();

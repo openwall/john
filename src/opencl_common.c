@@ -79,6 +79,7 @@ int platform_id;
 int default_gpu_selected;
 int default_device_selected;
 int ocl_autotune_running;
+int ocl_always_show_ws;
 size_t ocl_max_lws;
 
 static char opencl_log[LOG_SIZE];
@@ -115,7 +116,6 @@ typedef struct {
 	int num_devices;
 } cl_platform;
 static cl_platform platforms[MAX_PLATFORMS + 1];
-
 
 cl_device_id devices[MAX_GPU_DEVICES + 1];
 cl_context context[MAX_GPU_DEVICES];
@@ -2400,6 +2400,12 @@ int opencl_prepare_dev(int sequential_id)
 			fprintf(stderr, "All nodes done OpenCL prepare\n");
 	}
 #endif
+
+	if (options.verbosity >= VERB_MAX)
+		ocl_always_show_ws = 1;
+	else
+		ocl_always_show_ws = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		                                  "AlwaysShowWorksizes", 0);
 
 	return sequential_id;
 }
