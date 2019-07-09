@@ -720,11 +720,13 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		kernel_run_ms = 40;
 	}
 
-	local_work_size = 0;
-	global_work_size = 0;
-	gws_tune_flag = 1;
-	lws_tune_flag = 1;
-	opencl_get_user_preferences(FORMAT_LABEL);
+	if (self_test_running) {
+		opencl_get_sane_lws_gws_values();
+	} else {
+		local_work_size = 0;
+		global_work_size = 0;
+		opencl_get_user_preferences(FORMAT_LABEL);
+	}
 	if (global_work_size)
 		gws_tune_flag = 0;
 	if (local_work_size) {
@@ -912,9 +914,11 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 			gws_tune(global_work_size, kernel_run_ms, gws_tune_flag, format, mask_mode);
 		}
 	}
-	if (options.verbosity > VERB_LEGACY)
-		fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
-		        global_work_size, local_work_size);
+
+	if ((!self_test_running && options.verbosity >= VERB_DEFAULT) ||
+	    ocl_always_show_ws)
+		fprintf(stderr, "LWS="Zu" GWS="Zu" ", local_work_size,
+		        global_work_size);
 }
 
 /* Use only for smaller bitmaps < 16MB */

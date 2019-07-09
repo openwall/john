@@ -430,9 +430,9 @@ static size_t autoTune(int jtrUniqDevId, long double kernelRunMs)
 		createDevObjGws(devParam[jtrUniqDevId].devGws, jtrUniqDevId);
 	}
 
-	if (options.verbosity > VERB_LEGACY)
-	fprintf(stdout, "Device %d  GWS: "Zu", LWS: "Zu"\n", jtrUniqDevId,
-			devParam[jtrUniqDevId].devGws, devParam[jtrUniqDevId].devLws);
+	if (options.verbosity >= VERB_DEFAULT || ocl_always_show_ws)
+		fprintf(stdout, "Dev#%d LWS="Zu" GWS="Zu" ", jtrUniqDevId,
+		        devParam[jtrUniqDevId].devLws, devParam[jtrUniqDevId].devGws);
 
 #undef calcMs
 	return devParam[jtrUniqDevId].devGws;

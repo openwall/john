@@ -811,7 +811,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	size_t pcount, count;
 	size_t i;
 
-	int tune_gws, tune_lws;
+	int tune_gws = 1, tune_lws = 1;
 
 	char key[PLAINTEXT_LENGTH + 1];
 
@@ -847,11 +847,13 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	if (gws_init < lws_init)
 		lws_init = gws_init;
 
-	local_work_size = 0;
-	global_work_size = 0;
-	tune_gws = 1;
-	tune_lws = 1;
-	opencl_get_user_preferences(FORMAT_LABEL);
+	if (self_test_running) {
+		opencl_get_sane_lws_gws_values();
+	} else {
+		local_work_size = 0;
+		global_work_size = 0;
+		opencl_get_user_preferences(FORMAT_LABEL);
+	}
 	if (local_work_size) {
 		tune_lws = 0;
 		if (local_work_size & (local_work_size - 1))
@@ -862,12 +864,6 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	if (global_work_size)
 		tune_gws = 0;
 
-#if 0
-	 fprintf(stderr, "lws_init:"Zu" lws_limit:"Zu""
-			 " gws_init:"Zu" gws_limit:"Zu"\n",
-			  lws_init, lws_limit, gws_init,
-			  gws_limit);
-#endif
 	/* Auto tune start.*/
 	pcount = gws_init;
 	count = 0;
@@ -970,10 +966,9 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	clear_keys();
 
 	self->params.max_keys_per_crypt = global_work_size;
-	if (options.verbosity > VERB_LEGACY)
-		fprintf(stdout, "%s GWS: "Zu", LWS: "Zu"\n",
-		        db ? "Cracking" : "Self test",
-		        global_work_size, local_work_size);
+	if (options.verbosity >= VERB_DEFAULT || ocl_always_show_ws)
+		fprintf(stderr, "LWS="Zu" GWS="Zu" ", local_work_size,
+		        global_work_size);
 #undef calc_ms
 }
 

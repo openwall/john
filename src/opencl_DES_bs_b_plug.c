@@ -570,9 +570,9 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 	if (lws_tune_flag)
 		save_lws_config(CONFIG_FILE, gpu_id, local_work_size, 0);
 
-	if (options.verbosity > VERB_LEGACY)
-	fprintf(stdout, "GWS: "Zu", LWS: "Zu"\n",
-		global_work_size, local_work_size);
+	if (options.verbosity >= VERB_DEFAULT || ocl_always_show_ws)
+		fprintf(stderr, "LWS="Zu" GWS="Zu" ", local_work_size,
+		        global_work_size);
 }
 
 static void reset(struct db_main *db)
