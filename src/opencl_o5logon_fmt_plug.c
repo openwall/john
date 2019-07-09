@@ -175,7 +175,7 @@ static void reset(struct db_main *db)
 	if (!autotuned) {
 		size_t gws_limit;
 
-		opencl_init("$JOHN/kernels/o5logon_kernel.cl", gpu_id, NULL);
+		opencl_init("$JOHN/opencl/o5logon_kernel.cl", gpu_id, NULL);
 
 		// create kernel to execute
 		crypt_kernel = clCreateKernel(program[gpu_id], "o5logon_kernel", &ret_code);

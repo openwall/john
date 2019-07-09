@@ -29,11 +29,11 @@ john_register_one(&fmt_opencl_rawsha256);
 #include "opencl_common.h"
 #include "config.h"
 #include "options.h"
-#include "opencl_rawsha256.h"
+#include "../run/opencl/opencl_rawsha256.h"
 #include "rawSHA256_common.h"
 
 #include "mask_ext.h"
-#include "opencl_mask_extras.h"
+#include "../run/opencl/opencl_mask_extras.h"
 
 #define FORMAT_LABEL            "raw-SHA256-opencl"
 #define FORMAT_NAME             ""
@@ -499,7 +499,7 @@ static void build_kernel()
 {
 	static int previous_size, num_int_cand;
 
-	char *task = "$JOHN/kernels/sha256_kernel.cl";
+	char *task = "$JOHN/opencl/sha256_kernel.cl";
 	char opt[MAX_OCLINFO_STRING_LEN];
 
 	bitmap_size = get_bitmap_size_bits(num_loaded_hashes, gpu_id);

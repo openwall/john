@@ -42,7 +42,7 @@
 #include "common.h"
 #include "formats.h"
 #include "path.h"
-#include "opencl_device_info.h"
+#include "../run/opencl/opencl_device_info.h"
 
 #define MAX_PLATFORMS   8
 #define MAX_EVENTS      0x3f

@@ -175,7 +175,7 @@ static void reset(struct db_main *db)
 		         PLAINTEXT_LENGTH,
 		         (int)sizeof(currentsalt.pbkdf2.salt),
 		         (int)sizeof(pbkdf2_hash), CTLEN);
-		opencl_init("$JOHN/kernels/keychain_kernel.cl",
+		opencl_init("$JOHN/opencl/keychain_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "keychain", &cl_error);

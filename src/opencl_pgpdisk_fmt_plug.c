@@ -158,7 +158,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%d -DBINARY_SIZE=%d",
 		         PLAINTEXT_LENGTH, BINARY_SIZE);
-		opencl_init("$JOHN/kernels/pgpdisk_kernel.cl",
+		opencl_init("$JOHN/opencl/pgpdisk_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = aes_kernel = clCreateKernel(program[gpu_id], "pgpdisk_aes", &cl_error);

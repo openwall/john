@@ -172,7 +172,7 @@ static void reset(struct db_main *db)
 		         "-DPBKDF2_64_MAX_SALT_SIZE=%d",
 				HASH_LOOPS, PLAINTEXT_LENGTH, PBKDF2_64_MAX_SALT_SIZE);
 
-		opencl_init("$JOHN/kernels/geli_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/geli_kernel.cl", gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");

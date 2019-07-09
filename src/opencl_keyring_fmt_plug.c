@@ -184,7 +184,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%d -DSALTLEN=%d -DLINE_BUFFER_SIZE=%d",
 		         PLAINTEXT_LENGTH, SALTLEN, LINE_BUFFER_SIZE);
-		opencl_init("$JOHN/kernels/keyring_kernel.cl",
+		opencl_init("$JOHN/opencl/keyring_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "keyring", &cl_error);

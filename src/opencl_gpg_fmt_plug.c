@@ -197,7 +197,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%d -DSALT_LENGTH=%d",
 		         PLAINTEXT_LENGTH, SALT_LENGTH);
-		opencl_init("$JOHN/kernels/gpg_kernel.cl",
+		opencl_init("$JOHN/opencl/gpg_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "gpg", &cl_error);

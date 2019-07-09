@@ -13,7 +13,7 @@
 
 #include "arch.h"
 #include "opencl_common.h"
-#include "opencl_DES_hst_dev_shared.h"
+#include "../run/opencl/opencl_DES_hst_dev_shared.h"
 #include "loader.h"
 
 #define DES_BS_OPENCL_ALGORITHM_NAME	"DES OpenCL"

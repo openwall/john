@@ -149,7 +149,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 			 "-DPLAINTEXT_LENGTH=%d -DCTLEN=%d -DSAFETY_FACTOR=%d",
 			 PLAINTEXT_LENGTH, N, 16);
-		opencl_init("$JOHN/kernels/ssh_kernel.cl",
+		opencl_init("$JOHN/opencl/ssh_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "ssh", &cl_error);

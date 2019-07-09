@@ -31,7 +31,7 @@ john_register_one(&fmt_opencl_vmx);
 #include "misc.h"
 #define OUTLEN                  40
 #define PLAINTEXT_LENGTH        28
-#include "opencl_pbkdf2_hmac_sha1.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL            "vmx-opencl"
 #define OCL_ALGORITHM_NAME      "PBKDF2-SHA1 AES OpenCL"
@@ -183,7 +183,7 @@ static void reset(struct db_main *db)
 		         "-DHASH_LOOPS=%u -DOUTLEN=%u "
 		         "-DPLAINTEXT_LENGTH=%u",
 		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/vmx_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/vmx_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");

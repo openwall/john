@@ -221,7 +221,7 @@ static void reset(struct db_main *db)
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", ocl_v_width);
-		opencl_init("$JOHN/kernels/rakp_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/rakp_kernel.cl", gpu_id, build_opts);
 
 		// create kernel to execute
 		crypt_kernel = clCreateKernel(program[gpu_id], "rakp_kernel", &ret_code);

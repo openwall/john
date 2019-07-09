@@ -22,7 +22,7 @@ john_register_one(&fmt_opencl_1otus5);
 #include "formats.h"
 #include "common.h"
 #include "opencl_common.h"
-#include "opencl_lotus5_fmt.h"
+#include "../run/opencl/opencl_lotus5_fmt.h"
 #include "options.h"
 
 /*preprocessor constants that John The Ripper likes*/
@@ -127,7 +127,7 @@ static void reset(struct db_main *db)
 	if (!autotuned) {
 		size_t gws_limit;
 
-		opencl_init("$JOHN/kernels/lotus5_kernel.cl", gpu_id, NULL);
+		opencl_init("$JOHN/opencl/lotus5_kernel.cl", gpu_id, NULL);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &ret_code);
 		HANDLE_CLERROR(ret_code, "Failed to create kernel lotus5.");

@@ -156,7 +156,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%d -DMAX_DATA_LENGTH=%d",
 		         PLAINTEXT_LENGTH, MAX_DATA_LENGTH);
-		opencl_init("$JOHN/kernels/pfx_kernel.cl",
+		opencl_init("$JOHN/opencl/pfx_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "pfx", &cl_error);

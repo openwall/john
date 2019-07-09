@@ -13,7 +13,7 @@
 #include "arch.h"
 #include "common.h"
 #include "opencl_DES_bs.h"
-#include "opencl_DES_hst_dev_shared.h"
+#include "../run/opencl/opencl_DES_hst_dev_shared.h"
 #include "unicode.h"
 #include "bt_interface.h"
 #include "mask_ext.h"
@@ -456,7 +456,7 @@ size_t create_checking_kernel_set_args()
 	int i;
 	size_t min_lws;
 
-	opencl_build_kernel("$JOHN/kernels/DES_bs_hash_checking_kernel.cl",
+	opencl_build_kernel("$JOHN/opencl/DES_bs_hash_checking_kernel.cl",
 	                    gpu_id, NULL, 0);
 
 	if (kernel_high == 0) {
@@ -1183,7 +1183,7 @@ size_t create_keys_kernel_set_args(int mask_mode)
 #endif
 		, mask_gpu_is_static, (unsigned long long)const_cache_size);
 
-	opencl_build_kernel("$JOHN/kernels/DES_bs_finalize_keys_kernel.cl",
+	opencl_build_kernel("$JOHN/opencl/DES_bs_finalize_keys_kernel.cl",
 	                    gpu_id, build_opts, 0);
 	keys_kernel = clCreateKernel(program[gpu_id], "DES_bs_finalize_keys", &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_finalize_keys.\n");

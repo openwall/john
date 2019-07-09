@@ -155,7 +155,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%u", PLAINTEXT_LENGTH);
 
-		opencl_init("$JOHN/kernels/sha512_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/sha512_kernel.cl", gpu_id, build_opts);
 
 		/* create kernels to execute */
 		crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);

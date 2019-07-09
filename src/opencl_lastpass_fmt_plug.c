@@ -40,7 +40,7 @@ john_register_one(&fmt_opencl_lastpass);
 #define HASH_LOOPS              (13*71) // factors 13, 13, 71
 #define ITERATIONS              12000
 
-#include "opencl_pbkdf2_hmac_sha256.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha256.h"
 
 static pass_t *host_pass;			      /** plain ciphertexts **/
 static salt_t *host_salt;			      /** salt **/
@@ -141,7 +141,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u",
 		         HASH_LOOPS, PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/lastpass_kernel.cl",
+		opencl_init("$JOHN/opencl/lastpass_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel =

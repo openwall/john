@@ -25,7 +25,7 @@ john_register_one(&fmt_opencl_cryptsha512);
 #include "opencl_common.h"
 #include "config.h"
 #include "options.h"
-#include "opencl_sha512crypt.h"
+#include "../run/opencl/opencl_sha512crypt.h"
 #define __CRYPTSHA512_CREATE_PROPER_TESTS_ARRAY__
 #include "sha512crypt_common.h"
 
@@ -394,7 +394,7 @@ static void init(struct fmt_main *_self)
 static int calibrate()
 {
 	char opt[MAX_OCLINFO_STRING_LEN];
-	char *task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
+	char *task = "$JOHN/opencl/cryptsha512_kernel_GPU.cl";
 	int i, j, k, l, kernel_opt, best_opt = 0;
 	unsigned long long best_speed = 0;
 	size_t best_lws = 0, best_gws = 0;
@@ -479,7 +479,7 @@ static void reset(struct db_main *db)
 
 	if (!autotuned) {
 		char *tmp_value;
-		char *task = "$JOHN/kernels/cryptsha512_kernel_GPU.cl";
+		char *task = "$JOHN/opencl/cryptsha512_kernel_GPU.cl";
 		char opt[24] = "";
 
 		int major, minor;
@@ -507,7 +507,7 @@ static void reset(struct db_main *db)
 			opencl_driver_value(gpu_id, &major, &minor);
 
 			if (!(_USE_GPU_SOURCE))
-				task = "$JOHN/kernels/cryptsha512_kernel_DEFAULT.cl";
+				task = "$JOHN/opencl/cryptsha512_kernel_DEFAULT.cl";
 
 			if (source_in_use != device_info[gpu_id])
 				fprintf(stderr, "Selected runtime id %d, source (%s)\n",

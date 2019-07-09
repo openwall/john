@@ -202,7 +202,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%d -DSALT_LENGTH=%d -DHASH_LOOPS=%d",
 		         PLAINTEXT_LENGTH, SALT_LENGTH, HASH_LOOPS);
-		opencl_init("$JOHN/kernels/sspr_kernel.cl",
+		opencl_init("$JOHN/opencl/sspr_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel =

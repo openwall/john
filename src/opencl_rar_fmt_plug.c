@@ -295,7 +295,7 @@ static void reset(struct db_main *db)
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts), "-DPLAINTEXT_LENGTH=%u -DHASH_LOOPS=0x%x", PLAINTEXT_LENGTH, HASH_LOOPS);
-		opencl_init("$JOHN/kernels/rar_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/rar_kernel.cl", gpu_id, build_opts);
 
 		// create kernels to execute
 		RarInit = clCreateKernel(program[gpu_id], "RarInit", &ret_code);

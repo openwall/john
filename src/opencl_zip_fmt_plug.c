@@ -178,7 +178,7 @@ static void reset(struct db_main *db)
 		         PLAINTEXT_LENGTH,
 		         (int)sizeof(currentsalt.salt),
 		         (int)sizeof(outbuffer->v));
-		opencl_init("$JOHN/kernels/zip_kernel.cl",
+		opencl_init("$JOHN/opencl/zip_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "zip", &cl_error);

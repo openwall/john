@@ -352,7 +352,7 @@ static void init_kernel(void)
 #endif
 	);
 
-	opencl_build_kernel("$JOHN/kernels/ntlmv2_kernel.cl", gpu_id, build_opts, 0);
+	opencl_build_kernel("$JOHN/opencl/ntlmv2_kernel.cl", gpu_id, build_opts, 0);
 	crypt_kernel = clCreateKernel(program[gpu_id], "ntlmv2", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 }

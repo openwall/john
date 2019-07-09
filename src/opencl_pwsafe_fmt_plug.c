@@ -182,7 +182,7 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!autotuned) {
-		opencl_init("$JOHN/kernels/pwsafe_kernel.cl", gpu_id, NULL);
+		opencl_init("$JOHN/opencl/pwsafe_kernel.cl", gpu_id, NULL);
 
 		init_kernel = clCreateKernel(program[gpu_id], KERNEL_INIT_NAME, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error while creating init kernel");

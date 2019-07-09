@@ -182,7 +182,7 @@ void BF_select_device(struct fmt_main *fmt) {
 	    (gpu_intel(device_info[gpu_id]) && platform_apple(platform_id)))
 	{
 	        if (CHANNEL_INTERLEAVE == 1)
-		        opencl_init("$JOHN/kernels/bf_cpu_kernel.cl",
+		        opencl_init("$JOHN/opencl/bf_cpu_kernel.cl",
 			             gpu_id, NULL);
 	        else {
 			fprintf(stderr, "Please set NUM_CHANNELS and "
@@ -193,7 +193,7 @@ void BF_select_device(struct fmt_main *fmt) {
 	else {
 		snprintf(buildopts, sizeof(buildopts),
 		         "-DWORK_GROUP_SIZE="Zu, local_work_size);
-		opencl_init("$JOHN/kernels/bf_kernel.cl",
+		opencl_init("$JOHN/opencl/bf_kernel.cl",
 		            gpu_id, buildopts);
 	}
 

@@ -32,7 +32,7 @@ john_register_one(&fmt_opencl_krb5_asrep_aes);
 #include "krb5_asrep_common.h"
 #include "opencl_common.h"
 #define MAX_OUTLEN 32
-#include "opencl_pbkdf2_hmac_sha1.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 #include "hmac_sha.h"
 
 #define FORMAT_LABEL            "krb5asrep-aes-opencl"
@@ -232,7 +232,7 @@ static void reset(struct db_main *db)
 		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
 		         HASH_LOOPS, ITERATIONS, MAX_OUTLEN,
 		         PLAINTEXT_LENGTH, ocl_v_width);
-		opencl_init("$JOHN/kernels/krb5_kernel.cl", gpu_id,
+		opencl_init("$JOHN/opencl/krb5_kernel.cl", gpu_id,
 		            build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);

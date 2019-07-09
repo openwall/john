@@ -21,7 +21,7 @@ john_register_one(&fmt_opencl_ethereum_presale);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "opencl_pbkdf2_hmac_sha256.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha256.h"
 #include "ethereum_common.h"
 #include "opencl_common.h"
 
@@ -169,7 +169,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u -DPRESALE",
 		         HASH_LOOPS, PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/ethereum_kernel.cl",
+		opencl_init("$JOHN/opencl/ethereum_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel =

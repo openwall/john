@@ -31,7 +31,7 @@ john_register_one(&fmt_opencl_solarwinds);
 #include "misc.h"
 #define OUTLEN                  1024
 #define PLAINTEXT_LENGTH        28
-#include "opencl_pbkdf2_hmac_sha1.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL            "solarwinds-opencl"
 #define OCL_ALGORITHM_NAME      "PBKDF2-SHA1 OpenCL"
@@ -193,7 +193,7 @@ static void reset(struct db_main *db)
 		         "-DHASH_LOOPS=%u -DOUTLEN=%u "
 		         "-DPLAINTEXT_LENGTH=%u -DITERATIONS=%u",
 		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, ITERATIONS - 1);
-		opencl_init("$JOHN/kernels/solarwinds_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/solarwinds_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");

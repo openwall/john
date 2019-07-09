@@ -165,7 +165,7 @@ static void reset(struct db_main *db)
 		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=16",
 		         PLAINTEXT_LENGTH,
 		         (int)sizeof(currentsalt.salt));
-		opencl_init("$JOHN/kernels/agile_kernel.cl",
+		opencl_init("$JOHN/opencl/agile_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "dk_decrypt", &cl_error);

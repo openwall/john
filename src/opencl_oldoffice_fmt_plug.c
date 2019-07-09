@@ -286,7 +286,7 @@ static void reset(struct db_main *db)
 	         mask_int_cand.num_int_cand, mask_gpu_is_static
 		);
 
-	opencl_init("$JOHN/kernels/oldoffice_kernel.cl", gpu_id, build_opts);
+	opencl_init("$JOHN/opencl/oldoffice_kernel.cl", gpu_id, build_opts);
 
 	/* create kernels to execute */
 	crypt_kernel =

@@ -1076,22 +1076,15 @@ dnl ======================================================================
 if test x$using_cl = xyes ; then
   AC_MSG_NOTICE([creating *_plug.c and OpenCL object rules])
 else
-  AC_MSG_NOTICE([creating *_plug.c rules, WITHOUT OpenCL objects])
+  AC_MSG_NOTICE([creating *_plug.c rules])
 fi
-AC_SUBST([KERNEL_OBJS],[])
-AC_SUBST([KERNEL_DEPS],[])
+
 if test "`echo *_plug.c`" != "*_plug.c"; then
    AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/opencl[[A-Za-z0-9_\-]]*\.c //g;s/\.c/.o/g'`])
    AC_SUBST([OPENCL_PLUGFORMATS_OBJS],[`echo opencl*_plug.c | sed 's/\.c/.o/g'`])
-   if test x$using_cl = xyes ; then
-     AC_SUBST([KERNEL_OBJS],[`echo opencl/*.cl | sed 's/opencl\//..\/run\/kernels\//g'`])
-   fi
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       AC_MSG_NOTICE([creating Makefile dependencies])
       AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl *_plug.c`])
-      if test x$using_cl = xyes ; then
-        AC_SUBST([KERNEL_DEPS],[`$PERL ./plugin_deps.pl opencl/*.cl`])
-      fi
    fi
 fi
 

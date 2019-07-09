@@ -135,7 +135,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%d",
 		         PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/pgpsda_kernel.cl",
+		opencl_init("$JOHN/opencl/pgpsda_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "pgpsda", &cl_error);

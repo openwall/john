@@ -25,7 +25,7 @@ john_register_one(&fmt_ocl_pbkdf2_md5);
 #include "base64_convert.h"
 #include "options.h"
 #define OUTLEN 16
-#include "opencl_pbkdf2_hmac_md5.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_md5.h"
 #include "pbkdf2_hmac_common.h"
 
 //#define DEBUG
@@ -170,7 +170,7 @@ static void reset(struct db_main *db)
 		         "-DHASH_LOOPS=%u -DOUTLEN=%u "
 		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
 		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, ocl_v_width);
-		opencl_init("$JOHN/kernels/pbkdf2_hmac_md5_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/pbkdf2_hmac_md5_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");

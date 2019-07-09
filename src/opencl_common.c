@@ -61,7 +61,7 @@
 #define LOG_SIZE 1024*16
 
 #if !defined(__CYGWIN__) && !defined(__MINGW32__)
-// If true, use realpath(3) for translating eg. "-I./kernels" into an absolute
+// If true, use realpath(3) for translating eg. "-I./opencl" into an absolute
 // path before submitting as JIT compile option to OpenCL.
 #define I_REALPATH 1
 #endif
@@ -1310,7 +1310,7 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	                              NULL, &err_code);
 	HANDLE_CLERROR(err_code, "clCreateProgramWithSource");
 	// include source is thread safe.
-	build_opts = include_source("$JOHN/kernels", sequential_id, opts);
+	build_opts = include_source("$JOHN/opencl", sequential_id, opts);
 
 	if (options.verbosity > VERB_LEGACY)
 		fprintf(stderr, "Options used: %s %s\n", build_opts,

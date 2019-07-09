@@ -11,7 +11,7 @@
 
 #include "arch.h"
 #include "opencl_common.h"
-#include "opencl_lm_hst_dev_shared.h"
+#include "../run/opencl/opencl_lm_hst_dev_shared.h"
 #include "loader.h"
 
 #define LM_OPENCL_ALGORITHM_NAME		"DES BS OpenCL"

@@ -443,7 +443,7 @@ size_t selectDevice(int jtrUniqDevId, struct fmt_main *self)
 	char buildOpts[300];
 
 	sprintf(buildOpts, "-D SALT_BUFFER_SIZE=" Zu, SALT_BUFFER_SIZE);
-	opencl_init("$JOHN/kernels/pbkdf2_kernel.cl", jtrUniqDevId, buildOpts);
+	opencl_init("$JOHN/opencl/pbkdf2_kernel.cl", jtrUniqDevId, buildOpts);
 
 	devParam[jtrUniqDevId].devKernel[0] = clCreateKernel(program[jtrUniqDevId], "pbkdf2_preprocess_short", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel pbkdf2_preprocess_short.");

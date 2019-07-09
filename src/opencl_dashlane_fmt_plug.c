@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_dashlane);
 #include "opencl_common.h"
 #include "misc.h"
 #define OUTLEN (32)
-#include "opencl_pbkdf2_hmac_sha1.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL            "dashlane-opencl"
 #define OCL_ALGORITHM_NAME      "PBKDF2-SHA1 OpenCL"
@@ -193,7 +193,7 @@ static void reset(struct db_main *db)
 		         "-DHASH_LOOPS=%u -DOUTLEN=%u "
 		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
 		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, ocl_v_width);
-		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha1_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/pbkdf2_hmac_sha1_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
