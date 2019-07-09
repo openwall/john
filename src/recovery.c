@@ -491,6 +491,15 @@ void rec_restore_args(int lock)
 			log_event("No crash recovery file, terminating");
 			log_done();
 #if HAVE_MPI
+			if (strstr(options.format, "opencl")) {
+#if RACE_CONDITION_DEBUG || MPI_DEBUG
+				if (options.verbosity == VERB_DEBUG)
+					fprintf(stderr, "Node %d reached %s() MPI \"build\" barrier\n",
+					        NODE, __FUNCTION__);
+#endif
+				/* This compensates for the barrier in opencl_build_kernel() */
+				MPI_Barrier(MPI_COMM_WORLD);
+			}
 			mpi_teardown();
 #endif
 			exit(0);

@@ -2339,7 +2339,7 @@ void opencl_build_kernel(const char *kernel_filename, int sequential_id, const c
 	}
 #if HAVE_MPI
 	if (mpi_p > 1 && !once++) {
-#if RACE_CONDITION_DEBUG
+#if RACE_CONDITION_DEBUG || MPI_DEBUG
 		if (options.verbosity == VERB_DEBUG)
 			fprintf(stderr, "Node %d reached %s() MPI build barrier\n",
 			        NODE, __FUNCTION__);
@@ -2372,7 +2372,7 @@ int opencl_prepare_dev(int sequential_id)
 #if HAVE_MPI
 	if (mpi_p > 1 && !once++) {
 		// Avoid silly race conditions seen with nvidia
-#if RACE_CONDITION_DEBUG
+#if RACE_CONDITION_DEBUG || MPI_DEBUG
 		if (options.verbosity == VERB_DEBUG)
 			fprintf(stderr, "Node %d reached MPI prep barrier\n", NODE);
 #endif

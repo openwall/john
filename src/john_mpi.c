@@ -30,6 +30,9 @@ void mpi_teardown(void)
 		/* Some MPI platforms hang on 100% CPU while waiting */
 		if (nice(19) == -1)
 			perror("nice");
+#if MPI_DEBUG
+		fprintf(stderr, "Node %u reached %s barrier\n", mpi_id + 1, __FUNCTION__);
+#endif
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 
