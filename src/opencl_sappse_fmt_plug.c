@@ -144,7 +144,7 @@ static void reset(struct db_main *db)
 
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/sap_pse_kernel.cl",
+		opencl_init("$JOHN/opencl/sap_pse_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "sappse", &cl_error);

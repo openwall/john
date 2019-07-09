@@ -12,10 +12,10 @@
 
 #include "options.h"
 #include "opencl_DES_bs.h"
-#include "opencl_DES_hst_dev_shared.h"
+#include "../run/opencl/opencl_DES_hst_dev_shared.h"
 #include "mask_ext.h"
 
-#define CONFIG_FILE 	"$JOHN/kernels/DES_bs_kernel_b_%s.config"
+#define CONFIG_FILE 	"$JOHN/opencl/DES_bs_kernel_b_%s.config"
 #define PADDING 	2048
 
 static cl_kernel **kernels;
@@ -172,7 +172,7 @@ static void init_kernel(int id_gpu, size_t s_mem_lws, unsigned int use_local_mem
 	char build_opts[600];
 
 	sprintf(build_opts, "-D WORK_GROUP_SIZE="Zu" -D USE_LOCAL_MEM=%u", s_mem_lws, use_local_mem);;
-	opencl_build_kernel("$JOHN/kernels/DES_bs_kernel.cl",
+	opencl_build_kernel("$JOHN/opencl/DES_bs_kernel.cl",
 	                    id_gpu, build_opts, 0);
 	kernels[id_gpu][0] = clCreateKernel(program[id_gpu], "DES_bs_25_b", &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_25_b.\n");

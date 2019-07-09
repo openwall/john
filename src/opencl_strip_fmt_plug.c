@@ -179,7 +179,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
 		         KEYLEN, SALTLEN, OUTLEN);
-		opencl_init("$JOHN/kernels/strip_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/strip_kernel.cl", gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "strip", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");

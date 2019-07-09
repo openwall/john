@@ -27,7 +27,7 @@ john_register_one(&fmt_opencl_dmg);
 #include "sha.h"
 #define OUTLEN 32
 #define PLAINTEXT_LENGTH	125
-#include "opencl_pbkdf2_hmac_sha1.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL		"dmg-opencl"
 #define FORMAT_NAME		"Apple DMG"
@@ -218,7 +218,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DOUTLEN=%u -DV_WIDTH=%u",
 		         HASH_LOOPS, OUTLEN, ocl_v_width);
-		opencl_init("$JOHN/kernels/dmg_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/dmg_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");

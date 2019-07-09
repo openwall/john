@@ -42,7 +42,7 @@ john_register_one(&fmt_opencl_fvde);
 #define HASH_LOOPS              (7*113) // factors 7 89 113 (for 70400)
 #define ITERATIONS              70400
 
-#include "opencl_pbkdf2_hmac_sha256.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha256.h"
 
 typedef struct {
 	salt_t salt;	// MUST match opencl_pbkdf2_hmac_sha256.cl structure!
@@ -160,7 +160,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u -DBLOBLEN=%u",
 		         HASH_LOOPS, PLAINTEXT_LENGTH, BLOBLEN);
-		opencl_init("$JOHN/kernels/fvde_kernel.cl",
+		opencl_init("$JOHN/opencl/fvde_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel =

@@ -34,7 +34,7 @@ john_register_one(&fmt_opencl_pem);
 #include "opencl_common.h"
 #include "misc.h"
 #define MAX_OUTLEN 32
-#include "opencl_pbkdf2_hmac_sha1.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL            "pem-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA1 3DES/AES OpenCL"
@@ -204,7 +204,7 @@ static void reset(struct db_main *db)
 		         "-DHASH_LOOPS=%u -DMAX_OUTLEN=%u "
 		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u -DCTLEN=%d",
 		         HASH_LOOPS, MAX_OUTLEN, PLAINTEXT_LENGTH, ocl_v_width, CTLEN);
-		opencl_init("$JOHN/kernels/pem_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/pem_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");

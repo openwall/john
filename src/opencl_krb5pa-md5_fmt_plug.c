@@ -366,7 +366,7 @@ static void init_kernel(void)
 #endif
 	);
 
-	opencl_build_kernel("$JOHN/kernels/krb5pa-md5_kernel.cl", gpu_id, build_opts, 0);
+	opencl_build_kernel("$JOHN/opencl/krb5pa-md5_kernel.cl", gpu_id, build_opts, 0);
 	crypt_kernel = clCreateKernel(program[gpu_id], "krb5pa_md5", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 }

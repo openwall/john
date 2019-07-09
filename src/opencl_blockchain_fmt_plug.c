@@ -189,7 +189,7 @@ static void reset(struct db_main *db)
 		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d -DSAFETY_FACTOR=%d",
 		         PLAINTEXT_LENGTH, SALTLEN, OUTLEN, SAFETY_FACTOR);
 
-		opencl_init("$JOHN/kernels/blockchain_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/blockchain_kernel.cl", gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "blockchain", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");

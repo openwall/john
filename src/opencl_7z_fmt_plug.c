@@ -294,7 +294,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%d -DHASH_LOOPS=%d",
 		         PLAINTEXT_LENGTH, HASH_LOOPS);
-		opencl_init("$JOHN/kernels/7z_kernel.cl",
+		opencl_init("$JOHN/opencl/7z_kernel.cl",
 		            gpu_id, build_opts);
 
 		sevenzip_init = clCreateKernel(program[gpu_id], "sevenzip_init",

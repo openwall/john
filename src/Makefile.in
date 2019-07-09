@@ -152,7 +152,7 @@ CFLAGS_MAIN += -DHAVE_OPENCL @CL_CFLAGS@
 JOHN_OBJS += $(OCL_OBJS) $(OPENCL_PLUGFORMATS_OBJS)
 
 # core OpenCL dependencies
-CL_DEVICE_HEADER = opencl_device_info.h
+CL_DEVICE_HEADER = ../run/opencl/opencl_device_info.h
 CL_COMMON_HEADER = opencl_common.h gpu_common.h gpu_sensors.h
 endif
 
@@ -221,17 +221,6 @@ digipaq-alpha.o: alpha.S
 	$(RM) tmp.s
 
 @PLUGFORMATS_DEPS@
-
-opencl_%.h:	| ../run/kernels
-	$(CP) $< ../run/kernels
-
-%.cl:	| ../run/kernels
-	$(CP) $< ../run/kernels
-
-../run/kernels:
-	$(MKDIR) ../run/kernels
-
-@KERNEL_DEPS@
 
 ######## auto-generated, best-effort
 
@@ -549,13 +538,13 @@ pp.o:	pp.c autoconfig.h arch.h win32_memmap.h os.h os-autoconf.h jumbo.h mmap-wi
 
 version.h: find_version
 
-find_version: kernels
+find_version:
 	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
 	diff >/dev/null 2>/dev/null version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
 
 SUBDIRS = aes secp256k1 ed25519-donna @ZTEX_SUBDIRS@
 
-.PHONY: subdirs $(SUBDIRS) find_version kernels
+.PHONY: subdirs $(SUBDIRS) find_version
 
 subdirs: $(SUBDIRS)
 
@@ -577,9 +566,6 @@ secp256k1/secp256k1.a:
 
 ed25519-donna/ed25519-donna.a:
 	$(MAKE) -C ed25519-donna all
-
-kernels: @KERNEL_OBJS@
-
 
 ###############################################################################
 #  Process targets.  Note, these are *nix targets, but also work fine under
@@ -840,7 +826,7 @@ zsh-completion:
 shell-completion: bash-completion zsh-completion
 
 kernel-cache-clean:
-	$(RM) -fr ~/.nv/ComputeCache ../run/kernels/*.bin
+	$(RM) -fr ~/.nv/ComputeCache ../run/opencl/*.bin
 
 clean:
 	$(RM) $(PROJ)
@@ -849,7 +835,6 @@ clean:
 	done
 	$(RM) ../run/unit-tests@EXE_EXT@
 	$(RM) john-macosx-* *.o yescrypt/*.o *.bak core
-	$(RM) ../run/kernels/*
 	$(RM) lzma/*.o
 	$(RM) tests/*.o
 	$(RM) detect bench generic.h tmp.s
@@ -1003,15 +988,6 @@ windows-package: default
 	$(SED) -i -e 's/\r*$$/\r/' ../README.md ../run/*.conf ../run/password.lst
 	$(FIND) ../doc -type f -not -name '*.txt' -not -name '*.md' -exec $(MV) -v '{}' '{}'.txt \;
 
-### Copy OpenCL stuff to run/kernels
-#
-.PHONY: kernel-copy
-
-kernel-copy:
-	$(MKDIR) ../run/kernels
-	$(CP) opencl/*.cl ../run/kernels
-	$(CP) opencl_*.h ../run/kernels
-
 install: strip shell-completion
 #ifneq ($(prefix), ../run)
 #	@echo Copying binaries to $(prefix)
@@ -1020,9 +996,6 @@ install: strip shell-completion
 #	@echo Copying data and config files to $(prefix)
 #	$(MKDIR) $(prefix)
 #	$(CP) -p -P -R ../run/*.{chr,conf,lst} $(prefix)
-#ifdef WITH_OPENCL
-#	$(CP) -p -P -R ../run/kernels $(prefix)
-#endif
 #endif
 
 include Makefile.dep

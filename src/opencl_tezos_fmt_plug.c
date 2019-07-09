@@ -164,7 +164,7 @@ static void reset(struct db_main *db)
 		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%d -DPBKDF2_64_MAX_SALT_SIZE=%d",
 		         HASH_LOOPS, PLAINTEXT_LENGTH, PBKDF2_64_MAX_SALT_SIZE);
 
-		opencl_init("$JOHN/kernels/tezos_kernel.cl",
+		opencl_init("$JOHN/opencl/tezos_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &cl_error);

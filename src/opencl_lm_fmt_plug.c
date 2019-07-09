@@ -20,7 +20,7 @@ john_register_one(&fmt_opencl_lm);
 #include "common.h"
 #include "formats.h"
 #include "config.h"
-#include "opencl_lm_hst_dev_shared.h"
+#include "../run/opencl/opencl_lm_hst_dev_shared.h"
 
 #define FORMAT_NAME			""
 #define FORMAT_TAG           "$LM$"

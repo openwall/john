@@ -226,7 +226,7 @@ __kernel void blowfish(	constant uint *salt
 			BF_key_exp[i]   = tmp0 ^ P_box[i] ;
 	        }
 
-	  	for (i = 0; i < 1024; i++) {
+		for (i = 0; i < 1024; i++) {
 			j = i >> 8 ;
 			S_Buffer[pos_S_local(j, (i & 0xff))] = S_box[i] ;
 		}

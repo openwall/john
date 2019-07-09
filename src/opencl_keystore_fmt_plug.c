@@ -196,7 +196,7 @@ static void reset(struct db_main *db)
 				"-DPASSLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
 				PLAINTEXT_LENGTH, SALT_LENGTH_GPU, 4);
 
-		opencl_init("$JOHN/kernels/keystore_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/keystore_kernel.cl", gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "keystore", &cl_err);
 		HANDLE_CLERROR(cl_err, "Error creating keystore kernel");

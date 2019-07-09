@@ -26,7 +26,7 @@ john_register_one(&fmt_ocl_cryptsha1);
 #include "opencl_common.h"
 #include "sha1crypt_common.h"
 #define OUTLEN 20
-#include "opencl_pbkdf1_hmac_sha1.h"
+#include "../run/opencl/opencl_pbkdf1_hmac_sha1.h"
 
 #define SHA1_SIZE 20
 
@@ -184,7 +184,7 @@ static void reset(struct db_main *db)
 		         "-DHASH_LOOPS=%u -DOUTLEN=%u "
 		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
 		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, ocl_v_width);
-		opencl_init("$JOHN/kernels/pbkdf1_hmac_sha1_kernel.cl",
+		opencl_init("$JOHN/opencl/pbkdf1_hmac_sha1_kernel.cl",
 		            gpu_id, build_opts);
 
 		pbkdf1_init = clCreateKernel(program[gpu_id], "pbkdf1_init", &ret_code);

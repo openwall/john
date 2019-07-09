@@ -169,7 +169,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DV_WIDTH=%u -DPLAINTEXT_LENGTH=%u",
 		         ocl_v_width, PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/phpass_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/phpass_kernel.cl", gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "phpass", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");

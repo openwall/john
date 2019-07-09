@@ -26,7 +26,7 @@ john_register_one(&fmt_opencl_encfs);
 #include "options.h"
 #include "misc.h"
 #define OUTLEN (32 + 16)
-#include "opencl_pbkdf2_hmac_sha1.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL            "EncFS-opencl"
 #define FORMAT_NAME             ""
@@ -209,7 +209,7 @@ static void reset(struct db_main *db)
 		         "-DV_WIDTH=%u -DMAX_DATALEN=%d",
 		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH,
 		         ocl_v_width, (int)MAX_DATALEN);
-		opencl_init("$JOHN/kernels/encfs_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/encfs_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");

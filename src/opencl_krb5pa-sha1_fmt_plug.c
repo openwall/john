@@ -52,7 +52,7 @@ john_register_one(&fmt_opencl_krb5pa_sha1);
 #include "loader.h"
 #include "opencl_common.h"
 #define MAX_OUTLEN 32
-#include "opencl_pbkdf2_hmac_sha1.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL            "krb5pa-sha1-opencl"
 #define FORMAT_NAME             "Kerberos 5 AS-REQ Pre-Auth etype 17/18" /* aes-cts-hmac-sha1-96 */
@@ -268,7 +268,7 @@ static void reset(struct db_main *db)
 		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
 		         HASH_LOOPS, ITERATIONS, MAX_OUTLEN,
 		         PLAINTEXT_LENGTH, ocl_v_width);
-		opencl_init("$JOHN/kernels/krb5_kernel.cl", gpu_id,
+		opencl_init("$JOHN/opencl/krb5_kernel.cl", gpu_id,
 		            build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);

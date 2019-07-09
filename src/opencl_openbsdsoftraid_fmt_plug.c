@@ -28,7 +28,7 @@ john_register_one(&fmt_opencl_openbsd_softraid);
 #include "opencl_common.h"
 #include "misc.h"
 #define OUTLEN (32)
-#include "opencl_pbkdf2_hmac_sha1.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 #include "openbsdsoftraid_common.h"
 #include "openbsdsoftraid_variable_code.h"
 
@@ -184,7 +184,7 @@ static void reset(struct db_main *db)
 		         "-DHASH_LOOPS=%u -DOUTLEN=%u "
 		         "-DPLAINTEXT_LENGTH=%u -DV_WIDTH=%u",
 		         HASH_LOOPS, OUTLEN, PLAINTEXT_LENGTH, ocl_v_width);
-		opencl_init("$JOHN/kernels/bsd_softraid_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/bsd_softraid_kernel.cl", gpu_id, build_opts);
 
 		pbkdf2_init = clCreateKernel(program[gpu_id], "pbkdf2_init", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");

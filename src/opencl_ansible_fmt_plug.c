@@ -27,7 +27,7 @@ john_register_one(&fmt_opencl_ansible);
 #include "hmac_sha.h"
 #include "ansible_common.h"
 #include "opencl_common.h"
-#include "opencl_pbkdf2_hmac_sha256.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha256.h"
 
 #define FORMAT_LABEL            "ansible-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA256 HMAC-SHA256 OpenCL"
@@ -146,7 +146,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DBLOBLEN=%u -DPLAINTEXT_LENGTH=%u",
 		         HASH_LOOPS, BLOBLEN, PLAINTEXT_LENGTH);
-		opencl_init("$JOHN/kernels/ansible_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/ansible_kernel.cl", gpu_id, build_opts);
 
 		crypt_kernel =
 			clCreateKernel(program[gpu_id], "pbkdf2_sha256_init", &cl_error);

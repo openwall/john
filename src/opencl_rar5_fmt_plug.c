@@ -55,7 +55,7 @@ john_register_one(&fmt_ocl_rar5);
 #define HASH_LOOPS              (3*13*29) // factors 3, 13, 29, 29
 #define ITERATIONS              (32800 - 1)
 
-#include "opencl_pbkdf2_hmac_sha256.h"
+#include "../run/opencl/opencl_pbkdf2_hmac_sha256.h"
 
 static pass_t *host_pass;			      /** plain ciphertexts **/
 static salt_t *host_salt;			      /** salt **/
@@ -154,7 +154,7 @@ static void reset(struct db_main *db)
 		         "-DHASH_LOOPS=%u -DPLAINTEXT_LENGTH=%u -DRAR5",
 		         HASH_LOOPS, PLAINTEXT_LENGTH);
 
-		opencl_init("$JOHN/kernels/pbkdf2_hmac_sha256_kernel.cl",
+		opencl_init("$JOHN/opencl/pbkdf2_hmac_sha256_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel =

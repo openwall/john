@@ -313,7 +313,7 @@ static void reset(struct db_main *db)
 		//char build_opts[64];
 		//snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u", HASH_LOOPS);
 
-		opencl_init("$JOHN/kernels/bitlocker_kernel.cl", gpu_id, NULL);
+		opencl_init("$JOHN/opencl/bitlocker_kernel.cl", gpu_id, NULL);
 
 		block_kernel =
 			clCreateKernel(program[gpu_id], WBLOCKS_KERNEL_NAME, &cl_error);

@@ -16,13 +16,13 @@
 
 #include "options.h"
 #include "opencl_DES_bs.h"
-#include "opencl_DES_hst_dev_shared.h"
+#include "../run/opencl/opencl_DES_hst_dev_shared.h"
 #include "mask_ext.h"
 #include "john.h"
 
 #define PADDING 	2048
-#define CONFIG_FILE 	"$JOHN/kernels/DES_bs_kernel_h_%s.config"
-#define BINARY_FILE	"$JOHN/kernels/DES_bs_kernel_h_"Zu"_%s_%d.bin"
+#define CONFIG_FILE 	"$JOHN/opencl/DES_bs_kernel_h_%s.config"
+#define BINARY_FILE	"$JOHN/opencl/DES_bs_kernel_h_"Zu"_%s_%d.bin"
 
 static cl_kernel **kernels;
 static cl_mem buffer_map, buffer_bs_keys, buffer_unchecked_hashes;
@@ -206,7 +206,7 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 	if (file == NULL || force_build) {
 		char build_opts[10000];
 		char *encoded_salt;
-		char *kernel_filename = "$JOHN/kernels/DES_bs_kernel_h.cl";
+		char *kernel_filename = "$JOHN/opencl/DES_bs_kernel_h.cl";
 
 		encoded_salt = enc_salt(salt_val);
 

@@ -307,7 +307,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS0710=%u -DHASH_LOOPS13=%u -DUNICODE_LENGTH=%u",
 		         HASH_LOOPS0710, HASH_LOOPS13, UNICODE_LENGTH);
-		opencl_init("$JOHN/kernels/office_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/office_kernel.cl", gpu_id, build_opts);
 
 		// create kernels to execute
 		GenerateSHA1pwhash = clCreateKernel(program[gpu_id], "GenerateSHA1pwhash", &ret_code);

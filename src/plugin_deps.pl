@@ -10,7 +10,7 @@ sub find_deps {
 	my $deps = "";
 	my $base_dir = "";
 
-	if ($src_file =~ m/(.*\/)/ && $1 ne "opencl/") {
+	if ($src_file =~ m/(.*\/)/) {
 		$base_dir = $1;
 	}
 
@@ -25,24 +25,13 @@ sub find_deps {
 	while (<$fh>) {
 		if (/^\s*#\s*include\s+"([^"]+)"/) {
 			my $object = $base_dir . $1;
-			if ($src_file =~ /^opencl\// && $object =~ /\.cl$/) {
-				$object = "opencl/" . $object;
-			}
 			while ($object =~ s/([^\/]+)\/..\///g) {}
 			if ($object eq "arch.h" || $object eq "autoconfig.h" || -f $object) {
 				if (!($uniqdep_ref->{$object}++)) {
 					#print "src $src_file obj $object\n";
-					if (($src_file =~ /^opencl\// && $object =~ /^opencl_.*\.h$/) ||
-						($src_file =~ /^opencl_.*\.h$/ && $object =~ /^opencl_.*\.(h|cl)$/)) {
-						$object = "../run/kernels/" . $object;
-						$deps .= " " . $object;
-						# Recurse!
-						proc_file($object, $uniqobj_ref);
-					} else {
-						$deps .= " " . $object;
-						# Recurse!
-						$deps .= find_deps($object, $uniqobj_ref, $uniqdep_ref);
-					}
+					$deps .= " " . $object;
+					# Recurse!
+					$deps .= find_deps($object, $uniqobj_ref, $uniqdep_ref);
 				}
 			} else {
 				print STDERR "Warning: " . $src_file . " includes \"" . $1 . "\" but that file is not found.\n";
@@ -61,8 +50,7 @@ sub proc_file {
 	my %uniqdeps;
 
 	#print "proc_file processing $src_file\n";
-	if ($object =~ /^..\/run\/kernels\/opencl_.*\.h$/) {
-		$src_file =~ s/^..\/run\/kernels\///;
+	if ($object =~ /^..\/run\/opencl\/opencl_.*\.h$/) {
 		$type = "oclh";
 	}
 	if (!$uniqobj_ref->{$src_file}++) {
@@ -70,7 +58,6 @@ sub proc_file {
 			$object =~ s/\.[cS]$/.o/;
 			$type = "c";
 		} elsif ($object =~ /\.cl$/) {
-			$object =~ s/^opencl\//..\/run\/kernels\//;
 			$type = "cl";
 		}
 		if ($type) {
@@ -78,8 +65,6 @@ sub proc_file {
 			print $object . ":" . "\t" . $src_file . $deps . "\n";
 			if ($type eq "c") {
 				#print "\t" . '$(CC) $(CFLAGS) ' . $src_file . " -o " . $object . "\n";
-			} elsif ($type eq "cl" || $type eq "oclh") {
-				#print "\t" . '$(CP) $? ' . "../run/kernels\n";
 			}
 			print "\n";
 		}

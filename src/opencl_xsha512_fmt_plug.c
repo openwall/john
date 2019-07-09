@@ -173,7 +173,7 @@ static void reset(struct db_main *db)
 		         "-DPLAINTEXT_LENGTH=%u -DSALT_SIZE=%d",
 		         PLAINTEXT_LENGTH, SALT_SIZE);
 
-		opencl_init("$JOHN/kernels/xsha512_kernel.cl",
+		opencl_init("$JOHN/opencl/xsha512_kernel.cl",
 	                gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &ret_code);

@@ -40,6 +40,7 @@ run/john-*
 run/john.local.conf
 run/keepass2john
 run/kernels/
+run/opencl/*.bin
 run/keychain2john
 run/keyring2john
 run/kwallet2john

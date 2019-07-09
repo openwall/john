@@ -159,7 +159,7 @@ static void reset(struct db_main *db)
 		         "-DPLAINTEXT_LENGTH=%d -DSALTLEN=%d -DOUTLEN=%d -DCT_LEN=%d",
 		         PLAINTEXT_LENGTH, (int)sizeof(currentsalt.salt),
 		         (int)sizeof(odf_out), CT_LEN);
-		opencl_init("$JOHN/kernels/odf_kernel.cl",
+		opencl_init("$JOHN/opencl/odf_kernel.cl",
 		            gpu_id, build_opts);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "odf", &cl_error);

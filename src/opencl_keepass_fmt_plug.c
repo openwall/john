@@ -168,7 +168,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%d -DHASH_LOOPS=%d -DMAX_CONT_SIZE=%d",
 		         PLAINTEXT_LENGTH, HASH_LOOPS, MAX_CONT_SIZE);
-		opencl_init("$JOHN/kernels/keepass_kernel.cl", gpu_id,  build_opts);
+		opencl_init("$JOHN/opencl/keepass_kernel.cl", gpu_id,  build_opts);
 
 		kernel_init =
 			clCreateKernel(program[gpu_id], "keepass_init", &cl_error);

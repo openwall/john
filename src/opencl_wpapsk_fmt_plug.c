@@ -253,7 +253,7 @@ static void reset(struct db_main *db)
 		         custom_opts ? " " : "",
 		         HASH_LOOPS, ITERATIONS,
 		         PLAINTEXT_LENGTH, ocl_v_width);
-		opencl_init("$JOHN/kernels/wpapsk_kernel.cl", gpu_id, build_opts);
+		opencl_init("$JOHN/opencl/wpapsk_kernel.cl", gpu_id, build_opts);
 
 		// create kernels to execute
 		crypt_kernel = wpapsk_init = clCreateKernel(program[gpu_id], "wpapsk_init", &ret_code);
