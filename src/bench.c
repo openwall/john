@@ -699,9 +699,11 @@ int benchmark_all(void)
 	struct fmt_main *format;
 #if defined(HAVE_OPENCL)
 	char s_gpu[16 * MAX_GPU_DEVICES] = "";
+	char s_gpu1[16 * MAX_GPU_DEVICES] = "";
 	int i;
 #else
 	const char *s_gpu = "";
+	const char *s_gpu1 = "";
 #endif
 #ifndef BENCH_BUILD
 	unsigned int loop_fail = 0, loop_total = 0;
@@ -890,10 +892,43 @@ AGAIN:
 			goto next;
 		}
 #if HAVE_OPENCL
-		{
+		int n = 0;
+
+		s_gpu[0] = 0;
+		for (i = 0; i < MAX_GPU_DEVICES &&
+			     engaged_devices[i] != DEV_LIST_END; i++) {
+			int dev = engaged_devices[i];
+			int fan, temp, util, cl, ml;
+
+			fan = temp = util = cl = ml = -1;
+
+			if (dev_get_temp[dev])
+				dev_get_temp[dev](temp_dev_id[dev],
+				                  &temp, &fan, &util, &cl, &ml);
+			if (util <= 0)
+				continue;
+			if (i == 0)
+				n += sprintf(s_gpu + n, ", Dev#%d util: ", dev + 1);
+			else
+				n += sprintf(s_gpu + n, ", Dev#%d: ", dev + 1);
+
+			if (util > 0)
+				n += sprintf(s_gpu + n, "%u%%", util);
+			else
+				n += sprintf(s_gpu + n, "n/a");
+		}
+#endif
+
+		if (msg_1) {
+			if ((result = benchmark_format(format, 1, &results_1, test_db))) {
+				puts(result);
+				failed++;
+				goto next;
+			}
+#if HAVE_OPENCL
 			int n = 0;
 
-			s_gpu[0] = 0;
+			s_gpu1[0] = 0;
 			for (i = 0; i < MAX_GPU_DEVICES &&
 				     engaged_devices[i] != DEV_LIST_END; i++) {
 				int dev = engaged_devices[i];
@@ -903,27 +938,20 @@ AGAIN:
 
 				if (dev_get_temp[dev])
 					dev_get_temp[dev](temp_dev_id[dev],
-						&temp, &fan, &util, &cl, &ml);
+					                  &temp, &fan, &util, &cl, &ml);
 				if (util <= 0)
 					continue;
 				if (i == 0)
-					n += sprintf(s_gpu + n, ", Dev#%d util: ", dev + 1);
+					n += sprintf(s_gpu1 + n, ", Dev#%d util: ", dev + 1);
 				else
-					n += sprintf(s_gpu + n, ", Dev#%d: ", dev + 1);
+					n += sprintf(s_gpu1 + n, ", Dev#%d: ", dev + 1);
 
 				if (util > 0)
-					n += sprintf(s_gpu + n, "%u%%", util);
+					n += sprintf(s_gpu1 + n, "%u%%", util);
 				else
-					n += sprintf(s_gpu + n, "n/a");
+					n += sprintf(s_gpu1 + n, "n/a");
 			}
 #endif
-
-		if (msg_1)
-		if ((result = benchmark_format(format, 1, &results_1,
-		    test_db))) {
-			puts(result);
-			failed++;
-			goto next;
 		}
 
 		if (john_main_process)
@@ -971,9 +999,6 @@ AGAIN:
 				printf("%s:\t%s c/s%s\n",
 				       msg_m, s_real, s_gpu);
 		}
-#if HAVE_OPENCL
-		}
-#endif
 
 		if (!msg_1) {
 			if (john_main_process)
@@ -988,12 +1013,12 @@ AGAIN:
 		if (john_main_process && benchmark_time) {
 #if !defined(__DJGPP__) && !defined(__BEOS__) && !defined(__MINGW32__) && !defined (_MSC_VER)
 			if (results_1.virtual)
-				printf("%s:\t%s c/s real, %s c/s virtual\n\n",
-				       msg_1, s_real, s_virtual);
+				printf("%s:\t%s c/s real, %s c/s virtual%s\n\n",
+				       msg_1, s_real, s_virtual, s_gpu1);
 			else
 #endif
-				printf("%s:\t%s c/s\n\n",
-				       msg_1, s_real);
+				printf("%s:\t%s c/s%s\n\n",
+				       msg_1, s_real, s_gpu1);
 		}
 
 next:
