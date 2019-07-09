@@ -298,4 +298,4 @@ if __name__ == "__main__":
         sys.stderr.write("[ERROR] Invalid address, Please Check before continuing.\n")
         sys.exit(-1)
 
-    print("%s:$tezos$1*%s*%s*%s*%s*%s" % ("dummy", 2048, mnemonic.encode("utf-8"), email, address, raw_address))
+    print("%s:$tezos$1*%s*%s*%s*%s*%s" % ("dummy", 2048, mnemonic, email, address, raw_address))
