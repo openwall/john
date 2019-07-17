@@ -183,13 +183,13 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Error releasing kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing program");
 
-		autotuned--;
+		program[gpu_id] = NULL;
 	}
 }
 
@@ -216,8 +216,7 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
-		size_t gws_limit;
+	if (!program[gpu_id]) {
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts), "-DV_WIDTH=%u", ocl_v_width);
@@ -226,21 +225,21 @@ static void reset(struct db_main *db)
 		// create kernel to execute
 		crypt_kernel = clCreateKernel(program[gpu_id], "rakp_kernel", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
-
-		// Current key_idx can only hold 26 bits of offset so
-		// we can't reliably use a GWS higher than 4M or so.
-		gws_limit = MIN((1 << 26) * 4 / (ocl_v_width * BUFFER_SIZE),
-		                get_max_mem_alloc_size(gpu_id) /
-		                (ocl_v_width * BUFFER_SIZE));
-
-		//Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
-		                       self, create_clobj, release_clobj,
-		                       ocl_v_width * BUFFER_SIZE, gws_limit, db);
-
-		//Auto tune execution from shared/included code.
-		autotune_run(self, ROUNDS, gws_limit, 200);
 	}
+
+	// Current key_idx can only hold 26 bits of offset so
+	// we can't reliably use a GWS higher than 4M or so.
+	size_t gws_limit = MIN((1 << 26) * 4 / (ocl_v_width * BUFFER_SIZE),
+	                       get_max_mem_alloc_size(gpu_id) /
+	                       (ocl_v_width * BUFFER_SIZE));
+
+	//Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
+	                       self, create_clobj, release_clobj,
+	                       ocl_v_width * BUFFER_SIZE, gws_limit, db);
+
+	//Auto tune execution from shared/included code.
+	autotune_run(self, ROUNDS, gws_limit, 200);
 }
 
 static void clear_keys(void)

@@ -177,7 +177,7 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
+	if (!program[gpu_id]) {
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts),
@@ -193,22 +193,22 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 		pbkdf1_final = clCreateKernel(program[gpu_id], "pbkdf1_final", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
-
-		//Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
-		                       2, self, create_clobj, release_clobj,
-		                       ocl_v_width *
-		                       (PLAINTEXT_LENGTH + sizeof(pbkdf1_out)),
-		                       0, db);
-
-		//Auto tune execution from shared/included code.
-		autotune_run(self, ITERATIONS, 0, 200);
 	}
+
+	//Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
+	                       2, self, create_clobj, release_clobj,
+	                       ocl_v_width *
+	                       (PLAINTEXT_LENGTH + sizeof(pbkdf1_out)),
+	                       0, db);
+
+	//Auto tune execution from shared/included code.
+	autotune_run(self, ITERATIONS, 0, 200);
 }
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(pbkdf1_init), "Release kernel");
@@ -217,7 +217,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 		               "Release Program");
 
-		autotuned--;
+		program[gpu_id] = NULL;
 	}
 }
 

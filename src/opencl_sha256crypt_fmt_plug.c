@@ -406,7 +406,7 @@ static int calibrate()
 		release_kernel();
 
 #ifdef OCL_DEBUG
-		fprintf(stderr, "Configuration is LWS="Zu", GWS="Zu", UNROLL_LOOP=%i, "
+		fprintf(stderr, "Configuration is LWS="Zu" GWS="Zu", UNROLL_LOOP=%i, "
 	                "c/s: %llu\n", local_work_size, global_work_size,
 			kernel_opt, global_speed);
 #endif
@@ -417,7 +417,7 @@ static int calibrate()
 			best_opt = kernel_opt;
 
 			if (options.verbosity > VERB_LEGACY)
-				fprintf(stderr, "- Good configuration found: LWS="Zu", GWS="Zu", "
+				fprintf(stderr, "- Good configuration found: LWS="Zu" GWS="Zu", "
 				                "UNROLL_LOOP=%i, c/s: %llu\n", local_work_size,
 				                global_work_size, kernel_opt, global_speed);
 		}
@@ -441,7 +441,7 @@ static int calibrate()
 	snprintf(opt, sizeof(opt), ""Zu"", best_lws);
 	setenv("LWS", opt, 1);
 
-	fprintf(stderr, "The best configuration is: LWS="Zu", GWS="Zu", UNROLL_LOOP=%i, "
+	fprintf(stderr, "The best configuration is: LWS="Zu" GWS="Zu", UNROLL_LOOP=%i, "
 	                "c/s: %llu\n", best_lws, best_gws, best_opt, best_speed);
 
 	return best_opt;
@@ -506,8 +506,7 @@ static void reset(struct db_main *db)
 
 static void done(void)
 {
-
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 		MEM_FREE(indices);
 
@@ -519,7 +518,7 @@ static void done(void)
 			HANDLE_CLERROR(clReleaseKernel(preproc_kernel), "Release kernel");
 		}
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
-		autotuned = 0;
+		program[gpu_id] = NULL;
 	}
 }
 

@@ -256,7 +256,7 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(sevenzip_init), "Release kernel");
@@ -265,7 +265,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(sevenzip_aes), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-		autotuned--;
+		program[gpu_id] = NULL;
 	}
 }
 
@@ -287,7 +287,7 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
+	if (!program[gpu_id]) {
 		char build_opts[64];
 		cl_int cl_error;
 
@@ -312,16 +312,16 @@ static void reset(struct db_main *db)
 		sevenzip_aes = clCreateKernel(program[gpu_id], "sevenzip_aes",
 		                              &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
-
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
-		                       warn, 2, self,
-		                       create_clobj, release_clobj,
-		                       sizeof(sevenzip_state), 0, db);
-
-		//  Auto tune execution from shared/included code.
-		autotune_run(self, 1 << 19, 0, 200);
 	}
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
+	                       warn, 2, self,
+	                       create_clobj, release_clobj,
+	                       sizeof(sevenzip_state), 0, db);
+
+	//  Auto tune execution from shared/included code.
+	autotune_run(self, 1 << 19, 0, 200);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

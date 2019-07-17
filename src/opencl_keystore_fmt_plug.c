@@ -188,9 +188,8 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
+	if (!program[gpu_id]) {
 		char build_opts[64];
-		size_t gws_limit;
 
 		snprintf(build_opts, sizeof(build_opts),
 				"-DPASSLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
@@ -200,31 +199,31 @@ static void reset(struct db_main *db)
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "keystore", &cl_err);
 		HANDLE_CLERROR(cl_err, "Error creating keystore kernel");
-
-		// Current key_idx can only hold 25 bits of offset so
-		// we can't reliably use a GWS higher than 1M or so.
-		gws_limit = MIN((1 << 25) / (BUFSIZE / 4),
-		                get_max_mem_alloc_size(gpu_id) / BUFSIZE);
-
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(0, 0, NULL, warn, 2, self,
-				               create_clobj, release_clobj,
-		                       BUFSIZE, gws_limit, db);
-
-		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, 200);
 	}
+
+	// Current key_idx can only hold 25 bits of offset so
+	// we can't reliably use a GWS higher than 1M or so.
+	size_t gws_limit = MIN((1 << 25) / (BUFSIZE / 4),
+	                       get_max_mem_alloc_size(gpu_id) / BUFSIZE);
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(0, 0, NULL, warn, 2, self,
+	                       create_clobj, release_clobj,
+	                       BUFSIZE, gws_limit, db);
+
+	// Auto tune execution from shared/included code.
+	autotune_run(self, 1, 0, 200);
 }
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-		--autotuned;
+		program[gpu_id] = NULL;
 	}
 }
 

@@ -124,41 +124,40 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
-		size_t gws_limit;
-
+	if (!program[gpu_id]) {
 		opencl_init("$JOHN/opencl/lotus5_kernel.cl", gpu_id, NULL);
 
 		crypt_kernel = clCreateKernel(program[gpu_id], "lotus5", &ret_code);
 		HANDLE_CLERROR(ret_code, "Failed to create kernel lotus5.");
 
-		gws_limit = get_max_mem_alloc_size(gpu_id) / KEY_SIZE_IN_BYTES;
-
-		if (gws_limit & (gws_limit - 1)) {
-			get_power_of_two(gws_limit);
-			gws_limit >>= 1;
-		}
-
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
-		                       create_clobj, release_clobj,
-		                       KEY_SIZE_IN_BYTES, gws_limit, db);
-
-		// Auto tune execution from shared/included code.
-		autotune_run_extra(self, 1, gws_limit, 200, CL_TRUE);
 	}
+
+	size_t gws_limit = get_max_mem_alloc_size(gpu_id) / KEY_SIZE_IN_BYTES;
+
+	if (gws_limit & (gws_limit - 1)) {
+		get_power_of_two(gws_limit);
+		gws_limit >>= 1;
+	}
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 0, NULL, warn, 1, self,
+	                       create_clobj, release_clobj,
+	                       KEY_SIZE_IN_BYTES, gws_limit, db);
+
+	// Auto tune execution from shared/included code.
+	autotune_run_extra(self, 1, gws_limit, 200, CL_TRUE);
 }
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel),
 		               "Release kernel lotus5.");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 		               "Release Program");
 
-		autotuned--;
+		program[gpu_id] = NULL;
 	}
 }
 
