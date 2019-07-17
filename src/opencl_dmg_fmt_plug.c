@@ -451,7 +451,8 @@ static void set_salt(void *salt)
 	cur_salt = (dmg_salt*)salt;
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0,
 	                                    sizeof(dmg_salt), cur_salt, 0,
-	                                    NULL, NULL), "Copy salt to gpu");
+	                                    NULL, NULL), "Salt transfer");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
 static void clear_keys(void) {

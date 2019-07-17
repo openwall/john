@@ -288,6 +288,7 @@ static void set_salt(void *salt)
 	cur_salt = (ms_office_custom_salt *)salt;
 	memcpy(saved_salt, cur_salt, sizeof(ms_office_custom_salt));
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, sizeof(ms_office_custom_salt), saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
 static void init(struct fmt_main *_self)

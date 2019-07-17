@@ -336,8 +336,9 @@ static void set_salt(void *salt)
 {
 	memcpy(saved_salt, salt, SALT_SIZE);
 
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_salt, CL_TRUE, 0, SALT_SIZE,
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_salt, CL_FALSE, 0, SALT_SIZE,
 	    saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer mysalt");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
 static void * get_binary(char *ciphertext) {

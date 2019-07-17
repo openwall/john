@@ -299,6 +299,7 @@ static void set_salt(void *salt) {
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_salt, CL_FALSE, 0,
 	                                    SALT_SIZE, applebug, 0, NULL, NULL),
 	               "failed in clEnqueueWriteBuffer salt");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
 }
 
 static void *get_binary(char *ciphertext) {

@@ -490,7 +490,8 @@ static void set_salt(void *salt)
 	currentsalt.etype = cur_salt->etype;
 	memcpy(currentsalt.ct, cur_salt->ct, TIMESTAMP_SIZE);
 	memcpy(currentsalt.pbkdf2.salt, cur_salt->salt, currentsalt.pbkdf2.length);
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(pa_sha1_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(pa_sha1_salt), &currentsalt, 0, NULL, NULL), "Salt transfer");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

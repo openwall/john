@@ -212,7 +212,8 @@ static void set_salt(void *salt)
 	memcpy(currentsalt.iv, cur_salt->iv, IVLEN);
 	currentsalt.outlen = 16;
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0,
-		sizeof(iwork_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
+		sizeof(iwork_salt), &currentsalt, 0, NULL, NULL), "Salt transfer");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
 static void clear_keys(void)

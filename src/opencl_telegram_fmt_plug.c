@@ -232,7 +232,8 @@ static void set_salt(void *salt)
 	currentsalt.pbkdf2.iterations = cur_salt->iterations;
 	currentsalt.pbkdf2.outlen = MAX_OUTLEN;
 	currentsalt.encrypted_blob_length = cur_salt->encrypted_blob_length;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(telegram_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(telegram_salt), &currentsalt, 0, NULL, NULL), "Salt transfer");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
 }
 
 static void clear_keys(void)

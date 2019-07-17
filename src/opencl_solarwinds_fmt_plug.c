@@ -226,7 +226,8 @@ static void set_salt(void *salt)
 	currentsalt.outlen = 1024;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0,
-		sizeof(solarwinds_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
+		sizeof(solarwinds_salt), &currentsalt, 0, NULL, NULL), "Salt transfer");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
 }
 
 static void clear_keys(void)

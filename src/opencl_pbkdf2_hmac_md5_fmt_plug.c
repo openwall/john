@@ -219,11 +219,8 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	cur_salt = (pbkdf2_salt*)salt;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(pbkdf2_salt), cur_salt, 0, NULL, NULL), "Copy salt to gpu");
-#if 0
-	fprintf(stderr, "\n%s(%.*s) len %u iter %u\n", __FUNCTION__, cur_salt->length, cur_salt->salt, cur_salt->length, cur_salt->iterations);
-	dump_stuff_msg("salt", cur_salt->salt, cur_salt->length);
-#endif
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(pbkdf2_salt), cur_salt, 0, NULL, NULL), "Salt transfer");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
 static void clear_keys(void)

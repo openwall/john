@@ -313,12 +313,13 @@ static void set_salt(void *salt)
 	}
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 	               CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
-	               "Copy setting to gpu");
+	               "Salt transfer");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_data, CL_FALSE, 0,
 	                                    saved_salt->comp_len,
 	                                    saved_salt->datablob,
 	                                    0, NULL, NULL),
-	               "Copy setting to gpu");
+	               "Salt transfer");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
 #undef set_key

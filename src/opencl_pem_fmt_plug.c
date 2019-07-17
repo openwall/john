@@ -238,7 +238,8 @@ static void set_salt(void *salt)
 	currentsalt.pbkdf2.outlen = cur_salt->key_length;
 	currentsalt.ciphertext_length = cur_salt->ciphertext_length;
 	currentsalt.cid = cur_salt->cid;
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(pem_salt) - (CTLEN - cur_salt->ciphertext_length), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(pem_salt) - (CTLEN - cur_salt->ciphertext_length), &currentsalt, 0, NULL, NULL), "Salt transfer");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
 static void clear_keys(void)

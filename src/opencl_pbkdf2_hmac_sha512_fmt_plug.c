@@ -236,7 +236,8 @@ static void set_salt(void *salt)
 	memcpy(host_salt, salt, SALT_SIZE);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
 		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NUUL, NULL),
-		"Copy salt to gpu");
+		"Salt transfer");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

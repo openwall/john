@@ -216,7 +216,8 @@ static void set_salt(void *salt)
 	currentsalt.pbkdf2.outlen = 32;
 	memcpy(currentsalt.masked_keys, cur_salt->masked_keys,
 	       sizeof(currentsalt.masked_keys));
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(softraid_salt), &currentsalt, 0, NULL, NULL), "Copy salt to gpu");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(softraid_salt), &currentsalt, 0, NULL, NULL), "Salt transfer");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
 static void clear_keys(void)

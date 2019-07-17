@@ -287,6 +287,7 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE,
 	                                    0, 8, saved_salt, 0, NULL, NULL),
 	               "failed in clEnqueueWriteBuffer saved_salt");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 #endif
 }
 
