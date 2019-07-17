@@ -545,40 +545,28 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void reset(struct db_main *db)
 {
-	static int initialized;
-	static size_t o_lws, o_gws;
-	size_t gws_limit;
+	static int last_int_cand;
 
-	//fprintf(stderr, "%s(%p), i=%d\n", __FUNCTION__, db, initialized);
-	gws_limit = MIN((0xf << 21) * 4 / BUFSIZE,
-					get_max_mem_alloc_size(gpu_id) / BUFSIZE);
-	get_power_of_two(gws_limit);
-	if (gws_limit > MIN((0xf << 21) * 4 / BUFSIZE,
-						get_max_mem_alloc_size(gpu_id) / BUFSIZE))
-		gws_limit >>= 1;
-
-	if (initialized) {
-		// Forget the previous auto-tune
-		local_work_size = o_lws;
-		global_work_size = o_gws;
-
+	if (!crypt_kernel || last_int_cand != mask_int_cand.num_int_cand) {
 		release_base_clobj();
 		release_clobj();
-	} else {
-		o_lws = local_work_size;
-		o_gws = global_work_size;
-		initialized = 1;
+
+		num_loaded_hashes = db->salts->count;
+		ocl_hc_128_prepare_table(db->salts);
+		init_kernel(num_loaded_hashes,
+		            ocl_hc_128_select_bitmap(num_loaded_hashes));
+
+		create_base_clobj();
+
+		last_int_cand = mask_int_cand.num_int_cand;
 	}
 
-	num_loaded_hashes = db->salts->count;
-	ocl_hc_128_prepare_table(db->salts);
-	init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
-
-	create_base_clobj();
-
-	// If real crack, do not auto tune for self test.
-	if (!(options.flags & FLG_TEST_CHK) && db->real && db->real != db)
-		opencl_get_sane_lws_gws_values();
+	size_t gws_limit = MIN((0xf << 21) * 4 / BUFSIZE,
+	                       get_max_mem_alloc_size(gpu_id) / BUFSIZE);
+	get_power_of_two(gws_limit);
+	if (gws_limit > MIN((0xf << 21) * 4 / BUFSIZE,
+	                    get_max_mem_alloc_size(gpu_id) / BUFSIZE))
+		gws_limit >>= 1;
 
 	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 1, NULL, warn, 2, self,

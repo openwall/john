@@ -196,7 +196,7 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
+	if (!program[gpu_id]) {
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts),
@@ -230,20 +230,20 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
 		loop_kernel[4] = clCreateKernel(program[gpu_id], "loop_sha512", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
-
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn, 2, self,
-		                       create_clobj, release_clobj,
-		                       sizeof(sspr_state), 0, db);
-
-		// Auto tune execution from shared/included code, 200ms crypt_all() max.
-		autotune_run(self, 100000, 0, 200);
 	}
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn, 2, self,
+	                       create_clobj, release_clobj,
+	                       sizeof(sspr_state), 0, db);
+
+	// Auto tune execution from shared/included code, 200ms crypt_all() max.
+	autotune_run(self, 100000, 0, 200);
 }
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		int i;
 
 		release_clobj();
@@ -254,7 +254,7 @@ static void done(void)
 		}
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-		autotuned--;
+		program[gpu_id] = NULL;
 	}
 }
 

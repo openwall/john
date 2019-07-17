@@ -644,12 +644,12 @@ static void init_x(struct fmt_main *_self)
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 		release_kernel();
 		release_mask_buffers();
 	}
-	autotuned = 0;
+	program[gpu_id] = NULL;
 	should_tune = 0;
 	ocl_initialized = 0;
 }

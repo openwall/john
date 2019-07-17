@@ -526,7 +526,7 @@ static void reset(struct db_main *db)
 static void done(void)
 {
 
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 		MEM_FREE(indices);
 
@@ -539,7 +539,7 @@ static void done(void)
 			HANDLE_CLERROR(clReleaseKernel(preproc_kernel), "Release kernel");
 		}
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
-		autotuned = 0;
+		program[gpu_id] = NULL;
 	}
 }
 

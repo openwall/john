@@ -165,7 +165,7 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(pbkdf2_init), "Release kernel");
@@ -175,7 +175,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(dmg_final[2]), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-		autotuned--;
+		program[gpu_id] = NULL;
 	}
 }
 
@@ -201,19 +201,8 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
-		int iterations = 1000;
+	if (!program[gpu_id]) {
 		char build_opts[64];
-
-		if (db->real) {
-			struct db_salt *s = db->real->salts;
-			void *salt;
-
-			while (s->next && s->cost[0] < db->max_cost[0])
-				s = s->next;
-			salt = s->salt;
-			iterations = ((dmg_salt*)salt)->pbkdf2.iterations;
-		}
 
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DHASH_LOOPS=%u -DOUTLEN=%u -DV_WIDTH=%u",
@@ -230,16 +219,19 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 		dmg_final[2] = clCreateKernel(program[gpu_id], "dmg_final_v2", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
-
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
-		                       warn, 2, self, create_clobj,
-		                       release_clobj,
-		                       ocl_v_width * sizeof(pbkdf2_state), 0, db);
-
-		// Auto tune execution from shared/included code.
-		autotune_run(self, ((2 * iterations - 1) + HASH_LOOPS - 1), 0, 200);
 	}
+
+	// FIXME: Share in opencl_autotune.h
+	int iter = MIN(db->max_cost[0], options.loader.max_cost[0]);
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
+	                       warn, 2, self, create_clobj,
+	                       release_clobj,
+	                       ocl_v_width * sizeof(pbkdf2_state), 0, db);
+
+	// Auto tune execution from shared/included code.
+	autotune_run(self, ((2 * iter - 1) + HASH_LOOPS - 1), 0, 200);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)

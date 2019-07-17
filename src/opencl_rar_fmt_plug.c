@@ -237,7 +237,7 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(RarInit), "Release kernel");
@@ -247,7 +247,7 @@ static void done(void)
 
 		MEM_FREE(unpack_data);
 
-		autotuned--;
+		program[gpu_id] = NULL;
 	}
 }
 
@@ -291,7 +291,7 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
+	if (!program[gpu_id]) {
 		char build_opts[64];
 
 		snprintf(build_opts, sizeof(build_opts), "-DPLAINTEXT_LENGTH=%u -DHASH_LOOPS=0x%x", PLAINTEXT_LENGTH, HASH_LOOPS);
@@ -304,16 +304,16 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 		RarFinal = clCreateKernel(program[gpu_id], "RarFinal", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-		//Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
-		                       warn, 3, self,
-		                       create_clobj, release_clobj,
-		                       UNICODE_LENGTH + sizeof(cl_int) * 14, 0, db);
-
-		//Auto tune execution from shared/included code.
-		autotune_run(self, ITERATIONS, 0, 200);
 	}
+
+	//Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
+	                       warn, 3, self,
+	                       create_clobj, release_clobj,
+	                       UNICODE_LENGTH + sizeof(cl_int) * 14, 0, db);
+
+	//Auto tune execution from shared/included code.
+	autotune_run(self, ITERATIONS, 0, 200);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

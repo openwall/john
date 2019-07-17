@@ -101,8 +101,33 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	size_t gws_limit, int max_duration, cl_uint lws_is_power_of_two)
 {
 	int need_best_lws, need_best_gws, needed_best_gws;
+	static size_t first, orig_lws, orig_gws;
+	int homogenous = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0);
+
+	if (!first++) {
+		orig_lws = local_work_size;
+		orig_gws = global_work_size;
+	} else {
+		local_work_size = orig_lws;
+		global_work_size = orig_gws;
+	}
+
+	if (options.flags & FLG_SHOW_CHK)
+		return;
+
+	// FIXME add optional test-same-sizes
+	if (self_test_running) {
+		local_work_size = 7;
+		global_work_size = 49;
+	}
 
 	ocl_autotune_running = 1;
+
+	if (autotune_real_db && self->params.tunable_cost_name[0] &&
+	    strcasestr(self->params.tunable_cost_name[0], "iter")) {
+		rounds = MIN(ocl_autotune_db->max_cost[0], options.loader.max_cost[0]);
+		fprintf(stderr, "[Using max. iterations of %u from real DB] ", rounds);
+	}
 
 #if SIZEOF_SIZE_T > 4
 	/* We can't process more than 4G keys per crypt() */
@@ -112,9 +137,6 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(FORMAT_LABEL);
-
-	if (!global_work_size && !getenv("GWS"))
-		global_work_size = 0;
 
 	need_best_lws = !local_work_size && !getenv("LWS");
 	if (need_best_lws) {
@@ -207,10 +229,12 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	if (options.verbosity >= VERB_DEBUG &&
 	    !(self_test_running && (options.flags & FLG_NOTESTS)))
 		fprintf(stderr, "%s ", autotune_real_db ? "RealDB" : "TestDB");
+
+	global_work_size = GET_EXACT_MULTIPLE(global_work_size, local_work_size);
+
 #if HAVE_MPI
-	if (autotune_real_db && mpi_p > 1 && !(options.flags & FLG_SHOW_CHK) &&
-	    !(options.lws && options.gws) && !rec_restored &&
-	    cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0)) {
+	if (autotune_real_db && mpi_p > 1 &&
+	    !(options.lws && options.gws) && !rec_restored && homogenous) {
 		uint32_t lws, gws, mpi_lws, mpi_gws;
 
 		if (john_main_process)
@@ -220,7 +244,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		MPI_Allreduce(&lws, &mpi_lws, 1, MPI_UNSIGNED, MPI_MIN, MPI_COMM_WORLD);
 		MPI_Allreduce(&gws, &mpi_gws, 1, MPI_UNSIGNED, MPI_MIN, MPI_COMM_WORLD);
 		local_work_size = mpi_lws;
-		global_work_size = mpi_gws;
+		global_work_size = GET_EXACT_MULTIPLE(mpi_gws, local_work_size);
 
 		if (john_main_process && (ocl_always_show_ws ||
 		    !mask_increments_len)) {
@@ -229,34 +253,29 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		}
 	} else
 #endif
-	if (!(options.flags & FLG_SHOW_CHK) && !(options.lws && options.gws) &&
-	    ((autotune_real_db && !mask_increments_len) ||
-	     options.verbosity > VERB_DEFAULT)) {
+	if (ocl_always_show_ws ||
+	    (!(options.lws && options.gws) && !self_test_running &&
+	     ((options.flags & FLG_TEST_CHK) ||
+	      (autotune_real_db && !mask_increments_len)))) {
 		if (options.node_count)
 			fprintf(stderr, "%u: ", NODE);
-		fprintf(stderr, "LWS="Zu", GWS="Zu"\n",
-		        local_work_size, global_work_size);
-	} else
-	if (ocl_always_show_ws)
-		fprintf(stderr, "LWS="Zu" GWS="Zu" ",
-		        local_work_size, global_work_size);
+		fprintf(stderr, "LWS="Zu", GWS="Zu"%s",
+		        local_work_size, global_work_size,
+		        (options.flags & FLG_TEST_CHK) ? " " : "\n");
+	}
 
 	/* Adjust to the final configuration */
 	release_clobj();
-	global_work_size = GET_EXACT_MULTIPLE(global_work_size, local_work_size);
 	create_clobj(global_work_size, self);
 
-#if HAVE_MPI
-	if (!cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0) ||
-	    john_main_process)
-#endif
-	log_event("- OpenCL LWS: "Zu"%s, GWS: "Zu" %s("Zu" blocks)",
-	          local_work_size,
-	          (need_best_lws && !needed_best_gws) ? " (auto-tuned)" : "",
-	          global_work_size,
-	          (need_best_lws && needed_best_gws) ? "(both auto-tuned) " :
-	          (needed_best_gws) ? "(auto-tuned) " : "",
-	          global_work_size / local_work_size);
+	if (!homogenous || john_main_process)
+		log_event("- OpenCL LWS: "Zu"%s, GWS: "Zu" %s("Zu" blocks)",
+		          local_work_size,
+		          (need_best_lws && !needed_best_gws) ? " (auto-tuned)" : "",
+		          global_work_size,
+		          (need_best_lws && needed_best_gws) ? "(both auto-tuned) " :
+		          (needed_best_gws) ? "(auto-tuned) " : "",
+		          global_work_size / local_work_size);
 
 	self->params.min_keys_per_crypt = opencl_calc_min_kpc(local_work_size,
 	                                                      global_work_size,

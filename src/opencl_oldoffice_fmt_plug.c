@@ -201,13 +201,13 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-		autotuned--;
+		program[gpu_id] = NULL;
 	}
 }
 
@@ -226,23 +226,13 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	static size_t o_lws, o_gws;
-	static int initialized;
 	size_t gws_limit = 4 << 20;
 	cl_ulong const_cache_size;
 	char build_opts[1024];
 	int i;
 
-	if (initialized) {
-		// Forget the previous auto-tune
-		local_work_size = o_lws;
-		global_work_size = o_gws;
+	if (crypt_kernel)
 		release_clobj();
-	} else {
-		o_lws = local_work_size;
-		o_gws = global_work_size;
-		initialized = 1;
-	}
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
@@ -292,10 +282,6 @@ static void reset(struct db_main *db)
 	crypt_kernel =
 		clCreateKernel(program[gpu_id], "oldoffice", &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
-
-	// If real crack run, don't auto-tune for self-tests
-	if (db->real && db != db->real)
-		opencl_get_sane_lws_gws_values();
 
 	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL, warn, 2,

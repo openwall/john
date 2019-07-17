@@ -149,7 +149,7 @@ static void release_clobj(void)
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(wpapmk_init), "Release Kernel");
@@ -160,7 +160,7 @@ static void done(void)
 
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-		autotuned--;
+		program[gpu_id] = NULL;
 	}
 }
 
@@ -231,7 +231,7 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
+	if (!program[gpu_id]) {
 		const char *custom_opts;
 		char build_opts[256];
 
@@ -258,16 +258,16 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 		wpapsk_final_pmkid = clCreateKernel(program[gpu_id], "wpapsk_final_pmkid", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
-
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, 1, split_events,
-		                       warn, 2, self,
-		                       create_clobj, release_clobj,
-		                       2 * ocl_v_width * sizeof(wpapsk_state), 0, db);
-
-		// Auto tune execution from shared/included code.
-		autotune_run(self, 1, 0, 200);
 	}
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 1, split_events,
+	                       warn, 2, self,
+	                       create_clobj, release_clobj,
+	                       2 * ocl_v_width * sizeof(wpapsk_state), 0, db);
+
+	// Auto tune execution from shared/included code.
+	autotune_run(self, 1, 0, 200);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

@@ -156,14 +156,8 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
+	if (!program[gpu_id]) {
 		char build_opts[96];
-		int iter;
-
-		if (db->real)
-			db = db->real;
-
-		iter = MIN(db->max_cost[0], options.loader.max_cost[0]);
 
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%d -DHASH_LOOPS=%d -DMAX_CONT_SIZE=%d",
@@ -181,20 +175,23 @@ static void reset(struct db_main *db)
 		kernel_final =
 			clCreateKernel(program[gpu_id], "keepass_final", &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating kernel");
-
-		// Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn, 2, self,
-		                       create_clobj, release_clobj,
-		                       sizeof(keepass_state), 0, db);
-
-		// Auto tune execution from shared/included code, max. 200ms total.
-		autotune_run(self, iter, 0, 200);
 	}
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn, 2, self,
+	                       create_clobj, release_clobj,
+	                       sizeof(keepass_state), 0, db);
+
+	// iterations for benchmarking
+	int iter = db->salts->cost[0];
+
+	// Auto tune execution from shared/included code, max. 200ms total.
+	autotune_run(self, iter, 0, 200);
 }
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(kernel_init), "Release kernel");
@@ -202,7 +199,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(kernel_final), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-		autotuned--;
+		program[gpu_id] = NULL;
 	}
 }
 

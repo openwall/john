@@ -107,7 +107,7 @@ static void (*release_clobj)(void);
 static char fmt_base_name[128];
 static size_t gws_limit;
 static int printed_mask;
-static struct db_main *autotune_db;
+struct db_main *ocl_autotune_db;
 static struct db_salt *autotune_salts;
 int autotune_real_db;
 
@@ -1096,6 +1096,11 @@ void opencl_get_user_preferences(const char *format)
 
 void opencl_get_sane_lws_gws_values()
 {
+	if (self_test_running) {
+		local_work_size = 7;
+		global_work_size = 49;
+	}
+
 	if (!local_work_size) {
 		if (cpu(device_info[gpu_id]))
 			local_work_size =
@@ -1534,8 +1539,8 @@ static void* fill_opencl_device(size_t gws, void **binary)
 
 	// Set salt
 	dyna_salt_init(self);
-	if (self->methods.tunable_cost_value[0] && autotune_db->real) {
-		struct db_main *db = autotune_db->real;
+	if (self->methods.tunable_cost_value[0] && ocl_autotune_db->real) {
+		struct db_main *db = ocl_autotune_db->real;
 		struct db_salt *s = db->salts;
 
 		while (s->next && s->cost[0] < db->max_cost[0])
@@ -1597,7 +1602,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			fprintf(stderr, " (error occurred)");
 		clear_profiling_events();
 		release_clobj();
-		if (!self->methods.tunable_cost_value[0] || !autotune_db->real)
+		if (!self->methods.tunable_cost_value[0] || !ocl_autotune_db->real)
 			dyna_salt_remove(salt);
 		return 0;
 	}
@@ -1674,7 +1679,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	clear_profiling_events();
 	release_clobj();
 
-	if (!self->methods.tunable_cost_value[0] || !autotune_db->real)
+	if (!self->methods.tunable_cost_value[0] || !ocl_autotune_db->real)
 		dyna_salt_remove(salt);
 
 	return runtime;
@@ -1701,7 +1706,7 @@ void opencl_init_auto_setup(int p_default_value, int p_hash_loops,
 	create_clobj = p_create_clobj;
 	release_clobj = p_release_clobj;
 	gws_limit = p_gws_limit;
-	autotune_db = db;
+	ocl_autotune_db = db;
 	autotune_real_db = db && db->real && db->real == db;
 	autotune_salts = db ? db->salts : NULL;
 }
@@ -1904,7 +1909,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	local_work_size = optimal_work_group;
 	global_work_size = GET_EXACT_MULTIPLE(gws, local_work_size);
 
-	if (!self->methods.tunable_cost_value[0] || !autotune_db->real)
+	if (!self->methods.tunable_cost_value[0] || !ocl_autotune_db->real)
 		dyna_salt_remove(salt);
 }
 

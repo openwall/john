@@ -308,7 +308,7 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!autotuned) {
+	if (!program[gpu_id]) {
 
 		//char build_opts[64];
 		//snprintf(build_opts, sizeof(build_opts), "-DHASH_LOOPS=%u", HASH_LOOPS);
@@ -331,34 +331,35 @@ static void reset(struct db_main *db)
 		final_kernel =
 			clCreateKernel(program[gpu_id], FINAL_KERNEL_NAME, &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating crypt kernel");
-
-		/*
-		 * Initialize openCL tuning (library) for this format.
-		 * Autotuning with default parameters:
-		 * HASH_LOOP = 256
-		 * ITERATIONS = 1048576
-		 */
-
-		opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
-		                       1, self, create_clobj, release_clobj,
-		                       BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
-		                       0, db);
-
-		/* Autotune for max. 20ms single-call duration (5 for CPU device) */
-		autotune_run(self, ITERATIONS, 0, (cpu(device_info[gpu_id]) ? 5 : 20));
 	}
+
+	/*
+	 * Initialize openCL tuning (library) for this format.
+	 * Autotuning with default parameters:
+	 * HASH_LOOP = 256
+	 * ITERATIONS = 1048576
+	 */
+
+	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn,
+	                       1, self, create_clobj, release_clobj,
+	                       BITLOCKER_INT_HASH_SIZE * sizeof(unsigned int),
+	                       0, db);
+
+	/* Autotune for max. 20ms single-call duration (5 for CPU device) */
+	autotune_run(self, ITERATIONS, 0, (cpu(device_info[gpu_id]) ? 5 : 20));
 }
 
 static void done(void)
 {
-	if (autotuned) {
+	if (program[gpu_id]) {
 		release_clobj();
 		HANDLE_CLERROR(clReleaseKernel(block_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(init_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
-		autotuned--;
+
+		program[gpu_id] = NULL;
 	}
 }
 
