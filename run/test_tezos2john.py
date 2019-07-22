@@ -36,7 +36,7 @@ import unittest
 from tezos2john import isICOValidSeed, isValidMnemonic, isValidChecksumForMnemonic, normalize_string
 
 
-bip39WordFileDirectory = "bip-0039\\"
+bip39WordFileDirectory = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])) , "bip-0039")
 
 
 class MockStdErrHandler():
@@ -224,7 +224,7 @@ class TestMethods(unittest.TestCase):
 
         #Translate Valid Seed to the location in the bip39 Word list
         ## Get the english word list
-        f = open(bip39WordFileDirectory + "english.txt", 'r', encoding="utf-8")
+        f = open(os.path.join(bip39WordFileDirectory , "english.txt"), 'r', encoding="utf-8")
         x = f.readlines()
         f.close()
         bip39EnglishList = list(map(lambda s: normalize_string(s.strip()), x))
@@ -235,7 +235,7 @@ class TestMethods(unittest.TestCase):
             locationValidSeeds.append([bip39EnglishList.index(word) for word in myVector[1].split(' ')])
 
         ## ok, we have a list of locations for each valid word, now we are going to go and get all of our languages.
-        languageList = [str(bip39WordFileDirectory + files) for files in os.listdir(bip39WordFileDirectory) if files.endswith(".txt")]
+        languageList = [str(os.path.join(bip39WordFileDirectory , files)) for files in os.listdir(bip39WordFileDirectory) if files.endswith(".txt")]
 
         self.assertTrue(len(languageList) >= 8)
 
