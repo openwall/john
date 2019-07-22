@@ -92,7 +92,7 @@ code_strings = {
     256: ''.join([chr(x) for x in range(256)])
 }
 
-bip39WordFileDirectory = "bip-0039\\"
+bip39WordFileDirectory = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])) , "bip-0039")
 
 def encode(val, base, minlen=0):
     base, minlen = int(base), int(minlen)
@@ -196,7 +196,7 @@ def isValidMnemonic(seedWords):
     myWords = getSeedWordListFromString(seedWords)
     # Get a list of all avalible languages
     expectedNuberOfFiles = 8
-    languageList = [str(bip39WordFileDirectory + files) for files in os.listdir(bip39WordFileDirectory) if files.endswith(".txt")]
+    languageList = [str(os.path.join(bip39WordFileDirectory , files)) for files in os.listdir(bip39WordFileDirectory) if files.endswith(".txt")]
     if (len(languageList) < expectedNuberOfFiles):
         sys.stderr.write("[WARNING] Language List Error. Language files not detected! Files found=" + str(len(languageList)) + " expecting at least " + str(expectedNuberOfFiles) + "\n")
         return False
