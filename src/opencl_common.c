@@ -1977,6 +1977,24 @@ void opencl_find_best_gws(int step, int max_duration,
 	int save_duration_time = duration_time;
 	cl_uint core_count = get_processors_count(sequential_id);
 
+	/* Speed gain required to increase the GWS value */
+	double regular_gain = 1.01;        //the default value is 1% gain
+	double extra_gain = regular_gain;  //only applies when saving memory
+	#define GWS_THRESHOLD 10000
+
+	if (options.flags & FLG_SINGLE_CHK)
+		/*
+		 * Larger GWS is very expensive for single mode, so we try to
+		 * keep it reasonable low.
+		 */
+		regular_gain = extra_gain = 1.25;
+	else {
+		if (mem_saving_level == 2)
+			extra_gain = 1.10;
+		if (mem_saving_level > 2)
+			extra_gain = 1.20;
+	}
+
 	if (have_lws) {
 		if (core_count > 2)
 			optimal_gws = lcm(core_count, optimal_gws);
@@ -2047,11 +2065,12 @@ void opencl_find_best_gws(int step, int max_duration,
 			        num, human_speed(raw_speed), speed, ns2string(run_time));
 
 		/*
-		 * Larger GWS is very expensive for single mode, so we try to
-		 * keep it reasonable low here.
+		 * Keep GWS low here by demanding a percentage gain
+		 *   use higher threshold only for significant values in absolute terms
+		 *   (e.g., at least 10240).
 		 */
 		if (speed >
-		    ((options.flags & FLG_SINGLE_CHK ? 1.25 : 1.01) * best_speed)) {
+		    ((num >= GWS_THRESHOLD ? extra_gain : regular_gain) * best_speed)) {
 			if (options.verbosity > VERB_LEGACY)
 				fprintf(stderr, (speed > 2 * best_speed) ? "!" : "+");
 			best_speed = speed;
