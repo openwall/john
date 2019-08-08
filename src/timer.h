@@ -62,7 +62,7 @@ typedef struct timespec hr_timer;
 #define HRZERO(X)             (X).tv_sec = (X).tv_nsec = 0
 #define HRSETCURRENT(X)       clock_gettime(BEST_MONOTONIC, &(X))
 #define HRGETTICKS(X)         ((double)(X).tv_sec * 1E9 + (double)(X).tv_nsec)
-#define HRGETTICKS_PER_SEC(X) { hr_timer r; clock_getres(BEST_MONOTONIC, &r); (X) = r.tv_sec + 1E9 / r.tv_nsec; }
+#define HRGETTICKS_PER_SEC(X) { hr_timer r; clock_getres(BEST_MONOTONIC, &r); if (r.tv_sec < 0) clock_getres(CLOCK_MONOTONIC, &r); (X) = r.tv_sec + 1E9 / r.tv_nsec; }
 
 #else /* Fallback to microsecond non-monotonic clock that should be available */
 
