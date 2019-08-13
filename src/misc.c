@@ -16,7 +16,9 @@
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
-#ifdef _MSC_VER
+#ifdef __APPLE__
+#include <mach/mach.h>
+#elif _MSC_VER
 #include <io.h>
 #pragma warning ( disable : 4996 )
 #endif
@@ -633,3 +635,80 @@ char *rtrim(char *str)
 	*(out+1) = '\0';
 	return str;
 }
+
+#ifndef _JOHN_MISC_NO_LOG
+int64_t host_total_mem(void)
+{
+	int64_t tot_mem = -1;
+
+#if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER && defined _SC_PAGESIZE && defined _SC_PHYS_PAGES
+
+	long pagesize = sysconf(_SC_PAGESIZE);
+	if (pagesize < 0)
+		return -1;
+
+	long totmem = sysconf(_SC_PHYS_PAGES);
+	if (totmem < 0)
+		return -1;
+
+	tot_mem = (int64_t)totmem * pagesize;
+
+#endif
+
+	return tot_mem;
+}
+
+int64_t host_avail_mem(void)
+{
+	int64_t avail_mem = -1;
+
+#if __linux__
+
+	FILE *fp;
+	char buf[LINE_BUFFER_SIZE];
+
+	if ((fp = fopen("/proc/meminfo", "r"))) {
+		while (fgets(buf, LINE_BUFFER_SIZE, fp)) {
+			if (strstr(buf, "MemAvailable")) {
+				char *p = strchr(buf, ':');
+				if (p++)
+					avail_mem = strtoull(p, NULL, 10) << 10;
+				break;
+			}
+		}
+		fclose(fp);
+	}
+
+#elif __APPLE__
+
+	vm_statistics64_data_t vm_stat;
+	unsigned int count = HOST_VM_INFO64_COUNT;
+	kern_return_t ret;
+	mach_port_t myHost = mach_host_self();
+	vm_size_t pageSize;
+
+	if (host_page_size(mach_host_self(), &pageSize) != KERN_SUCCESS)
+		return -1;
+
+	if ((ret = host_statistics64(myHost, HOST_VM_INFO64, (host_info64_t)&vm_stat, &count) != KERN_SUCCESS))
+		return -1;
+
+	avail_mem = (vm_stat.free_count + vm_stat.inactive_count + vm_stat.purgeable_count) * pageSize;
+
+#elif (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER && defined _SC_PAGESIZE && defined _SC_AVPHYS_PAGES
+
+	long pagesize = sysconf(_SC_PAGESIZE);
+	if (pagesize < 0)
+		return -1;
+
+	long availmem = sysconf(_SC_AVPHYS_PAGES);
+	if (availmem < 0)
+		return -1;
+
+	avail_mem = (int64_t)availmem * pagesize;
+
+#endif
+
+	return avail_mem;
+}
+#endif
