@@ -315,7 +315,6 @@ static void listconf_list_build_info(void)
 #endif
 	printf("memmem(): " memmem_func "\n");
 
-	printf("clock(3) CLOCKS_PER_SEC: %u\n", (uint32_t)CLOCKS_PER_SEC);
 	clk_tck_init();
 #if defined(_SC_CLK_TCK) || !defined(CLK_TCK)
 	printf("times(2) sysconf(_SC_CLK_TCK) is %ld\n", clk_tck);
@@ -330,6 +329,20 @@ static void listconf_list_build_info(void)
 	printf("Using times(2) for timers, resolution %ss\n", human_prefix_small(1.0 / clk_tck));
 #endif
 	printf("HR timer claimed resolution %ss, observed %ss\n", human_prefix_small(1.0 / sm_HRTicksPerSec), human_prefix_small(1.0 / sm_hrPrecision));
+
+	int64_t total_mem = host_total_mem();
+
+	if (total_mem >= 0)
+		printf("Total physical host memory: %sB\n", human_prefix(total_mem));
+	else
+		puts("Total physical host memory: unknown");
+
+	int64_t avail_mem = host_avail_mem();
+
+	if (avail_mem >= 0)
+		printf("Available physical host memory: %sB\n", human_prefix(avail_mem));
+	else
+		puts("Available physical host memory: unknown");
 
 // OK, now append debugging options, BUT only output  something if
 // one or more of them is set. IF none set, be silent.

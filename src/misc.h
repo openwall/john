@@ -218,4 +218,18 @@ extern char *ltrim(char *str);
  */
 extern char *rtrim(char *str);
 
+/*
+ * Return total physical host memory, in bytes. A return of -1 means we don't
+ * know.
+ */
+extern int64_t host_total_mem(void);
+
+/*
+ * Return available physical host memory, in bytes. A return of -1 means we
+ * don't know.
+ * Note that if we're running several forks or MPI processes on same host, the
+ * figure needs to be divided by that number to be used per process.
+ */
+extern int64_t host_avail_mem(void);
+
 #endif
