@@ -94,9 +94,9 @@ extern void *mem_calloc(size_t nmemb, size_t size);
 extern void *mem_realloc(void *old_ptr, size_t size);
 
 /* These allow alignment and are wrappers to system-specific functions */
-void *mem_alloc_align(size_t size, size_t align);
+extern void *mem_alloc_align(size_t size, size_t align);
 
-void *mem_calloc_align(size_t count, size_t size, size_t align);
+extern void *mem_calloc_align(size_t count, size_t size, size_t align);
 
 /*
  * Frees memory allocated with mem_alloc() and sets the pointer to NULL.
@@ -110,7 +110,7 @@ void *mem_calloc_align(size_t count, size_t size, size_t align);
 #define calloc(a,b) memset(_aligned_malloc(a*b,16),0,a*b)
 #define free(a) _aligned_free(a)
 #define strdup(a) strdup_MSVC(a)
-char *strdup_MSVC(const char *str);
+extern char *strdup_MSVC(const char *str);
 #define MEM_FREE(ptr) \
 { \
 	if ((ptr)) { \
@@ -125,7 +125,7 @@ char *strdup_MSVC(const char *str);
 #define calloc(a,b) memset(__mingw_aligned_malloc(a*b,(sizeof(long long))),0,a*b)
 #define free(a) __mingw_aligned_free(a)
 #define strdup(a) strdup_MSVC(a)
-char *strdup_MSVC(const char *str);
+extern char *strdup_MSVC(const char *str);
 
 #define MEM_FREE(ptr) \
 { \
@@ -202,27 +202,27 @@ extern void cleanup_tiny_memory();
 /* Dump memory as text (non-printables as dots) */
 #define dump_text(d, sz) dump_text_msg(STRINGIZE(d), d, sz)
 
-void dump_text_msg(const void *msg, const void *in, int len);
+extern void dump_text_msg(const void *msg, const void *in, int len);
 
-void dump_stuff_msg(const void *msg, const void *x, unsigned int size);
-void dump_stuff_be_msg(const void *msg, const void *x, unsigned int size);
+extern void dump_stuff_msg(const void *msg, const void *x, unsigned int size);
+extern void dump_stuff_be_msg(const void *msg, const void *x, unsigned int size);
 
 #if defined (SIMD_COEF_32) || defined(NT_X86_64) || defined (SIMD_PARA_MD5) || defined (SIMD_PARA_MD4) || defined (SIMD_PARA_SHA1)
-void dump_stuff_mmx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+extern void dump_stuff_mmx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
 // for flat input, we do want to see SHA512 without byte swapping.
-void dump_stuff_mmx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
-void dump_out_mmx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
-void dump_stuff_shammx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
-void dump_out_shammx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
-void dump_stuff_shammx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
-void dump_out_shammx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+extern void dump_stuff_mmx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+extern void dump_out_mmx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+extern void dump_stuff_shammx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+extern void dump_out_shammx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+extern void dump_stuff_shammx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+extern void dump_out_shammx64_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
 #endif
 
 #if defined (SIMD_PARA_MD5)
 // these functions help debug arrays of contigious MD5 prepared PARA buffers. Seen in sunmd5 at the current time.
-void dump_stuff_mpara_mmx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
+extern void dump_stuff_mpara_mmx_msg(const void *msg, const void *buf, unsigned int size, unsigned int index);
 // a 'getter' to help debugging.  Returns a flat buffer, vs printing it out.
-void getbuf_stuff_mpara_mmx(unsigned char *oBuf, const void *buf, unsigned int size, unsigned int index);
+extern void getbuf_stuff_mpara_mmx(unsigned char *oBuf, const void *buf, unsigned int size, unsigned int index);
 #endif
 
 /*
@@ -240,19 +240,19 @@ void getbuf_stuff_mpara_mmx(unsigned char *oBuf, const void *buf, unsigned int s
  * be a multiple of 2). From now on, this function may be used on any arch.
  * this is needed for some swapping of things like UTF16LE to UTF16BE, etc.
  */
-void alter_endianity_w16(void * x, unsigned int size);
+extern void alter_endianity_w16(void * x, unsigned int size);
 
 /*
  * 32-bit endian-swap a memory buffer in place. Size is in octets (so should
  * be a multiple of 4). From now on, this function may be used on any arch.
  */
-void alter_endianity(void * x, unsigned int size);
+extern void alter_endianity(void * x, unsigned int size);
 
 /* 32-bit endian-swap a memory buffer in place. Count is in 32-bit words */
-void alter_endianity_w(void *x, unsigned int count);
+extern void alter_endianity_w(void *x, unsigned int count);
 
 /* 64-bit endian-swap a memory buffer in place. Count is in 64-bit words */
-void alter_endianity_w64(void *x, unsigned int count);
+extern void alter_endianity_w64(void *x, unsigned int count);
 
 #if ARCH_ALLOWS_UNALIGNED
 // we can inline these, to always use JOHNSWAP/JOHNSWAP64
@@ -303,9 +303,8 @@ typedef struct {
 	size_t base_size, aligned_size;
 } region_t;
 
-
-void * alloc_region_t(region_t * region, size_t size);
-void init_region_t(region_t * region);
-int free_region_t(region_t * region);
+extern void* alloc_region_t(region_t * region, size_t size);
+extern void init_region_t(region_t * region);
+extern int free_region_t(region_t * region);
 
 #endif

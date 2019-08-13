@@ -156,7 +156,7 @@ extern unsigned int atou(const char *src);
  * for any leading or trailing delims. strtok() strips those off
  * also.
  */
-char *strtokm(char *s1, const char *delimit);
+extern char *strtokm(char *s1, const char *delimit);
 
 #ifndef __has_feature
  #define __has_feature(x) 0
@@ -206,16 +206,16 @@ extern char *human_prefix_small(double num);
  * common multiple of two integers x and y, usually denoted by LCM(x, y),
  * is the smallest positive integer that is divisible by both x and y.
  */
-unsigned int lcm(unsigned int x, unsigned int y);
+extern unsigned int lcm(unsigned int x, unsigned int y);
 
 /*
  * Remove leading spaces from a string.
  */
-char *ltrim(char *str);
+extern char *ltrim(char *str);
 
 /*
  * Remove trailing spaces from a string.
  */
-char *rtrim(char *str);
+extern char *rtrim(char *str);
 
 #endif
