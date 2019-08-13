@@ -25,14 +25,14 @@ typedef LARGE_INTEGER hr_timer;
 
 #define HRZERO(X)             (X).HighPart = (X).LowPart = 0
 #define HRSETCURRENT(X)       QueryPerformanceCounter(&(X))
-#define HRGETTICKS(X)         ((double)(X).HighPart * 4294967296.0 + \
-                               (double)(X).LowPart)
+#define HRGETTICKS(X)         ((uint64_t)(X).HighPart * 4294967296ULL + \
+                               (uint64_t)(X).LowPart)
 #define HRGETTICKS_PER_SEC(X) {	  \
 		LARGE_INTEGER large; \
 		if (QueryPerformanceFrequency (&large)) \
-			(X) = (double)large.HighPart*4294967296.0 + (double)large.LowPart; \
+			(X) = (uint64_t)large.HighPart*4294967296ULL + (uint64_t)large.LowPart; \
 		else \
-			(X) = 0.0; \
+			(X) = 0; \
 	}
 
 #elif __MACH__ /* OSX / macOS, monotonic nanosecond */
@@ -41,9 +41,9 @@ typedef LARGE_INTEGER hr_timer;
 
 typedef struct timespec hr_timer;
 #define HRZERO(X)             (X).tv_sec = (X).tv_nsec = 0
-#define HRSETCURRENT(X)       do { int64_t tmp = mach_absolute_time() * sm_timebase; (X).tv_sec = tmp * 1E-9; (X).tv_nsec = tmp - (X).tv_sec * 1E9; } while (0)
-#define HRGETTICKS(X)         ((double)(X).tv_sec * 1E9 + (double)(X).tv_nsec)
-#define HRGETTICKS_PER_SEC(X) { mach_timebase_info_data_t tb; mach_timebase_info(&tb); sm_timebase = tb.numer; sm_timebase /= tb.denom; (X) = sm_timebase * 1E9; }
+#define HRSETCURRENT(X)       do { int64_t tmp = mach_absolute_time() * sm_timebase; (X).tv_sec = tmp / 1000000000ULL; (X).tv_nsec = tmp - (X).tv_sec * 1000000000ULL; } while (0)
+#define HRGETTICKS(X)         ((uint64_t)(X).tv_sec * 1000000000ULL + (uint64_t)(X).tv_nsec)
+#define HRGETTICKS_PER_SEC(X) { mach_timebase_info_data_t tb; mach_timebase_info(&tb); sm_timebase = tb.numer; sm_timebase /= tb.denom; (X) = sm_timebase * 1000000000ULL; }
 
 #else /* Linux, POSIX */
 
@@ -61,8 +61,8 @@ typedef struct timespec hr_timer;
 typedef struct timespec hr_timer;
 #define HRZERO(X)             (X).tv_sec = (X).tv_nsec = 0
 #define HRSETCURRENT(X)       clock_gettime(BEST_MONOTONIC, &(X))
-#define HRGETTICKS(X)         ((double)(X).tv_sec * 1E9 + (double)(X).tv_nsec)
-#define HRGETTICKS_PER_SEC(X) { hr_timer r; clock_getres(BEST_MONOTONIC, &r); if (r.tv_sec < 0) clock_getres(CLOCK_MONOTONIC, &r); (X) = r.tv_sec + 1E9 / r.tv_nsec; }
+#define HRGETTICKS(X)         ((uint64_t)(X).tv_sec * 1000000000ULL + (uint64_t)(X).tv_nsec)
+#define HRGETTICKS_PER_SEC(X) { hr_timer r; clock_getres(BEST_MONOTONIC, &r); if (r.tv_sec < 0) clock_getres(CLOCK_MONOTONIC, &r); (X) = r.tv_sec + 1000000000ULL / r.tv_nsec; }
 
 #else /* Fallback to microsecond non-monotonic clock that should be available */
 
@@ -71,9 +71,9 @@ typedef struct timespec hr_timer;
 typedef struct timeval hr_timer;
 #define HRZERO(X)             (X).tv_sec = (X).tv_usec = 0
 #define HRSETCURRENT(X)       gettimeofday(&(X), NULL)
-#define HRGETTICKS(X)         ((double)(X).tv_sec * 1000000.0 +	\
-                               (double)(X).tv_usec)
-#define HRGETTICKS_PER_SEC(X) (X) = 1000000.0
+#define HRGETTICKS(X)         ((uint64_t)(X).tv_sec * 1000000 +	\
+                               (uint64_t)(X).tv_usec)
+#define HRGETTICKS_PER_SEC(X) (X) = 1000000
 
 #endif
 
@@ -85,24 +85,24 @@ typedef struct sTimer_s {
 	clock_t m_cEndTime;
 	hr_timer m_hrStartTime;
 	hr_timer m_hrEndTime;
-	double m_dAccumSeconds;
+	uint64_t m_dAccumSeconds;
 } sTimer;
 
-void sTimer_Init(sTimer *t);      // Init
-void sTimer_Start(sTimer *t, int bClear /*=true*/);  // Start the timer
-void sTimer_Stop(sTimer *t);      // Stop the timer
-void sTimer_ClearTime(sTimer *t); // Clears out the time to 0
-double sTimer_GetSecs(sTimer *t); // If timer is running returns elapsed;
-                                  // if stopped returns timed interval;
-                                  // if not started returns 0.0.
+extern void sTimer_Init(sTimer *t);      // Init
+extern void sTimer_Start(sTimer *t, int bClear /*=true*/);  // Start the timer
+extern void sTimer_Stop(sTimer *t);      // Stop the timer
+extern void sTimer_ClearTime(sTimer *t); // Clears out the time to 0
+extern uint64_t sTimer_GetSecs(sTimer *t); // If timer running returns elapsed;
+                                           // if stopped returns timed interval;
+                                           // if not started returns 0.
 
-extern double sm_HRTicksPerSec;  // HR ticks per second (claimed)
-extern double sm_hrPrecision;    // HR ticks per second (observed, guess)
-extern double sm_cPrecision;     // clocks (ticks) per second (observed, guess)
+extern uint64_t sm_HRTicksPerSec;  // HR ticks per second (claimed)
+extern uint64_t sm_hrPrecision;    // HR ticks per second (observed, guess)
+extern uint64_t sm_cPrecision;     // clocks (ticks) per second (observed, guess)
 
 #define sTimer_Start_noclear(t) \
     do { \
-    if (sm_HRTicksPerSec != 0.0) { HRSETCURRENT ((t)->m_hrStartTime); } \
+    if (sm_HRTicksPerSec) { HRSETCURRENT ((t)->m_hrStartTime); } \
     else { (t)->m_cStartTime = clock(); } \
     (t)->m_fRunning = 1; \
     } while (0)

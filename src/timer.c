@@ -10,17 +10,18 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include "timer.h"
 
 #if __MACH__
-static double sm_timebase;
+static uint64_t sm_timebase;
 #endif
 static int sm_fGotHRTicksPerSec = 0;   // Set if we have got the above
 
-double sm_HRTicksPerSec;  // HR ticks per second (claimed)
-double sm_hrPrecision;    // HR ticks per second (observed, guess)
-double sm_cPrecision;     // clocks (ticks) per second (observed, guess)
+uint64_t sm_HRTicksPerSec;  // HR ticks per second (claimed)
+uint64_t sm_hrPrecision;    // HR ticks per second (observed, guess)
+uint64_t sm_cPrecision;     // clocks (ticks) per second (observed, guess)
 
 void sTimer_Init(sTimer *t)
 {
@@ -42,29 +43,24 @@ void sTimer_Init(sTimer *t)
 			clock_t heuristicTimeTest = clock();
 
 			if (heuristicTimeTest % 10) {
-				sm_cPrecision = 1.0 / CLOCKS_PER_SEC;
+				sm_cPrecision = CLOCKS_PER_SEC;
 				break;
 			}
 			else if (heuristicTimeTest % 100) {
-				if (sm_cPrecision == 0 || sm_cPrecision > 10.0 / CLOCKS_PER_SEC)
-					sm_cPrecision = 10.0 / CLOCKS_PER_SEC;
+				if (!sm_cPrecision || sm_cPrecision < CLOCKS_PER_SEC / 10)
+					sm_cPrecision = CLOCKS_PER_SEC / 10;
 			}
 			else if (heuristicTimeTest % 1000) {
-				if (sm_cPrecision == 0 ||
-				        sm_cPrecision > 100.0 / CLOCKS_PER_SEC)
-					sm_cPrecision = 100.0 / CLOCKS_PER_SEC;
+				if (!sm_cPrecision || sm_cPrecision < CLOCKS_PER_SEC / 100)
+					sm_cPrecision = CLOCKS_PER_SEC / 100;
 			}
 			else if (heuristicTimeTest % 10000) {
-				if (sm_cPrecision == 0 ||
-				        sm_cPrecision > 1000.0 / CLOCKS_PER_SEC)
-					sm_cPrecision =
-					    1000.0 / CLOCKS_PER_SEC;
+				if (!sm_cPrecision || sm_cPrecision > CLOCKS_PER_SEC / 1000)
+					sm_cPrecision = CLOCKS_PER_SEC / 1000;
 			}
 			else {
-				if (sm_cPrecision == 0 ||
-				        sm_cPrecision > 10000.0 / CLOCKS_PER_SEC)
-					sm_cPrecision =
-					    10000.0 / CLOCKS_PER_SEC;
+				if (!sm_cPrecision || sm_cPrecision > CLOCKS_PER_SEC / 10000)
+					sm_cPrecision = CLOCKS_PER_SEC / 10000;
 			}
 		}
 
@@ -76,7 +72,7 @@ void sTimer_Init(sTimer *t)
 		// whether HRTicksPerSec has a non-zero value or not.
 		HRGETTICKS_PER_SEC(sm_HRTicksPerSec);
 
-		if (sm_HRTicksPerSec != 0.0) {
+		if (sm_HRTicksPerSec) {
 			hr_timer start, end;
 
 			HRSETCURRENT(start);
@@ -84,8 +80,8 @@ void sTimer_Init(sTimer *t)
 				HRSETCURRENT(end);
 			} while (HRGETTICKS(end) == HRGETTICKS(start));
 
-			sm_hrPrecision = (HRGETTICKS(end) -
-			                  HRGETTICKS(start)) / sm_HRTicksPerSec;
+			sm_hrPrecision = sm_HRTicksPerSec / (HRGETTICKS(end) -
+			                  HRGETTICKS(start));
 		}
 	}
 }
@@ -94,7 +90,7 @@ void sTimer_Init(sTimer *t)
 void sTimer_Stop(sTimer *t)
 {
 	if (t->m_fRunning) {
-		if (sm_HRTicksPerSec != 0.0)
+		if (sm_HRTicksPerSec)
 			HRSETCURRENT(t->m_hrEndTime);
 		else
 			t->m_cEndTime = clock();
@@ -109,7 +105,7 @@ void sTimer_Start(sTimer *t, int bClear)
 	if (bClear)
 		sTimer_ClearTime(t);
 
-	if (sm_HRTicksPerSec != 0.0)
+	if (sm_HRTicksPerSec)
 		HRSETCURRENT(t->m_hrStartTime);
 	else
 		t->m_cStartTime = clock();
@@ -126,19 +122,19 @@ void sTimer_ClearTime(sTimer *t)
 	t->m_fRunning = 0;
 }
 
-double sTimer_GetSecs(sTimer *t)
+uint64_t sTimer_GetSecs(sTimer *t)
 {
-	double retval;
+	uint64_t retval;
 
 	if (t->m_fRunning) {
-		if (sm_HRTicksPerSec != 0.0)
+		if (sm_HRTicksPerSec)
 			HRSETCURRENT(t->m_hrEndTime);
 		else
 			t->m_cEndTime = clock();
 	}
-	if (sm_HRTicksPerSec == 0.0) {
+	if (!sm_HRTicksPerSec) {
 		// This is process time
-		double d = (t->m_cEndTime - t->m_cStartTime) * 1.0;
+		uint64_t d = (t->m_cEndTime - t->m_cStartTime);
 
 		if (d > 0)
 			retval = d / CLOCKS_PER_SEC;
@@ -147,7 +143,7 @@ double sTimer_GetSecs(sTimer *t)
 	}
 	else {
 		// This is wall-clock time
-		double d = (HRGETTICKS(t->m_hrEndTime) - HRGETTICKS(t->m_hrStartTime));
+		uint64_t d = (HRGETTICKS(t->m_hrEndTime) - HRGETTICKS(t->m_hrStartTime));
 
 		if (d > 0)
 			retval = d / sm_HRTicksPerSec;
