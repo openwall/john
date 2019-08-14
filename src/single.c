@@ -155,7 +155,7 @@ static void single_init(void)
 {
 	struct db_salt *salt;
 	int lim_kpc, max_buffer_GB;
-	uint64_t my_buf_share;
+	int64_t my_buf_share;
 
 #if HAVE_OPENCL || HAVE_ZTEX
 	prio_resume = cfg_get_bool(SECTION_OPTIONS, NULL, "SinglePrioResume", 0);
@@ -203,7 +203,17 @@ static void single_init(void)
 	                                  "SingleMaxBufferSize")) < 0)
 		max_buffer_GB = SINGLE_MAX_WORD_BUFFER;
 
-	my_buf_share = (uint64_t)max_buffer_GB << 30;
+	if (cfg_get_bool(SECTION_OPTIONS, NULL, "SingleMaxBufferAvailMem", 0)) {
+		int64_t avail_mem = host_avail_mem();
+
+		if (avail_mem < 0)
+			avail_mem = host_total_mem();
+
+		if (avail_mem > 0)
+			max_buffer_GB = avail_mem >> 30;
+	}
+
+	my_buf_share = (int64_t)max_buffer_GB << 30;
 
 #if HAVE_MPI
 	if (mpi_p_local > 1)
@@ -257,7 +267,7 @@ static void single_init(void)
  */
 	lim_kpc = key_count;
 
-	while (key_count >= 2 * SINGLE_HASH_MIN &&
+	while (key_count >= 2 * SINGLE_HASH_MIN && my_buf_share &&
 	       calc_buf_size(length, key_count) > my_buf_share) {
 		if (!options.req_maxlength && length >= 32 &&
 		    (length >> 1) >= options.eff_minlength)
@@ -277,8 +287,8 @@ static void single_init(void)
 		if (john_main_process)
 			fprintf(stderr,
 "Note: Max. length decreased from %d to %d due to single mode buffer size\n"
-"      limit of %sB. Use --max-length=N option to override, or increase\n"
-"      SingleMaxBufferSize in john.conf (%sB needed).\n",
+"      limit of %sB (%sB needed). Use --max-length=N option to override, or\n"
+"      increase SingleMaxBufferSize in john.conf (if you have enough RAM).\n",
 			        options.eff_maxlength,
 			        length,
 			        human_prefix(my_buf_share),
@@ -291,7 +301,7 @@ static void single_init(void)
 			human_prefix(my_buf_share));
 	}
 
-	if (calc_buf_size(length, key_count) > my_buf_share) {
+	if (my_buf_share && calc_buf_size(length, key_count) > my_buf_share) {
 		if (john_main_process) {
 			fprintf(stderr,
 "Note: Can't run single mode with this many salts due to single mode buffer\n"
@@ -384,7 +394,8 @@ static void single_init(void)
 
 	log_event("- SingleWordsPairMax used is %d", words_pair_max);
 	log_event("- SingleRetestGuessed = %s",retest_guessed ? "true" : "false");
-	log_event("- SingleMaxBufferSize = %sB%s", human_prefix(my_buf_share),
+	if (my_buf_share)
+		log_event("- SingleMaxBufferSize = %sB%s", human_prefix(my_buf_share),
 #if HAVE_MPI
 	          (mpi_p_local > 1 || options.fork)
 #elif OS_FORK
@@ -393,6 +404,8 @@ static void single_init(void)
 	          0
 #endif
 	          ? " (per local process)" : "");
+	else
+		log_event("- SingleMaxBufferSize = unlimited");
 #if HAVE_OPENCL || HAVE_ZTEX
 	log_event("- SinglePrioResume = %s", prio_resume ?
 	          "Y (prioritize resumability over speed)" :
