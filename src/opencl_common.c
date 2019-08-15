@@ -2277,7 +2277,8 @@ void opencl_build_kernel(const char *kernel_filename, int sequential_id, const c
 	 */
 	if ((gpu_nvidia(device_info[sequential_id]) && !platform_apple(get_platform_id(sequential_id))) ||
 	    (cpu(device_info[sequential_id]) && platform_apple(get_platform_id(sequential_id)))) {
-		log_event("- Kernel binary caching disabled for this platform/device");
+		if (john_main_process || !cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0))
+			log_event("- Kernel binary caching disabled for this platform/device");
 		opencl_build_kernel_opt(kernel_filename, sequential_id, opts);
 	} else {
 		struct stat source_stat, bin_stat;

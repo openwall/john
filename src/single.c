@@ -874,12 +874,14 @@ static void single_done(void)
 
 	if (!event_abort) {
 		if ((salt = single_db->salts)) {
-			log_event("- Processing the remaining buffered "
-				"candidate passwords, if any");
+			if (john_main_process) {
+				log_event("- Processing the remaining buffered "
+				          "candidate passwords, if any");
 
-			if (options.verbosity >= VERB_DEFAULT)
-				fprintf(stderr, "Almost done: Processing the remaining "
-				        "buffered candidate passwords, if any.\n");
+				if (options.verbosity >= VERB_DEFAULT)
+					fprintf(stderr, "Almost done: Processing the remaining "
+					        "buffered candidate passwords, if any.\n");
+			}
 
 			do {
 				if (!salt->list)

@@ -2430,7 +2430,7 @@ static void finalize_mask(int len)
 	}
 	mask_tot_cand = cand * mask_int_cand.num_int_cand;
 
-	if (mask_int_cand_target)
+	if ((john_main_process || !cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0)) && mask_int_cand_target)
 		log_event("- Requested internal mask factor: %d, actual now %d",
 		          mask_int_cand_target, mask_int_cand.num_int_cand);
 }
