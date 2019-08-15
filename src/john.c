@@ -1244,11 +1244,13 @@ static void john_load(void)
 		if ((options.flags & FLG_CRACKING_CHK) &&
 		    database.password_count) {
 			log_init(LOG_NAME, NULL, options.session);
-			if (status_restored_time)
-				log_event("Continuing an interrupted session");
-			else
-				log_event("Starting a new session");
-			log_event("Loaded a total of %s", john_loaded_counts());
+			if (john_main_process) {
+				if (status_restored_time)
+					log_event("Continuing an interrupted session");
+				else
+					log_event("Starting a new session");
+				log_event("Loaded a total of %s", john_loaded_counts());
+			}
 			/* only allow --device for OpenCL or ZTEX formats */
 #if HAVE_OPENCL || HAVE_ZTEX
 			if (options.acc_devices->count &&
@@ -1320,9 +1322,8 @@ static void john_load(void)
 			/* skip tunable cost reporting if no hashes were loaded */
 			i = FMT_TUNABLE_COSTS;
 		} else
-		if (database.password_count < total) {
+		if (john_main_process && database.password_count < total) {
 			log_event("Remaining %s", john_loaded_counts());
-			if (john_main_process)
 			printf("Remaining %s\n", john_loaded_counts());
 		}
 
@@ -1410,7 +1411,7 @@ static void john_load(void)
 #endif
 
 	if (options.node_count) {
-		if (options.node_min != options.node_max) {
+		if (john_main_process && options.node_min != options.node_max) {
 			log_event("- Node numbers %u-%u of %u%s",
 			    options.node_min, options.node_max,
 #ifndef HAVE_MPI
@@ -1419,7 +1420,6 @@ static void john_load(void)
 			    options.node_count, options.fork ? " (fork)" :
 				    mpi_p > 1 ? " (MPI)" : "");
 #endif
-			if (john_main_process)
 			fprintf(stderr, "Node numbers %u-%u of %u%s\n",
 			    options.node_min, options.node_max,
 #ifndef HAVE_MPI
@@ -1428,10 +1428,9 @@ static void john_load(void)
 			    options.node_count, options.fork ? " (fork)" :
 				    mpi_p > 1 ? " (MPI)" : "");
 #endif
-		} else {
+		} else if (john_main_process) {
 			log_event("- Node number %u of %u",
 			    options.node_min, options.node_count);
-			if (john_main_process)
 			fprintf(stderr, "Node number %u of %u\n",
 			    options.node_min, options.node_count);
 		}
@@ -1670,7 +1669,7 @@ static void john_init(char *name, int argc, char **argv)
 		listconf_parse_late();
 
 	/* Log the expanded command line used for this session. */
-	{
+	if (john_main_process) {
 		int i;
 		size_t s = 1;
 		char *cl;
@@ -1696,7 +1695,7 @@ static void john_init(char *name, int argc, char **argv)
 	gpu_log_temp();
 #endif
 
-	if (options.target_enc != ASCII) {
+	if (john_main_process && options.target_enc != ASCII) {
 		log_event("- %s input encoding enabled",
 		          cp_id2name(options.input_enc));
 
@@ -1713,7 +1712,7 @@ static void john_init(char *name, int argc, char **argv)
 	}
 
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
-	if (options.target_enc != options.input_enc &&
+	if (john_main_process && options.target_enc != options.input_enc &&
 	    (!database.format ||
 	     !(database.format->params.flags & FMT_UNICODE))) {
 		log_event("- Target encoding: %s",
@@ -1721,7 +1720,7 @@ static void john_init(char *name, int argc, char **argv)
 	}
 
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked)
-	if (options.input_enc != options.internal_cp) {
+	if (john_main_process && options.input_enc != options.internal_cp) {
 		log_event("- Rules/masks using %s",
 		          cp_id2name(options.internal_cp));
 	}
@@ -1818,7 +1817,7 @@ static void john_run(void)
 			options.force_maxlength =
 			    database.format->params.plaintext_length;
 
-		if (options.force_maxlength)
+		if (john_main_process && options.force_maxlength)
 			log_event("- Will reject candidates longer than %d %s",
 				  options.force_maxlength,
 				  (options.target_enc == UTF_8) ?

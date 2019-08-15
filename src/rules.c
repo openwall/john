@@ -552,17 +552,19 @@ int rules_init_stack(char *ruleset, rule_stack *stack_ctx,
 			log_event("+ Stacked rules: %.100s", ruleset);
 
 		if (rpp_init(rule_ctx = &ctx, ruleset)) {
-			log_event("! No \"%s\" mode rules found", ruleset);
-			if (john_main_process)
+			if (john_main_process) {
+				log_event("! No \"%s\" mode rules found", ruleset);
 				fprintf(stderr, "No \"%s\" mode rules found in %s\n",
 				        ruleset, cfg_name);
+			}
 			error();
 		}
 
 		rules_init(db, options.eff_maxlength + mask_add_len);
 		rule_count = rules_count(&ctx, -1);
 
-		log_event("- %d preprocessed stacked rules", rule_count);
+		if (john_main_process)
+			log_event("- %d preprocessed stacked rules", rule_count);
 
 		list_init(&stack_ctx->stack_rule);
 
@@ -589,8 +591,9 @@ int rules_init_stack(char *ruleset, rule_stack *stack_ctx,
 		} while ((rule = rpp_next(&ctx)));
 
 		if (active_rules != rule_count) {
-			log_event("+ %d pre-accepted stacked rules (%d pre-rejected)",
-			          active_rules, rule_count - active_rules);
+			if (john_main_process)
+				log_event("+ %d pre-accepted stacked rules (%d pre-rejected)",
+				          active_rules, rule_count - active_rules);
 			rule_count = active_rules;
 		}
 
@@ -602,7 +605,8 @@ int rules_init_stack(char *ruleset, rule_stack *stack_ctx,
 			rule_count = 0;
 	} else {
 		rule_count = 0;
-		log_event("- No stacked rules");
+		if (john_main_process)
+			log_event("- No stacked rules");
 	}
 
 	return rule_count;
