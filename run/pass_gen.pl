@@ -1182,6 +1182,7 @@ sub bsdicrypt {
 	return "_".Crypt::UnixCrypt_XS::int24_to_base64($rounds).$salt.Crypt::UnixCrypt_XS::block_to_base64($h);
 }
 sub md5crypt {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(-8);
 	return md5crypt_hash($_[1], $salt, "\$1\$");
 }
@@ -1224,6 +1225,7 @@ sub bfx_fix_pass {
 	}
 }
 sub bcryptx {
+	$out_username = get_username($arg_maxuserlen);
 	my $fixed_pass = bfx_fix_pass($_[1]);
 	require Crypt::Eksblowfish::Bcrypt;
 	$salt = get_salt(16,16,\@i64);
@@ -1231,6 +1233,7 @@ sub bcryptx {
 	return "\$2x\$05\$".Crypt::Eksblowfish::Bcrypt::en_base64($salt).Crypt::Eksblowfish::Bcrypt::en_base64($hash);
 }
 sub bcrypt {
+	$out_username = get_username($arg_maxuserlen);
 	require Crypt::Eksblowfish::Bcrypt;
 	$salt = get_salt(16,16,\@i64);
 	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => 5, salt => $salt, }, $_[1]);
@@ -1257,30 +1260,38 @@ sub bfegg {
 	return undef;
 }
 sub raw_md5 {
+	$out_username = get_username($arg_maxuserlen);
 	return md5_hex($_[1]);
 }
 sub raw_md5u {
+	$out_username = get_username($arg_maxuserlen);
 	return md5_hex(encode("UTF-16LE",$_[0]));
 }
 sub raw_sha1 {
+	$out_username = get_username($arg_maxuserlen);
 	return sha1_hex($_[1]);
 }
 sub raw_sha1u {
+	$out_username = get_username($arg_maxuserlen);
 	return sha1_hex(encode("UTF-16LE",$_[0]));
 }
 sub raw_sha256 {
+	$out_username = get_username($arg_maxuserlen);
 	return sha256_hex($_[1]);
 }
 sub cisco4 {
 	return "\$cisco4\$".base64_wpa(sha256($_[1]));
 }
 sub raw_sha224 {
+	$out_username = get_username($arg_maxuserlen);
 	return sha224_hex($_[1]);
 }
 sub raw_sha384 {
+	$out_username = get_username($arg_maxuserlen);
 	return sha384_hex($_[1]);
 }
 sub raw_sha512 {
+	$out_username = get_username($arg_maxuserlen);
 	return sha512_hex($_[1]);
 }
 sub cisco8 {
@@ -2821,6 +2832,7 @@ sub mscash2 {
 	return '$DCC2$'."$iter#$out_username#".pp_pbkdf2_hex($key,$salt,$iter,"sha1",16,64);
 }
 sub lm {
+	$out_username = get_username($arg_maxuserlen);
 	my $p = $_[0];
 	if (length($p)>14) { $p = substr($p,0,14);}
 	$out_uc_pass = 1; $out_extras = 1;
@@ -2830,12 +2842,14 @@ sub nt {
 	return "\$NT\$".unpack("H*",md4(encode("UTF-16LE", $_[0])));
 }
 sub pwdump {
+	$out_username = get_username($arg_maxuserlen);
 	my $lm = unpack("H*",LANMan(length($_[0]) <= 14 ? $_[0] : ""));
 	my $nt = unpack("H*",md4(encode("UTF-16LE", $_[0])));
 	$out_extras = 0;
 	return "0:$lm:$nt";
 }
 sub raw_md4 {
+	$out_username = get_username($arg_maxuserlen);
 	return md4_hex($_[1]);
 }
 sub mediawiki {
@@ -2915,11 +2929,13 @@ sub md5crypt_hash {
 	return $ret;
 }
 sub md5crypt_a {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(8);
 	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
 	return $h;
 }
 sub md5crypt_smd5 {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(8);
 	$h = md5crypt_hash($_[1], $salt, "");
 	return "{smd5}$h";
@@ -3265,6 +3281,7 @@ sub sha512crypt {
 	return "\$6\$$salt\$$bin";
 }
 sub sha1crypt {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(8);
 	my $loops = get_loops(5000);
 	# actual call to pbkdf1 (that is the last 1 param, it says to use pbkdf1 logic)
@@ -3398,10 +3415,12 @@ sub mssql_no_upcase_change {
 }
 
 sub nsldap {
+	$out_username = get_username($arg_maxuserlen);
 	$h = sha1($_[0]);
 	return "{SHA}".base64($h);
 }
 sub nsldaps {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(8);
 	$h = sha1($_[1],$salt);
 	$h .= $salt;
@@ -3414,6 +3433,7 @@ sub openssha {
 	return "{SSHA}".base64($h);
 }
 sub salted_sha1 {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(-16, -128);
 	$h = sha1($_[1],$salt);
 	$h .= $salt;
@@ -3648,6 +3668,7 @@ sub django {
 	return "\$django\$\*1\*pbkdf2_sha256\$$loops\$$salt\$".base64(pp_pbkdf2($_[1], $salt, $loops, "sha256", 32, 64));
 }
 sub django_scrypt {
+	$out_username = get_username($arg_maxuserlen);
 	require Crypt::ScryptKDF;
 	import Crypt::ScryptKDF qw(scrypt_b64);
 	$salt=get_salt(12,12,\@i64);
@@ -3656,6 +3677,7 @@ sub django_scrypt {
 	return "scrypt\$$salt\$$N\$$r\$$p\$$bytes\$$h";
 }
 sub scrypt {
+	$out_username = get_username($arg_maxuserlen);
 	require Crypt::ScryptKDF;
 	import Crypt::ScryptKDF qw(scrypt_raw);
 	$salt=get_salt(12,-64,\@i64);
