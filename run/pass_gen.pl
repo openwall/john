@@ -128,7 +128,7 @@ my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singles
 #########################################################
 my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "stdin";
 my $arg_count = 1500, my $argsalt, my $argiv, my $argcontent; my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
-my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser; my $arg_outformat="normal";
+my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser; my $arg_usertab; my $arg_outformat="normal";
 my $arg_help = 0;
 # these are 'converted' from whatever the user typed in for $arg_outformat
 my $bVectors = 0; my $bUserIDs=1; my $bFullNormal=1;
@@ -152,6 +152,7 @@ GetOptions(
 	'nrgenall!'        => \$arg_nrgenall,
 	'outformat=s'      => \$arg_outformat,
 	'user=s'           => \$arguser,
+	'usertab!'         => \$arg_usertab,
 	'help+'            => \$arg_help
 	) || usage();
 
@@ -230,6 +231,7 @@ usage: $name [-codepage=CP] [-option[s]] HashType [...] [<wordfile]
     -content <s>  Force a single content
     -mode <s>     Force mode (zip, mode 1..3, rar4 modes 1..10, etc)
     -user <s>     Provide a fixed user name, vs random user name.
+    -usertab      Input lines are <user>\\t<password> instead of <password>
     -outformat<s> output format. 'normal' 'vectors' 'raw' 'user' [normal]
 $hidden_opts
 
@@ -329,6 +331,13 @@ if (@ARGV == 1) {
 				next if (/^#!comment/);
 				chomp;
 				s/\r$//;  # strip CR for non-Windows
+				if ($arg_usertab)
+				{
+					my ($this_user, $this_plain) = split(/\t/, $_, 2);
+					next unless defined($this_plain);
+					$arguser = $this_user;
+					$_ = $this_plain;
+				}
 				#my $line_len = length($_);
 				my $line_len = utf16_len($_);
 				next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
