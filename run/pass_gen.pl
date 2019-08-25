@@ -126,7 +126,7 @@ my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singles
 #########################################################
 # These global vars settable by command line args.
 #########################################################
-my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "stdin";
+my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_maxuserlen = 20; my $arg_dictfile = "stdin";
 my $arg_count = 1500, my $argsalt, my $argiv, my $argcontent; my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
 my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser; my $arg_outformat="normal";
 my $arg_help = 0;
@@ -140,6 +140,7 @@ GetOptions(
 	'nocomment!'       => \$arg_nocomment,
 	'minlength=n'      => \$arg_minlen,
 	'maxlength=n'      => \$arg_maxlen,
+	'maxuserlen=n'     => \$arg_maxuserlen,
 	'salt=s'           => \$argsalt,
 	'iv=s'             => \$argiv,
 	'content=s'        => \$argcontent,
@@ -1577,7 +1578,7 @@ sub raw_keccak256 {
 	return "\$keccak256\$".unpack("H*",keccak_256($_[1]));
 }
 sub leet {
-	my $u = get_username(20);
+	my $u = get_username($arg_maxuserlen);
 	my $h = unpack("H*", sha512($_[0].$u) ^ whirlpool($u.$_[0]));
 	$out_username = $u;
 	return "$u\$$h";
@@ -3566,7 +3567,7 @@ sub netlmv2 {
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
 	my $domain = get_salt(15);
-	my $user = get_username(20);
+	my $user = get_username($arg_maxuserlen);
 	my $identity = Encode::encode("UTF-16LE", uc($user).$domain);
 	my $s_challenge = get_iv(8);
 	my $c_challenge = get_content(8);
@@ -3578,7 +3579,7 @@ sub netlmv2 {
 sub netntlmv2 {
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
-	my $user = get_username(20);
+	my $user = get_username($arg_maxuserlen);
 	my $domain = get_salt(15);
 	my $identity = Encode::encode("UTF-16LE", uc($user).$domain);
 	my $s_challenge = get_iv(8);
@@ -3595,7 +3596,7 @@ sub mschapv2 {
 	import Crypt::ECB qw(encrypt);
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
-	my $user = get_username(20);
+	my $user = get_username($arg_maxuserlen);
 	my $p_challenge = get_iv(16);
 	my $a_challenge = get_content(16);
 	my $ctx = Digest::SHA->new('sha1');
