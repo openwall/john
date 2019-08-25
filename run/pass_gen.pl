@@ -1238,15 +1238,17 @@ sub bcryptx {
 	my $fixed_pass = bfx_fix_pass($_[1]);
 	require Crypt::Eksblowfish::Bcrypt;
 	$salt = get_salt(16,16,\@i64);
-	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => 5, salt => $salt, }, $fixed_pass);
-	return "\$2x\$05\$".Crypt::Eksblowfish::Bcrypt::en_base64($salt).Crypt::Eksblowfish::Bcrypt::en_base64($hash);
+	my $cost = sprintf("%02d", get_loops(5));
+	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => $cost, salt => $salt, }, $fixed_pass);
+	return "\$2x\$${cost}\$".Crypt::Eksblowfish::Bcrypt::en_base64($salt).Crypt::Eksblowfish::Bcrypt::en_base64($hash);
 }
 sub bcrypt {
 	$out_username = get_username($arg_maxuserlen);
 	require Crypt::Eksblowfish::Bcrypt;
 	$salt = get_salt(16,16,\@i64);
-	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => 5, salt => $salt, }, $_[1]);
-	return "\$2a\$05\$".Crypt::Eksblowfish::Bcrypt::en_base64($salt).Crypt::Eksblowfish::Bcrypt::en_base64($hash);
+	my $cost = sprintf("%02d", get_loops(5));
+	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => $cost, salt => $salt, }, $_[1]);
+	return "\$2a\$${cost}\$".Crypt::Eksblowfish::Bcrypt::en_base64($salt).Crypt::Eksblowfish::Bcrypt::en_base64($hash);
 }
 sub _bfegg_en_base64($) {
 	my($bytes) = @_;
@@ -3681,7 +3683,8 @@ sub django_scrypt {
 	require Crypt::ScryptKDF;
 	import Crypt::ScryptKDF qw(scrypt_b64);
 	$salt=get_salt(12,12,\@i64);
-	my $N=14; my $r=8; my $p=1; my $bytes=64;
+	my $N = get_loops(14);
+	my $r=8; my $p=1; my $bytes=64;
 	my $h = scrypt_b64($_[1],$salt,1<<$N,$r,$p,$bytes);
 	return "scrypt\$$salt\$$N\$$r\$$p\$$bytes\$$h";
 }
