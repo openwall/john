@@ -487,6 +487,8 @@ sure which rule produced a successful guess when analyzing the log file.
 
 --min-length=N			request a minimum candidate length in bytes
 --max-length=N			request a maximum candidate length in bytes
+   or
+--length=N			shortcut for setting both to N
 
 These options limit the length of candidates that will be tried.  In wordlist
 mode (after applying rules, if any), a word that is not within the requested
