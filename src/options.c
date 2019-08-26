@@ -249,6 +249,8 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.req_minlength},
 	{"max-length", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		"%u", &options.req_maxlength},
+	{"length", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
+		"%u", &options.req_length},
 	{"max-candidates", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		"%lld", &options.max_cands},
 	{"max-run-time", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
@@ -416,6 +418,7 @@ void opt_print_hidden_usage(void)
 	puts("--mkpc=N                   request a lower max. keys per crypt");
 	puts("--min-length=N             request a minimum candidate length in bytes");
 	puts("--max-length=N             request a maximum candidate length in bytes");
+	puts("--length=N                 shortcut for --min-len=N --max-len=N");
 	puts("--field-separator-char=C   use 'C' instead of the ':' in input and pot files");
 	puts("--fix-state-delay=N        performance tweak, see doc/OPTIONS");
 	puts("--no-log                   disables creation and writing to john.log file");
@@ -841,6 +844,14 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		if (john_main_process)
 			fprintf(stderr, "Invalid plaintext length requested\n");
 		error();
+	}
+	if (options.req_length) {
+		if (options.req_minlength != -1 || options.req_maxlength != 0) {
+			if (john_main_process)
+				fprintf(stderr, "Invalid options: --length can't be used together with --min/max-length\n");
+			error();
+		}
+		options.req_minlength = options.req_maxlength = options.req_length;
 	}
 	if (options.req_maxlength && options.req_maxlength < options.req_minlength) {
 		if (john_main_process)
