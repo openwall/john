@@ -150,14 +150,6 @@ static void crk_help(void)
 	printed = 1;
 }
 
-static void crk_set_kpc_warn(void)
-{
-	kpc_warn = crk_params->min_keys_per_crypt;
-
-	if (cfg_get_bool(SECTION_OPTIONS, NULL, "RelaxKPCWarningCheck", 0))
-		kpc_warn -= kpc_warn / (crk_db->loaded ? crk_db->salt_count : 1);
-}
-
 void crk_init(struct db_main *db, void (*fix_state)(void),
 	struct db_keys *guesses)
 {
@@ -219,7 +211,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 
 	crk_guesses = guesses;
 
-	crk_set_kpc_warn();
+	kpc_warn = crk_params->min_keys_per_crypt;
 
 	if (db->loaded) {
 		size = crk_params->max_keys_per_crypt * sizeof(uint64_t);
@@ -838,7 +830,7 @@ static int crk_password_loop(struct db_salt *salt)
 			initial_value = kpc_warn_limit;
 
 		if (kpc_warn > crk_params->min_keys_per_crypt)
-			crk_set_kpc_warn();
+			kpc_warn = crk_params->min_keys_per_crypt;
 
 		if (crk_key_index < kpc_warn &&
 		    ps <= (kpc_warn - crk_key_index) &&
@@ -861,11 +853,6 @@ static int crk_password_loop(struct db_salt *salt)
 					fprintf(stderr, "%u: ", NODE);
 				fprintf(stderr,
 				        "Further messages of this type will be suppressed.\n");
-				if (john_main_process &&
-				    !cfg_get_bool(SECTION_OPTIONS, NULL,
-				                  "RelaxKPCWarningCheck", 0))
-					fprintf(stderr,
-"To see less of these warnings, enable 'RelaxKPCWarningCheck' in john.conf\n");
 				log_event(
 "- Saw %d calls to crypt_all() with sub-optimal batch size (stopped counting)",
 				          initial_value);
