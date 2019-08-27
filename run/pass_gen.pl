@@ -171,6 +171,9 @@ if ($arg_outformat eq substr("vectors", 0, length($arg_outformat))) {
 }  elsif ($arg_outformat eq substr("user", 0, length($arg_outformat))) {
 	$bFullNormal=0;
 	$arg_nocomment = 1;
+}  elsif ($arg_outformat eq substr("uhp", 0, length($arg_outformat))) {
+	$bFullNormal=2;
+	$arg_nocomment = 1;
 }
 
 sub pretty_print_hash_names {
@@ -233,7 +236,7 @@ usage: $name [-codepage=CP] [-option[s]] HashType [...] [<wordfile]
     -mode <s>     Force mode (zip, mode 1..3, rar4 modes 1..10, etc)
     -user <s>     Provide a fixed user name, vs random user name.
     -usertab      Input lines are <user>\\t<password> instead of <password>
-    -outformat<s> output format. 'normal' 'vectors' 'raw' 'user' [normal]
+    -outformat<s> output format. 'normal' 'vectors' 'raw' 'user' 'uhp' [normal]
 $hidden_opts
 
 HashType is one or more (space separated) from the following list:
@@ -447,6 +450,7 @@ sub output_hash {
 	if (length($out_username)) { print "$out_username:"; } elsif ($bUserIDs == 1) { print "u$u:"; }
 	print "$_[0]";
 	if ($bFullNormal == 1) {print ":$p:";}
+	elsif ($bFullNormal == 2) {print ":$_[1]";}
 	print "\n";
 }
 #############################################################################
