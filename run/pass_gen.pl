@@ -126,9 +126,9 @@ my $debug_pcode=0; my $gen_needs; my $gen_needs2; my $gen_needu; my $gen_singles
 #########################################################
 # These global vars settable by command line args.
 #########################################################
-my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_dictfile = "stdin";
+my $arg_utf8 = 0; my $arg_codepage = ""; my $arg_minlen = 0; my $arg_maxlen = 128; my $arg_maxuserlen = 20; my $arg_dictfile = "stdin";
 my $arg_count = 1500, my $argsalt, my $argiv, my $argcontent; my $arg_nocomment = 0; my $arg_hidden_cp; my $arg_loops=-1;
-my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser; my $arg_outformat="normal";
+my $arg_tstall = 0; my $arg_genall = 0; my $arg_nrgenall = 0; my $argmode; my $arguser; my $arg_usertab; my $arg_outformat="normal";
 my $arg_help = 0;
 # these are 'converted' from whatever the user typed in for $arg_outformat
 my $bVectors = 0; my $bUserIDs=1; my $bFullNormal=1;
@@ -140,6 +140,7 @@ GetOptions(
 	'nocomment!'       => \$arg_nocomment,
 	'minlength=n'      => \$arg_minlen,
 	'maxlength=n'      => \$arg_maxlen,
+	'maxuserlen=n'     => \$arg_maxuserlen,
 	'salt=s'           => \$argsalt,
 	'iv=s'             => \$argiv,
 	'content=s'        => \$argcontent,
@@ -152,6 +153,7 @@ GetOptions(
 	'nrgenall!'        => \$arg_nrgenall,
 	'outformat=s'      => \$arg_outformat,
 	'user=s'           => \$arguser,
+	'usertab!'         => \$arg_usertab,
 	'help+'            => \$arg_help
 	) || usage();
 
@@ -233,6 +235,7 @@ usage: $name [-codepage=CP] [-option[s]] HashType [...] [<wordfile]
     -content <s>  Force a single content
     -mode <s>     Force mode (zip, mode 1..3, rar4 modes 1..10, etc)
     -user <s>     Provide a fixed user name, vs random user name.
+    -usertab      Input lines are <user>\\t<password> instead of <password>
     -outformat<s> output format. 'normal' 'vectors' 'raw' 'user' 'uhp' [normal]
 $hidden_opts
 
@@ -332,6 +335,13 @@ if (@ARGV == 1) {
 				next if (/^#!comment/);
 				chomp;
 				s/\r$//;  # strip CR for non-Windows
+				if ($arg_usertab)
+				{
+					my ($this_user, $this_plain) = split(/\t/, $_, 2);
+					next unless defined($this_plain);
+					$arguser = $this_user;
+					$_ = $this_plain;
+				}
 				#my $line_len = length($_);
 				my $line_len = utf16_len($_);
 				next if $line_len > $arg_maxlen || $line_len < $arg_minlen;
@@ -1185,6 +1195,7 @@ sub bsdicrypt {
 	return "_".Crypt::UnixCrypt_XS::int24_to_base64($rounds).$salt.Crypt::UnixCrypt_XS::block_to_base64($h);
 }
 sub md5crypt {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(-8);
 	return md5crypt_hash($_[1], $salt, "\$1\$");
 }
@@ -1227,17 +1238,21 @@ sub bfx_fix_pass {
 	}
 }
 sub bcryptx {
+	$out_username = get_username($arg_maxuserlen);
 	my $fixed_pass = bfx_fix_pass($_[1]);
 	require Crypt::Eksblowfish::Bcrypt;
 	$salt = get_salt(16,16,\@i64);
-	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => 5, salt => $salt, }, $fixed_pass);
-	return "\$2x\$05\$".Crypt::Eksblowfish::Bcrypt::en_base64($salt).Crypt::Eksblowfish::Bcrypt::en_base64($hash);
+	my $cost = sprintf("%02d", get_loops(5));
+	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => $cost, salt => $salt, }, $fixed_pass);
+	return "\$2x\$${cost}\$".Crypt::Eksblowfish::Bcrypt::en_base64($salt).Crypt::Eksblowfish::Bcrypt::en_base64($hash);
 }
 sub bcrypt {
+	$out_username = get_username($arg_maxuserlen);
 	require Crypt::Eksblowfish::Bcrypt;
 	$salt = get_salt(16,16,\@i64);
-	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => 5, salt => $salt, }, $_[1]);
-	return "\$2a\$05\$".Crypt::Eksblowfish::Bcrypt::en_base64($salt).Crypt::Eksblowfish::Bcrypt::en_base64($hash);
+	my $cost = sprintf("%02d", get_loops(5));
+	my $hash = Crypt::Eksblowfish::Bcrypt::bcrypt_hash({key_nul => 1, cost => $cost, salt => $salt, }, $_[1]);
+	return "\$2a\$${cost}\$".Crypt::Eksblowfish::Bcrypt::en_base64($salt).Crypt::Eksblowfish::Bcrypt::en_base64($hash);
 }
 sub _bfegg_en_base64($) {
 	my($bytes) = @_;
@@ -1260,30 +1275,38 @@ sub bfegg {
 	return undef;
 }
 sub raw_md5 {
+	$out_username = get_username($arg_maxuserlen);
 	return md5_hex($_[1]);
 }
 sub raw_md5u {
+	$out_username = get_username($arg_maxuserlen);
 	return md5_hex(encode("UTF-16LE",$_[0]));
 }
 sub raw_sha1 {
+	$out_username = get_username($arg_maxuserlen);
 	return sha1_hex($_[1]);
 }
 sub raw_sha1u {
+	$out_username = get_username($arg_maxuserlen);
 	return sha1_hex(encode("UTF-16LE",$_[0]));
 }
 sub raw_sha256 {
+	$out_username = get_username($arg_maxuserlen);
 	return sha256_hex($_[1]);
 }
 sub cisco4 {
 	return "\$cisco4\$".base64_wpa(sha256($_[1]));
 }
 sub raw_sha224 {
+	$out_username = get_username($arg_maxuserlen);
 	return sha224_hex($_[1]);
 }
 sub raw_sha384 {
+	$out_username = get_username($arg_maxuserlen);
 	return sha384_hex($_[1]);
 }
 sub raw_sha512 {
+	$out_username = get_username($arg_maxuserlen);
 	return sha512_hex($_[1]);
 }
 sub cisco8 {
@@ -1581,7 +1604,7 @@ sub raw_keccak256 {
 	return "\$keccak256\$".unpack("H*",keccak_256($_[1]));
 }
 sub leet {
-	my $u = get_username(20);
+	my $u = get_username($arg_maxuserlen);
 	my $h = unpack("H*", sha512($_[0].$u) ^ whirlpool($u.$_[0]));
 	$out_username = $u;
 	return "$u\$$h";
@@ -2824,6 +2847,7 @@ sub mscash2 {
 	return '$DCC2$'."$iter#$out_username#".pp_pbkdf2_hex($key,$salt,$iter,"sha1",16,64);
 }
 sub lm {
+	$out_username = get_username($arg_maxuserlen);
 	my $p = $_[0];
 	if (length($p)>14) { $p = substr($p,0,14);}
 	$out_uc_pass = 1; $out_extras = 1;
@@ -2833,12 +2857,14 @@ sub nt {
 	return "\$NT\$".unpack("H*",md4(encode("UTF-16LE", $_[0])));
 }
 sub pwdump {
+	$out_username = get_username($arg_maxuserlen);
 	my $lm = unpack("H*",LANMan(length($_[0]) <= 14 ? $_[0] : ""));
 	my $nt = unpack("H*",md4(encode("UTF-16LE", $_[0])));
 	$out_extras = 0;
 	return "0:$lm:$nt";
 }
 sub raw_md4 {
+	$out_username = get_username($arg_maxuserlen);
 	return md4_hex($_[1]);
 }
 sub mediawiki {
@@ -2918,11 +2944,13 @@ sub md5crypt_hash {
 	return $ret;
 }
 sub md5crypt_a {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(8);
 	$h = md5crypt_hash($_[1], $salt, "\$apr1\$");
 	return $h;
 }
 sub md5crypt_smd5 {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(8);
 	$h = md5crypt_hash($_[1], $salt, "");
 	return "{smd5}$h";
@@ -3268,6 +3296,7 @@ sub sha512crypt {
 	return "\$6\$$salt\$$bin";
 }
 sub sha1crypt {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(8);
 	my $loops = get_loops(5000);
 	# actual call to pbkdf1 (that is the last 1 param, it says to use pbkdf1 logic)
@@ -3401,10 +3430,12 @@ sub mssql_no_upcase_change {
 }
 
 sub nsldap {
+	$out_username = get_username($arg_maxuserlen);
 	$h = sha1($_[0]);
 	return "{SHA}".base64($h);
 }
 sub nsldaps {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(8);
 	$h = sha1($_[1],$salt);
 	$h .= $salt;
@@ -3417,6 +3448,7 @@ sub openssha {
 	return "{SSHA}".base64($h);
 }
 sub salted_sha1 {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(-16, -128);
 	$h = sha1($_[1],$salt);
 	$h .= $salt;
@@ -3570,7 +3602,7 @@ sub netlmv2 {
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
 	my $domain = get_salt(15);
-	my $user = get_username(20);
+	my $user = get_username($arg_maxuserlen);
 	my $identity = Encode::encode("UTF-16LE", uc($user).$domain);
 	my $s_challenge = get_iv(8);
 	my $c_challenge = get_content(8);
@@ -3582,7 +3614,7 @@ sub netlmv2 {
 sub netntlmv2 {
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
-	my $user = get_username(20);
+	my $user = get_username($arg_maxuserlen);
 	my $domain = get_salt(15);
 	my $identity = Encode::encode("UTF-16LE", uc($user).$domain);
 	my $s_challenge = get_iv(8);
@@ -3599,7 +3631,7 @@ sub mschapv2 {
 	import Crypt::ECB qw(encrypt);
 	my $pwd = $_[1];
 	my $nthash = md4(encode("UTF-16LE", $pwd));
-	my $user = get_username(20);
+	my $user = get_username($arg_maxuserlen);
 	my $p_challenge = get_iv(16);
 	my $a_challenge = get_content(16);
 	my $ctx = Digest::SHA->new('sha1');
@@ -3651,14 +3683,17 @@ sub django {
 	return "\$django\$\*1\*pbkdf2_sha256\$$loops\$$salt\$".base64(pp_pbkdf2($_[1], $salt, $loops, "sha256", 32, 64));
 }
 sub django_scrypt {
+	$out_username = get_username($arg_maxuserlen);
 	require Crypt::ScryptKDF;
 	import Crypt::ScryptKDF qw(scrypt_b64);
 	$salt=get_salt(12,12,\@i64);
-	my $N=14; my $r=8; my $p=1; my $bytes=64;
+	my $N = get_loops(14);
+	my $r=8; my $p=1; my $bytes=64;
 	my $h = scrypt_b64($_[1],$salt,1<<$N,$r,$p,$bytes);
 	return "scrypt\$$salt\$$N\$$r\$$p\$$bytes\$$h";
 }
 sub scrypt {
+	$out_username = get_username($arg_maxuserlen);
 	require Crypt::ScryptKDF;
 	import Crypt::ScryptKDF qw(scrypt_raw);
 	$salt=get_salt(12,-64,\@i64);
