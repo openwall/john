@@ -8,7 +8,7 @@
 
 #include "arch.h"
 
-#if !defined(JOHN_NO_SIMD) && __SSE4_1__
+#if !defined(JOHN_NO_SIMD) && defined(__SSE4_1__)
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_stribog_256;
