@@ -18,6 +18,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Mute warning about low buffer-fill in case the difference in time appears
   to correspond to less than one second.  [Solar/magnum; 2019]
 
+- Dropped the RelaxKPCWarningCheck config option as it was obsoleted with
+  the above logic  [magnum; 2019]
+
 - If "Many salts" test exceeded 90% of target, force finish so not to get
   annoying/confusing messages.  [Solar/magnum; 2019]
 
@@ -33,6 +36,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - tezos2john: Added the ability to validate Tezos Seed Words.
   [LordDarkHelmet; 2019]
+
+- Added --length=N which is a shortcut for --min-length=N --max-length=N
+  [magnum; 2019]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
