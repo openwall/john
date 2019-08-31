@@ -325,7 +325,7 @@ static void listconf_list_build_info(void)
 #if defined (__MINGW32__) || defined (_MSC_VER)
 	printf("Using clock(3) for timers, claimed resolution %ss, observed %ss\n",
 	       human_prefix_small(1.0 / CLOCKS_PER_SEC),
-	       human_prefix_small(sm_cPrecision));
+	       human_prefix_small(1.0 / sm_cPrecision));
 #else
 	printf("Using times(2) for timers, resolution %ss\n", human_prefix_small(1.0 / clk_tck));
 #endif
