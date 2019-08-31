@@ -126,7 +126,9 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	if (autotune_real_db && self->params.tunable_cost_name[0] &&
 	    strcasestr(self->params.tunable_cost_name[0], "iter")) {
 		rounds = MIN(ocl_autotune_db->max_cost[0], options.loader.max_cost[0]);
-		fprintf(stderr, "[Using max. iterations of %u from real DB] ", rounds);
+		if (options.verbosity > VERB_DEFAULT)
+			fprintf(stderr, "[Using max. iterations of %u from real DB] ",
+			        rounds);
 	}
 
 #if SIZEOF_SIZE_T > 4
