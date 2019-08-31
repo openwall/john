@@ -875,9 +875,11 @@ AGAIN:
 			goto next;
 		}
 
-		if (john_main_process && !(options.flags & FLG_NOTESTS) &&
-			options.verbosity >= VERB_MAX) {
-			printf("PASS%s", benchmark_time ? ", " : "\n");
+		if (john_main_process && !(options.flags & FLG_NOTESTS)) {
+			if (!benchmark_time)
+				printf("PASS\n");
+			else if (options.verbosity >= VERB_MAX)
+				printf("PASS, ");
 			fflush(stdout);
 		}
 
