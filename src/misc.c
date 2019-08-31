@@ -676,6 +676,30 @@ int64_t host_avail_mem(void)
 				break;
 			}
 		}
+		if (avail_mem < 0) {
+			fseek(fp, 0, SEEK_SET);
+			while (fgets(buf, LINE_BUFFER_SIZE, fp)) {
+				if (strstr(buf, "MemFree")) {
+					char *p = strchr(buf, ':');
+					if (p++)
+						avail_mem = strtoull(p, NULL, 10) << 10;
+					continue;
+				}
+				if (strstr(buf, "Buffers")) {
+					char *p = strchr(buf, ':');
+					if (p++)
+						avail_mem += strtoull(p, NULL, 10) << 10;
+					continue;
+				}
+				if (strstr(buf, "Cached")) {
+					char *p = strchr(buf, ':');
+					if (p++)
+						avail_mem += strtoull(p, NULL, 10) << 10;
+					break;
+				}
+			}
+		}
+		fclose(fp);
 	}
 
 #elif __APPLE__
