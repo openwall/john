@@ -718,8 +718,7 @@ int64_t host_avail_mem(void)
 
 	avail_mem = (vm_stat.free_count + vm_stat.inactive_count + vm_stat.purgeable_count) * pageSize;
 
-#elif (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER && defined _SC_PAGESIZE
-#if defined _SC_AVPHYS_PAGES
+#elif (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER && defined _SC_PAGESIZE && defined _SC_AVPHYS_PAGES
 
 	long pagesize = sysconf(_SC_PAGESIZE);
 	if (pagesize < 0)
@@ -731,19 +730,6 @@ int64_t host_avail_mem(void)
 
 	avail_mem = (int64_t)availmem * pagesize;
 
-#elif defined _SC_PHYS_PAGES
-
-	long pagesize = sysconf(_SC_PAGESIZE);
-	if (pagesize < 0)
-		return -1;
-
-	long totmem = sysconf(_SC_PHYS_PAGES);
-	if (totmem < 0)
-		return -1;
-
-	avail_mem = (int64_t)totmem * pagesize;
-
-#endif
 #endif
 
 	return avail_mem;
