@@ -35,9 +35,6 @@ static size_t get_task_max_work_group_size();
 static void create_clobj(size_t gws, struct fmt_main *self);
 static void release_clobj(void);
 
-/* Keeps track of whether we already tuned */
-static int autotuned;
-
 /* ------- Externals ------- */
 /* Can be used to select a 'good' default gws size */
 size_t autotune_get_task_max_size(int multiplier, int keys_per_core_cpu,
@@ -292,7 +289,6 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	                                                      ocl_v_width);
 	self->params.max_keys_per_crypt = global_work_size * ocl_v_width;
 
-	autotuned++;
 	ocl_autotune_running = 0;
 
 	/* Just suppress a compiler warning */

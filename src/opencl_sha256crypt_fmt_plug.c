@@ -400,7 +400,7 @@ static int calibrate()
 
 		//Build the tuned kernel
 		build_kernel(task, opt);
-		autotuned = 0; local_work_size = 0; global_work_size = 0;
+		local_work_size = 0; global_work_size = 0;
 		autotune_run(self, ROUNDS_DEFAULT, 0, 200);
 		release_clobj();
 		release_kernel();
@@ -449,59 +449,53 @@ static int calibrate()
 
 static void reset(struct db_main *db)
 {
-	if (!db)
-		return;
+	char *tmp_value;
+	char *task = "$JOHN/opencl/cryptsha256_kernel_GPU.cl";
+	char opt[24] = "";
 
-	if (!autotuned) {
-		char *tmp_value;
-		char *task = "$JOHN/opencl/cryptsha256_kernel_GPU.cl";
-		char opt[24] = "";
+	int major, minor;
+	unsigned long long int max_run_time;
 
-		int major, minor;
-		unsigned long long int max_run_time;
+	source_in_use = device_info[gpu_id];
 
-		source_in_use = device_info[gpu_id];
+	//Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, HASH_LOOPS,
+	                       ((_SPLIT_KERNEL_IN_USE) ? split_events : NULL),
+	                       warn, 1, self, create_clobj,
+	                       release_clobj, sizeof(uint32_t) * (32 * 8), 0, db);
 
-		//Initialize openCL tuning (library) for this format.
-		opencl_init_auto_setup(SEED, HASH_LOOPS,
-		                       ((_SPLIT_KERNEL_IN_USE) ?
-		                        split_events : NULL),
-		                       warn, 1, self, create_clobj,
-		                       release_clobj, sizeof(uint32_t) * (32 * 8), 0, db);
+	if (cpu(device_info[gpu_id]))
+		max_run_time = 1000ULL;
+	else
+		max_run_time = 200ULL;
 
-		if (cpu(device_info[gpu_id]))
-			max_run_time = 1000ULL;
-		else
-			max_run_time = 200ULL;
+	//Calibrate or a regular run.
+	if ((tmp_value = getenv("_CALIBRATE"))) {
+		int kernel_opt;
 
-		//Calibrate or a regular run.
-		if ((tmp_value = getenv("_CALIBRATE"))) {
-			int kernel_opt;
+		kernel_opt = calibrate();
+		snprintf(opt, sizeof(opt), "-DUNROLL_LOOP=%i", kernel_opt);
 
-			kernel_opt = calibrate();
-			snprintf(opt, sizeof(opt), "-DUNROLL_LOOP=%i", kernel_opt);
+	} else {
+		if ((tmp_value = getenv("_TYPE")))
+			source_in_use = atoi(tmp_value);
 
-		} else {
-			if ((tmp_value = getenv("_TYPE")))
-				source_in_use = atoi(tmp_value);
+		opencl_driver_value(gpu_id, &major, &minor);
 
-			opencl_driver_value(gpu_id, &major, &minor);
+		if (!(_USE_GPU_SOURCE))
+			task = "$JOHN/opencl/cryptsha256_kernel_DEFAULT.cl";
 
-			if (!(_USE_GPU_SOURCE))
-				task = "$JOHN/opencl/cryptsha256_kernel_DEFAULT.cl";
-
-			if (source_in_use != device_info[gpu_id])
-				fprintf(stderr, "Selected runtime id %d, source (%s)\n",
-					source_in_use, task);
-		}
-		build_kernel(task, opt);
-
-		//Auto tune execution from shared/included code.
-		autotune_run(self, ROUNDS_DEFAULT, 0, max_run_time);
-
-		//Clear work buffers.
-		memset(plaintext, '\0', sizeof(sha256_password) * global_work_size);
+		if (source_in_use != device_info[gpu_id])
+			fprintf(stderr, "Selected runtime id %d, source (%s)\n",
+				source_in_use, task);
 	}
+	build_kernel(task, opt);
+
+	//Auto tune execution from shared/included code.
+	autotune_run(self, ROUNDS_DEFAULT, 0, max_run_time);
+
+	//Clear work buffers.
+	memset(plaintext, '\0', sizeof(sha256_password) * global_work_size);
 }
 
 static void done(void)

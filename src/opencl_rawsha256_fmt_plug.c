@@ -333,14 +333,9 @@ static void tune(struct db_main *db)
 
 static void reset(struct db_main *db)
 {
-	static size_t saved_lws, saved_gws;
-
 	offset = 0;
 	offset_idx = 0;
 	key_idx = 0;
-
-	if (!db)
-		return;
 
 	main_db = db;
 	num_loaded_hashes = get_num_loaded_hashes();
@@ -348,50 +343,8 @@ static void reset(struct db_main *db)
 	//Adjust kernel parameters and rebuild (if necessary).
 	build_kernel();
 
-	if (!should_tune) {
-		/* Read LWS/GWS prefs from config or environment */
-		opencl_get_user_preferences(FORMAT_LABEL);
+	tune(db);
 
-		//Save the local and global work sizes.
-		saved_lws = local_work_size;
-		saved_gws = global_work_size;
-	}
-
-	/*
-	 * First reset() call. Don't run autotune.
-	 *    -> If self test is running.
-	 *    -> If --skip-self-test is running.
-	 *    -> And if benchmark is NOT running.
-	 *   Instead, use sane defauts. Tune is going to run later/below.
-	 */
-	if (!should_tune && (self_test_running || options.flags & FLG_NOTESTS) &&
-	    !benchmark_running) {
-		opencl_get_sane_lws_gws_values();
-		tune(db);
-
-		//Tune later.
-		autotuned = 0;
-	} else if (!autotuned) {
-		//Retrieve LWS/GWS prefs saved on first round
-		local_work_size = saved_lws;
-		global_work_size = saved_gws;
-
-		tune(db);
-	} else if ((options.flags & FLG_MASK_CHK)) {
-		//Tune for mask mode (for each mask change).
-		// auto-tune for eg. ?a and then a reset for re-tuning for ?a?a
-		local_work_size = saved_lws;
-		global_work_size = saved_gws;
-
-		tune(db);
-	} else {
-		//Since it might re-compiled the kernel after tuning.
-		if (ocl_initialized > 0)
-			release_clobj();
-
-		create_clobj(global_work_size, self);
-	}
-	should_tune++;
 	hash_ids[0] = 0;
 	load_hash();
 }
