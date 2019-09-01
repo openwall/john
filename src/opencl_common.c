@@ -870,10 +870,12 @@ void opencl_load_environment(void)
 		}
 
 		// Read the GPU temperature setting to abort
-		gpu_temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
-		             "AbortTemperature");
-		cool_gpu_down = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
-		             "SleepOnTemperature");
+		if ((gpu_temp_limit = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
+		                                  "AbortTemperature")) < 0)
+			gpu_temp_limit = 95;
+		if ((cool_gpu_down = cfg_get_int(SECTION_OPTIONS, SUBSECTION_GPU,
+		                                 "SleepOnTemperature")) < 0)
+			cool_gpu_down = 1;
 
 		// Load information about available platforms and devices
 		load_opencl_environment();

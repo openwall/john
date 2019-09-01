@@ -141,8 +141,9 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	if (need_best_lws) {
 		int cfg_lws;
 
-		cfg_lws = cfg_get_int(SECTION_OPTIONS, SUBSECTION_OPENCL,
-		                      "AutotuneLWS");
+		if ((cfg_lws = cfg_get_int(SECTION_OPTIONS, SUBSECTION_OPENCL,
+		                           "AutotuneLWS")) < 0)
+			cfg_lws = 1; /* Query for best multiple */
 
 		switch (cfg_lws) {
 		case 0:

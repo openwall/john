@@ -134,9 +134,8 @@ static void init(struct fmt_main *fmt_main)
 	// It gets TargetSetting from john.conf and adjust
 	// bitstream.candidates_per_crypt.
 	//
-	target_setting = cfg_get_int("ZTEX:", bitstream.label,
-			"TargetSetting");
-	if (!target_setting)
+	if ((target_setting = cfg_get_int("ZTEX:", bitstream.label,
+	                                  "TargetSetting")) <= 0)
 		target_setting = 8;
 
 	if (target_setting < 5 || target_setting > 19) {
