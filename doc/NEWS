@@ -56,6 +56,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Default to benchmarking with mask.  For benchmarking without mask, use the
   new --no-mask option.  [magnum; 2019]
 
+- Add format match symbol '#' for searching in format_name. For example,
+  --format=#ipmi-opencl  will pick the RAKP-opencl format.  We already had
+  the '@' symbol for searching in alorithm name.  [magnum; 2019]
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 

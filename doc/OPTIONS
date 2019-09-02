@@ -399,8 +399,12 @@ as a format name, or use one wildcard, as in "--format=mysql-*",
 "--format=raw*ng" or "--format=*office".  There's also a special way
 to match any substring within the "algorithm name" (the string shown
 within brackets, e.g. "[DES 128/128 AVX-16]" using @tag syntax as in
-e.g. "--format=@DES" or "--format=@AVX".  Regardless of method, the
-matching ignores case.
+e.g. "--format=@DES" or "--format=@AVX".  Similarly you can match a
+substring in the "format name" (the longer name, not the label) using
+#tag format.  For example, if you forgot which format handles the IPMI
+hashes, you can say --format=#ipmi or --format=#ipmi-opencl and the
+correct format (in this case RAKP or RAKP-opencl) will be used.
+Regardless of method, the matching ignores case.
 
 "--format=crypt" may or may not be supported in a given build of John.
 In default builds of John, this support is currently only included on

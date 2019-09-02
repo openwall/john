@@ -250,8 +250,13 @@ static void john_register_one(struct fmt_main *format)
 				}
 				memmove(reject, reject + 8, strlen(reject + 7));
 			}
+			if (!strstr(algo, "-opencl") &&
+			    strstr(format->params.label, "-opencl")) {
+				MEM_FREE (algo);
+				return;
+			}
 			if ((reject = strcasestr(algo, "-opencl"))) {
-				if (strstr(format->params.label, "-opencl")) {
+				if (!strstr(format->params.label, "-opencl")) {
 					MEM_FREE (algo);
 					return;
 				}
@@ -259,6 +264,39 @@ static void john_register_one(struct fmt_main *format)
 			}
 			/* Algo match, eg. --format=@xop or --format=@sha384 */
 			if (!strcasestr(format->params.algorithm_name, algo)) {
+				MEM_FREE (algo);
+				return;
+			}
+			MEM_FREE (algo);
+		} else if ((pos = strchr(options.format, '#'))) {
+			char *reject, *algo = strdup(++pos);
+
+			/* -dynamic means "minus dynamic" as in reject them */
+			if ((reject = strcasestr(algo, "-dynamic"))) {
+				if (format->params.flags & FMT_DYNAMIC) {
+					MEM_FREE (algo);
+					return;
+				}
+				memmove(reject, reject + 8, strlen(reject + 7));
+			}
+			/*
+			 * Although -opencl (or not) means we DO want OpenCL (or not),
+			 * as usual!
+			 */
+			if (!strstr(algo, "-opencl") &&
+			    strstr(format->params.label, "-opencl")) {
+				MEM_FREE (algo);
+				return;
+			}
+			if ((reject = strstr(algo, "-opencl"))) {
+				if (!strstr(format->params.label, "-opencl")) {
+					MEM_FREE (algo);
+					return;
+				}
+				memmove(reject, reject + 7, strlen(reject + 6));
+			}
+			/* Name match, eg. --format=#ipmi or --format=#1password */
+			if (!strcasestr(format->params.format_name, algo)) {
 				MEM_FREE (algo);
 				return;
 			}
