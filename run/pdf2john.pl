@@ -24,10 +24,11 @@ require 5.004;
 my $version = '8.99';
 
 # add our 'lib' directory to the include list BEFORE 'use ExifTool'
+use Cwd qw(realpath);
 my $exeDir;
 BEGIN {
     # get exe directory
-    $exeDir = ($0 =~ /(.*)[\\\/]/) ? $1 : '.';
+    $exeDir = (realpath($0) =~ /(.*)[\\\/]/) ? $1 : '.';
     # add lib directory at start of include path
     unshift @INC, "$exeDir/lib";
     # load or disable config file if specified
