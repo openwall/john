@@ -781,47 +781,58 @@ static void ldr_split_more(struct list_main *dst, char *src)
 
 	l = enc_haslower(src);
 	u = enc_hasupper(src);
-	if (l + u == 1)
-		d = enc_hasdigit(src);
 
-	if (l + u + d >= 2) {
-		char *word, *pos;
-		char c;
+	if (l + u == 0)
+		return;
+	else if (l + u == 1)
+		if (!(d = enc_hasdigit(src)))
+			return;
 
-		pos = src;
-		do {
-			word = pos;
-			if (enc_isdigit(*word))
-				while (*pos && enc_isdigit(pos[1]))
-					pos++;
-			else if (enc_isupper(*word) && !l)
-				while (*pos && enc_isupper(pos[1]))
-					pos++;
-			else if (enc_islower(*word) && !u)
-				while (*pos && enc_islower(pos[1]))
-					pos++;
-			else if (enc_hasupper(&pos[1]))
-				while (*pos && !enc_isupper(pos[1]))
-					pos++;
-			else
-				while (*pos && !enc_isdigit(pos[1]))
-					pos++;
-
-			if (!*pos) {
-				if (word > src)
-				{
-					list_add_global_unique(dst, single_seed, word);
-				}
-				break;
-			}
-
-			c = *++pos;
-			*pos = 0;
-			list_add_global_unique(dst, single_seed, word);
-			*pos = c;
-
-		} while (c && dst->count < LDR_WORDS_MAX);
+	/* Don't try to split MAC addresses, eg. from WPA gecos field */
+	if (strlen(src) == 12) {
+		if (l) {
+			if (ishexlc(src))
+				return;
+		} else
+			if (ishexuc(src))
+				return;
 	}
+
+	/* If we got here, the word is probably worth trying to split */
+	char *word, *pos;
+	char c;
+
+	pos = src;
+	do {
+		word = pos;
+		if (enc_isdigit(*word))
+			while (*pos && enc_isdigit(pos[1]))
+				pos++;
+		else if (enc_isupper(*word) && !l)
+			while (*pos && enc_isupper(pos[1]))
+				pos++;
+		else if (enc_islower(*word) && !u)
+			while (*pos && enc_islower(pos[1]))
+				pos++;
+		else if (enc_hasupper(&pos[1]))
+			while (*pos && !enc_isupper(pos[1]))
+				pos++;
+		else
+			while (*pos && !enc_isdigit(pos[1]))
+				pos++;
+
+		if (!*pos) {
+			if (word > src)
+				list_add_global_unique(dst, single_seed, word);
+			break;
+		}
+
+		c = *++pos;
+		*pos = 0;
+		list_add_global_unique(dst, single_seed, word);
+		*pos = c;
+
+	} while (c && dst->count < LDR_WORDS_MAX);
 }
 
 static void ldr_split_string(struct list_main *dst, char *src)
