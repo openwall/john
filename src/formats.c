@@ -525,12 +525,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 
 	if ((format->methods.binary == fmt_default_binary) &&
 	    (format->params.binary_size > 0))
-		puts("Warning: Using default binary() with a "
-		     "non-zero BINARY_SIZE");
+		return "Using default binary() with a non-zero BINARY_SIZE";
 
 	if ((format->methods.salt == fmt_default_salt) &&
 	    (format->params.salt_size > 0))
-		puts("Warning: Using default salt() with a non-zero SALT_SIZE");
+		return "Warning: Using default salt() with a non-zero SALT_SIZE";
 
 	if (format->params.min_keys_per_crypt < 1)
 		return "min keys per crypt";
