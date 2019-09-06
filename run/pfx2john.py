@@ -81,9 +81,9 @@ def parse_pkcs12(filename):
         size = len(salt)
         sys.stdout.write("%s:$pfxng$%s$%s$%s$%s$%s$%s$%s:::::%s\n" %
                          (os.path.basename(filename), mac_algo_numeric,
-                          key_length, iterations, size, binascii.hexlify(salt),
-                          binascii.hexlify(data),
-                          binascii.hexlify(stored_hmac), filename))
+                          key_length, iterations, size, binascii.hexlify(salt).decode(),
+                          binascii.hexlify(data).decode(),
+                          binascii.hexlify(stored_hmac).decode(), filename))
 
 
 if __name__ == "__main__":
