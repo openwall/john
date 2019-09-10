@@ -649,6 +649,9 @@ static int ldr_split_line(char **login, char **ciphertext,
 		return 0;
 	}
 
+	if (options.format && !strncasecmp(options.format, "wpapsk", 6))
+		*uid = fields[3];
+
 find_format:
 	if (*format) {
 		char *prepared;
