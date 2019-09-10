@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2017-2018 magnum,
+ * This software is Copyright (c) 2017-2019 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -22,12 +22,12 @@ john_register_one(&fmt_opencl_wpapsk_pmk);
 #include "options.h"
 #include "opencl_common.h"
 
-static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
+static cl_mem mem_in, mem_state, mem_out, mem_data;
+static cl_mem pinned_in, pinned_out;
 static cl_kernel wpapmk_init, wpapsk_final_md5, wpapsk_final_sha1, wpapsk_final_sha256, wpapsk_final_pmkid;
 static size_t key_buf_size;
 static unsigned int *inbuffer;
 static struct fmt_main *self;
-static int new_keys;
 
 #define JOHN_OCL_WPAPSK
 #define WPAPMK
@@ -61,8 +61,11 @@ typedef struct {
 	cl_uint partial[5];
 } wpapsk_state;
 
+extern mic_t *mic;
+extern hccap_t hccap;
+
 static const char * warn[] = {
-	"xfer: ", ", init: ", ", final: ", ", xfer: "
+	"xfer: ", ", init: ", ", blob_xfer: ", ", final: ", ", xfer: "
 };
 
 static int split_events[] = { -1, -1, -1 };
@@ -80,6 +83,7 @@ static size_t get_task_max_work_group_size()
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, wpapsk_final_sha1));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, wpapsk_final_sha256));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, wpapsk_final_pmkid));
+
 	return s;
 }
 
@@ -100,8 +104,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	mem_state = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(wpapsk_state) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem_state");
 
-	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(wpapsk_salt), &currentsalt, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error allocating mem setting");
+	mem_data = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(wpapsk_data), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating mem data");
 
 	pinned_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(mic_t) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating pinned out");
@@ -114,19 +118,19 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(wpapmk_init, 1, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
 
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_md5, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_md5, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_md5, 1, sizeof(mem_data), &mem_data), "Error while setting mem_data kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_md5, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 1, sizeof(mem_data), &mem_data), "Error while setting mem_data kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 1, sizeof(mem_data), &mem_data), "Error while setting mem_data kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_pmkid, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_pmkid, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_pmkid, 1, sizeof(mem_data), &mem_data), "Error while setting mem_data kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_pmkid, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 }
 
@@ -141,7 +145,7 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(pinned_out), "Release pinned_out");
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release pinned_in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");
-		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem_salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_data), "Release mem_data");
 		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 		mem_state = NULL;
 	}
@@ -172,7 +176,6 @@ static void set_key(char *key, int index)
 		((unsigned char*)inbuffer)[GETPOS(i, index)] =
 			(atoi16[ARCH_INDEX(key[i << 1])] << 4) |
 			atoi16[ARCH_INDEX(key[(i << 1) + 1])];
-	new_keys = 1;
 }
 
 static char* get_key(int index)
@@ -262,7 +265,7 @@ static void reset(struct db_main *db)
 
 	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 1, split_events,
-	                       warn, 2, self,
+	                       warn, 3, self,
 	                       create_clobj, release_clobj,
 	                       2 * ocl_v_width * sizeof(wpapsk_state), 0, db);
 
@@ -280,27 +283,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * ocl_v_width;
 
 	// Copy data to gpu
-	if (new_keys) {
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 32, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 32, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 
-		// Call init kernel
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapmk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run final kernel (MD5)");
-
-		new_keys = 0;
-	}
-
-	if (hccap.keyver == 0)
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_pmkid, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run final kernel (PMKID)");
-	else if (hccap.keyver == 1)
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_md5, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run final kernel (MD5)");
-	else if (hccap.keyver == 2)
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_sha1, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run final kernel (SHA1)");
-	else
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_sha256, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run final kernel (SHA256)");
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running final kernel");
-
-	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, multi_profilingEvent[3]), "Copy result back");
+	// Run kernel
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapmk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
 	return count;
 }
@@ -320,9 +306,9 @@ struct fmt_main fmt_opencl_wpapsk_pmk = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		0,
+		FMT_BLOB,
 		{
-			"key version [0:PMKID 1:WPA 2:WPA2 3:802.11w]"
+			NULL // "key version [0:PMKID 1:WPA 2:WPA2 3:802.11w]"
 		},
 		{
 			FORMAT_TAG, ""
@@ -336,35 +322,29 @@ struct fmt_main fmt_opencl_wpapsk_pmk = {
 		valid,
 		fmt_default_split,
 		get_binary,
-		get_salt,
+		fmt_default_salt,
 		{
-			get_keyver,
+			NULL //get_keyver,
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
-		salt_hash,
-		salt_compare,
-		set_salt,
+		fmt_default_salt_hash,
+		NULL,
+		fmt_default_set_salt,
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

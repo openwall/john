@@ -115,11 +115,7 @@ static char* get_key(int index)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	const int count = *pcount;
-
-	wpapsk_postprocess(count);
-
-	return count;
+	return *pcount;
 }
 
 struct fmt_main fmt_wpapsk_pmk = {
@@ -137,9 +133,11 @@ struct fmt_main fmt_wpapsk_pmk = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_OMP,
+		FMT_OMP | FMT_BLOB,
 		{
-#if !AC_BUILT || HAVE_OPENSSL_CMAC_H
+#if 1
+			NULL
+#elif !AC_BUILT || HAVE_OPENSSL_CMAC_H
 			"key version [0:PMKID 1:WPA 2:WPA2 3:802.11w]"
 #else
 			"key version [0:PMKID 1:WPA 2:WPA2]"
@@ -158,35 +156,29 @@ struct fmt_main fmt_wpapsk_pmk = {
 		valid,
 		fmt_default_split,
 		get_binary,
-		get_salt,
+		fmt_default_salt,
 		{
-			get_keyver,
+			NULL //get_keyver,
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
-		salt_hash,
-		salt_compare,
-		set_salt,
+		fmt_default_salt_hash,
+		NULL,
+		fmt_default_set_salt,
 		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash,
 		},
 		cmp_all,
 		cmp_one,

@@ -1,5 +1,6 @@
 /*
- * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall dot net>,
+ * This software is
+ * Copyright (c) 2012 Lukas Odzioba <ukasz at openwall dot net>,
  * Copyright (c) 2012-2018 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -67,7 +68,7 @@ john_register_one(&fmt_wpapsk);
 
 extern wpapsk_password *inbuffer;
 extern wpapsk_hash *outbuffer;
-extern wpapsk_salt currentsalt;
+extern wpapsk_salt *cur_salt;
 extern hccap_t hccap;
 extern mic_t *mic;
 
@@ -111,7 +112,7 @@ static void done(void)
 
 #ifndef SIMD_COEF_32
 static MAYBE_INLINE void wpapsk_cpu(int count,
-    wpapsk_password * in, wpapsk_hash * out, wpapsk_salt * salt)
+    wpapsk_password *in, wpapsk_hash *out, wpapsk_salt *salt)
 {
 	int j;
 
@@ -121,13 +122,13 @@ static MAYBE_INLINE void wpapsk_cpu(int count,
 	for (j = 0; j < count; j++) {
 		pbkdf2_sha1((const unsigned char*)(in[j].v),
 		            in[j].length,
-		            salt->salt, salt->length,
+		            salt->essid, salt->length,
 		            4096, (unsigned char*)&out[j],
 		            32, 0);
 	}
 }
 #else
-static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash * out, wpapsk_salt * salt)
+static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password *in, wpapsk_hash *out, wpapsk_salt *salt)
 {
 	int t; // thread count
 	int loops = (count+NBKEYS-1) / NBKEYS;
@@ -148,7 +149,7 @@ static MAYBE_INLINE void wpapsk_sse(int count, wpapsk_password * in, wpapsk_hash
 			x.pout[i] = &out[t*NBKEYS+i].v[0];
 		}
 		pbkdf2_sha1_sse((const unsigned char **)pin, lens,
-		                salt->salt, salt->length,
+		                salt->essid, salt->length,
 		                4096, &(x.poutc),
 		                32, 0);
 	}
@@ -159,17 +160,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 
-	if (new_keys || strcmp(last_ssid, hccap.essid) || bench_or_test_running) {
 #ifndef SIMD_COEF_32
-		wpapsk_cpu(count, inbuffer, outbuffer, &currentsalt);
+	wpapsk_cpu(count, inbuffer, outbuffer, cur_salt);
 #else
-		wpapsk_sse(count, inbuffer, outbuffer, &currentsalt);
+	wpapsk_sse(count, inbuffer, outbuffer, cur_salt);
 #endif
-		new_keys = 0;
-		strcpy(last_ssid, hccap.essid);
-	}
-
-	wpapsk_postprocess(count);
 
 	return count;
 }
@@ -189,9 +184,11 @@ struct fmt_main fmt_wpapsk = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_BLOB,
 		{
-#if !AC_BUILT || HAVE_OPENSSL_CMAC_H
+#if 1
+			NULL
+#elif !AC_BUILT || HAVE_OPENSSL_CMAC_H
 			"key version [0:PMKID 1:WPA 2:WPA2 3:802.11w]"
 #else
 			"key version [0:PMKID 1:WPA 2:WPA2]"
@@ -201,8 +198,7 @@ struct fmt_main fmt_wpapsk = {
 			FORMAT_TAG, ""
 		},
 		tests
-	},
-	{
+	}, {
 		init,
 		done,
 		fmt_default_reset,
@@ -212,33 +208,27 @@ struct fmt_main fmt_wpapsk = {
 		get_binary,
 		get_salt,
 		{
-			get_keyver,
+			NULL //get_keyver,
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		salt_compare,
 		set_salt,
 		set_key,
 		get_key,
-		clear_keys,
+		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

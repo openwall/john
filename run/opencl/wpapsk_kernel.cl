@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall.net>,
- * Copyright (c) 2012 Milen Rangelov and Copyright (c) 2012-2017 magnum,
+ * Copyright (c) 2012 Milen Rangelov and Copyright (c) 2012-2019 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -17,11 +17,14 @@ typedef struct {
 } mic_t;
 
 typedef struct {
-	uint  length;
-	uint  eapol[(256 + 64) / 4];
-	uint  eapol_size;
-	uint  data[(64 + 12) / 4]; // pre-processed mac and nonce
-	uchar salt[36]; // essid
+	uint32_t eapol_size;
+	uint32_t eapol[(256 + 64) / 4];
+	uint32_t data[(64 + 12) / 4]; /* EAPOL data or PMKID */
+} wpapsk_data;
+
+typedef struct {
+	uint32_t length;
+	uint8_t  essid[36]; // essid
 } wpapsk_salt;
 
 typedef struct {
@@ -112,7 +115,7 @@ void wpapsk_init(__global const MAYBE_VECTOR_UINT *inbuffer,
 	preproc(&inbuffer[gid * 16], state[gid].opad, 0x5c5c5c5c);
 
 	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
-	          salt->salt, salt->length, 0x01);
+	          salt->essid, salt->length, 0x01);
 
 	for (i = 0; i < 5; i++)
 		state[gid].W[i] = state[gid].out[i];
@@ -178,7 +181,7 @@ void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
 	for (i = 0; i < 5; i++)
 		state[gid].out[i] = VSWAP32(state[gid].out[i]);
 
-	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->salt, salt->length, 0x02);
+	hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad, salt->essid, salt->length, 0x02);
 
 	for (i = 0; i < 5; i++)
 		state[gid].W[i] = state[gid].out[i];
@@ -249,7 +252,7 @@ inline void prf_512(const MAYBE_VECTOR_UINT *key,
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
 void wpapsk_final_md5(__global wpapsk_state *state,
-                      MAYBE_CONSTANT wpapsk_salt *salt,
+                      MAYBE_CONSTANT wpapsk_data *data,
                       __global mic_t *mic)
 {
 	uint gid = get_global_id(0);
@@ -258,7 +261,7 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 	MAYBE_VECTOR_UINT W[16];
 	MAYBE_VECTOR_UINT ipad[4], opad[4];
 	uint i, eapol_blocks;
-	MAYBE_CONSTANT uint *cp = salt->eapol;
+	MAYBE_CONSTANT uint *cp = data->eapol;
 
 	for (i = 0; i < 5; i++)
 		outbuffer[i] = state[gid].partial[i];
@@ -266,7 +269,7 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 	for (i = 0; i < 3; i++)
 		outbuffer[5 + i] = state[gid].out[i];
 
-	prf_512(outbuffer, salt->data, prf);
+	prf_512(outbuffer, data->data, prf);
 
 	// HMAC(md5(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
 	// prf is the key (16 bytes)
@@ -279,8 +282,8 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 	md5_block(MAYBE_VECTOR_UINT, W, ipad); /* md5_update(ipad, 64) */
 
 	/* eapol_blocks (of MD5),
-	 * eapol data + 0x80, null padded and len set in set_salt() */
-	eapol_blocks = 1 + (salt->eapol_size + 8) / 64;
+	 * eapol data + 0x80, null padded and len set in cmp_all() */
+	eapol_blocks = 1 + (data->eapol_size + 8) / 64;
 
 	/* At least this will not diverge */
 	while (eapol_blocks--) {
@@ -345,7 +348,7 @@ void wpapsk_final_md5(__global wpapsk_state *state,
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
 void wpapsk_final_sha1(__global wpapsk_state *state,
-                       MAYBE_CONSTANT wpapsk_salt *salt,
+                       MAYBE_CONSTANT wpapsk_data *data,
                        __global mic_t *mic)
 {
 	MAYBE_VECTOR_UINT outbuffer[8];
@@ -355,7 +358,7 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
 	uint i, eapol_blocks;
-	MAYBE_CONSTANT uint *cp = salt->eapol;
+	MAYBE_CONSTANT uint *cp = data->eapol;
 
 	for (i = 0; i < 5; i++)
 		outbuffer[i] = state[gid].partial[i];
@@ -363,7 +366,7 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 	for (i = 0; i < 3; i++)
 		outbuffer[5 + i] = state[gid].out[i];
 
-	prf_512(outbuffer, salt->data, prf);
+	prf_512(outbuffer, data->data, prf);
 
 	// HMAC(sha1(), prf, 16, hccap.eapol, hccap.eapol_size, mic[gid].keymic, NULL);
 	// prf is the key (16 bytes)
@@ -375,8 +378,8 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 	sha1_single(MAYBE_VECTOR_UINT, W, ipad);
 
 	/* eapol_blocks (of SHA1),
-	 * eapol data + 0x80, null padded and len set in set_salt() */
-	eapol_blocks = 1 + (salt->eapol_size + 8) / 64;
+	 * eapol data + 0x80, null padded and len set in cmp_all() */
+	eapol_blocks = 1 + (data->eapol_size + 8) / 64;
 
 	/* At least this will not diverge */
 	while (eapol_blocks--) {
@@ -440,7 +443,7 @@ void wpapsk_final_sha1(__global wpapsk_state *state,
 __kernel
 __attribute__((vec_type_hint(MAYBE_VECTOR_UINT)))
 void wpapsk_final_pmkid(__global wpapsk_state *state,
-                        MAYBE_CONSTANT wpapsk_salt *salt,
+                        MAYBE_CONSTANT wpapsk_data *data,
                         __global mic_t *mic)
 {
 	MAYBE_VECTOR_UINT outbuffer[8];
@@ -449,7 +452,7 @@ void wpapsk_final_pmkid(__global wpapsk_state *state,
 	MAYBE_VECTOR_UINT ipad[5];
 	MAYBE_VECTOR_UINT opad[5];
 	uint i;
-	MAYBE_CONSTANT uint *cp = salt->data;
+	MAYBE_CONSTANT uint *cp = data->data;
 
 	for (i = 0; i < 5; i++)
 		outbuffer[i] = state[gid].partial[i];
@@ -652,7 +655,7 @@ sha256_prf_bits(const uchar *key, uint key_len, MAYBE_CONSTANT uchar *data,
 
 __kernel
 void wpapsk_final_sha256(__global wpapsk_state *state,
-                         MAYBE_CONSTANT wpapsk_salt *salt,
+                         MAYBE_CONSTANT wpapsk_data *data,
                          __global mic_t *mic)
 {
 	uchar ptk[48];
@@ -668,12 +671,12 @@ void wpapsk_final_sha256(__global wpapsk_state *state,
 	for (i = 0; i < 3; i++)
 		outbuffer[5 + i] = SWAP32(state[gid].out[i]);
 
-	sha256_prf_bits((uchar*)outbuffer, 32, (MAYBE_CONSTANT uchar*)salt->data, 76, ptk, 48 * 8);
+	sha256_prf_bits((uchar*)outbuffer, 32, (MAYBE_CONSTANT uchar*)data->data, 76, ptk, 48 * 8);
 
 	/* CMAC is kinda like a HMAC but using AES */
 	AES_CMAC_Init(&ctx);
 	AES_CMAC_SetKey(&ctx, ptk);
-	AES_CMAC_Update(&ctx, (MAYBE_CONSTANT uchar*)salt->eapol, salt->eapol_size);
+	AES_CMAC_Update(&ctx, (MAYBE_CONSTANT uchar*)data->eapol, data->eapol_size);
 	AES_CMAC_Final(cmic, &ctx);
 
 	/* We only use 16 bytes */

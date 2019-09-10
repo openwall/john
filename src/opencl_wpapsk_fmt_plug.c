@@ -1,10 +1,8 @@
 /*
  * This software is Copyright (c) 2012 Lukas Odzioba <ukasz at openwall.net>
- * and Copyright (c) 2012-2018 magnum, and it is hereby released to the general
+ * and Copyright (c) 2012-2019 magnum, and it is hereby released to the general
  * public under the following terms: Redistribution and use in source and
  * binary forms, with or without modification, are permitted.
- *
- * Code was at some point based on Aircrack-ng source
  */
 #ifdef HAVE_OPENCL
 
@@ -25,7 +23,8 @@ john_register_one(&fmt_opencl_wpapsk);
 #include "unicode.h"
 #include "opencl_common.h"
 
-static cl_mem mem_in, mem_out, mem_salt, mem_state, pinned_in, pinned_out;
+static cl_mem mem_in, mem_salt, mem_state, mem_out, mem_data;
+static cl_mem pinned_in, pinned_out;
 static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpapsk_final_sha1, wpapsk_final_sha256, wpapsk_final_pmkid;
 static size_t key_buf_size;
 static unsigned int *inbuffer;
@@ -52,10 +51,6 @@ static struct fmt_main *self;
 /* This is faster but can't handle size 3 */
 //#define GETPOS(i, index)	(((index) & (ocl_v_width - 1)) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 
-extern wpapsk_salt currentsalt;
-extern mic_t *mic;
-extern hccap_t hccap;
-
 typedef struct {
 	cl_uint W[5];
 	cl_uint ipad[5];
@@ -64,8 +59,12 @@ typedef struct {
 	cl_uint partial[5];
 } wpapsk_state;
 
+extern mic_t *mic;
+extern hccap_t hccap;
+
 static const char * warn[] = {
-	"xfer: ", ", init: ", ", loop: ", ", pass2: ", ", final: ", ", xfer: "
+	"xfer: ", ", init: ", ", loop: ", ", pass2: ",
+	", blob_xfer: ", ", final: ", ", xfer: "
 };
 
 static int split_events[] = { 2, -1, -1 };
@@ -106,8 +105,11 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	mem_state = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(wpapsk_state) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem_state");
 
-	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(wpapsk_salt), &currentsalt, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error allocating mem setting");
+	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(wpapsk_salt), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating mem salt");
+
+	mem_data = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(wpapsk_data), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating mem data");
 
 	pinned_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(mic_t) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating pinned out");
@@ -126,19 +128,19 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_pass2, 1, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
 
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_md5, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_md5, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_md5, 1, sizeof(mem_data), &mem_data), "Error while setting mem_data kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_md5, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 1, sizeof(mem_data), &mem_data), "Error while setting mem_data kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha1, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 1, sizeof(mem_data), &mem_data), "Error while setting mem_data kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_sha256, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_pmkid, 0, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_pmkid, 1, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_pmkid, 1, sizeof(mem_data), &mem_data), "Error while setting mem_data kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(wpapsk_final_pmkid, 2, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 }
 
@@ -153,6 +155,7 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(pinned_out), "Release pinned_out");
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release pinned_in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem_out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_data), "Release mem_data");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem_salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 		mem_state = NULL;
@@ -180,7 +183,6 @@ static void done(void)
 
 static void clear_keys(void) {
 	memset(inbuffer, 0, key_buf_size);
-	new_keys = 1;
 }
 
 static void set_key(char *key, int index)
@@ -190,7 +192,6 @@ static void set_key(char *key, int index)
 
 	for (i = 0; i < length; i++)
 		((char*)inbuffer)[GETPOS(i, index)] = key[i];
-	new_keys = 1;
 }
 
 static char* get_key(int index)
@@ -296,40 +297,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 64, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 
 	// Run kernel
-	if (new_keys || strcmp(last_ssid, hccap.essid) ||
-	    ocl_autotune_running || bench_or_test_running) {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
-		for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS / HASH_LOOPS); i++) {
-			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
-			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
-			opencl_process_event();
-		}
-
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_pass2, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
-
-		for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS / HASH_LOOPS); i++) {
-			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel (2nd pass)");
-			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
-			opencl_process_event();
-		}
-
-		new_keys = 0;
-		strcpy(last_ssid, hccap.essid);
+	for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS / HASH_LOOPS); i++) {
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		opencl_process_event();
 	}
 
-	if (hccap.keyver == 0)
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_pmkid, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (PMKID)");
-	else if (hccap.keyver == 1)
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_md5, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (MD5)");
-	else if (hccap.keyver == 2)
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_sha1, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (SHA1)");
-	else
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_sha256, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (SHA256)");
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running final kernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_pass2, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 
-	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, multi_profilingEvent[5]), "Copy result back");
+	for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS / HASH_LOOPS); i++) {
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel (2nd pass)");
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		opencl_process_event();
+	}
 
 	return count;
 }
@@ -341,7 +323,7 @@ struct fmt_main fmt_opencl_wpapsk = {
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
-		8,
+		PLAINTEXT_MIN_LEN,
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
@@ -349,9 +331,9 @@ struct fmt_main fmt_opencl_wpapsk = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_8_BIT | FMT_CASE,
+		FMT_8_BIT | FMT_CASE | FMT_BLOB,
 		{
-			"key version [0:PMKID 1:WPA 2:WPA2 3:802.11w]"
+			NULL // "key version [0:PMKID 1:WPA 2:WPA2 3:802.11w]"
 		},
 		{
 			FORMAT_TAG, ""
@@ -367,17 +349,17 @@ struct fmt_main fmt_opencl_wpapsk = {
 		get_binary,
 		get_salt,
 		{
-			get_keyver,
+			NULL //get_keyver,
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
 		},
 		salt_hash,
 		salt_compare,
@@ -387,13 +369,7 @@ struct fmt_main fmt_opencl_wpapsk = {
 		clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

@@ -81,6 +81,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Worked out a new KISS solution "FMT_BLOB" for non-hash formats, so they can
   still benefit from same-salt optimizations/exploits.  [magnum; 2019]
 
+- Converted WPAPSK formats to the new FMT_BLOB scheme, with excellent
+  improvement in performance, especially for single mode.  [magnum; 2019]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
