@@ -86,9 +86,9 @@ static void init(struct fmt_main *self)
 
 	/*
 	 * Implementations seen IRL that have 8 *bytes* (of eg. UTF-8) passwords
-	 * as opposed to 8 *characters*
+	 * as opposed to 8 *characters*. This hack is not ideal.
 	 */
-	if (options.target_enc == UTF_8)
+	if (options.target_enc == UTF_8 && options.internal_cp != UTF_8)
 		self->params.plaintext_min_length = 2;
 
 	/*
