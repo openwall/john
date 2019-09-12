@@ -40,5 +40,6 @@ extern char *john_terminal_locale;
 
 /* Current target for options.max_cands */
 extern unsigned long long john_max_cands;
+extern int wildcard_format;
 
 #endif
