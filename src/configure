@@ -12278,7 +12278,7 @@ $as_echo_n "checking supplied paths for OpenSSL... " >&6; }
    done
 
       if test "x$cross_compiling" = "xyes" -a "x$OPENSSL_LIBS" = "x"; then
-        OPENSSL_LIBS="-lssl -lcrypto"
+        OPENSSL_LIBS="${OPENSSL_LIBS} -lssl -lcrypto"
       fi
       LIBS_ORIG="$LIBS"
       LIBS="$LIBS $OPENSSL_LIBS"
@@ -12436,7 +12436,7 @@ $as_echo "#define HAVE_LIBSSL 1" >>confdefs.h
 
 $as_echo "#define HAVE_LIBCRYPTO 1" >>confdefs.h
 
-         OPENSSL_LIBS="-lssl -lcrypto"
+         OPENSSL_LIBS="${OPENSSL_LIBS} -lssl -lcrypto"
 else
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}

@@ -602,7 +602,7 @@ else
       [AC_MSG_CHECKING([supplied paths for OpenSSL])]
       [JTR_LIST_ADD(CFLAGS, [$OPENSSL_CFLAGS])]
       [if test "x$cross_compiling" = "xyes" -a "x$OPENSSL_LIBS" = "x"; then
-        OPENSSL_LIBS="-lssl -lcrypto"
+        OPENSSL_LIBS="${OPENSSL_LIBS} -lssl -lcrypto"
       fi]
       LIBS_ORIG="$LIBS"
       LIBS="$LIBS $OPENSSL_LIBS"
@@ -615,7 +615,7 @@ else
       [AC_CHECK_LIB([crypto],[MD5_Update],
          [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
          [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
-         [OPENSSL_LIBS="-lssl -lcrypto"],
+         [OPENSSL_LIBS="${OPENSSL_LIBS} -lssl -lcrypto"],
          [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
          [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
       )
