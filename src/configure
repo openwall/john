@@ -10878,7 +10878,8 @@ CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
 
   case $host_os in #(
   darwin*) :
-    CC="$CC_BACKUP -mavx"
+    CC="$CC_BACKUP"
+    CFLAGS="-mavx"
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether OS X 'as' needs -q option" >&5
 $as_echo_n "checking whether OS X 'as' needs -q option... " >&6; }
     cat confdefs.h - <<_ACEOF >conftest.$ac_ext
@@ -10926,9 +10927,11 @@ rm -f core conftest.err conftest.$ac_objext \
     if test x$OSX_AS_CLANG != x; then :
   CC_BACKUP="$CC_BACKUP $OSX_AS_CLANG"
       AS="$AS $OSX_AS_CLANG"
+      CFLAGS="$CFLAGS_BACKUP"
 
 fi
     CC="$CC_BACKUP"
+    CFLAGS="$CFLAGS_BACKUP"
    ;; #(
   *) :
      ;;

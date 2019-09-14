@@ -45,7 +45,8 @@ dnl ======================================================================
 CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
 
   AS_CASE([$host_os], [darwin*],
-    [CC="$CC_BACKUP -mavx"
+    [CC="$CC_BACKUP"
+    CFLAGS="-mavx"
     AC_MSG_CHECKING([whether OS X 'as' needs -q option])
     AC_LINK_IFELSE(
       [
@@ -73,8 +74,10 @@ CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
     AS_IF([test x$OSX_AS_CLANG != x],
       [CC_BACKUP="$CC_BACKUP $OSX_AS_CLANG"]
       [AS="$AS $OSX_AS_CLANG"]
+      [CFLAGS="$CFLAGS_BACKUP"]
     )
-    [CC="$CC_BACKUP"]]
+    [CC="$CC_BACKUP"]
+    [CFLAGS="$CFLAGS_BACKUP"]]
   )
 
 if test "x$simd" != xno; then
