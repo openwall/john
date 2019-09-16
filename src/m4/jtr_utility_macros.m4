@@ -120,12 +120,12 @@ if test -d /opt/local/include; then
    ADD_CFLAGS="$ADD_CFLAGS -I/opt/local/include"
 fi
 dnl macOS Homebrew paths if now defined by OPENSSL_LIBS and OPENSSL_CFLAGS.
-if test -z "OPENSSL_LIBS"; then
+if test -z "$OPENSSL_LIBS"; then
   if test -d /usr/local/opt/openssl/lib; then
      ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/opt/openssl/lib"
   fi
 fi
-if test -z "OPENSSL_CFLAGS"; then
+if test -z "$OPENSSL_CFLAGS"; then
   if test -d /usr/local/opt/openssl/include; then
      ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/opt/openssl/include"
   fi
