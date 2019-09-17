@@ -850,7 +850,8 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 		error();
 	}
 	if (options.req_length) {
-		if (options.req_minlength != -1 || options.req_maxlength != 0) {
+		if (!rec_restored &&
+		    (options.req_minlength != -1 || options.req_maxlength != 0)) {
 			if (john_main_process)
 				fprintf(stderr, "Invalid options: --length can't be used together with --min/max-length\n");
 			error();
