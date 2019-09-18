@@ -235,6 +235,10 @@ not load accounts with a bad shell.  You can omit the path before a
 shell name, so "--shells=csh" will match both "/bin/csh" and
 "/usr/bin/csh", while "--shells=/bin/csh" will only match "/bin/csh".
 
+In Jumbo, the --users/groups/shells options above allow a single wildcard
+(eg. "admin*", "*root" or "admin*group") and when wildcard is used, the
+text matching also becomes case insensitive.
+
 --salts=[-]N[:MAX]		load salts with[out] at least N passwords
 
 This is a feature which allows to achieve better performance in some
