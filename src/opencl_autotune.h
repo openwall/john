@@ -233,8 +233,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	global_work_size = GET_EXACT_MULTIPLE(global_work_size, local_work_size);
 
 #if HAVE_MPI
-	if (autotune_real_db && mpi_p > 1 &&
-	    !(options.lws && options.gws) && !rec_restored && homogenous) {
+	if (autotune_real_db && mpi_p > 1 && !rec_restored && homogenous) {
 		uint32_t lws, gws, mpi_lws, mpi_gws;
 
 		if (john_main_process)
@@ -246,7 +245,8 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		local_work_size = mpi_lws;
 		global_work_size = GET_EXACT_MULTIPLE(mpi_gws, local_work_size);
 
-		if (john_main_process && (ocl_always_show_ws || !mask_increments_len)) {
+		if (john_main_process && (!(self->params.flags & FMT_MASK) ||
+			ocl_always_show_ws || !mask_increments_len)) {
 			fprintf(stderr, "All nodes LWS="Zu" GWS="Zu" ("Zu" blocks) ",
 			        local_work_size, global_work_size,
 			        global_work_size / local_work_size);
@@ -258,18 +258,20 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	} else
 #endif
 	if (ocl_always_show_ws ||
-	    (!(options.lws && options.gws) && !self_test_running &&
-	     ((options.flags & FLG_TEST_CHK) ||
-	      (autotune_real_db && !mask_increments_len)))) {
-		if (options.node_count)
+	    (!self_test_running && ((options.flags & FLG_TEST_CHK) ||
+		(autotune_real_db && (!(self->params.flags & FMT_MASK) ||
+		!mask_increments_len))))) {
+		if (options.node_count && !homogenous)
 			fprintf(stderr, "%u: ", NODE);
-		fprintf(stderr, "LWS="Zu" GWS="Zu" ("Zu" blocks) ",
-		        local_work_size, global_work_size,
-		        global_work_size / local_work_size);
-		if (mask_int_cand.num_int_cand > 1)
-			fprintf(stderr, "x%d ", mask_int_cand.num_int_cand);
-		if (!(options.flags & FLG_TEST_CHK))
-			fprintf(stderr, "\n");
+		if (john_main_process || !homogenous) {
+			fprintf(stderr, "LWS="Zu" GWS="Zu" ("Zu" blocks) ",
+			        local_work_size, global_work_size,
+			        global_work_size / local_work_size);
+			if (mask_int_cand.num_int_cand > 1)
+				fprintf(stderr, "x%d ", mask_int_cand.num_int_cand);
+			if (!(options.flags & FLG_TEST_CHK))
+				fprintf(stderr, "\n");
+		}
 	}
 
 	/* Adjust to the final configuration */
