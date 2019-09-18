@@ -890,17 +890,24 @@ static void john_mpi_wait(void)
 
 static char *john_loaded_counts(void)
 {
-	static char s_loaded_counts[80];
+	static char s_loaded_counts[128];
 	char nbuf[24];
 
 	if (database.password_count == 1)
 		return "1 password hash";
 
-	sprintf(s_loaded_counts,
-		"%d password hashes with %s different salts",
-		database.password_count,
-		database.salt_count > 1 ?
-		jtr_itoa(database.salt_count, nbuf, 24, 10) : "no");
+	int p = sprintf(s_loaded_counts,
+	                "%d password hashes with %s different salts",
+	                database.password_count,
+	                database.salt_count > 1 ?
+	                jtr_itoa(database.salt_count, nbuf, 24, 10) : "no");
+
+	int b = (10 * database.password_count + (database.salt_count / 2)) /
+		database.salt_count;
+
+	if (database.salt_count > 1 && b > 10)
+		sprintf(s_loaded_counts + p, " (%d.%dx same-salt boost)",
+		        b / 10, b % 10);
 
 	return s_loaded_counts;
 }

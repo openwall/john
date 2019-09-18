@@ -267,6 +267,10 @@ static void crk_remove_salt(struct db_salt *salt)
 		int hash = crk_methods.salt_hash(salt->salt);
 
 		if (crk_db->salt_hash[hash] == salt) {
+			if (options.verbosity >= VERB_DEBUG) {
+				fprintf(stderr, "Got rid of %s, %s\n", strncasecmp(crk_params->label, "wpapsk", 6) ? "a salt" : (char*)(salt->salt) + 4, crk_loaded_counts());
+				status_update_counts();
+			}
 			if (salt->next &&
 			    crk_methods.salt_hash(salt->next->salt) == hash)
 				crk_db->salt_hash[hash] = salt->next;
@@ -466,9 +470,9 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	return 0;
 }
 
-static char *crk_loaded_counts(void)
+char *crk_loaded_counts(void)
 {
-	static char s_loaded_counts[80];
+	static char s_loaded_counts[128];
 	char nbuf[24];
 
 	if (crk_db->password_count == 0)
@@ -477,11 +481,18 @@ static char *crk_loaded_counts(void)
 	if (crk_db->password_count == 1)
 		return "Remaining 1 hash";
 
-	sprintf(s_loaded_counts,
-		"Remaining %d hashes with %s different salts",
-		crk_db->password_count,
-		crk_db->salt_count > 1 ?
-		jtr_itoa(crk_db->salt_count, nbuf, 24, 10) : "no");
+	int p = sprintf(s_loaded_counts,
+	                "Remaining %d hashes with %s different salts",
+	                crk_db->password_count,
+	                crk_db->salt_count > 1 ?
+	                jtr_itoa(crk_db->salt_count, nbuf, 24, 10) : "no");
+
+	int b = (10 * crk_db->password_count + (crk_db->salt_count / 2)) /
+		crk_db->salt_count;
+
+	if (crk_db->salt_count > 1 && b > 10)
+		sprintf(s_loaded_counts + p, " (%d.%dx same-salt boost)",
+		        b / 10, b % 10);
 
 	return s_loaded_counts;
 }
@@ -597,7 +608,8 @@ int crk_reload_pot(void)
 {
 	char line[LINE_BUFFER_SIZE];
 	FILE *pot_file;
-	int total = crk_db->password_count, others;
+	int passwords = crk_db->password_count;
+	int salts = crk_db->salt_count;
 
 	event_reload = 0;
 
@@ -666,17 +678,18 @@ int crk_reload_pot(void)
 	if (fclose(pot_file))
 		pexit("fclose");
 
-	others = total - crk_db->password_count;
+	passwords -= crk_db->password_count;
+	salts -= crk_db->salt_count;
 
-#if !DEBUG
-	if (john_main_process)
-#endif
-	if (others) {
-		log_event("+ pot sync removed %d hashes; %s",
-		          others, crk_loaded_counts());
+	if (john_main_process && passwords) {
+		log_event("+ pot sync removed %d hashes/%d salts; %s",
+		          passwords, salts, crk_loaded_counts());
 
-		if (options.verbosity > VERB_DEFAULT)
-			fprintf(stderr, "%s\n", crk_loaded_counts());
+		if (salts && cfg_get_bool(SECTION_OPTIONS, NULL,
+		                          "ShowSaltProgress", 0)) {
+			fprintf(stderr, "%s after pot sync\n", crk_loaded_counts());
+			status_update_counts();
+		}
 	}
 
 	return (!crk_db->salts);
@@ -995,6 +1008,7 @@ static int crk_password_loop(struct db_salt *salt)
 
 static int crk_salt_loop(void)
 {
+	int sc = crk_db->salt_count;
 	int done;
 	struct db_salt *salt;
 
@@ -1022,6 +1036,8 @@ static int crk_salt_loop(void)
 			s = s->next;
 		}
 	}
+
+	/* Normal loop over all salts */
 	do {
 		crk_methods.set_salt(salt->salt);
 		status.resume_salt_md5 = (crk_db->salt_count > 1) ?
@@ -1029,6 +1045,11 @@ static int crk_salt_loop(void)
 		if ((done = crk_password_loop(salt)))
 			break;
 	} while ((salt = salt->next));
+
+	if (crk_db->salt_count < sc && cfg_get_bool(SECTION_OPTIONS, NULL,
+	                                            "ShowSaltProgress", 0))
+		event_status = event_pending = 1;
+
 	if (!salt || crk_db->salt_count < 2)
 		status.resume_salt_md5 = NULL;
 
@@ -1110,8 +1131,8 @@ static int process_key(char *key)
 	sig_timer_emu_tick();
 #endif
 
-	if (event_pending)
-	if (crk_process_event()) return 1;
+	if (event_pending && crk_process_event())
+		return 1;
 
 	strnzcpy(crk_stdout_key, key, crk_params->plaintext_length + 1);
 	if (options.verbosity > 1)
