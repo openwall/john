@@ -592,26 +592,28 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 	for (i = min_comb; i <= MIN(subsets_cur_len, maxdiff); i++)
 		keyspace += numwords(i, charcount, subsets_cur_len, required);
 
-	log_event("Proceeding with \"subsets\" mode");
-	log_event("- Charset: %s size %d", req_charset ? req_charset : charset,
-	          charcount);
-	log_event("- Lengths: %d-%d, max. subset size %d",
-	          MAX(options.eff_minlength, 1), maxlength, maxdiff);
-	if (required)
-		log_event("- Required set: First %d of charset", required);
-	if (rec_restored && john_main_process) {
-		fprintf(stderr, "Proceeding with \"subsets\"%s%s",
-		        req_charset ? ": " : "",
-		        req_charset ? req_charset : "");
-		if (options.flags & FLG_MASK_CHK)
-			fprintf(stderr, ", hybrid mask:%s", options.eff_mask);
-		if (options.rule_stack)
-			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
-		if (options.req_minlength >= 0 || options.req_maxlength)
-			fprintf(stderr, ", lengths: %d-%d",
-			        options.eff_minlength + mask_add_len,
-			        options.eff_maxlength + mask_add_len);
-		fprintf(stderr, "\n");
+	if (john_main_process) {
+		log_event("Proceeding with \"subsets\" mode");
+		log_event("- Charset: %s size %d", req_charset ? req_charset : charset,
+		          charcount);
+		log_event("- Lengths: %d-%d, max. subset size %d",
+		          MAX(options.eff_minlength, 1), maxlength, maxdiff);
+		if (required)
+			log_event("- Required set: First %d of charset", required);
+		if (rec_restored) {
+			fprintf(stderr, "Proceeding with \"subsets\"%s%s",
+			        req_charset ? ": " : "",
+			        req_charset ? req_charset : "");
+			if (options.flags & FLG_MASK_CHK)
+				fprintf(stderr, ", hybrid mask:%s", options.eff_mask);
+			if (options.rule_stack)
+				fprintf(stderr, ", rules-stack:%s", options.rule_stack);
+			if (options.req_minlength >= 0 || options.req_maxlength)
+				fprintf(stderr, ", lengths: %d-%d",
+				        options.eff_minlength + mask_add_len,
+				        options.eff_maxlength + mask_add_len);
+			fprintf(stderr, "\n");
+		}
 	}
 
 	crk_init(db, fix_state, NULL);
@@ -623,6 +625,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 		uint64_t num_words = numwords(num_comb, charcount, word_len, required);
 		int bail = 0;
 
+		if (options.verbosity >= VERB_DEFAULT)
 		log_event("- Subset size %d, word length %d (%"PRIu64" sets x %"PRIu64
 		          " words), keyspace %"PRIu64, num_comb, word_len, num_sets,
 		          num_words / num_sets, num_words);

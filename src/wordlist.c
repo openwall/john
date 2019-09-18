@@ -609,11 +609,12 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 	char *regex = 0;
 #endif
 
-	log_event("Proceeding with %s mode",
-	          loopBack ? "loopback" : "wordlist");
+	if (john_main_process)
+		log_event("Proceeding with %s mode",
+		          loopBack ? "loopback" : "wordlist");
 
-	if (options.activewordlistrules) {
-		if (loopBack && john_main_process)
+	if (options.activewordlistrules && john_main_process) {
+		if (loopBack)
 			fprintf(stderr, "Permutation rules: %s\n",
 			        options.activewordlistrules);
 		log_event("- Rules: %.100s", options.activewordlistrules);
@@ -681,9 +682,10 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 #endif
 		if (!(word_file = jtr_fopen(path_expand(name), "rb")))
 			pexit(STR_MACRO(jtr_fopen)": %s", path_expand(name));
-		log_event("- %s file: %.100s",
-		          loopBack ? "Loopback pot" : "Wordlist",
-		          path_expand(name));
+		if (john_main_process)
+			log_event("- %s file: %.100s",
+			          loopBack ? "Loopback pot" : "Wordlist",
+			          path_expand(name));
 
 		jtr_fseek64(word_file, 0, SEEK_END);
 		if ((file_len = jtr_ftell64(word_file)) == -1)
@@ -698,8 +700,9 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 
 #ifdef HAVE_MMAP
 		if (mmap_max && mmap_max >= (file_len >> 20)) {
-			log_event("- memory mapping wordlist (%"PRId64" bytes)",
-			          (int64_t)file_len);
+			if (john_main_process)
+				log_event("- memory mapping wordlist (%"PRId64" bytes)",
+				          (int64_t)file_len);
 #if (SIZEOF_SIZE_T < 8)
 /*
  * Now even though we are 64 bit file size, we must still deal with some
@@ -804,8 +807,8 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 					}
 				}
 				if (nWordFileLines != myWordFileLines)
-				fprintf(stderr, "Warning: wordlist changed as"
-				        " we read it\n");
+					fprintf(stderr, "Warning: wordlist changed as"
+					        " we read it\n");
 				log_event("- loaded this node's share of "
 				          "wordfile %s into memory "
 				          "(%lu bytes of %"PRId64", max_size="Zu
@@ -823,13 +826,15 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 				file_len = my_size;
 			}
 			else {
-				log_event("- loading wordfile %s into memory "
-				          "(%"PRId64" bytes, max_size="Zu")",
-				          name, (int64_t)file_len,
-				          options.max_wordfile_memory);
-				if (options.node_count > 1 && john_main_process)
-				fprintf(stderr,"Each node loaded the whole "
-				        "wordfile to memory\n");
+				if (john_main_process) {
+					log_event("- loading wordfile %s into memory "
+					          "(%"PRId64" bytes, max_size="Zu")",
+					          name, (int64_t)file_len,
+					          options.max_wordfile_memory);
+					if (options.node_count > 1)
+						fprintf(stderr,"Each node loaded the whole "
+						        "wordfile to memory\n");
+				}
 				word_file_str =
 					mem_alloc_tiny((size_t)file_len +
 					               LINE_BUFFER_SIZE + 1,
@@ -1098,12 +1103,12 @@ REDO_AFTER_LMLOOP:
 
 	if (rules) {
 		if (rpp_init(rule_ctx = &ctx, options.activewordlistrules)) {
-			log_event("! No \"%s\" mode rules found",
-			          options.activewordlistrules);
-			if (john_main_process)
-				fprintf(stderr,
-				        "No \"%s\" mode rules found in %s\n",
+			if (john_main_process) {
+				log_event("! No \"%s\" mode rules found",
+				          options.activewordlistrules);
+				fprintf(stderr, "No \"%s\" mode rules found in %s\n",
 				        options.activewordlistrules, cfg_name);
+			}
 			error();
 		}
 
@@ -1125,7 +1130,8 @@ REDO_AFTER_LMLOOP:
 		rule_ctx = NULL;
 		rule_count = 1;
 
-		log_event("- No word mangling rules");
+		if (john_main_process)
+			log_event("- No word mangling rules");
 
 		apply = dummy_rules_apply;
 	}
@@ -1178,7 +1184,8 @@ REDO_AFTER_LMLOOP:
 			their_words = options.node_count - my_words;
 			now = "words";
 		}
-		log_event("- Will distribute %s across nodes%s", now, later);
+		if (john_main_process)
+			log_event("- Will distribute %s across nodes%s", now, later);
 	}
 
 	my_words_left = my_words;

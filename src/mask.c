@@ -2181,10 +2181,10 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	if ((options.flags & FLG_TEST_CHK) && options.verbosity >= VERB_MAX)
 		fprintf(stderr, "\nTest mask: %s\n", unprocessed_mask);
 
-	if (!(options.flags & FLG_MASK_STACKED)) {
+	if (!(options.flags & FLG_MASK_STACKED) && john_main_process) {
 		log_event("Proceeding with mask mode");
 
-		if (rec_restored && john_main_process) {
+		if (rec_restored) {
 			fprintf(stderr, "Proceeding with mask mode:%s", unprocessed_mask);
 			if (options.rule_stack)
 				fprintf(stderr, ", rules-stack:%s", options.rule_stack);

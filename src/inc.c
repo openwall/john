@@ -493,7 +493,8 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 		options.charset = mode;
 	}
 
-	log_event("Proceeding with \"incremental\" mode: %.100s", mode);
+	if (john_main_process)
+		log_event("Proceeding with \"incremental\" mode: %.100s", mode);
 
 	if ((options.flags & FLG_BATCH_CHK || rec_restored) && john_main_process) {
 		fprintf(stderr, "Proceeding with incremental:%s", mode);
@@ -694,19 +695,19 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	if (max_count < 0)
 		max_count = CHARSET_SIZE;
 
-	if (min_length != max_length)
-		log_event("- Lengths %d to %d, up to %d different characters",
-		    min_length, max_length, max_count);
-	else
-		log_event("- Length %d, up to %d different characters",
-		    min_length, max_count);
+	if (john_main_process) {
+		if (min_length != max_length)
+			log_event("- Lengths %d to %d, up to %d different characters",
+			          min_length, max_length, max_count);
+		else
+			log_event("- Length %d, up to %d different characters",
+			          min_length, max_count);
 
-	if ((unsigned int)max_count > real_count) {
-		log_event("! Only %u characters available", real_count);
-		if (john_main_process)
-			fprintf(stderr,
-			    "Warning: only %u characters available\n",
-			    real_count);
+		if ((unsigned int)max_count > real_count) {
+			log_event("! Only %u characters available", real_count);
+			fprintf(stderr, "Warning: only %u characters available\n",
+			        real_count);
+		}
 	}
 
 	for (pos = min_length; pos <= max_length; pos++)

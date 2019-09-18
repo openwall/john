@@ -1387,6 +1387,7 @@ static void john_load(void)
 			printf("Remaining %s\n", john_loaded_counts());
 		}
 
+		if (john_main_process)
 		for ( ; i < FMT_TUNABLE_COSTS &&
 			      database.format->methods.tunable_cost_value[i] != NULL; i++) {
 			if (database.min_cost[i] < database.max_cost[i]) {
@@ -1394,7 +1395,6 @@ static void john_load(void)
 				          " varying from %u to %u",
 				          i+1, database.format->params.tunable_cost_name[i],
 				          database.min_cost[i], database.max_cost[i]);
-				if (john_main_process)
 					printf("Loaded hashes with cost %d (%s)"
 					       " varying from %u to %u\n",
 					       i+1, database.format->params.tunable_cost_name[i],
@@ -1404,8 +1404,7 @@ static void john_load(void)
 				log_event("Cost %d (%s) is %u for all loaded hashes",
 				          i+1, database.format->params.tunable_cost_name[i],
 				          database.min_cost[i]);
-				if (options.verbosity >= VERB_DEFAULT &&
-				    john_main_process)
+				if (options.verbosity >= VERB_DEFAULT)
 				printf("Cost %d (%s) is %u for all loaded "
 				       "hashes\n", i+1,
 				       database.format->params.tunable_cost_name[i],

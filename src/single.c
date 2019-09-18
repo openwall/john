@@ -167,19 +167,21 @@ static void single_init(void)
 	ocl_fmt = acc_fmt && strcasestr(single_db->format->params.label, "-opencl");
 #endif
 
-	log_event("Proceeding with \"single crack\" mode");
+	if (john_main_process) {
+		log_event("Proceeding with \"single crack\" mode");
 
-	if ((options.flags & FLG_BATCH_CHK || rec_restored) && john_main_process) {
-		fprintf(stderr, "Proceeding with single, rules:");
-		if (options.rule_stack)
-			fprintf(stderr, "(%s x %s)",
-			        options.activesinglerules, options.rule_stack);
-		else
-			fprintf(stderr, "%s", options.activesinglerules);
-		if (options.req_minlength >= 0 || options.req_maxlength)
-			fprintf(stderr, ", lengths:%d-%d", options.eff_minlength,
-			        options.eff_maxlength);
-		fprintf(stderr, "\n");
+		if ((options.flags & FLG_BATCH_CHK || rec_restored)) {
+			fprintf(stderr, "Proceeding with single, rules:");
+			if (options.rule_stack)
+				fprintf(stderr, "(%s x %s)",
+				        options.activesinglerules, options.rule_stack);
+			else
+				fprintf(stderr, "%s", options.activesinglerules);
+			if (options.req_minlength >= 0 || options.req_maxlength)
+				fprintf(stderr, ", lengths:%d-%d", options.eff_minlength,
+				        options.eff_maxlength);
+			fprintf(stderr, "\n");
+		}
 	}
 
 	if (options.single_retest_guess)
