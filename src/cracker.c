@@ -755,8 +755,6 @@ static void crk_poll_files(void)
 
 static int crk_process_event(void)
 {
-	event_pending = 0;
-
 #ifdef HAVE_MPI
 	if (event_mpiprobe) {
 		event_mpiprobe = 0;
@@ -786,6 +784,8 @@ static int crk_process_event(void)
 #endif
 		crk_poll_files();
 	}
+
+	event_pending = event_reload;
 
 	return event_abort;
 }
