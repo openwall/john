@@ -363,6 +363,40 @@ static char *ldr_get_field(char **ptr, char field_sep_char)
 	return res;
 }
 
+static int wild_cmp(const char *search_str, const char *full_str)
+{
+	char *pos = strchr(search_str, '*');
+
+	if (pos) {
+		if (pos != strrchr(search_str, '*')) {
+			if (john_main_process)
+				fprintf(stderr, "Only one wildcard allowed in name\n");
+			error();
+		}
+
+		/* Check string before wildcard, if any */
+		if (strncasecmp(full_str, search_str,
+		                (int)(pos - search_str)))
+			return 1;
+		/* Check string after wildcard, if any */
+		if (pos[1]) {
+			int wild_len = strlen(++pos);
+			int full_str_len = strlen(full_str);
+			const char *p;
+
+			if (wild_len > full_str_len)
+				return 1;
+
+			p = &full_str[full_str_len - wild_len];
+
+			return strcasecmp(p, pos);
+		}
+		return 0;
+	} else
+		/* Case-sensitive compare unless wildcard was used */
+		return strcmp(search_str, full_str);
+}
+
 static int ldr_check_list(struct list_main *list, char *s1, char *s2)
 {
 	struct list_entry *current;
@@ -374,13 +408,13 @@ static int ldr_check_list(struct list_main *list, char *s1, char *s2)
 	if (*current->data == '-') {
 		data = current->data + 1;
 		do {
-			if (!strcmp(s1, data) || !strcmp(s2, data)) return 1;
+			if (!wild_cmp(data, s1) || !wild_cmp(data, s2)) return 1;
 			if ((current = current->next)) data = current->data;
 		} while (current);
 	} else {
 		do {
 			data = current->data;
-			if (!strcmp(s1, data) || !strcmp(s2, data)) return 0;
+			if (!wild_cmp(data, s1) || !wild_cmp(data, s2)) return 0;
 		} while ((current = current->next));
 		return 1;
 	}

@@ -62,6 +62,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Reduce repeated log messages with fork/node/MPI.  [magnum; 2019]
 
+- Allow wildcard for --users/groups/shells options. Also makes them case
+  insensitive when wildcard is used.  [magnum; 2019]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
