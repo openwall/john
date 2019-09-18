@@ -1203,8 +1203,9 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
 
   dupe_check = (options.flags & FLG_DUPESUPP) ? 1 : 0;
 
-  log_event("Proceeding with PRINCE (" REALGMP " version)%s",
-            loopback ? " in loopback mode" : "");
+  if (john_main_process)
+    log_event("Proceeding with PRINCE (" REALGMP " version)%s",
+              loopback ? " in loopback mode" : "");
 
   /* This mode defaults to length 16 (unless lowered by format)... */
   pw_min = MAX(PW_MIN, options.eff_minlength);

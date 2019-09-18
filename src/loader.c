@@ -1449,7 +1449,8 @@ static void ldr_sort_salts(struct db_main *db)
 	if (db->salt_count < 2)
 		return;
 
-	log_event("Sorting salts, for performance");
+	if (john_main_process)
+		log_event("Sorting salts, for performance");
 
 	fmt_salt_compare = db->format->methods.salt_compare;
 #ifndef DEBUG_SALT_SORT
