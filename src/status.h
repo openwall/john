@@ -92,4 +92,8 @@ extern unsigned int status_get_time(void);
  */
 extern void status_print(void);
 
+/*
+ * Keep tracks of what "Remaining" figures we've already printed.
+ */
+extern void status_update_counts(void);
 #endif

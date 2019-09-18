@@ -39,6 +39,7 @@
 #include "signals.h"
 #include "mask.h"
 #include "subsets.h"
+#include "john.h"
 #include "john_mpi.h"
 #include "gpu_common.h"
 
@@ -46,7 +47,7 @@ struct status_main status;
 unsigned int status_restored_time = 0;
 static const char* timeFmt = NULL;
 static const char* timeFmt24 = NULL;
-static int showcand;
+static int showcand, last_count;
 double (*status_get_progress)(void) = NULL;
 
 static clock_t get_time(void)
@@ -58,6 +59,11 @@ static clock_t get_time(void)
 
 	return times(&buf);
 #endif
+}
+
+void status_update_counts(void)
+{
+	last_count = status.guess_count;
 }
 
 void status_init(double (*get_progress)(void), int start)
@@ -79,6 +85,8 @@ void status_init(double (*get_progress)(void), int start)
 	showcand = cfg_get_bool(SECTION_OPTIONS, NULL, "StatusShowCandidates", 0);
 
 	clk_tck_init();
+
+	status_update_counts();
 }
 
 void status_ticks_overflow_safety(void)
@@ -344,6 +352,14 @@ static void status_print_cracking(double percent)
 #endif
 	if (n > 0)
 		p += n;
+
+	if (john_main_process && status.guess_count > last_count &&
+	    cfg_get_bool(SECTION_OPTIONS, NULL, "ShowRemainOnStatus", 0)) {
+		n = sprintf(p, "%s\n", crk_loaded_counts());
+		if (n > 0)
+			p += n;
+		status_update_counts();
+	}
 
 	fwrite(s, p - s, 1, stderr);
 }
