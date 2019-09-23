@@ -109,6 +109,7 @@ static struct log_file log = {NULL, NULL, NULL, 0, -1};
 static struct log_file pot = {NULL, NULL, NULL, 0, -1};
 
 static char *admin_start, *admin_end, *admin_string, *terminal_reset;
+static char *other_start, *other_end;
 static int in_logger, show_admins;
 
 #if !(__MINGW32__ || _MSC_VER)
@@ -381,10 +382,14 @@ void log_init(char *log_name, char *pot_name, char *session)
 		                                      "MarkAdminStart"));
 		admin_end = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
 		                                    "MarkAdminEnd"));
+		other_start = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
+		                                      "MarkOtherStart"));
+		other_end = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
+		                                    "MarkOtherEnd"));
 		terminal_reset = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
 		                                         "TerminalReset"));
 	} else
-		admin_start = admin_end = terminal_reset = "";
+		admin_start = admin_end = other_start = other_end = terminal_reset = "";
 
 	admin_string = parse_esc(cfg_get_param(SECTION_OPTIONS, NULL,
 	                                       "MarkAdminString"));
@@ -510,8 +515,8 @@ static int is_admin(char *login, char *uid)
 	return 0;
 }
 
-#define ADM_START admin ? admin_start : ""
-#define ADM_END   admin ? admin_end : ""
+#define ADM_START admin ? admin_start : other_start
+#define ADM_END   admin ? admin_end : other_end
 
 void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
                char *store_plain, char field_sep, int index)
@@ -545,10 +550,9 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 
 			spacer[len > 16 ? 0 : 16 - len] = 0;
 
-			printf("%s%s (%s%s%s%s%s%s)\n",
-			       rep_plain, spacer,
-			       ADM_START, login, uid_sep, uid_out, ADM_END,
-			       terminal_reset);
+			printf("%s%s%s%s (%s%s%s%s%s%s)\n", ADM_START, rep_plain, ADM_END,
+			       spacer, ADM_START, login, ADM_END,
+			       uid_sep, uid_out, terminal_reset);
 
 			if (options.fork)
 				fflush(stdout);
