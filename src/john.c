@@ -888,28 +888,29 @@ static void john_mpi_wait(void)
 }
 #endif
 
-static char *john_loaded_counts(void)
+char *john_loaded_counts(struct db_main *db, char *prelude)
 {
-	static char s_loaded_counts[128];
+	static char buf[128];
 	char nbuf[24];
 
-	if (database.password_count == 1)
-		return "1 password hash";
+	if (db->password_count == 0)
+		return "No remaining hashes";
 
-	int p = sprintf(s_loaded_counts,
-	                "%d password hashes with %s different salts",
-	                database.password_count,
-	                database.salt_count > 1 ?
-	                jtr_itoa(database.salt_count, nbuf, 24, 10) : "no");
+	if (db->password_count == 1) {
+		sprintf(buf, "%s 1 password hash", prelude);
+		return buf;
+	}
 
-	int b = (10 * database.password_count + (database.salt_count / 2)) /
-		database.salt_count;
+	int p = sprintf(buf, "%s %d password hashes with %s different salts",
+	                prelude, db->password_count, db->salt_count > 1 ?
+	                jtr_itoa(db->salt_count, nbuf, 24, 10) : "no");
 
-	if (database.salt_count > 1 && b > 10)
-		sprintf(s_loaded_counts + p, " (%d.%dx same-salt boost)",
-		        b / 10, b % 10);
+	int b = (10 * db->password_count + (db->salt_count / 2)) / db->salt_count;
 
-	return s_loaded_counts;
+	if (p >= 0 && db->salt_count > 1 && b > 10)
+		sprintf(buf + p, " (%d.%dx same-salt boost)", b / 10, b % 10);
+
+	return buf;
 }
 
 static void john_load_conf(void)
@@ -1316,7 +1317,8 @@ static void john_load(void)
 					log_event("Continuing an interrupted session");
 				else
 					log_event("Starting a new session");
-				log_event("Loaded a total of %s", john_loaded_counts());
+				log_event("%s", john_loaded_counts(&database,
+				                                   "Loaded a total of"));
 			}
 			/* only allow --device for OpenCL or ZTEX formats */
 #if HAVE_OPENCL || HAVE_ZTEX
@@ -1357,8 +1359,8 @@ static void john_load(void)
 #endif
 			fmt_init(database.format);
 			if (john_main_process)
-			printf("Loaded %s (%s%s%s [%s])\n",
-			    john_loaded_counts(),
+			printf("%s (%s%s%s [%s])\n",
+			    john_loaded_counts(&database, "Loaded"),
 			    database.format->params.label,
 			    database.format->params.format_name[0] ? ", " : "",
 			    database.format->params.format_name,
@@ -1390,8 +1392,8 @@ static void john_load(void)
 			i = FMT_TUNABLE_COSTS;
 		} else
 		if (john_main_process && database.password_count < total) {
-			log_event("Remaining %s", john_loaded_counts());
-			printf("Remaining %s\n", john_loaded_counts());
+			log_event("%s", john_loaded_counts(&database, "Remaining"));
+			printf("%s\n", john_loaded_counts(&database, "Remaining"));
 		}
 
 		if (john_main_process)

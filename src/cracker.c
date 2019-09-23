@@ -472,29 +472,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 
 char *crk_loaded_counts(void)
 {
-	static char s_loaded_counts[128];
-	char nbuf[24];
-
-	if (crk_db->password_count == 0)
-		return "No remaining hashes";
-
-	if (crk_db->password_count == 1)
-		return "Remaining 1 hash";
-
-	int p = sprintf(s_loaded_counts,
-	                "Remaining %d hashes with %s different salts",
-	                crk_db->password_count,
-	                crk_db->salt_count > 1 ?
-	                jtr_itoa(crk_db->salt_count, nbuf, 24, 10) : "no");
-
-	int b = (10 * crk_db->password_count + (crk_db->salt_count / 2)) /
-		crk_db->salt_count;
-
-	if (crk_db->salt_count > 1 && b > 10)
-		sprintf(s_loaded_counts + p, " (%d.%dx same-salt boost)",
-		        b / 10, b % 10);
-
-	return s_loaded_counts;
+	return john_loaded_counts(crk_db, "Remaining");
 }
 
 static int crk_remove_pot_entry(char *ciphertext)

@@ -10,6 +10,8 @@
 #ifndef _JOHN_JOHN_H
 #define _JOHN_JOHN_H
 
+#include "loader.h"
+
 /*
  * Are we the main process?  (The only process or the parent of a group of
  * child processes.)
@@ -41,5 +43,8 @@ extern char *john_terminal_locale;
 /* Current target for options.max_cands */
 extern unsigned long long john_max_cands;
 extern int wildcard_format;
+
+/* Print loaded/remaining counts */
+extern char *john_loaded_counts(struct db_main *db, char *prelude);
 
 #endif
