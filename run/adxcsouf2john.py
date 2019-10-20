@@ -10,9 +10,6 @@
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
 #
-# Special thanks goes to Michael Dim for helping me with access to IBM/Toshiba
-# 4690 v6.3 OS.
-#
 # Notes,
 #
 # 1. IBM/Toshiba 4690 v6.3 OS runs fine under VMware ESXi 6.7 (Select "Other

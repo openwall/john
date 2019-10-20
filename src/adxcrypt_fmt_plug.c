@@ -9,9 +9,6 @@
  *
  * The ADXCRYPT algorithm was reverse engineered by Dhiru Kholia on
  * 15-August-2018.
- *
- * Special thanks goes to Michael Dim for helping me with access to IBM/Toshiba
- * 4690 v6.3 OS.
  */
 
 #if FMT_EXTERNS_H
