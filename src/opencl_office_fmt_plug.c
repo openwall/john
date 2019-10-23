@@ -7,7 +7,6 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
-
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
@@ -39,10 +38,6 @@ john_register_one(&fmt_opencl_office);
 #define ALGORITHM_NAME      OCL_ALGORITHM_NAME
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0x107
-#define BINARY_SIZE         0
-#define BINARY_ALIGN        1
-#define SALT_SIZE           sizeof(*cur_salt)
-#define SALT_ALIGN          sizeof(int)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 
@@ -102,13 +97,13 @@ static ms_office_custom_salt *cur_salt;
 
 static char *saved_key;	/* Password encoded in UCS-2 */
 static int *saved_len;	/* UCS-2 password length, in octets */
-static ms_office_custom_salt *saved_salt;
+static ms_office_binary_blob *blob;
 static ms_office_out *out;	/* Output from kernel */
 static int new_keys;
 static size_t outsize;
 
-static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_state, cl_out;
-static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt, pinned_out;
+static cl_mem cl_saved_key, cl_saved_len, cl_blob, cl_state, cl_out, cl_salt;
+static cl_mem pinned_saved_key, pinned_saved_len, pinned_out, pinned_blob;
 static cl_kernel GenerateSHA1pwhash, Loop0710, Final2007;
 static cl_kernel Generate2010key;
 static cl_kernel GenerateSHA512pwhash, Loop13, Generate2013key;
@@ -168,13 +163,16 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	for (i = 0; i < gws; i++)
 		saved_len[i] = bench_len;
 
-	pinned_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(ms_office_custom_salt), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
-	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(ms_office_custom_salt), NULL, &ret_code);
+	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(ms_office_custom_salt), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating device memory");
-	saved_salt = (ms_office_custom_salt*) clEnqueueMapBuffer(queue[gpu_id], pinned_salt, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(ms_office_custom_salt), 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
-	memset(saved_salt, 0, sizeof(ms_office_custom_salt));
+
+	pinned_blob = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(ms_office_binary_blob), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
+	cl_blob = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(ms_office_binary_blob), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating device memory");
+	blob = (ms_office_binary_blob*) clEnqueueMapBuffer(queue[gpu_id], pinned_blob, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(ms_office_binary_blob), 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory blob");
+	memset(blob, 0, sizeof(ms_office_binary_blob));
 
 	cl_state = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(ms_office_state) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating device state buffer");
@@ -203,15 +201,17 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	HANDLE_CLERROR(clSetKernelArg(Final2007, 0, sizeof(cl_mem), (void*)&cl_state), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(Final2007, 1, sizeof(cl_mem), (void*)&cl_out), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(Final2007, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(Final2007, 2, sizeof(cl_mem), (void*)&cl_blob), "Error setting argument 2");
 
 	HANDLE_CLERROR(clSetKernelArg(Generate2010key, 0, sizeof(cl_mem), (void*)&cl_state), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(Generate2010key, 1, sizeof(cl_mem), (void*)&cl_out), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(Generate2010key, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(Generate2010key, 3, sizeof(cl_mem), (void*)&cl_blob), "Error setting argument 3");
 
 	HANDLE_CLERROR(clSetKernelArg(Generate2013key, 0, sizeof(cl_mem), (void*)&cl_state), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(Generate2013key, 1, sizeof(cl_mem), (void*)&cl_out), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(Generate2013key, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(Generate2013key, 3, sizeof(cl_mem), (void*)&cl_blob), "Error setting argument 3");
 }
 
 static void release_clobj(void)
@@ -219,17 +219,18 @@ static void release_clobj(void)
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_out, out, 0, NULL, NULL), "Error Unmapping out");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
 	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
-	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
+	HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_blob, blob, 0, NULL, NULL), "Error Unmapping blob");
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
 	HANDLE_CLERROR(clReleaseMemObject(pinned_out), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_key), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(pinned_saved_len), "Release GPU buffer");
-	HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release GPU buffer");
+	HANDLE_CLERROR(clReleaseMemObject(pinned_blob), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_out), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release GPU buffer");
+	HANDLE_CLERROR(clReleaseMemObject(cl_blob), "Release GPU buffer");
 	HANDLE_CLERROR(clReleaseMemObject(cl_state), "Release GPU buffer");
 }
 
@@ -286,8 +287,8 @@ static char *get_key(int index)
 static void set_salt(void *salt)
 {
 	cur_salt = (ms_office_custom_salt *)salt;
-	memcpy(saved_salt, cur_salt, sizeof(ms_office_custom_salt));
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, sizeof(ms_office_custom_salt), saved_salt, 0, NULL, NULL), "failed in clEnqueueWriteBuffer saved_salt");
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, sizeof(ms_office_custom_salt), cur_salt, 0, NULL, NULL), "Copy setting to gpu");
 	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
@@ -362,8 +363,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			opencl_process_event();
 		}
 
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Generate2013key, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
-
 	} else { /* 2007 or 2010 */
 
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], GenerateSHA1pwhash, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
@@ -373,6 +372,29 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 			opencl_process_event();
 		}
+
+	}
+
+	return count;
+}
+
+static int cmp_all(void *binary, int count)
+{
+	int index;
+	size_t gws;
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+	fmt_data *blob_bin = binary;
+	ms_office_binary_blob *binary_blob = blob_bin->blob;
+
+	gws = GET_NEXT_MULTIPLE(count, local_work_size);
+
+	memcpy(blob, binary_blob, sizeof(ms_office_binary_blob));
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_blob, CL_FALSE, 0, sizeof(ms_office_binary_blob), blob, 0, NULL, NULL), "failed in clEnqueueWriteBuffer blob");
+
+	if (cur_salt->version == 2013) {
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Generate2013key, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
+
+	} else { /* 2007 or 2010 */
 
 		if (cur_salt->version == 2007)
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Final2007, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
@@ -384,15 +406,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// Get results
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_out, CL_TRUE, 0, outsize, out, 0, NULL, multi_profilingEvent[5]), "failed in reading results");
 
-	return count;
-}
-
-static int cmp_all(void *binary, int count)
-{
-	int i;
-
-	for (i = 0; i < count; i++)
-		if (out[i].cracked)
+	for (index = 0; index < count; index++)
+		if (out[index].cracked)
 			return 1;
 	return 0;
 }
@@ -422,7 +437,7 @@ struct fmt_main fmt_opencl_office = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_BLOB,
 		{
 			"MS Office version",
 			"iteration count",
@@ -436,7 +451,7 @@ struct fmt_main fmt_opencl_office = {
 		fmt_default_prepare,
 		ms_office_common_valid,
 		fmt_default_split,
-		fmt_default_binary,
+		ms_office_common_binary,
 		ms_office_common_get_salt,
 		{
 			ms_office_common_version,

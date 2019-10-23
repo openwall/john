@@ -21,15 +21,18 @@ typedef struct ms_office_salt_t {
 		uchar c[16];
 		uint  w[16/4];
 		ulong l[16/8];
-	} osalt;
-	uchar encryptedVerifier[16];
-	uchar encryptedVerifierHash[32];
-	int   version;
-	int   verifierHashSize;
-	int   keySize;
-	int   saltSize;
-	int   spinCount;
+	} salt;
+	uint   version;
+	uint   verifierHashSize;
+	uint   keySize;
+	uint   saltSize;
+	uint   spinCount;
 } ms_office_salt;
+
+typedef struct ms_office_blob_t {
+	uint8_t encryptedVerifier[16];
+	uint8_t encryptedVerifierHash[32];
+} ms_office_blob;
 
 typedef struct {
 	uint pass;
@@ -64,7 +67,7 @@ __kernel void GenerateSHA1pwhash(__global const uint *unicode_pw,
 	/* Initial hash of salt + password */
 	/* The ending 0x80 is already in the buffer */
 	for (i = 0; i < 4; i++)
-		W[i] = SWAP32(salt->osalt.w[i]);
+		W[i] = SWAP32(salt->salt.w[i]);
 	for (i = 4; i < 16; i++)
 		W[i] = SWAP32(unicode_pw[gid * (UNICODE_LENGTH>>2) + i - 4]);
 	if (pw_len[gid] < 40) {
@@ -119,7 +122,7 @@ void HashLoop0710(__global ms_office_state *state)
 __kernel
 void Final2007(__global ms_office_state *state,
                __global ms_office_out *out,
-               __constant ms_office_salt *salt)
+               __constant ms_office_blob *blob)
 {
 	uint i;
 	uint W[16];
@@ -188,8 +191,8 @@ void Final2007(__global ms_office_state *state,
 		output.w[i] = SWAP32(output.w[i]);
 
 	AES_set_decrypt_key(output.c, 128, &akey);
-	AES_ecb_decrypt(salt->encryptedVerifier, decryptedVerifier.c, 16, &akey);
-	AES_ecb_decrypt(salt->encryptedVerifierHash, decryptedVerifierHash.c, 16, &akey);
+	AES_ecb_decrypt(blob->encryptedVerifier, decryptedVerifier.c, 16, &akey);
+	AES_ecb_decrypt(blob->encryptedVerifierHash, decryptedVerifierHash.c, 16, &akey);
 
 	for (i = 0; i < 4; i++)
 		W[i] = SWAP32(decryptedVerifier.w[i]);
@@ -219,7 +222,7 @@ inline void Decrypt(__constant ms_office_salt *salt,
 	AES_KEY akey;
 
 	for (i = 0; i < 16; i++)
-		iv[i] = salt->osalt.c[i];
+		iv[i] = salt->salt.c[i];
 
 	AES_set_decrypt_key(verifierInputKey, salt->keySize, &akey);
 	AES_cbc_decrypt(encryptedVerifier, decryptedVerifier, length, &akey, iv);
@@ -231,7 +234,8 @@ __constant uint ValueBlockKeyInt[] = { 0xd7aa0f6d, 0x3061344e };
 __kernel
 void Generate2010key(__global ms_office_state *state,
                      __global ms_office_out *out,
-                     __constant ms_office_salt *salt)
+                     __constant ms_office_salt *salt,
+                     __constant ms_office_blob *blob)
 {
 	uint i, j, result = 1;
 	uint W[16];
@@ -298,10 +302,10 @@ void Generate2010key(__global ms_office_state *state,
 	for (i = 0; i < 4; i++)
 		output[1].w[i] = SWAP32(output[1].w[i]);
 
-	Decrypt(salt, output[0].c, salt->encryptedVerifier,
+	Decrypt(salt, output[0].c, blob->encryptedVerifier,
 	        decryptedVerifierHashInputBytes.c, 16);
 
-	Decrypt(salt, output[1].c, salt->encryptedVerifierHash,
+	Decrypt(salt, output[1].c, blob->encryptedVerifierHash,
 	        decryptedVerifierHashBytes.c, 32);
 
 	for (i = 0; i < 4; i++)
@@ -335,7 +339,7 @@ __kernel void GenerateSHA512pwhash(__global const ulong *unicode_pw,
 	/* Initial hash of salt + password */
 	/* The ending 0x80 is already in the buffer */
 	for (i = 0; i < 2; i++)
-		W[i] = SWAP64(salt->osalt.l[i]);
+		W[i] = SWAP64(salt->salt.l[i]);
 	for (i = 2; i < 14; i++)
 		W[i] = SWAP64(unicode_pw[gid * (UNICODE_LENGTH >> 3) + i - 2]);
 	W[14] = 0;
@@ -382,7 +386,8 @@ __constant ulong ValueBlockKeyLong = 0xd7aa0f6d3061344eUL;
 __kernel
 void Generate2013key(__global ms_office_state *state,
                      __global ms_office_out *out,
-                     __constant ms_office_salt *salt)
+                     __constant ms_office_salt *salt,
+                     __constant ms_office_blob *blob)
 {
 	uint i, j, result = 1;
 	ulong W[4][16];
@@ -437,10 +442,10 @@ void Generate2013key(__global ms_office_state *state,
 	for (i = 0; i < 8; i++)
 		output[2][i] = SWAP64(output[2][i]);
 
-	Decrypt(salt, (uchar*)output[1], salt->encryptedVerifier,
+	Decrypt(salt, (uchar*)output[1], blob->encryptedVerifier,
 	        (uchar*)decryptedVerifierHashInputBytes, 16);
 
-	Decrypt(salt, (uchar*)output[2], salt->encryptedVerifierHash,
+	Decrypt(salt, (uchar*)output[2], blob->encryptedVerifierHash,
 	        (uchar*)decryptedVerifierHashBytes, 32);
 
 	for (i = 0; i < 2; i++)

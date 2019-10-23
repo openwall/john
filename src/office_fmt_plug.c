@@ -1,6 +1,10 @@
 /*
- * Office 2007 cracker patch for JtR. Hacked together during March of 2012 by
- * Dhiru Kholia <dhiru.kholia at gmail.com>.
+ * Office 2007 cracker patch for JtR. This software is
+ * Copyright (c) 2012 Dhiru Kholia <dhiru.kholia at gmail.com>.
+ * Copyright (c) 2012-2019 magnum
+ * and is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #if FMT_EXTERNS_H
@@ -37,23 +41,20 @@ john_register_one(&fmt_office);
 #define BENCHMARK_COMMENT        ""
 #define BENCHMARK_LENGTH         0x107
 #define PLAINTEXT_LENGTH         125
-#define BINARY_SIZE              16
-#define SALT_SIZE                sizeof(*cur_salt)
-#define BINARY_ALIGN             4
-#define SALT_ALIGN               sizeof(int)
+
 #ifdef SIMD_COEF_32
-#define GETPOS_512W(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i*8)&(0xffffffff-7))*SIMD_COEF_64 + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#define GETOUTPOS_512W(i, index) ( (index&(SIMD_COEF_64-1))*8 + ((i*8)&(0xffffffff-7))*SIMD_COEF_64 + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
+#define GETPOS_512W(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i*8)&(0xffffffff-7))*SIMD_COEF_64 + (uint32_t)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETOUTPOS_512W(i, index) ( (index&(SIMD_COEF_64-1))*8 + ((i*8)&(0xffffffff-7))*SIMD_COEF_64 + (uint32_t)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
 #if ARCH_LITTLE_ENDIAN==1
-#define GETPOS_1(i, index)       ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
-#define GETPOS_512(i, index)     ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#define GETOUTPOS_512(i, index)  ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
+#define GETPOS_1(i, index)       ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (uint32_t)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS_512(i, index)     ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (uint32_t)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETOUTPOS_512(i, index)  ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (uint32_t)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
 #else
-#define GETPOS_1(i, index)       ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
-#define GETPOS_512(i, index)     ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
-#define GETOUTPOS_512(i, index)  ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
+#define GETPOS_1(i, index)       ( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + ((i)&3) + (uint32_t)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4 )
+#define GETPOS_512(i, index)     ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (uint32_t)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
+#define GETOUTPOS_512(i, index)  ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + ((i)&7) + (uint32_t)index/SIMD_COEF_64*8*SIMD_COEF_64*8 )
 #endif
-#define SHA1_LOOP_CNT            (SIMD_COEF_32*SIMD_PARA_SHA1)
+#define SHA1_LOOP_CNT            (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #define SHA512_LOOP_CNT          (SIMD_COEF_64 * SIMD_PARA_SHA512)
 #define MIN_KEYS_PER_CRYPT       (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA512)
 #define MAX_KEYS_PER_CRYPT       (SIMD_COEF_32 * SIMD_PARA_SHA1 * SIMD_PARA_SHA512)
@@ -119,17 +120,51 @@ static ms_office_custom_salt *cur_salt;
 static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 /* UCS-2 password length, in octets */
 static int *saved_len;
-static uint32_t (*crypt_key)[4];
 static int *cracked;
 
-/* Office 2010/2013 */
-static const unsigned char encryptedVerifierHashInputBlockKey[] = { 0xfe, 0xa7, 0xd2, 0x76, 0x3b, 0x4b, 0x9e, 0x79 };
-static const unsigned char encryptedVerifierHashValueBlockKey[] = { 0xd7, 0xaa, 0x0f, 0x6d, 0x30, 0x61, 0x34, 0x4e };
+static uint8_t (*encryptionKey)[20];
+static uint8_t (*verifierKeys1)[64];
+static uint8_t (*verifierKeys512)[128];
 
-static unsigned char *DeriveKey(unsigned char *hashValue, unsigned char *X1)
+/* Office 2010/2013 */
+static const uint8_t encryptedVerifierHashInputBlockKey[] = {
+	0xfe, 0xa7, 0xd2, 0x76, 0x3b, 0x4b, 0x9e, 0x79
+};
+static const uint8_t encryptedVerifierHashValueBlockKey[] = {
+	0xd7, 0xaa, 0x0f, 0x6d, 0x30, 0x61, 0x34, 0x4e
+};
+
+#define dynalloc(var) var = mem_calloc(sizeof(*var), self->params.max_keys_per_crypt)
+
+static void init(struct fmt_main *self)
+{
+	omp_autotune(self, OMP_SCALE);
+
+	dynalloc(saved_key);
+	dynalloc(saved_len);
+	dynalloc(cracked);
+	dynalloc(encryptionKey);
+	dynalloc(verifierKeys1);
+	dynalloc(verifierKeys512);
+
+	if (options.target_enc == UTF_8)
+		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
+}
+
+static void done(void)
+{
+	MEM_FREE(cracked);
+	MEM_FREE(saved_len);
+	MEM_FREE(saved_key);
+	MEM_FREE(encryptionKey);
+	MEM_FREE(verifierKeys1);
+	MEM_FREE(verifierKeys512);
+}
+
+static uint8_t *DeriveKey(uint8_t *hashValue, uint8_t *X1)
 {
 	int i;
-	unsigned char derivedKey[64];
+	uint8_t derivedKey[64];
 	SHA_CTX ctx;
 
 	// This is step 4a in 2.3.4.7 of MS_OFFCRYPT version 1.0
@@ -142,7 +177,7 @@ static unsigned char *DeriveKey(unsigned char *hashValue, unsigned char *X1)
 	SHA1_Update(&ctx, derivedKey, 64);
 	SHA1_Final(X1, &ctx);
 
-	if (cur_salt->verifierHashSize > cur_salt->keySize/8)
+	if (cur_salt->verifierHashSize > cur_salt->keySize / 8)
 		return X1;
 
 	/* TODO: finish up this function */
@@ -157,98 +192,120 @@ static unsigned char *DeriveKey(unsigned char *hashValue, unsigned char *X1)
 }
 
 #ifdef SIMD_COEF_32
-static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP_CNT][20])
+static void GeneratePasswordHashUsingSHA1(int idx,
+                                          uint8_t final[SHA1_LOOP_CNT][20])
 {
-	unsigned char hashBuf[20];
-	/* H(0) = H(salt, password)
+	uint8_t hashBuf[20];
+	/*
+	 * H(0) = H(salt, password)
 	 * hashBuf = SHA1Hash(salt, password);
-	 * create input buffer for SHA1 from salt and unicode version of password */
-	unsigned char X1[20];
+	 * create input buffer for SHA1 from salt and unicode version of password
+	 */
+	uint8_t X1[20];
 	SHA_CTX ctx;
-	unsigned char _IBuf[64*SHA1_LOOP_CNT+MEM_ALIGN_CACHE], *keys;
+	uint8_t _IBuf[64*SHA1_LOOP_CNT + MEM_ALIGN_CACHE], *keys;
 	uint32_t *keys32;
-	unsigned i, j;
+	uint32_t i, j;
 
-	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
+	keys = (uint8_t*)mem_align(_IBuf, MEM_ALIGN_CACHE);
 	keys32 = (uint32_t*)keys;
-	memset(keys, 0, 64*SHA1_LOOP_CNT);
+	memset(keys, 0, 64 * SHA1_LOOP_CNT);
 
-	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+	for (i = 0; i < SHA1_LOOP_CNT; i++) {
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
-		SHA1_Update(&ctx, saved_key[idx+i], saved_len[idx+i]);
+		SHA1_Update(&ctx, cur_salt->salt, cur_salt->saltSize);
+		SHA1_Update(&ctx, saved_key[idx + i], saved_len[idx + i]);
 		SHA1_Final(hashBuf, &ctx);
 
-		/* Generate each hash in turn
+		/*
+		 * Generate each hash in turn
 		 * H(n) = H(i, H(n-1))
-		 * hashBuf = SHA1Hash(i, hashBuf); */
+		 * hashBuf = SHA1Hash(i, hashBuf);
+		 */
 
-		// Create a byte array of the integer and put at the front of the input buffer
-		// 1.3.6 says that little-endian byte ordering is expected
-		for (j = 4; j < 24; ++j)
+		/*
+		 * Create a byte array of the integer and put at the front
+		 * of the input buffer.
+		 * 1.3.6 says that little-endian byte ordering is expected.
+		 */
+		for (j = 4; j < 24; j++)
 			keys[GETPOS_1(j, i)] = hashBuf[j-4];
 		keys[GETPOS_1(j, i)] = 0x80;
-		// 24 bytes of crypt data (192 bits).
+		/* 24 bytes of crypt data (192 bits). */
 		keys[GETPOS_1(63, i)] = 192;
 	}
-	// we do 1 less than actual number of iterations here.
-	for (i = 0; i < MS_OFFICE_2007_ITERATIONS-1; i++) {
-		for (j = 0; j < SHA1_LOOP_CNT; ++j) {
-			keys[GETPOS_1(0, j)] = i&0xff;
-			keys[GETPOS_1(1, j)] = i>>8;
+	/* we do 1 less than actual number of iterations here. */
+	for (i = 0; i < MS_OFFICE_2007_ITERATIONS - 1; i++) {
+		for (j = 0; j < SHA1_LOOP_CNT; j++) {
+			keys[GETPOS_1(0, j)] = i & 0xff;
+			keys[GETPOS_1(1, j)] = i >> 8;
 		}
-		// Here we output to 4 bytes past start of input buffer.
-		SIMDSHA1body(keys, &keys32[SIMD_COEF_32], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+		/* Here we output to 4 bytes past start of input buffer. */
+		SIMDSHA1body(keys, &keys32[SIMD_COEF_32], NULL,
+		             SSEi_MIXED_IN | SSEi_OUTPUT_AS_INP_FMT);
 	}
-	// last iteration is output to start of input buffer, then 32 bit 0 appended.
-	// but this is still ends up being 24 bytes of crypt data.
-	for (j = 0; j < SHA1_LOOP_CNT; ++j) {
-		keys[GETPOS_1(0, j)] = i&0xff;
-		keys[GETPOS_1(1, j)] = i>>8;
+	/*
+	 * Last iteration is output to start of input buffer,
+	 * then 32 bit 0 appended.
+	 * but this is still ends up being 24 bytes of crypt data.
+	 */
+	for (j = 0; j < SHA1_LOOP_CNT; j++) {
+		keys[GETPOS_1(0, j)] = i & 0xff;
+		keys[GETPOS_1(1, j)] = i >> 8;
 	}
-	SIMDSHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+	SIMDSHA1body(keys, keys32, NULL, SSEi_MIXED_IN | SSEi_OUTPUT_AS_INP_FMT);
 
-	// Finally, append "block" (0) to H(n)
-	// hashBuf = SHA1Hash(hashBuf, 0);
-	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+	/*
+	 * Finally, append "block" (0) to H(n)
+	 * hashBuf = SHA1Hash(hashBuf, 0);
+	 */
+	for (i = 0; i < SHA1_LOOP_CNT; i++) {
 		keys[GETPOS_1(20,i)] = 0;
 		keys[GETPOS_1(21,i)] = 0;
 		keys[GETPOS_1(22,i)] = 0;
 		keys[GETPOS_1(23,i)] = 0;
 	}
 
-	SIMDSHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA1body(keys, keys32, NULL, SSEi_MIXED_IN | SSEi_FLAT_OUT);
 
-	// Now convert back into a 'flat' value, which is a flat array.
-	for (i = 0; i < SHA1_LOOP_CNT; ++i)
-		memcpy(final[i], DeriveKey(&keys[20*i], X1), cur_salt->keySize/8);
+	/* Now convert back into a 'flat' value, which is a flat array. */
+	for (i = 0; i < SHA1_LOOP_CNT; i++)
+		memcpy(final[i], DeriveKey(&keys[20 * i], X1), cur_salt->keySize / 8);
 }
 #else
-// for non MMX, SHA1_LOOP_CNT is 1
-static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP_CNT][20])
+// for non SIMD, SHA1_LOOP_CNT is 1
+static void GeneratePasswordHashUsingSHA1(int idx,
+                                          uint8_t final[SHA1_LOOP_CNT][20])
 {
-	unsigned char hashBuf[20], *key;
-	UTF16 *passwordBuf=saved_key[idx];
-	int passwordBufSize=saved_len[idx];
-	/* H(0) = H(salt, password)
+	uint8_t hashBuf[20], *key;
+	UTF16 *passwordBuf = saved_key[idx];
+	int passwordBufSize = saved_len[idx];
+	/*
+	 * H(0) = H(salt, password)
 	 * hashBuf = SHA1Hash(salt, password);
-	 * create input buffer for SHA1 from salt and unicode version of password */
-	unsigned int inputBuf[(0x14 + 0x04 + 4) / sizeof(int)];
-	unsigned char X1[20];
+	 * create input buffer for SHA1 from salt and unicode version of password
+	 */
+	uint32_t inputBuf[(0x14 + 0x04 + 4) / sizeof(int)];
+	uint8_t X1[20];
 	int i;
 	SHA_CTX ctx;
 
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
+	SHA1_Update(&ctx, cur_salt->salt, cur_salt->saltSize);
 	SHA1_Update(&ctx, passwordBuf, passwordBufSize);
 	SHA1_Final(hashBuf, &ctx);
 
-	/* Generate each hash in turn
+	/*
+	 * Generate each hash in turn
 	 * H(n) = H(i, H(n-1))
-	 * hashBuf = SHA1Hash(i, hashBuf); */
+	 * hashBuf = SHA1Hash(i, hashBuf);
+	 */
 
-	// Create a byte array of the integer and put at the front of the input buffer
-	// 1.3.6 says that little-endian byte ordering is expected
+	/*
+	 * Create a byte array of the integer and put at the front
+	 * of the input buffer.
+	 * 1.3.6 says that little-endian byte ordering is expected.
+	 */
 	memcpy(&inputBuf[1], hashBuf, 20);
 	for (i = 0; i < MS_OFFICE_2007_ITERATIONS; i++) {
 #if ARCH_LITTLE_ENDIAN
@@ -256,13 +313,15 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 #else
 		*inputBuf = JOHNSWAP(i);
 #endif
-		// 'append' the previously generated hash to the input buffer
+		/* 'append' the previously generated hash to the input buffer. */
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
-		SHA1_Final((unsigned char*)&inputBuf[1], &ctx);
+		SHA1_Final((uint8_t*)&inputBuf[1], &ctx);
 	}
-	// Finally, append "block" (0) to H(n)
-	// hashBuf = SHA1Hash(hashBuf, 0);
+	/*
+	 * Finally, append "block" (0) to H(n)
+	 * hashBuf = SHA1Hash(hashBuf, 0);
+	 */
 	memset(&inputBuf[6], 0, 4);
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, &inputBuf[1], 0x14 + 0x04);
@@ -270,83 +329,87 @@ static void GeneratePasswordHashUsingSHA1(int idx, unsigned char final[SHA1_LOOP
 
 	key = DeriveKey(hashBuf, X1);
 
-	// Should handle the case of longer key lengths as shown in 2.3.4.9
-	// Grab the key length bytes of the final hash as the encrypytion key
-	memcpy(final[0], key, cur_salt->keySize/8);
+	/*
+	 * Should handle the case of longer key lengths as shown in 2.3.4.9
+	 * Grab the key length bytes of the final hash as the encrypytion key
+	 */
+	memcpy(final[0], key, cur_salt->keySize / 8);
 }
 #endif
 
 #ifdef SIMD_COEF_32
-static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_CNT][64])
+static void GenerateAgileEncryptionKey(int idx,
+                                       uint8_t hashBuf[SHA1_LOOP_CNT][64])
 {
-	unsigned char tmpBuf[20];
+	uint8_t tmpBuf[20], *keys;
 	int hashSize = cur_salt->keySize >> 3;
-	unsigned i, j;
+	uint32_t i, j;
 	SHA_CTX ctx;
-	unsigned char _IBuf[64*SHA1_LOOP_CNT+MEM_ALIGN_CACHE], *keys,
-	              _OBuf[20*SHA1_LOOP_CNT+MEM_ALIGN_CACHE];
-	uint32_t *keys32, (*crypt)[20/4];
+	uint8_t _IBuf[64 * SHA1_LOOP_CNT + MEM_ALIGN_CACHE];
+	uint8_t _OBuf[20 * SHA1_LOOP_CNT + MEM_ALIGN_CACHE];
+	uint32_t *keys32, (*crypt)[20 / 4];
 
 	crypt = (void*)mem_align(_OBuf, MEM_ALIGN_CACHE);
-	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
+	keys = (uint8_t*)mem_align(_IBuf, MEM_ALIGN_CACHE);
 	keys32 = (uint32_t*)keys;
-	memset(keys, 0, 64*SHA1_LOOP_CNT);
+	memset(keys, 0, 64 * SHA1_LOOP_CNT);
 
-	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+	for (i = 0; i < SHA1_LOOP_CNT; i++) {
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
-		SHA1_Update(&ctx, saved_key[idx+i], saved_len[idx+i]);
+		SHA1_Update(&ctx, cur_salt->salt, cur_salt->saltSize);
+		SHA1_Update(&ctx, saved_key[idx + i], saved_len[idx + i]);
 		SHA1_Final(tmpBuf, &ctx);
-		for (j = 4; j < 24; ++j)
-			keys[GETPOS_1(j, i)] = tmpBuf[j-4];
+		for (j = 4; j < 24; j++)
+			keys[GETPOS_1(j, i)] = tmpBuf[j - 4];
 		keys[GETPOS_1(j, i)] = 0x80;
 		// 24 bytes of crypt data (192 bits).
 		keys[GETPOS_1(63, i)] = 192;
 	}
 
 	// we do 1 less than actual number of iterations here.
-	for (i = 0; i < cur_salt->spinCount-1; i++) {
-		for (j = 0; j < SHA1_LOOP_CNT; ++j) {
-			keys[GETPOS_1(0, j)] = i&0xff;
-			keys[GETPOS_1(1, j)] = (i>>8)&0xff;
-			keys[GETPOS_1(2, j)] = i>>16;
+	for (i = 0; i < cur_salt->spinCount - 1; i++) {
+		for (j = 0; j < SHA1_LOOP_CNT; j++) {
+			keys[GETPOS_1(0, j)] = i & 0xff;
+			keys[GETPOS_1(1, j)] = (i >> 8) & 0xff;
+			keys[GETPOS_1(2, j)] = i >> 16;
 		}
 		// Here we output to 4 bytes past start of input buffer.
-		SIMDSHA1body(keys, &keys32[SIMD_COEF_32], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+		SIMDSHA1body(keys, &keys32[SIMD_COEF_32], NULL,
+		             SSEi_MIXED_IN | SSEi_OUTPUT_AS_INP_FMT);
 	}
 	// last iteration is output to start of input buffer, then 32 bit 0 appended.
 	// but this is still ends up being 24 bytes of crypt data.
-	for (j = 0; j < SHA1_LOOP_CNT; ++j) {
-		keys[GETPOS_1(0, j)] = i&0xff;
-		keys[GETPOS_1(1, j)] = (i>>8)&0xff;
-		keys[GETPOS_1(2, j)] = i>>16;
+	for (j = 0; j < SHA1_LOOP_CNT; j++) {
+		keys[GETPOS_1(0, j)] = i & 0xff;
+		keys[GETPOS_1(1, j)] = (i >> 8) & 0xff;
+		keys[GETPOS_1(2, j)] = i >> 16;
 	}
-	SIMDSHA1body(keys, keys32, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+	SIMDSHA1body(keys, keys32, NULL, SSEi_MIXED_IN | SSEi_OUTPUT_AS_INP_FMT);
 
 	// Finally, append "block" (0) to H(n)
-	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
-		for (j = 0; j < 8; ++j)
-			keys[GETPOS_1(20+j, i)] = encryptedVerifierHashInputBlockKey[j];
-		keys[GETPOS_1(20+j, i)] = 0x80;
+	for (i = 0; i < SHA1_LOOP_CNT; i++) {
+		for (j = 0; j < 8; j++)
+			keys[GETPOS_1(20 + j, i)] = encryptedVerifierHashInputBlockKey[j];
+		keys[GETPOS_1(20 + j, i)] = 0x80;
 		// 28 bytes of crypt data (192 bits).
 		keys[GETPOS_1(63, i)] = 224;
 	}
-	SIMDSHA1body(keys, (uint32_t*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
-	for (i = 0; i < SHA1_LOOP_CNT; ++i)
+	SIMDSHA1body(keys, (uint32_t*)crypt, NULL, SSEi_MIXED_IN | SSEi_FLAT_OUT);
+	for (i = 0; i < SHA1_LOOP_CNT; i++)
 		memcpy(hashBuf[i], crypt[i], 20);
 
 	// And second "block" (0) to H(n)
-	for (i = 0; i < SHA1_LOOP_CNT; ++i) {
-		for (j = 0; j < 8; ++j)
-			keys[GETPOS_1(20+j, i)] = encryptedVerifierHashValueBlockKey[j];
+	for (i = 0; i < SHA1_LOOP_CNT; i++) {
+		for (j = 0; j < 8; j++)
+			keys[GETPOS_1(20 + j, i)] = encryptedVerifierHashValueBlockKey[j];
 	}
-	SIMDSHA1body(keys, (uint32_t*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
-	for (i = 0; i < SHA1_LOOP_CNT; ++i)
+	SIMDSHA1body(keys, (uint32_t*)crypt, NULL, SSEi_MIXED_IN | SSEi_FLAT_OUT);
+	for (i = 0; i < SHA1_LOOP_CNT; i++)
 		memcpy(&hashBuf[i][32], crypt[i], 20);
 
 	// Fix up the size per the spec
-	if (20 < hashSize) { // FIXME: Is this ever true?
-		for (i = 0; i < SHA1_LOOP_CNT; ++i) {
+	if (hashSize > 20) { // FIXME: Is this ever true?
+		for (i = 0; i < SHA1_LOOP_CNT; i++) {
 			for (j = 20; j < hashSize; j++) {
 				hashBuf[i][j] = 0x36;
 				hashBuf[i][32 + j] = 0x36;
@@ -355,20 +418,21 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	}
 }
 #else
-static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_CNT][64])
+static void GenerateAgileEncryptionKey(int idx,
+                                       uint8_t hashBuf[SHA1_LOOP_CNT][64])
 {
 	/* H(0) = H(salt, password)
 	 * hashBuf = SHA1Hash(salt, password);
 	 * create input buffer for SHA1 from salt and unicode version of password */
-	UTF16 *passwordBuf=saved_key[idx];
-	int passwordBufSize=saved_len[idx];
+	UTF16 *passwordBuf = saved_key[idx];
+	int passwordBufSize = saved_len[idx];
 	int hashSize = cur_salt->keySize >> 3;
-	unsigned int inputBuf[(28 + 4) / sizeof(int)];
-	unsigned int i;
+	uint32_t inputBuf[(28 + 4) / sizeof(int)];
+	uint32_t i;
 	SHA_CTX ctx;
 
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
+	SHA1_Update(&ctx, cur_salt->salt, cur_salt->saltSize);
 	SHA1_Update(&ctx, passwordBuf, passwordBufSize);
 	SHA1_Final(hashBuf[0], &ctx);
 
@@ -388,7 +452,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 		// 'append' the previously generated hash to the input buffer
 		SHA1_Init(&ctx);
 		SHA1_Update(&ctx, inputBuf, 0x14 + 0x04);
-		SHA1_Final((unsigned char*)&inputBuf[1], &ctx);
+		SHA1_Final((uint8_t*)&inputBuf[1], &ctx);
 	}
 	// Finally, append "block" (0) to H(n)
 	memcpy(&inputBuf[6], encryptedVerifierHashInputBlockKey, 8);
@@ -403,7 +467,7 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 	SHA1_Final(&hashBuf[0][32], &ctx);
 
 	// Fix up the size per the spec
-	if (20 < hashSize) { // FIXME: Is this ever true?
+	if (hashSize > 20) { // FIXME: Is this ever true?
 		for (i = 20; i < hashSize; i++) {
 			hashBuf[0][i] = 0x36;
 			hashBuf[0][32 + i] = 0x36;
@@ -413,30 +477,31 @@ static void GenerateAgileEncryptionKey(int idx, unsigned char hashBuf[SHA1_LOOP_
 #endif
 
 #ifdef SIMD_COEF_64
-static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_LOOP_CNT][128])
+static void GenerateAgileEncryptionKey512(int idx,
+                                          uint8_t hashBuf[SHA512_LOOP_CNT][128])
 {
-	unsigned char tmpBuf[64];
-	unsigned int i, j, k;
+	uint8_t tmpBuf[64], *keys;
+	uint32_t i, j, k;
 	SHA512_CTX ctx;
-	unsigned char _IBuf[128*SHA512_LOOP_CNT+MEM_ALIGN_CACHE], *keys,
-	              _OBuf[64*SHA512_LOOP_CNT+MEM_ALIGN_CACHE];
-	uint64_t *keys64, (*crypt)[64/8];
+	uint8_t _IBuf[128 * SHA512_LOOP_CNT + MEM_ALIGN_CACHE];
+	uint8_t _OBuf[64 * SHA512_LOOP_CNT + MEM_ALIGN_CACHE];
+	uint64_t *keys64, (*crypt)[64 / 8];
 	uint32_t *keys32, *crypt32;
 
 	crypt = (void*)mem_align(_OBuf, MEM_ALIGN_CACHE);
-	keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
+	keys = (uint8_t*)mem_align(_IBuf, MEM_ALIGN_CACHE);
 	keys64 = (uint64_t*)keys;
 	keys32 = (uint32_t*)keys;
 	crypt32 = (uint32_t*)crypt;
 
-	memset(keys, 0, 128*SHA512_LOOP_CNT);
-	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
+	memset(keys, 0, 128 * SHA512_LOOP_CNT);
+	for (i = 0; i < SHA512_LOOP_CNT; i++) {
 		SHA512_Init(&ctx);
-		SHA512_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
-		SHA512_Update(&ctx, saved_key[idx+i], saved_len[idx+i]);
+		SHA512_Update(&ctx, cur_salt->salt, cur_salt->saltSize);
+		SHA512_Update(&ctx, saved_key[idx + i], saved_len[idx + i]);
 		SHA512_Final(tmpBuf, &ctx);
-		for (j = 4; j < 68; ++j)
-			keys[GETPOS_512(j, i)] = tmpBuf[j-4];
+		for (j = 4; j < 68; j++)
+			keys[GETPOS_512(j, i)] = tmpBuf[j - 4];
 		keys[GETPOS_512(j, i)] = 0x80;
 		// 68 bytes of crypt data (0x220 bits).
 		keys[GETPOS_512(127, i)] = 0x20;
@@ -444,116 +509,82 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 	}
 
 	// we do 1 less than actual number of iterations here.
-	for (i = 0; i < cur_salt->spinCount-1; i++) {
+	for (i = 0; i < cur_salt->spinCount - 1; i++) {
 
 		// Iteration counter in first 4 bytes
 		for (j = 0; j < SHA512_LOOP_CNT; j++) {
 			keys[GETPOS_512(0, j)] = i & 0xFF;
-			keys[GETPOS_512(1, j)] = (i>>8) & 0xFF;
-			keys[GETPOS_512(2, j)] = (i>>16) & 0xFF;
-			keys[GETPOS_512(3, j)] = (i>>24) & 0xFF;
+			keys[GETPOS_512(1, j)] = (i >> 8) & 0xFF;
+			keys[GETPOS_512(2, j)] = (i >> 16) & 0xFF;
+			keys[GETPOS_512(3, j)] = (i >> 24) & 0xFF;
 		}
 
 		SIMDSHA512body(keys, (uint64_t*)crypt, NULL, SSEi_MIXED_IN);
 
 		// Then we output to 4 bytes past start of input buffer.
-
-		/* Original code to copy in 64 bytes into offset 4.  Not BE compatible.
 		for (j = 0; j < SHA512_LOOP_CNT; j++) {
-			uint32_t *o = keys32 + (j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*SHA_BUF_SIZ*SIMD_COEF_64;
-			uint32_t *in = crypt32 + (j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*8*SIMD_COEF_64;
-
-			for (k = 0; k < 8; k++) {
-				o[0] = in[1];
-				o += SIMD_COEF_64*2;
-				o[1] = in[0];
-				in += SIMD_COEF_64*2;
-			}
-		}
-		*/
-
-		/* First shot: works good, not endianity bound, but is SLOWER (1/2 speed)
-		for (j = 0; j < SHA512_LOOP_CNT; j++) {
-			for (k = 0; k < 64; k++) {
-				keys[GETPOS_512((k+4), j)] = ((unsigned char*)crypt)[GETOUTPOS_512(k,j)];
-			}
-		}
-		*/
-
-
-		// tweaked original code, swapping uint32_t and this works.
-		// it is very likely this code could be optimized even more, by handling data
-		// in uint64_t items. First and last would still need handled in uint32, but
-		// other 7 elements could be done by reading 2 8 byte values from crypt, shifting
-		// and then placing at one time into input buffer.   I might look into doing that
-		// and see if there is any improvement.  It may also be benefical to look at using
-		// flat buffers here.  Flat buffers would be trivial.  a simple memcpy to move all
-		// 64 bytes at once.  NOTE, in flat model, there is NO way to do this using any
-		// 64 bit assignments. Either the input buffer, or the crypt buffer would not be
-		// properly aligned.  So memcpy would have to be used. BUT it should be trivial
-		// and may in the end be a faster solution, than keeping this code in mixed form.
-		// but for now, it will be left as a task for someone else.
-		for (j = 0; j < SHA512_LOOP_CNT; j++) {
-			uint32_t *o = keys32 + (j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*SHA_BUF_SIZ*SIMD_COEF_64;
-			uint32_t *in = crypt32 + (j&(SIMD_COEF_64-1))*2 + j/SIMD_COEF_64*2*8*SIMD_COEF_64;
+			uint32_t *o = keys32 + (j & (SIMD_COEF_64 - 1)) * 2 +
+				j / SIMD_COEF_64 * 2 * SHA_BUF_SIZ * SIMD_COEF_64;
+			uint32_t *in = crypt32 + (j & (SIMD_COEF_64 - 1)) * 2 +
+				j / SIMD_COEF_64 * 2 * 8 * SIMD_COEF_64;
 
 			for (k = 0; k < 8; k++) {
 #if ARCH_LITTLE_ENDIAN==1
 				o[0] = in[1];
-				o += SIMD_COEF_64*2;
+				o += SIMD_COEF_64 * 2;
 				o[1] = in[0];
-				in += SIMD_COEF_64*2;
+				in += SIMD_COEF_64 * 2;
 #else
 				o[1] = in[0];
-				o += SIMD_COEF_64*2;
+				o += SIMD_COEF_64 * 2;
 				o[0] = in[1];
-				in += SIMD_COEF_64*2;
+				in += SIMD_COEF_64 * 2;
 #endif
 			}
 		}
 	}
 	// last iteration is output to start of input buffer, then 32 bit 0 appended.
 	// but this is still ends up being 24 bytes of crypt data.
-	for (j = 0; j < SHA512_LOOP_CNT; ++j) {
-		keys[GETPOS_512(0, j)] = i&0xff;
-		keys[GETPOS_512(1, j)] = (i>>8)&0xff;
-		keys[GETPOS_512(2, j)] = i>>16;
+	for (j = 0; j < SHA512_LOOP_CNT; j++) {
+		keys[GETPOS_512(0, j)] = i & 0xff;
+		keys[GETPOS_512(1, j)] = (i >> 8) & 0xff;
+		keys[GETPOS_512(2, j)] = i >> 16;
 	}
-	SIMDSHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+	SIMDSHA512body(keys, keys64, NULL, SSEi_MIXED_IN | SSEi_OUTPUT_AS_INP_FMT);
 
 	// Finally, append "block" (0) to H(n)
-	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
-		for (j = 0; j < 8; ++j)
-			keys[GETPOS_512(64+j, i)] = encryptedVerifierHashInputBlockKey[j];
-		keys[GETPOS_512(64+j, i)] = 0x80;
+	for (i = 0; i < SHA512_LOOP_CNT; i++) {
+		for (j = 0; j < 8; j++)
+			keys[GETPOS_512(64 + j, i)] = encryptedVerifierHashInputBlockKey[j];
+		keys[GETPOS_512(64 + j, i)] = 0x80;
 		// 72 bytes of crypt data (0x240  we already have 0x220 here)
 		keys[GETPOS_512(127, i)] = 0x40;
 	}
-	SIMDSHA512body(keys, (uint64_t*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
-	for (i = 0; i < SHA512_LOOP_CNT; ++i)
+	SIMDSHA512body(keys, (uint64_t*)crypt, NULL, SSEi_MIXED_IN | SSEi_FLAT_OUT);
+	for (i = 0; i < SHA512_LOOP_CNT; i++)
 		memcpy((uint64_t*)(hashBuf[i]), crypt[i], 64);
 
 	// And second "block" (0) to H(n)
-	for (i = 0; i < SHA512_LOOP_CNT; ++i) {
-		for (j = 0; j < 8; ++j)
-			keys[GETPOS_512(64+j, i)] = encryptedVerifierHashValueBlockKey[j];
+	for (i = 0; i < SHA512_LOOP_CNT; i++) {
+		for (j = 0; j < 8; j++)
+			keys[GETPOS_512(64 + j, i)] = encryptedVerifierHashValueBlockKey[j];
 	}
-	SIMDSHA512body(keys, (uint64_t*)crypt, NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
+	SIMDSHA512body(keys, (uint64_t*)crypt, NULL, SSEi_MIXED_IN | SSEi_FLAT_OUT);
 
-	for (i = 0; i < SHA512_LOOP_CNT; ++i)
+	for (i = 0; i < SHA512_LOOP_CNT; i++)
 		memcpy((uint64_t*)(&hashBuf[i][64]), crypt[i], 64);
 }
 #else
-static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_LOOP_CNT][128])
+static void GenerateAgileEncryptionKey512(int idx, uint8_t hashBuf[SHA512_LOOP_CNT][128])
 {
-	UTF16 *passwordBuf=saved_key[idx];
-	int passwordBufSize=saved_len[idx];
-	unsigned int inputBuf[128 / sizeof(int)];
+	UTF16 *passwordBuf = saved_key[idx];
+	int passwordBufSize = saved_len[idx];
+	uint32_t inputBuf[128 / sizeof(int)];
 	int i;
 	SHA512_CTX ctx;
 
 	SHA512_Init(&ctx);
-	SHA512_Update(&ctx, cur_salt->osalt, cur_salt->saltSize);
+	SHA512_Update(&ctx, cur_salt->salt, cur_salt->saltSize);
 	SHA512_Update(&ctx, passwordBuf, passwordBufSize);
 	SHA512_Final(hashBuf[0], &ctx);
 
@@ -569,173 +600,151 @@ static void GenerateAgileEncryptionKey512(int idx, unsigned char hashBuf[SHA512_
 		// 'append' the previously generated hash to the input buffer
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, inputBuf, 64 + 0x04);
-		SHA512_Final((unsigned char*)&inputBuf[1], &ctx);
+		SHA512_Final((uint8_t*)&inputBuf[1], &ctx);
 	}
 
 	// Finally, append "block" (0) to H(n)
-	memcpy(&inputBuf[68/4], encryptedVerifierHashInputBlockKey, 8);
+	memcpy(&inputBuf[68 / 4], encryptedVerifierHashInputBlockKey, 8);
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, &inputBuf[1], 64 + 8);
 	SHA512_Final(hashBuf[0], &ctx);
 	// And second "block" (0) to H(n)
-	memcpy(&inputBuf[68/4], encryptedVerifierHashValueBlockKey, 8);
+	memcpy(&inputBuf[68 / 4], encryptedVerifierHashValueBlockKey, 8);
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, &inputBuf[1], 64 + 8);
 	SHA512_Final(&hashBuf[0][64], &ctx);
 }
 #endif
 
-static void init(struct fmt_main *self)
-{
-	omp_autotune(self, OMP_SCALE);
-
-	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
-	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt);
-	crypt_key = mem_calloc(sizeof(*crypt_key), self->params.max_keys_per_crypt);
-	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
-	if (options.target_enc == UTF_8)
-		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
-}
-
-static void done(void)
-{
-	MEM_FREE(cracked);
-	MEM_FREE(crypt_key);
-	MEM_FREE(saved_len);
-	MEM_FREE(saved_key);
-}
-
 static void set_salt(void *salt)
 {
 	cur_salt = (ms_office_custom_salt *)salt;
 }
 
-static void DecryptUsingSymmetricKeyAlgorithm(ms_office_custom_salt *cur_salt, unsigned char *verifierInputKey, unsigned char *encryptedVerifier, const unsigned char *decryptedVerifier, int length)
+static void
+DecryptUsingSymmetricKeyAlgorithm(ms_office_custom_salt *cur_salt,
+                                  uint8_t *verifierInputKey,
+                                  uint8_t *encryptedVerifier,
+                                  const uint8_t *decryptedVerifier,
+                                  int length)
 {
-	unsigned char iv[32];
+	uint8_t iv[32];
 	AES_KEY akey;
 
-	memcpy(iv, cur_salt->osalt, 16);
+	memcpy(iv, cur_salt->salt, 16);
 	memset(&iv[16], 0, 16);
 	AES_set_decrypt_key(verifierInputKey, cur_salt->keySize, &akey);
-	AES_cbc_encrypt(encryptedVerifier, (unsigned char*)decryptedVerifier, length, &akey, iv, AES_DECRYPT);
+	AES_cbc_encrypt(encryptedVerifier, (uint8_t*)decryptedVerifier,
+	                length, &akey, iv, AES_DECRYPT);
 }
 
-// We now pass in the 16 byte 'output'. The older code has been kept, but
-// it no longer used that way. We used to return the 'cracked' value, i.e.
-// if it matched, return 1, else 0. Now we store the encryption data to out,
-// and then in the format use normal binary_hash() methods to test it. The
-// old method used decryption (of the encrypted field). Now we use encrption
-// of the plaintext data, and then binary_hash() compares that to the known
-// encrypted field data.
-// For the time being, the original code has been kept (commented out). I am
-// doing this in hopes of figuring out some way to salt-dupe correct the
-// office 2010-2013 formats. I do not think they can be done, but I may be
-// wrong, so I will keep this code in an "easy to see what changed" layout.
-static void PasswordVerifier(ms_office_custom_salt *cur_salt, unsigned char *key, uint32_t *out)
+static int PasswordVerifier(ms_office_binary_blob *blob, uint8_t *key)
 {
-	unsigned char decryptedVerifier[16];
-	//unsigned char decryptedVerifierHash[16];
+	uint8_t decryptedVerifier[16];
+	uint8_t decryptedVerifierHash[16];
 	AES_KEY akey;
 	SHA_CTX ctx;
-	unsigned char checkHash[32];
-	unsigned char checkHashed[32];
+	uint8_t checkHash[20];
 
 	AES_set_decrypt_key(key, 128, &akey);
-	AES_ecb_encrypt(cur_salt->encryptedVerifier, decryptedVerifier, &akey, AES_DECRYPT);
+	AES_ecb_encrypt(blob->encryptedVerifier, decryptedVerifier,
+	                &akey, AES_DECRYPT);
 
-	// Not using cracked any more.
+	AES_set_decrypt_key(key, 128, &akey);
+	AES_ecb_encrypt(blob->encryptedVerifierHash, decryptedVerifierHash,
+	                &akey, AES_DECRYPT);
+
+	/* find SHA1 hash of decryptedVerifier */
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, decryptedVerifier, 16);
 	SHA1_Final(checkHash, &ctx);
-	AES_set_encrypt_key(key, 128, &akey);
-	AES_ecb_encrypt(checkHash, checkHashed, &akey, AES_ENCRYPT);
-	memcpy(out, checkHashed, 16);
 
-	//AES_set_decrypt_key(key, 128, &akey);
-	//AES_ecb_encrypt(cur_salt->encryptedVerifierHash, decryptedVerifierHash, &akey, AES_DECRYPT);
-	//
-	///* find SHA1 hash of decryptedVerifier */
-	//SHA1_Init(&ctx);
-	//SHA1_Update(&ctx, decryptedVerifier, 16);
-	//SHA1_Final(checkHash, &ctx);
-	//
-	//return !memcmp(checkHash, decryptedVerifierHash, 16);
+	return !memcmp(checkHash, decryptedVerifierHash, 16);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0, inc = SHA1_LOOP_CNT;
-
-	if (cur_salt->version == 2013)
-		inc = SHA512_LOOP_CNT;
+	const int inc =
+		(cur_salt->version == 2013) ? SHA512_LOOP_CNT : SHA1_LOOP_CNT;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (index = 0; index < count; index+=inc)
-	{
-		int i;
-		if (cur_salt->version == 2007) {
-			unsigned char encryptionKey[SHA1_LOOP_CNT][20];
-			GeneratePasswordHashUsingSHA1(index, encryptionKey);
-			for (i = 0; i < SHA1_LOOP_CNT; ++i)
-				PasswordVerifier(cur_salt, encryptionKey[i], crypt_key[index+i]);
-		}
-		else if (cur_salt->version == 2010) {
-			unsigned char verifierKeys[SHA1_LOOP_CNT][64], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
-			unsigned char hash[20];
-			SHA_CTX ctx;
-			GenerateAgileEncryptionKey(index, verifierKeys);
-			for (i = 0; i < inc; ++i) {
-				DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys[i], cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-				DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[i][32], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
-				SHA1_Init(&ctx);
-				SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
-				SHA1_Final(hash, &ctx);
-				cracked[index+i] = !memcmp(hash, decryptedVerifierHashBytes, 20);
-			}
-		}
-		else if (cur_salt->version == 2013) {
-			unsigned char verifierKeys[SHA512_LOOP_CNT][128], decryptedVerifierHashInputBytes[16], decryptedVerifierHashBytes[32];
-			unsigned char hash[64];
-			SHA512_CTX ctx;
-			GenerateAgileEncryptionKey512(index, verifierKeys);
-			for (i = 0; i < inc; ++i) {
-				DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys[i], cur_salt->encryptedVerifier, decryptedVerifierHashInputBytes, 16);
-				DecryptUsingSymmetricKeyAlgorithm(cur_salt, &verifierKeys[i][64], cur_salt->encryptedVerifierHash, decryptedVerifierHashBytes, 32);
-				SHA512_Init(&ctx);
-				SHA512_Update(&ctx, decryptedVerifierHashInputBytes, 16);
-				SHA512_Final(hash, &ctx);
-				cracked[index+i] = !memcmp(hash, decryptedVerifierHashBytes, 20);
-			}
-		}
+	for (index = 0; index < count; index += inc) {
+		if (cur_salt->version == 2007)
+			GeneratePasswordHashUsingSHA1(index, &encryptionKey[index]);
+		else if (cur_salt->version == 2010)
+			GenerateAgileEncryptionKey(index, &verifierKeys1[index]);
+		else //if (cur_salt->version == 2013)
+			GenerateAgileEncryptionKey512(index, &verifierKeys512[index]);
 	}
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
+	ms_office_binary_blob *blob = ((fmt_data*)binary)->blob;
 	int index;
-	if (cur_salt->version == 2007) {
-		for (index = 0; index < count; index++) {
-			if ( ((uint32_t*)binary)[0] == crypt_key[index][0] )
-				return 1;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (index = 0; index < count; index++) {
+		if (cur_salt->version == 2007)
+			cracked[index] = PasswordVerifier(blob, encryptionKey[index]);
+		else if (cur_salt->version == 2010) {
+			uint8_t decryptedVerifierHashInputBytes[16];
+			uint8_t decryptedVerifierHashBytes[32];
+			uint8_t hash[20];
+			SHA_CTX ctx;
+
+			DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys1[index],
+			                                  blob->encryptedVerifier,
+			                                  decryptedVerifierHashInputBytes,
+			                                  16);
+			DecryptUsingSymmetricKeyAlgorithm(cur_salt,
+			                                  &verifierKeys1[index][32],
+			                                  blob->encryptedVerifierHash,
+			                                  decryptedVerifierHashBytes, 32);
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, decryptedVerifierHashInputBytes, 16);
+			SHA1_Final(hash, &ctx);
+
+			cracked[index] = !memcmp(hash, decryptedVerifierHashBytes, 20);
 		}
-		return 0;
+		else /* if (cur_salt->version == 2013) */ {
+			uint8_t decryptedVerifierHashInputBytes[16];
+			uint8_t decryptedVerifierHashBytes[32];
+			uint8_t hash[64];
+			SHA512_CTX ctx;
+
+			DecryptUsingSymmetricKeyAlgorithm(cur_salt, verifierKeys512[index],
+			                                  blob->encryptedVerifier,
+			                                  decryptedVerifierHashInputBytes,
+			                                  16);
+			DecryptUsingSymmetricKeyAlgorithm(cur_salt,
+			                                  &verifierKeys512[index][64],
+			                                  blob->encryptedVerifierHash,
+			                                  decryptedVerifierHashBytes, 32);
+			SHA512_Init(&ctx);
+			SHA512_Update(&ctx, decryptedVerifierHashInputBytes, 16);
+			SHA512_Final(hash, &ctx);
+
+			cracked[index] = !memcmp(hash, decryptedVerifierHashBytes, 20);
+		}
 	}
+
 	for (index = 0; index < count; index++)
 		if (cracked[index])
 			return 1;
+
 	return 0;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	if (cur_salt->version == 2007) {
-		return !memcmp(binary, crypt_key[index], BINARY_SIZE);
-	}
 	return cracked[index];
 }
 
@@ -744,18 +753,11 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static int get_hash_0(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & PH_MASK_0; }
-static int get_hash_1(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & PH_MASK_1; }
-static int get_hash_2(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & PH_MASK_2; }
-static int get_hash_3(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & PH_MASK_3; }
-static int get_hash_4(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & PH_MASK_4; }
-static int get_hash_5(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & PH_MASK_5; }
-static int get_hash_6(int index) { if (cur_salt->version!=2007) return 0; return crypt_key[index][0] & PH_MASK_6; }
-
-static void office_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
 	/* convert key to UTF-16LE */
-	saved_len[index] = enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH, (UTF8*)key, strlen(key));
+	saved_len[index] = enc_to_utf16(saved_key[index], PLAINTEXT_LENGTH,
+	                                (UTF8*)key, strlen(key));
 	if (saved_len[index] < 0)
 		saved_len[index] = strlen16(saved_key[index]);
 	saved_len[index] <<= 1;
@@ -781,7 +783,7 @@ struct fmt_main fmt_office = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_ENC,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_ENC | FMT_BLOB,
 		{
 			"MS Office version",
 			"iteration count",
@@ -814,18 +816,12 @@ struct fmt_main fmt_office = {
 		fmt_default_salt_hash,
 		NULL,
 		set_salt,
-		office_set_key,
+		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
 		{
-			get_hash_0,
-			get_hash_1,
-			get_hash_2,
-			get_hash_3,
-			get_hash_4,
-			get_hash_5,
-			get_hash_6
+			fmt_default_get_hash
 		},
 		cmp_all,
 		cmp_one,

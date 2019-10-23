@@ -12,71 +12,69 @@
 
 void *ms_office_common_get_salt(char *ciphertext)
 {
-	int i, length;
+	int i;
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy, *p;
-	static ms_office_custom_salt *cur_salt;
+	static ms_office_custom_salt cur_salt;
 
-	if (!cur_salt) cur_salt = mem_alloc_tiny(sizeof(ms_office_custom_salt), MEM_ALIGN_WORD);
-	memset(cur_salt, 0, sizeof(*cur_salt));
+	memset(&cur_salt, 0, sizeof(cur_salt));
 	ctcopy += FORMAT_TAG_OFFICE_LEN;	/* skip over "$office$*" */
 	p = strtokm(ctcopy, "*");
-	cur_salt->version = atoi(p);
+	cur_salt.version = atoi(p);
 	p = strtokm(NULL, "*");
-	if (cur_salt->version == 2007) {
-		cur_salt->verifierHashSize = atoi(p);
-		cur_salt->spinCount = 50000;
+	if (cur_salt.version == 2007) {
+		cur_salt.verifierHashSize = atoi(p);
+		cur_salt.spinCount = 50000;
 	}
 	else {
-		cur_salt->spinCount = atoi(p);
+		cur_salt.spinCount = atoi(p);
 	}
 	p = strtokm(NULL, "*");
-	cur_salt->keySize = atoi(p);
+	cur_salt.keySize = atoi(p);
 	p = strtokm(NULL, "*");
-	cur_salt->saltSize = atoi(p);
+	cur_salt.saltSize = atoi(p);
 	p = strtokm(NULL, "*");
-	for (i = 0; i < cur_salt->saltSize; i++)
-		cur_salt->osalt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	for (i = 0; i < cur_salt.saltSize; i++)
+		cur_salt.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtokm(NULL, "*");
-	for (i = 0; i < 16; i++)
-		cur_salt->encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtokm(NULL, "*");
-	length = strlen(p) / 2;
-	for (i = 0; i < length; i++)
-		cur_salt->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+
 	MEM_FREE(keeptr);
-	return (void *)cur_salt;
+	return &cur_salt;
 }
 
 void *ms_office_common_binary(char *ciphertext)
 {
-	static unsigned int out[4];
+	static fmt_data data;
 	int i, length;
-	char *ctcopy = strdup(ciphertext + FORMAT_TAG_OFFICE_LEN);
-	char *p, Tmp[16];
+	char *ctcopy = strdup(ciphertext);
+	char *keeptr = ctcopy, *p;
+	ms_office_binary_blob *blob;
 
+	data.flags = FMT_DATA_TINY;
+	data.size = sizeof(ms_office_binary_blob);
+
+	blob = (data.flags == FMT_DATA_TINY) ?
+		mem_alloc_tiny(data.size, BINARY_ALIGN) : mem_alloc(data.size);
+	data.blob = blob;
+
+	ctcopy += FORMAT_TAG_OFFICE_LEN;	/* skip over "$office$*" */
 	p = strtokm(ctcopy, "*");
-	if (atoi(p) != 2007) {
-		memset(out, 0, sizeof(out));
-		MEM_FREE(ctcopy);
-		return out;
-	}
 	p = strtokm(NULL, "*");
 	p = strtokm(NULL, "*");
 	p = strtokm(NULL, "*");
 	p = strtokm(NULL, "*");
 	p = strtokm(NULL, "*");
+	for (i = 0; i < 16; i++)
+		blob->encryptedVerifier[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtokm(NULL, "*");
 	length = strlen(p) / 2;
-	for (i = 0; i < length && i < 16; i++)
-		Tmp[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	for (i = 0; i < length; i++)
+		blob->encryptedVerifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	MEM_FREE(ctcopy);
-	memcpy(out, Tmp, 16);
-	return out;
+
+	MEM_FREE(keeptr);
+	return &data;
 }
 
 /* a common 'static' valid function. The valid in each of the     */
@@ -137,9 +135,7 @@ error:
 
 unsigned int ms_office_common_iteration_count(void *salt)
 {
-	ms_office_custom_salt *my_salt=(ms_office_custom_salt *)salt;
-
-	return (unsigned int)my_salt->spinCount;
+	return ((ms_office_custom_salt*)salt)->spinCount;
 }
 
 /*
@@ -147,8 +143,5 @@ unsigned int ms_office_common_iteration_count(void *salt)
  */
 unsigned int ms_office_common_version(void *salt)
 {
-	ms_office_custom_salt *my_salt;
-
-	my_salt = salt;
-	return (unsigned int) my_salt->version;
+	return ((ms_office_custom_salt*)salt)->version;
 }
