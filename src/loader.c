@@ -1196,8 +1196,8 @@ int ldr_trunc_valid(char *ciphertext, struct fmt_main *format)
 		goto plain_valid;
 
 	for (i = 0; i < FMT_SIGNATURES && format->params.signature[i]; ++i) {
-		if (!strncmp(ciphertext, format->params.signature[i],
-		    strlen(format->params.signature[i])) &&
+		int len = strlen(format->params.signature[i]);
+		if (len && !strncmp(ciphertext, format->params.signature[i], len) &&
 		    strnlen(ciphertext, MAX_CIPHERTEXT_SIZE + 1) <=
 		    MAX_CIPHERTEXT_SIZE &&
 		    ldr_isa_pot_source(ciphertext))
