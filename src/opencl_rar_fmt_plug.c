@@ -4,8 +4,8 @@
  * and OMP, AES-NI and OpenCL support.
  *
  * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012, magnum and it is hereby released to the general public
- * under the following terms:
+ * and Copyright (c) 2012-2019, magnum
+ * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
@@ -49,21 +49,13 @@ john_register_one(&fmt_ocl_rar);
 #else
 
 #include <string.h>
-#if AC_BUILT
-#include "autoconfig.h"
-#endif
-#if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
-#include "win32_memmap.h"
-#ifndef __CYGWIN__
-#include "mmap-windows.c"
-#elif defined HAVE_MMAP
-#include <sys/mman.h>
-#endif
-#elif defined(HAVE_MMAP)
-#include <sys/mman.h>
-#endif
+
 #ifdef _OPENMP
 #include <omp.h>
+#endif
+
+#if AC_BUILT
+#include "autoconfig.h"
 #endif
 
 #include "arch.h"
@@ -97,10 +89,6 @@ john_register_one(&fmt_ocl_rar);
 
 #define PLAINTEXT_LENGTH	22 /* Max. currently supported is 22 */
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
-#define BINARY_SIZE		0
-#define BINARY_ALIGN		MEM_ALIGN_NONE
-#define SALT_SIZE		sizeof(rarfile*)
-#define SALT_ALIGN		sizeof(rarfile*)
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
@@ -120,7 +108,6 @@ static int split_events[] = { 3, -1, -1 };
 #define ITERATIONS		0x40000
 #define HASH_LOOPS		0x4000 // Max. 0x4000
 
-static int new_keys;
 static struct fmt_main *self;
 
 static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_OutputBuf, cl_round, cl_aes_key, cl_aes_iv;
@@ -323,11 +310,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
-	if (ocl_autotune_running || new_keys) {
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer saved_len");
-		new_keys = 0;
-	}
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer saved_len");
+
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarInit, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 	for (k = 0; k < (ocl_autotune_running ? 1 : (ITERATIONS / HASH_LOOPS)); k++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
@@ -335,12 +320,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		opencl_process_event();
 	}
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarFinal, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
+
 	// read back aes key & iv
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_key, CL_FALSE, 0, 16 * gws, aes_key, 0, NULL, multi_profilingEvent[5]), "failed in reading key back");
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * gws, aes_iv, 0, NULL, multi_profilingEvent[6]), "failed in reading iv back");
-
-	if (!ocl_autotune_running)
-		check_rar(count);
 
 	return count;
 }
@@ -360,7 +343,7 @@ struct fmt_main fmt_ocl_rar = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_OMP | FMT_DYNA_SALT | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_OMP | FMT_BLOB | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG },
 		cpu_tests // Changed in init if GPU
@@ -371,14 +354,14 @@ struct fmt_main fmt_ocl_rar = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		fmt_default_binary,
+		get_binary,
 		get_salt,
 		{ NULL },
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},
-		fmt_default_dyna_salt_hash,
+		fmt_default_salt_hash,
 		NULL,
 		set_salt,
 		set_key,

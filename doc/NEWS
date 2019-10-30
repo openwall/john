@@ -89,6 +89,8 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Converted oldOffice CPU format to the new FMT_BLOB scheme.  The GPU version
   uses internal mask so may be hard or impossible to convert.  [magnum; 2019]
 
+- Converted RAR3 formats to the new FMT_BLOB scheme.  [magnum; 2019]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 

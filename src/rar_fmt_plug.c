@@ -2,11 +2,10 @@
  * April of 2011 by Dhiru Kholia <dhiru.kholia at gmail.com> for GSoC.
  * magnum added -p mode support, using code based on libclamav
  * and OMP, AES-NI and OpenCL support.
- * jimf added dyna_salt support, Oct 2014.
  *
  * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012, magnum and it is hereby released to the general public
- * under the following terms:
+ * and Copyright (c) 2012-2019, magnum
+ * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
@@ -41,6 +40,9 @@
  *
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
 #include "arch.h"
 
 #if ARCH_ALLOWS_UNALIGNED
@@ -52,26 +54,12 @@ john_register_one(&fmt_rar);
 #else
 
 #include <string.h>
-#if AC_BUILT
-#include "autoconfig.h"
-#endif
-#if _MSC_VER || __MINGW32__ || __MINGW64__ || __CYGWIN__ || HAVE_WINDOWS_H
-#include "win32_memmap.h"
-#if !defined(__CYGWIN__) && !defined(__MINGW64__) && !defined(__MINGW32__)
-#include "mmap-windows.c"
-#elif defined HAVE_MMAP
-#include <sys/mman.h>
-#endif
-#elif defined(HAVE_MMAP)
-#include <sys/mman.h>
-#endif
 
 #include "sha.h"
 #include "crc32.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
-#include "dyna_salt.h"
 #include "memory.h"
 #include "params.h"
 #include "options.h"
@@ -93,10 +81,6 @@ john_register_one(&fmt_rar);
 #define BENCHMARK_LENGTH	0x105
 
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
-#define BINARY_SIZE		0
-#define BINARY_ALIGN		MEM_ALIGN_NONE
-#define SALT_SIZE		sizeof(rarfile*)
-#define SALT_ALIGN		sizeof(rarfile*)
 
 #ifdef SIMD_COEF_32
 #include "simd-intrinsics.h"
@@ -238,15 +222,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned int i, j, k;
 		uint8_t (*RawPsw)[NBKEYS*64] = vec_in[index/NBKEYS];
 		uint32_t *digest = vec_out[index/NBKEYS];
-
 		// all passwords in one batch has the same length
 		int pw_len = saved_len[indices[index]];
 		int RawLength = pw_len + 8 + 3;
 		int cur_len = 0;
 		int fst_blk = 1;
 		int cur_buf = 0;
-
 		unsigned char tmp1 = 0, tmp2 = 0;
+
 		for (i = 0; i < ROUNDS; ++i) {
 			// copy passwords to vector buffer
 			for (j = 0; j < NBKEYS; ++j) {
@@ -382,7 +365,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 #endif
 
-	check_rar(count);
 	return count;
 }
 
@@ -401,7 +383,7 @@ struct fmt_main fmt_rar = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_OMP | FMT_DYNA_SALT | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_OMP | FMT_BLOB | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG },
 		cpu_tests
@@ -412,14 +394,14 @@ struct fmt_main fmt_rar = {
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		fmt_default_binary,
+		get_binary,
 		get_salt,
 		{ NULL },
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
 		},
-		fmt_default_dyna_salt_hash,
+		fmt_default_salt_hash,
 		NULL,
 		set_salt,
 		set_key,
