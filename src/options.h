@@ -83,46 +83,35 @@
 #define FLG_STATUS_CHK			0x00040000
 #define FLG_STATUS_SET			(FLG_STATUS_CHK | FLG_ACTION)
 /* Make a charset */
-#define FLG_MAKECHR_CHK			0x00100000
+#define FLG_MAKECHR_CHK			0x00080000
 #define FLG_MAKECHR_SET \
 	(FLG_MAKECHR_CHK | FLG_ACTION | FLG_PWD_SUP)
 /* Show cracked passwords */
-#define FLG_SHOW_CHK			0x00200000
+#define FLG_SHOW_CHK			0x00100000
 #define FLG_SHOW_SET \
 	(FLG_SHOW_CHK | FLG_ACTION | FLG_PWD_REQ)
 /* Perform a benchmark */
-#define FLG_TEST_CHK			0x00400000
+#define FLG_TEST_CHK			0x00200000
 #define FLG_TEST_SET \
 	(FLG_TEST_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 #ifdef HAVE_FUZZ
 /* Perform a fuzzing */
-#define FLG_FUZZ_CHK			0x08000000
+#define FLG_FUZZ_CHK			0x00400000
 #define FLG_FUZZ_SET \
 	(FLG_FUZZ_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 /* Dump fuzzed hashes */
-#define FLG_FUZZ_DUMP_CHK		0x40000000
+#define FLG_FUZZ_DUMP_CHK		0x00800000
 #define FLG_FUZZ_DUMP_SET \
 	(FLG_FUZZ_DUMP_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 #endif
-/* Passwords per salt requested */
-#define FLG_SALTS			0x01000000
 /* Ciphertext format forced */
-#define FLG_FORMAT			0x02000000
+#define FLG_FORMAT			0x01000000
 /* Memory saving enabled */
-#define FLG_SAVEMEM			0x04000000
-/* Node number(s) specified */
-#define FLG_NODE			0x10000000
+#define FLG_SAVEMEM			0x02000000
 /* fork() requested, and process count specified */
-#define FLG_FORK			0x20000000
-
-/* Note that 0x80000000 is taken for OPT_REQ_PARAM, see getopt.h */
+#define FLG_FORK			0x04000000
 
 /*
- * Jumbo Options flags bitmasks (high 32 bits)
- *
- * Tip: For your private patches, pick first free from MSB. When
- * sharing your patch, pick first free from LSB of high 32 bits.
- *
  * In Jumbo, the combination flg_set == FLG_ZERO and req_clr == OPT_REQ_PARAM
  * gets dupe checking automatically, without a specific flag.
  */
@@ -130,72 +119,76 @@
 
 /* .pot file used as wordlist, options.wordlist is set to the file name, or
  * we use the active .pot file */
-#define FLG_LOOPBACK_CHK		0x0000000100000000ULL
+#define FLG_LOOPBACK_CHK		0x08000000
 #define FLG_LOOPBACK_SET	  \
 	(FLG_LOOPBACK_CHK | FLG_WORDLIST_SET | FLG_CRACKING_SET | FLG_DUPESUPP)
 /* pipe mode enabled, reading from stdin with rules support */
-#define FLG_PIPE_CHK			0x0000000200000000ULL
+#define FLG_PIPE_CHK			0x10000000
 #define FLG_PIPE_SET			(FLG_PIPE_CHK | FLG_WORDLIST_SET)
 /* Dynamic load of foreign format module */
-#define FLG_DYNFMT			0x0000000400000000ULL
+#define FLG_DYNFMT			0x20000000
 /* Turn off logging */
-#define FLG_NOLOG			0x0000000800000000ULL
+#define FLG_NOLOG			0x40000000
+
+/* Note that 0x80000000 is taken for OPT_REQ_PARAM, see getopt.h */
+
 /* Log to stderr */
-#define FLG_LOG_STDERR			0x0000001000000000ULL
+#define FLG_LOG_STDERR			0x0000000100000000ULL
 /* Markov mode enabled */
-#define FLG_MKV_CHK			0x0000002000000000ULL
+#define FLG_MKV_CHK			0x0000000200000000ULL
 #define FLG_MKV_SET			(FLG_MKV_CHK | FLG_CRACKING_SET)
 /* Emit a status line for every password cracked */
-#define FLG_CRKSTAT			0x0000004000000000ULL
+#define FLG_CRKSTAT			0x0000000400000000ULL
 /* Wordlist dupe suppression */
-#define FLG_DUPESUPP			0x0000008000000000ULL
+#define FLG_DUPESUPP			0x0000000800000000ULL
 /* Force scalar mode */
-#define FLG_SCALAR			0x0000010000000000ULL
-#define FLG_VECTOR			0x0000020000000000ULL
+#define FLG_SCALAR			0x0000001000000000ULL
+#define FLG_VECTOR			0x0000002000000000ULL
 /* Reject printable binaries */
-#define FLG_REJECT_PRINTABLE		0x0000040000000000ULL
+#define FLG_REJECT_PRINTABLE		0x0000004000000000ULL
 /* Skip self tests */
-#define FLG_NOTESTS			0x0000080000000000ULL
+#define FLG_NOTESTS			0x0000008000000000ULL
 /* Regex cracking mode */
-#define FLG_REGEX_CHK			0x0000100000000000ULL
+#define FLG_REGEX_CHK			0x0000010000000000ULL
 #define FLG_REGEX_SET	  \
 	(FLG_REGEX_CHK | FLG_ACTION | FLG_CRACKING_SUP | FLG_PWD_SUP)
 /* Encodings. You can only give one of --internal-enc or --target-enc */
-#define FLG_INPUT_ENC			0x0000200000000000ULL
-#define FLG_SECOND_ENC			0x0000400000000000ULL
+#define FLG_INPUT_ENC			0x0000020000000000ULL
+#define FLG_SECOND_ENC			0x0000040000000000ULL
 /* --verbosity */
-#define FLG_VERBOSITY			0x0000800000000000ULL
+#define FLG_VERBOSITY			0x0000080000000000ULL
 /* Sets FMT_NOT_EXACT, searching for cleartext collisions */
-#define FLG_KEEP_GUESSING		0x0001000000000000ULL
+#define FLG_KEEP_GUESSING		0x0000100000000000ULL
+#define FLG_NO_KEEP_GUESSING		0x0000200000000000ULL
 /* Loops self-test forever */
-#define FLG_LOOPTEST			0x0002000000000000ULL
+#define FLG_LOOPTEST			0x0000400000000000ULL
 /* Mask mode is stacked */
-#define FLG_MASK_STACKED		0x0004000000000000ULL
+#define FLG_MASK_STACKED		0x0000800000000000ULL
 /* Stacking modes */
 #define FLG_STACKING			(FLG_MASK_CHK | FLG_REGEX_CHK)
 /* Any stacking mode is active */
 #define FLG_STACKED			(FLG_MASK_STACKED | FLG_REGEX_STACKED)
 /* PRINCE mode enabled, options.wordlist is set to the file name, or
  * we get it from john.conf */
-#define FLG_PRINCE_CHK			0x0008000000000000ULL
+#define FLG_PRINCE_CHK			0x0001000000000000ULL
 #define FLG_PRINCE_SET \
 	(FLG_PRINCE_CHK | FLG_CRACKING_SET | FLG_RULES_ALLOW)
-#define FLG_PRINCE_DIST			0x0010000000000000ULL
-#define FLG_PRINCE_KEYSPACE		0x0020000000000000ULL
-#define FLG_PRINCE_CASE_PERMUTE		0x0040000000000000ULL
-#define FLG_PRINCE_LOOPBACK		0x0080000000000000ULL
-#define FLG_PRINCE_MMAP			0x0100000000000000ULL
-#define FLG_RULES_ALLOW			0x0200000000000000ULL
-#define FLG_REGEX_STACKED		0x0400000000000000ULL
+#define FLG_PRINCE_DIST			0x0002000000000000ULL
+#define FLG_PRINCE_KEYSPACE		0x0004000000000000ULL
+#define FLG_PRINCE_CASE_PERMUTE		0x0008000000000000ULL
+#define FLG_PRINCE_LOOPBACK		0x0010000000000000ULL
+#define FLG_PRINCE_MMAP			0x0020000000000000ULL
+#define FLG_RULES_ALLOW			0x0040000000000000ULL
+#define FLG_REGEX_STACKED		0x0080000000000000ULL
 /* Subsets cracking mode */
-#define FLG_SUBSETS_CHK			0x0800000000000000ULL
+#define FLG_SUBSETS_CHK			0x0100000000000000ULL
 #define FLG_SUBSETS_SET			(FLG_SUBSETS_CHK | FLG_CRACKING_SET)
-#define FLG_RULES_STACK_CHK		0x1000000000000000ULL
+#define FLG_RULES_STACK_CHK		0x0200000000000000ULL
 #define FLG_RULES_STACK_SET		(FLG_RULES_STACK_CHK | FLG_RULES_IN_USE)
-#define FLG_RULES_IN_USE		0x2000000000000000ULL
+#define FLG_RULES_IN_USE		0x0400000000000000ULL
 /* Ignore NOP rules */
-#define FLG_RULE_SKIP_NOP		0x4000000000000000ULL
-#define FLG_NO_MASK_BENCH		0x8000000000000000ULL
+#define FLG_RULE_SKIP_NOP		0x0800000000000000ULL
+#define FLG_NO_MASK_BENCH		0x1000000000000000ULL
 
 /*
  * Macro for getting correct node number regardless of if MPI or not

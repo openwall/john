@@ -206,11 +206,11 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_ADD_LIST_MULTI, &options.loader.groups},
 	{"shells", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM,
 		OPT_FMT_ADD_LIST_MULTI, &options.loader.shells},
-	{"salts", FLG_SALTS, FLG_SALTS, FLG_PASSWD, OPT_REQ_PARAM,
+	{"salts", FLG_ZERO, 0, FLG_PASSWD, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &salts_str},
 	{"save-memory", FLG_SAVEMEM, FLG_SAVEMEM, 0, OPT_REQ_PARAM,
 		"%u", &mem_saving_level},
-	{"node", FLG_NODE, FLG_NODE, FLG_CRACKING_CHK, OPT_REQ_PARAM,
+	{"node", FLG_ZERO, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.node_str},
 #if OS_FORK
 	{"fork", FLG_FORK, FLG_FORK,
@@ -280,8 +280,10 @@ static struct opt_entry opt_list[] = {
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
 	{"costs", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
                 OPT_FMT_STR_ALLOC, &costs_str},
-
-	{"keep-guessing", FLG_KEEP_GUESSING, FLG_KEEP_GUESSING},
+	{"keep-guessing", FLG_KEEP_GUESSING, FLG_KEEP_GUESSING,
+		0, FLG_NO_KEEP_GUESSING},
+	{"no-keep-guessing", FLG_NO_KEEP_GUESSING, FLG_NO_KEEP_GUESSING,
+		0, FLG_KEEP_GUESSING},
 	{"stress-test", FLG_LOOPTEST | FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
 		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
@@ -401,12 +403,11 @@ static void print_usage(char *name)
 
 void opt_print_hidden_usage(void)
 {
-	puts("--help                     print usage summary, just like running the command");
-	puts("                           without any parameters");
-	puts("--config=FILE              use FILE instead of john.conf or john.ini");
-	printf("--mem-file-size=SIZE       size threshold for wordlist preload (default %u MB)\n",
+	puts("--help                    print usage summary");
+	puts("--config=FILE             use FILE instead of john.conf or john.ini");
+	printf("--mem-file-size=SIZE      size threshold for wordlist preload (default %u MB)\n",
 	       WORDLIST_BUFFER_DEFAULT >> 20);
-	printf("--format=CLASS             valid classes: dynamic, cpu");
+	printf("--format=CLASS            valid classes: dynamic, cpu");
 #ifdef HAVE_OPENCL
 	printf(", opencl");
 #endif
@@ -414,79 +415,74 @@ void opt_print_hidden_usage(void)
 	printf(", omp");
 #endif
 	printf("\n");
-	puts("--single-seed=WORD[,WORD]  add static seed word(s) for all salts in single mode");
-	puts("--single-wordlist=FILE     *short* wordlist with static seed words/morphemes");
-	puts("--single-retest-guess=BOOL override config for SingleRetestGuess");
-	puts("--subformat=FORMAT         pick a benchmark format for --format=crypt");
-	puts("--mkpc=N                   request a lower max. keys per crypt");
-	puts("--min-length=N             request a minimum candidate length in bytes");
-	puts("--max-length=N             request a maximum candidate length in bytes");
-	puts("--length=N                 shortcut for --min-len=N --max-len=N");
-	puts("--field-separator-char=C   use 'C' instead of the ':' in input and pot files");
-	puts("--fix-state-delay=N        performance tweak, see doc/OPTIONS");
-	puts("--no-log                   disables creation and writing to john.log file");
-	puts("--log-stderr               log to screen instead of file");
-	puts("--bare-always-valid=C      if C is 'Y' or 'y', then the dynamic format will");
-	puts("                           always treat bare hashes as valid");
-	puts("--progress-every=N         emit a status line every N seconds");
-	puts("--crack-status             emit a status line whenever a password is cracked");
-	puts("--keep-guessing            try more candidates for cracked hashes (ie. search");
-	puts("                           for plaintext collisions)");
-	puts("--max-candidates=[-]N      gracefully exit after this many candidates tried.");
-	puts("                           If negative, reset count on each crack");
-	puts("--max-run-time=[-]N        gracefully exit after this many seconds. If");
-	puts("                           negative, reset timer on each crack");
-	puts("--regen-lost-salts=N       brute force unknown salts (see doc/OPTIONS)");
-	puts("--rules-skip-nop           skip any NOP \":\" rules (if you already ran");
-	puts("                           without rules)");
-	puts("--mkv-stats=FILE           \"Markov\" stats file (see doc/MARKOV)");
-	puts("--reject-printable         reject printable binaries");
-	printf("--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n",
+	puts("--single-seed=WORD[,WORD] add static seed word(s) for all salts in single mode");
+	puts("--single-wordlist=FILE    *short* wordlist with static seed words/morphemes");
+	puts("--single-retest-guess=B   override config for SingleRetestGuess (bool: Y/N)");
+	puts("--subformat=FORMAT        pick a benchmark format for --format=crypt");
+	puts("--mkpc=N                  request a lower max. keys per crypt");
+	puts("--min-length=N            request a minimum candidate length in bytes");
+	puts("--max-length=N            request a maximum candidate length in bytes");
+	puts("--length=N                shortcut for --min-len=N --max-len=N");
+	puts("--field-separator-char=C  use 'C' instead of the ':' in input and pot files");
+	puts("--fix-state-delay=N       performance tweak, see doc/OPTIONS");
+	puts("--log-stderr              log to screen instead of file");
+	puts("--no-log                  disables creation and writing to john.log file");
+	puts("--bare-always-valid=Y     treat bare hashes as valid (Y/N)");
+	puts("--progress-every=N        emit a status line every N seconds");
+	puts("--crack-status            emit a status line whenever a password is cracked");
+	puts("--keep-guessing           try finding plaintext collisions");
+	puts("--no-keep-guessing        turn off any default \"keep guessing\" for used format");
+	puts("--max-candidates=[-]N     gracefully exit after this many candidates tried.");
+	puts("                          (if negative, reset count on each crack)");
+	puts("--max-run-time=[-]N       gracefully exit after this many seconds (if negative,");
+	puts("                          reset timer on each crack)");
+	puts("--regen-lost-salts=N      brute force unknown salts (see doc/OPTIONS)");
+	puts("--rules-skip-nop          skip any NOP \":\" rules (you already ran w/o rules)");
+	puts("--mkv-stats=FILE          \"markov\" stats file (see doc/MARKOV)");
+	puts("--reject-printable        reject printable binaries");
+	printf("--verbosity=N             change verbosity (1-%u or %u for debug, default %u)\n",
 	       VERB_MAX, VERB_DEBUG, VERB_DEFAULT);
-	puts("--show=formats             show some information about hashes in file (JSON)");
-	puts("--show=types               show some information about hashes in file (custom");
-	puts("                           machine readable format; deprecated)");
-	puts("--show=invalid             show any lines from input that are not valid for");
-	puts("                           selected format(s)");
-	puts("--skip-self-tests          skip self tests");
-	puts("--test-full[=LEVEL]        run more thorough self-tests");
-	puts("--stress-test[=TIME]       loop self tests forever");
-	puts("--no-mask                  used with --test for alternate benchmark w/o mask");
+	puts("--show=formats            show information about hashes in a file (JSON)");
+	puts("--show=invalid            show lines that are not valid for selected format(s)");
+	puts("--skip-self-tests         skip self tests");
+	puts("--test-full=LEVEL         run more thorough self-tests");
+	puts("--stress-test[=TIME]      loop self tests forever");
+	puts("--no-mask                 used with --test for alternate benchmark w/o mask");
 #ifdef HAVE_FUZZ
-	puts("--fuzz[=DICTFILE]          fuzz formats' prepare(), valid() and split()");
-	puts("--fuzz-dump[=FROM,TO]      dump the fuzzed hashes between FROM and TO to file pwfile.format");
+	puts("--fuzz[=DICTFILE]         fuzz formats' prepare(), valid() and split()");
+	puts("--fuzz-dump[=FROM,TO]     dump the fuzzed hashes between FROM and TO to file pwfile.format");
 #endif
-	puts("--input-encoding=NAME      input encoding (alias for --encoding)");
-	puts("--internal-codepage=NAME   codepage used in rules/masks (see doc/ENCODINGS)");
-	puts("--target-encoding=NAME     output encoding (used by format, see doc/ENCODINGS)");
-	puts("--tune=HOW                 tuning options (auto/report/N)");
-	puts("--incremental-charcount=N  override CharCount for incremental mode");
-	puts("--subsets-required[=N]     The N first characters of \"subsets\" charset are");
-	puts("                           the \"required set\" (see doc/SUBSETS)");
-	puts("--subsets-min-diff=N       Minimum unique characters in subset");
-	puts("--subsets-max-diff=N       Maximum unique characters in subset (negative N is");
-	puts("                           relative to word length)");
+	puts("--input-encoding=NAME     input encoding (alias for --encoding)");
+	puts("--internal-codepage=NAME  codepage used in rules/masks (see doc/ENCODINGS)");
+	puts("--target-encoding=NAME    output encoding (used by format, see doc/ENCODINGS)");
+	puts("--tune=HOW                tuning options (auto/report/N)");
+	puts("--incremental-charcount=N override CharCount for incremental mode");
+	puts("--subsets-required=N      The N first characters of \"subsets\" charset are");
+	puts("                          the \"required set\" (see doc/SUBSETS)");
+	puts("--subsets-min-diff=N      Minimum unique characters in subset");
+	puts("--subsets-max-diff=[-]N   Maximum unique characters in subset (negative N is");
+	puts("                          relative to word length)");
 #ifdef HAVE_OPENCL
 	puts("\nOpenCL options:");
-	puts("--force-scalar             force scalar mode");
-	puts("--force-vector-width=N     force vector width N");
-	puts("--lws=N                    force local worksize N");
-	puts("--gws=N                    force global worksize N");
+	puts("--force-scalar            force scalar mode");
+	puts("--force-vector-width=N    force vector width N");
+	puts("--lws=N                   force local worksize N");
+	puts("--gws=N                   force global worksize N");
 #endif
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 	puts("\nPRINCE mode options:");
-	puts("--prince-loopback[=FILE]   fetch words from a .pot file");
-	puts("--prince-elem-cnt-min=N    minimum number of elements per chain (1)");
-	puts("--prince-elem-cnt-max=N    maximum number of elements per chain (8)");
-	puts("--prince-skip=N            initial skip");
-	puts("--prince-limit=N           limit number of candidates generated");
-	puts("--prince-wl-dist-len       calculate length distribution from wordlist");
-	puts("                           instead of using built-in table");
-	puts("--prince-wl-max=N          load only N words from input wordlist");
-	puts("--prince-case-permute      permute case of first letter");
-	puts("--prince-mmap              memory-map infile (not available with case permute)");
-	puts("--prince-keyspace          just show total keyspace that would be produced");
-	puts("                           (disregarding skip and limit)");
+	puts("--prince-loopback[=FILE]  fetch words from a .pot file");
+	puts("--prince-elem-cnt-min=N   minimum number of elements per chain (1)");
+	puts("--prince-elem-cnt-max=[N] maximum number of elements per chain (negative N is");
+	puts("                          relative to word length) (8)");
+	puts("--prince-skip=N           initial skip");
+	puts("--prince-limit=N          limit number of candidates generated");
+	puts("--prince-wl-dist-len      calculate length distribution from wordlist");
+	puts("--prince-wl-max=N         load only N words from input wordlist");
+	puts("--prince-case-permute     permute case of first letter");
+	puts("--prince-mmap             memory-map infile (not available with case permute)");
+	puts("--prince-keyspace         just show total keyspace that would be produced");
+	puts("                          (disregarding skip and limit)");
 #endif
 	puts("");
 }
@@ -805,7 +801,7 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 			error_msg("Allowed arguments to --tune is auto, report or N, where N is a positive number");
 	}
 
-	if (options.flags & FLG_SALTS) {
+	if (salts_str) {
 		int two_salts = 0;
 		if (sscanf(salts_str, "%d:%d", &options.loader.min_pps, &options.loader.max_pps) == 2)
 			two_salts = 1;

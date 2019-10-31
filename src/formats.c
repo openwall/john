@@ -94,12 +94,27 @@ void fmt_init(struct fmt_main *format)
 			        "UTF-8. Use --target-encoding=utf8\n",
 				format->params.label);
 
+#ifndef BENCH_BUILD
+		if (john_main_process) {
+			if (format->params.flags & FMT_NOT_EXACT) {
+				fprintf(stderr, "Note: This format may emit false positives, ");
+				if (options.flags & FLG_NO_KEEP_GUESSING)
+					fprintf(stderr, "but we will stop after finding first\n");
+				else
+					fprintf(stderr, "so it will keep trying even after finding a\n");
+				fprintf(stderr, "possible candidate.\n");
+			} else if (options.flags & FLG_KEEP_GUESSING)
+				fprintf(stderr, "Note: Will keep guessing even after finding a possible candidate.\n");
+		}
+
+		if (options.flags & FLG_KEEP_GUESSING)
+			format->params.flags |= FMT_NOT_EXACT;
+		else if (options.flags & FLG_NO_KEEP_GUESSING)
+			format->params.flags &= ~FMT_NOT_EXACT;
+#endif
 		format->private.initialized = 1;
 	}
 #ifndef BENCH_BUILD
-	if (options.flags & FLG_KEEP_GUESSING)
-		format->params.flags |= FMT_NOT_EXACT;
-
 	if (options.force_maxkeys) {
 		if (options.force_maxkeys > format->params.max_keys_per_crypt) {
 			fprintf(stderr,

@@ -1866,14 +1866,6 @@ static void john_run(void)
 		}
 		tty_init(options.flags & (FLG_STDIN_CHK | FLG_PIPE_CHK));
 
-		if (john_main_process &&
-		    database.format->params.flags & FMT_NOT_EXACT) {
-			if (options.flags & FLG_KEEP_GUESSING)
-				fprintf(stderr, "Note: Will keep guessing even after finding a possible candidate.\n");
-			else
-				fprintf(stderr, "Note: This format may emit false positives, so it will keep trying even after\nfinding a possible candidate.\n");
-		}
-
 		/* Format supports internal (eg. GPU-side) mask */
 		if (database.format->params.flags & FMT_MASK &&
 		    !(options.flags & FLG_MASK_CHK) && john_main_process)
