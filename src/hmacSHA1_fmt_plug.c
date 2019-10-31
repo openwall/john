@@ -189,7 +189,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[CIPHERTEXT_LENGTH + 1];
 
-	if (strstr(ciphertext, "$SOURCE_HASH$"))
+	if (strnlen(ciphertext, LINE_BUFFER_SIZE) < LINE_BUFFER_SIZE &&
+	    strstr(ciphertext, "$SOURCE_HASH$"))
 		return ciphertext;
 
 	strnzcpy(out, ciphertext, CIPHERTEXT_LENGTH + 1);

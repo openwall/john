@@ -189,7 +189,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self, const int
 {
 	static char out[(BINARY_SIZE * 2 + 1) + (CIPHERTEXT_LENGTH + 1)];
 
-	if (strstr(ciphertext, "$SOURCE_HASH$"))
+	if (strnlen(ciphertext, LINE_BUFFER_SIZE) < LINE_BUFFER_SIZE &&
+	    strstr(ciphertext, "$SOURCE_HASH$"))
 		return ciphertext;
 
 	if (!strchr(ciphertext, '#') && strchr(ciphertext, '.') &&

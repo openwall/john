@@ -94,7 +94,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char buf[sizeof(struct custom_salt)+100];
 
-	if (strstr(ciphertext, "$SOURCE_HASH$"))
+	if (strnlen(ciphertext, LINE_BUFFER_SIZE) < LINE_BUFFER_SIZE &&
+	    strstr(ciphertext, "$SOURCE_HASH$"))
 		return ciphertext;
 
 	strnzcpy(buf, ciphertext, sizeof(buf));

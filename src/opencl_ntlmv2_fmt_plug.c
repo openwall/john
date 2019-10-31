@@ -493,7 +493,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	char *pos = NULL;
 	int identity_length = 0;
 
-	if (strstr(ciphertext, "$SOURCE_HASH$"))
+	if (strnlen(ciphertext, LINE_BUFFER_SIZE) < LINE_BUFFER_SIZE &&
+	    strstr(ciphertext, "$SOURCE_HASH$"))
 		return ciphertext;
 
 	/* Calculate identity length */
