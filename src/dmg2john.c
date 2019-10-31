@@ -178,7 +178,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 	    filename = filepath;
 	}
 
-	if (strstr(filepath, ".sparsebundle")) {
+	if (strstr(filepath, ".sparsebundle") || strstr(filepath, ".backupbundle")) {
 		// The filepath given indicates this is a sparsebundle
 		// A sparsebundle is simply a directory with contents.
 		// Let's check to see if that is the case.
@@ -191,7 +191,8 @@ static void hash_plugin_parse_hash(char *in_filepath)
 
 		// Determine if the filepath given is a directory.
 		if (!(file_stat.st_mode & S_IFDIR)) {
-			fprintf(stderr, "%s claims to be a sparsebundle but isn't a directory\n", filename);
+			fprintf(stderr, "%s claims to be a %sbundle but isn't a directory\n", filename,
+			        strstr(filepath, ".backupbundle") ? "backup" : "sparse");
 			return;
 		}
 
