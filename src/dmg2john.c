@@ -184,7 +184,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 		// Let's check to see if that is the case.
 		struct stat file_stat;
 		char *token_path;
-		if (stat(filepath, &file_stat) != 0) {
+		if (stat(filepath, &file_stat)) {
 			fprintf(stderr, "Can't stat file: %s\n", filename);
 			return;
 		}
@@ -220,28 +220,28 @@ static void hash_plugin_parse_hash(char *in_filepath)
 		return;
 	}
 
-	if (read(fd, buf8, 8) <= 0) {
+	if (read(fd, buf8, 8) != 8) {
 		fprintf(stderr, "%s is not a DMG file!\n", filename);
 		goto bailout;
 	}
 
-	if (strncmp(buf8, "encrcdsa", 8) == 0) {
+	if (!memcmp(buf8, "encrcdsa", 8)) {
 		headerver = 2;
 	} else {
 		if (lseek(fd, -8, SEEK_END) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			goto bailout;
 		}
-		if (read(fd, buf8, 8) <= 0) {
+		if (read(fd, buf8, 8) != 8) {
 			fprintf(stderr, "%s is not a DMG file!\n", filename);
 			goto bailout;
 		}
-		if (strncmp(buf8, "cdsaencr", 8) == 0) {
+		if (!memcmp(buf8, "cdsaencr", 8)) {
 			headerver = 1;
 		}
 	}
 
-	if (headerver == 0) {
+	if (!headerver) {
 		fprintf(stderr, "%s is not an encrypted DMG file!\n", filename);
 		goto bailout;
 	}
@@ -408,7 +408,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 			// of data out of 0 from the bands directory. Close the
 			// previous file and open bands/0
 			char *bands_path;
-			if (close(fd) != 0) {
+			if (close(fd)) {
 				fprintf(stderr, "Failed closing file %s\n", filename);
 				free(v2_password_header.keyblob);
 				goto bailout;
