@@ -1451,8 +1451,7 @@ void opencl_build_from_binary(int sequential_id, cl_program *program, const char
 	                              &devices[sequential_id], &program_size,
 	                              (const unsigned char **)srcptr,
 	                              NULL, &err_code);
-	HANDLE_CLERROR(err_code,
-	               "clCreateProgramWithBinary (using cached binary)");
+	HANDLE_CLERROR(err_code, "clCreateProgramWithBinary (using cached binary - try clearing the cache)");
 
 	build_code = clBuildProgram(*program, 0,
 	                            NULL, NULL, NULL, NULL);
@@ -1461,15 +1460,14 @@ void opencl_build_from_binary(int sequential_id, cl_program *program, const char
 	                                     devices[sequential_id],
 	                                     CL_PROGRAM_BUILD_LOG, LOG_SIZE,
 	                                     (void *)build_log,
-	                                     NULL),
-	               "clGetProgramBuildInfo (using cached binary)");
+	                                     NULL), "clGetProgramBuildInfo (using cached binary - try clearing the cache)");
 
 	// Report build errors and warnings
 	if (build_code != CL_SUCCESS) {
 		// Give us info about error and exit (through HANDLE_CLERROR)
 		if (strlen(build_log) > 1)
 			fprintf(stderr, "Binary build log: %s\n", build_log);
-		fprintf(stderr, "Error %d building kernel using cached binary."
+		fprintf(stderr, "Error %d building kernel using cached binary - try clearing the cache."
 		        " DEVICE_INFO=%d\n", build_code, device_info[sequential_id]);
 		HANDLE_CLERROR(build_code, "clBuildProgram");
 	}

@@ -199,3 +199,20 @@ bravo, that is not a problem.
 If for some reason you want to run e.g.  two processes on each GPU, just double
 the -fork argument or the MPI number of hosts (using -np option to mpirun).
 The device list will round-robin.
+
+================
+Trouble-shooting
+================
+
+Open-source runtime/drivers like MESA and POCL tend to be buggy.  Try using
+their latest versions.  If you see a bug with MESA or POCL that is not seen
+using AMD or nvidia proprietry drivers, you should probably report the problem
+to the authors of MESA or POCL and not to us (unless you found a workaround
+worth implementing).
+
+If you get a suggestion to clear the OpenCL build caches, easiest way to
+achieve that is "make kernel-cache-clean"
+
+AMD drivers are hopeless.  Every bugfix implements two new bugs.  Try using
+the latest and greatest.  nvidia drivers are a whole lot more stable but if
+seeing problems, first thing to try is updating drivers.
