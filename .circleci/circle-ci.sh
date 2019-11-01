@@ -52,7 +52,7 @@ if [[ $1 == "BUILD" ]]; then
     fi
 
     if [[ -z "$WINE" ]]; then
-        ./configure --enable-werror $BUILD_OPTS
+        ./configure $BUILD_OPTS
     fi
 
     if [[ -n "$UNIT_TESTS" ]]; then

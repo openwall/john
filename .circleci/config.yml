@@ -38,7 +38,7 @@ jobs:
           OMP_NUM_THREADS: 2
           PLUGS: "none"
           UNIT_TESTS: "yes"
-          BUILD_OPTS: "CPPFLAGS=-DDYNAMIC_DISABLED"
+          BUILD_OPTS: "--enable-werror CPPFLAGS=-DDYNAMIC_DISABLED"
 
   encoding-cpu:
     <<: *common_linux
@@ -63,7 +63,7 @@ jobs:
         environment:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
-          BUILD_OPTS: "--enable-asan"
+          BUILD_OPTS: "--enable-asan --disable-opencl"
 
   test-full:
     <<: *common_linux
@@ -93,7 +93,7 @@ jobs:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
           FULL_TEST: "yes"
-          BUILD_OPTS: "--enable-asan --disable-simd"
+          BUILD_OPTS: "--enable-asan --disable-simd --disable-opencl"
 
   fast-formats-omp-x-non-SIMD:
     <<: *common_linux
