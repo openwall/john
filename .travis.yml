@@ -1,5 +1,5 @@
 language: c
-dist: xenial
+dist: bionic
 
 matrix:
   include:
