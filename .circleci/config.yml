@@ -73,7 +73,7 @@ jobs:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
           FULL_TEST: "yes"
-          BUILD_OPTS: "--enable-asan"
+          BUILD_OPTS: "--enable-asan --disable-opencl"
 
   fast-formats-omp:
     <<: *common_linux
@@ -83,7 +83,7 @@ jobs:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
           FULL_TEST: "yes"
-          BUILD_OPTS: "--enable-asan --enable-openmp-for-fast-formats"
+          BUILD_OPTS: "--enable-asan --enable-openmp-for-fast-formats --disable-opencl"
 
   non-SIMD:
     <<: *common_linux
@@ -103,7 +103,7 @@ jobs:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
           FULL_TEST: "yes"
-          BUILD_OPTS: "--enable-asan --enable-openmp-for-fast-formats --disable-simd"
+          BUILD_OPTS: "--enable-asan --enable-openmp-for-fast-formats --disable-simd --disable-opencl"
 
 workflows:
   version: 2
