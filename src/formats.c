@@ -95,7 +95,7 @@ void fmt_init(struct fmt_main *format)
 				format->params.label);
 
 #ifndef BENCH_BUILD
-		if (john_main_process) {
+		if (john_main_process && !(options.flags & FLG_TEST_CHK)) {
 			if (format->params.flags & FMT_NOT_EXACT) {
 				fprintf(stderr, "Note: This format may emit false positives, ");
 				if (options.flags & FLG_NO_KEEP_GUESSING)
