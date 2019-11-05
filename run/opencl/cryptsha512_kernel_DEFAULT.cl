@@ -18,7 +18,7 @@
     #define FAST
 #endif
 
-inline void init_ctx(sha512_ctx * ctx) {
+static inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[0] = H0;
     ctx->H[1] = H1;
     ctx->H[2] = H2;
@@ -31,7 +31,7 @@ inline void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void memcpy_R(      uint8_t * dest,
+static inline void memcpy_R(      uint8_t * dest,
                      const uint8_t * src,
                      const uint32_t srclen) {
     uint32_t i = 0;
@@ -45,7 +45,7 @@ inline void memcpy_R(      uint8_t * dest,
     }
 }
 
-inline void memcpy_C(                 uint8_t * dest,
+static inline void memcpy_C(                 uint8_t * dest,
                      __constant const uint8_t * src,
                      const uint32_t srclen) {
     uint32_t i = 0;
@@ -59,7 +59,7 @@ inline void memcpy_C(                 uint8_t * dest,
     }
 }
 
-inline void memcpy_G(               uint8_t * dest,
+static inline void memcpy_G(               uint8_t * dest,
                      __global const uint8_t * src,
                      const uint32_t srclen) {
     uint32_t i = 0;
@@ -73,7 +73,7 @@ inline void memcpy_G(               uint8_t * dest,
     }
 }
 
-inline void sha512_block(sha512_ctx * ctx) {
+static inline void sha512_block(sha512_ctx * ctx) {
     uint64_t a = ctx->H[0];
     uint64_t b = ctx->H[1];
     uint64_t c = ctx->H[2];
@@ -105,7 +105,7 @@ inline void sha512_block(sha512_ctx * ctx) {
     ctx->H[7] += h;
 }
 
-inline void insert_to_buffer_R(sha512_ctx    * ctx,
+static inline void insert_to_buffer_R(sha512_ctx    * ctx,
                         const uint8_t * string,
                         const uint32_t len) {
 
@@ -118,7 +118,7 @@ inline void insert_to_buffer_R(sha512_ctx    * ctx,
     ctx->buflen += len;
 }
 
-inline void insert_to_buffer_C(           sha512_ctx    * ctx,
+static inline void insert_to_buffer_C(           sha512_ctx    * ctx,
                         __constant const uint8_t * string,
                                  const uint32_t len) {
 #ifdef FAST
@@ -130,7 +130,7 @@ inline void insert_to_buffer_C(           sha512_ctx    * ctx,
     ctx->buflen += len;
 }
 
-inline void insert_to_buffer_G(         sha512_ctx    * ctx,
+static inline void insert_to_buffer_G(         sha512_ctx    * ctx,
                         __global const uint8_t * string,
                                  const uint32_t len) {
 #ifdef FAST
@@ -142,7 +142,7 @@ inline void insert_to_buffer_G(         sha512_ctx    * ctx,
     ctx->buflen += len;
 }
 
-inline void ctx_update_R(sha512_ctx * ctx,
+static inline void ctx_update_R(sha512_ctx * ctx,
                   uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -158,7 +158,7 @@ inline void ctx_update_R(sha512_ctx * ctx,
     }
 }
 
-inline void ctx_update_C(           sha512_ctx * ctx,
+static inline void ctx_update_C(           sha512_ctx * ctx,
                   __constant uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -174,7 +174,7 @@ inline void ctx_update_C(           sha512_ctx * ctx,
     }
 }
 
-inline void ctx_update_G(         sha512_ctx * ctx,
+static inline void ctx_update_G(         sha512_ctx * ctx,
                   __global uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -190,7 +190,7 @@ inline void ctx_update_G(         sha512_ctx * ctx,
     }
 }
 
-inline void ctx_append_1(sha512_ctx * ctx) {
+static inline void ctx_append_1(sha512_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
     PUT(BUFFER, length, 0x80);
@@ -206,19 +206,19 @@ inline void ctx_append_1(sha512_ctx * ctx) {
     }
 }
 
-inline void ctx_add_length(sha512_ctx * ctx) {
+static inline void ctx_add_length(sha512_ctx * ctx) {
 
     ctx->buffer[15].mem_64[0] = SWAP64((uint64_t) (ctx->total * 8));
 }
 
-inline void finish_ctx(sha512_ctx * ctx) {
+static inline void finish_ctx(sha512_ctx * ctx) {
 
     ctx_append_1(ctx);
     ctx_add_length(ctx);
     ctx->buflen = 0;
 }
 
-inline void clear_ctx_buffer(sha512_ctx * ctx) {
+static inline void clear_ctx_buffer(sha512_ctx * ctx) {
 
 #ifdef UNROLL
     #pragma unroll
@@ -229,7 +229,7 @@ inline void clear_ctx_buffer(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void sha512_digest_move(sha512_ctx * ctx,
+static inline void sha512_digest_move(sha512_ctx * ctx,
                                uint64_t   * result,
                                const int size) {
 
@@ -240,7 +240,7 @@ inline void sha512_digest_move(sha512_ctx * ctx,
         result[i] = SWAP64(ctx->H[i]);
 }
 
-inline void sha512_digest(sha512_ctx * ctx) {
+static inline void sha512_digest(sha512_ctx * ctx) {
 
     if (ctx->buflen <= 111) { //data+0x80+datasize fits in one 1024bit block
         finish_ctx(ctx);
@@ -262,7 +262,7 @@ inline void sha512_digest(sha512_ctx * ctx) {
     sha512_block(ctx);
 }
 
-inline void sha512_prepare(__constant sha512_salt     * salt_data,
+static inline void sha512_prepare(__constant sha512_salt     * salt_data,
                     __global   sha512_password * keys_data,
                                sha512_buffers  * fast_buffers,
                                sha512_ctx      * ctx) {
@@ -320,7 +320,7 @@ inline void sha512_prepare(__constant sha512_salt     * salt_data,
 #undef saltlen
 #undef passlen
 
-inline void sha512_crypt(sha512_buffers  * fast_buffers,
+static inline void sha512_crypt(sha512_buffers  * fast_buffers,
                   sha512_ctx      * ctx,
                   const uint32_t saltlen, const uint32_t passlen,
                   const uint32_t rounds) {

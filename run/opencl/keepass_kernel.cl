@@ -48,7 +48,7 @@ typedef struct {
 #define MAYBE_CONSTANT __global const
 #endif
 
-inline int _memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
+static inline int _memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
 {
 	union {
 		const uint *w;

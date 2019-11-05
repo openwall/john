@@ -20,7 +20,7 @@
 #define SQRT_2			0x5a827999
 #define SQRT_3			0x6ed9eba1
 
-inline void md4_crypt_a(__private uint *hash, __private uint *nt_buffer)
+static inline void md4_crypt_a(__private uint *hash, __private uint *nt_buffer)
 {
 	unsigned int a = INIT_A;
 	unsigned int b = INIT_B;
@@ -144,7 +144,7 @@ inline void md4_crypt_a(__private uint *hash, __private uint *nt_buffer)
 	hash[3] = d + INIT_D;
 }
 
-inline void md4_crypt_b(__private uint *hash, constant uint *salt)
+static inline void md4_crypt_b(__private uint *hash, constant uint *salt)
 {
 	unsigned int a = INIT_A;
 	unsigned int b = INIT_B;
@@ -277,7 +277,7 @@ inline void md4_crypt_b(__private uint *hash, constant uint *salt)
 
 #if UTF_8
 
-inline void prepare_key(__global uint *key, uint length,
+static inline void prepare_key(__global uint *key, uint length,
                         MAYBE_VOLATILE uint *nt_buffer)
 {
 	const __global UTF8 *source = (const __global uchar*)key;
@@ -347,7 +347,7 @@ inline void prepare_key(__global uint *key, uint length,
 
 #else
 
-inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
+static inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 {
 	uint i, nt_index, keychars;
 
@@ -365,7 +365,7 @@ inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 
 #endif /* UTF_8 */
 
-inline void cmp_final(uint gid,
+static inline void cmp_final(uint gid,
 		uint iter,
 		__private uint *hash,
 		__global uint *offset_table,
@@ -412,7 +412,7 @@ inline void cmp_final(uint gid,
 	}
 }
 
-inline void cmp(uint gid,
+static inline void cmp(uint gid,
 		uint iter,
 		__private uint *hash,
 		__global uint *bitmaps,

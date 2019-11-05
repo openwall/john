@@ -31,7 +31,7 @@ typedef struct {
 			buf[i] ^= buf[i - 1]; \
 	} while(0)
 
-inline void encfs_common_setIVec(MAYBE_CONSTANT encfs_salt *salt,
+static inline void encfs_common_setIVec(MAYBE_CONSTANT encfs_salt *salt,
                                  uchar *ivec, uint64_t seed, uchar *key)
 {
 	uchar iv_and_seed[MAX_IVLENGTH+8];
@@ -48,7 +48,7 @@ inline void encfs_common_setIVec(MAYBE_CONSTANT encfs_salt *salt,
 	          ivec, salt->ivLength);
 }
 
-inline void flipBytes(uchar *buf, uint size)
+static inline void flipBytes(uchar *buf, uint size)
 {
 	uchar revBuf[64];
 	uint bytesLeft = size;
@@ -65,7 +65,7 @@ inline void flipBytes(uchar *buf, uint size)
 	}
 }
 
-inline uint64_t _checksum_64(MAYBE_CONSTANT encfs_salt *salt, uchar *key,
+static inline uint64_t _checksum_64(MAYBE_CONSTANT encfs_salt *salt, uchar *key,
                              const uchar *data, uint dataLen,
                              uint64_t *chainedIV)
 {
@@ -99,7 +99,7 @@ inline uint64_t _checksum_64(MAYBE_CONSTANT encfs_salt *salt, uchar *key,
 	return value;
 }
 
-inline uint64_t MAC_64(MAYBE_CONSTANT encfs_salt *salt,
+static inline uint64_t MAC_64(MAYBE_CONSTANT encfs_salt *salt,
                        const uchar *data,
                        uint len, uchar *key, uint64_t *chainedIV )
 {
@@ -111,7 +111,7 @@ inline uint64_t MAC_64(MAYBE_CONSTANT encfs_salt *salt,
 	return tmp;
 }
 
-inline uint encfs_common_MAC_32(MAYBE_CONSTANT encfs_salt *salt, uchar *src,
+static inline uint encfs_common_MAC_32(MAYBE_CONSTANT encfs_salt *salt, uchar *src,
                                 uint len, uchar *key)
 {
 	uint64_t *chainedIV = (void*)0;
@@ -121,7 +121,7 @@ inline uint encfs_common_MAC_32(MAYBE_CONSTANT encfs_salt *salt, uchar *src,
 	return mac32;
 }
 
-inline void encfs_common_streamDecode(MAYBE_CONSTANT encfs_salt *salt,
+static inline void encfs_common_streamDecode(MAYBE_CONSTANT encfs_salt *salt,
                                       uchar *buf, uint size, uint64_t iv64,
                                       uchar *key)
 {

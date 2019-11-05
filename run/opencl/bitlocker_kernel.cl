@@ -286,7 +286,7 @@ __constant unsigned int TS3[256] = {
 	0x5454FCA8U, 0xBBBBD66DU, 0x16163A2CU
 };
 
-inline unsigned int LOP3LUT_XOR(unsigned int a, unsigned int b, unsigned int c)
+static inline unsigned int LOP3LUT_XOR(unsigned int a, unsigned int b, unsigned int c)
 {
 #if HAVE_LUT3
 	unsigned int d;
@@ -298,7 +298,7 @@ inline unsigned int LOP3LUT_XOR(unsigned int a, unsigned int b, unsigned int c)
 #endif
 }
 
-inline unsigned int LOP3LUT_XORAND(unsigned int a, unsigned int b, unsigned int c)
+static inline unsigned int LOP3LUT_XORAND(unsigned int a, unsigned int b, unsigned int c)
 {
 #if HAVE_LUT3
 	unsigned int d;
@@ -310,7 +310,7 @@ inline unsigned int LOP3LUT_XORAND(unsigned int a, unsigned int b, unsigned int 
 #endif
 }
 
-inline unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c)
+static inline unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c)
 {
 #if HAVE_LUT3
 	unsigned int d;

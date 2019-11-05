@@ -59,7 +59,7 @@
 /*undefined, cause error.*/
 #endif
 
-inline void md4_encrypt(__private uint *hash, __private uint *W, uint len)
+static inline void md4_encrypt(__private uint *hash, __private uint *W, uint len)
 {
 	hash[0] = 0x67452301;
 	hash[1] = 0xefcdab89;
@@ -121,7 +121,7 @@ inline void md4_encrypt(__private uint *hash, __private uint *W, uint len)
 	STEP(H2, hash[1], hash[2], hash[3], hash[0], W[15] + 0x6ed9eba1, 15);
 }
 
-inline void cmp_final(uint gid,
+static inline void cmp_final(uint gid,
 		uint iter,
 		__private uint *hash,
 		__global uint *offset_table,
@@ -167,7 +167,7 @@ inline void cmp_final(uint gid,
 	}
 }
 
-inline void cmp(uint gid,
+static inline void cmp(uint gid,
 		uint iter,
 		__private uint *hash,
 #if USE_LOCAL_BITMAPS

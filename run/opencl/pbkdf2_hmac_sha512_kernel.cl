@@ -35,7 +35,7 @@ typedef struct {
 	uint rounds;
 } state_t;
 
-inline void _phs512_preproc(__global const ulong *key, uint keylen,
+static inline void _phs512_preproc(__global const ulong *key, uint keylen,
                             ulong *state, ulong mask)
 {
 	uint i, j;
@@ -70,7 +70,7 @@ inline void _phs512_preproc(__global const ulong *key, uint keylen,
 	state[7] = H + SHA2_INIT_H;
 }
 
-inline void _phs512_hmac(ulong *output, ulong *ipad_state, ulong *opad_state,
+static inline void _phs512_hmac(ulong *output, ulong *ipad_state, ulong *opad_state,
                          __constant ulong *salt, uint saltlen)
 {
 	uint i, j;

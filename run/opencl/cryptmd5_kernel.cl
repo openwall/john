@@ -134,7 +134,7 @@ __constant uchar g[] =
 	    1*8, 7*8, 3*8, 5*8, 2*8, 7*8, 1*8, 7*8, 3*8, 5*8, 3*8, 6*8, 1*8, 7*8, 3*8, 5*8, 3*8, 7*8 };
 
 #ifdef BUF_UPDATE_SWITCH
-inline void buf_update(uint *buf, uint a, uint b, uint c, uint d, uint offset)
+static inline void buf_update(uint *buf, uint a, uint b, uint c, uint d, uint offset)
 {
 	uint i = offset >> 2;
 	switch (offset & 3) {
@@ -192,7 +192,7 @@ inline void buf_update(uint *buf, uint a, uint b, uint c, uint d, uint offset)
 	}
 }
 #else
-inline void buf_update(uint *buf, uint a, uint b, uint c, uint d, uint offset)
+static inline void buf_update(uint *buf, uint a, uint b, uint c, uint d, uint offset)
 {
 	uint i = offset >> 2;
 	uint j = offset & 3;
@@ -222,7 +222,7 @@ inline void buf_update(uint *buf, uint a, uint b, uint c, uint d, uint offset)
 }
 #endif
 
-inline void ctx_update(md5_ctx *ctx, uchar *string, uint len,
+static inline void ctx_update(md5_ctx *ctx, uchar *string, uint len,
     uchar *ctx_buflen)
 {
 	uint i;
@@ -233,7 +233,7 @@ inline void ctx_update(md5_ctx *ctx, uchar *string, uint len,
 	*ctx_buflen += len;
 }
 
-inline void ctx_update_prefix(md5_ctx *ctx, uchar prefix, uchar *ctx_buflen)
+static inline void ctx_update_prefix(md5_ctx *ctx, uchar prefix, uchar *ctx_buflen)
 {
 	uint i;
 
@@ -251,7 +251,7 @@ inline void ctx_update_prefix(md5_ctx *ctx, uchar prefix, uchar *ctx_buflen)
 	// else if (prefix == '\0') do nothing. for {smd5}
 }
 
-inline void init_ctx(md5_ctx *ctx, uchar *ctx_buflen)
+static inline void init_ctx(md5_ctx *ctx, uchar *ctx_buflen)
 {
 	uint i;
 	uint *buf = (uint *) ctx->buffer;
@@ -264,7 +264,7 @@ inline void init_ctx(md5_ctx *ctx, uchar *ctx_buflen)
 	*ctx_buflen = 0;
 }
 
-inline void md5_digest(uint *x, uint *y, uint *z, uint *zmem, uint zmem_offset, uint len, uint unify)
+static inline void md5_digest(uint *x, uint *y, uint *z, uint *zmem, uint zmem_offset, uint len, uint unify)
 {
 	uint a;
 	uint b = 0xefcdab89;

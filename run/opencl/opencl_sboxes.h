@@ -24,7 +24,7 @@
  *
  * The underlying mathematical formulas are NOT copyrighted.
  */
-inline void
+static inline void
 s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
@@ -60,7 +60,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	out[c4] ^= x4;
 }
 
-inline void
+static inline void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
@@ -95,7 +95,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	out[c4] ^= x4;
 }
 
-inline void
+static inline void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
@@ -133,7 +133,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 #if 1
 /* Roman Rusakov’s s4 */
-inline void
+static inline void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
@@ -166,7 +166,7 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 }
 #else
 /* DeepLearningJohnDoe's s4 */
-inline void
+static inline void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
@@ -196,7 +196,7 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 }
 #endif
 
-inline void
+static inline void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
@@ -232,7 +232,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	out[c4] ^= x4;
 }
 
-inline void
+static inline void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
@@ -267,7 +267,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	out[c4] ^= x4;
 }
 
-inline void
+static inline void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
@@ -302,7 +302,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 	out[c4] ^= x4;
 }
 
-inline void
+static inline void
 s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {

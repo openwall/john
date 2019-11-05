@@ -62,7 +62,7 @@
  */
 
 #ifndef AES_ecb_encrypt
-inline void
+static inline void
 AES_ecb_encrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out, uint len,
                 AES_KEY *akey)
 {
@@ -95,7 +95,7 @@ AES_ecb_encrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out, uint len,
 #endif /* AES_ecb_encrypt */
 
 #ifndef AES_ecb_decrypt
-inline void
+static inline void
 AES_ecb_decrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out, uint len,
                 AES_KEY *akey)
 {
@@ -127,7 +127,7 @@ AES_ecb_decrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out, uint len,
 }
 #endif /* AES_ecb_decrypt */
 
-inline void
+static inline void
 AES_cbc_encrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
                 uint len, AES_KEY *akey, void *_iv)
 {
@@ -155,7 +155,7 @@ AES_cbc_encrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
 	memcpy_macro(iv, ivec, 16);
 }
 
-inline void
+static inline void
 AES_cbc_decrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
                 uint len, AES_KEY *akey,
                 void *_iv)
@@ -186,7 +186,7 @@ AES_cbc_decrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
 	}
 }
 
-inline void
+static inline void
 AES_cts_encrypt(AES_CTS_SRC_TYPE void *_in, AES_CTS_DST_TYPE void *_out,
                 uint len, AES_KEY *akey, void *_iv)
 {
@@ -218,7 +218,7 @@ AES_cts_encrypt(AES_CTS_SRC_TYPE void *_in, AES_CTS_DST_TYPE void *_out,
 	memcpy_macro(iv, out - AES_BLOCK_SIZE, AES_BLOCK_SIZE);
 }
 
-inline void
+static inline void
 AES_cts_decrypt(AES_CTS_SRC_TYPE void *_in, AES_CTS_DST_TYPE void *_out,
                 uint len, AES_KEY *akey, void *_iv)
 {
@@ -256,7 +256,7 @@ AES_cts_decrypt(AES_CTS_SRC_TYPE void *_in, AES_CTS_DST_TYPE void *_out,
 	memcpy_macro(iv, tmp, AES_BLOCK_SIZE);
 }
 
-inline void AES_cfb_decrypt(AES_SRC_TYPE void *_in,
+static inline void AES_cfb_decrypt(AES_SRC_TYPE void *_in,
                             AES_DST_TYPE void *_out,
                             uint len, AES_KEY *akey, void *_iv)
 {
@@ -279,7 +279,7 @@ inline void AES_cfb_decrypt(AES_SRC_TYPE void *_in,
 	}
 }
 
-inline void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in,
+static inline void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in,
                                      AES_DST_TYPE uint *out,
                                      AES_KEY_TYPE uchar *double_key)
 {
@@ -302,7 +302,7 @@ inline void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in,
 		out[i] = buf[i] ^ tweak[i];
 }
 
-inline void AES_256_XTS_DiskCryptor(AES_SRC_TYPE uchar *data, AES_DST_TYPE uchar *output,
+static inline void AES_256_XTS_DiskCryptor(AES_SRC_TYPE uchar *data, AES_DST_TYPE uchar *output,
 		AES_KEY_TYPE uchar *double_key, int len)
 {
 	uchar buf[16];
@@ -348,7 +348,7 @@ inline void AES_256_XTS_DiskCryptor(AES_SRC_TYPE uchar *data, AES_DST_TYPE uchar
 
 #define N_WORDS (AES_BLOCK_SIZE / sizeof(unsigned long))
 
-inline void
+static inline void
 AES_ige_decrypt(AES_SRC_TYPE void *_in, AES_DST_TYPE void *_out,
                 uint length, AES_KEY *akey, uchar *_iv)
 {

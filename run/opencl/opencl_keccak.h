@@ -54,7 +54,7 @@ __constant uint64_t RC[24] =
   REPEAT5(e; v += s;)
 
 /*** Keccak-f[1600] ***/
-inline void keccakf(void* state)
+static inline void keccakf(void* state)
 {
 	uint64_t* a = (uint64_t*)state;
 	uint64_t b[5] = { 0 };
@@ -135,7 +135,7 @@ mkapply_sd(setout, dst[i] = src[i])  // setout
   }
 
 /** The sponge-based hash construction. **/
-inline void hash(uint8_t* out, uint outlen, const uint8_t* in, uint inlen,
+static inline void hash(uint8_t* out, uint outlen, const uint8_t* in, uint inlen,
                  uint rate, uint8_t delim)
 {
 	uint8_t a[Plen] = { 0 };
