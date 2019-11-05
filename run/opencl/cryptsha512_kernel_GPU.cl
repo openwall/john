@@ -71,7 +71,7 @@
 #endif
 
 /************************** helper **************************/
-inline void init_H(sha512_ctx * ctx) {
+static inline void init_H(sha512_ctx * ctx) {
     ctx->H[0] = H0;
     ctx->H[1] = H1;
     ctx->H[2] = H2;
@@ -82,7 +82,7 @@ inline void init_H(sha512_ctx * ctx) {
     ctx->H[7] = H7;
 }
 
-inline void init_ctx(sha512_ctx * ctx) {
+static inline void init_ctx(sha512_ctx * ctx) {
     ctx->H[0] = H0;
     ctx->H[1] = H1;
     ctx->H[2] = H2;
@@ -113,7 +113,7 @@ inline void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void clear_ctx_buffer(sha512_ctx * ctx) {
+static inline void clear_ctx_buffer(sha512_ctx * ctx) {
 
     ctx->buffer[0].mem_64[0] = 0;
     ctx->buffer[1].mem_64[0] = 0;
@@ -136,7 +136,7 @@ inline void clear_ctx_buffer(sha512_ctx * ctx) {
 }
 
 /************************** prepare **************************/
-inline void clear_buffer(uint64_t     * destination,
+static inline void clear_buffer(uint64_t     * destination,
                          const uint32_t len,
                          const uint32_t limit) {
 
@@ -150,7 +150,7 @@ inline void clear_buffer(uint64_t     * destination,
     }
 }
 
-inline void sha512_block(sha512_ctx * ctx) {
+static inline void sha512_block(sha512_ctx * ctx) {
     uint64_t a = ctx->H[0];
     uint64_t b = ctx->H[1];
     uint64_t c = ctx->H[2];
@@ -218,7 +218,7 @@ inline void sha512_block(sha512_ctx * ctx) {
     ctx->H[7] += h;
 }
 
-inline void insert_to_buffer_R(sha512_ctx    * ctx,
+static inline void insert_to_buffer_R(sha512_ctx    * ctx,
                                const uint8_t * string,
                                const uint32_t len) {
 
@@ -236,7 +236,7 @@ inline void insert_to_buffer_R(sha512_ctx    * ctx,
     clear_buffer(ctx->buffer->mem_64, ctx->buflen, 16);
 }
 
-inline void insert_to_buffer_G(         sha512_ctx    * ctx,
+static inline void insert_to_buffer_G(         sha512_ctx    * ctx,
                                __global const uint8_t * string,
                                const uint32_t len) {
 
@@ -257,7 +257,7 @@ inline void insert_to_buffer_G(         sha512_ctx    * ctx,
     }
 }
 
-inline void insert_to_buffer_C(           sha512_ctx    * ctx,
+static inline void insert_to_buffer_C(           sha512_ctx    * ctx,
                                MAYBE_CONSTANT uint8_t * string,
                                const uint32_t len) {
 
@@ -278,7 +278,7 @@ inline void insert_to_buffer_C(           sha512_ctx    * ctx,
     }
 }
 
-inline void ctx_update_R(sha512_ctx * ctx,
+static inline void ctx_update_R(sha512_ctx * ctx,
                          uint8_t    * string,
                          const uint32_t len) {
 
@@ -300,7 +300,7 @@ inline void ctx_update_R(sha512_ctx * ctx,
     }
 }
 
-inline void ctx_update_G(         sha512_ctx * ctx,
+static inline void ctx_update_G(         sha512_ctx * ctx,
                          __global const uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -321,7 +321,7 @@ inline void ctx_update_G(         sha512_ctx * ctx,
     }
 }
 
-inline void ctx_update_C(           sha512_ctx * ctx,
+static inline void ctx_update_C(           sha512_ctx * ctx,
                          MAYBE_CONSTANT uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -342,7 +342,7 @@ inline void ctx_update_C(           sha512_ctx * ctx,
     }
 }
 
-inline void sha512_digest(sha512_ctx * ctx,
+static inline void sha512_digest(sha512_ctx * ctx,
                           uint64_t   * result,
                           const uint32_t size) {
 
@@ -371,7 +371,7 @@ inline void sha512_digest(sha512_ctx * ctx,
         result[i] = SWAP64(ctx->H[i]);
 }
 
-inline void sha512_prepare(
+static inline void sha512_prepare(
 	MAYBE_CONSTANT sha512_salt     * const __restrict salt_data,
         __global   const sha512_password * const __restrict keys_data,
 	                 sha512_buffers  * fast_buffers) {
@@ -542,7 +542,7 @@ void kernel_preprocess(
 }
 
 /************************** hashing **************************/
-inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
+static inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
     uint64_t t;
     uint64_t a = H[0];
     uint64_t b = H[1];
@@ -616,7 +616,7 @@ inline void sha512_block_be(uint64_t * buffer, uint64_t * H) {
     H[7] += h;
 }
 
-inline void sha512_crypt_full(
+static inline void sha512_crypt_full(
 	 __global buffer_64      * const __restrict alt_result,
 	 __global uint64_t       * const __restrict work_memory) {
 
@@ -722,7 +722,7 @@ inline void sha512_crypt_full(
         alt_result[i].mem_64[0] = H[i];
 }
 
-inline void sha512_crypt_fast(
+static inline void sha512_crypt_fast(
 	 __global buffer_64      * const __restrict alt_result,
 	 __global uint64_t       * const __restrict work_memory) {
 
@@ -818,7 +818,7 @@ inline void sha512_crypt_fast(
         alt_result[i].mem_64[0] = H[i];
 }
 
-inline void sha512_crypt_f(
+static inline void sha512_crypt_f(
 	const uint32_t rounds,
 	__global buffer_64      * const __restrict alt_result,
 	__global uint64_t       * const __restrict work_memory) {

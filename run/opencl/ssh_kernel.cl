@@ -40,7 +40,7 @@ typedef struct {
 	uint cracked;
 } ssh_out;
 
-inline void generate_key_bytes(int nbytes, uchar *password, uint32_t len, uchar *salt, unsigned char *key)
+static inline void generate_key_bytes(int nbytes, uchar *password, uint32_t len, uchar *salt, unsigned char *key)
 {
 	uchar digest[16];
 	int keyidx = 0;
@@ -70,7 +70,7 @@ inline void generate_key_bytes(int nbytes, uchar *password, uint32_t len, uchar 
 	}
 }
 
-inline int check_padding_and_structure_EC(unsigned char *out, int length, int strict_mode)
+static inline int check_padding_and_structure_EC(unsigned char *out, int length, int strict_mode)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
@@ -121,7 +121,7 @@ inline int check_padding_and_structure_EC(unsigned char *out, int length, int st
 	return 1;
 }
 
-inline int check_padding_and_structure(uchar *out, uint length, uint block_size)
+static inline int check_padding_and_structure(uchar *out, uint length, uint block_size)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
@@ -195,7 +195,7 @@ inline int check_padding_and_structure(uchar *out, uint length, uint block_size)
 	return 1;
 }
 
-inline int ssh_decrypt(__global const ssh_password *inbuffer, uint gid, __constant ssh_salt *osalt, __global ssh_out *output)
+static inline int ssh_decrypt(__global const ssh_password *inbuffer, uint gid, __constant ssh_salt *osalt, __global ssh_out *output)
 {
 	uchar out[CTLEN];
 	int block_size = 8;

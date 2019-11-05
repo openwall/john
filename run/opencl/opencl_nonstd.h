@@ -132,7 +132,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#elif !andn || !triop || latency >= 3
 /* s1-00484, 49 gates, 17 regs, 11 andn, 4/9/39/79/120 stalls, 74 biop */
 /* Currently used for MMX/SSE2 and x86-64 SSE2 */
-inline  void
+static inline  void
 s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -292,7 +292,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#if andn && triop && latency <= 4
 /* s2-016251, 44 gates, 14 regs, 13 andn, 1/9/22/61/108 stalls, 66 biop */
 /*
-inline  void
+static inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
     vtype * out1, vtype * out2, vtype * out3, vtype * out4)
 {
@@ -367,7 +367,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#elif !andn && regs >= 15
 /* s2-016276, 44 gates, 15 regs, 11 andn, 1/9/24/59/104 stalls, 67 biop */
 
-inline  void
+static inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -445,7 +445,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s2-016277, 44 gates, 15 regs, 12 andn, 4/15/35/74/121 stalls, 65 biop */
 /* Currently used for x86-64 SSE2 */
 /*
-inline  void
+static inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -522,7 +522,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#elif !andn || (triop && latency >= 5)
 /* s2-016380, 44 gates, 14/15 regs, 12 andn, 1/9/27/55/99 stalls, 68 biop */
 /*
-inline  void
+static inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -600,7 +600,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s2-016520, 44 gates, 15 regs, 13 andn, 5/17/41/78/125 stalls, 68 biop */
 /* Currently used for MMX/SSE2 */
 /*
-inline  void
+static inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -976,7 +976,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#elif triop && regs >= 17 && latency <= 3
 /* s3-001172, 46 gates, 17 regs, 10 andn, 2/3/19/55/98 stalls, 69 biop */
 /*
-inline  void
+static inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -1052,7 +1052,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#else
 /* s3-001283, 46 gates, 16 regs, 14 andn, 2/5/10/30/69 stalls, 69 biop */
 
-inline  void
+static inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -1128,7 +1128,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#endif
 
 /* s4, 33 gates, 11/12 regs, 9 andn, 2/21/53/86/119 stalls, 52 biop */
-inline  void
+static inline  void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -1265,7 +1265,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s5-04829, 48 gates, 15/16 regs, 9 andn, 4/24/65/113/163 stalls, 72 biop */
 /* Currently used for x86-64 SSE2 */
 /*
-inline  void
+static inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -1344,7 +1344,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s5-04832, 48 gates, 15/16 regs, 9 andn, 5/23/62/109/159 stalls, 72 biop */
 /* Currently used for MMX/SSE2 */
 
-inline  void
+static inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -1426,7 +1426,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s6-000007, 46 gates, 19 regs, 8 andn, 3/19/39/66/101 stalls, 69 biop */
 /* Currently used for x86-64 SSE2 */
 /*
-inline  void
+static inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -1505,7 +1505,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s6-000009, 46 gates, 19 regs, 8 andn, 3/20/41/69/110 stalls, 69 biop */
 /* Currently used for MMX/SSE2 */
 
-inline  void
+static inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -1583,7 +1583,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#elif latency >= 3
 /* s6-000028, 46 gates, 19 regs, 8 andn, 4/16/39/65/101 stalls, 69 biop */
 /*
-inline  void
+static inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -1661,7 +1661,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#else
 /* s6-000031, 46 gates, 19 regs, 8 andn, 3/16/42/68/111 stalls, 69 biop */
 /*
-inline  void
+static inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -2259,7 +2259,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#elif !andn && triop && regs >= 17 && latency <= 4
 /* s7-036496, 46 gates, 17 regs, 7 andn, 3/9/20/52/95 stalls, 70 biop */
 /*
-inline  void
+static inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -2335,7 +2335,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#elif !andn && triop && regs >= 17 && latency >= 5
 /* s7-036532, 46 gates, 17 regs, 7 andn, 3/9/23/51/93 stalls, 71 biop */
 /*
-inline  void
+static inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -2411,7 +2411,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#elif andn && triop && regs <= 16
 /* s7-036610, 46 gates, 16 regs, 9 andn, 1/6/16/53/98 stalls, 70 biop */
 /*
-inline  void
+static inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -2561,7 +2561,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#elif !andn && triop && latency <= 4
 /* s7-036649, 46 gates, 16 regs, 7 andn, 3/9/20/55/100 stalls, 69 biop */
 /*
-inline  void
+static inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -2713,7 +2713,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s7-056945, 46 gates, 16 regs, 7 andn, 10/31/62/107/156 stalls, 67 biop */
 /* Currently used for MMX/SSE2 */
 
-inline  void
+static inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
@@ -2993,7 +2993,7 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 //#elif !andn || !triop
 /* s8-019374, 41 gates, 14 regs, 7 andn, 4/25/61/103/145 stalls, 59 biop */
 /* Currently used for x86-64 SSE2 */
-inline  void
+static inline  void
 s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
    __private  vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)

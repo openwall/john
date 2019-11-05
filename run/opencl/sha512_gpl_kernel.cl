@@ -46,7 +46,7 @@
     #define USE_LOCAL       1
 #endif
 
-inline void _memcpy(               uint32_t * dest,
+static inline void _memcpy(               uint32_t * dest,
                     __global const uint32_t * src,
                              const uint32_t   len) {
 
@@ -54,7 +54,7 @@ inline void _memcpy(               uint32_t * dest,
         *dest++ = *src++;
 }
 
-inline void any_hash_cracked(
+static inline void any_hash_cracked(
 	const uint32_t iter,                        //which candidates_number is this one
 	volatile __global uint32_t * const hash_id, //information about how recover the cracked password
 	const uint64_t * const hash,                //the hash calculated by this kernel
@@ -114,7 +114,7 @@ inline void any_hash_cracked(
  *
  * [1] Of course, one could be a crack.
  */
-inline void sha512_block(	  const uint64_t * const buffer,
+static inline void sha512_block(	  const uint64_t * const buffer,
 				  const uint32_t total, uint64_t * const H) {
 
     uint64_t a = H0;

@@ -79,7 +79,7 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
 /*
  * One-shot RC4 with fixed keylen of 16. No byte addressed stores.
  */
-inline void rc4(
+static inline void rc4(
 #ifdef RC4_USE_LOCAL
                 __local uint *restrict state,
 #endif

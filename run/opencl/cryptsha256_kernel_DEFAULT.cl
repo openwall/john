@@ -18,7 +18,7 @@
     #define FAST
 #endif
 
-inline void init_ctx(sha256_ctx * ctx) {
+static inline void init_ctx(sha256_ctx * ctx) {
     ctx->H[0] = H0;
     ctx->H[1] = H1;
     ctx->H[2] = H2;
@@ -31,7 +31,7 @@ inline void init_ctx(sha256_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void memcpy_R(      uint8_t * dest,
+static inline void memcpy_R(      uint8_t * dest,
                      const uint8_t * src,
                      const uint32_t srclen) {
     uint32_t i = 0;
@@ -45,7 +45,7 @@ inline void memcpy_R(      uint8_t * dest,
     }
 }
 
-inline void memcpy_C(                 uint8_t * dest,
+static inline void memcpy_C(                 uint8_t * dest,
                      __constant const uint8_t * src,
                      const uint32_t srclen) {
     uint32_t i = 0;
@@ -59,7 +59,7 @@ inline void memcpy_C(                 uint8_t * dest,
     }
 }
 
-inline void memcpy_G(               uint8_t * dest,
+static inline void memcpy_G(               uint8_t * dest,
                      __global const uint8_t * src,
                      const uint32_t srclen) {
     uint32_t i = 0;
@@ -73,7 +73,7 @@ inline void memcpy_G(               uint8_t * dest,
     }
 }
 
-inline void sha256_block(sha256_ctx * ctx) {
+static inline void sha256_block(sha256_ctx * ctx) {
     uint32_t a = ctx->H[0];
     uint32_t b = ctx->H[1];
     uint32_t c = ctx->H[2];
@@ -136,7 +136,7 @@ inline void sha256_block(sha256_ctx * ctx) {
     ctx->H[7] += h;
 }
 
-inline void insert_to_buffer_R(sha256_ctx    * ctx,
+static inline void insert_to_buffer_R(sha256_ctx    * ctx,
                         const uint8_t * string,
                         const uint32_t len) {
 
@@ -149,7 +149,7 @@ inline void insert_to_buffer_R(sha256_ctx    * ctx,
     ctx->buflen += len;
 }
 
-inline void insert_to_buffer_C(           sha256_ctx    * ctx,
+static inline void insert_to_buffer_C(           sha256_ctx    * ctx,
                         __constant const uint8_t * string,
                                  const uint32_t len) {
 #ifdef FAST
@@ -161,7 +161,7 @@ inline void insert_to_buffer_C(           sha256_ctx    * ctx,
     ctx->buflen += len;
 }
 
-inline void insert_to_buffer_G(         sha256_ctx    * ctx,
+static inline void insert_to_buffer_G(         sha256_ctx    * ctx,
                         __global const uint8_t * string,
                                  const uint32_t len) {
 #ifdef FAST
@@ -173,7 +173,7 @@ inline void insert_to_buffer_G(         sha256_ctx    * ctx,
     ctx->buflen += len;
 }
 
-inline void ctx_update_R(sha256_ctx * ctx,
+static inline void ctx_update_R(sha256_ctx * ctx,
                   uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -189,7 +189,7 @@ inline void ctx_update_R(sha256_ctx * ctx,
     }
 }
 
-inline void ctx_update_C(           sha256_ctx * ctx,
+static inline void ctx_update_C(           sha256_ctx * ctx,
                   __constant uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -205,7 +205,7 @@ inline void ctx_update_C(           sha256_ctx * ctx,
     }
 }
 
-inline void ctx_update_G(         sha256_ctx * ctx,
+static inline void ctx_update_G(         sha256_ctx * ctx,
                   __global uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -221,7 +221,7 @@ inline void ctx_update_G(         sha256_ctx * ctx,
     }
 }
 
-inline void ctx_append_1(sha256_ctx * ctx) {
+static inline void ctx_append_1(sha256_ctx * ctx) {
 
     uint32_t length = ctx->buflen;
     PUT(BUFFER, length, 0x80);
@@ -237,19 +237,19 @@ inline void ctx_append_1(sha256_ctx * ctx) {
     }
 }
 
-inline void ctx_add_length(sha256_ctx * ctx) {
+static inline void ctx_add_length(sha256_ctx * ctx) {
 
     ctx->buffer[15].mem_32[0] = SWAP32(ctx->total * 8);
 }
 
-inline void finish_ctx(sha256_ctx * ctx) {
+static inline void finish_ctx(sha256_ctx * ctx) {
 
     ctx_append_1(ctx);
     ctx_add_length(ctx);
     ctx->buflen = 0;
 }
 
-inline void clear_ctx_buffer(sha256_ctx * ctx) {
+static inline void clear_ctx_buffer(sha256_ctx * ctx) {
 
     uint64_t * l = (uint64_t *) ctx->buffer;
 
@@ -262,7 +262,7 @@ inline void clear_ctx_buffer(sha256_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-inline void sha256_digest_move(sha256_ctx * ctx,
+static inline void sha256_digest_move(sha256_ctx * ctx,
                                uint32_t   * result,
                                const int size) {
 
@@ -271,7 +271,7 @@ inline void sha256_digest_move(sha256_ctx * ctx,
         result[i] = SWAP32(ctx->H[i]);
 }
 
-inline void sha256_digest(sha256_ctx * ctx) {
+static inline void sha256_digest(sha256_ctx * ctx) {
 
     if (ctx->buflen <= 55) { //data+0x80+datasize fits in one 512bit block
         finish_ctx(ctx);
@@ -293,7 +293,7 @@ inline void sha256_digest(sha256_ctx * ctx) {
     sha256_block(ctx);
 }
 
-inline void sha256_prepare(__constant sha256_salt     * salt_data,
+static inline void sha256_prepare(__constant sha256_salt     * salt_data,
                            __global   sha256_password * keys_data,
                                       sha256_buffers  * fast_buffers,
                                       sha256_ctx      * ctx) {
@@ -351,7 +351,7 @@ inline void sha256_prepare(__constant sha256_salt     * salt_data,
 #undef saltlen
 #undef passlen
 
-inline void sha256_crypt(sha256_buffers  * fast_buffers,
+static inline void sha256_crypt(sha256_buffers  * fast_buffers,
                   sha256_ctx      * ctx,
                   const uint32_t saltlen, const uint32_t passlen,
                   const uint32_t rounds) {

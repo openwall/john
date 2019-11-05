@@ -39,7 +39,7 @@ typedef struct {
 	uchar zchunk[4096]; /* chunk #0 */
 } dmg_salt;
 
-inline int apple_des3_ede_unwrap_key1(MAYBE_CONSTANT uchar *wrapped_key,
+static inline int apple_des3_ede_unwrap_key1(MAYBE_CONSTANT uchar *wrapped_key,
                                       const int wrapped_key_len,
                                       const uchar *decryptKey)
 {
@@ -68,7 +68,7 @@ inline int apple_des3_ede_unwrap_key1(MAYBE_CONSTANT uchar *wrapped_key,
 }
 
 /* Check for 64-bit NULL at 32-bit alignment */
-inline int check_nulls(const void *buf, uint size)
+static inline int check_nulls(const void *buf, uint size)
 {
 	const uint *p = buf;
 
@@ -80,7 +80,7 @@ inline int check_nulls(const void *buf, uint size)
 	return 0;
 }
 
-inline int check_v1hash(const uchar *derived_key,
+static inline int check_v1hash(const uchar *derived_key,
                         MAYBE_CONSTANT dmg_salt *salt)
 {
 	if (!apple_des3_ede_unwrap_key1(salt->wrapped_aes_key,
@@ -94,7 +94,7 @@ inline int check_v1hash(const uchar *derived_key,
 	return 1;
 }
 
-inline int check_v2hash(const uchar *derived_key,
+static inline int check_v2hash(const uchar *derived_key,
                         MAYBE_CONSTANT dmg_salt *salt)
 {
 	des3_context ks;

@@ -88,7 +88,7 @@ typedef unsigned WORD vtype;
 	DES_bs_clear_block_8(48); 			\
 	DES_bs_clear_block_8(56);
 
-inline void cmp(__private unsigned DES_bs_vector *B,
+static inline void cmp(__private unsigned DES_bs_vector *B,
 	  __global int *uncracked_hashes,
 	  int num_uncracked_hashes,
 	  volatile __global uint *hash_ids,

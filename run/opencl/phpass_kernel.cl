@@ -83,7 +83,7 @@ typedef struct {
 #define AC4pCb                          0xb18b7a77
 #define MASK1                           0x77777777
 
-inline void md5(MAYBE_VECTOR_UINT len,
+static inline void md5(MAYBE_VECTOR_UINT len,
                 __private MAYBE_VECTOR_UINT *internal_ret,
                 __private MAYBE_VECTOR_UINT *x)
 {

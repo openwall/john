@@ -27,7 +27,7 @@
 /*
  * This version does several blocks at a time
  */
-inline void sha1_mblock(uint *W, uint *out, uint blocks)
+static inline void sha1_mblock(uint *W, uint *out, uint blocks)
 {
 	uint i;
 	uint output[5];
@@ -44,7 +44,7 @@ inline void sha1_mblock(uint *W, uint *out, uint blocks)
 		out[i] = output[i];
 }
 
-inline void sha1_empty_final(uint *W, uint *output, const uint tot_len)
+static inline void sha1_empty_final(uint *W, uint *output, const uint tot_len)
 {
 	uint len = ((tot_len & 63) >> 2) + 1;
 

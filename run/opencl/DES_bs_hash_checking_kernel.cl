@@ -19,7 +19,7 @@
 #define OFFSET_TABLE_SIZE hash_chk_params.offset_table_size
 #define HASH_TABLE_SIZE hash_chk_params.hash_table_size
 
-inline void cmp_final(__private unsigned DES_bs_vector *B,
+static inline void cmp_final(__private unsigned DES_bs_vector *B,
 		      __private unsigned DES_bs_vector *binary,
 		      __global unsigned int *offset_table,
 		      __global unsigned int *hash_table,

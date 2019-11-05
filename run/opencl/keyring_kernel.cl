@@ -48,7 +48,7 @@ typedef struct {
 	uchar ct[LINE_BUFFER_SIZE / 2]; /* after hex conversion */
 } keyring_salt;
 
-inline int verify_decrypted_buffer(uchar *buffer, int len)
+static inline int verify_decrypted_buffer(uchar *buffer, int len)
 {
 	uchar digest[16];
 	MD5_CTX ctx;

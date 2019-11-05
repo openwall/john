@@ -16,7 +16,7 @@
 
 #define PKCS12_MAX_PWDLEN (PLAINTEXT_LENGTH * 2)
 
-inline void pkcs12_fill_buffer(uint *data, uint data_len,
+static inline void pkcs12_fill_buffer(uint *data, uint data_len,
                                const uint *filler, uint fill_len)
 {
 	uchar *p = (uchar*)data;
@@ -44,7 +44,7 @@ inline void pkcs12_fill_buffer(uint *data, uint data_len,
 	}
 }
 
-inline void pkcs12_pbe_derive_key(uint iterations, int id,
+static inline void pkcs12_pbe_derive_key(uint iterations, int id,
                                   const uint *pwd, uint pwdlen,
                                   const uint *salt,
                                   uint saltlen, uint *key, uint keylen)
