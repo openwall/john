@@ -505,6 +505,10 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	    format->params.salt_size != 0)
 		return "source method only allowed for unsalted formats";
 
+	if (format->params.salt_size > 512 &&
+	    !(format->params.flags & FMT_HUGE_INPUT))
+		return "FMT_HUGE_INPUT should be set";
+
 	if (format->params.flags & FMT_HUGE_INPUT) {
 		for (size = 0; size < PASSWORD_HASH_SIZES; size++) {
 			/*

@@ -469,7 +469,7 @@ struct fmt_main fmt_openssl = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD | FMT_NOT_EXACT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD | FMT_NOT_EXACT | FMT_HUGE_INPUT,
 /*
  * FIXME: if there wouldn't be so many false positives,
  *        it would be useful to report some tunable costs
