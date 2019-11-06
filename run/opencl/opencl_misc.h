@@ -34,6 +34,17 @@ typedef uint64_t host_size_t;
 typedef uint32_t host_size_t;
 #endif
 
+/* Only usable in device code */
+#if _OPENCL_COMPILER
+#if __MESA__
+#define inline
+#elif __ROCM__    // we don't have this define yet
+#define inline static inline
+#else
+#define inline inline
+#endif
+#endif
+
 /*
  * "Copy" of the one in dyna_salt.h (we only need it to be right size,
  * bitfields are not allowed in OpenCL)
