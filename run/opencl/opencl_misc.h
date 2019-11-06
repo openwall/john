@@ -45,11 +45,11 @@ typedef uint32_t host_size_t;
 #if __MESA__
 #define inline	// empty!
 #elif __POCL__
-#define inline	inline
+// Do nothing (POCL complains if we redefine)
 #elif gpu_amd(DEVICE_INFO) // We really target ROCM here
 #define inline	static inline
 #else
-#define inline	inline
+// Do nothing
 #endif
 
 #endif /* _OPENCL_COMPILER */
