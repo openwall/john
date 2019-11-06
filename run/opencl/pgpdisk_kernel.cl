@@ -39,12 +39,9 @@ typedef struct {
 	uchar salt[16];
 } pgpdisk_salt;
 
-#ifndef __MESA__
-inline
-#endif
-void pgpdisk_kdf(__global const uchar *ipassword, const uint plen,
-                 __constant uchar *isalt, const uint saltlen,
-                 const uint iterations, uchar *okey, uint bytesNeeded)
+inline void pgpdisk_kdf(__global const uchar *ipassword, const uint plen,
+                        __constant uchar *isalt, const uint saltlen,
+                        const uint iterations, uchar *okey, uint bytesNeeded)
 {
 	uint32_t offset = 0;
 	uchar password[PLAINTEXT_LENGTH];

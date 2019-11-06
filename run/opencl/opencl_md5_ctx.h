@@ -19,10 +19,8 @@ typedef struct {
 	uchar buffer[64];  /* data block being processed */
 } MD5_CTX;
 
-#ifndef __MESA__
-inline
-#endif
-void _md5_process(MD5_CTX *ctx, const uchar data[64]) {
+inline void _md5_process(MD5_CTX *ctx, const uchar data[64])
+{
 	uint W[16], A, B, C, D;
 
 #if gpu_nvidia(DEVICE_INFO)
@@ -80,10 +78,8 @@ void _md5_process(MD5_CTX *ctx, const uchar data[64]) {
 /*
  * MD5 context setup
  */
-#ifndef __MESA__
-inline
-#endif
-void MD5_Init(MD5_CTX *ctx) {
+inline void MD5_Init(MD5_CTX *ctx)
+{
 	ctx->total = 0;
 
 	ctx->state[0] = 0x67452301;
@@ -95,10 +91,8 @@ void MD5_Init(MD5_CTX *ctx) {
 /*
  * MD5 process buffer
  */
-#ifndef __MESA__
-inline
-#endif
-void MD5_Update(MD5_CTX *ctx, const uchar *input, uint ilen) {
+inline void MD5_Update(MD5_CTX *ctx, const uchar *input, uint ilen)
+{
 	uint fill;
 	uint left;
 
@@ -135,10 +129,8 @@ void MD5_Update(MD5_CTX *ctx, const uchar *input, uint ilen) {
 /*
  * MD5 final digest
  */
-#ifndef __MESA__
-inline
-#endif
-void MD5_Final(uchar output[20], MD5_CTX *ctx) {
+inline void MD5_Final(uchar output[20], MD5_CTX *ctx)
+{
 	uint last, padn;
 	ulong bits;
 	uchar msglen[8];

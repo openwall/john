@@ -50,10 +50,8 @@ typedef struct {
 	uchar buffer[64];  /* data block being processed */
 } SHA_CTX;
 
-#ifndef __MESA__
-inline
-#endif
-void SHA1_Init(SHA_CTX *ctx) {
+inline void SHA1_Init(SHA_CTX *ctx)
+{
 	ctx->total = 0;
 
 	ctx->state[0] = INIT_A;
@@ -63,10 +61,8 @@ void SHA1_Init(SHA_CTX *ctx) {
 	ctx->state[4] = INIT_E;
 }
 
-#ifndef __MESA__
-inline
-#endif
-void _sha1_process(SHA_CTX *ctx, const uchar data[64]) {
+inline void _sha1_process(SHA_CTX *ctx, const uchar data[64])
+{
 #if __OS_X__ && gpu_amd(DEVICE_INFO)
 	volatile
 #endif
@@ -129,10 +125,8 @@ void _sha1_process(SHA_CTX *ctx, const uchar data[64]) {
 /*
  * SHA-1 process buffer
  */
-#ifndef __MESA__
-inline
-#endif
-void SHA1_Update(SHA_CTX *ctx, const uchar *input, uint ilen) {
+inline void SHA1_Update(SHA_CTX *ctx, const uchar *input, uint ilen)
+{
 	uint fill;
 	uint left;
 
@@ -169,10 +163,8 @@ void SHA1_Update(SHA_CTX *ctx, const uchar *input, uint ilen) {
 /*
  * SHA-1 final digest
  */
-#ifndef __MESA__
-inline
-#endif
-void SHA1_Final(uchar output[20], SHA_CTX *ctx) {
+inline void SHA1_Final(uchar output[20], SHA_CTX *ctx)
+{
 	uint last, padn;
 	ulong bits;
 	uchar msglen[8];

@@ -50,10 +50,7 @@ typedef struct {
 #define LEAN
 #endif
 
-#ifndef __MESA__
-inline
-#endif
-void S2KItSaltedSHA1Generator(__global const uchar *password,
+inline void S2KItSaltedSHA1Generator(__global const uchar *password,
                                      uint password_length,
                                      __constant uchar *salt,
                                      uint _count,
@@ -172,15 +169,12 @@ __kernel void gpg(__global const gpg_password *inbuffer,
 #define SHA256_DIGEST_LENGTH 32
 #endif
 
-#ifndef __MESA__
-inline
-#endif
-void S2KItSaltedSHA256Generator(__global const uchar *ipassword,
-                                     uint password_length,
-                                     __constant uchar *isalt,
-                                     uint count, // iterations
-                                     __global uchar *okey,
-                                     uint key_length)
+inline void S2KItSaltedSHA256Generator(__global const uchar *ipassword,
+                                       uint password_length,
+                                       __constant uchar *isalt,
+                                       uint count, // iterations
+                                       __global uchar *okey,
+                                       uint key_length)
 {
 	// This code is based on "openpgp_s2k" function from Libgcrypt.
 	const uint salt_length = 8; // fixed
@@ -245,15 +239,12 @@ __kernel void gpg_sha256(__global const gpg_password *inbuffer,
 #define SHA512_DIGEST_LENGTH 64
 #endif
 
-#ifndef __MESA__
-inline
-#endif
-void S2KItSaltedSHA512Generator(__global const uchar *ipassword,
-                                     uint password_length,
-                                     __constant uchar *isalt,
-                                     uint count, // iterations
-                                     __global uchar *okey,
-                                     uint key_length)
+inline void S2KItSaltedSHA512Generator(__global const uchar *ipassword,
+                                       uint password_length,
+                                       __constant uchar *isalt,
+                                       uint count, // iterations
+                                       __global uchar *okey,
+                                       uint key_length)
 {
 	// This code is based on "openpgp_s2k" function from Libgcrypt.
 	const uint salt_length = 8; // fixed
