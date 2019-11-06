@@ -85,7 +85,7 @@ void pgpwde_kdf(__global const uchar *ipassword, const uint plen,
 	}
 }
 
-static inline int PKCS1oaepMGF1Unpack(uchar *in, uint32_t inlen)
+inline int PKCS1oaepMGF1Unpack(uchar *in, uint32_t inlen)
 {
 	const uint32_t hashlen = SHA1_DIGEST_LENGTH;
 	const uchar nullhash[20] = { 0xda, 0x39, 0xa3, 0xee, 0x5e, 0x6b, 0x4b, 0x0d,
@@ -144,7 +144,7 @@ static inline int PKCS1oaepMGF1Unpack(uchar *in, uint32_t inlen)
 	return memcmp_pp(nullhash, msg + hashlen / 4, hashlen);
 }
 
-static inline int pgpwde_decrypt_and_verify(uchar *key, __constant uchar *esk)
+inline int pgpwde_decrypt_and_verify(uchar *key, __constant uchar *esk)
 {
 	AES_KEY aes_key;
 	uchar iv[16] = { 8, 0 };

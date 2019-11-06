@@ -13,7 +13,7 @@ typedef struct {
 	uchar mnemonic[128];
 } tezos_salt_t;
 
-static inline void _phs512_preproc_(const ulong *key, uint keylen,
+inline void _phs512_preproc_(const ulong *key, uint keylen,
                             ulong *state, ulong mask)
 {
 	uint i, j;
@@ -48,7 +48,7 @@ static inline void _phs512_preproc_(const ulong *key, uint keylen,
 	state[7] = H + SHA2_INIT_H;
 }
 
-static inline void _phs512_hmac_(ulong *output, ulong *ipad_state, ulong *opad_state, ulong *salt, uint saltlen)
+inline void _phs512_hmac_(ulong *output, ulong *ipad_state, ulong *opad_state, ulong *salt, uint saltlen)
 {
 	uint i, j;
 	ulong W[16] = { 0 };

@@ -182,7 +182,7 @@
 	kp += NEXT_BIT;					\
 }
 
-static inline void lm_bs_finalize_keys(__global opencl_lm_transfer *lm_raw_keys,
+inline void lm_bs_finalize_keys(__global opencl_lm_transfer *lm_raw_keys,
 				int section,
 				MAYBE_LOCAL lm_vector *lm_keys,
 #if WORK_GROUP_SIZE

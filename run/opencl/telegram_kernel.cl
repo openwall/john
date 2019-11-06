@@ -19,7 +19,7 @@ typedef struct {
 	uchar encrypted_blob[ENCRYPTED_BLOB_LEN];
 } telegram_salt;
 
-static inline int telegram_decrypt(__global uchar *authkey, MAYBE_CONSTANT telegram_salt *salt)
+inline int telegram_decrypt(__global uchar *authkey, MAYBE_CONSTANT telegram_salt *salt)
 {
 	// variables
 	uchar data_a[48];

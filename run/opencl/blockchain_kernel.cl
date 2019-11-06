@@ -33,7 +33,7 @@ typedef struct {
 	int length;
 } blockchain_salt;
 
-static inline int blockchain_decrypt(__global uchar *derived_key,
+inline int blockchain_decrypt(__global uchar *derived_key,
                               __constant uchar *data)
 {
 	uchar out[SAFETY_FACTOR];

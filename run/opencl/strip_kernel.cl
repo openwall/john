@@ -21,7 +21,7 @@ typedef struct {
 #define SQLITE_MAX_PAGE_SIZE 65536
 
 /* verify validity of page */
-static inline int verify_page(uchar *page)
+inline int verify_page(uchar *page)
 {
 	uint32_t pageSize;
 	uint32_t usableSize;

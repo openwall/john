@@ -64,7 +64,7 @@ typedef struct dyna_salt_t {
 
 #if SCALAR && 0 /* Used for testing */
 #define HAVE_LUT3	1
-static inline uint lut3(uint x, uint y, uint z, uchar m)
+inline uint lut3(uint x, uint y, uint z, uchar m)
 {
 	uint i;
 	uint r = 0;
@@ -95,7 +95,7 @@ static inline uint lut3(uint x, uint y, uint z, uchar m)
 
 #if SCALAR && SM_MAJOR >= 5 && (DEV_VER_MAJOR > 352 || (DEV_VER_MAJOR == 352 && DEV_VER_MINOR >= 21))
 #define HAVE_LUT3	1
-static inline uint lut3(uint a, uint b, uint c, uint imm)
+inline uint lut3(uint a, uint b, uint c, uint imm)
 {
 	uint r;
 	asm("lop3.b32 %0, %1, %2, %3, %4;"
@@ -106,7 +106,7 @@ static inline uint lut3(uint a, uint b, uint c, uint imm)
 
 #if 0 /* This does no good */
 #define HAVE_LUT3_64	1
-static inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
+inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 {
 	ulong t, r;
 
@@ -126,7 +126,7 @@ static inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 #pragma OPENCL EXTENSION cl_amd_media_ops : enable
 #define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
 #elif SCALAR && SM_MAJOR > 3 || (SM_MAJOR == 3 && SM_MINOR >= 2)
-static inline uint funnel_shift_right(uint hi, uint lo, uint s)
+inline uint funnel_shift_right(uint hi, uint lo, uint s)
 {
 	uint r;
 	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
@@ -135,7 +135,7 @@ static inline uint funnel_shift_right(uint hi, uint lo, uint s)
 	return r;
 }
 
-static inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
+inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
 {
 	uint r;
 	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
@@ -166,7 +166,7 @@ static inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
 #endif
 
 #if USE_BITSELECT
-static inline uint SWAP32(uint x)
+inline uint SWAP32(uint x)
 {
 	return bitselect(rotate(x, 24U), rotate(x, 8U), 0x00FF00FFU);
 }
@@ -178,7 +178,7 @@ static inline uint SWAP32(uint x)
 		          rotate(n, 40UL), 0x00FF000000FF0000UL), \
 		0xFFFF0000FFFF0000UL)
 #else
-static inline uint SWAP32(uint x)
+inline uint SWAP32(uint x)
 {
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
@@ -196,7 +196,7 @@ static inline uint SWAP32(uint x)
 #define VSWAP32 SWAP32
 #else
 /* Vector-capable swap32() */
-static inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
+inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 {
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
@@ -328,7 +328,7 @@ static inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
 #endif
 
-static inline int check_pkcs_pad(const uchar *data, int len, int blocksize)
+inline int check_pkcs_pad(const uchar *data, int len, int blocksize)
 {
 	int pad_len, padding, real_len;
 
@@ -377,7 +377,7 @@ static inline int check_pkcs_pad(const uchar *data, int len, int blocksize)
  */
 
 /* src and dst are private mem */
-static inline void memcpy_pp(void *dst, const void *src, uint count)
+inline void memcpy_pp(void *dst, const void *src, uint count)
 {
 	union {
 		const uint *w;
@@ -407,7 +407,7 @@ static inline void memcpy_pp(void *dst, const void *src, uint count)
 }
 
 /* src is private mem, dst is global mem */
-static inline void memcpy_pg(__global void *dst, const void *src, uint count)
+inline void memcpy_pg(__global void *dst, const void *src, uint count)
 {
 	union {
 		const uint *w;
@@ -437,7 +437,7 @@ static inline void memcpy_pg(__global void *dst, const void *src, uint count)
 }
 
 /* src is global mem, dst is private mem */
-static inline void memcpy_gp(void *dst, __global const void *src, uint count)
+inline void memcpy_gp(void *dst, __global const void *src, uint count)
 {
 	union {
 		__global const uint *w;
@@ -467,7 +467,7 @@ static inline void memcpy_gp(void *dst, __global const void *src, uint count)
 }
 
 /* src is constant mem, dst is private mem */
-static inline void memcpy_cp(void *dst, __constant void *src, uint count)
+inline void memcpy_cp(void *dst, __constant void *src, uint count)
 {
 	union {
 		__constant uint *w;
@@ -497,7 +497,7 @@ static inline void memcpy_cp(void *dst, __constant void *src, uint count)
 }
 
 /* src is MAYBE_CONSTANT mem, dst is private mem */
-static inline void memcpy_mcp(void *dst, MAYBE_CONSTANT void *src, uint count)
+inline void memcpy_mcp(void *dst, MAYBE_CONSTANT void *src, uint count)
 {
 	union {
 		MAYBE_CONSTANT uint *w;
@@ -527,7 +527,7 @@ static inline void memcpy_mcp(void *dst, MAYBE_CONSTANT void *src, uint count)
 }
 
 /* dst is private mem */
-static inline void memset_p(void *p, uint val, uint count)
+inline void memset_p(void *p, uint val, uint count)
 {
 	const uint val4 = val | (val << 8) | (val << 16) | (val << 24);
 	union {
@@ -550,7 +550,7 @@ static inline void memset_p(void *p, uint val, uint count)
 }
 
 /* dst is global mem */
-static inline void memset_g(__global void *p, uint val, uint count)
+inline void memset_g(__global void *p, uint val, uint count)
 {
 	const uint val4 = val | (val << 8) | (val << 16) | (val << 24);
 	union {
@@ -573,7 +573,7 @@ static inline void memset_g(__global void *p, uint val, uint count)
 }
 
 /* s1 and s2 are private mem */
-static inline int memcmp_pp(const void *s1, const void *s2, uint size)
+inline int memcmp_pp(const void *s1, const void *s2, uint size)
 {
 	union {
 		const uint *w;
@@ -607,7 +607,7 @@ static inline int memcmp_pp(const void *s1, const void *s2, uint size)
 }
 
 /* s1 is private mem, s2 is constant mem */
-static inline int memcmp_pc(const void *s1, __constant const void *s2, uint size)
+inline int memcmp_pc(const void *s1, __constant const void *s2, uint size)
 {
 	union {
 		const uint *w;
@@ -641,7 +641,7 @@ static inline int memcmp_pc(const void *s1, __constant const void *s2, uint size
 }
 
 /* s1 is private mem, s2 is MAYBE_CONSTANT mem */
-static inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
+inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
 {
 	union {
 		const uint *w;
@@ -675,7 +675,7 @@ static inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
 }
 
 /* haystack is private mem, needle is constant mem */
-static inline int memmem_pc(const void *haystack, size_t haystack_len,
+inline int memmem_pc(const void *haystack, size_t haystack_len,
                      __constant const void *needle, size_t needle_len)
 {
 	char* haystack_ = (char*)haystack;

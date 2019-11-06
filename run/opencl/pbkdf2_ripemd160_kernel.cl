@@ -33,7 +33,7 @@ typedef struct {
 
 #define RIPEMD160_DIGEST_LENGTH 20
 
-static inline void preproc(__global const uchar *key, uint keylen, uint *state,
+inline void preproc(__global const uchar *key, uint keylen, uint *state,
                     uint padding)
 {
 	uint i;
@@ -54,7 +54,7 @@ static inline void preproc(__global const uchar *key, uint keylen, uint *state,
 	ripemd160(W, state);
 }
 
-static inline void hmac_ripemd160(uint *output, uint *ipad_state, uint *opad_state,
+inline void hmac_ripemd160(uint *output, uint *ipad_state, uint *opad_state,
                            __constant uint *salt, uchar add)
 {
 	uint i;
@@ -86,7 +86,7 @@ static inline void hmac_ripemd160(uint *output, uint *ipad_state, uint *opad_sta
 	ripemd160_160Z(W, output);
 }
 
-static inline void big_hmac_ripemd160(uint *input, uint inputlen, uint *ipad_state,
+inline void big_hmac_ripemd160(uint *input, uint inputlen, uint *ipad_state,
                                uint *opad_state, uint *tmp_out)
 {
 	uint i;
@@ -120,7 +120,7 @@ static inline void big_hmac_ripemd160(uint *input, uint inputlen, uint *ipad_sta
 	}
 }
 
-static inline void pbkdf2(__global const uchar *pass, uint passlen,
+inline void pbkdf2(__global const uchar *pass, uint passlen,
                    __constant uint *salt, uint *out)
 {
 	uint ipad_state[5];
