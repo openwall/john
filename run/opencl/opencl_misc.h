@@ -34,16 +34,25 @@ typedef uint64_t host_size_t;
 typedef uint32_t host_size_t;
 #endif
 
-/* Only usable in device code */
+/*
+ * Some runtimes/drivers breaks on using inline, others breaks on lack of it,
+ * yet others require use of static as well.
+ *
+ * Only usable in device code
+ */
 #if _OPENCL_COMPILER
+
 #if __MESA__
-#define inline
-#elif __ROCM__    // we don't have this define yet
-#define inline static inline
+#define inline	// empty!
+#elif __POCL__
+#define inline	inline
+#elif gpu_amd(DEVICE_INFO) // We really target ROCM here
+#define inline	static inline
 #else
-#define inline inline
+#define inline	inline
 #endif
-#endif
+
+#endif /* _OPENCL_COMPILER */
 
 /*
  * "Copy" of the one in dyna_salt.h (we only need it to be right size,
