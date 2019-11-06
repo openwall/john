@@ -40,7 +40,7 @@
 #error BITMAP_SIZE_BITS_LESS_ONE too large
 #endif
 
-static inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_size) {
+inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_size) {
 	uint tmp;
 
 	/* Round 1 */
@@ -119,7 +119,7 @@ static inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uin
 
 #if UTF_8
 
-static inline uint prepare_key(__global uint *key, uint length,
+inline uint prepare_key(__global uint *key, uint length,
                         MAYBE_VOLATILE uint *nt_buffer)
 {
 	const __global UTF8 *source = (const __global UTF8*)key;
@@ -188,7 +188,7 @@ static inline uint prepare_key(__global uint *key, uint length,
 
 #else
 
-static inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
+inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
 {
 	uint i, nt_index, keychars;
 
@@ -206,7 +206,7 @@ static inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
 
 #endif /* UTF_8 */
 
-static inline void cmp_final(uint gid,
+inline void cmp_final(uint gid,
 		uint iter,
 		__private uint *hash,
 		__global uint *offset_table,
@@ -252,7 +252,7 @@ static inline void cmp_final(uint gid,
 	}
 }
 
-static inline void cmp(uint gid,
+inline void cmp(uint gid,
 		uint iter,
 		__private uint *hash,
 #if USE_LOCAL_BITMAPS

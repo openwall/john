@@ -45,7 +45,7 @@
 #endif
 
 /************************** helper **************************/
-static inline void init_H(sha256_ctx * ctx) {
+inline void init_H(sha256_ctx * ctx) {
     ctx->H[0] = H0;
     ctx->H[1] = H1;
     ctx->H[2] = H2;
@@ -56,7 +56,7 @@ static inline void init_H(sha256_ctx * ctx) {
     ctx->H[7] = H7;
 }
 
-static inline void init_ctx(sha256_ctx * ctx) {
+inline void init_ctx(sha256_ctx * ctx) {
     ctx->H[0] = H0;
     ctx->H[1] = H1;
     ctx->H[2] = H2;
@@ -87,7 +87,7 @@ static inline void init_ctx(sha256_ctx * ctx) {
     ctx->buflen = 0;
 }
 
-static inline void clear_ctx_buffer(sha256_ctx * ctx) {
+inline void clear_ctx_buffer(sha256_ctx * ctx) {
 
     ctx->buffer[0].mem_32[0] = 0;
     ctx->buffer[1].mem_32[0] = 0;
@@ -110,7 +110,7 @@ static inline void clear_ctx_buffer(sha256_ctx * ctx) {
 }
 
 /************************** prepare **************************/
-static inline void clear_buffer(uint32_t     * destination,
+inline void clear_buffer(uint32_t     * destination,
                          const uint32_t len,
                          const uint32_t limit) {
 
@@ -124,7 +124,7 @@ static inline void clear_buffer(uint32_t     * destination,
     }
 }
 
-static inline void sha256_block(sha256_ctx * ctx) {
+inline void sha256_block(sha256_ctx * ctx) {
     uint32_t a = ctx->H[0];
     uint32_t b = ctx->H[1];
     uint32_t c = ctx->H[2];
@@ -188,7 +188,7 @@ static inline void sha256_block(sha256_ctx * ctx) {
     ctx->H[7] += h;
 }
 
-static inline void insert_to_buffer_R(sha256_ctx    * ctx,
+inline void insert_to_buffer_R(sha256_ctx    * ctx,
                                const uint8_t * string,
                                const uint32_t len) {
 
@@ -206,7 +206,7 @@ static inline void insert_to_buffer_R(sha256_ctx    * ctx,
     clear_buffer(ctx->buffer->mem_32, ctx->buflen, 16);
 }
 
-static inline void insert_to_buffer_G(         sha256_ctx    * ctx,
+inline void insert_to_buffer_G(         sha256_ctx    * ctx,
                                __global const uint8_t * string,
                                const uint32_t len) {
 
@@ -227,7 +227,7 @@ static inline void insert_to_buffer_G(         sha256_ctx    * ctx,
     }
 }
 
-static inline void insert_to_buffer_C(           sha256_ctx    * ctx,
+inline void insert_to_buffer_C(           sha256_ctx    * ctx,
                                MAYBE_CONSTANT uint8_t * string,
                                const uint32_t len) {
 
@@ -248,7 +248,7 @@ static inline void insert_to_buffer_C(           sha256_ctx    * ctx,
     }
 }
 
-static inline void ctx_update_R(sha256_ctx * ctx,
+inline void ctx_update_R(sha256_ctx * ctx,
                          uint8_t    * string,
                          const uint32_t len) {
 
@@ -270,7 +270,7 @@ static inline void ctx_update_R(sha256_ctx * ctx,
     }
 }
 
-static inline void ctx_update_G(         sha256_ctx * ctx,
+inline void ctx_update_G(         sha256_ctx * ctx,
                          __global const uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -291,7 +291,7 @@ static inline void ctx_update_G(         sha256_ctx * ctx,
     }
 }
 
-static inline void ctx_update_C(           sha256_ctx * ctx,
+inline void ctx_update_C(           sha256_ctx * ctx,
                          MAYBE_CONSTANT uint8_t    * string, uint32_t len) {
 
     ctx->total += len;
@@ -312,7 +312,7 @@ static inline void ctx_update_C(           sha256_ctx * ctx,
     }
 }
 
-static inline void sha256_digest(sha256_ctx * ctx,
+inline void sha256_digest(sha256_ctx * ctx,
                           uint32_t   * result,
                           const uint32_t size) {
 
@@ -341,7 +341,7 @@ static inline void sha256_digest(sha256_ctx * ctx,
         result[i] = SWAP32(ctx->H[i]);
 }
 
-static inline void sha256_prepare(
+inline void sha256_prepare(
 	MAYBE_CONSTANT sha256_salt     * const __restrict salt_data,
         __global   const sha256_password * const __restrict keys_data,
 	                 sha256_buffers  * fast_buffers) {
@@ -532,7 +532,7 @@ void kernel_preprocess(
 }
 
 /************************** hashing **************************/
-static inline void sha256_block_be(uint32_t * buffer, uint32_t * H) {
+inline void sha256_block_be(uint32_t * buffer, uint32_t * H) {
     uint32_t t;
     uint32_t a = H[0];
     uint32_t b = H[1];
@@ -606,7 +606,7 @@ static inline void sha256_block_be(uint32_t * buffer, uint32_t * H) {
     H[7] += h;
 }
 
-static inline void update_w_G(
+inline void update_w_G(
 	         uint32_t * const w,
 	         uint32_t * const H,
         __global uint32_t * const work_memory, const uint32_t loop_index,
@@ -651,7 +651,7 @@ static inline void update_w_G(
     }
 }
 
-static inline void update_w(
+inline void update_w(
 	uint32_t * const w,
 	uint32_t * const H,
         uint32_t * const string,
@@ -698,7 +698,7 @@ static inline void update_w(
     }
 }
 
-static inline void sha256_crypt(
+inline void sha256_crypt(
 	 __global buffer_32      * const __restrict alt_result,
 	 __global uint32_t       * const __restrict work_memory) {
 
@@ -840,7 +840,7 @@ static inline void sha256_crypt(
         alt_result[i].mem_32[0] = H[i];
 }
 
-static inline void sha256_crypt_f(
+inline void sha256_crypt_f(
 	const uint32_t rounds,
 	__global buffer_32      * const __restrict alt_result,
 	__global uint32_t       * const __restrict work_memory) {

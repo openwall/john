@@ -52,7 +52,7 @@ typedef struct {
 	uint v[256/32]; /* output from final SHA-1 or SHA-256 */
 } odf_out;
 
-static inline void odf_bf(__global const uchar *password,
+inline void odf_bf(__global const uchar *password,
                    __constant odf_salt *salt,
                    __global uint *out)
 {
@@ -120,7 +120,7 @@ static inline void odf_bf(__global const uchar *password,
 		out[i] = SWAP32(hash[i]);
 }
 
-static inline void odf_aes(__global const uchar *password,
+inline void odf_aes(__global const uchar *password,
                     __constant odf_salt *salt,
                     __global uint *out)
 {

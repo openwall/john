@@ -621,7 +621,7 @@ __constant u32 rcon[] = {
 /**
  * Expand the cipher key into the encryption key schedule.
  */
-static inline void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
+inline void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
                                 const int bits, AES_KEY *key)
 {
 	AES_KEY_TYPE uchar *userKey = _userKey;
@@ -717,7 +717,7 @@ static inline void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 /**
  * Expand the cipher key into the decryption key schedule.
  */
-static inline void AES_set_decrypt_key(AES_KEY_TYPE void *_userKey,
+inline void AES_set_decrypt_key(AES_KEY_TYPE void *_userKey,
                                 const int bits, AES_KEY *key)
 {
 	AES_KEY_TYPE uchar *userKey = _userKey;
@@ -766,7 +766,7 @@ static inline void AES_set_decrypt_key(AES_KEY_TYPE void *_userKey,
 /*
  * Encrypt a single block.
  */
-static inline void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
+inline void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 {
 	const u32 *rk;
 	u32 s0, s1, s2, s3, t0, t1, t2, t3;
@@ -954,7 +954,7 @@ static inline void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 /*
  * Decrypt a single block.
  */
-static inline void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
+inline void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 {
 	const u32 *rk;
 	u32 s0, s1, s2, s3, t0, t1, t2, t3;

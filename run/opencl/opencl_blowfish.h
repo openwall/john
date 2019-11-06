@@ -342,7 +342,7 @@ __constant uint S[4][256] = {
 	    0xB74E6132L, 0xCE77E25BL, 0x578FDFE3L, 0x3AC372E6L  }
 };
 
-static inline uint F(blowfish_context *ctx, uint x)
+inline uint F(blowfish_context *ctx, uint x)
 {
 	uint a, b, c, d;
 	uint y;
@@ -361,7 +361,7 @@ static inline uint F(blowfish_context *ctx, uint x)
 	return (y);
 }
 
-static inline void blowfish_enc(blowfish_context *ctx, uint *xl, uint *xr)
+inline void blowfish_enc(blowfish_context *ctx, uint *xl, uint *xr)
 {
 	uint Xl, Xr;
 	uint i;
@@ -382,7 +382,7 @@ static inline void blowfish_enc(blowfish_context *ctx, uint *xl, uint *xr)
 	*xr = Xl;
 }
 
-static inline void blowfish_dec(blowfish_context *ctx, uint *xl, uint *xr)
+inline void blowfish_dec(blowfish_context *ctx, uint *xl, uint *xr)
 {
 	uint Xl, Xr;
 	uint i;
@@ -406,7 +406,7 @@ static inline void blowfish_dec(blowfish_context *ctx, uint *xl, uint *xr)
 /*
  * Blowfish key schedule
  */
-static inline void blowfish_setkey(blowfish_context *ctx,
+inline void blowfish_setkey(blowfish_context *ctx,
                             BF_KEY_TYPE uchar *key,
                             uint keybits)
 {
@@ -453,7 +453,7 @@ static inline void blowfish_setkey(blowfish_context *ctx,
 /*
  * Blowfish-ECB, using __private memory
  */
-static inline void blowfish_crypt(blowfish_context *ctx,
+inline void blowfish_crypt(blowfish_context *ctx,
                            int mode,
                            uchar *input,
                            uchar *output)
@@ -477,7 +477,7 @@ static inline void blowfish_crypt(blowfish_context *ctx,
 /*
  * Blowfish-ECB block encryption/decryption
  */
-static inline void blowfish_crypt_ecb(blowfish_context *ctx,
+inline void blowfish_crypt_ecb(blowfish_context *ctx,
                                int mode,
                                BF_SRC_TYPE uchar *input,
                                BF_DST_TYPE uchar *output)
@@ -501,7 +501,7 @@ static inline void blowfish_crypt_ecb(blowfish_context *ctx,
 /*
  * Blowfish-CBC buffer encryption/decryption
  */
-static inline void blowfish_crypt_cbc(blowfish_context *ctx,
+inline void blowfish_crypt_cbc(blowfish_context *ctx,
                                int mode,
                                uint length,
                                uchar *iv,
@@ -545,7 +545,7 @@ static inline void blowfish_crypt_cbc(blowfish_context *ctx,
 /*
  * Blowfish CFB buffer encryption/decryption
  */
-static inline void blowfish_crypt_cfb64(blowfish_context *ctx,
+inline void blowfish_crypt_cfb64(blowfish_context *ctx,
                                  int mode,
                                  uint length,
                                  uint *iv_off,
@@ -585,7 +585,7 @@ static inline void blowfish_crypt_cfb64(blowfish_context *ctx,
 /*
  * Blowfish CTR buffer encryption/decryption
  */
-static inline void blowfish_crypt_ctr(blowfish_context *ctx,
+inline void blowfish_crypt_ctr(blowfish_context *ctx,
                                uint length,
                                uint *nc_off,
                                uchar *nonce_counter,

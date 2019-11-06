@@ -46,7 +46,7 @@
 		} \
 	}
 
-static inline void sha256_zerofinal(uint *W, uint *output, const uint tot_len)
+inline void sha256_zerofinal(uint *W, uint *output, const uint tot_len)
 {
 	uint len = ((tot_len & 63) >> 2) + 1;
 

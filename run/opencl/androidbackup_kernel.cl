@@ -21,7 +21,7 @@ typedef struct {
 	uchar masterkey_blob[MAX_MASTERKEYBLOB_LEN];
 } ab_salt;
 
-static inline int ab_decrypt(__global uchar *key, MAYBE_CONSTANT ab_salt *salt)
+inline int ab_decrypt(__global uchar *key, MAYBE_CONSTANT ab_salt *salt)
 {
 	uchar out[MAX_MASTERKEYBLOB_LEN];
 	const int length = salt->masterkey_blob_length;

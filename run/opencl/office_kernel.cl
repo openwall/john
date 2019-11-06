@@ -211,7 +211,7 @@ void Final2007(__global ms_office_state *state,
 	out[gid].cracked = result;
 }
 
-static inline void Decrypt(__constant ms_office_salt *salt,
+inline void Decrypt(__constant ms_office_salt *salt,
                     const uchar *verifierInputKey,
                     __constant uchar *encryptedVerifier,
                     uchar *decryptedVerifier,

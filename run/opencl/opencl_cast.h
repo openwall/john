@@ -592,7 +592,7 @@ __constant uint S[8][256] = {
 #define BE32(x) (x)
 #endif
 
-static inline void Cast5Encrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
+inline void Cast5Encrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 {
 	uint l = BE32(((uint *)inBlock)[0]);
 	uint r = BE32(((uint *)inBlock)[1]);
@@ -622,7 +622,7 @@ static inline void Cast5Encrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY 
 	((uint *)outBlock)[1] = BE32(l);
 }
 
-static inline void Cast5Decrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
+inline void Cast5Decrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 {
 	uint r = BE32(((uint *)inBlock)[0]);
 	uint l = BE32(((uint *)inBlock)[1]);
@@ -653,7 +653,7 @@ static inline void Cast5Decrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY 
 	t = l = r = 0;
 }
 
-static inline void Cast5SetKey(CAST_KEY *key, uint keylength, const uchar *userKey)
+inline void Cast5SetKey(CAST_KEY *key, uint keylength, const uchar *userKey)
 {
 	uint i;
 	uint *K = key->K;

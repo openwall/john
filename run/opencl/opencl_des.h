@@ -296,7 +296,7 @@ __constant uchar odd_parity_table[128] = { 1,  2,  4,  7,  8,
 	227, 229, 230, 233, 234, 236, 239, 241, 242, 244, 247, 248, 251, 253,
 	254 };
 
-static inline void des_key_set_parity(uchar key[DES_KEY_SIZE])
+inline void des_key_set_parity(uchar key[DES_KEY_SIZE])
 {
 	int i;
 
@@ -307,7 +307,7 @@ static inline void des_key_set_parity(uchar key[DES_KEY_SIZE])
 /*
  * Check the given key's parity, returns 1 on failure, 0 on SUCCESS
  */
-static inline int des_key_check_key_parity(const uchar key[DES_KEY_SIZE])
+inline int des_key_check_key_parity(const uchar key[DES_KEY_SIZE])
 {
 	int i;
 
@@ -319,7 +319,7 @@ static inline int des_key_check_key_parity(const uchar key[DES_KEY_SIZE])
 }
 #endif
 
-static inline void des_setkey(uint32_t SK[32], const uchar key[DES_KEY_SIZE])
+inline void des_setkey(uint32_t SK[32], const uchar key[DES_KEY_SIZE])
 {
 	int i;
 	uint32_t X, Y, T;
@@ -391,7 +391,7 @@ static inline void des_setkey(uint32_t SK[32], const uchar key[DES_KEY_SIZE])
 /*
  * DES key schedule (56-bit, encryption)
  */
-static inline void des_setkey_enc(des_context *ctx, const uchar key[DES_KEY_SIZE])
+inline void des_setkey_enc(des_context *ctx, const uchar key[DES_KEY_SIZE])
 {
 	des_setkey(ctx->sk, key);
 }
@@ -399,7 +399,7 @@ static inline void des_setkey_enc(des_context *ctx, const uchar key[DES_KEY_SIZE
 /*
  * DES key schedule (56-bit, decryption)
  */
-static inline void des_setkey_dec(des_context *ctx, const uchar key[DES_KEY_SIZE])
+inline void des_setkey_dec(des_context *ctx, const uchar key[DES_KEY_SIZE])
 {
 	int i;
 
@@ -411,7 +411,7 @@ static inline void des_setkey_dec(des_context *ctx, const uchar key[DES_KEY_SIZE
 	}
 }
 
-static inline static void des3_set2key(uint32_t esk[96], uint32_t dsk[96],
+inline static void des3_set2key(uint32_t esk[96], uint32_t dsk[96],
                                 const uchar key[DES_KEY_SIZE * 2])
 {
 	int i;
@@ -437,7 +437,7 @@ static inline static void des3_set2key(uint32_t esk[96], uint32_t dsk[96],
 /*
  * Triple-DES key schedule (112-bit, encryption)
  */
-static inline void des3_set2key_enc(des3_context *ctx,
+inline void des3_set2key_enc(des3_context *ctx,
                              const uchar key[DES_KEY_SIZE * 2])
 {
 	uint32_t sk[96];
@@ -448,7 +448,7 @@ static inline void des3_set2key_enc(des3_context *ctx,
 /*
  * Triple-DES key schedule (112-bit, decryption)
  */
-static inline void des3_set2key_dec(des3_context *ctx,
+inline void des3_set2key_dec(des3_context *ctx,
                              const uchar key[DES_KEY_SIZE * 2])
 {
 	uint32_t sk[96];
@@ -456,7 +456,7 @@ static inline void des3_set2key_dec(des3_context *ctx,
 	des3_set2key(sk, ctx->sk, key);
 }
 
-static inline void des3_set3key(uint32_t esk[96],
+inline void des3_set3key(uint32_t esk[96],
                          uint32_t dsk[96],
                          const uchar key[24])
 {
@@ -481,7 +481,7 @@ static inline void des3_set3key(uint32_t esk[96],
 /*
  * Triple-DES key schedule (168-bit, encryption)
  */
-static inline void des3_set3key_enc(des3_context *ctx,
+inline void des3_set3key_enc(des3_context *ctx,
                              const uchar key[DES_KEY_SIZE * 3])
 {
 	uint32_t sk[96];
@@ -492,7 +492,7 @@ static inline void des3_set3key_enc(des3_context *ctx,
 /*
  * Triple-DES key schedule (168-bit, decryption)
  */
-static inline void des3_set3key_dec(des3_context *ctx,
+inline void des3_set3key_dec(des3_context *ctx,
                              const uchar key[DES_KEY_SIZE * 3])
 {
 	uint32_t sk[96];
@@ -503,7 +503,7 @@ static inline void des3_set3key_dec(des3_context *ctx,
 /*
  * DES-ECB block encryption/decryption
  */
-static inline void des_crypt_ecb(des_context *ctx, const uchar *input,
+inline void des_crypt_ecb(des_context *ctx, const uchar *input,
                           uchar *output)
 {
 	int i;
@@ -530,7 +530,7 @@ static inline void des_crypt_ecb(des_context *ctx, const uchar *input,
 /*
  * DES-CBC buffer encryption/decryption
  */
-static inline void des_crypt_cbc(des_context *ctx, int mode, size_t length,
+inline void des_crypt_cbc(des_context *ctx, int mode, size_t length,
                           uchar *iv, const uchar *input,
                           uchar *output)
 {
@@ -570,7 +570,7 @@ static inline void des_crypt_cbc(des_context *ctx, int mode, size_t length,
 /*
  * 3DES-ECB block encryption/decryption
  */
-static inline void des3_crypt_ecb(des3_context *ctx, const uchar *input,
+inline void des3_crypt_ecb(des3_context *ctx, const uchar *input,
                            uchar *output)
 {
 	int i;
@@ -639,7 +639,7 @@ static inline void des3_crypt_ecb(des3_context *ctx, const uchar *input,
 	}
 
 #if 0 /* the above macro replaces this function */
-static inline void des3_crypt_cbc(des3_context *ctx, int mode, size_t length,
+inline void des3_crypt_cbc(des3_context *ctx, int mode, size_t length,
                            uchar *iv, const uchar *input,
                            uchar *output)
 {
