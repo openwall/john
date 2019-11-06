@@ -33,12 +33,9 @@ typedef struct {
 	uchar salt[8];
 } pgpsda_salt;
 
-#ifndef __MESA__
-inline
-#endif
-void pgpsda_kdf(__global const uchar *ipassword, const uint plen,
-                 __constant uchar *isalt, const uint iterations,
-				uchar *key)
+inline void pgpsda_kdf(__global const uchar *ipassword, const uint plen,
+                       __constant uchar *isalt, const uint iterations,
+                       uchar *key)
 {
 	SHA_CTX ctx;
 	uint32_t j = 0;

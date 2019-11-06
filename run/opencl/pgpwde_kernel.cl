@@ -38,11 +38,8 @@ typedef struct {
 	uchar esk[128];
 } pgpwde_salt;
 
-#ifndef __MESA__
-inline
-#endif
-void pgpwde_kdf(__global const uchar *ipassword, const uint plen,
-                __constant uchar *isalt, uint cbytes, uint *okey)
+inline void pgpwde_kdf(__global const uchar *ipassword, const uint plen,
+                       __constant uchar *isalt, uint cbytes, uint *okey)
 {
 	const uint saltlen = 16;
 	uint key_length = 32;
