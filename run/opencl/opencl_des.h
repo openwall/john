@@ -411,7 +411,7 @@ static inline void des_setkey_dec(des_context *ctx, const uchar key[DES_KEY_SIZE
 	}
 }
 
-static inline static void des3_set2key(uint32_t esk[96], uint32_t dsk[96],
+static inline void des3_set2key(uint32_t esk[96], uint32_t dsk[96],
                                 const uchar key[DES_KEY_SIZE * 2])
 {
 	int i;
