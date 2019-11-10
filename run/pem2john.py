@@ -125,7 +125,7 @@ if __name__ == "__main__":
         blob = open(filename, "rb").read()
         if b'-----BEGIN ENCRYPTED PRIVATE KEY-----' not in blob:
             if b'PRIVATE KEY-----' in blob:
-                sys.stderr.write("[%s] try using sshng2john.py on this file instead!\n" % sys.argv[0])
+                sys.stderr.write("[%s] try using ssh2john.py on this file instead!\n" % sys.argv[0])
             else:
                 # try as DER payload
                 ret = unwrap_pkcs8_data(blob)
