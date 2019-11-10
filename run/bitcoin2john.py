@@ -41,7 +41,7 @@ except:
         try:
                  import simplejson as json
         except:
-                 sys.stdout.write("json or simplejson package is needed")
+                 sys.stderr.write("json or simplejson package is needed\n")
 
 import logging
 import struct
@@ -278,10 +278,9 @@ def parse_wallet(db, item_callback):
 
                 except Exception:
                         traceback.print_exc()
-                        sys.stdout.write("ERROR parsing wallet.dat, type %s" % type)
-                        sys.stdout.write("key data: %s" % key)
-                        sys.stdout.write("key data in hex: %s" % key.encode('hex_codec'))
-                        sys.stdout.write("value data in hex: %s" % value.encode('hex_codec'))
+                        sys.stderr.write("ERROR parsing wallet.dat, type %s\n" % type)
+                        sys.stderr.write("key data in hex: %s\n" % key.encode('hex_codec'))
+                        sys.stderr.write("value data in hex: %s\n" % value.encode('hex_codec'))
                         sys.exit(1)
 
 
@@ -333,7 +332,7 @@ def read_wallet(json_db, walletfile):
         crypted = 'salt' in json_db['mkey']
 
         if not crypted:
-                sys.stdout.write("%s : this wallet is not encrypted!" % walletfile)
+                sys.stderr.write("%s: this wallet is not encrypted\n" % walletfile)
                 return -1
 
         for k in json_db['keys']:
@@ -348,8 +347,8 @@ if __name__ == '__main__':
 
 
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: %s [Bitcoin/Litecoin/PRiVCY wallet (.dat) files]" % sys.argv[0]
-        sys.exit(-1)
+        sys.stderr.write("Usage: %s [Bitcoin/Litecoin/PRiVCY wallet (.dat) files]\n" % sys.argv[0])
+        sys.exit(1)
 
     for i in range(1, len(sys.argv)):
         filename = sys.argv[i]
@@ -364,8 +363,8 @@ if __name__ == '__main__':
         crypted = 'salt' in json_db['mkey']
 
         if not crypted:
-                print >> sys.stderr, "%s : this wallet is not encrypted" % os.path.basename(filename)
-                continue
+            sys.stderr.write("%s: this wallet is not encrypted\n" % filename)
+            continue
 
         for k in json_db['keys']:
             pass  # dirty hack but it works!
