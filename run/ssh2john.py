@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright (C) 2012, Dhiru Kholia <dhiru@openwall.com>
 # Copyright (C) 2015, Dhiru Kholia <dhiru@openwall.com>
@@ -100,7 +100,7 @@ def read_private_key(filename):
     # if we trudged to the end of the file, just try to cope.
     try:
         data = ''.join(lines[start:end]).encode()
-        data = base64.decodestring(data)
+        data = base64.decodebytes(data)
     except base64.binascii.Error:
         e = sys.exc_info()[1]
         raise Exception('base64 decoding error: ' + str(e))
@@ -150,7 +150,7 @@ def read_private_key(filename):
         if offset > len(data):
             raise Exception('Internal error in offset calculation!')
         ciphertext_begin_offset = offset
-        saltstr = data[salt_offset:salt_offset+salt_length].encode("hex")
+        saltstr = binascii.hexlify(data[salt_offset:salt_offset+salt_length])
         # rounds value appears after salt
         rounds_offset = salt_offset + salt_length
         rounds = data[rounds_offset: rounds_offset+4]
