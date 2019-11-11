@@ -17,19 +17,28 @@
 # https://github.com/gavinandresen/bitcointools
 # Copyright (c) 2010 Gavin Andresen
 
-try:
-        from bsddb.db import *
-except:
-        from bsddb3.db import *
-
-import sys
+import binascii
+import hashlib
 import logging
 import struct
+import sys
 import traceback
-import hashlib
+
+try:
+    from bsddb.db import *
+except:
+    try:
+        from bsddb3.db import *
+    except:
+        sys.stderr.write("Error: This script needs bsddb3 to be installed!\n")
+        sys.exit(1)
+
 
 addrtype = 0
 json_db = {}
+
+def hexstr(bytestr):
+    return binascii.hexlify(bytestr).decode('ascii')
 
 def hash_160(public_key):
         md = hashlib.new('ripemd160')
@@ -41,7 +50,7 @@ def public_key_to_bc_address(public_key):
         return hash_160_to_bc_address(h160)
 
 def hash_160_to_bc_address(h160):
-        vh160 = chr(addrtype) + h160
+        vh160 = struct.pack('B', addrtype) + h160
         h = Hash(vh160)
         addr = vh160 + h[0:4]
         return b58encode(addr)
@@ -55,7 +64,9 @@ def b58encode(v):
 
         long_value = 0
         for (i, c) in enumerate(v[::-1]):
-                long_value += (256 ** i) * ord(c)
+                if isinstance(c, str):
+                    c = ord(c)
+                long_value += (256 ** i) * c
 
         result = ''
         while long_value >= __b58base:
@@ -68,7 +79,7 @@ def b58encode(v):
         # leading 0-bytes in the input become leading-1s
         nPad = 0
         for c in v:
-                if c == '\0': nPad += 1
+                if c == '\0' or c == 0: nPad += 1
                 else: break
 
         return (__b58chars[0] * nPad) + result
@@ -114,7 +125,7 @@ class BCDataStream(object):
                 except IndexError:
                         raise SerializationError("attempt to read past end of buffer")
 
-                return self.read_bytes(length)
+                return self.read_bytes(length).decode('ascii')
 
         def read_bytes(self, length):
                 try:
@@ -194,8 +205,8 @@ def parse_wallet(db, item_callback):
                                 d['encrypted_private_key'] = vds.read_bytes(vds.read_compact_size())
                         elif type == "mkey":
                                 d['nID'] = kds.read_uint32()
-                                d['encrypted_key'] = vds.read_string()
-                                d['salt'] = vds.read_string()
+                                d['encrypted_key'] = vds.read_bytes(vds.read_compact_size())
+                                d['salt'] = vds.read_bytes(vds.read_compact_size())
                                 d['nDerivationMethod'] = vds.read_uint32()
                                 d['nDerivationIterations'] = vds.read_uint32()
                                 d['otherParams'] = vds.read_string()
@@ -205,8 +216,8 @@ def parse_wallet(db, item_callback):
                 except Exception:
                         traceback.print_exc()
                         sys.stderr.write("ERROR parsing wallet.dat, type %s\n" % type)
-                        sys.stderr.write("key data in hex: %s\n" % key.encode('hex_codec'))
-                        sys.stderr.write("value data in hex: %s\n" % value.encode('hex_codec'))
+                        sys.stderr.write("key data in hex: %s\n" % hexstr(key))
+                        sys.stderr.write("value data in hex: %s\n" % hexstr(value))
                         sys.exit(1)
 
 
@@ -227,7 +238,7 @@ def read_wallet(json_db, walletfile):
                         compressed = d['public_key'][0] != '\04'
                         sec = SecretToASecret(PrivKeyToSecret(d['private_key']), compressed)
                         hexsec = ASecretToSecret(sec).encode('hex')
-                        json_db['keys'].append({'addr' : addr, 'sec' : sec, 'hexsec' : hexsec, 'secret' : hexsec, 'pubkey':d['public_key'].encode('hex'), 'compressed':compressed, 'private':d['private_key'].encode('hex')})
+                        json_db['keys'].append({'addr': addr, 'sec': sec, 'hexsec': hexsec, 'secret': hexsec, 'pubkey': hexstr(d['public_key']), 'compressed': compressed, 'private': hexstr(d['private_key'])})
 
                 elif type == "wkey":
                         if not json_db.has_key('wkey'): json_db['wkey'] = []
@@ -235,12 +246,12 @@ def read_wallet(json_db, walletfile):
 
                 elif type == "ckey":
                         compressed = d['public_key'][0] != '\04'
-                        json_db['keys'].append({ 'pubkey': d['public_key'].encode('hex'), 'addr': public_key_to_bc_address(d['public_key']), 'encrypted_privkey':  d['encrypted_private_key'].encode('hex_codec'), 'compressed':compressed})
+                        json_db['keys'].append({'pubkey': hexstr(d['public_key']), 'addr': public_key_to_bc_address(d['public_key']), 'encrypted_privkey':  hexstr(d['encrypted_private_key']), 'compressed':compressed})
 
                 elif type == "mkey":
                         json_db['mkey']['nID'] = d['nID']
-                        json_db['mkey']['encrypted_key'] = d['encrypted_key'].encode('hex_codec')
-                        json_db['mkey']['salt'] = d['salt'].encode('hex_codec')
+                        json_db['mkey']['encrypted_key'] = hexstr(d['encrypted_key'])
+                        json_db['mkey']['salt'] = hexstr(d['salt'])
                         json_db['mkey']['nDerivationMethod'] = d['nDerivationMethod']
                         json_db['mkey']['nDerivationIterations'] = d['nDerivationIterations']
                         json_db['mkey']['otherParams'] = d['otherParams']
@@ -265,9 +276,7 @@ def read_wallet(json_db, walletfile):
         return {'crypted':crypted}
 
 
-
 if __name__ == '__main__':
-
 
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s [Bitcoin/Litecoin/PRiVCY wallet (.dat) files]\n" % sys.argv[0])
@@ -278,8 +287,8 @@ if __name__ == '__main__':
         if read_wallet(json_db, filename) == -1:
             continue
 
-        cry_master = json_db['mkey']['encrypted_key'].decode('hex')
-        cry_salt = json_db['mkey']['salt'].decode('hex')
+        cry_master = binascii.unhexlify(json_db['mkey']['encrypted_key'])
+        cry_salt = binascii.unhexlify(json_db['mkey']['salt'])
         cry_rounds = json_db['mkey']['nDerivationIterations']
         cry_method = json_db['mkey']['nDerivationMethod']
 
