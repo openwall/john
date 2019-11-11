@@ -22,24 +22,11 @@ try:
 except:
         from bsddb3.db import *
 
-import os, sys, time
-
-try:
-        import json
-except:
-        try:
-                 import simplejson as json
-        except:
-                 sys.stderr.write("json or simplejson package is needed\n")
-
+import sys
 import logging
 import struct
 import traceback
-import types
-import string
 import hashlib
-import math
-import binascii
 
 addrtype = 0
 json_db = {}
@@ -96,11 +83,6 @@ def Hash(data):
 class SerializationError(Exception):
         """ Thrown when there's a problem deserializing or serializing """
 
-def bool_to_int(b):
-        if b:
-                return 1
-        return 0
-
 class BCDataStream(object):
         def __init__(self):
                 self.input = None
@@ -115,14 +97,6 @@ class BCDataStream(object):
                         self.input = bytes
                 else:
                         self.input += bytes
-
-        def map_file(self, file, start):  # Initialize with bytes from file
-                self.input = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
-                self.read_cursor = start
-        def seek_file(self, position):
-                self.read_cursor = position
-        def close_file(self):
-                self.input.close()
 
         def read_string(self):
                 # Strings are encoded depending on length:
@@ -142,11 +116,6 @@ class BCDataStream(object):
 
                 return self.read_bytes(length)
 
-        def write_string(self, string):
-                # Length-encoded as with read-string
-                self.write_compact_size(len(string))
-                self.write(string)
-
         def read_bytes(self, length):
                 try:
                         result = self.input[self.read_cursor:self.read_cursor + length]
@@ -157,21 +126,8 @@ class BCDataStream(object):
 
                 return ''
 
-        def read_boolean(self): return self.read_bytes(1)[0] != chr(0)
-        def read_int16(self): return self._read_num('<h')
-        def read_uint16(self): return self._read_num('<H')
-        def read_int32(self): return self._read_num('<i')
         def read_uint32(self): return self._read_num('<I')
         def read_int64(self): return self._read_num('<q')
-        def read_uint64(self): return self._read_num('<Q')
-
-        def write_boolean(self, val): return self.write(chr(bool_to_int(val)))
-        def write_int16(self, val): return self._write_num('<h', val)
-        def write_uint16(self, val): return self._write_num('<H', val)
-        def write_int32(self, val): return self._write_num('<i', val)
-        def write_uint32(self, val): return self._write_num('<I', val)
-        def write_int64(self, val): return self._write_num('<q', val)
-        def write_uint64(self, val): return self._write_num('<Q', val)
 
         def read_compact_size(self):
                 size = self.input[self.read_cursor]
@@ -186,29 +142,10 @@ class BCDataStream(object):
                         size = self._read_num('<Q')
                 return size
 
-        def write_compact_size(self, size):
-                if size < 0:
-                        raise SerializationError("attempt to write size < 0")
-                elif size < 253:
-                         self.write(chr(size))
-                elif size < 2 ** 16:
-                        self.write('\xfd')
-                        self._write_num('<H', size)
-                elif size < 2 ** 32:
-                        self.write('\xfe')
-                        self._write_num('<I', size)
-                elif size < 2 ** 64:
-                        self.write('\xff')
-                        self._write_num('<Q', size)
-
         def _read_num(self, format):
                 (i,) = struct.unpack_from(format, self.input, self.read_cursor)
                 self.read_cursor += struct.calcsize(format)
                 return i
-
-        def _write_num(self, format, num):
-                s = struct.pack(format, num)
-                self.write(s)
 
 def open_wallet(walletfile):
         db = DB()
@@ -278,8 +215,6 @@ def parse_wallet(db, item_callback):
 # wallet.dat reader / writer
 
 def read_wallet(json_db, walletfile):
-        crypted = False
-
         db = open_wallet(walletfile)
 
         json_db['keys'] = []
@@ -299,7 +234,6 @@ def read_wallet(json_db, walletfile):
                         json_db['wkey']['created'] = d['created']
 
                 elif type == "ckey":
-                        crypted = True
                         compressed = d['public_key'][0] != '\04'
                         json_db['keys'].append({ 'pubkey': d['public_key'].encode('hex'), 'addr': public_key_to_bc_address(d['public_key']), 'encrypted_privkey':  d['encrypted_private_key'].encode('hex_codec'), 'compressed':compressed})
 
