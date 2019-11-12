@@ -348,7 +348,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				BN_CTX_free(ctx);
 				BN_free(p);
 				BN_free(q);
-				BN_bn2bin(r, static_privkey[i]);
+				BN_bn2binpad(r, static_privkey[i], 32);
 				BN_free(r);
 				sctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 				// multiply point with a scaler, shared_pubkey is compressed representation
