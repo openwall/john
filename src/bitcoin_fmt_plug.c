@@ -104,6 +104,8 @@ static struct fmt_tests bitcoin_tests[] = {
 	{"$bitcoin$96$d98326490616ef9f59767c5bf148061565fe1b21078445725ef31629e8ee430bf4d04896d5064b6651ab4c19021e2d7c$16$51ee8c9ab318da9e$46008$96$819f6c8e618869c7933b85f6c59d15ca6786876edc435ba3f400e272c2999b43e0e3cda27acd928d1adbccd01b613e66$66$03feefa49b8cbbdbb327b7c477586e4a3275132cf6778f05bc11c517dc2e9107cb", "openwall"},
 	// Truncated PRiVCY hash
 	{"$bitcoin$64$65fe1b21078445725ef31629e8ee430bf4d04896d5064b6651ab4c19021e2d7c$16$51ee8c9ab318da9e$46008$96$819f6c8e618869c7933b85f6c59d15ca6786876edc435ba3f400e272c2999b43e0e3cda27acd928d1adbccd01b613e66$66$03feefa49b8cbbdbb327b7c477586e4a3275132cf6778f05bc11c517dc2e9107cb", "openwall"},
+	/* Nexus legacy wallet */
+	{"$bitcoin$64$6b0fbcd048e791edbab30408e14ee24cc51493b810afb61a1e59bc633993a093$36$74fc96a47606814567f02c7df532f6079cbd$169021$2$00$2$00", "openwall"},
 	{NULL}
 };
 
@@ -117,10 +119,7 @@ static struct custom_salt {
 	unsigned char cry_salt[SZ];
 	int cry_salt_length;
 	int cry_rounds;
-	unsigned char ckey[SZ];
-	int ckey_length;
-	unsigned char public_key[SZ];
-	int public_key_length;
+	int final_block_fill;
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -188,7 +187,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	res = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* ckey */
 		goto err;
-	if (strlen(p) != res || strlen(p) > SZ * 2) /* validates atoi() and ckey */
+	if (strlen(p) != res) /* validates atoi() and ckey */
 		goto err;
 	if (!ishexlc(p))
 		goto err;
@@ -199,7 +198,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	res = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* public_key */
 		goto err;
-	if (strlen(p) != res || strlen(p) > SZ * 2) /* validates atoi() and public_key */
+	if (strlen(p) != res) /* validates atoi() and public_key */
 		goto err;
 	if (!ishexlc(p))
 		goto err;
@@ -228,7 +227,13 @@ static void *get_salt(char *ciphertext)
 		cs.cry_master[i] = atoi16[ARCH_INDEX(p[i * 2])]
 			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	p = strtokm(NULL, "$");
-	cs.cry_salt_length = atoi(p) / 2;
+	cs.cry_salt_length = atoi(p);
+	cs.final_block_fill = 0;
+	if (cs.cry_salt_length == 36) { /* Nexus legacy wallet */
+		cs.cry_salt_length = 16;
+		cs.final_block_fill = 8; /* for mkey size 72 */
+	}
+	cs.cry_salt_length /= 2;
 	p = strtokm(NULL, "$");
 	for (i = 0; i < cs.cry_salt_length; i++)
 		cs.cry_salt[i] = atoi16[ARCH_INDEX(p[i * 2])]
@@ -236,19 +241,6 @@ static void *get_salt(char *ciphertext)
 
 	p = strtokm(NULL, "$");
 	cs.cry_rounds = atoi(p);
-
-	p = strtokm(NULL, "$");
-	cs.ckey_length = atoi(p) / 2;
-	p = strtokm(NULL, "$");
-	for (i = 0; i < cs.ckey_length; i++)
-		cs.ckey[i] = atoi16[ARCH_INDEX(p[i * 2])]
-			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtokm(NULL, "$");
-	cs.public_key_length = atoi(p) / 2;
-	p = strtokm(NULL, "$");
-	for (i = 0; i < cs.public_key_length; i++)
-		cs.public_key[i] = atoi16[ARCH_INDEX(p[i * 2])]
-			* 16 + atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
 	MEM_FREE(keeptr);
 	return (void *)&cs;
@@ -273,7 +265,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
-		unsigned char output[SZ];
 		SHA512_CTX sha_ctx;
 		int i;
 
@@ -315,22 +306,28 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		for (index2 = 0; index2 < MIN_KEYS_PER_CRYPT; index2++) {
 			AES_KEY aes_key;
-			unsigned char key[32];
+			union {
+				unsigned char uc[32];
+				uint64_t u64[4];
+			} key;
 			unsigned char iv[16];
+			unsigned char output[16];
+
+			memcpy(iv, cur_salt->cry_master + cur_salt->cry_master_length - 32, 16);
 
 			// Copy and convert from SIMD_COEF_64 buffers back into flat buffers, in little-endian
 #if ARCH_LITTLE_ENDIAN==1
-			for (i = 0; i < sizeof(key)/sizeof(uint64_t); i++)  // the derived key
-				((uint64_t *)key)[i] = JOHNSWAP64(key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
+			for (i = 0; i < 4; i++)  // the derived key
+				key.u64[i] = JOHNSWAP64(key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64]);
 #else
-			for (i = 0; i < sizeof(key)/sizeof(uint64_t); i++)  // the derived key
-				((uint64_t *)key)[i] = key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
+			for (i = 0; i < 4; i++)  // the derived key
+				key.u64[i] = key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 #endif
 
-			AES_set_decrypt_key(key, 256, &aes_key);
-			AES_cbc_encrypt(cur_salt->cry_master + cur_salt->cry_master_length - 32, output, 32, &aes_key, iv, AES_DECRYPT);
+			AES_set_decrypt_key(key.uc, 256, &aes_key);
+			AES_cbc_encrypt(cur_salt->cry_master + cur_salt->cry_master_length - 16, output, 16, &aes_key, iv, AES_DECRYPT);
 
-			if (check_pkcs_pad(output, 32, 16) == 16) {
+			if (check_pkcs_pad(output, 16, 16) == cur_salt->final_block_fill) {
 				cracked[index + index2] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -340,7 +337,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 #else
 		AES_KEY aes_key;
-		unsigned char key_iv[SHA512_DIGEST_LENGTH];  // buffer for both the derived key and iv
+		unsigned char key_iv[SHA512_DIGEST_LENGTH];  // buffer for both the derived key and initial IV
+		unsigned char iv[16];  // updated IV for the final block
+		unsigned char output[16];
+
+		memcpy(iv, cur_salt->cry_master + cur_salt->cry_master_length - 32, 16);
 
 		SHA512_Init(&sha_ctx);
 		SHA512_Update(&sha_ctx, saved_key[index], strlen(saved_key[index]));
@@ -353,9 +354,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 		AES_set_decrypt_key(key_iv, 256, &aes_key);
-		AES_cbc_encrypt(cur_salt->cry_master + cur_salt->cry_master_length - 32, output, 32, &aes_key, key_iv + 32, AES_DECRYPT);
+		AES_cbc_encrypt(cur_salt->cry_master + cur_salt->cry_master_length - 16, output, 16, &aes_key, iv, AES_DECRYPT);
 
-		if (check_pkcs_pad(output, 32, 16) == 16) {
+		if (check_pkcs_pad(output, 16, 16) == cur_salt->final_block_fill) {
 			cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -416,7 +417,7 @@ struct fmt_main fmt_bitcoin = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{
 			"iteration count",
 		},
