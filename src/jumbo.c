@@ -426,7 +426,6 @@ int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize)
 	int pad_len = data[len - 1];
 	int padding = pad_len;
 	int real_len = len - pad_len;
-	const unsigned char *p = data + real_len;
 
 	if (len & (blocksize - 1))
 		return -1;
@@ -436,6 +435,8 @@ int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize)
 
 	if (len < blocksize)
 		return -1;
+
+	const unsigned char *p = data + real_len;
 
 	while (pad_len--)
 		if (*p++ != padding)
