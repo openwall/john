@@ -418,6 +418,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	current = format->params.tests;
 #endif
 #ifdef BENCH_BUILD
+	const char *where;
 	if ((where = fmt_self_test(format, test_db))) {
 		snprintf(s_error, sizeof(s_error), "FAILED (%s)\n", where);
 		return s_error;
