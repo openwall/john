@@ -207,8 +207,33 @@ if __name__ == '__main__':
             sys.stderr.write("%s: this wallet is not encrypted\n" % filename)
             continue
 
-        cry_master = json_db['mkey']['encrypted_key'][-64:]  # last two aes blocks should be enough
+        if cry_method != 0:
+            sys.stderr.write("%s: this wallet uses unknown key derivation method\n" % filename)
+            continue
+
         cry_salt = json_db['mkey']['salt']
+
+        if len(cry_salt) == 16:
+            expected_mkey_len = 96  # 32 bytes padded to 3 AES blocks (last block is padding-only)
+        elif len(cry_salt) == 36:  # Nexus legacy wallet
+            expected_mkey_len = 160  # 72 bytes padded to whole AES blocks
+        else:
+            sys.stderr.write("%s: this wallet uses unsupported salt size\n" % filename)
+            continue
+
+# When cracking we only use the last two AES blocks, and thus we could support
+# any encrypted master key size of 32 bytes (64 hex) or more.  However, there's
+# no reliable way for us to infer what the unencrypted key size was before it
+# got padded to whole AES blocks, and thus no way for us to confidently detect
+# correct guesses by checking the last block's padding.  We rely on that check
+# for expected encrypted master key sizes (assuming that 48 was 32, and 80 was
+# 72, like specific known wallets use), but we don't dare to do that for
+# unexpected sizes where we'd very likely end up with 100% (false) negatives.
+        if len(json_db['mkey']['encrypted_key']) != expected_mkey_len:
+            sys.stderr.write("%s: this wallet uses unsupported master key size\n" % filename)
+            continue
+
+        cry_master = json_db['mkey']['encrypted_key'][-64:]  # last two AES blocks are enough
 
         sys.stdout.write("$bitcoin$%s$%s$%s$%s$%s$2$00$2$00\n" %
             (len(cry_master), cry_master, len(cry_salt), cry_salt, cry_rounds))
