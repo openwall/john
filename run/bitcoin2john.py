@@ -306,7 +306,5 @@ if __name__ == '__main__':
         cry_master = json_db['mkey']['encrypted_key'][-64:]  # last two aes blocks should be enough
         cry_salt = json_db['mkey']['salt']
 
-        sys.stdout.write("$bitcoin$%s$%s$%s$%s$%s$%s$%s$%s$%s\n" %
-                (len(cry_master), cry_master, len(cry_salt),
-                cry_salt, cry_rounds, len(ckey), ckey, len(public_key),
-                public_key))
+        sys.stdout.write("$bitcoin$%s$%s$%s$%s$%s$2$00$2$00\n" %
+            (len(cry_master), cry_master, len(cry_salt), cry_salt, cry_rounds))
