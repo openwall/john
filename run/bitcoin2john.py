@@ -1,10 +1,19 @@
 #!/usr/bin/env python
 
-# This software is Copyright (c) 2012, Dhiru Kholia <dhiru at openwall.com> and
-# it is hereby placed in the public domain.
+# This software is
+# Copyright (c) 2012-2018 Dhiru Kholia <dhiru at openwall.com>
+# Copyright (c) 2019 Solar Designer
+# Copyright (c) 2019 exploide
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.  (This is a heavily cut-down "BSD license".)
 #
-# This utility (bitcoin2john.py) is based on jackjack's pywallet.py [1] which
-# is forked from Joric's pywallet.py whose licensing information follows,
+# While the above applies to the stated copyright holders' contributions,
+# this software is also dual-licensed under the MIT License, to be certain
+# of license compatibility with that of the components listed below.
+#
+# This script (bitcoin2john.py) might still contain portions of jackjack's
+# pywallet.py [1] which is forked from Joric's pywallet.py whose licensing
+# information follows,
 #
 # [1] https://github.com/jackjack-jj/pywallet
 #
