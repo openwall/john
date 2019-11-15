@@ -605,7 +605,8 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 			        req_charset ? ": " : "",
 			        req_charset ? req_charset : "");
 			if (options.flags & FLG_MASK_CHK)
-				fprintf(stderr, ", hybrid mask:%s", options.eff_mask);
+				fprintf(stderr, ", hybrid mask:%s", options.mask ?
+				        options.mask : options.eff_mask);
 			if (options.rule_stack)
 				fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 			if (options.req_minlength >= 0 || options.req_maxlength)

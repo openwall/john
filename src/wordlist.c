@@ -648,17 +648,17 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 		fprintf(stderr, "Proceeding with wordlist:%s",
 		        loopBack ? "loopback" :
 		        name ? path_expand(name) : "stdin");
-		if (options.activewordlistrules) {
+		if (options.flags & FLG_RULES_CHK) {
 			if (options.rule_stack)
 				fprintf(stderr, ", rules:(%s x %s)",
 				        options.activewordlistrules, options.rule_stack);
 			else
 				fprintf(stderr, ", rules:%s", options.activewordlistrules);
-		}
-		if (options.flags & FLG_MASK_CHK)
-			fprintf(stderr, ", hybrid mask:%s", options.eff_mask);
-		if (!options.activewordlistrules && options.rule_stack)
+		} else if (options.rule_stack)
 			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
+		if (options.flags & FLG_MASK_CHK)
+			fprintf(stderr, ", hybrid mask:%s", options.mask ?
+			        options.mask : options.eff_mask);
 		if (options.req_minlength >= 0 || options.req_maxlength)
 			fprintf(stderr, ", lengths: %d-%d",
 			        options.eff_minlength + mask_add_len,

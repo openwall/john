@@ -735,7 +735,8 @@ void do_markov_crack(struct db_main *db, char *mkv_param)
 		fprintf(stderr, "Proceeding with Markov%s%s",
 		        param ? " " : "", param ? param : "");
 		if (options.flags & FLG_MASK_CHK)
-			fprintf(stderr, ", hybrid mask:%s", options.eff_mask);
+			fprintf(stderr, ", hybrid mask:%s", options.mask ?
+			        options.mask : options.eff_mask);
 		if (options.rule_stack)
 			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 		if (options.req_minlength >= 0 || options.req_maxlength)

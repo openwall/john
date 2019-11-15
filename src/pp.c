@@ -1312,7 +1312,7 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
     fprintf(stderr, "Proceeding with prince%c%s",
             loopback ? '-' : ':',
             loopback ? "loopback" : path_expand(wordlist));
-    if (options.activewordlistrules) {
+    if (options.flags & FLG_RULES_CHK) {
       if (options.rule_stack)
         fprintf(stderr, ", rules:(%s x %s)",
                 options.activewordlistrules, options.rule_stack);
@@ -1320,7 +1320,8 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
         fprintf(stderr, ", rules:%s", options.activewordlistrules);
     }
     if (options.flags & FLG_MASK_CHK)
-      fprintf(stderr, ", hybrid mask:%s", options.eff_mask);
+      fprintf(stderr, ", hybrid mask:%s", options.mask ?
+              options.mask : options.eff_mask);
     if (!options.activewordlistrules && options.rule_stack)
       fprintf(stderr, ", rules-stack:%s", options.rule_stack);
     if (options.req_minlength >= 0 || options.req_maxlength)
