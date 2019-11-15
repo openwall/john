@@ -696,7 +696,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 				rules_errno = RULES_ERROR_END;
 				return NULL;
 			}
-			if (rules_stacked_after) continue;
+			if (rules_stacked_after && RULE) continue;
 			if (rules_vars[ARCH_INDEX(RULE)] <=
 			    rules_max_length) continue;
 			return NULL;
@@ -707,7 +707,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 				rules_errno = RULES_ERROR_END;
 				return NULL;
 			}
-			if (rules_stacked_after) continue;
+			if (rules_stacked_after && RULE) continue;
 			if (rules_vars[ARCH_INDEX(RULE)] >= min_length)
 				continue;
 			return NULL;
