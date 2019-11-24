@@ -23,6 +23,7 @@
 Makefile
 john-local.conf
 
+run/__pycache__
 run/SIPdump
 run/base64conv
 run/bitlocker2john
