@@ -338,6 +338,28 @@ __constant uint k[] = {
 	(ctx)[7] += H; \
 }
 
+#define sha256_single_zeros(pad, ctx)\
+ {	  \
+	uint A, B, C, D, E, F, G, H, t; \
+	A = h[0]; \
+	B = h[1]; \
+	C = h[2]; \
+	D = h[3]; \
+	E = h[4]; \
+	F = h[5]; \
+	G = h[6]; \
+	H = h[7]; \
+	SHA256_ZEROS(A,B,C,D,E,F,G,H,pad); \
+	(ctx)[0] = h[0] + A; \
+	(ctx)[1] = h[1] + B; \
+	(ctx)[2] = h[2] + C; \
+	(ctx)[3] = h[3] + D; \
+	(ctx)[4] = h[4] + E; \
+	(ctx)[5] = h[5] + F; \
+	(ctx)[6] = h[6] + G; \
+	(ctx)[7] = h[7] + H; \
+}
+
 /*
  ***************************************************************************
  * SHA512 below this line
