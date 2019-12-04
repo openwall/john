@@ -11,6 +11,7 @@
 # and zed archive description which was written by Sylvain Beucler
 # (https://www.beuc.net/zed/)
 
+import os
 import sys
 import struct
 from binascii import hexlify
@@ -31,7 +32,6 @@ HASH_FUNC = b'\x80\x78\x02\x00'
 PBA_CHK = b'\x80\x79\x05\x00'
 
 USERNAME = b'\x80\x71\x04\x00'
-users = list()
 
 PY3 = sys.version_info[0] == 3
 
@@ -51,6 +51,7 @@ def parse_item(data, item, x):
     return data[i + len(item) + 4 : i + len(item) + 4 + int.from_bytes(data[i + len(item) : i + len(item) + 4],byteorder='big')]
 
 def parse_users(data):
+    users = list()
     i = 0
     while i < len(data):
         while data[i:i+len(USERNAME)] != USERNAME and i < len(data):
@@ -117,15 +118,15 @@ def parse_decode_global_properties(filename):
     for x in users:
         hash_func = pba_chk = pba_iter = pba_salt = 0
         (hash_func, pba_chk, pba_iter, pba_salt) = parse(plaintext, x)
-        if int(hash_func,16) == 22: # sha256 256bits
-            key_size = '256'
-        elif int(hash_func,16) == 21: # sha1 64bits
-            key_size = '64'
-        else:
-            sys.stderr.write("%s : unknown pkcs12_hashfunc\n" % filename)
-            sys.exit(-1)
+        #if int(hash_func,16) == 22: # sha256 256bits
+        #    key_size = '256'
+        #elif int(hash_func,16) == 21: # sha1 64bits
+        #    key_size = '64'
+        #else:
+        #    sys.stderr.write("%s : unknown pkcs12_hashfunc\n" % filename)
+        #    sys.exit(-1)
 
-        sys.stdout.write("$zed$3$%s$%s$%s$%s\n" % (key_size, str(int(pba_iter,16)), pba_salt, pba_chk)) # If ID=3, then the pseudorandom bits being produced are to be used as an integrity key for MACing. (RFC 7292 Appendix B.3)
+        sys.stdout.write("%s:$zed$%s$%s$%s$%s$%s:::%s\n" % (x, ver, str(int(hash_func,16)), str(int(pba_iter,16)), pba_salt, pba_chk, os.path.basename(filename))) # If ID=3, then the pseudorandom bits being produced are to be used as an integrity key for MACing. (RFC 7292 Appendix B.3)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
