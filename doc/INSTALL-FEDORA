@@ -1,25 +1,32 @@
-Please, read INSTALL for general information about installing John on your
-system.
+Please read INSTALL for general information about installing John on your
+system.  Distro maintainers, please also read README-DISTROS for how to
+build CPU fallback chains for any x86-64 CPU.
 
 == Preamble
 
-    Important: it's actually about a local to a user's home directory, not a
-    system-wide installation. In fact, most likely you do not need to install
+    Important: This document is for a local build in user home directory, not a
+    system-wide installation.  In fact, most likely you do not need to install
     John the Ripper system-wide.  Instead, after you compile the source code
-    (see below), you may simply enter the "run" directory and invoke John
-    from there, e.g., ./john --list=build-options.
+    (see below), you may simply enter the "run" directory and invoke John from
+    there, e.g. with:
 
-    Commands not explicitly prefixed by sudo must be run as a regular user
+    ./john --list=build-options
+
+    Commands not explicitly prefixed by "sudo" must be run as a regular user
     (the one that will use JtR) rather than as root.
 
 == How to install on Fedora
 
-    If anything below fails, run 'sudo dnf update' and re-try.
+    The steps listed below might also work unchanged on RHEL 8 and
+    derivatives such as CentOS 8 (untested).  For RHEL 7 / CentOS 7
+    and earlier, use "yum" in place of "dnf".
+
+    If anything below fails, run "sudo dnf update" and try again.
 
 === Preconditions and Required stuff
 
     sudo dnf update
-    sudo dnf install git gcc openssl-devel
+    sudo dnf install git make gcc openssl-devel
 
 ==== Recommended (extra formats and performance)
 
@@ -30,35 +37,50 @@ system.
     You probably do not need MPI, it's only for multi-machine clusters with
     shared network storage.  Merely having it compiled in (even if unused)
     may have security and reliability drawbacks.  Most users should read up
-    on the --fork options instead, which gets compiled in automagically if
+    on the "--fork" option instead, which gets compiled in automagically if
     your system supports it.  Having said all this, if you're sure you do
-    need MPI support: Read README.mpi for instructions.
+    need MPI support please read README.mpi for instructions.
 
     Please also note that OpenMP (Open Multi-Processing) is not the same
-    as Open MPI (Message Passing Interface).  You do get OpenMP if your
-    system supports it.
+    as Open MPI (Message Passing Interface).  You do get OpenMP support
+    compiled into JtR by default if your system supports it.
 
 === Clone latest bleeding-edge Jumbo and build
 
-==== Clone GIT repo
+==== Clone the Git repo
 
     mkdir -p ~/src
     cd ~/src
-    git clone git://github.com/magnumripper/JohnTheRipper -b bleeding-jumbo john
+    git clone https://github.com/magnumripper/JohnTheRipper -b bleeding-jumbo john
 
 ==== Build
 
     cd ~/src/john/src
     ./configure && make -s clean && make -sj4
 
-=== Install TAB-completion
+==== Alternative: OpenMP fallback build
+
+    This effectively makes two builds of JtR, for slight speedup in cases when
+    OpenMP is disabled at runtime e.g. when you use "--fork".
+
+    cd ~/src/john/src
+    ./configure --disable-openmp && make -s clean && make -sj4
+    mv ../run/john ../run/john-non-omp
+    ./configure CPPFLAGS='-DOMP_FALLBACK -DOMP_FALLBACK_BINARY="\"john-non-omp\""'
+    make -s clean && make -sj4
+
+=== Optionally install TAB-completion
+
+    Please only do this if you intend to use our custom TAB completions in
+    bash.  If you don't know what this is, you don't need it.
 
     sudo make shell-completion
 
 === Test your build
 
-    $ ../run/john --test=0
+    cd ~/src/john/run
+    ./john --test=0
 
-=== Benchmark your build
+=== Benchmark your build (this also performs self-tests)
 
-    $ ../run/john --test
+    ./john --test
