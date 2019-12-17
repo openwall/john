@@ -191,32 +191,32 @@ Idle = N
 Editing the local file is good for setting custom local options, for
 setting items specific to this machine (i.e. [Local:Options:OpenCL])
 for setting things like MinLen and MaxLen within the incremental
-sections, and setting things like local Markov settings. Yes, each of
+sections, and setting things like local Markov settings.  Yes, each of
 these can be done by editing john.conf.  However, keep in mind that
-all of these changes to a john.conf file 'can' be lost. If they are
+all of these changes to a john.conf file 'can' be lost.  If they are
 modified within john-local.conf then they are safe from being lost
 during an update.
 
 This file (john-local.conf) can be located in the $JOHN directory
-(where the john executable resides). It can also be in the local
-working directory, AND it can even be in both places.  These files
-will be loaded in this order:
+(where the john executable resides).  With non-default john.conf,
+it can also be in the local working directory, AND it can even be in both
+places.  These files will be loaded in this order:
    1. all of $JOHN/john.conf
    2. $JOHN/john-local.conf
-   3. ./john-local.conf
+   3. ./john-local.conf (only if enabled in john.conf)
 So each john-local.conf can add, or modify the existing config
-data. The absolute last file loaded will be ./john-local.conf, so
-the changes this file makes will always be used. The changes done
+data.  The absolute last file loaded may be ./john-local.conf, so
+the changes this file makes will always be used.  The changes done
 in $JOHN/john-local.conf will override what was set in $JOHN/john.conf
-BUT these settings can also be overridden by changes in ./john-local.conf
+BUT these settings can also be overridden by changes in ./john-local.conf.
 
 The one and ONLY time that the JtR environment will ever edit or
 modify the john-local.conf file, is if it does not exist when the
-configure script is run. If that is the case, configure will building
-a initial skeleton john-local.conf file. This file will have a comment
+configure script is run.  If that is the case, configure will build
+an initial skeleton john-local.conf file.  This file will have a comment
 section explaining things, and then have blank skeleton Local sections
-for each non 'List.' section found in the john.conf file. From that
-point on, the john-local.conf file is the users file. The version control
+for each non 'List.' section found in the john.conf file.  From that
+point on, the john-local.conf file is the user's file.  The version control
 system will not touch it, and configure will not touch it again.
 
 
