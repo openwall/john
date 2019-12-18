@@ -2,26 +2,26 @@
 
 # There was a bug in echo -e in Travis
 # TODO: we know these formats must be fixed (or removed)
-echo '[Local:Disabled:Formats]' > john-local.conf
-echo 'Raw-SHA512-free-opencl = Y' >> john-local.conf
-echo 'XSHA512-free-opencl = Y' >> john-local.conf
-echo 'gpg-opencl = Y' >> john-local.conf
-echo 'KeePass-opencl = Y' >> john-local.conf
+echo '[Local:Disabled:Formats]' > ../run/john-local.conf
+echo 'Raw-SHA512-free-opencl = Y' >> ../run/john-local.conf
+echo 'XSHA512-free-opencl = Y' >> ../run/john-local.conf
+echo 'gpg-opencl = Y' >> ../run/john-local.conf
+echo 'KeePass-opencl = Y' >> ../run/john-local.conf
 
 # These formats fail OpenCL CPU runtime
-echo 'lotus5-opencl = Y' >> john-local.conf
-echo 'pgpdisk-opencl = Y' >> john-local.conf
+echo 'lotus5-opencl = Y' >> ../run/john-local.conf
+echo 'pgpdisk-opencl = Y' >> ../run/john-local.conf
 
 # These formats run very slowly inside CI
 # Time measures are from Intel CPU driver running inside Docker
-echo 'ansible-opencl = Y' >> john-local.conf    # (282.202952 secs) PASS
-echo 'bitlocker-opencl = Y' >> john-local.conf  # (146.356993 secs) PASS
-echo 'bitwarden-opencl = Y' >> john-local.conf  # (275.649462 secs) PASS
-echo 'ethereum-opencl = Y' >> john-local.conf   # (468.007940 secs) PASS
-echo 'FVDE-opencl = Y' >> john-local.conf       # (184.908568 secs) PASS
-echo 'lp-opencl = Y' >> john-local.conf         # (177.392942 secs) PASS
-echo 'notes-opencl = Y' >> john-local.conf      # (179.212104 secs) PASS
-echo 'PBKDF2-HMAC-SHA256-opencl = Y' >> john-local.conf  # (189.267312 secs) PASS
+echo 'ansible-opencl = Y' >> ../run/john-local.conf    # (282.202952 secs) PASS
+echo 'bitlocker-opencl = Y' >> ../run/john-local.conf  # (146.356993 secs) PASS
+echo 'bitwarden-opencl = Y' >> ../run/john-local.conf  # (275.649462 secs) PASS
+echo 'ethereum-opencl = Y' >> ../run/john-local.conf   # (468.007940 secs) PASS
+echo 'FVDE-opencl = Y' >> ../run/john-local.conf       # (184.908568 secs) PASS
+echo 'lp-opencl = Y' >> ../run/john-local.conf         # (177.392942 secs) PASS
+echo 'notes-opencl = Y' >> ../run/john-local.conf      # (179.212104 secs) PASS
+echo 'PBKDF2-HMAC-SHA256-opencl = Y' >> ../run/john-local.conf  # (189.267312 secs) PASS
 
 # Other interesting formats
 # Testing: RAR5-opencl [PBKDF2-SHA256 OpenCL] (70.553782 secs) PASS
