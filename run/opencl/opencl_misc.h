@@ -185,6 +185,11 @@ inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
 #endif
 #endif
 
+inline ushort SWAP16(ushort x)
+{
+	return ((x << 8) + (x >> 8));
+}
+
 #if USE_BITSELECT
 inline uint SWAP32(uint x)
 {

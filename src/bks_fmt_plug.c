@@ -31,8 +31,8 @@ john_register_one(&fmt_bks);
 #include "pkcs12.h"
 
 #define FORMAT_LABEL		"BKS"
-#define FORMAT_NAME		""
-#define ALGORITHM_NAME		"PKCS12 PBE " SHA1_ALGORITHM_NAME
+#define FORMAT_NAME		"BouncyCastle"
+#define ALGORITHM_NAME		"PKCS#12 PBE SHA1" SHA1_ALGORITHM_NAME
 #define PLAINTEXT_LENGTH	31
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		sizeof(uint32_t)
@@ -441,7 +441,7 @@ struct fmt_main fmt_bks = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_OMP | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests

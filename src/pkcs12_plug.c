@@ -44,23 +44,22 @@ int pkcs12_pbe_derive_key( int md_type, int iterations, int id, const unsigned
 		char *pwd,  size_t pwdlen, const unsigned char *salt, size_t
 		saltlen, unsigned char *key, size_t keylen)
 {
-	size_t i;
-	unsigned char unipwd[PKCS12_MAX_PWDLEN * 2 + 2], *cp=unipwd;
+	union {
+		UTF16 s[PKCS12_MAX_PWDLEN + 1];
+		UTF8 c[1];
+	} unipwd;
 
-	if ( pwdlen > PKCS12_MAX_PWDLEN )
-		return -1;
+	int len = enc_to_utf16_be(unipwd.s, PKCS12_MAX_PWDLEN, pwd, pwdlen);
 
-	for ( i = 0; i < pwdlen; i++ ) {
-		*cp++ = 0;
-		*cp++ = pwd[i];
-	}
-	*cp++ = 0;
-	*cp = 0;
+	if (len < 0)
+		len = strlen16(unipwd.s);
+
+	pwdlen = 2 * (len + 1);
 
 	// 2  => BestCrypt specific PKCS12 Whirlpool-512, hack
 	// 10 => BestCrypt specific PKCS12 SHA-512, hack
 	if (md_type == 1 || md_type == 256 || md_type == 512 || md_type == 224 || md_type == 384 || md_type == 2 || md_type == 10)
-		mbedtls_pkcs12_derivation(key, keylen, unipwd, pwdlen * 2 + 2, salt,
+		mbedtls_pkcs12_derivation(key, keylen, unipwd.c, pwdlen, salt,
 				saltlen, md_type, id, iterations);
     return 0;
 }
@@ -316,8 +315,11 @@ int pkcs12_pbe_derive_key_simd(int md_type, int iterations, int id, const unsign
 		size_t pwdlen[SIMD_MAX_GROUP_PFX], const unsigned char *salt, size_t saltlen,
 		unsigned char *key[SIMD_MAX_GROUP_PFX], size_t keylen)
 {
-	size_t i, j;
-	unsigned char unipwd_[SSE_GROUP_SZ_SHA1][PKCS12_MAX_PWDLEN * 2 + 2];
+	size_t j;
+	union {
+		UTF16 s[PKCS12_MAX_PWDLEN + 1];
+		uint8_t c[1];
+	} unibuf[SSE_GROUP_SZ_SHA1];
 	const unsigned char *unipwd[SSE_GROUP_SZ_SHA1];
 
 	if (md_type == 256) {
@@ -332,20 +334,14 @@ int pkcs12_pbe_derive_key_simd(int md_type, int iterations, int id, const unsign
 		return -1;
 
 	for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
-		unsigned char *cpo;
-		const unsigned char *cpi = pwd[j];
-		size_t len = pwdlen[j];
+		unipwd[j] = unibuf[j].c;
 
-		unipwd[j] = unipwd_[j];
-		cpo = (unsigned char*)unipwd[j];
-		if ( len > PKCS12_MAX_PWDLEN )
-			return -1;
-		for ( i = 0; i < len; i++ ) {
-			*cpo++ = 0;
-			*cpo++ = *cpi++;
-		}
-		*cpo++ = 0;
-		*cpo = 0;
+		int len = enc_to_utf16_be(unibuf[j].s, PKCS12_MAX_PWDLEN, pwd[j], pwdlen[j]);
+
+		if (len < 0)
+			len = strlen16(unibuf[j].s);
+
+		pwdlen[j] = 2 * (len + 1);
 	}
 	mbedtls_pkcs12_derivation_simd1(key, keylen, unipwd, pwdlen, salt, saltlen, id, iterations);
 	return 0;
@@ -355,25 +351,22 @@ static int pkcs12_pbe_derive_key_simd_sha256( int iterations, int id, const unsi
 		size_t pwdlen[SSE_GROUP_SZ_SHA256], const unsigned char *salt, size_t saltlen,
 		unsigned char *key[SSE_GROUP_SZ_SHA256], size_t keylen)
 {
-	size_t i, j;
-	unsigned char unipwd_[SSE_GROUP_SZ_SHA256][PKCS12_MAX_PWDLEN * 2 + 2];
+	size_t j;
+	union {
+		UTF16 s[PKCS12_MAX_PWDLEN + 1];
+		uint8_t c[1];
+	} unibuf[SSE_GROUP_SZ_SHA256];
 	const unsigned char *unipwd[SSE_GROUP_SZ_SHA256];
 
 	for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
-		unsigned char *cpo;
-		const unsigned char *cpi = pwd[j];
-		size_t len = pwdlen[j];
+		unipwd[j] = unibuf[j].c;
 
-		unipwd[j] = unipwd_[j];
-		cpo = (unsigned char*)unipwd[j];
-		if ( len > PKCS12_MAX_PWDLEN )
-			return -1;
-		for ( i = 0; i < len; i++ ) {
-			*cpo++ = 0;
-			*cpo++ = *cpi++;
-		}
-		*cpo++ = 0;
-		*cpo = 0;
+		int len = enc_to_utf16_be(unibuf[j].s, PKCS12_MAX_PWDLEN, pwd[j], pwdlen[j]);
+
+		if (len < 0)
+			len = strlen16(unibuf[j].s);
+
+		pwdlen[j] = 2 * (len + 1);
 	}
 	mbedtls_pkcs12_derivation_simd_sha256(key, keylen, unipwd, pwdlen, salt, saltlen, id, iterations);
 	return 0;
@@ -445,8 +438,6 @@ int mbedtls_pkcs12_derivation_simd1( unsigned char *data[SSE_GROUP_SZ_SHA1], siz
 	for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 		pwd_block[j] = pwd_block_[j];
 		salt_block[j] = salt_block_[j];
-		pwdlen[j] <<= 1;
-		pwdlen[j] += 2;
 	}
 
 	hlen = 20; // for SHA1
@@ -555,8 +546,6 @@ static int mbedtls_pkcs12_derivation_simd_sha256( unsigned char *data[SSE_GROUP_
 	for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 		pwd_block[j] = pwd_block_[j];
 		salt_block[j] = salt_block_[j];
-		pwdlen[j] <<= 1;
-		pwdlen[j] += 2;
 	}
 
 	hlen = 32; // for SHA256
@@ -661,25 +650,22 @@ int pkcs12_pbe_derive_key_simd_sha512(int iterations, int id, const unsigned cha
 		size_t pwdlen[SSE_GROUP_SZ_SHA512], const unsigned char *salt, size_t saltlen,
 		unsigned char *key[SSE_GROUP_SZ_SHA512], size_t keylen)
 {
-	size_t i, j;
-	unsigned char unipwd_[SSE_GROUP_SZ_SHA512][PKCS12_MAX_PWDLEN * 2 + 2];
+	size_t j;
+	union {
+		UTF16 s[PKCS12_MAX_PWDLEN + 1];
+		uint8_t c[1];
+	} unibuf[SSE_GROUP_SZ_SHA512];
 	const unsigned char *unipwd[SSE_GROUP_SZ_SHA512];
 
 	for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
-		unsigned char *cpo;
-		const unsigned char *cpi = pwd[j];
-		size_t len = pwdlen[j];
+		unipwd[j] = unibuf[j].c;
 
-		unipwd[j] = unipwd_[j];
-		cpo = (unsigned char*)unipwd[j];
-		if ( len > PKCS12_MAX_PWDLEN )
-			return -1;
-		for ( i = 0; i < len; i++ ) {
-			*cpo++ = 0;
-			*cpo++ = *cpi++;
-		}
-		*cpo++ = 0;
-		*cpo = 0;
+		int len = enc_to_utf16_be(unibuf[j].s, PKCS12_MAX_PWDLEN, pwd[j], pwdlen[j]);
+
+		if (len < 0)
+			len = strlen16(unibuf[j].s);
+
+		pwdlen[j] = 2 * (len + 1);
 	}
 	mbedtls_pkcs12_derivation_simd_sha512(key, keylen, unipwd, pwdlen, salt, saltlen, id, iterations);
 	return 0;
@@ -709,8 +695,6 @@ int mbedtls_pkcs12_derivation_simd_sha512( unsigned char *data[SSE_GROUP_SZ_SHA5
 	for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
 		pwd_block[j] = pwd_block_[j];
 		salt_block[j] = salt_block_[j];
-		pwdlen[j] <<= 1;
-		pwdlen[j] += 2;
 	}
 
 	hlen = 64; // for SHA512

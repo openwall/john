@@ -164,6 +164,12 @@ extern UTF8 *utf16_to_utf8_r(UTF8 *dst, int dst_len, const UTF16* source);
 extern UTF8 *utf16_to_enc(const UTF16* source);
 extern UTF8 *utf16_to_enc_r(UTF8 *dst, int dst_len, const UTF16* source);
 
+/*
+ * Convert back to UTF-8 or codepage (for get_key without a saved_plain)
+ * from UTF-16BE (regardless of host architecture)
+ */
+extern UTF8 *utf16_be_to_enc(const UTF16* source);
+
 /* UTF-32 functions. No endianness problems! */
 extern UTF8 *utf32_to_enc(UTF8 *dst, int dst_len, const UTF32 *source);
 extern int enc_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,

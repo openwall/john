@@ -35,16 +35,9 @@
 
 #include <string.h>
 #include <stdio.h>
+
+#include "unicode.h"
 #include "sha.h"
-
-// set next line to #if 1 to test non-SIMD logic
-#if 0
-#undef SIMD_COEF_32
-#undef SHA1_ALGORITHM_NAME
-#define SHA1_ALGORITHM_NAME		"32/" ARCH_BITS_STR
-#endif
-
-//#undef SIMD_COEF_64
 
 int pkcs12_pbe_derive_key( int md_type, int iterations, int id, const unsigned
 		char *pwd,  size_t pwdlen, const unsigned char *salt, size_t saltlen,

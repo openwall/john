@@ -34,8 +34,8 @@ john_register_one(&fmt_signal);
 #include "hmac_sha.h"
 
 #define FORMAT_LABEL            "Signal"
-#define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "Signal Android PKCS12 PBE SHA-1 32/" ARCH_BITS_STR
+#define FORMAT_NAME             "Signal Android"
+#define ALGORITHM_NAME          "PKCS#12 PBE SHA1 32/" ARCH_BITS_STR
 // I could not get openssl to use passwords > 48 bytes, so we will cut support at this length (JimF).
 #define PLAINTEXT_LENGTH        48
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -250,7 +250,7 @@ struct fmt_main fmt_signal = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_OMP,
 		{
 			"iteration count",
 		},

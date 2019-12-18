@@ -711,6 +711,29 @@ char *utf16_to_cp(const UTF16 *source)
 }
 
 /*
+ * Convert UTF-16BE to codepage.
+ * This is not optimized as it's only used in get_key() as of now.
+ * Non thread-safe version.
+ */
+UTF8 *utf16_be_to_enc(const UTF16 *source)
+{
+	static UTF8 ret_Key[PLAINTEXT_BUFFER_SIZE + 1];
+	UTF16 swapped[PLAINTEXT_BUFFER_SIZE + 1];
+	const UTF16 *s = source;
+	UTF16 c, *d = swapped;
+
+	do {
+		c = *s++;
+#if ARCH_LITTLE_ENDIAN
+		c = (c >> 8) | (UTF16)(c << 8);
+#endif
+		*d++ = c;
+	} while (c);
+
+	return utf16_to_enc_r(ret_Key, PLAINTEXT_BUFFER_SIZE, swapped);
+}
+
+/*
  * Convert UTF-16LE to codepage.
  * This is not optimized as it's only used in get_key() as of now.
  * Non thread-safe version.

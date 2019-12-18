@@ -29,11 +29,12 @@ john_register_one(&fmt_opencl_sappse);
 #include "formats.h"
 #include "opencl_common.h"
 #include "options.h"
+#include "unicode.h"
 #include "sap_pse_common.h"
 
 #define FORMAT_LABEL            "sappse-opencl"
-#define FORMAT_NAME             "SAP PSE - PKCS12 PBE"
-#define ALGORITHM_NAME          "SHA1 OpenCL"
+#define FORMAT_NAME             "SAP PSE"
+#define ALGORITHM_NAME          "PKCS#12 PBE (SHA1) OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
 #define BINARY_ALIGN            sizeof(uint32_t)
@@ -140,10 +141,14 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!program[gpu_id]) {
-		char build_opts[64];
+		char build_opts[128];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DPLAINTEXT_LENGTH=%d", PLAINTEXT_LENGTH);
+		         "-DPLAINTEXT_LENGTH=%d -D%s -D%s", PLAINTEXT_LENGTH,
+		         cp_id2macro(options.target_enc),
+		         options.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
+		         cp_id2macro(options.internal_cp));
+
 		opencl_init("$JOHN/opencl/sap_pse_kernel.cl",
 		            gpu_id, build_opts);
 
