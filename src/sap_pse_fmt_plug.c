@@ -37,8 +37,8 @@ john_register_one(&fmt_sappse);
 #include "pkcs12.h"
 
 #define FORMAT_LABEL            "sappse"
-#define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "PKCS12 PBE SHA1 " SHA1_ALGORITHM_NAME " 3DES"
+#define FORMAT_NAME             "SAP PSE"
+#define ALGORITHM_NAME          "PKCS#12 PBE (SHA1) " SHA1_ALGORITHM_NAME " 3DES"
 // I could not get openssl to use passwords > 48 bytes, so we will cut support at this length.
 #define PLAINTEXT_LENGTH        48
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -204,7 +204,7 @@ struct fmt_main fmt_sappse = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_OMP,
 		{
 			"iteration count",
 		},

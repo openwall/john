@@ -37,8 +37,8 @@ john_register_one(&fmt_bestcrypt);
 #include "sph_whirlpool.h"
 
 #define FORMAT_LABEL            "BestCrypt"
-#define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "Jetico BestCrypt (.jbc) PKCS12 PBE (Whirlpool / SHA-1 to SHA-512) 32/" ARCH_BITS_STR
+#define FORMAT_NAME             "Jetico BestCrypt (.jbc)"
+#define ALGORITHM_NAME          "PKCS#12 PBE (SHA1/SHA2) 32/" ARCH_BITS_STR
 // I could not get openssl to use passwords > 48 bytes, so we will cut support at this length (JimF).
 #define PLAINTEXT_LENGTH        48
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -449,7 +449,7 @@ struct fmt_main fmt_bestcrypt = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_OMP | FMT_HUGE_INPUT,
 		{
 /* FIXME: Should also report hash_id as a tunable cost */
 			"iteration count",

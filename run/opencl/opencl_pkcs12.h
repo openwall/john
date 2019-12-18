@@ -7,6 +7,8 @@
  * modification, are permitted.
  */
 
+#include "opencl_misc.h"
+#include "opencl_unicode.h"
 #include "opencl_sha1_ctx.h"
 #include "opencl_sha1.h"
 
@@ -15,6 +17,85 @@
 #endif
 
 #define PKCS12_MAX_PWDLEN (PLAINTEXT_LENGTH * 2)
+
+#ifdef UTF_8
+
+inline uint enc2utf16be(const UTF8 *pwd, uint length, UTF16 *unipwd)
+{
+	const UTF8 *source = pwd;
+	const UTF8 *sourceEnd = &source[length];
+	UTF16 *target = unipwd;
+	UTF32 ch;
+	uint extraBytesToRead;
+
+	/* Input buffer is UTF-8 possibly without zero-termination */
+	while (*source && source < sourceEnd) {
+		if (*source < 0xC0) {
+			*target++ = SWAP16((UTF16)(*source++));
+			continue;
+		}
+		ch = *source;
+		// This point must not be reached with *source < 0xC0
+		extraBytesToRead =
+			opt_trailingBytesUTF8[ch & 0x3f];
+		if (source + extraBytesToRead >= sourceEnd) {
+			break;
+		}
+		switch (extraBytesToRead) {
+		case 3:
+			ch <<= 6;
+			ch += *++source;
+		case 2:
+			ch <<= 6;
+			ch += *++source;
+		case 1:
+			ch <<= 6;
+			ch += *++source;
+			++source;
+			break;
+		default:
+			*target = UNI_REPLACEMENT_CHAR;
+			break; // from switch
+		}
+		if (*target == UNI_REPLACEMENT_CHAR)
+			break; // from while
+		ch -= offsetsFromUTF8[extraBytesToRead];
+#ifdef UCS_2
+		/* UCS-2 only */
+		*target++ = SWAP16((UTF16)ch);
+#else
+		/* full UTF-16 with surrogate pairs */
+		if (ch <= UNI_MAX_BMP) {  /* Target is a character <= 0xFFFF */
+			*target++ = SWAP16((UTF16)ch);
+		} else {  /* target is a character in range 0xFFFF - 0x10FFFF. */
+			ch -= halfBase;
+			*target++ = SWAP16((UTF16)((ch >> halfShift) + UNI_SUR_HIGH_START));
+			*target++ = SWAP16((UTF16)((ch & halfMask) + UNI_SUR_LOW_START));
+		}
+#endif
+	}
+
+	*target = 0;	// Terminate
+
+	return (target - unipwd);
+}
+
+#else
+
+inline uint enc2utf16be(const UTF8 *pwd, uint length, UTF16 *unipwd)
+{
+	uint l = length;
+
+	while (l--) {
+		UTF8 c = *pwd++;
+		*unipwd++ = SWAP16(CP_LUT(c));
+	}
+	*unipwd = 0;
+
+	return length;
+}
+
+#endif /* encodings */
 
 inline void pkcs12_fill_buffer(uint *data, uint data_len,
                                const uint *filler, uint fill_len)
@@ -51,7 +132,7 @@ inline void pkcs12_pbe_derive_key(uint iterations, int id,
 {
 	uint i;
 	union {
-		ushort s[PKCS12_MAX_PWDLEN + 1];
+		ushort s[PLAINTEXT_LENGTH + 1];
 		uint w[1];
 	} unipwd;
 	uint j, k;
@@ -64,11 +145,10 @@ inline void pkcs12_pbe_derive_key(uint iterations, int id,
 	SHA_CTX md_ctx;
 	const uint idw = id | (id << 8) | (id << 16) | (id << 24);
 
-	for (i = 0; i < pwdlen; i++)
-		unipwd.s[i] = ((uchar*)pwd)[i] << 8;
-	unipwd.s[i] = 0;
+	// Proper conversion to UTF-16BE
+	pwdlen = enc2utf16be((uchar*)pwd, pwdlen, unipwd.s);
+	pwdlen = (pwdlen + 1) << 1;
 
-	pwdlen =  pwdlen * 2 + 2;
 	pwd = unipwd.w;
 
 	hlen = 20;	// for SHA1
