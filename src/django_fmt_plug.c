@@ -93,7 +93,10 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static struct custom_salt {
 	int type;
 	int iterations;
-	unsigned char salt[32];
+	union {
+		unsigned char c[32];
+		unsigned int i[8];
+	} salt;
 } *cur_salt;
 
 static void init(struct fmt_main *self)
@@ -136,7 +139,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p)  > sizeof(cur_salt->salt)-1)
+	if (strlen(p)  > sizeof(cur_salt->salt.c)-1)
 		goto err;
 	if ((p = strtokm(NULL, "")) == NULL)	/* hash */
 		goto err;
@@ -166,7 +169,7 @@ static void *get_salt(char *ciphertext)
 	t = strtokm(NULL, "$");
 	cs.iterations = atoi(t);
 	t = strtokm(NULL, "$");
-	strcpy((char*)cs.salt, t);
+	strcpy((char*)cs.salt.c, t);
 
 	return (void *)&cs;
 }
@@ -211,10 +214,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[i+index];
 			x.pout[i] = crypt_out[i+index];
 		}
-		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, strlen((char*)cur_salt->salt), cur_salt->iterations, &(x.poutc), 32, 0);
+		pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt.c, strlen((char*)cur_salt->salt.c), cur_salt->iterations, &(x.poutc), 32, 0);
 #else
 		pbkdf2_sha256((unsigned char *)saved_key[index], strlen(saved_key[index]),
-			cur_salt->salt, strlen((char*)cur_salt->salt),
+			cur_salt->salt.c, strlen((char*)cur_salt->salt.c),
 			cur_salt->iterations, (unsigned char*)crypt_out[index], 32, 0);
 #endif
 	}
@@ -260,6 +263,13 @@ static unsigned int iteration_count(void *salt)
 	return (unsigned int)my_salt->iterations;
 }
 
+static int salt_hash(void *salt)
+{
+	uint32_t s = *((struct custom_salt*)salt)->salt.i;
+
+	return s & (SALT_HASH_SIZE - 1);
+}
+
 struct fmt_main fmt_django = {
 	{
 		FORMAT_LABEL,
@@ -303,7 +313,7 @@ struct fmt_main fmt_django = {
 			fmt_default_binary_hash_5,
 			fmt_default_binary_hash_6
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		NULL,
 		set_salt,
 		django_set_key,
