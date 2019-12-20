@@ -46,12 +46,18 @@ echo '---------------------------------- Build Info ----------------------------
 $JTR --list=build-info
 echo '--------------------------------------------------------------------------------'
 
+if [[ "$OPENCL" == "yes" ]]; then
+    echo '---------------------------------- OpenCL Info ----------------------------------'
+    $JTR --list=opencl-devices
+    echo '---------------------------------------------------------------------------------'
+fi
+
 # Except for MacOS, split tests
 if [[ "$OPENCL" == "yes" && "$TRAVIS_OS_NAME" != "osx" ]]; then
-    echo '-- Running $JTR -test=0 --format=opencl --'
+    echo '== Running $JTR -test=0 --format=opencl =='
     $JTR -test=0 --format=opencl
 else
-    echo '-- Running $JTR -test=0 --'
+    echo '== Running $JTR -test=0 =='
     $JTR -test=0
 fi
 
