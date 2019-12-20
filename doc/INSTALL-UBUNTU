@@ -1,16 +1,18 @@
-Please, read INSTALL for general information about installing John on your
+Please read INSTALL for general information about installing John on your
 system.  Distro maintainers, please also read README-DISTROS for how to
-build CPU fall-back chains for any x86-64 CPU.
+build CPU fallback chains for any x86-64 CPU.
 
 == Preamble
 
-    Important: This document is for a local build in user's home dir, not a
-    system-wide installation. In fact, most likely you do not need to install
+    Important: This document is for a local build in user home directory, not a
+    system-wide installation.  In fact, most likely you do not need to install
     John the Ripper system-wide.  Instead, after you compile the source code
     (see below), you may simply enter the "run" directory and invoke John from
-    there, e.g., ./john --list=build-options.
+    there, e.g. with:
 
-    Commands not explicitly prefixed by sudo should be run as a regular user
+    ./john --list=build-options
+
+    Commands not explicitly prefixed by "sudo" must be run as a regular user
     (the one that will use JtR) rather than as root.
 
 == How to install on Ubuntu (also works on Ubuntu for Windows)
@@ -21,31 +23,36 @@ build CPU fall-back chains for any x86-64 CPU.
 === Preconditions and Required stuff
 
     mkdir -p ~/src
-    sudo apt-get -y install build-essential libssl-dev git zlib1g-dev
+    sudo apt-get -y install git build-essential libssl-dev zlib1g-dev
 
 ==== Recommended (extra formats and performance)
 
-    sudo apt-get -y install yasm libgmp-dev libpcap-dev pkg-config libbz2-dev
+    sudo apt-get -y install yasm pkg-config libgmp-dev libpcap-dev libbz2-dev
 
-==== If you have an NVIDIA GPU (OpenCL support)
+==== If you have NVIDIA GPU(s) (OpenCL support)
 
     sudo apt-get -y install nvidia-opencl-dev
 
-==== If you have an AMD GPU (OpenCL support)
+    The above should be sufficient to build JtR with OpenCL support, but to
+    actually use it you also need to install CUDA along with the proprietary
+    NVIDIA driver (a suitable revision of which is bundled with CUDA), see:
 
-    - If you have a recent GPU card (see [1]), the amdgpu-pro graphics stack
-      should be used.
+    https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
 
-      - Ubuntu Xenial 16.04 LTS and above:
-        To install it, follow the instructions at [2]. The fglrx driver is not
-        supported in 16.04 (XServer 1.18 is not supported). Canonical and AMD
-        decided to use the new hybrid driver stack for 16.04. OpenCL users
-        should stay on a supported release until the hybrid stack is available.
+==== If you have AMD GPU(s) (OpenCL support)
 
-      - Ubuntu up to and including 15.10:
-        sudo apt-get -y install ocl-icd-opencl-dev opencl-headers fglrx-dev
+    - If you have a recent GPU card and Ubuntu Xenial 16.04 LTS or above,
+      the amdgpu-pro graphics stack should be used:
 
-==== If you want a CPU device for OpenCL (OpenCL support)
+      https://www.amd.com/en/support/kb/release-notes/rn-radpro-lin-16-40#faq-AMD-Product-Compatibility
+      https://www.amd.com/en/support/kb/release-notes/AMDGPU-INSTALLATION
+
+    - If you have an older GPU card and Ubuntu up to and including 15.10,
+      the old fglrx driver should be used:
+
+      sudo apt-get -y install ocl-icd-opencl-dev opencl-headers fglrx-dev
+
+==== If you (also) want a CPU device for OpenCL (OpenCL support)
 
     sudo apt-get -y install ocl-icd-opencl-dev opencl-headers pocl-opencl-icd
 
@@ -54,15 +61,17 @@ build CPU fall-back chains for any x86-64 CPU.
     You probably do not need MPI, it's only for multi-machine clusters with
     shared network storage.  Merely having it compiled in (even if unused)
     may have security and reliability drawbacks.  Most users should read up
-    on the --fork options instead, which gets compiled in automagically if
+    on the "--fork" option instead, which gets compiled in automagically if
     your system supports it.  Having said all this, if you're sure you do
-    need MPI support: Read README.mpi for instructions.
+    need MPI support please read README.mpi for instructions.
 
     Please also note that OpenMP (Open Multi-Processing) is not the same
-    as Open MPI (Message Passing Interface).  You do get OpenMP if your
-    system supports it.
+    as Open MPI (Message Passing Interface).  You do get OpenMP support
+    compiled into JtR by default if your system supports it.
 
-==== Optional REXGEN support (experimental; additional cracking modes)
+==== Optional REXGEN support (experimental; additional cracking mode)
+
+    You almost certainly don't need this.
 
     NOTE this support is experimental and may not build at all until tweaked.
     The rexgen library is notorious for changing its API between versions,
@@ -79,17 +88,20 @@ build CPU fall-back chains for any x86-64 CPU.
 
 === Clone latest bleeding-edge Jumbo and build
 
-==== Clone GIT repo
+==== Clone the Git repo
 
     cd ~/src
-    git clone git://github.com/magnumripper/JohnTheRipper -b bleeding-jumbo john
+    git clone https://github.com/magnumripper/JohnTheRipper -b bleeding-jumbo john
 
 ==== Build
 
     cd ~/src/john/src
     ./configure && make -s clean && make -sj4
 
-==== Alternative: OpenMP fall-back build (recommended)
+==== Alternative: OpenMP fallback build
+
+    This effectively makes two builds of JtR, for slight speedup in cases when
+    OpenMP is disabled at runtime e.g. when you use "--fork".
 
     cd ~/src/john/src
     ./configure --disable-openmp && make -s clean && make -sj4
@@ -97,7 +109,10 @@ build CPU fall-back chains for any x86-64 CPU.
     ./configure CPPFLAGS='-DOMP_FALLBACK -DOMP_FALLBACK_BINARY="\"john-non-omp\""'
     make -s clean && make -sj4
 
-=== Install TAB-completion
+=== Optionally install TAB-completion
+
+    Please only do this if you intend to use our custom TAB completions in
+    bash.  If you don't know what this is, you don't need it.
 
     sudo make shell-completion
 
@@ -109,10 +124,3 @@ build CPU fall-back chains for any x86-64 CPU.
 === Benchmark your build (this also performs self-tests)
 
     ./john --test
-
-
-
-Foot notes:
-
-[1] https://www.amd.com/en/support/kb/release-notes/rn-radpro-lin-16-40#faq-AMD-Product-Compatibility
-[2] https://www.amd.com/en/support/kb/release-notes/AMDGPU-INSTALLATION
