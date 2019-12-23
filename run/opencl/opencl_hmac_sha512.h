@@ -11,17 +11,17 @@
 #ifdef HMAC_KEY_TYPE
 #define USE_KEY_BUF
 #else
-#define HMAC_KEY_TYPE
+#define HMAC_KEY_TYPE __private
 #endif
 
 #ifdef HMAC_MSG_TYPE
 #define USE_DATA_BUF
 #else
-#define HMAC_MSG_TYPE
+#define HMAC_MSG_TYPE __private
 #endif
 
 #ifndef HMAC_OUT_TYPE
-#define HMAC_OUT_TYPE
+#define HMAC_OUT_TYPE __private
 #endif
 
 inline void hmac_sha512(HMAC_KEY_TYPE const void *_key, uint key_len,

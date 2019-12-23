@@ -11,25 +11,25 @@
 #ifdef HMAC_KEY_TYPE
 #define USE_KEY_BUF
 #else
-#define HMAC_KEY_TYPE __private const
+#define HMAC_KEY_TYPE __private
 #endif
 
 #ifdef HMAC_MSG_TYPE
 #define USE_DATA_BUF
 #else
-#define HMAC_MSG_TYPE __private const
+#define HMAC_MSG_TYPE __private
 #endif
 
 #ifndef HMAC_OUT_TYPE
 #define HMAC_OUT_TYPE __private
 #endif
 
-inline void hmac_sha1(HMAC_KEY_TYPE void *_key, uint key_len,
-                      HMAC_MSG_TYPE void *_data, uint data_len,
+inline void hmac_sha1(HMAC_KEY_TYPE const void *_key, uint key_len,
+                      HMAC_MSG_TYPE const void *_data, uint data_len,
                       HMAC_OUT_TYPE void *_digest, uint digest_len)
 {
-	HMAC_KEY_TYPE uchar *key = _key;
-	HMAC_MSG_TYPE uchar *data = _data;
+	HMAC_KEY_TYPE const uchar *key = _key;
+	HMAC_MSG_TYPE const uchar *data = _data;
 	HMAC_OUT_TYPE uchar *digest = _digest;
 	uint pW[16];
 	uchar *buf = (uchar*)pW;

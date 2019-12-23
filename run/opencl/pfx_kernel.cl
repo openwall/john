@@ -13,6 +13,8 @@
 #define HMAC_MSG_TYPE __constant
 #define HMAC_OUT_TYPE __global
 #include "opencl_hmac_sha1.h"
+#include "opencl_hmac_sha256.h"
+#include "opencl_hmac_sha512.h"
 
 #ifndef PLAINTEXT_LENGTH
 #error PLAINTEXT_LENGTH must be defined
@@ -34,6 +36,7 @@ typedef struct {
 
 // input
 typedef struct {
+	uint32_t mac_algo;
 	uint32_t iterations;
 	uint32_t keylen;
 	uint32_t saltlen;
@@ -46,9 +49,9 @@ inline void pfx_crypt(__global const uint *password, uint32_t password_length,
                       __constant pfx_salt *salt, __global uint *out)
 {
 	uint i;
+	uint32_t ckey[64 / 4];
 	uint32_t csalt[20 / 4];
-	uint32_t cpassword[PLAINTEXT_LENGTH / 4];
-	uint32_t ckey[32 / 4];
+	uint32_t cpassword[(PLAINTEXT_LENGTH + 1 + 3) / 4];
 
 	for (i = 0; i < (password_length + 3) / 4; i++)
 		cpassword[i] = password[i];
@@ -56,10 +59,25 @@ inline void pfx_crypt(__global const uint *password, uint32_t password_length,
 	for (i = 0; i < (salt->saltlen + 3) / 4; i++)
 		csalt[i] = salt->salt[i];
 
-	pkcs12_pbe_derive_key(salt->iterations, 3, cpassword, password_length,
-	                      csalt, salt->saltlen, ckey, salt->keylen);
-
-	hmac_sha1(ckey, salt->keylen, salt->data, salt->datalen, out, 20);
+	switch(salt->mac_algo) {
+	case 1:
+		pkcs12_pbe_derive_key(salt->iterations, 3, cpassword, password_length,
+		                      csalt, salt->saltlen, ckey, salt->keylen);
+		hmac_sha1(ckey, salt->keylen, salt->data, salt->datalen, out, 20);
+		break;
+	case 256:
+		pkcs12_pbe_derive_key_sha256(salt->iterations, 3, cpassword,
+		                             password_length, csalt, salt->saltlen,
+		                             ckey, salt->keylen);
+		hmac_sha256(ckey, salt->keylen, salt->data, salt->datalen, out, 20);
+		break;
+	case 512:
+		pkcs12_pbe_derive_key_sha512(salt->iterations, 3, cpassword,
+		                             password_length, csalt, salt->saltlen,
+		                             ckey, salt->keylen);
+		hmac_sha512(ckey, salt->keylen, salt->data, salt->datalen, out, 20);
+		break;
+	}
 }
 
 __kernel void pfx(__global const pfx_password *inbuffer,

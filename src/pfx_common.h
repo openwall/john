@@ -1,3 +1,12 @@
+/*
+ * This software is
+ * Copyright (c) 2016, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * Copyright (c) 2019, magnum
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
+
 #include <string.h>
 
 #include "formats.h"
@@ -22,7 +31,8 @@ struct custom_salt {
 	unsigned char data[MAX_DATA_LENGTH];
 };
 
-void *pfx_common_get_salt(char *ciphertext);
-void *pfx_common_get_binary(char *ciphertext);
-unsigned int pfx_get_mac_type(void *salt);
-unsigned int pfx_iteration_count(void *salt);
+extern int pfx_valid(char *ciphertext, struct fmt_main *self);
+extern void *pfx_common_get_salt(char *ciphertext);
+extern void *pfx_common_get_binary(char *ciphertext);
+extern unsigned int pfx_get_mac_type(void *salt);
+extern unsigned int pfx_iteration_count(void *salt);
