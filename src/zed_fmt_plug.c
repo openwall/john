@@ -68,7 +68,9 @@ static void init(struct fmt_main *self)
 			sizeof(*crypt_out));
 
 	/* The third test vector only works for UTF-8 */
-	if (options.target_enc != UTF_8)
+	if (options.target_enc == CP1252)
+		zed_tests[2].plaintext = "Op\x80nwal\xa3";
+	else if (options.target_enc != UTF_8)
 		zed_tests[2].ciphertext = zed_tests[2].plaintext = NULL;
 }
 
