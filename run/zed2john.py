@@ -2,7 +2,7 @@
 # v0.3 now uses the login names
 # v0.2 comments added, find PBA vectors for every users
 
-# This software is Copyright (c) 2019, Gigix
+# This software is Copyright (c) 2019 Gigix & magnum,
 # and it is hereby released to the general public under the following terms:
 #
 # Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@ def parse_users(data):
             i += 1
 
         if i < len(data):
-            names.append(data[i + len(USERNAME) + 4 : i + len(USERNAME) + 4 + int.from_bytes(data[i + len(USERNAME) : i + len(USERNAME) + 4],byteorder='big')].decode('utf-8'))
+            names.append(data[i + len(USERNAME) + 4 : i + len(USERNAME) + 4 + int.from_bytes(data[i + len(USERNAME) : i + len(USERNAME) + 4],byteorder='big')].decode('utf-16'))
             users.append(i)
 
         i += len(USERNAME)
