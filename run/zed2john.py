@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+# v0.3 now uses the login names
 # v0.2 comments added, find PBA vectors for every users
 
 # This software is Copyright (c) 2019, Gigix
@@ -52,17 +53,19 @@ def parse_item(data, item, x):
 
 def parse_users(data):
     users = list()
+    names = list()
     i = 0
     while i < len(data):
         while data[i:i+len(USERNAME)] != USERNAME and i < len(data):
             i += 1
 
         if i < len(data):
+            names.append(data[i + len(USERNAME) + 4 : i + len(USERNAME) + 4 + int.from_bytes(data[i + len(USERNAME) : i + len(USERNAME) + 4],byteorder='big')].decode('utf-8'))
             users.append(i)
 
         i += len(USERNAME)
 
-    return users
+    return users, names
 
 def parse(data, x):
     pba_chk = parse_item(data, PBA_CHK, x)
@@ -114,7 +117,8 @@ def parse_decode_global_properties(filename):
     cipher = AES.new(STATIC_KEY, AES.MODE_CBC, global_iv)
     plaintext = cipher.decrypt(ciphertext)
 
-    users = parse_users(plaintext)
+    (users, names) = parse_users(plaintext)
+    i = 0
     for x in users:
         hash_func = pba_chk = pba_iter = pba_salt = 0
         (hash_func, pba_chk, pba_iter, pba_salt) = parse(plaintext, x)
@@ -125,8 +129,8 @@ def parse_decode_global_properties(filename):
         #else:
         #    sys.stderr.write("%s : unknown pkcs12_hashfunc\n" % filename)
         #    sys.exit(-1)
-
-        sys.stdout.write("%s:$zed$%s$%s$%s$%s$%s:::%s\n" % (x, ver, str(int(hash_func,16)), str(int(pba_iter,16)), pba_salt, pba_chk, os.path.basename(filename))) # If ID=3, then the pseudorandom bits being produced are to be used as an integrity key for MACing. (RFC 7292 Appendix B.3)
+        sys.stdout.write("%s:$zed$%s$%s$%s$%s$%s:::%s\n" % (names[i], ver, str(int(hash_func,16)), str(int(pba_iter,16)), pba_salt, pba_chk, os.path.basename(filename))) # If ID=3, then the pseudorandom bits being produced are to be used as an integrity key for MACing. (RFC 7292 Appendix B.3)
+        i += 1
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
