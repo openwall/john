@@ -1,3 +1,5 @@
+[![Gitpod Ready-to-Code](https://img.shields.io/badge/Gitpod-Ready--to--Code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/magnumripper/JohnTheRipper) 
+
 [![Build Status](https://travis-ci.com/magnumripper/JohnTheRipper.svg?branch=bleeding-jumbo)](https://travis-ci.com/magnumripper/JohnTheRipper)
 [![Circle CI](https://circleci.com/gh/magnumripper/JohnTheRipper/tree/bleeding-jumbo.svg?style=shield)](https://circleci.com/gh/magnumripper/JohnTheRipper/tree/bleeding-jumbo)
 [![Downloads](https://img.shields.io/badge/Download-Windows%20Build-blue.svg)](https://github.com/claudioandre-br/JohnTheRipper/releases/tag/jumbo-dev)
