@@ -119,7 +119,7 @@ static my_salt *saved_salt;
 //  ZFILE This is the literal string ZFILE
 //  Fn    This is the name of the .zip file.  NOTE the user will need to keep the .zip file in proper locations (same as
 //        was seen when running zip2john. If the file is removed, this hash line will no longer be valid.
-//  Oh    Offset to the zip central header record for this blob.
+//  Oh    Offset to the zip local header record for this blob.
 //  Ob    Offset to the start of the blob data
 
 static void init(struct fmt_main *self)
