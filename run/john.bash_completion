@@ -30,6 +30,12 @@
 # . <path_to_john's_source_directory>/john.bash_completion
 # to your ~/.bashrc and logout/login.
 #
+
+# Current extglob setting (restored at end of script)
+__JtR_bash_completion_extglob=`shopt -p extglob`
+# Enable extglob setting
+shopt -s extglob
+
 # To use the same completion rules not just for john, but for
 # differently named binaries (say john-omp, john-sse2i, john-avx,
 # john-cuda, john-gpu, ...),
@@ -939,3 +945,6 @@ _unique()
 	esac
 } &&
 complete -F _unique unique
+if [[ "$__JtR_bash_completion_extglob" == "shopt -u extglob" ]]; then
+	shopt -u extglob
+fi
