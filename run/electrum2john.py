@@ -66,7 +66,7 @@ def process_file(filename, options):
 
     # detect Electrum 2.7+ encrypted wallets
     try:
-        if base64.b64decode(data).startswith('BIE1'):
+        if base64.b64decode(data).startswith(b'BIE1'):
             # sys.stderr.write("%s: Encrypted Electrum 2.8+ wallets are not supported yet!\n" % bname)
             process_electrum28_wallets(bname, data, options)
             return
