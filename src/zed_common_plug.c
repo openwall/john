@@ -12,9 +12,10 @@ struct fmt_tests zed_tests[] = {
 	{"$zed$2$22$200000$4d05362c7ac3f518$a649427303fae36e", "Azertyui"},
 	{"$zed$2$22$200000$5f5b6e37dcd7d290$08b52fbdff4354f8", "Azertyui"},
 	/*
-	 * UTF-8 encoded password (index 2). This must be last - it will
-	 * be nulled unless we're running ASCII or ISO-8859-1.
+	 * UTF-8 encoded passwords (index 2/3). These must be last - they
+	 * will be nulled unless we're running UTF-8 or CP1252.
 	 */
+	{"$zed$1$21$200000$d58a3e9706afdd23$875b114ea259897d", "Op€nwal£"},
 	{"$zed$2$22$200000$bd2d2407f012111e$e1ae10351e9ec1e6", "Op€nwal£"},
 	{NULL},
 };

@@ -67,10 +67,12 @@ static void init(struct fmt_main *self)
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 			sizeof(*crypt_out));
 
-	/* The third test vector only works for UTF-8 */
-	if (options.target_enc == CP1252)
+	/* The third test vector only works for UTF-8 as-is */
+	if (options.target_enc == CP1252) {
+		/* it can also work for CP1252 if modifed */
 		zed_tests[2].plaintext = "Op\x80nwal\xa3";
-	else if (options.target_enc != UTF_8)
+		zed_tests[3].plaintext = "Op\x80nwal\xa3";
+	} else if (options.target_enc != UTF_8)
 		zed_tests[2].ciphertext = zed_tests[2].plaintext = NULL;
 }
 
