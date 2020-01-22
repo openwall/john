@@ -2432,10 +2432,23 @@ def find_rc4_passinfo_xls(filename, stream):
                 verifierHashSize = unpack("<I", stm.read(4))[0]
                 assert(verifierHashSize == 20)
                 encryptedVerifierHash = stm.read(verifierHashSize)
-                sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
+
+                second_block_extra = ""
+                if typ == 3:
+                    offset_cur = stream.tell()
+                    assert(offset_cur < 1024)
+
+                    skip = 1024 - offset_cur
+                    stream.read(skip) # ignore remaining bytes of 1st block
+
+                    second_block_bytes = stream.read(32)
+                    second_block_extra = "*%s" % binascii.hexlify(second_block_bytes).decode("ascii")
+
+                sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s%s\n" % (os.path.basename(filename),
                     typ, binascii.hexlify(salt).decode("ascii"),
                     binascii.hexlify(encryptedVerifier).decode("ascii"),
-                    binascii.hexlify(encryptedVerifierHash).decode("ascii")))
+                    binascii.hexlify(encryptedVerifierHash).decode("ascii"),
+                    second_block_extra))
 
     return None
 
@@ -2531,16 +2544,28 @@ def find_rc4_passinfo_doc(filename, stream):
         verifierHashSize = unpack("<I", stream.read(4))[0]
         assert(verifierHashSize == 20)
         encryptedVerifierHash = stream.read(verifierHashSize)
-        if not have_summary:
-            sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
-                typ, binascii.hexlify(salt).decode("ascii"),
-                binascii.hexlify(encryptedVerifier).decode("ascii"),
-                binascii.hexlify(encryptedVerifierHash).decode("ascii")))
-        else:
-            sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s:::%s::%s\n" % (os.path.basename(filename),
-                typ, binascii.hexlify(salt).decode("ascii"),
-                binascii.hexlify(encryptedVerifier).decode("ascii"),
-                binascii.hexlify(encryptedVerifierHash).decode("ascii"), summary, filename))
+
+        second_block_extra = ""
+        if typ == 3:
+            offset_cur = stream.tell()
+            assert(offset_cur < 512)
+
+            skip = 512 - offset_cur
+            stream.read(skip) # ignore remaining bytes of 1st block
+
+            second_block_bytes = stream.read(32)
+            second_block_extra = "*%s" % binascii.hexlify(second_block_bytes).decode("ascii")
+
+        summary_extra = ""
+        if have_summary:
+            summary_extra = ":::%s::%s" % (summary, filename)
+
+        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s%s%s\n" % (os.path.basename(filename),
+            typ, binascii.hexlify(salt).decode("ascii"),
+            binascii.hexlify(encryptedVerifier).decode("ascii"),
+            binascii.hexlify(encryptedVerifierHash).decode("ascii"),
+            second_block_extra,
+            summary_extra))
 
     else:
         sys.stderr.write("%s : Cannot find RC4 pass info, is the document encrypted?\n" % filename)
@@ -2636,10 +2661,21 @@ def find_rc4_passinfo_ppt(filename, stream, offset):
         verifierHashSize = unpack("<I", stream.read(4))[0]
         assert(verifierHashSize == 20)
         encryptedVerifierHash = stream.read(verifierHashSize)
-        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
+
+        second_block_extra = ""
+        if typ == 3:
+            # seek to the start and afterwards back to current pos:
+            offset_cur = stream.tell()
+            stream.seek(0)
+            second_block_bytes = stream.read(32)
+            second_block_extra = "*%s" % binascii.hexlify(second_block_bytes).decode("ascii")
+            stream.seek(offset_cur) # to be safe, seek back to old pos (not really needed)
+
+        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s%s\n" % (os.path.basename(filename),
             typ, binascii.hexlify(salt).decode("ascii"),
             binascii.hexlify(encryptedVerifier).decode("ascii"),
-            binascii.hexlify(encryptedVerifierHash).decode("ascii")))
+            binascii.hexlify(encryptedVerifierHash).decode("ascii"),
+            second_block_extra))
         return True
     else:
         # sys.stderr.write("%s : Cannot find RC4 pass info, is the document encrypted?\n" % filename)
@@ -2704,11 +2740,25 @@ def find_rc4_passinfo_ppt_bf(filename, stream, offset):
         verifierHashSize = unpack("<I", stream.read(4))[0]
         assert(verifierHashSize == 20)
         encryptedVerifierHash = stream.read(verifierHashSize)
+
+        second_block_extra = ""
+        #  TODO: how to test this BF thing?
+        # if typ == 3:
+        #     offset_cur = stream.tell()
+        #     assert(offset_cur < 512)
+        #
+        #     skip = 512 - offset_cur
+        #     stream.read(skip) # ignore remaining bytes of 1st block
+        #
+        #     second_block_bytes = stream.read(32)
+        #     second_block_extra = "*%s" % binascii.hexlify(second_block_bytes).decode("ascii")
+
         found = True
-        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
+        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s%s\n" % (os.path.basename(filename),
             typ, binascii.hexlify(salt).decode("ascii"),
             binascii.hexlify(encryptedVerifier).decode("ascii"),
-            binascii.hexlify(encryptedVerifierHash).decode("ascii")))
+            binascii.hexlify(encryptedVerifierHash).decode("ascii"),
+            second_block_extra))
 
     if not found:
         sys.stderr.write("%s : Cannot find RC4 pass info, is document encrypted?\n" % filename)
@@ -2779,11 +2829,23 @@ def process_access_2007_older_crypto(filename):
         verifierHashSize = unpack("<I", stream.read(4))[0]
         assert(verifierHashSize == 20)
         encryptedVerifierHash = stream.read(verifierHashSize)
-        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" %
-                         (os.path.basename(filename), typ,
-                          binascii.hexlify(salt).decode("ascii"),
-                          binascii.hexlify(encryptedVerifier).decode("ascii"),
-                          binascii.hexlify(encryptedVerifierHash).decode("ascii")))
+
+        second_block_extra = ""
+        if typ == 3:
+            offset_cur = stream.tell()
+            assert(offset_cur < 512)
+
+            skip = 512 - offset_cur
+            stream.read(skip) # ignore remaining bytes of 1st block
+
+            second_block_bytes = stream.read(32)
+            second_block_extra = "*%s" % binascii.hexlify(second_block_bytes).decode("ascii")
+
+        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s%s\n" % (os.path.basename(filename),
+            typ, binascii.hexlify(salt).decode("ascii"),
+            binascii.hexlify(encryptedVerifier).decode("ascii"),
+            binascii.hexlify(encryptedVerifierHash).decode("ascii"),
+            second_block_extra))
         break
 
 
@@ -3051,17 +3113,16 @@ def process_file(filename):
         return 6
 
     (salt, verifier, verifierHash) = passinfo
-    if not have_summary:
-        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s\n" % (os.path.basename(filename),
-            typ, binascii.hexlify(salt).decode("ascii"),
-            binascii.hexlify(verifier).decode("ascii"),
-            binascii.hexlify(verifierHash).decode("ascii")))
-    else:
-        sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s:::%s::%s\n" % (os.path.basename(filename),
-            typ, binascii.hexlify(salt).decode("ascii"),
-            binascii.hexlify(verifier).decode("ascii"),
-            binascii.hexlify(verifierHash).decode("ascii"),
-            summary, filename))
+
+    summary_extra = ""
+    if have_summary:
+        summary_extra = ":::%s::%s" % (summary, filename)
+
+    sys.stdout.write("%s:$oldoffice$%s*%s*%s*%s%s\n" % (os.path.basename(filename),
+        typ, binascii.hexlify(salt).decode("ascii"),
+        binascii.hexlify(verifier).decode("ascii"),
+        binascii.hexlify(verifierHash).decode("ascii"),
+        summary_extra))
 
     workbookStream.close()
     ole.close()
