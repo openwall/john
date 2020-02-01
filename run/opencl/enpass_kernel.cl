@@ -5,7 +5,7 @@
  * modification, are permitted.
  */
 #define MAYBE_CONSTANT __global
-#include "pbkdf2_hmac_sha1_kernel.cl"
+#include "pbkdf2_hmac_sha512_kernel.cl"
 #define AES_SRC_TYPE MAYBE_CONSTANT
 #include "opencl_aes.h"
 
@@ -52,8 +52,8 @@ void enpass_final(MAYBE_CONSTANT enpass_salt *salt,
 
 	/* Was this the last pass? If not, prepare for next one */
 	if (4 * base + 20 < OUTLEN) {
-		_phsk_hmac_sha1(state[gid].out, state[gid].ipad, state[gid].opad,
-		                salt->salt, salt->length, 1 + pass);
+		_phs512_hmac(state[gid].out, state[gid].ipad, state[gid].opad,
+		                salt->salt, salt->length);
 
 		for (i = 0; i < 5; i++)
 			state[gid].W[i] = state[gid].out[i];
