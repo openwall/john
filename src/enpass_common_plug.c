@@ -18,11 +18,11 @@ int enpass_common_valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* version */
 		goto err;
-	if (atoi(p) != 0)
+	if (atoi(p) != 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* iterations */
 		goto err;
-	if (atoi(p) != 24000)
+	if (atoi(p) != 100000)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* salt + data */
 		goto err;
