@@ -200,7 +200,7 @@ def main(args):
     data = parse_data(args[1])
     (crypt_ftr, encrypted_key, salt) = parse_footer(args[2])
 
-    print("%s:$fde$%s$%s$%s$%s$%s" % (args[1], len(salt),
+    print("%s:$fde$%s$%s$%s$%s$%s" % (os.path.basename(args[1]), len(salt),
                                       binascii.hexlify(salt).decode("ascii"),
                                       crypt_ftr.keysize,
                                       binascii.hexlify(encrypted_key).decode("ascii"),

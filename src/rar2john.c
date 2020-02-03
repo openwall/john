@@ -734,10 +734,11 @@ int read_vuint (FILE *fp, uint64_t *n, uint32_t *bytes_read) {
  * encryption block.
  *************************************************************************/
 static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint32_t HeaderType, uint32_t CurBlockPos, const char *archive_name) {
-    uint64_t FieldSize, FieldType, EncVersion, Flags;
-    uint32_t bytes_read=0;
-    int bytes_left=(int)extra_size;
-    unsigned char Lg2Count;
+	uint64_t FieldSize, FieldType, EncVersion, Flags;
+	uint32_t bytes_read=0;
+	int bytes_left=(int)extra_size;
+	unsigned char Lg2Count;
+	char *base_aname = basename(archive_name);
 
    // fprintf(stderr, "in extra50 extrasize=%d\n", extra_size);
     while (1) {
@@ -767,7 +768,7 @@ static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint
                 if (!read_buf(fp, InitV, SIZE_INITV, &bytes_read)) return 0;
                 if (!read_buf(fp, PswCheck, SIZE_PSWCHECK, &bytes_read)) return 0;
                 printf("%s:$rar5$%d$%s$%d$%s$%d$%s\n",
-                    archive_name,
+                    base_aname,
                     SIZE_SALT50, base64_convert_cp(rar5_salt,e_b64_raw,SIZE_SALT50,Hex1,e_b64_hex,sizeof(Hex1),0, 0),
                     Lg2Count, base64_convert_cp(InitV,e_b64_raw,SIZE_INITV,Hex2,e_b64_hex,sizeof(Hex2),0, 0),
                     SIZE_PSWCHECK, base64_convert_cp(PswCheck,e_b64_raw,SIZE_PSWCHECK,Hex3,e_b64_hex,sizeof(Hex3),0, 0));
@@ -784,9 +785,10 @@ static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint
 
 static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType, const char *archive_name) {
 	uint64_t block_size, flags, extra_size=0, data_size=0;
-    uint64_t crypt_version, enc_flags, HeadSize;
-    uint32_t head_crc, header_bytes_read = 0, sizeof_vint;
-    uint8_t header_type, lg_2count;
+	uint64_t crypt_version, enc_flags, HeadSize;
+	uint32_t head_crc, header_bytes_read = 0, sizeof_vint;
+	uint8_t header_type, lg_2count;
+	char *base_aname = basename(archive_name);
 
     if (Encrypted) {
         // The header is encrypted, so we simply find the IV from this block.
@@ -798,7 +800,7 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType
             return 0;
         }
         printf("%s:$rar5$%d$%s$%d$%s$%d$%s\n",
-            archive_name,
+            base_aname,
             SIZE_SALT50, base64_convert_cp(rar5_salt,e_b64_raw,SIZE_SALT50,Hex1,e_b64_hex,sizeof(Hex1),0, 0),
             rar5_interations, base64_convert_cp(HeadersInitV,e_b64_raw,SIZE_INITV,Hex2,e_b64_hex,sizeof(Hex2),0, 0),
             SIZE_PSWCHECK, base64_convert_cp(PswCheck,e_b64_raw,SIZE_PSWCHECK,Hex3,e_b64_hex,sizeof(Hex3),0, 0));

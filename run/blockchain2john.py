@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import os.path
 import base64
 import binascii
 import argparse
@@ -43,7 +44,7 @@ if __name__ == '__main__':
                         payload = base64.b64decode(decoded_data["payload"])
                         iterations = decoded_data["pbkdf2_iterations"]
                         print("%s:$blockchain$v2$%s$%s$%s" % (
-                            filename, iterations, len(payload),
+                            os.path.basename(filename), iterations, len(payload),
                             binascii.hexlify(payload).decode(("ascii"))))
                 except:
                     traceback.print_exc()
@@ -55,12 +56,12 @@ if __name__ == '__main__':
                 try:
                     ddata = base64.decodestring(data)
                     print("%s:$blockchain$%s$%s" % (
-                        filename, len(ddata),
+                        os.path.basename(filename), len(ddata),
                         binascii.hexlify(ddata).decode("ascii")))
                 except:
                     pass
 
             if not (args.json or args.base64):  # version 1 wallet format
                 print("%s:$blockchain$%s$%s" % (
-                    filename, len(data),
+                    os.path.basename(filename), len(data),
                     binascii.hexlify(data).decode("ascii")))

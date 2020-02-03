@@ -9,6 +9,7 @@
 # modification, are permitted.
 
 import sys
+import os.path
 from binascii import hexlify
 import base64
 
@@ -60,7 +61,7 @@ def process(filename, plaintext=None, cipher=0, md=0):
         if PY3:
             aes_data = aes_data.decode("ascii")
 
-        sys.stdout.write("%s:$dashlane$%s*%s*%s*%s\n" % (filename, v, salt,
+        sys.stdout.write("%s:$dashlane$%s*%s*%s*%s\n" % (os.path.basename(filename), v, salt,
                                                          len(aes_data) // 2,
                                                          aes_data))
 

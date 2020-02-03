@@ -459,3 +459,21 @@ int parse_bool(char *string)
 	}
 	return -1;
 }
+
+char *replace(const char *string, char c, char n)
+{
+	char *new = strdup(string);
+
+	if (c != n) {
+		char *p = new;
+
+		while(*p) {
+			if (*p == c)
+				if (!(*p = n))
+					break;
+			p++;
+		}
+	}
+
+	return new;
+}

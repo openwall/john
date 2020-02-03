@@ -44,7 +44,7 @@ def process_file(filename):
         assert 0
 
     # read blob of size wUserBlobSize
-    sys.stdout.write("%s:%s\n" % (os.path. basename(filename),
+    sys.stdout.write("%s:%s\n" % (os.path.basename(filename),
         hexlify(f.read(wUserBlobSize)).decode("ascii").upper()))
 
 

@@ -133,7 +133,7 @@ def process_tdfs_file(base):
         salt = salt.decode("ascii")
         encrypted_key = encrypted_key.decode("ascii")
 
-    print("%s:$telegram$1*%s*%s*%s" % (map_path, LocalEncryptIterCount, salt, encrypted_key))
+    print("%s:$telegram$1*%s*%s*%s" % (os.path.basename(map_path), LocalEncryptIterCount, salt, encrypted_key))
 
     return True
 

@@ -150,7 +150,6 @@ static void process_file(const char *fname)
 	char *cur = NULL, *cp;
 	uint64_t best_len = UINT64_MAX;
 
-
 	if (!(fp = fopen(fname, "rb"))) {
 		fprintf(stderr, "! %s : %s\n", fname, strerror(errno));
 		return;
@@ -856,9 +855,9 @@ print_and_cleanup:;
 			print_hex((unsigned char*)hashes[0].hash_data, hashes[0].cmp_len);
 		}
 		if (count_of_hashes > 1)
-			printf("$/pkzip2$::%s:%s:%s\n", bname, filenames, fname);
+			printf("$/pkzip2$::%s:%s:%s\n", bname, replace(filenames, ':', ' '), fname);
 		else
-			printf("$/pkzip2$:%s:%s::%s\n", filenames, bname, fname);
+			printf("$/pkzip2$:%s:%s::%s\n", replace(filenames, ':', ' '), bname, fname);
 
 		if (count_of_hashes > 1 && !once++)
 			fprintf(stderr,

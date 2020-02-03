@@ -26,6 +26,7 @@ https://github.com/wireshark/wireshark/blob/master/epan/dissectors/asn1/kerberos
 """
 
 import sys
+import os.path
 import time
 import struct
 import datetime
@@ -808,7 +809,7 @@ if __name__ == "__main__":
                 name = b"-".join(out[-2:])
                 krbcredinfo.sname.server_name_type = credential.server.name_type
                 krbcredinfo.createkrbcrdinfo()
-                sys.stdout.write("%s:$krb5tgs$%s$%s$%s\n" % (name, etype, data[:16].encode("hex"), data[16:].encode("hex")))
+                sys.stdout.write("%s:$krb5tgs$%s$%s$%s\n" % (os.path.basename(name), etype, data[:16].encode("hex"), data[16:].encode("hex")))
                 """
                 # Write seperate files for each ticket found. postfix is just a number for now.
                 with open(sys.argv[2] + "_" + str(i), 'wb') as o:

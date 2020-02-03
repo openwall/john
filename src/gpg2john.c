@@ -423,7 +423,7 @@ int gpg2john(int argc, char **argv)
 			gecos_remains += strlen(login);
 			cp = &login[strlen(login) - 1];
 			while (cp > login && *cp == ' ') *cp-- = 0;
-			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
+			printf("%s:%s:::%s::%s\n", replace(login, ':', ' '), last_hash, gecos, filename);
 			MEM_FREE(last_hash);
 		}
 		if (!hash_generated) {
@@ -2562,7 +2562,7 @@ encrypted_Secret_Key(int len, int sha1)
 
 		m_algorithm = PUBLIC;
 		if (last_hash && *last_hash) {
-			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
+			printf("%s:%s:::%s::%s\n", replace(login, ':', ' '), last_hash, gecos, filename);
 			MEM_FREE(last_hash);
 		}
 		if (dump_subkeys || !is_subkey) {
@@ -2601,7 +2601,7 @@ encrypted_Secret_Key(int len, int sha1)
 			used += len;
 			m_algorithm = PUBLIC;  // Encrypted RSA
 			if (last_hash && *last_hash) {
-				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
+				printf("%s:%s:::%s::%s\n", replace(login, ':', ' '), last_hash, gecos, filename);
 				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {
@@ -2632,7 +2632,7 @@ encrypted_Secret_Key(int len, int sha1)
 				return;
 			used += len;
 			if (last_hash && *last_hash) {
-				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
+				printf("%s:%s:::%s::%s\n", replace(login, ':', ' '), last_hash, gecos, filename);
 				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {
@@ -2665,7 +2665,7 @@ encrypted_Secret_Key(int len, int sha1)
 				return;
 			used += len;
 			if (last_hash && *last_hash) {
-				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
+				printf("%s:%s:::%s::%s\n", replace(login, ':', ' '), last_hash, gecos, filename);
 				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {

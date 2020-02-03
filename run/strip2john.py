@@ -6,6 +6,7 @@ for use with JtR.
 Output Format:filename:$strip$*data """
 
 import sys
+import os.path
 import binascii
 
 
@@ -19,7 +20,8 @@ def process_file(filename):
 
     data = f.read(1024)
 
-    sys.stderr.write("%s:$strip$*%s\n" % (filename, binascii.hexlify(data)))
+    sys.stderr.write("%s:$strip$*%s\n" % (os.path.basename(filename),
+                                          binascii.hexlify(data)))
 
 
 if __name__ == "__main__":

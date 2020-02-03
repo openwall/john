@@ -15,6 +15,7 @@
 from xml.etree.ElementTree import ElementTree
 import zipfile
 import sys
+import os.path
 import base64
 import binascii
 
@@ -99,7 +100,7 @@ def process_file(filename):
         length = len(content)
 
     sys.stdout.write("%s:$sxc$*%s*%s*%s*%s*%s*%d*%s*%d*%s*%d*%d*%s\n" % \
-            (filename, algorithm_type,
+            (os.path.basename(filename), algorithm_type,
             checksum_type, iteration_count, key_size, checksum, len(iv) / 2,
             iv, len(salt) / 2, salt, original_length, length,
             binascii.hexlify(content[:length]).decode("ascii")))

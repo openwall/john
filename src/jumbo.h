@@ -439,4 +439,9 @@ extern int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize);
  */
 extern int parse_bool(char *string);
 
+/*
+ * Copy string but replace any instance of 'c' within it with 'n'.
+ */
+extern char *replace(const char *string, char c, char n);
+
 #endif /* _JTR_JUMBO_H */

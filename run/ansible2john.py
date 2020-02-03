@@ -51,7 +51,7 @@ def process_file(filename):
         return
     cipher = 0
     sys.stdout.write("%s:$ansible$%d*%d*%s*%s*%s\n" %
-                     (os.path.basename(filename), version, cipher, salt, ct, checksum))
+                     (bfilename, version, cipher, salt, ct, checksum))
 
 
 if __name__ == "__main__":

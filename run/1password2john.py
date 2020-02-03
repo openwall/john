@@ -274,7 +274,7 @@ class AgileKeychain(object):
         return True
 
     def john_output(self):
-        sys.stdout.write("%s:$agilekeychain$%s" % (self.path, len(self.keys)))
+        sys.stdout.write("%s:$agilekeychain$%s" % (os.path.basename(self.path), len(self.keys)))
         for i in range(0, len(self.keys)):
             sys.stdout.write("*%s*%s*%s*%s*%s" % (self.keys[i].iterations,
                 len(self.keys[i].salt),
