@@ -456,7 +456,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				// fast zlib based rejection test, is this totally safe?
 				AES_set_decrypt_key(keys + 16, 128, &aes_decrypt_key);
 				AES_cbc_encrypt(cur_salt->data, out, 16, &aes_decrypt_key, iv, AES_DECRYPT);
-				if ((memcmp(out, "\x78\x9c", 2) != 0) || (out[2] & 0x7) != 0x5) {
+				if ((memcmp(out, "\x78\x9c", 2) != 0) || (((out[2] & 0x7) != 0x4) && ((out[2] & 0x7) != 0x5))) {
 				} else {
 					AES_set_decrypt_key(keys + 16, 128, &aes_decrypt_key);
 					AES_cbc_encrypt(cur_salt->data + 16, out + 16, 512 - 16, &aes_decrypt_key, iv, AES_DECRYPT);
