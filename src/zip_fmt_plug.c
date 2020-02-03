@@ -277,7 +277,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			lens[i] = strlen(saved_key[i+index]);
 			pin[i] = (unsigned char*)saved_key[i+index];
-			pout[i] = &pwd_ver[i*(2+2*KEY_LENGTH(saved_salt->v.mode))];
+			pout[i] = &pwd_ver[i*(2*KEY_LENGTH(saved_salt->v.mode))];
 		}
 		pbkdf2_sha1_sse((const unsigned char **)pin, lens, saved_salt->salt,
 		                SALT_LENGTH(saved_salt->v.mode), KEYING_ITERATIONS,
