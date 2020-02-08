@@ -2,23 +2,44 @@ version: 2
 jobs:
   common_linux: &common_linux
     docker:
-      - image: claudioandre/john:fedora.30
+      - image: claudioandre/john:fedora.31
     steps:
       - checkout
       - run:
           name: Building JtR
-          command: .circleci/circle-ci.sh BUILD
+          command: .ci/tests-ci.sh $TARGET_ARCH BUILD
       - run:
           name: Testing JtR
-          command: .circleci/circle-ci.sh TEST
+          command: .ci/tests-ci.sh $TARGET_ARCH TEST
 
-  wine-32bits:
+  linux-F31:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:fedora.30
+      - image: claudioandre/john:fedora.31
         environment:
-          TARGET_ARCH: "i686"
-          WINE: "wine"
+          TARGET_ARCH: "NIX"
+          EXTRA: "full;extra;crack;"
+          OMP_NUM_THREADS: 2
+
+  make-check:
+    <<: *common_linux
+    docker:
+      - image: claudioandre/john:fedora.31
+        environment:
+          TARGET_ARCH: "NIX"
+          EXTRA: "CHECK;"
+          ASAN: "--enable-asan"
+          OMP_NUM_THREADS: 3
+
+  afl-fuzz:
+    <<: *common_linux
+    docker:
+      - image: claudioandre/john:ubuntu.opencl
+        environment:
+          TARGET_ARCH: "NIX"
+          EXTRA: "AFL_FUZZ"
+          BUILD_OPTS: "--enable-fuzz --disable-native-tests"
+          CC: "afl-clang-fast"
           OMP_NUM_THREADS: 2
 
   wine-64bits:
@@ -27,112 +48,48 @@ jobs:
       - image: claudioandre/john:fedora.30
         environment:
           TARGET_ARCH: "x86_64"
+          EXTRA: "full;extra;"
           WINE: "wine"
-          OMP_NUM_THREADS: 2
+          OMP_NUM_THREADS: 3
 
-  no-plugs:
+  compare-simd:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:opencl
+      - image: claudioandre/john:v1.9.0J1
         environment:
+          TARGET_ARCH: "DOCKER"
+          EXTRA: "SIMD"
           OMP_NUM_THREADS: 2
-          PLUGS: "none"
-          UNIT_TESTS: "yes"
-          BUILD_OPTS: "--enable-werror CPPFLAGS=-DDYNAMIC_DISABLED"
-
-  encoding-cpu:
-    <<: *common_linux
-    docker:
-      - image: claudioandre/john:fedora.30
-        environment:
-          OMP_NUM_THREADS: 2
-          ENCODING_TEST: "cpu"
-
-  encoding-opencl:
-    <<: *common_linux
-    docker:
-      - image: claudioandre/john:opencl
-        environment:
-          OMP_NUM_THREADS: 2
-          ENCODING_TEST: "opencl"
-
-  asan:
-    <<: *common_linux
-    docker:
-      - image: claudioandre/john:fedora.30
-        environment:
-          OMP_NUM_THREADS: 2
-          ASAN_TEST: "yes"
-          BUILD_OPTS: "--enable-asan --disable-opencl"
-
-  test-full:
-    <<: *common_linux
-    docker:
-      - image: claudioandre/john:fedora.30
-        environment:
-          OMP_NUM_THREADS: 2
-          ASAN_TEST: "yes"
-          FULL_TEST: "yes"
-          BUILD_OPTS: "--enable-asan --disable-opencl"
-
-  fast-formats-omp:
-    <<: *common_linux
-    docker:
-      - image: claudioandre/john:fedora.30
-        environment:
-          OMP_NUM_THREADS: 2
-          ASAN_TEST: "yes"
-          FULL_TEST: "yes"
-          BUILD_OPTS: "--enable-asan --enable-openmp-for-fast-formats --disable-opencl"
-
-  non-SIMD:
-    <<: *common_linux
-    docker:
-      - image: claudioandre/john:fedora.30
-        environment:
-          OMP_NUM_THREADS: 2
-          ASAN_TEST: "yes"
-          FULL_TEST: "yes"
-          BUILD_OPTS: "--enable-asan --disable-simd --disable-opencl"
-
-  fast-formats-omp-x-non-SIMD:
-    <<: *common_linux
-    docker:
-      - image: claudioandre/john:fedora.30
-        environment:
-          OMP_NUM_THREADS: 2
-          ASAN_TEST: "yes"
-          FULL_TEST: "yes"
-          BUILD_OPTS: "--enable-asan --enable-openmp-for-fast-formats --disable-simd --disable-opencl"
 
 workflows:
   version: 2
   build:
     jobs:
-      - asan
-      - encoding-cpu
+      - linux-F31
       - wine-64bits
-      - no-plugs
-
-      - non-SIMD:
-          requires:
-            - no-plugs
-      - encoding-opencl:
-          requires:
-            - encoding-cpu
-      - wine-32bits:
-          requires:
-            - wine-64bits
-
-      - more-tests:
+      - make-check
+      - fuzzing:
+          type: approval
+      - testing:
           type: approval
 
-      - test-full:
+    #  - afl-fuzz:
+    #      requires:
+    #        - fuzzing
+      - compare-simd:
           requires:
-            - more-tests
-      - fast-formats-omp:
-          requires:
-            - more-tests
-      - fast-formats-omp-x-non-SIMD:
-          requires:
-            - more-tests
+            - testing
+
+
+################################################################################
+#                             LIST OF KNOWN ISSUES
+#
+# Fedora can't run afl
+# - it has a buggy dependency on a clang version that is not installable.
+#
+# The "zzuf-fuzz:" fails on Fedora 30 and Ubuntu 18.04 with:
+#   zzuf[s=4,r=0.004]: signal 9 (memory exceeded?)
+#   Exited with code 1
+#
+# I also tested it using a machine with 7GB of total memory with no luck.
+################################################################################

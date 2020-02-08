@@ -1,0 +1,318 @@
+######################################################################
+# Copyright (c) 2019 Claudio André <claudioandre.br at gmail.com>
+#
+# This program comes with ABSOLUTELY NO WARRANTY; express or implied.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, as expressed in version 2, seen at
+# http://www.gnu.org/licenses/gpl-2.0.html
+######################################################################
+branches:
+  only:
+    - test
+    - release
+    - bleeding-jumbo
+
+environment:
+  global:
+    PROJ_FOLDER: C:\projects
+    JTR_FOLDER: C:\projects\JohnTheRipper
+    BUILD_FOLDER: C:\projects\JohnTheRipper\src
+
+  matrix:
+    # CygWin 64bits build on Windows Server 2016
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      arch: x86_64
+      bits: 64
+      doing: test
+      test: yes
+      location: cygwin64
+
+    # CygWin 64bits build on Windows Server 2019
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+      arch: x86_64
+      bits: 64
+      doing: test
+      test: yes
+      location: cygwin64
+    #  cygwin: install (not needed after Dec 2019)
+
+    # CygWin 64bits build
+    - arch: x86_64
+      bits: 64
+      doing: deploy
+      test: yes
+      location: cygwin64
+
+install:
+  - echo '--------------------------------'
+  - systeminfo | findstr /C:"OS"
+  - echo '--------------------------------'
+  - systeminfo
+  - echo '--------------------------------'
+
+  - cd %BUILD_FOLDER%
+  - git describe --dirty=+ --always 2>nul > __git.tmp
+  - set /p gitDescribe=<__git.tmp
+  - appveyor UpdateBuild -Version "1.9J2-%gitDescribe%"
+
+  - ps: |
+      if ($env:Test -eq "package") {
+        # Use upstream source code
+        cd $env:PROJ_FOLDER
+        Remove-Item ./JohnTheRipper -Force -Recurse -ErrorAction SilentlyContinue
+        git clone -q --depth 1 https://github.com/magnumripper/JohnTheRipper.git JohnTheRipper
+        cd $env:BUILD_FOLDER
+      }
+  - git describe --dirty=+ --always 2>nul > __git.tmp
+  - set /p gitDescribe=<__git.tmp
+  - echo "JtR 1.9J2+%gitDescribe%"
+  - echo '--------------------------------'
+
+  # Apply patch(es)
+  - appveyor DownloadFile "https://raw.githubusercontent.com/claudioandre-br/packages/master/patches/0001-Remove-peflags-from-the-default-target.patch" -FileName 0001.patch
+  - git apply 0001.patch
+  # 1. Remove peflags from the default target on Windows
+
+  - ps: |
+      $posixBuildFolder = $env:BUILD_FOLDER -Replace '\\', '/'
+
+      #The location of the CygWin binaries
+      $cygwinFolder = "C:\$env:Location\bin"
+      $Env:cygwinPath = "$env:Location\bin"
+      if ($env:Cygwin -eq "install") {
+        $cygwinFolder = "C:\tools\cygwin\bin"
+        $Env:cygwinPath = "tools\cygwin\bin"
+      }
+
+      function shell($command, $dieOnError = $true) {
+
+        Write-Host "Executing '$command'"
+          & "$cygwinFolder\bash" -lc ". /etc/profile && cd $posixBuildFolder && $command"
+
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "'$command' failed with exit code $LASTEXITCODE! " -ForegroundColor Red -NoNewline
+
+          if ($dieOnError) {
+            exit $LASTEXITCODE
+          }
+        }
+      }
+
+before_build:
+  # If needed (CygWin is not installed) or as a workaround (CygWin update is required)
+  - ps: |
+      if ($env:Cygwin -eq "install") {
+        # To update the AppVeyor worker
+        #appveyor DownloadFile "http://www.cygwin.com/setup-$env:Arch.exe" -FileName "C:\$env:Location\setup-$env:Arch.exe"
+        #cmd /c "C:\$env:Location\setup-$env:Arch.exe -q --no-desktop --no-shortcuts --no-startmenu --upgrade-also"
+        choco install -y cygwin cyg-get
+        cyg-get libssl-devel libbz2-devel libgmp-devel zlib-devel gcc-core libOpenCL-devel libcrypt-devel make wget rebase perl
+      }
+
+  # Install required packages and allow extra formats
+  - ps: |
+      if ($env:Cygwin -ne "install") {
+        cmd /c "C:\$env:Location\setup-$env:Arch.exe -q -P libssl-devel -P libbz2-devel -P libgmp-devel -P zlib-devel"
+        cmd /c "C:\$env:Location\setup-$env:Arch.exe -q -P libOpenCL-devel -P libcrypt-devel"
+      }
+
+build_script:
+  - ps: |
+      Write-Host "--------------------------------------------------------"
+      Write-Host "                 =====  Building  =====                 " -ForegroundColor White
+      Write-Host "--------------------------------------------------------"
+
+  - ps: |
+      echo 'Compiler version'
+      shell "gcc --version"
+      echo '--------------------------------'
+      shell "gcc -dM -E -x c /dev/null"
+      echo '--------------------------------'
+
+      if ($env:Doing -eq "deploy") {
+        $EXE_NORMAL = "--disable-native-tests"
+        $EXE_NO_OMP = "--disable-native-tests --disable-openmp"
+
+        # CPU (OMP and extensions fallback)
+        shell "./configure $EXE_NO_OMP --enable-simd=sse2                                                                                                                                                       && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-sse2-non-omp"
+        shell "./configure $EXE_NORMAL --enable-simd=sse2   CPPFLAGS='-DOMP_FALLBACK -DOMP_FALLBACK_BINARY=\`"\\\`"john-sse2-non-omp\\\`"\`" '                                                                  && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-sse2"
+        shell "./configure $EXE_NO_OMP --enable-simd=sse4.1 CPPFLAGS='-DCPU_FALLBACK -DCPU_FALLBACK_BINARY=\`"\\\`"john-sse2\\\`"\`" '                                                                          && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-sse41-non-omp"
+        shell "./configure $EXE_NORMAL --enable-simd=sse4.1 CPPFLAGS='-DOMP_FALLBACK -DOMP_FALLBACK_BINARY=\`"\\\`"john-sse41-non-omp\\\`"\`" -DCPU_FALLBACK -DCPU_FALLBACK_BINARY=\`"\\\`"john-sse2\\\`"\`" '  && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-sse41"
+        shell "./configure $EXE_NO_OMP --enable-simd=avx    CPPFLAGS='-DCPU_FALLBACK -DCPU_FALLBACK_BINARY=\`"\\\`"john-sse41\\\`"\`" '                                                                         && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-avx-non-omp"
+        shell "./configure $EXE_NORMAL --enable-simd=avx    CPPFLAGS='-DOMP_FALLBACK -DOMP_FALLBACK_BINARY=\`"\\\`"john-avx-non-omp\\\`"\`"   -DCPU_FALLBACK -DCPU_FALLBACK_BINARY=\`"\\\`"john-sse41\\\`"\`" ' && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-avx"
+        shell "./configure $EXE_NO_OMP --enable-simd=xop    CPPFLAGS='-DCPU_FALLBACK -DCPU_FALLBACK_BINARY=\`"\\\`"john-avx\\\`"\`" '                                                                           && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-xop-non-omp"
+        shell "./configure $EXE_NORMAL --enable-simd=xop    CPPFLAGS='-DOMP_FALLBACK -DOMP_FALLBACK_BINARY=\`"\\\`"john-xop-non-omp\\\`"\`"   -DCPU_FALLBACK -DCPU_FALLBACK_BINARY=\`"\\\`"john-avx\\\`"\`" '   && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-xop"
+        shell "./configure $EXE_NO_OMP --enable-simd=avx2   CPPFLAGS='-DCPU_FALLBACK -DCPU_FALLBACK_BINARY=\`"\\\`"john-xop\\\`"\`" '                                                                           && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-avx2-non-omp"
+        shell "./configure $EXE_NORMAL --enable-simd=avx2   CPPFLAGS='-DOMP_FALLBACK -DOMP_FALLBACK_BINARY=\`"\\\`"john-avx2-non-omp\\\`"\`"  -DCPU_FALLBACK -DCPU_FALLBACK_BINARY=\`"\\\`"john-xop\\\`"\`" '   && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-avx2"
+        $EXE_NAME = "john-avx2.exe"
+
+        if ($env:Arch -eq "none-x86_64") {
+          shell "./configure $EXE_NO_OMP --enable-simd=avx512bw CPPFLAGS='-fno-asynchronous-unwind-tables -DCPU_FALLBACK -DCPU_FALLBACK_BINARY=\`"\\\`"john-avx2\\\`"\`" '                                                                            && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-avx512bw-non-omp"
+          shell "./configure $EXE_NORMAL --enable-simd=avx512bw CPPFLAGS='-fno-asynchronous-unwind-tables -DOMP_FALLBACK -DOMP_FALLBACK_BINARY=\`"\\\`"john-avx512bw-non-omp\\\`"\`" -DCPU_FALLBACK -DCPU_FALLBACK_BINARY=\`"\\\`"john-avx2\\\`"\`" ' && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-avx512bw"
+          $EXE_NAME = "john-avx512bw.exe"
+        }
+
+        # Configure OpenCL ICD
+        shell "mkdir -p ../etc/OpenCL/vendors"
+        shell "echo 'c:\Windows\System32\amdocl64.dll' > ../etc/OpenCL/vendors/amd.icd"
+        shell "echo 'c:\Windows\System32\nvopencl.dll' > ../etc/OpenCL/vendors/nvidia.icd"
+        shell "echo 'c:\Windows\System32\IntelOpenCL64.dll' > ../etc/OpenCL/vendors/intel.icd"
+
+      } else {
+        shell "./configure --disable-opencl && make -s clean && make -sj2 && make -s strip && mv ../run/john ../run/john-best"
+        $EXE_NAME = "john-best.exe"
+      }
+      # The "windows-package" make target depends on default,
+      # - So it needs the john.exe I built above
+      shell "cp ../run/$EXE_NAME ../run/john.exe"
+
+      # Make this a Windows package
+      shell "make -s windows-package"
+
+      # Use symlink.c to produce a tiny john.exe that executes the best SIMD
+      shell "make windows-tiny-link-to-john MAIN_NAME=$EXE_NAME "
+      ##########################################################################
+      # I should strip the tiny john.exe at some time in the future
+      # - But I can't call a make target that depends on default
+      # - So, I can't run a make strip here
+      ##########################################################################
+
+  - ps: |
+      # Needed dlls (Tested on Windows 7 32 bits and Windows 10 64 bits)
+      xcopy $cygwinFolder\cygwin1.dll         ..\run\
+      xcopy $cygwinFolder\cygbz2-1.dll        ..\run\
+      xcopy $cygwinFolder\cygcrypto-1.1.dll   ..\run\
+      xcopy $cygwinFolder\cyggomp-1.dll       ..\run\
+      xcopy $cygwinFolder\cyggmp-10.dll       ..\run\
+      xcopy $cygwinFolder\cygz.dll            ..\run\
+      xcopy $cygwinFolder\cygcrypt-2.dll      ..\run\
+      xcopy $cygwinFolder\cygOpenCL-1.dll     ..\run\
+
+      if ($env:Arch -eq "x86_64") {
+        xcopy $cygwinFolder\cyggcc_s-seh-1.dll ..\run\
+      } else {
+        xcopy $cygwinFolder\cyggcc_s-1.dll     ..\run\
+      }
+
+  - ps: |
+      # Save CygWin Dlls
+      mkdir ..\lib
+      xcopy $cygwinFolder\*.dll ..\lib\
+
+after_build:
+  - cd "%JTR_FOLDER%\run"
+
+  # Enable ASLR and DEP
+  - ps: |
+      Write-Host "---------------------------------------------------------"
+      Write-Host "==  Enable ASLR and DEP for the Windows binary of JtR  ==" -ForegroundColor White
+      Write-Host "---------------------------------------------------------"
+
+  - c:\%cygwinPath%\peflags --dynamicbase=true --nxcompat=true *.exe
+
+  # Compute checksums
+  - ps: |
+      Write-Host "--------------------------------------------------------"
+      Write-Host "        =====  Compute and Save Checksums  =====        " -ForegroundColor White
+      Write-Host "--------------------------------------------------------"
+
+  - ps: |
+      Write-Output "File verification is the process of using an algorithm for verifying the integrity of a computer file. A popular approach is to store checksums (hashes) of files, also known as message digests, for later comparison." | Tee-Object -FilePath ..\checksums.txt
+  - ps: |
+      Write-Output "**************************************************************************" | Tee-Object -FilePath ..\checksums.txt -Append
+
+  - ps: |
+      Get-FileHash -Path .\*.exe | Tee-Object -FilePath ..\checksums.txt -Append
+
+test_script:
+  - ps: |
+      Write-Host "--------------------------------------------------------"
+      Write-Host "                 =====  Testing  =====                  " -ForegroundColor White
+      Write-Host "--------------------------------------------------------"
+
+  # Build info
+  - john --list=build-info
+
+  - echo $NT$066ddfd4ef0e9cd7c256fe77191ef43c > tests.in
+  - echo $NT$8846f7eaee8fb117ad06bdd830b7586c >> tests.in
+  - echo df64225ca3472d32342dd1a33e4d7019f01c513ed7ebe85c6af102f6473702d2 >> tests.in
+  - echo 73e6bc8a66b5cead5e333766963b5744c806d1509e9ab3a31b057a418de5c86f >> tests.in
+  - echo $6$saltstring$fgNTR89zXnDUV97U5dkWayBBRaB0WIBnu6s4T7T8Tz1SbUyewwiHjho25yWVkph2p18CmUkqXh4aIyjPnxdgl0 >> tests.in
+
+  - echo "====> T0:"
+  - if "%test%" == "yes" (
+        john -test-full=0 --format=cpu
+    )
+
+  - echo "====> T6.0:"
+  - john -test=3 -form='dynamic=md5(sha1($s).md5($p))'
+  - echo "====> T6.1:"
+  - john -test=3 -form='dynamic=md5(sha1($s.$p).md5($p))'
+  - echo "====> T6.2:"
+  - john -test=3 -form='dynamic=md5($p)'
+
+  - echo "====> T10:"
+  - john tests.in --format=nt --fork=2 --max-run-time=300
+  - echo "====> T11:"
+  - john tests.in --format=raw-sha256 --fork=2 --max-run-time=300
+  - echo "====> T12:"
+  - john tests.in --format=sha512crypt --mask=jo?l[n-q]
+
+after_test:
+  # Remove the left-over from testing
+  - del john.log
+  - del john.pot
+  - del john-local.conf
+
+  # Remove unused/unneeded stuff
+  - rmdir "%JTR_FOLDER%\run\ztex" /s /Q
+
+  # Remove hidden .name files and folders
+  - if NOT "%test%" == "package" del "%JTR_FOLDER%\azure-pipelines.yml"
+  - if NOT "%test%" == "package" del "%JTR_FOLDER%\.cirrus.yml"
+  - del "%JTR_FOLDER%\.editorconfig"
+  - del "%JTR_FOLDER%\.gitattributes"
+  - del "%JTR_FOLDER%\.gitignore"
+  - del "%JTR_FOLDER%\.mailmap"
+  - del "%JTR_FOLDER%\.pre-commit.sh"
+  - del "%JTR_FOLDER%\.travis.yml"
+
+  - if NOT "%test%" == "package" rmdir "%JTR_FOLDER%\.azure"    /s /Q
+  - rmdir "%JTR_FOLDER%\.ci"       /s /Q
+  - rmdir "%JTR_FOLDER%\.circleci" /s /Q
+  - rmdir "%JTR_FOLDER%\.github"   /s /Q
+  - rmdir "%JTR_FOLDER%\.travis"   /s /Q
+
+on_failure:
+  - dir "%JTR_FOLDER%" /s > dir.txt
+  - if exist "dir.txt" 7z a -tzip debug_logs.zip "dir.txt" > nul
+  - if exist "%JTR_FOLDER%\src\config.log" 7z a -tzip debug_logs.zip "%JTR_FOLDER%\src\config.log" > nul
+  - if exist "%JTR_FOLDER%\src\configure" 7z a -tzip debug_logs.zip "%JTR_FOLDER%\src\configure" > nul
+  - if exist "%JTR_FOLDER%\src\Makefile" 7z a -tzip debug_logs.zip "%JTR_FOLDER%\src\Makefile" > nul
+  - if exist "debug_logs.zip" appveyor PushArtifact "debug_logs.zip"
+
+on_finish:
+  - if exist "%JTR_FOLDER%\lib" 7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=128m -ms=on "optional.7z" "%JTR_FOLDER%\lib"
+  - if exist "optional.7z" if "%doing%" == "deploy" appveyor PushArtifact "optional.7z"
+  - move optional.7z c:\
+
+  - rmdir "%JTR_FOLDER%\lib" /s /Q
+  - rmdir "%JTR_FOLDER%\.git" /s /Q
+  - rmdir "%JTR_FOLDER%\src" /s /Q
+
+  - if exist "%JTR_FOLDER%\run\john.exe" 7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=128m -ms=on "win_x%bits%.7z" "%JTR_FOLDER%"
+  - if exist "win_x%bits%.7z" if "%doing%" == "deploy" appveyor PushArtifact "win_x%bits%.7z"
+  - move "win_x%bits%.7z" c:\
+
+  - ps: |
+      if ($Zipfile = Get-ChildItem "c:\win_x$env:Bits.7z") {
+        Get-FileHash "c:\win_x$env:Bits.7z"
+        Get-FileHash "c:\optional.7z"
+
+      } else {
+        Write-Host "--------------------------------------------------------"
+        Write-Host "            =====  No Files to Upload  =====            " -ForegroundColor Red
+        Write-Host "--------------------------------------------------------"
+      }

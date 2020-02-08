@@ -1,0 +1,248 @@
+######################################################################
+# Copyright (c) 2019 Claudio André <claudioandre.br at gmail.com>
+#
+# This program comes with ABSOLUTELY NO WARRANTY; express or implied.
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, as expressed in version 2, seen at
+# http://www.gnu.org/licenses/gpl-2.0.html
+######################################################################
+stages:
+- stage: basic
+  displayName: Acceptance Test
+  jobs:
+  - job: Windows_2012
+    displayName: Windows 2012
+    pool:
+      vmImage: 'vs2015-win2012r2'
+    variables:
+      - template: .azure/windows-variables.yml
+    steps:
+      - template: .azure/windows-ci.yml
+
+  - job: Windows_2016
+    displayName: Windows 2016
+    pool:
+      vmImage: 'vs2017-win2016'
+    variables:
+      - template: .azure/windows-variables.yml
+    steps:
+      - template: .azure/windows-ci.yml
+
+  - job: Windows_2019
+    displayName: Windows 2019
+    pool:
+      vmImage: 'windows-2019'
+    variables:
+      - template: .azure/windows-variables.yml
+    steps:
+      - template: .azure/windows-ci.yml
+
+  - job: Ubuntu_1604
+    displayName: Ubuntu 16.04
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    variables:
+      TARGET_ARCH: "NIX"
+      EXTRA: "full;extra;crack;"
+
+    steps:
+      - template: .azure/linux-ci.yml
+
+  - job: Ubuntu_1804
+    displayName: Ubuntu 18.04
+    container:
+      image: claudioandre/john:ubuntu.opencl
+    variables:
+      TARGET_ARCH: "NIX"
+      EXTRA: "full;extra;crack;"
+
+    steps:
+      - template: .azure/linux-ci.yml
+
+- stage: functional
+  displayName: 'Functional Test'
+  dependsOn: basic
+  jobs:
+  - job: cracking
+    container:
+      image: claudioandre/john:fedora.30
+      options: --user=root
+    variables:
+      TARGET_ARCH: "NIX"
+      EXTRA: "full;extra;crack;"
+      BUILD_OPTS: "--enable-werror"
+
+    steps:
+      - template: .azure/linux-ci.yml
+
+  # Intel OpenCL CPU testing ###################################################
+  # Tests run on top of:
+  # - ubuntu:16.04
+  # - Intel driver 18.1.0.013
+  ##############################################################################
+  - job: intel_opencl
+    displayName: Intel OpenCL CPU
+    container:
+      image: claudioandre/john:opencl
+
+    variables:
+      TARGET_ARCH: "NIX"
+      EXTRA: "MY_FULL;OpenCL-full;OpenCL-crack;"
+      BUILD_OPTS: "--enable-werror"
+
+    steps:
+      - template: .azure/linux-ci.yml
+
+  # Known issues ###############################################################
+  # - Can't use '--enable-asan' in intel_opencl Job
+  #
+  #    #16 0x7f36513fefa0 in dlopen (/lib/x86_64-linux-gnu/libdl.so.2+0xfa0)
+  #    #17 0x7f365242b20f in dlopen (/usr/lib/x86_64-linux-gnu/libasan.so.2+0x3720f)
+  #    #18 0x7f3651b27862 in khrIcdVendorAdd (/usr/lib/x86_64-linux-gnu/libOpenCL.so.1+0x2862)
+  #    #19 0x7f3651b2bcc2 in khrIcdOsVendorsEnumerate (/usr/lib/x86_64-linux-gnu/libOpenCL.so.1+0x6cc2)
+  #    #20 0x7f3650b85a98 in __pthread_once_slow (/lib/x86_64-linux-gnu/libpthread.so.0+0xea98)
+  #    #21 0x7f3651b28325 in clGetPlatformIDs (/usr/lib/x86_64-linux-gnu/libOpenCL.so.1+0x3325)
+  #    #22 0x8f3112 in load_opencl_environment /__w/1/s/src/opencl_common.c:463
+  #    #23 0x8fade2 in opencl_load_environment /__w/1/s/src/opencl_common.c:879
+  #    #24 0x8fb637 in opencl_prepare_dev /__w/1/s/src/opencl_common.c:2362
+  #    #25 0xa0c234 in init /__w/1/s/src/opencl_rawsha256_fmt_plug.c:550
+  #    #26 0x840956 in fmt_init /__w/1/s/src/formats.c:80
+  #    #27 0x824526 in benchmark_all /__w/1/s/src/bench.c:782
+  #    #28 0x851f08 in john_run /__w/1/s/src/john.c:1697
+  ##############################################################################
+
+- stage: fuzz
+  displayName: 'Fuzzing'
+  dependsOn: functional
+  jobs:
+  - job: zzuf
+    container:
+      image: claudioandre/john:ubuntu.opencl_J558.3
+
+    variables:
+      TARGET_ARCH: "NIX"
+      EXTRA: "ZZUF_FUZZ"
+      BUILD_OPTS: "--enable-fuzz"
+
+    steps:
+      - template: .azure/linux-ci.yml
+
+  # There is a 60 minutes job limit (so, I need the timeoutInMinutes)
+  # - job: afl
+  #   timeoutInMinutes: 0
+  #   container:
+  #     image: claudioandre/john:ubuntu.opencl
+
+  #   variables:
+  #     TARGET_ARCH: "NIX"
+  #     EXTRA: "AFL_FUZZ"
+  #     BUILD_OPTS: "--enable-fuzz --disable-native-tests"
+  #     CC: "afl-clang-fast"
+
+  #   steps:
+  #     - template: .azure/linux-ci.yml
+
+  # Runs "--fuzz"
+  - job: internal
+    container:
+      image: claudioandre/john:ubuntu.opencl
+
+    variables:
+      TARGET_ARCH: "NIX"
+      EXTRA: "MY_INTERNAL"
+      BUILD_OPTS: "--enable-fuzz"
+
+    steps:
+      - template: .azure/linux-ci.yml
+
+  # Runs "--test-full=1"
+  - job: full
+    container:
+      image: claudioandre/john:ubuntu.opencl
+
+    variables:
+      TARGET_ARCH: "NIX"
+      EXTRA: "MY_FULL"
+      BUILD_OPTS: "--enable-fuzz"
+
+    steps:
+      - template: .azure/linux-ci.yml
+
+- stage: delivery
+  displayName: Delivery
+  dependsOn: basic
+  jobs:
+  - job: Windows_2016
+    displayName: Windows 2016
+    timeoutInMinutes: 0
+    pool:
+      vmImage: 'vs2017-win2016'
+    variables:
+      - template: .azure/windows-variables.yml
+    steps:
+      - template: .azure/checkout.yml
+      - template: .azure/windows-system-info.yml
+      - template: .azure/windows-build-to-delivery.yml
+      - template: .azure/windows-push-artifacts.yml
+      - template: .azure/windows-pull-artifacts.yml
+
+      - template: .azure/windows-testing.yml
+        parameters:
+          fullTest: 'no'
+          johnBinary: 'john'
+          johnDirectory: $(System.ArtifactsDirectory)\JtR\run
+
+- stage: deploy
+  displayName: Check Deploy
+  dependsOn: delivery
+  jobs:
+  - job: Windows_2012
+    displayName: Windows 2012
+    pool:
+      vmImage: 'vs2015-win2012r2'
+    variables:
+      - template: .azure/windows-variables.yml
+    steps:
+      - checkout: none
+      - template: .azure/windows-pull-artifacts.yml
+
+      - template: .azure/windows-testing.yml
+        parameters:
+          fullTest: 'yes'
+          johnBinary: 'john'
+          johnDirectory: $(System.ArtifactsDirectory)\JtR\run
+
+  - job: Windows_2016
+    displayName: Windows 2016
+    pool:
+      vmImage: 'vs2017-win2016'
+    variables:
+      - template: .azure/windows-variables.yml
+    steps:
+      - checkout: none
+      - template: .azure/windows-pull-artifacts.yml
+
+      - template: .azure/windows-testing.yml
+        parameters:
+          fullTest: 'yes'
+          johnBinary: 'john'
+          johnDirectory: $(System.ArtifactsDirectory)\JtR\run
+
+  - job: Windows_2019
+    displayName: Windows 2019
+    pool:
+      vmImage: 'windows-2019'
+    variables:
+      - template: .azure/windows-variables.yml
+    steps:
+      - checkout: none
+      - template: .azure/windows-pull-artifacts.yml
+
+      - template: .azure/windows-testing.yml
+        parameters:
+          fullTest: 'yes'
+          johnBinary: 'john'
+          johnDirectory: $(System.ArtifactsDirectory)\JtR\run
