@@ -30,11 +30,11 @@ matrix:
   ##############################################################################
 
   # Test JtR using a "hot" OS/compiler #########################################
-  - env: TEST="fresh;ASAN;clang;"        BUILD_OPTS="--enable-ubsan --enable-simd=avx2"
+  - env: TEST="fresh;ASAN;clang;"        BUILD_OPTS="--enable-ubsan "
     stage: test
   - env: TEST="fresh;ASAN;gcc;slow;"     BUILD_OPTS="--enable-ubsan" FUZZ="slow"
     stage: test
-  - env: TEST="fresh;ASAN;EXTRAS;clang;" BUILD_OPTS="--enable-ubsan --enable-simd=avx2"
+  - env: TEST="fresh;ASAN;EXTRAS;clang;" BUILD_OPTS="--enable-ubsan "
     stage: test
   - env: TEST="fresh;ASAN;EXTRAS;gcc;"   BUILD_OPTS="--enable-ubsan"
     stage: test
@@ -122,7 +122,7 @@ matrix:
   #Test using TS - CPU formats
   - stage: Test Suite
     compiler: clang
-    env: TEST="TS;" BUILD_OPTS="--enable-simd=avx2"
+    env: TEST="TS;" BUILD_OPTS=" "
 
   #Test using TS - OpenCL
   - stage: Test Suite
