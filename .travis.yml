@@ -190,6 +190,9 @@ matrix:
 
   allow_failures:
   - env: TEST="experimental;"
+  - env: TEST="fresh;ASAN;EXTRAS;clang;" BUILD_OPTS="--enable-ubsan "
+  - env: TEST="fresh;ASAN;EXTRAS;gcc;"   BUILD_OPTS="--enable-ubsan"
+   
 
   fast_finish: true
 
