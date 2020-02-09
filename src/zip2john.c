@@ -612,6 +612,7 @@ static void scan_for_data_descriptor(zip_file *zip, zip_ptr *p)
 		return;
 	// Likewise, no flag set and at least one field filled: accept
 	if ((p->cmp_len || p->decomp_len || p->crc) && !(p->flags & FLAG_LOCAL_SIZE_UNKNOWN))
+		return;
 
 	fprintf(stderr, "Scanning for EOD... ");
 	while (!feof(fp)) {
