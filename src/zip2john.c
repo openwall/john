@@ -149,8 +149,7 @@
 static void xfseek(FILE *stream, long offset, int whence)
 {
 	if (fseek(stream, offset, whence) == -1) {
-		perror("fseek");
-		exit(1);
+		error(1, errno, "fseek");
 	}
 }
 
@@ -159,13 +158,13 @@ static size_t xfread(void *ptr, size_t size, size_t nmemb, FILE *stream)
 	size_t ret = fread(ptr, size, nmemb, stream);
 	if (ret != nmemb) {
 		if (feof(stream)) {
-			fprintf(stderr, "Reached end of stream on fread\n");
+			error(1, 0, "Reached end of stream on fread");
 		} else if (ferror(stream)) {
-			fprintf(stderr, "ferror triggered on fread\n");
+			error(1, 0, "ferror triggered on fread");
 		} else {
-			fprintf(stderr, "No reason for short read on fread (%"PRIu64"/%"PRIu64")\n", (uint64_t)ret, (uint64_t)size * nmemb);
+			error(1, 0, "No reason for short read on fread (%"PRIu64"/%"PRIu64" records)",
+			      (uint64_t)ret, (uint64_t)nmemb);
 		}
-		exit(1);
 	}
 	return ret;
 }
