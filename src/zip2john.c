@@ -247,26 +247,42 @@ static void handle_zip64_ef(FILE *fp, zip_ptr *p, uint16_t len, int is_local)
 {
 	uint64_t decomp_len = UINT64_MAX, cmp_len = UINT64_MAX, offset = UINT64_MAX;
 	long rem_len = len;
+#ifdef DEBUG
+	fprintf(stderr, "Handling ZIP64 ef (local = %d)\n", is_local);
+#endif
 	// Only read this if we didn't get it from the Central Directory yet, otherwise
 	// we need to store both, local and central values in the zip_ptr struct, as the
 	// handle_zip64_ef function needs to know whether the fields of the header this
 	// extra field belongs to were 0xff..ff, because only in that case the according
 	// 64bit fields will be present here.
 	// See "4.5.3 -Zip64 Extended Information Extra Field (0x0001)" in APPNOTE.TXT
+	// The additional checks that reset the read values to UINT64_MAX (=not present)
+	// is a workaround for archives that have valid values in their normal headers
+	// (ie. fitting into 32bit) but additionally supply a bogus ZIP64 extended field
+	// in their local header, where the according fields are 0.
 	if (p->zip64) {
 		xfseek(fp, len, SEEK_CUR);
 		return;
 	}
-	if (p->decomp_len == 0xffffffff || is_local) {
+	if (p->decomp_len == UINT32_MAX || is_local) {
 		decomp_len = fget64LE(fp);
+		if (p->decomp_len != UINT32_MAX && decomp_len == 0) {
+			decomp_len = UINT64_MAX;
+		}
 		rem_len -= 8;
 	}
-	if (p->cmp_len == 0xffffffff || is_local) {
+	if (p->cmp_len == UINT32_MAX || is_local) {
 		cmp_len = fget64LE(fp);
+		if (p->cmp_len != UINT32_MAX && cmp_len == 0) {
+			cmp_len = UINT64_MAX;
+		}
 		rem_len -= 8;
 	}
-	if (p->offset == 0xffffffff) {
+	if (p->offset == UINT32_MAX) {
 		offset = fget64LE(fp);
+		if (p->offset != UINT32_MAX && offset == 0) {
+			offset = UINT64_MAX;
+		}
 		rem_len -= 8;
 	}
 	// Other fields we don't care about follow...
