@@ -22,10 +22,10 @@ def process_file(filename):
         return 2
 
     data = f.read(1024)
-    version = 1
-    iterations = 100000
+    version = 0
+    iterations = 24000
 
-    sys.stderr.write("Warning: Assuming Enpass 6.x version of database\n");
+    sys.stderr.write("Warning: Assuming older (Enpass 5.x) version of database\n");
     sys.stdout.write("%s:$enpass$%s$%s$%s\n" % (os.path.basename(filename),
         version, iterations, binascii.hexlify(data).decode("ascii")))
 
