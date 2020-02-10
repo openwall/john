@@ -7,7 +7,7 @@
 #include "common.h"
 #include "enpass_common.h"
 
-int enpass_common_valid(char *ciphertext, struct fmt_main *self)
+int enpass_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int extra;
@@ -18,11 +18,11 @@ int enpass_common_valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* version */
 		goto err;
-	if (atoi(p) != 1)
+	if (atoi(p) != 0 && atoi(p) != 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* iterations */
 		goto err;
-	if (atoi(p) != 100000)
+	if (atoi(p) < 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* salt + data */
 		goto err;
@@ -37,7 +37,7 @@ err:
 	return 0;
 }
 
-void *enpass_common_get_salt(char *ciphertext)
+void *enpass_get_salt(char *ciphertext)
 {
 	int i;
 	char *p = ciphertext;
@@ -46,8 +46,9 @@ void *enpass_common_get_salt(char *ciphertext)
 	memset(&cs, 0, sizeof(cs));
 
 	p = ciphertext + FORMAT_TAG_LEN;
+	cs.version = atoi(p) == 0 ? 5 : 6;
 	p = strchr(p, '$') + 1;
-	cs.iterations = atoi(p);  // is this really OK?
+	cs.iterations = atoi(p);
 	cs.salt_length = 16; // fixed
 
 	p = strrchr(ciphertext, '$') + 1;
@@ -58,38 +59,7 @@ void *enpass_common_get_salt(char *ciphertext)
 
 	return (void *)&cs;
 }
-
-/* Verify validity of page, see "lockBtree" function in SQLCipher */
-int enpass_common_verify_page(unsigned char *page1)
+unsigned int enpass_version(void *salt)
 {
-	uint32_t pageSize;
-	uint32_t usableSize;
-
-	/* if (memcmp(page1, SQLITE_FILE_HEADER, 16) != 0) {
-		return -1;
-	} */
-
-	if (page1[19] > 2) {
-		return -1;
-	}
-
-	if (memcmp(&page1[21], "\100\040\040", 3) != 0) {
-		return -1;
-	}
-
-	pageSize = (page1[16] << 8) | (page1[17] << 16);
-	if (((pageSize - 1) & pageSize) != 0 || pageSize > SQLITE_MAX_PAGE_SIZE || pageSize <= 256) {
-		return -1;
-	}
-
-	if ((pageSize & 7) != 0) {
-		return -1;
-	}
-	usableSize = pageSize - page1[20];
-
-	if (usableSize < 480) {
-		return -1;
-	}
-
-	return 0; // success!
+	return ((struct custom_salt*)salt)->version;
 }

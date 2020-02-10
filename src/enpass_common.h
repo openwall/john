@@ -15,11 +15,9 @@
 #define SQLITE_FILE_HEADER      "SQLite format 3"
 #define SQLITE_MAX_PAGE_SIZE    65536
 
-int enpass_common_valid(char *ciphertext, struct fmt_main *self);
-void *enpass_common_get_salt(char *ciphertext);
-
-// exported 'common' functions
-int enpass_common_verify_page(unsigned char *page1);
+extern int enpass_valid(char *ciphertext, struct fmt_main *self);
+extern void *enpass_get_salt(char *ciphertext);
+extern unsigned int enpass_version(void *salt);
 
 struct custom_salt {
 	unsigned char salt[16];

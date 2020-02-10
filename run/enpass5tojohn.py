@@ -22,16 +22,16 @@ def process_file(filename):
         return 2
 
     data = f.read(1024)
-    version = 1
-    iterations = 100000
+    version = 0
+    iterations = 24000
 
-    sys.stderr.write("Warning: Assuming Enpass 6.x version of database\n");
+    sys.stderr.write("Warning: Assuming older (Enpass 5.x) version of database\n");
     sys.stdout.write("%s:$enpass$%s$%s$%s\n" % (os.path.basename(filename),
         version, iterations, binascii.hexlify(data).decode("ascii")))
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s <Enpass .enpassdb files>\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s <Enpass .walletx files>\n" % sys.argv[0])
         sys.exit(-1)
 
     for i in range(1, len(sys.argv)):
