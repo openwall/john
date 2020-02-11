@@ -101,9 +101,5 @@ src/version.h.new
 src/restore_tester_fmt_plug.c
 
 test
-test/
-
 dict
-dict/
-/.vs/JohnTheRipper/v16/.suo
 /.vs
