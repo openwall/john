@@ -133,7 +133,7 @@
 #endif
 #include "johnswap.h"
 
-#define MAX_BLOB_INLINE_SIZE 100000
+#define MAX_BLOB_INLINE_SIZE 0x400000000ULL // 16 GB
 
 #define FLAG_ENCRYPTED            1
 #define FLAG_LOCAL_SIZE_UNKNOWN   8
