@@ -45,7 +45,7 @@ john_register_one(&fmt_opencl_tezos);
 #define REAL_PLAINTEXT_LENGTH   48
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define KERNEL_NAME             "pbkdf2_sha512_kernel_varying_salt"
+#define KERNEL_NAME             "pbkdf2_sha512_tezos_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha512_loop"
 
 #define HASH_LOOPS              250

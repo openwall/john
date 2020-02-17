@@ -83,7 +83,7 @@ inline void _phs512_hmac(ulong *output, ulong *ipad_state, ulong *opad_state,
 
 	// saltlen contains the \0\0\0\1 and 0x80 byte.  The 0001 are part
 	// of the salt length. the 0x80 is not, but is the end of hash
-	// marker.  So we set legth to be 127+saltlen and not 128+saltlen.
+	// marker.  So we set length to be 127+saltlen and not 128+saltlen.
 	// 127+saltlen is correct, it just looks funny.
 	W[15] = ((127 + saltlen) << 3);
 
