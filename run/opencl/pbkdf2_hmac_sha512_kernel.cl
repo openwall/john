@@ -11,29 +11,7 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
-
-typedef struct {
-	ulong v[(PLAINTEXT_LENGTH + 7) / 8];
-	ulong length;
-} pass_t;
-
-typedef struct {
-	ulong hash[8];
-} crack_t;
-
-typedef struct {
-	ulong salt[(107 + 1 + 4 + 7) / 8];
-	uint length;
-	uint rounds;
-} salt_t;
-
-typedef struct {
-	ulong ipad[8];
-	ulong opad[8];
-	ulong hash[8];
-	ulong W[8];
-	uint rounds;
-} state_t;
+#include "opencl_pbkdf2_hmac_sha512.h"
 
 inline void _phs512_preproc(__global const ulong *key, uint keylen,
                             ulong *state, ulong mask)
@@ -214,8 +192,11 @@ __kernel void pbkdf2_sha512_loop(__global state_t *state,
 		tmp_out[7] ^= H;
 	}
 
-	if (rounds >= HASH_LOOPS) { // there is still work to do
-		state[idx].rounds = rounds - HASH_LOOPS;
+	rounds -= r;
+
+	state[idx].rounds = rounds;
+
+	if (rounds) { // there is still work to do
 		for (i = 0; i < 8; i++) {
 			state[idx].hash[i] = tmp_out[i];
 			state[idx].W[i] = W[i];
