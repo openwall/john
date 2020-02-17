@@ -11,29 +11,7 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_sha2.h"
-
-typedef struct {
-	ulong v[(PLAINTEXT_LENGTH + 7) / 8];
-	ulong length;
-} pass_t;
-
-typedef struct {
-	ulong hash[8];
-} crack_t;
-
-typedef struct {
-	ulong salt[(107 + 1 + 4 + 7) / 8];
-	uint length;
-	uint rounds;
-} salt_t;
-
-typedef struct {
-	ulong ipad[8];
-	ulong opad[8];
-	ulong hash[8];
-	ulong W[8];
-	uint rounds;
-} state_t;
+#include "opencl_pbkdf2_hmac_sha512.h"
 
 inline void _phs512_preproc(__global const ulong *key, uint keylen,
                             ulong *state, ulong mask)
