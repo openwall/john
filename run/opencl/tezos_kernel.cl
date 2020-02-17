@@ -1,5 +1,6 @@
 /*
- * This software is Copyright (c) 2018 Dhiru Kholia, Copyright (c) 2018 magnum
+ * This software is Copyright (c) 2018 Dhiru Kholia
+ * Copyright (c) 2019 -2020 magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -13,7 +14,7 @@ typedef struct {
 	uchar mnemonic[128];
 } tezos_salt_t;
 
-inline void _phs512_preproc_(const ulong *key, uint keylen,
+inline void _tezos_preproc_(const ulong *key, uint keylen,
                             ulong *state, ulong mask)
 {
 	uint i, j;
@@ -48,7 +49,7 @@ inline void _phs512_preproc_(const ulong *key, uint keylen,
 	state[7] = H + SHA2_INIT_H;
 }
 
-inline void _phs512_hmac_(ulong *output, ulong *ipad_state, ulong *opad_state, ulong *salt, uint saltlen)
+inline void _tezos_hmac_(ulong *output, ulong *ipad_state, ulong *opad_state, ulong *salt, uint saltlen)
 {
 	uint i, j;
 	ulong W[16] = { 0 };
@@ -60,7 +61,7 @@ inline void _phs512_hmac_(ulong *output, ulong *ipad_state, ulong *opad_state, u
 
 	// saltlen contains the \0\0\0\1 and 0x80 byte.  The 0001 are part
 	// of the salt length. the 0x80 is not, but is the end of hash
-	// marker.  So we set legth to be 127+saltlen and not 128+saltlen.
+	// marker.  So we set length to be 127+saltlen and not 128+saltlen.
 	// 127+saltlen is correct, it just looks funny.
 	W[15] = ((127 + saltlen) << 3);
 
@@ -115,9 +116,9 @@ inline void _phs512_hmac_(ulong *output, ulong *ipad_state, ulong *opad_state, u
 	output[7] = H;
 }
 
-__kernel void pbkdf2_sha512_kernel_varying_salt(__global const pass_t *inbuffer,
-                                   __constant tezos_salt_t *gsalt,
-                                   __global state_t *state)
+__kernel void pbkdf2_sha512_tezos_kernel(__global const pass_t *inbuffer,
+                                         __constant tezos_salt_t *gsalt,
+                                         __global state_t *state)
 {
 	ulong ipad_state[8];
 	ulong opad_state[8];
@@ -158,10 +159,10 @@ __kernel void pbkdf2_sha512_kernel_varying_salt(__global const pass_t *inbuffer,
 	for (int i = passlen; i < passlen + (8 - passlen % 8); i++)  // zeroize buffer correctly
             pass.bytes[i] = 0;
 
-	_phs512_preproc_(pass.data, passlen, ipad_state, 0x3636363636363636UL);
-	_phs512_preproc_(pass.data, passlen, opad_state, 0x5c5c5c5c5c5c5c5cUL);
+	_tezos_preproc_(pass.data, passlen, ipad_state, 0x3636363636363636UL);
+	_tezos_preproc_(pass.data, passlen, opad_state, 0x5c5c5c5c5c5c5c5cUL);
 
-	_phs512_hmac_(tmp_out, ipad_state, opad_state, salt.data, saltlen);
+	_tezos_hmac_(tmp_out, ipad_state, opad_state, salt.data, saltlen);
 
 	for (i = 0; i < 8; i++) {
 		state[idx].ipad[i] = ipad_state[i];
