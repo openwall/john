@@ -29,7 +29,6 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #include "johnswap.h"
 #include "pbkdf2_hmac_common.h"
 
-#define NUUL                     NULL
 #define FORMAT_LABEL             "PBKDF2-HMAC-SHA512-opencl"
 #define FORMAT_NAME              "GRUB2 / OS X 10.8+"
 #define ALGORITHM_NAME           "PBKDF2-SHA512 OpenCL"
@@ -235,7 +234,7 @@ static void set_salt(void *salt)
 {
 	memcpy(host_salt, salt, SALT_SIZE);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
-		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NUUL, NULL),
+		CL_FALSE, 0, sizeof(salt_t), host_salt, 0, NULL, NULL),
 		"Salt transfer");
 	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
@@ -256,12 +255,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		global_work_size * sizeof(pass_t), host_pass, 0, NUUL,
+		global_work_size * sizeof(pass_t), host_pass, 0, NULL,
 		multi_profilingEvent[0]), "Copy data to gpu");
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NUUL, &global_work_size, lws, 0, NULL,
+		NULL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[1]), "Run kernel");
 
 	for (i = 0; i < (ocl_autotune_running ? 1 : loops); i++) {
@@ -274,7 +273,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		global_work_size * sizeof(crack_t), host_crack, 0, NUUL,
+		global_work_size * sizeof(crack_t), host_crack, 0, NULL,
 		 multi_profilingEvent[3]), "Copy result back");
 
 	return count;
