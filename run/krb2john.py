@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 # This file was named krbpa2john.py previously.
 #
@@ -70,7 +70,7 @@ def process_file(f):
                     for item in r:
                         if "value" in item.attrib:
                             try:
-                                salt = binascii.unhexlify(item.attrib["value"])
+                                salt = binascii.unhexlify(item.attrib["value"]).decode('ascii')
                                 break
                             except:
                                 continue
@@ -108,7 +108,7 @@ def process_file(f):
                 user = r.attrib["show"]
 
             if user == "":
-                user = binascii.unhexlify(salt)
+                user = salt
 
             # user, realm and salt are unused when etype is 23 ;)
             checksum = PA_DATA_ENC_TIMESTAMP[0:32]
