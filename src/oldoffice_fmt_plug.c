@@ -190,7 +190,34 @@ static int cmp_all(void *binary, int count)
 			SHA1_Init(&ctx);
 			SHA1_Update(&ctx, DecryptedVerifier, 16);
 			SHA1_Final(Hfinal, &ctx);
-			if (!memcmp(Hfinal, DecryptedVerifierHash, 16))
+			if (memcmp(Hfinal, DecryptedVerifierHash, 16))
+				continue;
+			if (oo_cur_salt->type == 3 && cur_binary->has_extra) {
+				SHA_CTX ctx;
+				unsigned char H0[24];
+				unsigned char key_hash[20];
+				uint8_t data[32];
+				int i, num_zero = 0;
+
+				SHA1_Init(&ctx);
+				SHA1_Update(&ctx, oo_cur_salt->salt, 16);
+				SHA1_Update(&ctx, saved_key[index], saved_len[index]);
+				SHA1_Final(H0, &ctx);
+				memcpy(&H0[20], "\1\0\0\0", 4);
+				SHA1_Init(&ctx);
+				SHA1_Update(&ctx, H0, 24);
+				SHA1_Final(key_hash, &ctx);
+
+				memset(key_hash + 40/8, 0, sizeof(key_hash) - 40/8);
+				RC4_set_key(&key, 16, key_hash);
+				RC4(&key, 32, cur_binary->extra, data);
+				for (i = 0; i < 32; i++)
+					if (data[i] == 0)
+						num_zero++;
+				if (num_zero < 10)
+					continue;
+			}
+			/* If we got here, looks like we have a candidate */
 #ifdef _OPENMP
 #pragma omp critical
 #endif

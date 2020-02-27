@@ -36,7 +36,7 @@ john_register_one(&FORMAT_STRUCT);
 #define ALGORITHM_NAME		"MD5/SHA1 RC4 OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0x107
-#define PLAINTEXT_LENGTH	19 //* 19 is leanest, 24, 28, 31, max. 51 */
+#define PLAINTEXT_LENGTH	24 //* 19 is leanest, 24, 28, 31, max. 51 */
 #define BINARY_SIZE		0
 #define BINARY_ALIGN		MEM_ALIGN_NONE
 #define SALT_SIZE		sizeof(dyna_salt*)
@@ -45,7 +45,7 @@ john_register_one(&FORMAT_STRUCT);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#define CIPHERTEXT_LENGTH	(TAG_LEN + 120)
+#define CIPHERTEXT_LENGTH	(TAG_LEN + 120 + 1 + 64)
 #define FORMAT_TAG		"$oldoffice$"
 #define TAG_LEN			(sizeof(FORMAT_TAG) - 1)
 
@@ -71,6 +71,11 @@ static struct fmt_tests oo_tests[] = {
 	/* the following hash was extracted from Proc2356.ppt (manually + by oldoffice2john.py */
 	{"$oldoffice$3*DB575DDA2E450AB3DFDF77A2E9B3D4C7*AB183C4C8B5E5DD7B9F3AF8AE5FFF31A*B63594447FAE7D4945D2DAFD113FD8C9F6191BF5", "crypto"},
 	{"$oldoffice$3*3fbf56a18b026e25815cbea85a16036c*216562ea03b4165b54cfaabe89d36596*91308b40297b7ce31af2e8c57c6407994b205590", "openwall"},
+	/*
+	 * Type 3 with extra field for avoiding FP.
+	 * One example of FP is benben878d932
+	 */
+	{"$oldoffice$3*f1e935587190564e67f979d138284b15*12a32bbf6d2377fa57c4a93d7d58d5f4*8c23386193b56cb26562848599fa58187b690d86*b71af4b34f0e06220df3f36984b230b6fad96099ffa387fa48bd9bde6176fa94", ":^99998888~!"},
 	{NULL}
 };
 
@@ -80,8 +85,10 @@ typedef struct {
 	unsigned char salt[16];
 	unsigned char verifier[16]; /* or encryptedVerifier */
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
-	unsigned int has_mitm;
 	unsigned int cracked;
+	unsigned int has_extra;
+	unsigned char extra[32];
+	unsigned int has_mitm;
 	unsigned char mitm[8]; /* Meet-in-the-middle hint, if we have one */
 } custom_salt;
 
@@ -361,12 +368,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	else if ((type >= 3 && hexlen(ptr, &extra) != 40) || extra)
 		goto error;
-/*
- * Deprecated field: mitm hash (40-bit RC4). The new way to put it is in the
- * uid field, like hashcat's example hash.
- */
-	if (type <= 3 && (ptr = strtokm(NULL, "*"))) {
-		if (hexlen(ptr, &extra) != 10 || extra)
+	/* Optional extra data field for avoiding FP */
+	if (type == 3 && (ptr = strtokm(NULL, "*"))) {
+		if (hexlen(ptr, &extra) != 64 || extra)
 			goto error;
 	}
 	MEM_FREE(keeptr);
@@ -439,19 +443,17 @@ static void *get_salt(char *ciphertext)
 			cs.verifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
-	if ((p = strtokm(NULL, "*"))) { /* Deprecated field */
-		cs.has_mitm = 1;
-		for (i = 0; i < 5; i++)
-			cs.mitm[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	if (cs.type == 3 && (p = strtokm(NULL, "*"))) { /* Type 3 extra data */
+		cs.has_extra = 1;
+		for (i = 0; i < 32; i++)
+			cs.extra[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	} else
-	if (hex_hash(ciphertext) == mitm_catcher.ct_hash) {
+	} else if (hex_hash(ciphertext) == mitm_catcher.ct_hash) {
 		cs.has_mitm = 1;
 		for (i = 0; i < 5; i++)
 			cs.mitm[i] = atoi16[ARCH_INDEX(mitm_catcher.mitm[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(mitm_catcher.mitm[i * 2 + 1])];
-	} else
-		cs.has_mitm = 0;
+	}
 
 	MEM_FREE(keeptr);
 
@@ -538,7 +540,8 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	if (cur_salt->type < 4 && !bench_or_test_running) {
+	if (cracked[index] && cur_salt->type < 4 &&
+	    !cur_salt->has_extra && !bench_or_test_running) {
 		unsigned char *cp, out[11];
 		int i;
 

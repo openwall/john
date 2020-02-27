@@ -25,7 +25,7 @@
 #define SALT_SIZE               sizeof(custom_salt)
 #define SALT_ALIGN              MEM_ALIGN_WORD
 
-#define CIPHERTEXT_LENGTH       (TAG_LEN + 120)
+#define CIPHERTEXT_LENGTH       (TAG_LEN + 120 + 1 + 64)
 #define FORMAT_TAG              "$oldoffice$"
 #define TAG_LEN                 (sizeof(FORMAT_TAG) - 1)
 
@@ -52,6 +52,11 @@ static struct fmt_tests oldoffice_tests[] = {
 	/* the following hash was extracted from Proc2356.ppt (manually + by oldoffice2john.py */
 	{"$oldoffice$3*DB575DDA2E450AB3DFDF77A2E9B3D4C7*AB183C4C8B5E5DD7B9F3AF8AE5FFF31A*B63594447FAE7D4945D2DAFD113FD8C9F6191BF5", "crypto"},
 	{"$oldoffice$3*3fbf56a18b026e25815cbea85a16036c*216562ea03b4165b54cfaabe89d36596*91308b40297b7ce31af2e8c57c6407994b205590", "openwall"},
+	/*
+	 * Type 3 with extra field for avoiding FP.
+	 * One example of FP is benben878d932
+	 */
+	{"$oldoffice$3*f1e935587190564e67f979d138284b15*12a32bbf6d2377fa57c4a93d7d58d5f4*8c23386193b56cb26562848599fa58187b690d86*b71af4b34f0e06220df3f36984b230b6fad96099ffa387fa48bd9bde6176fa94", ":^99998888~!"},
 	{NULL}
 };
 #endif
@@ -66,6 +71,8 @@ typedef struct {
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
 	unsigned int has_mitm;
 	unsigned char mitm[5]; /* Meet-in-the-middle hint, if we have one */
+	unsigned int has_extra;
+	unsigned char extra[32]; /* Optional extra data for avoiding FP w/ type 3 */
 } binary_blob;
 
 extern int *oo_cracked;
