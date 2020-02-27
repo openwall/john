@@ -26,8 +26,10 @@ typedef struct {
 	uint salt[16/4];
 	uint verifier[16/4]; /* or encryptedVerifier */
 	uint verifierHash[20/4];  /* or encryptedVerifierHash */
-	volatile uint has_mitm;
 	volatile uint cracked;
+	uint has_extra;
+	uint extra[32/4];
+	volatile uint has_mitm;
 	uint mitm[8/4]; /* Meet-in-the-middle hint, if we have one */
 } salt_t;
 
@@ -370,9 +372,12 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 {
 	uint i;
 	uint W[64/4];
-	uint verifier[32/4];
+	union {
+		uint w[32/4];
+		uchar c[32];
+	} verifier;
 	uint sha1[20/4];
-	uint key[20/4];
+	uint key[20/4], key2[20/4];
 	uint len = nt_buffer->len + 8;
 	const ushort *p = nt_buffer->password;
 
@@ -437,7 +442,7 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 	}
 
 	for (i = 0; i < 5; i++)
-		W[i] = key[i];
+		W[i] = key2[i] = key[i];
 	W[5] = 0;
 	W[6] = 0x80000000;
 	for (i = 7; i < 15; i++)
@@ -448,7 +453,7 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 	sha1[0] = SWAP32(sha1[0]);
 	sha1[1] = SWAP32(sha1[1]);
 
-	if (cs->type == 3 && cs->has_mitm) {
+	if (cs->type == 3 && !cs->has_extra && cs->has_mitm) {
 		*result = (sha1[0] == cs->mitm[0] && (sha1[1] & 0xff) == cs->mitm[1]);
 		if (*result)
 			atomic_xchg(&cs->cracked, 1);
@@ -465,39 +470,65 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 		}
 
 		for (i = 0; i < 32/4; i++)
-			verifier[i] = cs->verifier[i];
+			verifier.w[i] = cs->verifier[i];
 #ifdef RC4_USE_LOCAL
-		rc4(state_l, key, verifier, 32);
+		rc4(state_l, key, verifier.w, 32);
 #else
-		rc4(key, verifier, 32);
+		rc4(key, verifier.w, 32);
 #endif
 
 		for (i = 0; i < 4; i++)
-			W[i] = SWAP32(verifier[i]);
+			W[i] = SWAP32(verifier.w[i]);
 		W[4] = 0x80000000;
 		for (i = 5; i < 15; i++)
 			W[i] = 0;
 		W[15] = 16 << 3;
 		sha1_single(uint, W, key);
 
-		verifier[0] = SWAP32(key[0]);
-		verifier[1] = SWAP32(key[1]);
-		verifier[2] = SWAP32(key[2]);
-		verifier[3] = SWAP32(key[3]);
+		verifier.w[0] = SWAP32(key[0]);
+		verifier.w[1] = SWAP32(key[1]);
+		verifier.w[2] = SWAP32(key[2]);
+		verifier.w[3] = SWAP32(key[3]);
 
-		if (verifier[0] == verifier[4] &&
-		    verifier[1] == verifier[5] &&
-		    verifier[2] == verifier[6] &&
-		    verifier[3] == verifier[7]) {
-			*result = 1;
-			if (!atomic_xchg(&cs->cracked, 1) &&
-			    !*benchmark && cs->type == 3 &&
-			    !atomic_xchg(&cs->has_mitm, 1)) {
-				cs->mitm[0] = sha1[0];
-				cs->mitm[1] = sha1[1];
-			}
-		} else {
+		if (verifier.w[0] != verifier.w[4] || verifier.w[1] != verifier.w[5] ||
+		    verifier.w[2] != verifier.w[6] || verifier.w[3] != verifier.w[7])
 			*result = 0;
+		else if (cs->type != 3 || !cs->has_extra)
+			*result = 1;
+		else {
+			for (i = 0; i < 5; i++)
+				W[i] = key2[i];
+			W[5] = 0x01000000;
+			W[6] = 0x80000000;
+			for (i = 7; i < 15; i++)
+				W[i] = 0;
+			W[15] = 24 << 3;
+			sha1_single(uint, W, key2);
+			key2[0] = SWAP32(key2[0]);
+			key2[1] = SWAP32(key2[1]) & 0xff;
+			key2[2] = 0;
+			key2[3] = 0;
+			for (i = 0; i < 32/4; i++)
+				verifier.w[i] = cs->extra[i];
+#ifdef RC4_USE_LOCAL
+			rc4(state_l, key2, verifier.w, 32);
+#else
+			rc4(key2, verifier.w, 32);
+#endif
+			uint num_zero = 0;
+
+			for (i = 0; i < 32; i++)
+				if (verifier.c[i] == 0)
+					num_zero++;
+
+			*result = (num_zero >= 10);
+		}
+
+		if (*result == 1 && !atomic_xchg(&cs->cracked, 1) &&
+		    !*benchmark && cs->type == 3 &&
+		    !atomic_xchg(&cs->has_mitm, 1)) {
+			cs->mitm[0] = sha1[0];
+			cs->mitm[1] = sha1[1];
 		}
 	}
 }

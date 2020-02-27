@@ -89,12 +89,9 @@ int oldoffice_valid(char *ciphertext, struct fmt_main *self)
 		goto error;
 	else if (type >= 3 && (hexlen(ptr, &extra) != 40 || extra))
 		goto error;
-/*
- * Deprecated field: mitm hash (40-bit RC4). The new way to put it is in the
- * uid field, like hashcat's example hash.
- */
-	if (type <= 3 && (ptr = strtokm(NULL, "*"))) {
-		if (hexlen(ptr, &extra) != 10 || extra)
+	/* Optional extra data field for avoiding FP */
+	if (type == 3 && (ptr = strtokm(NULL, "*"))) {
+		if (hexlen(ptr, &extra) != 64 || extra)
 			goto error;
 	}
 	MEM_FREE(keeptr);
@@ -172,20 +169,17 @@ void *oldoffice_get_binary(char *ciphertext)
 			blob->verifierHash[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	}
-
-	if ((p = strtokm(NULL, "*"))) { /* Deprecated field */
-		blob->has_mitm = 1;
-		for (i = 0; i < 5; i++)
-			blob->mitm[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+	if (type == 3 && (p = strtokm(NULL, "*"))) { /* Type 3 extra data */
+		blob->has_extra = 1;
+		for (i = 0; i < 32; i++)
+			blob->extra[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	} else
-	if (hex_hash(ciphertext) == mitm_catcher.ct_hash) {
+	} else if (hex_hash(ciphertext) == mitm_catcher.ct_hash) {
 		blob->has_mitm = 1;
 		for (i = 0; i < 5; i++)
 			blob->mitm[i] = atoi16[ARCH_INDEX(mitm_catcher.mitm[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(mitm_catcher.mitm[i * 2 + 1])];
-	} else
-		blob->has_mitm = 0;
+	}
 
 	MEM_FREE(keeptr);
 	return &data;
@@ -215,8 +209,10 @@ void *oldoffice_get_salt(char *ciphertext)
 
 int oldoffice_cmp_one(void *binary, int index)
 {
-	if (oo_cracked[index] && oo_cur_salt->type < 4 && !bench_or_test_running) {
-		binary_blob *cur_binary = ((fmt_data*)binary)->blob;
+	binary_blob *cur_binary = ((fmt_data*)binary)->blob;
+
+	if (oo_cracked[index] && oo_cur_salt->type < 4 &&
+	    !cur_binary->has_extra && !bench_or_test_running) {
 		unsigned char *cp, out[11];
 		int i;
 
