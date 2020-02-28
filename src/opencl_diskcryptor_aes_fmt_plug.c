@@ -46,7 +46,7 @@ john_register_one(&fmt_opencl_diskcryptor_aes);
 #define FINAL_KERNEL_NAME       "diskcryptor_final"
 
 #define HASH_LOOPS              250
-#define ITERATIONS              10000
+#define ITERATIONS              1000
 
 typedef struct {
 	// for plaintext, we must make sure it is a full uint64_t width.
@@ -373,7 +373,7 @@ struct fmt_main fmt_opencl_diskcryptor_aes = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT | FMT_UNICODE | FMT_ENC,
+		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT | FMT_UNICODE | FMT_ENC,
 		{
 			"iteration count",
 		},
