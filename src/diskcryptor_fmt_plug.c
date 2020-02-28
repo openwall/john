@@ -139,9 +139,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 		// kdf
 #ifdef SIMD_COEF_64
-		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+		for (i = 0; i < MIN_KEYS_PER_CRYPT && index+i < count; ++i) {
 			lens[i] = saved_len[index+i];
 			pin[i] = (unsigned char*)saved_key[index+i];
+			pout[i] = seed[i];
+		}
+		for (; i < MIN_KEYS_PER_CRYPT; ++i) {
+			lens[i] = 0;
+			pin[i] = pin[0];
 			pout[i] = seed[i];
 		}
 		pbkdf2_sha512_sse((const unsigned char**)pin, lens, cur_salt->salt, cur_salt->saltlen, 1000, pout, 64, 0);

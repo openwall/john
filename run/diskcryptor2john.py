@@ -177,8 +177,8 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s [DiskCryptor Encrypted Device / Raw Disk Image]\n\n" % sys.argv[0])
         sys.stderr.write("Example: %s /dev/sdb1\n\n" % sys.argv[0])
-        sys.stderr.write("Example: %s disk_image.raw\n\n" % sys.argv[0])
-        sys.stderr.write("Tip: Use kpartx to 'mount' raw disk images on Linux. Run me against encrypted mapped partitions.\n\n")
+        sys.stderr.write("Example: %s partition_image.raw\n\n" % sys.argv[0])
+        sys.stderr.write("Tip: Use kpartx to access partitions within raw disk images on Linux.\n")
         sys.stderr.write("Example: kpartx -av disk_image.raw; fdisk -l disk_image.raw; %s /dev/mapper/loop0p1\n\n" % sys.argv[0])
         sys.stderr.write("ATTENTION: Cascaded ciphers are NOT supported yet!\n")
 

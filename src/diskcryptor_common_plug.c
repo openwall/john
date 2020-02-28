@@ -89,27 +89,27 @@ unsigned int diskcryptor_iteration_count(void *salt)
 
 int diskcryptor_decrypt_data(unsigned char *key, struct custom_salt *cur_salt)
 {
-	int success = 0;
-
-	unsigned char out[2048];
-	struct dc_header header;
+	const int len = 96; /* up to 2048 */
+	union {
+		unsigned char uc[len];
+		struct dc_header header;
+	} out;
 	int algorithm;
 
 	for (algorithm = 0; algorithm < 3; algorithm++) {
 		unsigned char tweak[16] = { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 		// Note: header.reserved is actually all zeroes but isn't for us because our XTS code is wonky?
-		XTS_decrypt_custom_tweak(key, tweak, out, cur_salt->header, /* 2048 */ 96, 256, algorithm);
-		memcpy(&header, out, 128);
+		XTS_decrypt_custom_tweak(key, tweak, out.uc, cur_salt->header, len, 256, algorithm);
 #if ARCH_LITTLE_ENDIAN==0
-		header.alg_1 = JOHNSWAP(header.alg_1);
-		header.version = (header.version >> 8) | (header.version << 8);
+		out.header.alg_1 = JOHNSWAP(out.header.alg_1);
+		out.header.version = (out.header.version >> 8) | (out.header.version << 8);
 #endif
-		if (memmem(out + 64, 4, "DCRP", 4) && (header.version == 2 || header.version == 1) && (header.alg_1 >= 0 && header.alg_1 <= 7)) {
-			success = 1;
-			break;
-		}
+		if (!memcmp(out.uc + 64, "DCRP", 4) &&
+		    (out.header.version == 2 || out.header.version == 1) &&
+		    (out.header.alg_1 >= 0 && out.header.alg_1 <= 7))
+			return 1;
 	}
 
-	return success;
+	return 0;
 }
