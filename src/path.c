@@ -103,8 +103,12 @@ void path_init(char **argv)
 					*pos = '/';
 					pos = strchr(pos, '\\');
 				}
-			} else
-				fprintf(stderr, "Warning: couldn't find John home. Try using full path in argv[0]\n");
+			} else {
+				fprintf(stderr,
+				    "Error: Cannot find John home. Invoke the program via full or relative pathname.\n"
+				    "For example, /full/path/john or path/john, or set and use a shell alias.\n");
+				error();
+			}
 		}
 	}
 #endif
