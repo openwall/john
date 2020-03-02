@@ -103,7 +103,8 @@ void path_init(char **argv)
 					*pos = '/';
 					pos = strchr(pos, '\\');
 				}
-			}
+			} else
+				fprintf(stderr, "Warning: couldn't find John home. Try using full path in argv[0]\n");
 		}
 	}
 #endif
