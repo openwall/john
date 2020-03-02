@@ -492,6 +492,11 @@ static void init(struct fmt_main *self)
 	SIGS[11].magic_sig_len[0] = 3;
 	SIGS[11].magic_count = 1;
 	SIGS[11].max_len = 3;
+//case 12: // PST
+	SIGS[12].magic_signature[0] = (u8*)str_alloc_copy("!BDN");
+	SIGS[12].magic_sig_len[0] = 4;
+	SIGS[12].magic_count = 1;
+	SIGS[12].max_len = 4;
 
 	SIGS[255].max_len = 64;
 #endif

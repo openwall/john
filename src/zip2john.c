@@ -188,8 +188,8 @@ static int checksum_only = 0, use_magic = 0;
 static int force_2_byte_checksum = 0;
 static char *ascii_fname, *only_fname;
 
-static char *MagicTypes[] = { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", NULL };
-static int  MagicToEnum[] = {  0,   1,     1,     1,     1,     2,     2,     3,     4,     4,     5,     6,     7,    7,     8,     8,     9,     10,    11,  0};
+static char *MagicTypes[] = { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", "PST", NULL };
+static int  MagicToEnum[] = {  0,   1,     1,     1,     1,     2,     2,     3,     4,     4,     5,     6,     7,    7,     8,     8,     9,     10,    11,  12, 0 };
 
 static void print_hex_inline(unsigned char *str, int len)
 {
