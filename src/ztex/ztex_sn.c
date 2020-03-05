@@ -27,10 +27,8 @@ int ztex_sn_is_valid(char *sn)
 				|| (sn[i] >= 'a' && sn[i] <= 'f')) )
 			return 0;
 	}
-	if (sn[i])
-		return 0;
 
-	return 1;
+	return 0;
 }
 
 
@@ -134,7 +132,7 @@ char *ztex_sn_get_by_sn_orig(char *sn_orig)
 		return sn_orig;
 
 	static char result[ZTEX_SNSTRING_LEN];
-	sprintf(result, "%d", line->id + 1);
+	snprintf(result, sizeof(result), "%u", line->id + 1);
 	return result;
 }
 

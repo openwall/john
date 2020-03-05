@@ -92,7 +92,9 @@ static int device_init_fpgas(struct device *device,
 {
 	// Read config for given bitstream, device
 	char *CFG_SECTION = "ZTEX:";
-	char conf_name_board_freq[256], conf_name_freq[256];
+	// conf_name_board_freq must be shorter than conf_name_freq to avoid a
+	// gcc-9 compiler warning. But at least 21 bytes to make the string fit.
+	char conf_name_board_freq[128], conf_name_freq[256];
 	int default_freq[NUM_PROGCLK_MAX], board_freq[NUM_PROGCLK_MAX],
 		fpga_freq[NUM_PROGCLK_MAX];
 
@@ -103,8 +105,8 @@ static int device_init_fpgas(struct device *device,
 				default_freq, NUM_PROGCLK_MAX);
 
 		// Frequency specific to given board
-		sprintf(conf_name_board_freq, "Frequency_%s",
-				device->ztex_device->snString);
+		snprintf(conf_name_board_freq, sizeof(conf_name_board_freq),
+				"Frequency_%s", device->ztex_device->snString);
 		cfg_get_int_array(CFG_SECTION, bitstream->label,
 				conf_name_board_freq, board_freq, NUM_PROGCLK_MAX);
 
@@ -120,7 +122,7 @@ static int device_init_fpgas(struct device *device,
 	// Length is specific to bitstream.
 	// If configuration packet is of incorrect length then
 	// the FPGA would raise an error (app_status=0x08)
-	char conf_name_board_config1[256], conf_name_config1[256];
+	char conf_name_board_config1[128], conf_name_config1[256];
 	char default_config1[CONFIG_MAX_LEN], board_config1[CONFIG_MAX_LEN];
 	int len_default, len_board, len;
 
@@ -132,8 +134,8 @@ static int device_init_fpgas(struct device *device,
 	} else
 		len_default = 0;
 
-	sprintf(conf_name_board_config1, "Config1_%s",
-			device->ztex_device->snString);
+	snprintf(conf_name_board_config1, sizeof(conf_name_board_config1),
+			"Config1_%s", device->ztex_device->snString);
 	ptr = cfg_get_param(CFG_SECTION, bitstream->label,
 			conf_name_board_config1);
 	if (ptr) {
@@ -159,7 +161,7 @@ static int device_init_fpgas(struct device *device,
 		if (bitstream->num_progclk) {
 
 			// Check for frequency for given fpga in the config
-			sprintf(conf_name_freq, "%s_%d", conf_name_board_freq, fpga_num + 1);
+			snprintf(conf_name_freq, sizeof(conf_name_freq), "%s_%d", conf_name_board_freq, fpga_num + 1);
 			cfg_get_int_array(CFG_SECTION, bitstream->label, conf_name_freq,
 					fpga_freq, NUM_PROGCLK_MAX);
 
@@ -209,7 +211,8 @@ static int device_init_fpgas(struct device *device,
 		// Runtime configuration packet
 		struct pkt *pkt_config1 = NULL;
 
-		sprintf(conf_name_config1, "%s_%d", conf_name_board_config1,
+		snprintf(conf_name_config1, sizeof(conf_name_config1),
+				"%s_%d", conf_name_board_config1,
 				fpga_num + 1);
 		ptr = cfg_get_param(CFG_SECTION, bitstream->label,
 				conf_name_config1);
@@ -523,7 +526,7 @@ int device_pkt_rw(struct device *device)
 char *device_strerror(int error_code)
 {
 	static char buf[256];
-	sprintf(buf, "%d unknown error", error_code);
+	snprintf(buf, sizeof(buf), "%d unknown error", error_code);
 	return buf;
 }
 
