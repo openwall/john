@@ -135,7 +135,8 @@ int ztex_device_new(libusb_device *usb_dev, struct ztex_device **ztex_dev)
 
 	// Original SN remains in dev->snString_orig.
 	char *sn = ztex_sn_get_by_sn_orig(dev->snString_orig);
-	strncpy(dev->snString, sn, ZTEX_SNSTRING_LEN);
+	strncpy(dev->snString, sn, ZTEX_SNSTRING_LEN - 1);
+	dev->snString[ZTEX_SNSTRING_LEN - 1] = 0;
 
 	result = libusb_get_string_descriptor_ascii(dev->handle, desc.iProduct,
 			(unsigned char *)dev->product_string, ZTEX_PRODUCT_STRING_LEN);
