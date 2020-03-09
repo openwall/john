@@ -776,7 +776,7 @@ static void single_run(void)
 	do {
 		rec_rule[1] = min[1] = rules_stacked_number;
 		while ((prerule = rpp_next(rule_ctx))) {
-			if (options.node_count) {
+			if (options.node_count && strncmp(prerule, "!!", 2)) {
 				int for_node = rule_number % options.node_count + 1;
 				if (for_node < options.node_min ||
 				    for_node > options.node_max) {

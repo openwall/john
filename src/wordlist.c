@@ -1217,7 +1217,7 @@ REDO_AFTER_LMLOOP:
 		struct list_entry *joined;
 
 		if (rules) {
-			if (dist_rules) {
+			if (dist_rules && strncmp(prerule, "!!", 2)) {
 				int for_node =
 				    rule_number % options.node_count + 1;
 				if (for_node < options.node_min ||
