@@ -104,7 +104,7 @@ void path_init(char **argv)
 					pos = strchr(pos, '\\');
 				}
 			} else {
-#ifdef __unix__
+#if !(defined(__DJGPP__) || defined(__CYGWIN__) || defined(_MSC_VER) || defined(__MINGW32__))
 				fprintf(stderr,
 				    "Error: Cannot find John home. Invoke the program via full or relative pathname.\n"
 				    "For example, /full/path/john or path/john, or set and use a shell alias.\n");
