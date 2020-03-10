@@ -103,11 +103,11 @@ void path_init(char **argv)
 					*pos = '/';
 					pos = strchr(pos, '\\');
 				}
-			} else {
 #if !(defined(__DJGPP__) || defined(__CYGWIN__) || defined(_MSC_VER) || defined(__MINGW32__))
+			} else if (!strncmp(argv[0], "john", 4)) {
 				fprintf(stderr,
 				    "Error: Cannot find John home. Invoke the program via full or relative pathname.\n"
-				    "For example, /full/path/john or path/john, or set and use a shell alias.\n");
+				    "For example, /full/path/%s or path/%s, or set and use a shell alias.\n", argv[0], argv[0]);
 				error();
 #endif
 			}
