@@ -2160,8 +2160,10 @@ int main(int argc, char **argv)
 	}
 #endif
 
-        /* Needed before CPU fallback */
+#if CPU_FALLBACK || OMP_FALLBACK
+	/* Needed before CPU fallback */
 	path_init(argv);
+#endif
 
 	if (!strcmp(name, "unshadow")) {
 		CPU_detect_or_fallback(argv, 0);
@@ -2197,10 +2199,16 @@ int main(int argc, char **argv)
 		CPU_detect_or_fallback(argv, 0);
 		return zip2john(argc, argv);
 	}
+
 	if (!strcmp(name, "base64conv")) {
 		CPU_detect_or_fallback(argv, 0);
 		return base64conv(argc, argv);
 	}
+
+#if !(CPU_FALLBACK || OMP_FALLBACK)
+	path_init(argv);
+#endif
+
 	john_init(name, argc, argv);
 
 	if (options.max_cands) {
