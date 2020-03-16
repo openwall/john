@@ -56,7 +56,7 @@ static int ocl_fmt;
 #endif /* HAVE_OPENCL */
 #endif /* HAVE_OPENCL || HAVE_ZTEX */
 
-int single_disabled_recursion;
+static int single_disabled_recursion;
 
 static void save_state(FILE *file)
 {
@@ -186,9 +186,16 @@ static void single_init(void)
 
 	if (options.single_retest_guess)
 		retest_guessed = parse_bool(options.single_retest_guess);
-	else
-		retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL,
-		                              "SingleRetestGuessed", 1);
+	else {
+		retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL, "SingleRetestGuessed", 1);
+		if (crk_database()->salt_count == 1 && retest_guessed) {
+			fprintf(stderr,
+			        "Note: SingleRetestGuessed config option is ignored because there is only one salt loaded.\n"
+			        "      You can force it with --single-retest-guess=y but it wouldn't speed up the session.\n");
+			retest_guessed = 0;
+		} else if (!retest_guessed)
+			fprintf(stderr, "Note: SingleRetestGuessed is turned OFF in config\n");
+	}
 
 	if (retest_guessed == -1)
 		error_msg("Expected boolean value for --single-retest-guess=BOOL\n");
@@ -560,7 +567,7 @@ static int single_process_buffer(struct db_salt *salt)
 	struct db_keys *keys;
 	size_t size;
 
-	if (++recurse_depth > max_recursion && retest_guessed) {
+	if (retest_guessed && ++recurse_depth > max_recursion) {
 		log_event("- Disabled SingleRetestGuessed due to deep recursion");
 		if (john_main_process)
 			fprintf(stderr,
@@ -904,7 +911,7 @@ static void single_done(void)
 	crk_done();
 }
 
-void do_single_crack(struct db_main *db)
+char* do_single_crack(struct db_main *db)
 {
 	struct rpp_context ctx;
 
@@ -914,4 +921,12 @@ void do_single_crack(struct db_main *db)
 	single_run();
 	single_done();
 	rule_ctx = NULL; /* Just for good measure */
+
+	if (status.guess_count && !retest_guessed) {
+		if (single_disabled_recursion)
+			return "Warning: Disabled SingleRetestGuessed due to deep recursion. Consider running '--loopback --rules=none' next.";
+		else
+			return "Consider running '--loopback --rules=none' next.";
+	} else
+		return "";
 }

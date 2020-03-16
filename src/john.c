@@ -192,6 +192,7 @@ static int children_ok = 1;
 static struct db_main database;
 static struct fmt_main dummy_format;
 
+static char *mode_exit_message = "";
 static int exit_status = 0;
 
 static void john_register_one(struct fmt_main *format)
@@ -1948,7 +1949,7 @@ static void john_run(void)
 			event_pending = event_status = 1;
 
 		if (options.flags & FLG_SINGLE_CHK)
-			do_single_crack(&database);
+			mode_exit_message = do_single_crack(&database);
 		else
 		if (options.flags & FLG_WORDLIST_CHK)
 			do_wordlist_crack(&database, options.wordlist,
@@ -2034,11 +2035,6 @@ static void john_run(void)
 				      " of the cracked passwords reliably\n",
 				      stderr);
 		}
-
-		if (options.verbosity > 1 && single_disabled_recursion)
-			fprintf(stderr,
-"Warning: Disabled SingleRetestGuessed due to deep recursion. You may now run\n"
-"         '--loopback --rules=none' to test all guesses against other salts.\n");
 	}
 }
 
@@ -2070,8 +2066,9 @@ static void john_done(void)
 			log_event("%s", abort_msg);
 		} else if (children_ok) {
 			log_event("Session completed");
-			if (john_main_process)
-				fprintf(stderr, "Session completed\n");
+			if (john_main_process) {
+				fprintf(stderr, "Session completed. %s\n", mode_exit_message);
+			}
 		} else {
 			const char *msg =
 			    "Main process session completed, "

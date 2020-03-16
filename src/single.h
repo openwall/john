@@ -13,11 +13,6 @@
 #include "loader.h"
 
 /*
- * Tell john.c we had to disable recursion.
- */
-extern int single_disabled_recursion;
-
-/*
  * Global list of single mode words, from --single-seed or --single-wordlist.
  */
 extern struct list_main *single_seed;
@@ -25,6 +20,6 @@ extern struct list_main *single_seed;
 /*
  * Runs the cracker.
  */
-extern void do_single_crack(struct db_main *db);
+extern char* do_single_crack(struct db_main *db);
 
 #endif
