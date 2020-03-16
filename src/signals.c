@@ -411,6 +411,10 @@ static void sig_handle_timer(int signum)
 				new_abort = 1;
 #endif
 				sig_handle_abort(0);
+			} else if (c == '>' && options.verbosity < VERB_DEBUG) {
+				fprintf(stderr, "Verbosity now %d\n", ++options.verbosity);
+			} else if (c == '<' && options.verbosity > 1) {
+				fprintf(stderr, "Verbosity now %d\n", --options.verbosity);
 			} else {
 #if OS_FORK
 				new_status = 1;
