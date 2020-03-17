@@ -106,12 +106,6 @@ int crk_max_keys_per_crypt(void)
 	return  crk_params->max_keys_per_crypt;
 }
 
-/* Expose db as well */
-struct db_main* crk_database(void)
-{
-	return crk_db;
-}
-
 static void crk_dummy_set_salt(void *salt)
 {
 }

@@ -188,9 +188,9 @@ static void single_init(void)
 		retest_guessed = parse_bool(options.single_retest_guess);
 	else {
 		retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL, "SingleRetestGuessed", 1);
-		if (crk_database()->salt_count == 1 && retest_guessed) {
+		if (single_db->salt_count == 1 && retest_guessed) {
 			fprintf(stderr,
-			        "Note: SingleRetestGuessed config option is ignored because there is only one salt loaded.\n"
+			        "Note: Ignoring SingleRetestGuessed config option because only one salt is loaded.\n"
 			        "      You can force it with --single-retest-guess=y but it wouldn't speed up the session.\n");
 			retest_guessed = 0;
 		} else if (!retest_guessed)
@@ -914,15 +914,17 @@ static void single_done(void)
 char* do_single_crack(struct db_main *db)
 {
 	struct rpp_context ctx;
+	int initial_num_salts;
 
 	single_db = db;
+	initial_num_salts = db->salt_count;
 	rule_ctx = &ctx;
 	single_init();
 	single_run();
 	single_done();
 	rule_ctx = NULL; /* Just for good measure */
 
-	if (status.guess_count && !retest_guessed) {
+	if (initial_num_salts > 1 && status.guess_count && !retest_guessed) {
 		if (single_disabled_recursion)
 			return "Warning: Disabled SingleRetestGuessed due to deep recursion. Consider running '--loopback --rules=none' next.";
 		else

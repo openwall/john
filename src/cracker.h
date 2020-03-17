@@ -18,9 +18,6 @@
 /* Our last read position in pot file (during crack) */
 extern int64_t crk_pot_pos;
 
-/* Our database */
-struct db_main* crk_database(void);
-
 /*
  * Initializes the cracker for a password database (should not be empty).
  * If fix_state() is not NULL, it will be called when key buffer becomes

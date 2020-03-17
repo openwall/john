@@ -236,19 +236,19 @@ static void *get_binary(char *ciphertext)
 		s->keyver = 0;
 		base64_convert(ciphertext, e_b64_hex, 2 * sizeof(mic_t), s->keymic,
 		               e_b64_raw, sizeof(mic_t),
-		               flg_Base64_DONOT_NULL_TERMINATE, 0);
+		               flg_Base64_NO_FLAGS, 0);
 		ciphertext += 33;
 		base64_convert(ciphertext, e_b64_hex, 12, s->mac1,
 		               e_b64_raw, 6,
-		               flg_Base64_DONOT_NULL_TERMINATE, 0);
+		               flg_Base64_NO_FLAGS, 0);
 		ciphertext += 13;
 		base64_convert(ciphertext, e_b64_hex, 12, s->mac2,
 		               e_b64_raw, 6,
-		               flg_Base64_DONOT_NULL_TERMINATE, 0);
+		               flg_Base64_NO_FLAGS, 0);
 		ciphertext += 13;
 		base64_convert(ciphertext, e_b64_hex, 64, s->essid,
 		               e_b64_raw, 33,
-		               flg_Base64_DONOT_NULL_TERMINATE, 0);
+		               flg_Base64_NO_FLAGS, 0);
 	}
 
 	return &data;
@@ -267,8 +267,7 @@ static void *get_salt(char *ciphertext)
 		ciphertext += 33;
 		ciphertext += 13;
 		ciphertext += 13;
-		base64_convert(ciphertext, e_b64_hex, 64, s.essid, e_b64_raw, 33,
-		               flg_Base64_DONOT_NULL_TERMINATE, 0);
+		base64_convert(ciphertext, e_b64_hex, 64, s.essid, e_b64_raw, 32, flg_Base64_NO_FLAGS, 0);
 	}
 
 	memcpy(salt.essid, s.essid, sizeof(salt.essid));
@@ -281,7 +280,7 @@ static void *get_salt(char *ciphertext)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *hash;
-	int hashlength = 0;
+	int hashlength;
 	hccap_t *hccap;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) {
@@ -295,14 +294,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return 0;
 		if (ciphertext[58] != '*' || hexlenl(ciphertext + 46, NULL) != 12)
 			return 0;
-		if (hexlenl(ciphertext + 59, &extra) < 1)
-			return 0;
-		if (extra)
+		hashlength = hexlenl(ciphertext + 59, &extra);
+		if (hashlength < 2 || (hashlength & 1) || hashlength > 64 || extra)
 			return 0;
 		/* This is a PMKID hash */
 		return 1;
 	}
 
+	hashlength = 0;
 	hash = strrchr(ciphertext, '#');
 	if (hash == NULL || hash - (ciphertext + FORMAT_TAG_LEN) > 32)
 		return 0;
@@ -316,7 +315,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	hccap = decode_hccap(ciphertext);
 
-	if (strlen(hccap->essid) > 32) /* real life limit */
+	if (strlen(hccap->essid) > 32) /* Some routers can do 31 octets, some can do 32. */
 		return 0;
 
 	if (hccap->eapol_size > 256)
