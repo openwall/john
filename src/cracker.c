@@ -1181,8 +1181,8 @@ int crk_process_salt(struct db_salt *salt)
 	crk_methods.clear_keys();
 
 	while (count--) {
-		strnzcpy(key, ptr, crk_params->plaintext_length + 1);
-		ptr += crk_params->plaintext_length;
+		strnzcpy(key, ptr, options.eff_maxlength + 1);
+		ptr += options.eff_maxlength;
 
 		crk_methods.set_key(key, index++);
 		if (index >= crk_params->max_keys_per_crypt || !count ||
