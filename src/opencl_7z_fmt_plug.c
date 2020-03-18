@@ -324,10 +324,13 @@ static void reset(struct db_main *db)
 	autotune_run(self, 1 << 19, 0, 200);
 }
 
+static char *comp_type[128] = { "none", "LZMA1", "LZMA2", "PPMD", "BCJ", "BCJ2", "BZIP2", "DEFLATE", "unknown" };
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int type, len, NumCyclesPower;
+	static char warned[128];
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
@@ -340,14 +343,20 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) > 3 || !isdec(p))
 		goto err;
 	type = atoi(p);
-	if (strlen(p) == 0 || type < 0 || type > 128) /* Compression type */
+	if (strlen(p) == 0 || type < 0 || type > 128) /* Compression type needed for verifying a positive */
 		goto err;
-	if (type > 2 /* LZMA or LZMA2 */
+	if (type > 2
 #if HAVE_LIBZ
-	    && type != 7 /* deflate */
+		    && type != 7
 #endif
-	    && type != 128) /* none */
+			    && type != 128) {
+		if (!self_test_running && !ocl_autotune_running && !warned[type]++)
+			fprintf(stderr, "Warning: Not loading files with compression type %s (0x%02x)\n",
+			        comp_type[MIN(8, type & 0x7f)], type);
 		goto err;
+	}
+	if (!self_test_running && !ocl_autotune_running && options.verbosity > VERB_DEFAULT && !warned[type]++)
+		fprintf(stderr, "Saw file(s) with compression type %s (0x%02x)\n", comp_type[MIN(8, type & 0x7f)], type);
 	if ((p = strtokm(NULL, "$")) == NULL) /* NumCyclesPower */
 		goto err;
 	if (strlen(p) > 2)
