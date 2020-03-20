@@ -350,12 +350,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		    && type != 7
 #endif
 			    && type != 128) {
-		if (!self_test_running && !ocl_autotune_running && !warned[type]++)
+		if (john_main_process && !self_test_running && !ocl_autotune_running && !warned[type]++)
 			fprintf(stderr, "Warning: Not loading files with compression type %s (0x%02x)\n",
 			        comp_type[MIN(8, type & 0x7f)], type);
 		goto err;
 	}
-	if (!self_test_running && !ocl_autotune_running && options.verbosity > VERB_DEFAULT && !warned[type]++)
+	if (john_main_process && !self_test_running && !ocl_autotune_running && options.verbosity > VERB_DEFAULT && !warned[type]++)
 		fprintf(stderr, "Saw file(s) with compression type %s (0x%02x)\n", comp_type[MIN(8, type & 0x7f)], type);
 	if ((p = strtokm(NULL, "$")) == NULL) /* NumCyclesPower */
 		goto err;
