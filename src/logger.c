@@ -540,7 +540,7 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 		uid_out = uid;
 	}
 
-	if (options.verbosity > 1) {
+	if (options.verbosity > 2 || (admin && options.verbosity > 1)) {
 		if (options.secure) {
 			secret = components(rep_plain, len);
 			printf("%-16s (%s%s%s%s%s)\n", secret,
