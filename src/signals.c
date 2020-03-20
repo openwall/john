@@ -406,15 +406,25 @@ static void sig_handle_timer(int signum)
 		int new_abort = 0, new_status = 0;
 #endif
 		while ((c = tty_getchar()) >= 0) {
+			char verb_msg[] = "Verbosity now 0\n";
+
 			if (c == 3 || c == 'q') {
 #if OS_FORK
 				new_abort = 1;
 #endif
 				sig_handle_abort(0);
 			} else if (c == '>' && options.verbosity < VERB_DEBUG) {
-				fprintf(stderr, "Verbosity now %d\n", ++options.verbosity);
+				options.verbosity++;
+				if (john_main_process) {
+					verb_msg[14] += options.verbosity;
+					write_loop(2, verb_msg, sizeof(verb_msg) - 1);
+				}
 			} else if (c == '<' && options.verbosity > 1) {
-				fprintf(stderr, "Verbosity now %d\n", --options.verbosity);
+				options.verbosity--;
+				if (john_main_process) {
+					verb_msg[14] += options.verbosity;
+					write_loop(2, verb_msg, sizeof(verb_msg) - 1);
+				}
 			} else {
 #if OS_FORK
 				new_status = 1;
