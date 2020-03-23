@@ -188,10 +188,10 @@ static void single_init(void)
 		retest_guessed = parse_bool(options.single_retest_guess);
 	else {
 		retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL, "SingleRetestGuessed", 1);
-		if (single_db->salt_count == 1 && retest_guessed) {
+		if (single_db->salt_count == 1 && !retest_guessed) {
 			fprintf(stderr,
 			        "Note: Ignoring SingleRetestGuessed config option because only one salt is loaded.\n"
-			        "      You can force it with --single-retest-guess=y but it wouldn't speed up the session.\n");
+			        "      You can force it with --single-retest-guess=n but it wouldn't speed up the session.\n");
 			retest_guessed = 0;
 		} else if (!retest_guessed)
 			fprintf(stderr, "Note: SingleRetestGuessed is turned OFF in config\n");
