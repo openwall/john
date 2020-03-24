@@ -567,8 +567,8 @@ static int salt_compare(const void *x, const void *y)
 	return memcmp(s1->iv, s2->iv, 16);
 }
 
-static void *SzAlloc(void *p, size_t size) { return mem_alloc(size); }
-static void SzFree(void *p, void *address) { MEM_FREE(address) };
+static void *SzAlloc(const ISzAlloc *p, size_t size) { return mem_alloc(size); }
+static void SzFree(const ISzAlloc *p, void *address) { MEM_FREE(address) };
 
 static int sevenzip_decrypt(sevenzip_hash *derived)
 {

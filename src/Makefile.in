@@ -116,7 +116,7 @@ JOHN_OBJS = \
 	undrop.o \
 	regex.o pp.o \
 	c3_fmt.o \
-	lzma/LzmaDec.o lzma/Lzma2Dec.o \
+	lzma/LzmaDec.o lzma/Lzma2Dec.o lzma/Bra.o lzma/Bra86.o lzma/BraIA64.o lzma/CpuArch.o \
 	unique.o gpg2john.o \
 	showformats.o
 
@@ -229,6 +229,14 @@ AFS_fmt.o:	AFS_fmt.c arch.h misc.h jumbo.h autoconfig.h params.h DES_std.h commo
 lzma/Lzma2Dec.o:	lzma/Lzma2Dec.c lzma/Precomp.h lzma/Compiler.h lzma/Lzma2Dec.h lzma/LzmaDec.h lzma/7zTypes.h
 
 lzma/LzmaDec.o:	lzma/LzmaDec.c lzma/Precomp.h lzma/Compiler.h lzma/LzmaDec.h lzma/7zTypes.h
+
+lzma/Bra.o:	lzma/Bra.c lzma/Precomp.h lzma/Compiler.h lzma/CpuArch.h lzma/7zTypes.h lzma/Bra.h
+
+lzma/Bra86.o:	lzma/Bra86.c lzma/Precomp.h lzma/Compiler.h lzma/Bra.h lzma/7zTypes.h
+
+lzma/BraIA64.o:	lzma/BraIA64.c lzma/Precomp.h lzma/Compiler.h lzma/CpuArch.h lzma/7zTypes.h lzma/Bra.h
+
+lzma/CpuArch.o:	lzma/CpuArch.c lzma/Precomp.h lzma/Compiler.h lzma/CpuArch.h lzma/7zTypes.h
 
 base64_convert.o:	base64_convert.c missing_getopt.h memory.h arch.h misc.h jumbo.h autoconfig.h common.h base64_convert.h os.h os-autoconf.h
 
