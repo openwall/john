@@ -133,7 +133,9 @@
 #define KECCAK_CTX                  Keccak_HashInstance
 #define KECCAK_Update(a,b,c)        Keccak_HashUpdate(a,b,(c)*8)
 #define KECCAK_Final(a,b)           Keccak_HashFinal(b,a)
+#define KECCAK_224_Init(hash)       Keccak_HashInitialize(hash, 1152,  448, 224, 0x01)
 #define KECCAK_256_Init(hash)       Keccak_HashInitialize(hash, 1088,  512, 256, 0x01)
+#define KECCAK_384_Init(hash)       Keccak_HashInitialize(hash,  832,  768, 384, 0x01)
 #define KECCAK_512_Init(hash)       Keccak_HashInitialize(hash,  576, 1024, 512, 0x01)
 // FIPS202 complient
 #define SHA3_224_Init(hash)         Keccak_HashInitialize(hash, 1152,  448, 224, 0x06)
