@@ -127,7 +127,9 @@ static DYNAMIC_primitive_funcp _Funcs_1[] =
 #define KECCAK_CTX                  Keccak_HashInstance
 #define KECCAK_Update(a,b,c)        Keccak_HashUpdate(a,b,(c)*8)
 #define KECCAK_Final(a,b)           Keccak_HashFinal(b,a)
+#define KECCAK_224_Init(hash)       Keccak_HashInitialize(hash, 1152,  448, 224, 0x01)
 #define KECCAK_256_Init(hash)       Keccak_HashInitialize(hash, 1088,  512, 256, 0x01)
+#define KECCAK_384_Init(hash)       Keccak_HashInitialize(hash,  832,  768, 384, 0x01)
 #define KECCAK_512_Init(hash)       Keccak_HashInitialize(hash,  576, 1024, 512, 0x01)
 // FIPS202 complient
 #define SHA3_224_Init(hash)         Keccak_HashInitialize(hash, 1152,  448, 224, 0x06)
@@ -1698,7 +1700,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						CASE(SHA3_256);
 						CASE(SHA3_384);
 						CASE(SHA3_512);
+						CASE(KECCAK_224);
 						CASE(KECCAK_256);
+						CASE(KECCAK_384);
 						CASE(KECCAK_512);
 						// LARGE_HASH_EDIT_POINT
 					}
@@ -1753,7 +1757,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						CASE(SHA3_256);
 						CASE(SHA3_384);
 						CASE(SHA3_512);
+						CASE(KECCAK_224);
 						CASE(KECCAK_256);
+						CASE(KECCAK_384);
 						CASE(KECCAK_512);
 						// LARGE_HASH_EDIT_POINT
 					}
@@ -2475,7 +2481,9 @@ static void *get_salt(char *ciphertext)
 			KECCAK_CASE(SHA3_256,32)
 			KECCAK_CASE(SHA3_384,48)
 			KECCAK_CASE(SHA3_512,64)
+			KECCAK_CASE(KECCAK_224,28)
 			KECCAK_CASE(KECCAK_256,32)
+			KECCAK_CASE(KECCAK_384,48)
 			KECCAK_CASE(KECCAK_512,64)
 			// LARGE_HASH_EDIT_POINT
 
@@ -7305,7 +7313,9 @@ static int isSKEINFunc(DYNAMIC_primitive_funcp p) {
 }
 static int isKECCAKFunc(DYNAMIC_primitive_funcp p) {
 	RETURN_TRUE_IF_BIG_FUNC(SHA3_224); RETURN_TRUE_IF_BIG_FUNC(SHA3_256); RETURN_TRUE_IF_BIG_FUNC(SHA3_384);
-    RETURN_TRUE_IF_BIG_FUNC(SHA3_512); RETURN_TRUE_IF_BIG_FUNC(KECCAK_256); RETURN_TRUE_IF_BIG_FUNC(KECCAK_512);
+	RETURN_TRUE_IF_BIG_FUNC(SHA3_512);
+	RETURN_TRUE_IF_BIG_FUNC(KECCAK_224); RETURN_TRUE_IF_BIG_FUNC(KECCAK_256); RETURN_TRUE_IF_BIG_FUNC(KECCAK_384);
+	RETURN_TRUE_IF_BIG_FUNC(KECCAK_512);
 	return 0;
 }
 // LARGE_HASH_EDIT_POINT  (Add a new IsXXXFunc() type function)
@@ -7321,7 +7331,7 @@ static int isLargeHashFinalFunc(DYNAMIC_primitive_funcp p)
 		IF(HAVAL192_3)||IF(HAVAL192_4)||IF(HAVAL192_5)||IF(HAVAL224_3)||IF(HAVAL224_4)||IF(HAVAL224_5)||
 		IF(HAVAL256_3)||IF(HAVAL256_4)||IF(HAVAL256_5)||IF(MD2)||IF(PANAMA)||IF(SKEIN224)||IF(SKEIN256)||
 		IF(SKEIN384)||IF(SKEIN512)||IF(SHA3_224)||IF(SHA3_256)||IF(SHA3_384)||IF(SHA3_512)||
-		IF(KECCAK_256)||IF(KECCAK_512))
+		IF(KECCAK_224)||IF(KECCAK_256)||IF(KECCAK_384)||IF(KECCAK_512))
 		// LARGE_HASH_EDIT_POINT
 		return 1;
 	return 0;
@@ -7709,7 +7719,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 	IF_CDOFF32(HAVAL128_5,32); IF_CDOFF32(HAVAL160_5,40); IF_CDOFF32(HAVAL192_5,48); IF_CDOFF32(HAVAL224_5,56); IF_CDOFF32(HAVAL256_5,64);
 	IF_CDOFF32(SKEIN224,56); IF_CDOFF32(SKEIN256,64); IF_CDOFF32(SKEIN384,96); IF_CDOFF32(SKEIN512,128);
 	IF_CDOFF32(SHA3_224,56); IF_CDOFF32(SHA3_256,64); IF_CDOFF32(SHA3_384,96); IF_CDOFF32(SHA3_512,128);
-	IF_CDOFF32(KECCAK_256,64); IF_CDOFF32(KECCAK_512,128);
+	IF_CDOFF32(KECCAK_224,56); IF_CDOFF32(KECCAK_256,64); IF_CDOFF32(KECCAK_384,96); IF_CDOFF32(KECCAK_512,128);
 	// LARGE_HASH_EDIT_POINT
 
 	if (curdat.store_keys_normal_but_precompute_hash_to_output2_base16_to_input1_offsetX)

@@ -213,7 +213,9 @@ DONE: #define MGF_KEYS_BASE16_IN1_RIPEMD320    0x0D00000000000004ULL
 #define KECCAK_CTX                  Keccak_HashInstance
 #define KECCAK_Update(a,b,c)        Keccak_HashUpdate(a,b,(c)*8)
 #define KECCAK_Final(a,b)           Keccak_HashFinal(b,a)
+#define KECCAK_224_Init(hash)       Keccak_HashInitialize(hash, 1152,  448, 224, 0x01)
 #define KECCAK_256_Init(hash)       Keccak_HashInitialize(hash, 1088,  512, 256, 0x01)
+#define KECCAK_384_Init(hash)       Keccak_HashInitialize(hash,  832,  768, 384, 0x01)
 #define KECCAK_512_Init(hash)       Keccak_HashInitialize(hash,  576, 1024, 512, 0x01)
 // FIPS202 complient
 #define SHA3_224_Init(hash)         Keccak_HashInitialize(hash, 1152,  448, 224, 0x06)
@@ -594,7 +596,9 @@ KECCAK_FUNC(sha3_224,SHA3_224,28)
 KECCAK_FUNC(sha3_256,SHA3_256,32)
 KECCAK_FUNC(sha3_384,SHA3_384,48)
 KECCAK_FUNC(sha3_512,SHA3_512,64)
+KECCAK_FUNC(keccak_224,KECCAK_256,28)
 KECCAK_FUNC(keccak_256,KECCAK_256,32)
+KECCAK_FUNC(keccak_384,KECCAK_512,48)
 KECCAK_FUNC(keccak_512,KECCAK_512,64)
 // LARGE_HASH_EDIT_POINT
 
@@ -689,7 +693,7 @@ LEXI_FUNC(hav256_3,haval256_3,32) LEXI_FUNC(hav256_4,haval256_4,32) LEXI_FUNC(ha
 LEXI_FUNC(md2,md2,16) LEXI_FUNC(pan,panama,32)
 LEXI_FUNC(skn224,skein224,28)    LEXI_FUNC(skn256,skein256,32)   LEXI_FUNC(skn384,skein384,48)   LEXI_FUNC(skn512,skein512,64)
 LEXI_FUNC(sha3_224,sha3_224,28)  LEXI_FUNC(sha3_256,sha3_256,32) LEXI_FUNC(sha3_384,sha3_384,48) LEXI_FUNC(sha3_512,sha3_512,64)
-LEXI_FUNC(keccak_256,keccak_256,32)  LEXI_FUNC(keccak_512,keccak_512,64)
+LEXI_FUNC(keccak_224,keccak_224,28) LEXI_FUNC(keccak_256,keccak_256,32) LEXI_FUNC(keccak_384,keccak_384,48) LEXI_FUNC(keccak_512,keccak_512,64)
 // LARGE_HASH_EDIT_POINT
 
 static void dynamic_futf16()    { dyna_helper_pre();                             dyna_helper_post(encode_le()); }
@@ -910,7 +914,9 @@ static const char *comp_get_symbol(const char *pInput) {
 	LOOKUP_IF_BLK(sha3_256,SHA3_256,sha3_256,sha3_256,8,32)
 	LOOKUP_IF_BLK(sha3_384,SHA3_384,sha3_384,sha3_384,8,48)
 	LOOKUP_IF_BLK(sha3_512,SHA3_512,sha3_512,sha3_512,8,64)
+	LOOKUP_IF_BLK(keccak_224,KECCAK_224,keccak_224,keccak_224,10,28)
 	LOOKUP_IF_BLK(keccak_256,KECCAK_256,keccak_256,keccak_256,10,32)
+	LOOKUP_IF_BLK(keccak_384,KECCAK_384,keccak_384,keccak_384,10,48)
 	LOOKUP_IF_BLK(keccak_512,KECCAK_512,keccak_512,keccak_512,10,64)
 	// LARGE_HASH_EDIT_POINT
 
@@ -1604,7 +1610,7 @@ static void build_test_string(DC_struct *p, char **pLine) {
 		ELSEIF(SKEIN224,skein224); ELSEIF(SKEIN256,skein256);
 		ELSEIF(SKEIN384,skein384); ELSEIF(SKEIN512,skein512);
 		ELSEIF(SHA3_224,sha3_224); ELSEIF(SHA3_256,sha3_256); ELSEIF(SHA3_384,sha3_384); ELSEIF(SHA3_512,sha3_512);
-		ELSEIF(KECCAK_256,keccak_256); ELSEIF(KECCAK_512,keccak_512);
+		ELSEIF(KECCAK_224,keccak_224); ELSEIF(KECCAK_256,keccak_256); ELSEIF(KECCAK_384,keccak_384); ELSEIF(KECCAK_512,keccak_512);
 		// LARGE_HASH_EDIT_POINT
 
 		else { error_msg("ERROR in dyna-parser. Have salt_as_hex_type set, but do not KNOW this type of hash\n"); }
@@ -1699,7 +1705,7 @@ static int compile_keys_base16_in1_type(char *pExpr, DC_struct *_p, int salt_hex
 	ELSEIF(SKEIN224,8,28) ELSEIF(SKEIN256,8,32)
 	ELSEIF(SKEIN384,8,48) ELSEIF(SKEIN512,8,64)
 	ELSEIF(SHA3_224,8,28) ELSEIF(SHA3_256,8,32)  ELSEIF(SHA3_384,8,48) ELSEIF(SHA3_512,8,64)
-	ELSEIF(KECCAK_256,10,32) ELSEIF(KECCAK_512,10,64)
+	ELSEIF(KECCAK_224,10,28) ELSEIF(KECCAK_256,10,32) ELSEIF(KECCAK_384,10,48) ELSEIF(KECCAK_512,10,64)
 	// LARGE_HASH_EDIT_POINT
 
 	comp_add_script_line("MaxInputLenX86=110\n");
@@ -1779,11 +1785,11 @@ static int parse_expression(DC_struct *p) {
 		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||!strcmp(tmp,"RIPEMD128")||!strncmp(tmp,"HAVAL128", 8)||!strcmp(tmp,"MD2")) salt_hex_len = 32;
 		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")||!strncmp(tmp,"HAVAL160", 8)) salt_hex_len = 40;
 		if (!strcmp(tmp,"TIGER")||!strncmp(tmp,"HAVAL192", 8)) salt_hex_len = 48;
-		if (!strcmp(tmp,"SHA224")||!strncmp(tmp,"HAVAL224", 8)||!strcmp(tmp,"SKEIN224")||!strcmp(tmp,"SHA3_224")) salt_hex_len = 56;
+		if (!strcmp(tmp,"SHA224")||!strncmp(tmp,"HAVAL224", 8)||!strcmp(tmp,"SKEIN224")||!strcmp(tmp,"SHA3_224")||!strcmp(tmp,"KECCAK_224")) salt_hex_len = 56;
 		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")||!strncmp(tmp,"HAVAL256",8)||
 			!strcmp(tmp,"PANAMA")||!strcmp(tmp,"SKEIN256")||!strcmp(tmp,"SHA3_256")||!strcmp(tmp,"KECCAK_256")) salt_hex_len = 64;
 		if (!strcmp(tmp,"RIPEMD320")) salt_hex_len = 80;
-		if (!strcmp(tmp,"SHA384")||!strcmp(tmp,"SKEIN384")||!strcmp(tmp,"SHA3_384")) salt_hex_len = 96;
+		if (!strcmp(tmp,"SHA384")||!strcmp(tmp,"SKEIN384")||!strcmp(tmp,"SHA3_384")||!strcmp(tmp,"KECCAK_384")) salt_hex_len = 96;
 		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")||!strcmp(tmp,"SKEIN512")||!strcmp(tmp,"SHA3_512")||!strcmp(tmp,"KECCAK_512")) salt_hex_len = 128;
 		// LARGE_HASH_EDIT_POINT
 	}
@@ -1797,11 +1803,11 @@ static int parse_expression(DC_struct *p) {
 		if (!strcmp(tmp,"MD5")||!strcmp(tmp,"MD4")||!strcmp(tmp,"RIPEMD128")||!strncmp(tmp,"HAVAL128", 8)||!strcmp(tmp,"MD2")) keys_hex_len = 32;
 		if (!strcmp(tmp,"SHA1")||!strcmp(tmp,"RIPEMD160")||!strncmp(tmp,"HAVAL160", 8)) keys_hex_len = 40;
 		if (!strcmp(tmp,"TIGER")||!strncmp(tmp,"HAVAL192", 8)) keys_hex_len = 48;
-		if (!strcmp(tmp,"SHA224")||!strncmp(tmp,"HAVAL224", 8)||!strcmp(tmp,"SKEIN224")||!strcmp(tmp,"SHA3_224")) keys_hex_len = 56;
+		if (!strcmp(tmp,"SHA224")||!strncmp(tmp,"HAVAL224", 8)||!strcmp(tmp,"SKEIN224")||!strcmp(tmp,"SHA3_224")||!strcmp(tmp,"KECCAK_224")) keys_hex_len = 56;
 		if (!strcmp(tmp,"SHA256")||!strcmp(tmp,"RIPEMD256")||!strcmp(tmp,"GOST")||!strncmp(tmp,"HAVAL256",8)||
 			!strcmp(tmp,"PANAMA")||!strcmp(tmp,"SKEIN256")||!strcmp(tmp,"SHA3_256")||!strcmp(tmp,"KECCAK_256")) keys_hex_len = 64;
 		if (!strcmp(tmp,"RIPEMD320")) keys_hex_len = 80;
-		if (!strcmp(tmp,"SHA384")||!strcmp(tmp,"SKEIN384")||!strcmp(tmp,"SHA3_384")) keys_hex_len = 96;
+		if (!strcmp(tmp,"SHA384")||!strcmp(tmp,"SKEIN384")||!strcmp(tmp,"SHA3_384")||!strcmp(tmp,"KECCAK_384")) keys_hex_len = 96;
 		if (!strcmp(tmp,"SHA512")||!strcmp(tmp,"WHIRLPOOL")||!strcmp(tmp,"SKEIN512")||!strcmp(tmp,"SHA3_512")||!strcmp(tmp,"KECCAK_512")) keys_hex_len = 128;
 		// LARGE_HASH_EDIT_POINT
 	}
@@ -2090,7 +2096,7 @@ static int parse_expression(DC_struct *p) {
 							ELSEIF(SKEIN224,fskn224,7,28) ELSEIF(SKEIN256,fskn256,7,32)
 							ELSEIF(SKEIN384,fskn384,7,48) ELSEIF(SKEIN512,fskn512,7,64)
 							ELSEIF(SHA3_224,fsha3_224,9,28) ELSEIF(SHA3_256,fsha3_256,9,32) ELSEIF(SHA3_384,fsha3_384,9,48) ELSEIF(SHA3_512,fsha3_512,9,64)
-							ELSEIF(KECCAK_256,fkeccak_256,11,32) ELSEIF(KECCAK_512,fkeccak_512,11,64)
+							ELSEIF(KECCAK_224,fkeccak_224,11,28) ELSEIF(KECCAK_256,fkeccak_256,11,32) ELSEIF(KECCAK_384,fkeccak_384,11,48) ELSEIF(KECCAK_512,fkeccak_512,11,64)
 							// LARGE_HASH_EDIT_POINT
 						} else {
 							if (append_mode2 && pCode[last_push-1][0] != '.') {
@@ -2130,7 +2136,7 @@ static int parse_expression(DC_struct *p) {
 								ELSEIF(SKEIN224,fskn224,7) ELSEIF(SKEIN256,fskn256,7)
 								ELSEIF(SKEIN384,fskn384,7) ELSEIF(SKEIN512,fskn512,7)
 								ELSEIF(SHA3_224,fsha3_224,9) ELSEIF(SHA3_256,fsha3_256,9) ELSEIF(SHA3_384,fsha3_384,9) ELSEIF(SHA3_512,fsha3_512,9)
-								ELSEIF(KECCAK_256,fkeccak_256,11) ELSEIF(KECCAK_512,fkeccak_512,11)
+								ELSEIF(KECCAK_224,fkeccak_224,11) ELSEIF(KECCAK_256,fkeccak_256,11) ELSEIF(KECCAK_384,fkeccak_384,11) ELSEIF(KECCAK_512,fkeccak_512,11)
 								// LARGE_HASH_EDIT_POINT
 								else {
 									if (use_inp1 && !use_inp1_again)
@@ -2175,7 +2181,7 @@ static int parse_expression(DC_struct *p) {
 								ELSEIF(SKEIN224,fskn224,7) ELSEIF(SKEIN256,fskn256,7)
 								ELSEIF(SKEIN384,fskn384,7) ELSEIF(SKEIN512,fskn512,7)
 								ELSEIF(SHA3_224,fsha3_224,9) ELSEIF(SHA3_256,fsha3_256,9) ELSEIF(SHA3_384,fsha3_384,9) ELSEIF(SHA3_512,fsha3_512,9)
-								ELSEIF(KECCAK_256,fkeccak_256,11) ELSEIF(KECCAK_512,fkeccak_512,11)
+								ELSEIF(KECCAK_224,fkeccak_224,11) ELSEIF(KECCAK_256,fkeccak_256,11) ELSEIF(KECCAK_384,fkeccak_384,11) ELSEIF(KECCAK_512,fkeccak_512,11)
 								// LARGE_HASH_EDIT_POINT
 								else {
 									if (use_inp1 && !use_inp1_again)
@@ -2465,6 +2471,8 @@ char *dynamic_compile_prepare(char *fld0, char *fld1) {
 					case 40: type="sha3_512"; break;
 					case 41: type="keccak_256"; break;
 					case 42: type="keccak_512"; break;
+					case 43: type="keccak_224"; break;
+					case 44: type="keccak_384"; break;
 					// LARGE_HASH_EDIT_POINT
 				}
 				if (type) {
