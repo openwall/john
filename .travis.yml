@@ -61,8 +61,8 @@ matrix:
   # #### Extra Testing Scheme
   # #########################################
 
-  # #### OpenCL formats Docker based testing
-  - if: branch = bleeding-jumbo
+  # #### Intel OpenCL runtime Docker based testing
+  - if: branch = bleeding-jumbo AND env(TRAVIS_PULL_REQUEST) = false
     os: linux
     compiler: gcc
     env: DOCKER="yes" OPENCL="yes"
