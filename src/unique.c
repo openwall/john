@@ -61,7 +61,7 @@ static FILE *output;
 static FILE *ex_file;
 
 static int ex_file_only;
-static int verbose, cut_len, lm_split, slow;
+static int verbose, cut_len, lm_split, slow, mlc;
 
 static size_t tot_lines, written_lines;
 static size_t unique_hash_size = UNIQUE_HASH_SIZE;
@@ -121,6 +121,7 @@ static uq_hash line_hash(char *line)
 {
 	uq_hash hash, extra;
 	char *p;
+	char *e = &line[mlc ? mlc : LINE_BUFFER_SIZE];
 
 	p = line + 2;
 	hash = (uint8_t)line[0];
@@ -130,10 +131,10 @@ static uq_hash line_hash(char *line)
 	if (!extra)
 		goto out;
 
-	while (*p) {
+	while (*p && p < e) {
 		hash <<= 3; extra <<= 2;
 		hash += (uint8_t)p[0];
-		if (!p[1])
+		if (!p[1] || &p[1] >= e)
 			break;
 		extra += (uint8_t)p[1];
 		p += 2;
@@ -198,8 +199,8 @@ static void read_buffer(void)
 		last = &buffer.hash[line_hash(line)];
 		current = get_idx(last);
 		while (current != ENTRY_END_HASH) {
-			if (!strcmp(line, &buffer.data[current +
-			                               sizeof(uq_idx)]))
+			if (mlc ? !strncmp(line, &buffer.data[current + sizeof(uq_idx)], mlc)
+			    : !strcmp(line, &buffer.data[current + sizeof(uq_idx)]))
 				break;
 			last = (uq_idx*)&buffer.data[current];
 			current = get_idx(last);
@@ -227,9 +228,8 @@ static void read_buffer(void)
 			last = &buffer.hash[line_hash(lm_buf)];
 			current = get_idx(last);
 			while (current != ENTRY_END_HASH) {
-				if (!strcmp(lm_buf,
-				            &buffer.data[current +
-				                         sizeof(uq_idx)]))
+				if (mlc ? !strncmp(lm_buf, &buffer.data[current + sizeof(uq_idx)], mlc)
+				    : !strcmp(lm_buf, &buffer.data[current + sizeof(uq_idx)]))
 					break;
 				last = (uq_idx*)&buffer.data[current];
 				current = get_idx(last);
@@ -293,9 +293,8 @@ static void clean_buffer(void)
 			current = get_idx(last);
 			while (current != ENTRY_END_HASH) {
 				if (current != ENTRY_DUPE &&
-				    !strcmp(line,
-				            &buffer.data[current +
-				                         sizeof(uq_idx)])) {
+				    (mlc ? !strncmp(line, &buffer.data[current + sizeof(uq_idx)], mlc)
+				     : !strcmp(line, &buffer.data[current + sizeof(uq_idx)]))) {
 					put_idx(last, get_data(current));
 					put_data(current, ENTRY_DUPE);
 					break;
@@ -315,8 +314,8 @@ static void clean_buffer(void)
 		last = &buffer.hash[line_hash(line)];
 		current = get_idx(last);
 		while (current != ENTRY_END_HASH && current != ENTRY_DUPE) {
-			if (!strcmp(line,
-			            &buffer.data[current + sizeof(uq_idx)])) {
+			if (mlc ? !strncmp(line, &buffer.data[current + sizeof(uq_idx)], mlc)
+			    : !strcmp(line, &buffer.data[current + sizeof(uq_idx)])) {
 				put_idx(last, get_data(current));
 				put_data(current, ENTRY_DUPE);
 				break;
@@ -410,13 +409,14 @@ static void pop_arg(int arg, int *argc, char **argv)
 
 int unique(int argc, char **argv)
 {
-	int i;
+	int i = 1;
 	size_t buf_size = 0;
 
-	for (i = 1; i < argc; i++) {
+	while (argc - i) {
 		if (!strcmp(argv[i], "-v")) {
 			verbose++;
 			pop_arg(i, &argc, argv);
+			continue;
 		}
 		if (!strncmp(argv[i], "-inp=", 5) ||
 		    !strncmp(argv[i], "-i=", 3)) {
@@ -426,6 +426,7 @@ int unique(int argc, char **argv)
 			if (!input)
 				error_msg("Error, could not open input file %s\n", fname);
 			pop_arg(i, &argc, argv);
+			continue;
 		}
 		if (!strncmp(argv[i], "-cut=", 5)) {
 			if (!strcmp(argv[i], "-cut=LM")) {
@@ -437,6 +438,15 @@ int unique(int argc, char **argv)
 			if (cut_len < 0 || cut_len >= LINE_BUFFER_SIZE)
 				error_msg("Error, invalid length in the -cut= param\n");
 			pop_arg(i, &argc, argv);
+			continue;
+		}
+		if (!strncmp(argv[i], "-mlc=", 5)) {
+			sscanf(argv[i], "-mlc=%d", &mlc);
+			if (mlc < 2 || mlc >= LINE_BUFFER_SIZE)
+				error_msg("Error, -mlc=length must be 2..%d\n", LINE_BUFFER_SIZE);
+			fprintf(stderr, "Will only consider %d first characters of a line for uniqueness\n", mlc);
+			pop_arg(i, &argc, argv);
+			continue;
 		}
 		if (!strncmp(argv[i], "-mem=", 5)) {
 			char *new_arg;
@@ -464,6 +474,7 @@ int unique(int argc, char **argv)
 
 			unique_hash_log = log;
 			pop_arg(i, &argc, argv);
+			continue;
 		}
 		if (!strncmp(argv[i], "-buf=", 5)) {
 			int p;
@@ -480,6 +491,7 @@ int unique(int argc, char **argv)
 				unique_hash_log =
 					log2(buf_size / UNIQUE_AVG_LEN);
 			pop_arg(i, &argc, argv);
+			continue;
 		}
 		if (!ex_file && !strncmp(argv[i], "-ex_file=", 9)) {
 			ex_file = fopen(&argv[i][9], "rb");
@@ -488,6 +500,7 @@ int unique(int argc, char **argv)
 			else
 				pexit("fopen: %s", &argv[i][9]);
 			pop_arg(i, &argc, argv);
+			continue;
 		}
 		if (!ex_file && !strncmp(argv[i], "-ex_file_only=", 14)) {
 			ex_file = fopen(&argv[i][14], "rb");
@@ -497,7 +510,9 @@ int unique(int argc, char **argv)
 				pexit("fopen: %s", &argv[i][14]);
 			ex_file_only = 1;
 			pop_arg(i, &argc, argv);
+			continue;
 		}
+		i++;
 	}
 
 	if (!unique_hash_log)
@@ -523,6 +538,7 @@ int unique(int argc, char **argv)
 "                   %u for %sB, memory use doubles for each increment\n"
 "-buf=N             Total allowed buffer size, in GB. If -hash-size isn't\n"
 "                   given as well, a sensible one will be used\n"
+"-mlc=LEN           Only consider LEN first characters of each line\n"
 "-ex_file=FILE      the data from FILE is also used to unique the output, but\n"
 "                   nothing is ever written to FILE\n"
 "-ex_file_only=FILE assumes the input is already unique, and only checks\n"
