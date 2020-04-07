@@ -1886,7 +1886,7 @@ static void ldr_fill_user_words(struct db_main *db)
 {
 	struct db_salt *salt;
 	struct list_main *last_words = NULL;
-	int last_count;
+	int last_count = 0;
 	FILE *file;
 	const char *name = path_expand(options.seed_per_user);
 	char line[LINE_BUFFER_SIZE];
