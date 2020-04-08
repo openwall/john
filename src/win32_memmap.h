@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2020, magnum (I didn't write the original but whoever did it didn't tell).
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
+
 #include "os.h"
 #if HAVE_WINDOWS_H
 #define WIN32_LEAN_AND_MEAN

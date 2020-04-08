@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2020, magnum
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
+
 #ifndef _MGETL_H
 #define _MGETL_H
 
