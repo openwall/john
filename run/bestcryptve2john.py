@@ -40,7 +40,7 @@ def get_metadata(disk_image, header_offset):
             version = b'4'
         enc_data = bc_data[0x26:0x86]
 
-        jtr_string = b'$BCDFE$' + version + b'$' + hexlify(crypto_type) + b'$' + hexlify(salt) + b'$' + hexlify(enc_data)
+        jtr_string = b'$bcve$' + version + b'$' + hexlify(crypto_type) + b'$' + hexlify(salt) + b'$' + hexlify(enc_data)
         print(jtr_string.decode())
 
 
