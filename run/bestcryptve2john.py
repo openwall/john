@@ -30,13 +30,12 @@ def get_metadata(disk_image, header_offset):
     bc_data = bc_file.read(0x512)
     bc_file.close()
     if bc_data[0:0x20] == unhexlify(b'dda26a7e3a59ff453e350a44bcb4cdd572eacea8fa6484bb8d6612aebf3c6f47'):
+        crypto_type = bc_data[0x1e7:0x1e8]
         if bc_data[0x166:0x176] == b'\0' * 16:
             salt = bc_data[0x1e8:0x1f0]
-            crypto_type = b'\x08'
             version = b'3'
         else:
             salt = bc_data[0x1e8:0x1f0] + bc_data[0x166:0x176]
-            crypto_type = bc_data[0x1e7:0x1e8]
             version = b'4'
         enc_data = bc_data[0x26:0x86]
 
