@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from binascii import hexlify, unhexlify
 import argparse
 import struct
