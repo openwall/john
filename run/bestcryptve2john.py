@@ -12,7 +12,7 @@ class MyParser(argparse.ArgumentParser):
 def parseargs():
 
     parser = MyParser(description='Script to extract hashes from BestCrypt Volume encryption',
-                      usage='bestCryptFDE2john.py [-h] disk_image [--offset xxx]',
+                      usage='bestcryptve2john.py [-h] disk_image [--offset xxx]',
                       epilog='\n\n Developed by Trounce - April 2020')
     parser.add_argument('disk_image',
                         help='The disk image or partition image')
