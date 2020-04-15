@@ -26,9 +26,6 @@ john_register_one(&fmt_sevenzip);
 #include <zlib.h>
 #endif
 
-#undef SIMD_COEF_32
-#undef SIMD_PARA_SHA256
-#undef _OPENMP
 #ifdef _OPENMP
 #include <omp.h>
 #endif
