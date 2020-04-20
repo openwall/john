@@ -3022,8 +3022,15 @@ void opencl_list_devices(void)
 			printf("(%s)\n", boolean == CL_TRUE ? "LE" : "BE");
 			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_VERSION,
 			                sizeof(dname), dname, NULL);
-			printf("    Device version:         %s\n", dname);
-			printf("    Driver version:         %s\n",
+			printf("    Device version:         %s", dname);
+			/*
+			 * JtR requires OpenCL 1.1+. It doesn't properly support devices
+			 * that don't fully support OpenCL 1.1.
+			 */
+			if (strstr(dname, "OpenCL 1.0")) {
+				printf(" <the minimum REQUIRED is OpenCL 1.1>");
+			}
+			printf("\n    Driver version:         %s\n",
 			       opencl_driver_info(sequence_nr));
 
 			clGetDeviceInfo(devices[sequence_nr],
