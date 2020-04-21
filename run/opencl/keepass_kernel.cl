@@ -229,7 +229,7 @@ __kernel void keepass_final(__global keepass_state *state,
 		result[gid].cracked = !_memcmp_pmc(hash, salt->contents_hash, 32);
 	}
 	else if (salt->version == 2) {
-		uchar content[32];
+		volatile uchar content[32];
 
 		memcpy_macro(content, salt->contents, 32);
 
