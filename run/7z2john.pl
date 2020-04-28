@@ -125,6 +125,8 @@ my $SHORTEN_HASH_FIXED_HEADER  = 32.5;  # at the beginning of the compressed str
 my $SHORTEN_HASH_EXTRA_PERCENT = 5;     # the compressed stream could be slightly longer than the underlying data (special cases)
                                         # in percent: i.e. x % == (x / 100)
 
+my $DISPLAY_SENSITIVE_DATA_WARNING = 1; # 0 means skip or use --skip-sensitive-data-warning
+
 my $PASSWORD_RECOVERY_TOOL_NAME = "john";
 my $PASSWORD_RECOVERY_TOOL_DATA_LIMIT = 0x80000000;          # hexadecimal output value. This value should always be >= 64
 my $PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK  = 1;      # does the cracker support the AES-CBC padding attack (0 means no, 1 means yes)
@@ -3559,14 +3561,32 @@ sub splitted_seven_zip_open
 # Start
 #
 
-if (scalar (@ARGV) lt 1)
+my $display_sensitive_warning = $DISPLAY_SENSITIVE_DATA_WARNING;
+
+my @file_parameters = ();
+
+for (my $i = 0; $i < scalar (@ARGV); $i++)
+{
+  if ($ARGV[$i] eq "--skip-sensitive-data-warning")
+  {
+    $display_sensitive_warning = 0;
+  }
+  else
+  {
+    push (@file_parameters, $ARGV[$i]);
+  }
+}
+
+if (scalar (@file_parameters) lt 1)
 {
   usage ($0);
 
   exit (1);
 }
 
-my @file_list = globbing_on_windows (@ARGV);
+my $first_file = 1;
+
+my @file_list = globbing_on_windows (@file_parameters);
 
 # try to handle this special case: splitted .7z files (.7z.001, .7z.002, .7z.003, ...)
 # ATTENTION: there is one restriction here: splitted archives shouldn't be combined with other
@@ -3594,6 +3614,16 @@ foreach my $file_name (@file_list)
 
   next unless (defined ($hash_buf));
   next unless (length ($hash_buf) > 0);
+
+  if ($display_sensitive_warning == 1)
+  {
+    if ($first_file == 1)
+    {
+      print STDERR "ATTENTION: the hashes might contain sensitive encrypted data. Be careful when sharing or posting these hashes\n";
+
+      $first_file = 0;
+    }
+  }
 
   print $hash_buf . "\n";
 }
