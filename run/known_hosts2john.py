@@ -13,14 +13,14 @@ import sys
 def process_file(filename):
 
     for line in open(filename, "rb"):
+
+        fields = line.strip().split(" ")
+
         if not line.startswith("|1|"):  # is this always the case?
+            sys.stderr.write("%s\n" % fields[0]) # Assume non-hashed entries; print as seed
             continue
 
-        fields = line.strip().split("= ")
-        h = fields[0] + "="
-        hash_start = h.rfind("|") + 1
-
-        sys.stdout.write("%s:$known_hosts$%s\n" % (h[hash_start:], h))
+        sys.stdout.write("$known_hosts$%s\n" % fields[0])
 
 
 if __name__ == "__main__":
