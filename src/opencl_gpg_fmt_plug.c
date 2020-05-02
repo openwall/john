@@ -101,7 +101,7 @@ static cl_mem mem_in, mem_out, mem_setting;
 static struct fmt_main *self;
 static cl_kernel crypt_kernel_sha256, crypt_kernel_sha512;
 
-size_t insize, outsize, settingsize, cracked_size;
+static size_t insize, outsize, settingsize, cracked_size;
 
 #define STEP			0
 #define SEED			256

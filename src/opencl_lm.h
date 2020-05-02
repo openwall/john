@@ -68,9 +68,9 @@
 
 typedef unsigned WORD vtype;
 
-unsigned int CC_CACHE_ALIGN opencl_lm_index768[0x300];
+extern unsigned int CC_CACHE_ALIGN opencl_lm_index768[0x300];
 
-unsigned char opencl_lm_u[0x100];
+extern unsigned char opencl_lm_u[0x100];
 
 typedef struct {
 	unsigned char *pxkeys[LM_DEPTH]; /* Pointers into xkeys.c */

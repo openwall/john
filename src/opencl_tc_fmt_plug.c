@@ -59,8 +59,8 @@ john_register_one(&FMT_STRUCT);
 #define MAX_KFILE_SZ            1048576 /* 1 MB */
 #define MAX_KEYFILES            256
 
-unsigned char (*keyfiles_data)[MAX_KFILE_SZ];
-int (*keyfiles_length);
+static unsigned char (*keyfiles_data)[MAX_KFILE_SZ];
+static int (*keyfiles_length);
 
 #define KEYLEN  PLAINTEXT_LENGTH
 #define OUTLEN  64
@@ -80,7 +80,7 @@ typedef struct {
 	unsigned int bin[(512 - 64) / 4];
 } tc_salt;
 
-struct cust_salt {
+static struct cust_salt {
 	unsigned char salt[64];
 	unsigned char bin[512 - 64];
 	int loop_inc;

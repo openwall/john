@@ -19,6 +19,8 @@
 opencl_lm_combined *opencl_lm_all;
 opencl_lm_transfer *opencl_lm_keys;
 unsigned int *opencl_lm_int_key_loc = NULL;
+unsigned int CC_CACHE_ALIGN opencl_lm_index768[0x300];
+unsigned char opencl_lm_u[0x100];
 
 static unsigned char LM_KP[56] = {
 	1, 2, 3, 4, 5, 6, 7,

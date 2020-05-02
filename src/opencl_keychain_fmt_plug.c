@@ -78,7 +78,7 @@ static keychain_out *outbuffer;
 static keychain_salt currentsalt;
 static cl_mem mem_in, mem_dk, mem_salt, mem_out;
 
-size_t insize, dksize, saltsize, outsize;
+static size_t insize, dksize, saltsize, outsize;
 
 #define STEP                    0
 #define SEED                    256

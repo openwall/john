@@ -101,11 +101,11 @@ static unsigned char (*first_block_dec)[16];
 #define MAX_KEYFILES            256
 
 // keyfile(s) data
-unsigned char (*keyfiles_data)[MAX_KFILE_SZ];
-int (*keyfiles_length);
+static unsigned char (*keyfiles_data)[MAX_KFILE_SZ];
+static int (*keyfiles_length);
 static int *cracked;
 
-struct cust_salt {
+static struct cust_salt {
 	unsigned char salt[64];
 	// I 'thought' that bin[] could be removed, so that only salt[] was used
 	// for salt dupe-removal. That was wrong, bin[] must also be part of the

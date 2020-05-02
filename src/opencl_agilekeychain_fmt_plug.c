@@ -76,7 +76,7 @@ static agile_password *inbuffer;
 static agile_hash *outbuffer;
 static agile_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
-size_t insize, outsize, settingsize, cracked_size;
+static size_t insize, outsize, settingsize;
 static struct fmt_main *self;
 
 #define STEP			0

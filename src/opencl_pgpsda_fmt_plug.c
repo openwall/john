@@ -64,7 +64,7 @@ static pgpsda_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
 static struct fmt_main *self;
 
-size_t insize, outsize, settingsize;
+static size_t insize, outsize, settingsize;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
