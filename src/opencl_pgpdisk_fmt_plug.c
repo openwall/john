@@ -67,7 +67,7 @@ static cl_kernel aes_kernel, twofish_kernel, cast_kernel;
 static cl_mem mem_in, mem_out, mem_salt;
 static struct fmt_main *self;
 
-size_t insize, outsize, saltsize;
+static size_t insize, outsize, saltsize;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"

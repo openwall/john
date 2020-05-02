@@ -40,6 +40,7 @@ static opencl_DES_bs_transfer *des_raw_keys;
 static unsigned int *des_int_key_loc;
 static unsigned int static_gpu_locations[MASK_FMT_INT_PLHDR];
 static size_t process_key_gws;
+unsigned int CC_CACHE_ALIGN opencl_DES_bs_index768[0x300];
 
 unsigned char opencl_DES_E[48] = {
 	31, 0, 1, 2, 3, 4,

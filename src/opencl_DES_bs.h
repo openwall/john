@@ -60,7 +60,7 @@ extern int restore_lws_config(const char *, int, size_t *, size_t, unsigned int 
 
 typedef unsigned WORD vtype;
 
-unsigned int CC_CACHE_ALIGN opencl_DES_bs_index768[0x300];
+extern unsigned int CC_CACHE_ALIGN opencl_DES_bs_index768[0x300];
 
 struct fmt_main;
 

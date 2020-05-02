@@ -88,7 +88,7 @@ static cl_mem mem_in, mem_out, mem_setting, mem_state;
 static struct fmt_main *self;
 static cl_kernel sspr_kernel[5], loop_kernel[5];
 
-size_t insize, outsize, settingsize;
+static size_t insize, outsize, settingsize;
 
 #define STEP			0
 #define SEED			256

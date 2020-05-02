@@ -67,7 +67,7 @@ static odf_password *saved_key;
 static odf_out *crypt_out;
 static odf_salt currentsalt;
 
-size_t insize, outsize, settingsize, cracked_size;
+static size_t insize, outsize, settingsize;
 
 static struct custom_salt *cur_salt;
 
