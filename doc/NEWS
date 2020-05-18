@@ -101,8 +101,21 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Keys [<] and [>] can now be used to decrease/increase verbosity level.
   [magnum; 2020]
 
+- At verbosity level 2, only print admin cracks to screen.  [magnum; 2020]
+
 - Added --single-user-seed=FILE option for single mode. FILE is a wordlist
-  with seeds per username (user:password[s] format)  [magnum; 2020]
+  with seeds per username (user:password[s] format).  [magnum; 2020]
+
+- Added a workaround for some nvidia bug causing keepass-opencl to fail using
+  recent drivers.  [magnum; 2020]
+
+- Added a warning for devices only supporting OpenCL 1.0.  [Claudio; 2020]
+
+- Added -mlc option to unique - "max. length considered".  [magnum; 2020]
+
+- 7z formats:  Added support for BCJ et. al. (that's pre-processors sometimes
+  used before compression.  Before this we had false negatives for those.
+  Also updated LZMA code from upstream, to versioj 19.00.
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
