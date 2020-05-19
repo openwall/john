@@ -123,7 +123,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	if (autotune_real_db && self->params.tunable_cost_name[0] &&
 	    strcasestr(self->params.tunable_cost_name[0], "iter")) {
 		rounds = MIN(ocl_autotune_db->max_cost[0], options.loader.max_cost[0]);
-		if (options.verbosity > VERB_DEFAULT)
+		if (options.verbosity > VERB_DEFAULT && john_main_process)
 			fprintf(stderr, "[Using max. iterations of %u from real DB] ",
 			        rounds);
 	}
@@ -226,7 +226,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		find_best_gws(self, gpu_id, rounds, max_duration, 1);
 	}
 
-	if (options.verbosity >= VERB_DEBUG &&
+	if (options.verbosity >= VERB_DEBUG && john_main_process &&
 	    !(self_test_running && (options.flags & FLG_NOTESTS)))
 		fprintf(stderr, "%s ", autotune_real_db ? "RealDB" : "TestDB");
 
