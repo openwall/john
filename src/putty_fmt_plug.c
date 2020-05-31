@@ -184,10 +184,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if (strlen(p) > 32)
 			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)	/* comment */
-			goto err;
+			goto ok;  // since comment is optional
 		if (strlen(p) > 512)
 			goto err;
 	}
+
+ok:
 	MEM_FREE(keeptr);
 	return 1;
 
@@ -244,7 +246,8 @@ static void *get_salt(char *ciphertext)
 		p = strtokm(NULL, "*");
 		strcpy(cs->encryption, p);
 		p = strtokm(NULL, "*");
-		strcpy(cs->comment, p);
+		if (p)
+			strcpy(cs->comment, p);
 	}
 	MEM_FREE(keeptr);
 	return (void *)cs;
