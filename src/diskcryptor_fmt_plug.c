@@ -139,11 +139,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 		// kdf
 #ifdef SIMD_COEF_64
-		for (i = 0; i < MIN_KEYS_PER_CRYPT && index+i < count; ++i) {
+		i = 0;
+		do {
 			lens[i] = saved_len[index+i];
 			pin[i] = (unsigned char*)saved_key[index+i];
 			pout[i] = seed[i];
-		}
+			++i;
+		} while (i < MIN_KEYS_PER_CRYPT && index+i < count);
 		for (; i < MIN_KEYS_PER_CRYPT; ++i) {
 			lens[i] = 0;
 			pin[i] = pin[0];

@@ -752,7 +752,7 @@ short hex_byte(char *str)
 	return result & 0xff;
 }
 
-const int IHX_SIZE_MAX = 65536;
+static const int IHX_SIZE_MAX = 65536;
 
 int ihx_load_data(struct ihx_data *ihx_data, FILE *fp)
 {
