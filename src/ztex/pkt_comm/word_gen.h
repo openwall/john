@@ -32,7 +32,7 @@ struct word_gen {
 	//unsigned char magic;	// 0xBB <- added by pkt_word_gen_new()
 };
 
-struct word_gen word_gen_words_pass_by;
+extern struct word_gen word_gen_words_pass_by;
 
 struct pkt *pkt_word_gen_new(struct word_gen *word_gen);
 

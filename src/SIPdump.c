@@ -412,11 +412,8 @@ static void parse_payload(const conn_t * connection,
 				    strlen(conn_table[i].buffer) + 1;
 				payload_buffer =
 				    (char *) Calloc(payload_buffer_len);
-				strncpy(payload_buffer, conn_table[i].buffer,
-				    payload_buffer_len - 1);
-				strncat(payload_buffer, (char *) payload,
-				    payload_buffer_len -
-				    strlen(payload_buffer) - 1);
+				strcpy(payload_buffer, conn_table[i].buffer);
+				strncat(payload_buffer, (char *) payload, payload_len);
 
 				/* Parse buffer (saved buffer + packet payload) */
 				ret = parse_sip_proto(buffer,

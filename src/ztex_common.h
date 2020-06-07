@@ -14,15 +14,15 @@
  * List of boards detected at initialization.
  * --dev command-line option applies.
  */
-struct list_main *ztex_detected_list;
+extern struct list_main *ztex_detected_list;
 
 /*
  * List of boards for use in current fork.
  */
-struct list_main *ztex_use_list;
+extern struct list_main *ztex_use_list;
 
-int ztex_devices_per_fork;
-int ztex_fork_num;
+extern int ztex_devices_per_fork;
+extern int ztex_fork_num;
 
 /*
  * The function is to be called on the access to ZTEX formats.

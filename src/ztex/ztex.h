@@ -167,7 +167,6 @@ int ztex_upload_bitstream(struct ztex_device *dev, FILE *fp);
 int ztex_reset_cpu(struct ztex_device *dev, int r);
 
 // firmware image loaded from an ihx (Intel Hex format) file.
-const int IHX_SIZE_MAX;
 struct ihx_data {
 	short *data;
 };
