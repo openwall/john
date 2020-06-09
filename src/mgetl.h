@@ -42,7 +42,7 @@ static MAYBE_INLINE char *mgetl(char *res)
 
 		vstoreu((vtype*)pos, x);
 		if (v) {
-#ifdef __GNUC__
+#if __GNUC__ >= 4 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
 			unsigned int r = __builtin_ctzl(v);
 #else
 			unsigned int r = ffs(v) - 1;

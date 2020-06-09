@@ -17,6 +17,10 @@
 #ifndef _JTR_JUMBO_H
 #define _JTR_JUMBO_H
 
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
+
 #include "arch.h"
 #include <stdio.h>
 #include <errno.h>
@@ -35,7 +39,6 @@
 #endif
 
 #include <stdint.h>
-#define __STDC_FORMAT_MACROS
 #if (!AC_BUILT || HAVE_INTTYPES_H) && ! defined(_MSC_VER)
 #include <inttypes.h>
 #else

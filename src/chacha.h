@@ -12,6 +12,16 @@ Public domain.
 #include <sys/types.h>
 #include <stdlib.h>
 
+/* Avoid clash with system headers */
+#undef u8
+#define u8 john_u8
+#undef u_char
+#define u_char john_u_char
+#undef u32
+#define u32 john_u32
+#undef u_int
+#define u_int john_u_int
+
 typedef unsigned char u8;
 typedef unsigned char u_char;
 typedef unsigned int u32;

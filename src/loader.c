@@ -1972,7 +1972,8 @@ static void ldr_fill_user_words(struct db_main *db)
 				*pw++ = 0;
 
 #if HAVE_MMAP
-				if ((seeds_sorted == (MAYBE | SORTED | ASCII)) && *line < 128 && *reset_pos < 128 &&
+				if ((seeds_sorted == (MAYBE | SORTED | ASCII)) &&
+				    (unsigned char)*line < 128 && (unsigned char)*reset_pos < 128 &&
 				    strncmp(line, reset_pos, strlen(line)) < 0) {
 					fprintf(stderr, "User-seed file isn't sorted, slow load.\n");
 					seeds_sorted = NO;
@@ -1999,9 +2000,9 @@ static void ldr_fill_user_words(struct db_main *db)
 					continue;
 				} else if (s && (seeds_sorted & ASCII)) {
 #if HAVE_MMAP
-					map_pos = (*user < 128) ? reset_pos : mem_map;
+					map_pos = ((unsigned char)*user < 128) ? reset_pos : mem_map;
 #else
-					fseek(file, (*user < 128) ? reset_pos : 0, SEEK_SET);
+					fseek(file, ((unsigned char)*user < 128) ? reset_pos : 0, SEEK_SET);
 #endif
 					break;
 				} else if (s) {

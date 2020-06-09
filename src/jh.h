@@ -12,10 +12,14 @@
    --------------------------------
    Last Modified: January 16, 2011
 */
-#pragma once
+
+#ifndef _JOHN_JH_H
+#define _JOHN_JH_H
 
 typedef unsigned char BitSequenceJH;
 typedef unsigned long long DataLengthJH;
 typedef enum {SUCCESS = 0, FAIL = 1, BAD_HASHLEN = 2} HashReturn;
 
 HashReturn jh_hash(int hashbitlen, const BitSequenceJH *data, DataLengthJH databitlen, BitSequenceJH *hashval);
+
+#endif

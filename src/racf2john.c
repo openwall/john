@@ -97,9 +97,9 @@ static void process_user_rec(unsigned char * up, uint16_t len, unsigned char * p
 	int found = T_EMPTY;
 	int rpt = false;
 	unsigned char * h1 = NULL;
-	uint8_t h1_len;
+	uint8_t h1_len = 0;
 	unsigned char * h2 = NULL;
-	uint8_t h2_len;
+	uint8_t h2_len = 0;
 
 	while (x < len) {
 		fn = up[x];

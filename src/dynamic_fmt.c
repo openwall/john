@@ -7973,7 +7973,6 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 
 static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 {
-	extern struct options_main options;
 	char label[16] = { 0 }, label_id[16] = { 0 }, *cp = NULL;
 	memcpy(pFmt, &fmt_Dynamic, sizeof(struct fmt_main));
 
@@ -8008,10 +8007,7 @@ static int LoadOneFormat(int idx, struct fmt_main *pFmt)
 	cp = strchr(label_id, '$');
 	if (NULL != cp) *cp = 0;
 
-//	if (!options.format || strncmp(options.format, "dynamic_", 8))
-//		pFmt->params.label = str_alloc_copy("dynamic");
-//	else
-		pFmt->params.label = str_alloc_copy(label_id);
+	pFmt->params.label = str_alloc_copy(label_id);
 
 	strcpy(curdat.dynamic_WHICH_TYPE_SIG, label);
 
