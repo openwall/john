@@ -575,6 +575,10 @@ void alter_endianity_w64(void *_x, unsigned int count) {
 #endif
 }
 
+#ifdef __unix__
+#include <sys/mman.h>
+#endif
+
 #define HUGEPAGE_THRESHOLD		(12 * 1024 * 1024)
 
 #ifdef __x86_64__
@@ -587,7 +591,7 @@ void *
 alloc_region_t(region_t * region, size_t size)
 {
 	size_t base_size = size;
-	uint8_t * base, * aligned;
+	void * base, * aligned;
 #ifdef MAP_ANON
 	int flags =
 #ifdef MAP_NOCORE
@@ -622,7 +626,7 @@ alloc_region_t(region_t * region, size_t size)
 		base = NULL;
 	aligned = base;
 #elif defined(HAVE_POSIX_MEMALIGN)
-	if ((errno = posix_memalign((void **)&base, 64, size)) != 0)
+	if ((errno = posix_memalign(&base, 64, size)) != 0)
 		base = NULL;
 	aligned = base;
 #else
@@ -630,8 +634,8 @@ alloc_region_t(region_t * region, size_t size)
 	if (size + 63 < size) {
 		errno = ENOMEM;
 	} else if ((base = malloc(size + 63)) != NULL) {
-		aligned = base + 63;
-		aligned -= (uintptr_t)aligned & 63;
+		aligned = (uint8_t *)base + 63;
+		aligned = (uint8_t *)aligned - ((uintptr_t)aligned & 63);
 	}
 #endif
 	region->base = base;

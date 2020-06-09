@@ -441,7 +441,7 @@ int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list,
 		struct list_main *dev_allow)
 {
 	libusb_device **usb_devs;
-	int result, result_open;
+	int result, result_open = 0;
 	int count = 0;
 	ssize_t cnt;
 

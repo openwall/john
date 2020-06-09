@@ -2,8 +2,12 @@
 
 /* Header structs taken from vilefault project */
 
-#pragma pack(push)  /* push current alignment to stack */
-#pragma pack(1)     /* set alignment to 1 byte boundary */
+#if defined(__GNUC__) && !defined(__MINGW32__)
+#define PACKED __attribute__ ((__packed__))
+#else
+#define PACKED
+#pragma pack(push,1)
+#endif
 
 typedef struct {
 	unsigned char filler1[48];
@@ -18,7 +22,7 @@ typedef struct {
 	unsigned int len_integrity_key;
 	unsigned char wrapped_integrity_key[48];
 	unsigned char filler6[484];
-} cencrypted_v1_header;
+} PACKED cencrypted_v1_header;
 
 typedef struct {
 	unsigned char sig[8];
@@ -34,7 +38,7 @@ typedef struct {
 	uint64_t datasize;
 	uint64_t dataoffset;
 	uint32_t keycount;
-} cencrypted_v2_header;
+} PACKED cencrypted_v2_header;
 
 typedef struct {
 	uint32_t header_type;
@@ -42,7 +46,7 @@ typedef struct {
 	uint32_t header_offset;
 	uint32_t unk2;
 	uint32_t header_size;
-} cencrypted_v2_key_header_pointer;
+} PACKED cencrypted_v2_key_header_pointer;
 
 typedef struct {
 	uint32_t algorithm;
@@ -58,7 +62,7 @@ typedef struct {
 	uint32_t blob_enc_mode;
 	uint32_t keyblobsize;
 	unsigned char *keyblob;
-} cencrypted_v2_password_header;
+} PACKED cencrypted_v2_password_header;
 
 typedef struct {
 	uint32_t salt_size;
@@ -68,6 +72,8 @@ typedef struct {
 	uint32_t unk3;
 	uint32_t keyblobsize;
 	unsigned char keyblob[512];
-} cencrypted_v2_private_key_header;
+} PACKED cencrypted_v2_private_key_header;
 
-#pragma pack(pop)   /* restore original alignment from stack */
+#if !defined(__GNUC__) || defined(__MINGW32__)
+#pragma pack(pop)
+#endif

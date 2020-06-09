@@ -36,13 +36,16 @@
 
 #include "blake2b-round.h"
 
-JTR_ALIGN( 64 ) static const uint64_t blake2b_IV[8] =
-{
+JTR_ALIGN( 64 ) static const union {
+  uint64_t u64[8];
+  __m128i m128[4];
+} blake2b_IV =
+{{
   0x6a09e667f3bcc908ULL, 0xbb67ae8584caa73bULL,
   0x3c6ef372fe94f82bULL, 0xa54ff53a5f1d36f1ULL,
   0x510e527fade682d1ULL, 0x9b05688c2b3e6c1fULL,
   0x1f83d9abfb41bd6bULL, 0x5be0cd19137e2179ULL
-};
+}};
 
 /* Some helper functions, not necessarily useful */
 inline static int blake2b_set_lastnode( blake2b_state *S )
@@ -81,7 +84,7 @@ int blake2b_init_param( blake2b_state *S, const blake2b_param *P )
   uint8_t *p, *h, *v;
   int i;
   //blake2b_init0( S );
-  v = ( uint8_t * )( blake2b_IV );
+  v = ( uint8_t * )( &blake2b_IV );
   h = ( uint8_t * )( S->h );
   p = ( uint8_t * )( P );
   /* IV XOR ParamBlock */
@@ -191,10 +194,10 @@ inline static int blake2b_compress( blake2b_state *S, const uint8_t block[BLAKE2
   row1h = LOAD( &S->h[2] );
   row2l = LOAD( &S->h[4] );
   row2h = LOAD( &S->h[6] );
-  row3l = LOAD( &blake2b_IV[0] );
-  row3h = LOAD( &blake2b_IV[2] );
-  row4l = _mm_xor_si128( LOAD( &blake2b_IV[4] ), LOAD( &S->t[0] ) );
-  row4h = _mm_xor_si128( LOAD( &blake2b_IV[6] ), LOAD( &S->f[0] ) );
+  row3l = LOAD( &blake2b_IV.m128[0] );
+  row3h = LOAD( &blake2b_IV.m128[1] );
+  row4l = _mm_xor_si128( LOAD( &blake2b_IV.m128[2] ), LOAD( &S->t[0] ) );
+  row4h = _mm_xor_si128( LOAD( &blake2b_IV.m128[3] ), LOAD( &S->f[0] ) );
   ROUND( 0 );
   ROUND( 1 );
   ROUND( 2 );

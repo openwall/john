@@ -2,7 +2,8 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#pragma once
+#ifndef _JOHN_INT_UTIL_H
+#define _JOHN_INT_UTIL_H
 
 #include <assert.h>
 #include <stdbool.h>
@@ -209,4 +210,6 @@ static_assert(false, "BYTE_ORDER is undefined. Perhaps, GNU extensions are not e
 #define mem_inplace_swap64le mem_inplace_swap64
 #define memcpy_swap64be memcpy_ident64
 #define memcpy_swap64le memcpy_swap64
+#endif
+
 #endif
