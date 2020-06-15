@@ -1601,18 +1601,19 @@ parse_packet(char *hash)
 				break;
 			}
 		}
-		if (tag < TAG_NUM)
-			{if (gpg_dbg) fprintf(stderr, "%s(tag %d)", TAG[tag], tag);}
-		else
+		if (tag < TAG_NUM) {
+			if (gpg_dbg) fprintf(stderr, "%s(tag %d)", TAG[tag], tag);
+		} else {
 			fprintf(stderr, "unknown(tag %d)", tag);
+		}
 
-		if (partial == YES)
-			;
+		if (partial == YES) {
 			if (gpg_dbg) fprintf(stderr, "(%d bytes) partial start\n", len);
-		else if (tag == TAG_COMPRESSED)
+		} else if (tag == TAG_COMPRESSED) {
 			fprintf(stderr, "\n");
-		else if (len == EOF)
+		} else if (len == EOF) {
 			fprintf(stderr, "(until eof)\n");
+		}
 		// else printf("(%d bytes)\n", len);
 
 		if (tag < TAG_NUM && tag_func[tag] != NULL) {
