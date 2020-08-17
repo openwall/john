@@ -98,7 +98,8 @@ john_register_one(&fmt_rar);
 #define MAX_KEYS_PER_CRYPT  NBKEYS
 #else
 #define ALGORITHM_NAME		"SHA1 AES 32/" ARCH_BITS_STR
-#define PLAINTEXT_LENGTH	125
+/* NOTE for implementing support for lengths past 28 (56 bytes of UTF-16), see issue #4296 */
+#define PLAINTEXT_LENGTH	28 //125
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 #endif
