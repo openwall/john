@@ -15,7 +15,7 @@
        and ciphers.
 
        Read more at:
-       - github.com/magnumripper/JohnTheRipper
+       - github.com/openwall/john
 
        This version integrates lots of contributed patches, including GPU support,
        has fallback for CPU SIMD extensions and for OMP, moreover, has regex and
@@ -34,7 +34,7 @@
   </screenshots>
 
   <url type="homepage">https://www.openwall.com/john/</url>
-  <url type="bugtracker">https://github.com/magnumripper/JohnTheRipper/issues</url>
+  <url type="bugtracker">https://github.com/openwall/john/issues</url>
   <url type="donation">https://www.zerodayclothing.com/openwall_store.php</url>
 
   <developer_name>Openwall and others</developer_name>

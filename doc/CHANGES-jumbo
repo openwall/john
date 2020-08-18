@@ -2718,7 +2718,7 @@ magnum (2623):
 	DMG OpenCL: Use split kernel. Closes #2564.
 	Add SL3 CPU format. Closes #731.
 	Add a silly kludge for a silly test. See
-	  https://github.com/magnumripper/JohnTheRipper/commit/e4795d6#commitcomment-22477620
+	  https://github.com/openwall/john/commit/e4795d6#commitcomment-22477620
 	Buffer overrun fix for SL3 format in non SIMD builds.
 	Revert "Using the new multibyte character aware API from rexgen
 	  (#2566)" (#2569)
@@ -4145,7 +4145,7 @@ magnum (2623):
 	Add a warning about self-tests currently being disabled with -test
 	  -mask.
 	Revert part of 4b6929031ad. See discussion at
-	  https://github.com/magnumripper/JohnTheRipper/commit/4b6929031
+	  https://github.com/openwall/john/commit/4b6929031
 	Revert "Many OpenCL formats: Use new scheme of LWS=NULL for
 	  less-than-full batches" This reverts commit
 	  0d3ea928cbdb2c2a861c0ecd3c00fc2113213387.
@@ -6981,7 +6981,7 @@ Claudio André (318):
 	Fix a possible bug in xsha512 OpenCL format.
 	Small tweaks.
 	Fix for the intermitent mask error on CPU. - see:
-	  https://github.com/magnumripper/JohnTheRipper/issues/1037#issuecomment-71936052
+	  https://github.com/openwall/john/issues/1037#issuecomment-71936052
 	OpenCL raw-SHA256 and raw-SHA512: Do not compile kernel in init(). It
 	  slows things down.
 	OpenCL SHA256crypt and SHA512crypt: Do not compile kernel in init().
@@ -7764,7 +7764,7 @@ Frank Dittrich (248):
 	Makefile.legacy: define HAVE_LIBSSL While legacy builds always used
 	  -lssl, autofonf changes made including openssl includes depend on
 	  HAVE_LIBSSL. This should also fix
-	  https://github.com/magnumripper/JohnTheRipper/issues/1526#issuecomment-120008446
+	  https://github.com/openwall/john/issues/1526#issuecomment-120008446
 	Fix comments in ike-crack.h: s/HAVE_OPENSSL/HAVE_LIBSSL/
 	sapH_fmt_plug.c: avoid memleaks on invalid hashes
 	Adjust sap2john.pl comments
@@ -9794,7 +9794,7 @@ magnum (1889):
 	wpapcap2john: Ensure we don't overrun SSID buffer with overlong tags,
 	  and print a debug message. Thanks to bytebieger for reporting
 	  this issue. We still do not know the cause. See
-	  https://github.com/magnumripper/JohnTheRipper/pull/366 for
+	  https://github.com/openwall/john/pull/366 for
 	  discussion.
 	Mute a compiler warning for rakp-opencl.
 	rakp-opencl: Whitespace fixes and rename file according to standard.
@@ -15100,7 +15100,7 @@ magnum (731):
 	wpapcap2john: Ensure we don't overrun SSID buffer with overlong tags,
 	  and print a debug message. Thanks to bytebieger for reporting
 	  this issue. We still do not know the cause. See
-	  https://github.com/magnumripper/JohnTheRipper/pull/366 for
+	  https://github.com/openwall/john/pull/366 for
 	  discussion.
 	NVCC tweaks (mostly comments, but add -fmad=true) in Makefile.
 	Fix an obscure bug in mscash where an overlong key would truncate

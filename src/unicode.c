@@ -1884,7 +1884,7 @@ int enc_hasdigit(char *s)
 
 /*
  * The concept of UTF-8-32 and associated code was first mentioned at
- * https://github.com/magnumripper/JohnTheRipper/issues/3510
+ * https://github.com/openwall/john/issues/3510
  *
  * Char| Unicode |    UTF-8    |   UTF-32   | UTF-8-32
  * ----|---------|-------------|------------|-----------

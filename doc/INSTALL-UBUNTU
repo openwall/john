@@ -91,7 +91,7 @@ build CPU fallback chains for any x86-64 CPU.
 ==== Clone the Git repo
 
     cd ~/src
-    git clone https://github.com/magnumripper/JohnTheRipper -b bleeding-jumbo john
+    git clone https://github.com/openwall/john -b bleeding-jumbo john
 
 ==== Build
 
