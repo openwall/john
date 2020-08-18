@@ -103,7 +103,7 @@ after each block.
 - It allows several programs hardcoded in CPU's instruction memory.
 Required program is selected at runtime. Currently there're 2 programs:
 sha512crypt and Drupal7 CMS hashes.
-- The program for the CPU is available <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/fpga-sha512crypt/sha512crypt/cpu/program.vh'>here</a>.
+- The program for the CPU is available <a href='https://github.com/openwall/john/blob/bleeding-jumbo/src/ztex/fpga-sha512crypt/sha512crypt/cpu/program.vh'>here</a>.
 
 
 ## Design overview
@@ -162,13 +162,13 @@ candidate generator (bcrypt and descrypt have fixed-length inputs).
 ## How to run simulation using ISIM from ISE Design Suite
 
 - Make sure you have ```define SIMULATION``` in sha512.vh uncommented.
-- For behavioral simulation of 1 unit, run <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/fpga-sha512crypt/sha512crypt/unit/sha512unit_test.v'>sha512unit_test</a>.
+- For behavioral simulation of 1 unit, run <a href='https://github.com/openwall/john/blob/bleeding-jumbo/src/ztex/fpga-sha512crypt/sha512crypt/unit/sha512unit_test.v'>sha512unit_test</a>.
 Uncomment/add what you're testing. The result of the 1st computation
 appears in the Unit's Output Buffer (unit_output_buf) and in rows 48-63 of
 "main" memory (sha512unit.engine.mem_main.inst.native_mem_module.memory).
 - For simulation of full design with data as arrives from USB controller,
-use <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/fpga-sha512crypt/sha512crypt/sha512crypt_test.v'>sha512crypt_test</a>.
-Output packets (defined in <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/pkt_comm/inpkt.h'>inpkt.h</a>) appear in
+use <a href='https://github.com/openwall/john/blob/bleeding-jumbo/src/ztex/fpga-sha512crypt/sha512crypt/sha512crypt_test.v'>sha512crypt_test</a>.
+Output packets (defined in <a href='https://github.com/openwall/john/blob/bleeding-jumbo/src/ztex/pkt_comm/inpkt.h'>inpkt.h</a>) appear in
 output_fifo.fifo_output0.ram exactly as before they leave FPGA.
 
 

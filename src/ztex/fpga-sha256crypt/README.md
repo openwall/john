@@ -127,7 +127,7 @@ fetches input data from the memory, creates 16 x 32-bit data blocks
 for cores, adds padding and total where necessary. It saves
 the state of an unfinished computation, switches to the next core
 after each block.
-- The program for the CPU is available <a href='https://github.com/magnumripper/JohnTheRipper/blob/bleeding-jumbo/src/ztex/fpga-sha256crypt/sha256crypt/cpu/program.vh'>here</a>.
+- The program for the CPU is available <a href='https://github.com/openwall/john/blob/bleeding-jumbo/src/ztex/fpga-sha256crypt/sha256crypt/cpu/program.vh'>here</a>.
 
 
 ## Design overview

@@ -293,7 +293,7 @@ static void init(struct fmt_main *self)
 
 /*
  * LUKS format will need to be redesigned to address the issues mentioned in
- * https://github.com/magnumripper/JohnTheRipper/issues/557.
+ * https://github.com/openwall/john/issues/557.
  * This will require a change in john's hash representation for LUKS format.
  * The redesign will happen after the next official jumbo release.
  * To avoid having to support the current LUKS hash representation forever,

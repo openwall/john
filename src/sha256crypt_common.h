@@ -150,7 +150,7 @@ static struct fmt_tests tests[] = {
 
 	{"$5$QSTVVEKDIDYRNK$4j8TST.29P07GHASD.BUHd0UTaFz7h.Mz//zcHokoZ5", "cgyihfkqk"},
 
-	// These were found in a bug #1077 https://github.com/magnumripper/JohnTheRipper/issues/1077
+	// These were found in a bug #1077 https://github.com/openwall/john/issues/1077
 	// and created by pass_gen to test all lengths of salts. NOTE, I could
 	// not get pass_gen.pl to do a null salt. Not sure it could be made anyway
 	{"$5$1$EjlWWGGbmWXm00wmWG2EutReY7G/TA9awDah5IvTSy2", "short_salt"},

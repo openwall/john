@@ -1442,7 +1442,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 			C = PKZ_MULT(*b++,key2);
 #if 1
-			// https://github.com/magnumripper/JohnTheRipper/issues/467
+			// https://github.com/openwall/john/issues/467
 			// Fixed, JimF.  Added checksum test for crc32 and timestamp.
 			if (C != (e>>8) && C != (e2>>8))
 				goto Failed_Bailout;
@@ -1497,7 +1497,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 				continue;
 			}
 #if 1
-			// https://github.com/magnumripper/JohnTheRipper/issues/467
+			// https://github.com/openwall/john/issues/467
 			// Ok, if this is a code 3, we are done.
 			// Code moved to after the check for stored type.  (FIXED)  This check was INVALID for a stored type file.
 			if ( (C & 6) == 6)

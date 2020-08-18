@@ -28,7 +28,7 @@ system.
 
 ==== Download latest snapshot of source
 
-    Download https://github.com/magnumripper/JohnTheRipper/archive/bleeding-jumbo.zip
+    Download https://github.com/openwall/john/archive/bleeding-jumbo.zip
     Unzip it to your preferred directory
 
 ==== Build

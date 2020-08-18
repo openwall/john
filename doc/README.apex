@@ -22,7 +22,7 @@ SQL> @dump-apex-hashes.sql
 
 $ python apex2john.py apex-hashes.txt > apex-hashes-JtR
 
-$ john pex-hashes-JtR # use JtR-jumbo from https://github.com/magnumripper/JohnTheRipper/
+$ john pex-hashes-JtR # use JtR-jumbo from https://github.com/openwall/john/
 Loaded 1 password hash (dynamic_1: md5($p.$s) (joomla) [128/128 SSE2 intrinsics 10x4x3])
 password         (?)
 guesses: 1  time: 0:00:00:00 DONE (Thu Feb 21 17:33:43 2013)  c/s: 375  trying: 123456 - boomer
