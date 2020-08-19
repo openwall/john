@@ -184,8 +184,8 @@ static int fexpect(FILE *stream, int c)
 	return d == c;
 }
 
-static int checksum_only = 0, use_magic = 0;
-static int force_2_byte_checksum = 0;
+static int checksum_only, use_magic;
+static int force_1_byte_checksum, force_2_byte_checksum;
 static char *ascii_fname, *only_fname;
 
 static char *MagicTypes[] = { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", "PST", NULL };
@@ -225,7 +225,6 @@ typedef struct _zip_file
 {
 	FILE *fp;
 	const char *fname;
-	int unix_made; // not used, inverse of check_in_crc...
 	int check_in_crc; // ??? only used for debug output...
 	int check_bytes;  // number of valid bytes in checksum
 	int zip64; // Is ZIP64 format (has ZIP64 EOCD)
@@ -741,6 +740,8 @@ static int load_local_header(zip_file *zfp, zip_ptr *p)
 static int process_legacy(zip_file *zfp, zip_ptr *p)
 {
 	FILE *fp = zfp->fp;
+
+	force_1_byte_checksum = 0;
 	fprintf(stderr, "ver %d.%d ", p->version / 10, p->version % 10);
 
 	if ( (p->flags & FLAG_ENCRYPTED) &&
@@ -774,16 +775,23 @@ static int process_legacy(zip_file *zfp, zip_ptr *p)
 				// OLD winzip (I think 8.01 or before), is also supposed to be 2 byte.
 				// old v1 pkzip (the DOS builds) are 2 byte checksums.
 			{
-				zfp->unix_made = 1;
 				zfp->check_bytes = 2;
 				zfp->check_in_crc = 0;
 			}
+
+			// This suggests libarchive and/or eZip was involved, and seems to
+			// indicate we only have a 1-byte valid CS. See #4300
+			if (efh_id == 0x6c78)
+				force_1_byte_checksum = 1;
 		}
 
 		scan_for_data_descriptor(zfp, p);
 
+		// Command line option -2 will override libarchive EFH
 		if (force_2_byte_checksum)
 			zfp->check_bytes = 2;
+		else if (force_1_byte_checksum)
+			zfp->check_bytes = 1;
 
 		fprintf(stderr,
 		        "%s/%s PKZIP%s Encr:%s%s cmplen=%"PRIu64", decmplen=%"PRIu64", crc=%X type=%"PRIu16"\n",
@@ -932,7 +940,6 @@ static void init_zip_context(zip_context *ctx, const char *fname, FILE *fp)
 	ctx->archive.fname = fname;
 	ctx->archive.check_in_crc = 1;
 	ctx->archive.check_bytes = 1;
-	ctx->archive.unix_made = 0;
 	ctx->archive.fp = fp;
 }
 
