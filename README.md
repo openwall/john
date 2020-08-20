@@ -1,5 +1,5 @@
-[![Build Status](https://travis-ci.com/magnumripper/JohnTheRipper.svg?branch=bleeding-jumbo)](https://travis-ci.com/magnumripper/JohnTheRipper)
-[![Circle CI](https://circleci.com/gh/magnumripper/JohnTheRipper/tree/bleeding-jumbo.svg?style=shield)](https://circleci.com/gh/magnumripper/JohnTheRipper/tree/bleeding-jumbo)
+[![Build Status](https://travis-ci.org/openwall/john.svg?branch=bleeding-jumbo)](https://travis-ci.org/openwall/john)
+[![Circle CI](https://circleci.com/gh/openwall/john/tree/bleeding-jumbo.svg?style=shield)](https://circleci.com/gh/openwall/john/tree/bleeding-jumbo)
 [![Downloads](https://img.shields.io/badge/Download-Windows%20Build-blue.svg)](https://github.com/openwall/john-packages/releases/tag/jumbo-dev)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://github.com/openwall/john/blob/bleeding-jumbo/doc/LICENSE)
 [![LoC](https://tokei.rs/b1/github/openwall/john?category=code)](https://github.com/openwall/john/tree/bleeding-jumbo)
