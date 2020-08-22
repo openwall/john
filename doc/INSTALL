@@ -76,11 +76,10 @@ which needs the "--enable-mpi" option to be supplied to configure (nearly
 all users should use the --fork option instead of MPI so wont need this). If
 something is missing, it's likely installed in a non-standard location so
 you'd need to pass parameters:
-	./configure LDFLAGS=-L/opt/lib CFLAGS="-O2 -I/opt/include" && make -sj4
+	./configure LDFLAGS=-L/opt/lib CPPFLAGS=-I/opt/include && make -sj4
 
-NOTE! If you pass CFLAGS like above, you probably also want to add "-O2"
-since it (and "-g") will only be added automatically provided CFLAGS start
-out empty. This is a feature of the autoconf macros, not specific to JtR.
+Note that it's important to use CPPFLAGS and not CFLAGS in the example above,
+so that you don't override our compiler optimization flags in CFLAGS.
 
 If you have a broken pkg-config (eg. claiming there is no OpenSSL even though
 there is one) you can disable its use within configure:
