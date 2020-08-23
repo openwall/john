@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/openwall/john.svg?branch=bleeding-jumbo)](https://travis-ci.org/openwall/john)
+[![Build Status](https://api.travis-ci.com/openwall/john.svg?branch=bleeding-jumbo)](https://travis-ci.com/github/openwall/john)
 [![Circle CI](https://circleci.com/gh/openwall/john/tree/bleeding-jumbo.svg?style=shield)](https://circleci.com/gh/openwall/john/tree/bleeding-jumbo)
 [![Downloads](https://img.shields.io/badge/Download-Windows%20Build-blue.svg)](https://github.com/openwall/john-packages/releases/tag/jumbo-dev)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://github.com/openwall/john/blob/bleeding-jumbo/doc/LICENSE)
