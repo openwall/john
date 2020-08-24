@@ -42,6 +42,7 @@ static mask_parsed_ctx parsed_mask;
 static mask_cpu_context cpu_mask_ctx, rec_ctx, restored_ctx;
 static int *template_key_offsets;
 static char *mask = NULL, *template_key;
+static int old_extern_key_len;
 static int max_keylen, rec_len, restored_len, restored;
 static uint64_t rec_cl, cand_length;
 static struct fmt_main *mask_fmt;
@@ -2210,6 +2211,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 	mask = unprocessed_mask;
 	template_key = mem_alloc(0x400);
+	old_extern_key_len = -1;
 
 	/* Handle command-line (or john.conf) masks given in UTF-8 */
 	if (options.input_enc == UTF_8 && options.internal_cp != UTF_8) {
@@ -2491,7 +2493,7 @@ void mask_destroy()
 
 int do_mask_crack(const char *extern_key)
 {
-	int key_len = extern_key ? strlen(extern_key) : 0;
+	int extern_key_len = extern_key ? strlen(extern_key) : 0;
 	int i;
 
 #ifdef MASK_DEBUG
@@ -2555,7 +2557,7 @@ int do_mask_crack(const char *extern_key)
 			else
 				finalize_mask(mask_cur_len);
 
-			generate_template_key(mask, extern_key, key_len, &parsed_mask,
+			generate_template_key(mask, extern_key, extern_key_len, &parsed_mask,
 			                      &cpu_mask_ctx, mask_cur_len);
 
 			if (restored)
@@ -2590,20 +2592,18 @@ int do_mask_crack(const char *extern_key)
 			}
 		}
 	} else {
-		static int old_keylen = -1;
-
-		if (old_keylen != key_len) {
+		if (old_extern_key_len != extern_key_len) {
 			save_restore(&cpu_mask_ctx, 0, RESTORE);
-			generate_template_key(mask, extern_key, key_len, &parsed_mask,
+			generate_template_key(mask, extern_key, extern_key_len, &parsed_mask,
 			                      &cpu_mask_ctx, max_keylen);
-			old_keylen = key_len;
+			old_extern_key_len = extern_key_len;
 		}
 
 		i = 0;
 		while(template_key_offsets[i] != -1) {
 			int offset = template_key_offsets[i] & 0xffff;
 			unsigned char toggle =  (template_key_offsets[i++] >> 16) == 'W';
-			int cpy_len = MIN(max_keylen - offset, key_len);
+			int cpy_len = MIN(max_keylen - offset, extern_key_len);
 
 			if (!toggle)
 				memcpy(template_key + offset, extern_key, cpy_len);
