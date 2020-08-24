@@ -296,23 +296,25 @@ static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
  */
 static MAYBE_INLINE void check_bom(char *line)
 {
-	static int warned8, warned16;
-
 	if (((unsigned char*)line)[0] < 0xef)
 		return;
-	if (!strncmp("\xEF\xBB\xBF", line, 3)) {
+
+	if (!memcmp(line, "\xEF\xBB\xBF", 3)) {
+		static int warned;
+
 		if (options.input_enc == UTF_8)
 			memmove(line, line + 3, strlen(line) - 2);
-		else {
-			if (john_main_process && !warned8++)
-				fprintf(stderr,
-				        "Warning: UTF-8 BOM seen in wordlist - You probably want --input-encoding=UTF8\n");
-			line += 3;
-		}
+		else if (!warned++)
+			fprintf(stderr, "Warning: UTF-8 BOM seen in wordlist. You probably want --input-encoding=UTF8\n");
 	}
-	if (options.input_enc == UTF_8  && !warned16++ &&
-	    (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2)))
-		fprintf(stderr, "Warning: UTF-16 BOM seen in wordlist.\n");
+
+	if (options.input_enc == UTF_8  && (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2))) {
+		static int warned;
+
+		if (!warned++)
+			fprintf(stderr,
+			        "Warning: UTF-16 BOM seen in wordlist. File may not be read properly unless you re-encode it\n");
+	}
 }
 
 /*
@@ -708,10 +710,10 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 					error();
 				}
 				if (memchr(word_file_str, 0, (size_t)file_len)) {
-					fprintf(stderr,
-					        "Error: wordlist contains NULL"
-					        " bytes - aborting\n");
-					error();
+					static int warned;
+
+					if (!warned++)
+						fprintf(stderr, "Warning: Wordlist contains NUL bytes, lines may be truncated.\n");
 				}
 			}
 			aep = word_file_str + file_len;

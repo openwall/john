@@ -103,25 +103,24 @@ static int jumbo_split_string;
  */
 static MAYBE_INLINE char *check_bom(char *string)
 {
-	static int warned;
-
 	if (((unsigned char*)string)[0] < 0xef)
 		return string;
 
 	if (!memcmp(string, "\xEF\xBB\xBF", 3)) {
+		static int warned;
+
 		if (options.input_enc == UTF_8)
 			string += 3;
-		else if (john_main_process && !warned++) {
+		else if (john_main_process && !warned++)
 			fprintf(stderr,
-			        "Warning: UTF-8 BOM seen in input file - You probably want --input-encoding=UTF8\n");
-		}
+			        "Warning: UTF-8 BOM seen in password hash file. You probably want --input-encoding=UTF8\n");
 	}
-	if (options.input_enc == UTF_8 &&
-	    (!memcmp(string, "\xFE\xFF", 2) || !memcmp(string, "\xFF\xFE", 2))) {
-		if (john_main_process)
-			fprintf(stderr,
-			        "Error: UTF-16 BOM seen in input file.\n");
-		error();
+	if (options.input_enc == UTF_8 && (!memcmp(string, "\xFE\xFF", 2) || !memcmp(string, "\xFF\xFE", 2))) {
+		static int warned;
+
+		if (john_main_process && !warned++)
+			fprintf(stderr, "Warning: UTF-16 BOM seen in password hash file. "
+			        "File may not be read properly unless you re-encode it\n");
 	}
 	return string;
 }
