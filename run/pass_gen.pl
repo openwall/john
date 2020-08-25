@@ -4714,7 +4714,11 @@ sub dynamic_run_compiled_pcode {
 }
 sub dynamic_load_username {
 	# load user name
-	$gen_u = randusername(12);
+	if (defined $arguser) {
+		$gen_u = $arguser;
+	} else {
+		$gen_u = randusername(12);
+	}
 	if (defined($dynamic_usernameType)) {
 		if ($dynamic_usernameType eq "lc") { $gen_u = lc $gen_u; }
 		elsif ($dynamic_usernameType eq "uc") { $gen_u = uc $gen_u; }
