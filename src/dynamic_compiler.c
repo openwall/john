@@ -2606,9 +2606,6 @@ int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 		for (j = 0; j < 5 && !failed; ++j) {
 			pFmt->methods.clear_keys();
 			pFmt->methods.set_key(pFmt->params.tests[j].plaintext, 0);
-			// Possibly some bug here, see #3796
-			if (!pFmt->params.tests[j].ciphertext)
-				break;
 			binary = (unsigned char*)pFmt->methods.binary(pFmt->params.tests[j].ciphertext);
 			slt = pFmt->methods.salt(pFmt->params.tests[j].ciphertext);
 			pFmt->methods.set_salt(slt);
