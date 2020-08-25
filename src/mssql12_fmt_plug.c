@@ -189,7 +189,12 @@ static void done(void)
 #ifdef SIMD_COEF_64
 static void clear_keys(void)
 {
+	int i;
+
 	memset(saved_key, 0, sizeof(*saved_key) * max_keys);
+
+	for (i = 0; i < max_keys; i++)
+		saved_key[i][15] = SALT_SIZE << 3;
 }
 #endif
 
@@ -321,7 +326,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				unsigned char *wucp = (unsigned char*)keybuffer;
 				int j, len = (keybuffer[15] >> 3) - SALT_SIZE;
 
-				if (len >= 0)
 				for (j = 0; j < SALT_SIZE; j++)
 					wucp[len + j] = cursalt[j];
 
