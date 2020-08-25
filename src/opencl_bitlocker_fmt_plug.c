@@ -82,8 +82,7 @@ static int split_events[] = { 1, -1, -1};
 #define BITLOCKER_PSW_CHAR_MIN_SIZE             8
 #define BITLOCKER_PSW_CHAR_MAX_SIZE             55
 #define BITLOCKER_PSW_INT_SIZE                  32
-#define BITLOCKER_FIRST_LENGHT                  27
-#define BITLOCKER_SECOND_LENGHT                 55
+#define BITLOCKER_FIRST_LENGTH                  27
 
 #ifndef UINT32_C
 	#define UINT32_C(c) c ## UL
@@ -618,12 +617,13 @@ static void set_key(char *key, int index)
 	int j=0, k=0, size=0, count=0;
 	char tmp[BITLOCKER_PSW_CHAR_MAX_SIZE + 1], tmp2[BITLOCKER_PSW_CHAR_MAX_SIZE], *p;
 	int8_t check_digit;
-	memset(tmp, 0, BITLOCKER_PSW_CHAR_MAX_SIZE);
 
 	size = strlen(key);
-	memcpy(tmp, key, size);
+	if (size > BITLOCKER_PSW_CHAR_MAX_SIZE)
+		size = BITLOCKER_PSW_CHAR_MAX_SIZE;
 
-	if(tmp[0] == '\n' || size < BITLOCKER_PSW_CHAR_MIN_SIZE || size > BITLOCKER_SECOND_LENGHT) return;
+	memset(tmp, 0, sizeof(tmp));
+	memcpy(tmp, key, size);
 
 	memset((h_pswC)+(index*BITLOCKER_PSW_CHAR_MAX_SIZE), 0, BITLOCKER_PSW_CHAR_MAX_SIZE*sizeof(unsigned char));
 	memcpy((h_pswC+(index*BITLOCKER_PSW_CHAR_MAX_SIZE)), tmp, size);
@@ -635,21 +635,25 @@ static void set_key(char *key, int index)
 	{
 		memset(tmp2, 0, BITLOCKER_PSW_CHAR_MAX_SIZE);
 		p = strtokm(tmp, "-");
-		do
+		while (p)
 		{
 			//Dislocker, Recovery Password checks
-			if( ((atoi(p) % 11) != 0) || (atoi(p) >= 720896) ) break;
+			int v = atoi(p);
+			if( ((v % 11) != 0) || (v >= 0x10000 * 11) ) break;
 			check_digit = (int8_t) ( p[0] - p[1] + p[2] - p[3] + p[4] - 48 ) % 11;
 			if( check_digit < 0 ) check_digit = (int8_t) check_digit + 11;
 			if( check_digit != (p[5] - 48)) break;
-
-			((uint16_t*)(tmp2+count))[0] = (uint16_t)(atoi(p) / 11);
+			v /= 11;
+			((unsigned char *)tmp2)[count] = v;
+			((unsigned char *)tmp2)[count + 1] = v >> 8;
 			p = strtokm(NULL, "-");
 			count+=2;
+		}
 
-		} while(p != NULL);
-
+#if 0
+		/* XXX: Just returning is wrong - we can't reject a key from here */
 		if(count != (RECOVERY_PASS_BLOCKS*2)) return;
+#endif
 
 		((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE))[0] = ( (((unsigned int)tmp2[0]  ) << 24) & 0xFF000000) |
 							( (((unsigned int)tmp2[0+1]) << 16) & 0x00FF0000) |
@@ -701,7 +705,7 @@ static void set_key(char *key, int index)
 			k++;
 		} while(k <= size);
 
-		if(size <= BITLOCKER_FIRST_LENGHT)
+		if(size <= BITLOCKER_FIRST_LENGTH)
 		{
 			//16 int
 			h_pswSize[index]=1;
@@ -716,7 +720,6 @@ static void set_key(char *key, int index)
 			((h_pswI)+(index*BITLOCKER_PSW_INT_SIZE)+31)[0] = ((uint8_t)(((size*2) << 3) >> 8)) << 8 | ((uint8_t)((size*2) << 3));
 		}
 	}
-	memset(tmp, 0, BITLOCKER_PSW_CHAR_MAX_SIZE);
 }
 
 static char *get_key(int index)
