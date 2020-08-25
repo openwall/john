@@ -96,7 +96,10 @@ static struct fmt_tests tests[] = {
 
 static unsigned char cursalt[SALT_SIZE];
 #ifdef SIMD_COEF_64
-static uint64_t (*saved_key)[SHA_BUF_SIZ];
+static union {
+	uint64_t u64[SHA_BUF_SIZ];
+	UTF16 u16[SHA_BUF_SIZ * sizeof(uint64_t) / sizeof(UTF16)];
+} *saved_key;
 static uint64_t (*crypt_out);
 static int max_keys;
 static int new_keys;
@@ -194,7 +197,7 @@ static void clear_keys(void)
 	memset(saved_key, 0, sizeof(*saved_key) * max_keys);
 
 	for (i = 0; i < max_keys; i++)
-		saved_key[i][15] = SALT_SIZE << 3;
+		saved_key[i].u64[15] = SALT_SIZE << 3;
 }
 #endif
 
@@ -214,15 +217,14 @@ static void set_key(char *_key, int index)
 	d[saved_len[index]] = 0;
 	saved_len[index] <<= 1;
 #else
-	uint64_t *keybuffer = saved_key[index];
-	unsigned short *w16 = (unsigned short*)keybuffer;
+	UTF16 *w16 = saved_key[index].u16;
 	UTF8 *key = (UTF8*)_key;
 	int len = 0;
 
 	while ((*w16++ = *key++))
 		len++;
 
-	keybuffer[15] = ((len << 1) + SALT_SIZE) << 3;
+	saved_key[index].u64[15] = ((len << 1) + SALT_SIZE) << 3;
 
 	new_keys = 1;
 
@@ -243,17 +245,12 @@ static void set_key_enc(char *_key, int index)
 		saved_len[index] = strlen16((UTF16*)saved_key[index]);
 	saved_len[index] <<= 1;
 #else
-	uint64_t *keybuffer = saved_key[index];
-	UTF16 *w16 = (UTF16*)keybuffer;
-	UTF8 *key = (UTF8*)_key;
-	int len;
-
-	len = enc_to_utf16(w16, PLAINTEXT_LENGTH, key, strlen(_key));
-
+	UTF16 *w16 = saved_key[index].u16;
+	int len = enc_to_utf16(w16, PLAINTEXT_LENGTH, (UTF8 *)_key, strlen(_key));
 	if (len < 0)
 		len = strlen16(w16);
 
-	keybuffer[15] = ((len << 1) + SALT_SIZE) << 3;
+	saved_key[index].u64[15] = ((len << 1) + SALT_SIZE) << 3;
 
 	new_keys = 1;
 #endif
@@ -265,12 +262,11 @@ static char *get_key(int index)
 	((UTF16*)saved_key[index])[saved_len[index]>>1] = 0;
 	return (char*)utf16_to_enc((UTF16*)saved_key[index]);
 #else
-	uint64_t *keybuffer = saved_key[index];
-	UTF16 *w16 = (UTF16*)keybuffer;
+	UTF16 *w16 = saved_key[index].u16;
 	static UTF16 out[PLAINTEXT_LENGTH + 1];
 	unsigned int i, len;
 
-	len = ((keybuffer[15] >> 3) - SALT_SIZE) >> 1;
+	len = ((saved_key[index].u64[15] >> 3) - SALT_SIZE) >> 1;
 
 	for (i = 0; i < len; i++)
 		out[i] = w16[i];
@@ -322,9 +318,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (new_keys) {
 			int i;
 			for (i = 0; i < MIN_KEYS_PER_CRYPT; i++) {
-				uint64_t *keybuffer = saved_key[index + i];
-				unsigned char *wucp = (unsigned char*)keybuffer;
-				int j, len = (keybuffer[15] >> 3) - SALT_SIZE;
+				unsigned char *wucp = (unsigned char *)&saved_key[index + i];
+				int j, len = (saved_key[index + i].u64[15] >> 3) - SALT_SIZE;
 
 				for (j = 0; j < SALT_SIZE; j++)
 					wucp[len + j] = cursalt[j];
