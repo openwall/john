@@ -66,6 +66,16 @@ void cleanup_tiny_memory()
 	}
 }
 
+#if defined(WITH_ASAN) || defined(DEBUG)
+static void mem_debug_fill(void *p, size_t size)
+{
+	if (p)
+		memset(p, 0xde, size);
+}
+#else
+#define mem_debug_fill(p, size) /* nothing */
+#endif
+
 void *mem_alloc(size_t size)
 {
 	void *res;
@@ -77,6 +87,8 @@ void *mem_alloc(size_t size)
 		fprintf(stderr, "mem_alloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), size);
 		error();
 	}
+
+	mem_debug_fill(res, size);
 
 	return res;
 }
@@ -107,6 +119,8 @@ void *mem_realloc(void *old_ptr, size_t size)
 		fprintf(stderr, "mem_realloc(): %s trying to allocate "Zu" bytes\n", strerror(ENOMEM), size);
 		error();
 	}
+
+/* We don't know old size, so also don't know how much to mem_debug_fill() */
 
 	return res;
 }
@@ -252,6 +266,7 @@ void *mem_alloc_align(size_t size, size_t align)
 	if (posix_memalign(&ptr, align, size))
 		pexit("posix_memalign ("Zu" bytes)", size);
 #endif
+	mem_debug_fill(ptr, size);
 	return ptr;
 }
 
@@ -642,6 +657,7 @@ alloc_region_t(region_t * region, size_t size)
 	region->aligned = aligned;
 	region->base_size = base ? base_size : 0;
 	region->aligned_size = base ? size : 0;
+	mem_debug_fill(aligned, size);
 	return aligned;
 }
 
