@@ -534,7 +534,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 
 	/* Convert charset to UTF-32 */
 	if (!strcasecmp(charset, "full-unicode")) {
-		charset_utf32 = mem_alloc(0x22000 * sizeof(UTF32));
+		charset_utf32 = mem_alloc(0x24000 * sizeof(UTF32));
 		charcount = full_unicode_charset(charset_utf32);
 	}
 	else if (options.input_enc == UTF_8) {
