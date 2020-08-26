@@ -77,7 +77,7 @@ static LIB_struct lib[] = {
 #endif
 	"@dynamic=md5($s.md5($p))@9fd5767e78e00d1c947b4e055831ef9c$df694488"} } },
 
-	// Dyna-lib for md5($s.md5($p))
+	// Dyna-lib for md5(md5($p))
 	{ 1, 16, {2}, {DC_MAGIC, 0x840226DA, NULL, "md5(md5($p))", "",
 	"Expression=dynamic=md5(md5($p))\nFlag=MGF_KEYS_INPUT\nFlag=MGF_SET_INP2LEN32\nTest=@dynamic=md5(md5($p))@ec0405c5aef93e771cd80e0db180b88b:abc\nTest=@dynamic=md5(md5($p))@5111a834f08cb69faccade1084c8617f:john\nTest=@dynamic=md5(md5($p))@36a8d53b3a2326a1f0d452a26966ec82:passweird\nFunc=DynamicFunc__crypt_md5\nFunc=DynamicFunc__overwrite_from_last_output_to_input2_as_base16_no_size_fix\n" // no comma, this string continues into the next one
 #if ARCH_LITTLE_ENDIAN
@@ -112,11 +112,7 @@ static LIB_struct lib[] = {
 	// Dyna-lib for md5($s.md5($p).$s)
 	{ 1, 16, {14}, {DC_MAGIC, 0x14272E3C, NULL, "md5($s.md5($p).$s)", "",
 	"Expression=dynamic=md5($s.md5($p).$s)\nFlag=MGF_SALTED\nTest=@dynamic=md5($s.md5($p).$s)@7326756adc36bbbbe45429a3c37f545f$df694488:abc\nTest=@dynamic=md5($s.md5($p).$s)@694322b9b83447ba07317e4551be214d$87ffb1c9:john\nTest=@dynamic=md5($s.md5($p).$s)@af66cec476219779e4a91a2d99f5baa8$a69c5744:passweird\n" // no comma, this string continues into the next one
-#if defined (SIMD_COEF_32)
 	"Flag=MGF_KEYS_CRYPT_IN2\nSaltLen=-11\nFunc=DynamicFunc__clean_input\nFunc=DynamicFunc__append_salt\nFunc=DynamicFunc__append_from_last_output2_to_input1_as_base16\nFunc=DynamicFunc__append_salt\nFunc=DynamicFunc__crypt_md5\nMaxInputLenX86=110\nMaxInputLen=55\n", "@dynamic=md5($s.md5($p).$s)@",
-#else
-	"Flag=MGF_KEYS_BASE16_IN1_MD5\nSaltLen=-24\nFunc=DynamicFunc__clean_input\nFunc=DynamicFunc__append_salt\nFunc=DynamicFunc__append_from_last_output2_to_input1_as_base16\nFunc=DynamicFunc__append_salt\nFunc=DynamicFunc__crypt_md5\nMaxInputLenX86=110\nMaxInputLen=110\n", "@dynamic=md5($s.md5($p).$s)@",
-#endif
 	 { "@dynamic=md5($s.md5($p).$s)@7326756adc36bbbbe45429a3c37f545f$df694488","@dynamic=md5($s.md5($p).$s)@694322b9b83447ba07317e4551be214d$87ffb1c9","@dynamic=md5($s.md5($p).$s)@af66cec476219779e4a91a2d99f5baa8$a69c5744",
 #if SIMD_COEF_32 < 4
 	"@dynamic=md5($s.md5($p).$s)@14a920d439709444d92eca7c75571dc5$df694488", // Len 110
