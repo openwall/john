@@ -115,7 +115,7 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - 7z formats:  Added support for BCJ et. al. (that's pre-processors sometimes
   used before compression.  Before this we had false negatives for those.
-  Also updated LZMA code from upstream, to versioj 19.00.
+  Also updated LZMA code from upstream, to version 19.00.  [magnum; 2020]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
