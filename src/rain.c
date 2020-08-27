@@ -66,23 +66,22 @@ static char *charset;
 static UTF32 subset[MAX_CAND_LENGTH + 1];
 static int done_len[MAX_SUBSET_SIZE + 1];
 static int rec_done_len[MAX_SUBSET_SIZE + 1];
-static int **charset_idx;
-static int **rec_charset_idx;
-static int maxlength;
-static int minlength;
+int **charset_idx;
+int **rec_charset_idx;
+int maxlength;
+int minlength;
 static int rec_num_comb, num_comb;
 static int rec_word_len, word_len;
 static int rec_set, set;
 static int state_restored;
 static int rec_cur_len;
 static int quick_conversion;
-static uint64_t rec_num_done[MAX_CAND_LENGTH + 1];
-static uint64_t num_done[MAX_CAND_LENGTH + 1];
-static uint_big keyspace;
+uint_big keyspace;
 static int charcount;
-static uint_big *rain;
-static int loop2, loop;//the outer and inner loop
-static int *Accu;//holds the modifiers
+uint_big *rain;
+uint_big glob;
+int loop2, loop;//the outer and inner loop
+int *Accu;//holds the modifiers
 
 static double get_progress(void)
 {
@@ -90,11 +89,9 @@ static double get_progress(void)
 
 	if (!keyspace)
 		return -1;
-
-	if (loop2 > maxlength)
+	if (loop2 > maxlength-minlength && loop > maxlength - minlength)
 		return 100;
-
-	return 100.0 * num_done[loop2] / keyspace;
+	return 100.0 * glob / keyspace;
 }
 
 static void fix_state(void)
@@ -289,11 +286,11 @@ static int accu(int a) {
 	return c;
 }
 
-static char *roll_on(int loop) {
+char *roll_on(int loop) {
 	short int mpl = minlength+loop;
  	short int pos = mpl - 1;
 	short int i;
-	char tmp[maxlength];
+	char tmp[minlength+loop+1];
 	for(i=0; i<mpl; ++i) {
 		tmp[i] = charset[(charset_idx[loop][i] + rain[loop]) % charcount];
  		rain[loop]+=i+1;
@@ -332,12 +329,13 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		minlength = 1;
 
 	charset_idx = mem_alloc(sizeof(int) * (maxlength - minlength+1));
-	rec_charset_idx = mem_alloc(sizeof(int) * (maxlength - minlength+1));
+	//rec_charset_idx = mem_alloc(sizeof(int) * (maxlength - minlength+1));
 	Accu = mem_alloc(sizeof(int) * (maxlength - minlength+1));
 
+	glob = 0;
 	for(i=0; i<= maxlength - minlength; ++i) {
 		charset_idx[i] = mem_alloc(sizeof(int) * maxlength);
-		rec_charset_idx[i] = mem_alloc(sizeof(int) * maxlength);
+		//rec_charset_idx[i] = mem_alloc(sizeof(int) * maxlength);
 		Accu[i] = accu(minlength+i);		
 		for(j=0; j < maxlength; ++j)
 			charset_idx[i][j] = 0;
@@ -370,7 +368,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen(charset);
 
-	/* Convert charset to UTF-32 */	
+	/*	
 	if (!strcasecmp(charset, "full-unicode")) {
 		charset_utf32 = mem_alloc(0x22000 * sizeof(UTF32));
 		charcount = full_unicode_charset(charset_utf32);
@@ -395,26 +393,26 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		             (UTF8*)charset, charcount);
 	}
 
-	/* Performance step: Use UTF-32-8 when applicable */
+	//Performance step: Use UTF-32-8 when applicable
 	if (options.target_enc == UTF_8)
 		utf32_to_utf8_32(charset_utf32);
 
 	charcount = strlen32(charset_utf32);
-
+	
 	if (required >= charcount) {
 		if (john_main_process)
 			fprintf(stderr, "Error, required part of charset must be smaller "
 			        "than charset (1..%d out of %d)\n",
 			        charcount - 1, charcount);
 		error();
-	}
+	}*/
 
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 
 	for (i = 0; i <= maxlength - minlength; i++)
-	;//	keyspace += (__int128)pow((double) charcount, (double) minlength+i);
+		keyspace += (__int128)pow((double) charcount, (double) minlength+i);
 
 	loop2 = 0;
 	crk_init(db, fix_state, NULL);
@@ -425,12 +423,11 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		while (loop <= maxlength - minlength) {
 			if(roll_on(loop) == NULL) ++loop2;
 			++loop;
+			++glob;		
 		}
 	}
 	crk_done();
 	rec_done(event_abort);
-
-	MEM_FREE(charset_utf32);
 
 	return 0;
 }
