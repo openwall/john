@@ -135,8 +135,10 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.subset_min_diff},
 	{"subsets-max-diff", FLG_ZERO, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM,
 		"%u", &options.subset_max_diff},
+	{"rain", FLG_RAIN_SET, FLG_RAIN_CHK,
+		0, 0, OPT_FMT_STR_ALLOC, &options.subset_full},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK,
-		0, 0, OPT_FMT_STR_ALLOC, &options.mask},
+		0, 0, OPT_FMT_STR_ALLOC, &options.mask},	
 	{"1", FLG_ZERO, 0, FLG_MASK_CHK, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
 	{"2", FLG_ZERO, 0, FLG_MASK_CHK, OPT_REQ_PARAM,
@@ -353,6 +355,7 @@ PRINCE_USAGE \
 "--external=MODE            external mode or word filter\n" \
 JOHN_USAGE_REGEX \
 "--subsets[=CHARSET]        \"subsets\" mode (see doc/SUBSETS)\n" \
+"--rain[=CHARSET]           \"rain\" mode (see https://github/e2002e/zhou)\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
 "--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--session=NAME             give a new session the NAME\n" \
