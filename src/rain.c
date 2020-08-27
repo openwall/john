@@ -63,20 +63,20 @@ typedef uint64_t uint_big;
 int rain_cur_len;
 
 static char *charset;
-int **charset_idx;
-int **rec_charset_idx;
-int maxlength;
-int minlength;
+static int charset_idx[MAX_CAND_LENGTH][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
+static int rec_charset_idx[MAX_CAND_LENGTH][MAX_CAND_LENGTH];
+static int maxlength;
+static int minlength;
 static int state_restored;
-uint_big keyspace;
+static uint_big keyspace;
 static int charcount;
-uint_big *rain;
-uint_big *rec_rain;
-uint_big glob;
-uint_big rec_glob;
-int loop2, loop;//the outer and inner loop
-int rec_loop2, rec_loop;
-int *Accu;//holds the modifiers
+static uint_big rain[MAX_CAND_LENGTH];//same as above
+static uint_big rec_rain[MAX_CAND_LENGTH];
+static uint_big glob;
+static uint_big rec_glob;
+static int loop2, loop;//the outer and inner loop
+static int rec_loop2;
+static int Accu[MAX_CAND_LENGTH];//holds the modifiers
 
 static double get_progress(void)
 {
@@ -91,94 +91,58 @@ static double get_progress(void)
 
 static void fix_state(void)
 {
-/*
 	int i, j;
 
-	rec_set = set;
-	rec_num_comb = num_comb;
-	rec_word_len = word_len;
-	for (i = 0; i <= maxdiff; i++)
-		rec_done_len[i] = done_len[i];
-	for (i = 0; i <= maxlength-minlength; i++)
+	for (i = 0; i <= maxlength - minlength; i++) {
+		rec_rain[i] = rain[i];	
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
-	rec_cur_len = rain_cur_len;
-	for (i = 0; i <= maxlength; i++)
-		rec_num_done[i] = num_done[i];
-*/
+	}
+	rain_cur_len = minlength+loop2;
+	rec_loop2 = loop2;
+	rec_glob = glob;
 }
 
 
 static void save_state(FILE *file)
 {
-/*
-	int i;
 
-	fprintf(file, "%d\n", rec_set);
-	fprintf(file, "%d\n", rec_num_comb);
-	fprintf(file, "%d\n", rec_word_len);
-	for (i = 0; i <= maxdiff; i++)
-		fprintf(file, "%d\n", rec_done_len[i]);
-	for (i = 0; i < rec_num_comb; i++)
-		fprintf(file, "%d\n", rec_charset_idx[i]);
-	fprintf(file, "%d\n", rec_cur_len);
-	for (i = 0; i <= maxlength; i++)
-		fprintf(file, "%"PRIu64"\n", rec_num_done[i]);
-	//fprintf(file, "%s\n", charset);
-*/
+	int i, j;
+
+	for (i = 0; i <= maxlength - minlength; i++) {
+		fprintf(file, "%llu\n ", rec_rain[i]);	
+		for(j = 0; j < maxlength; ++j)
+			fprintf(file, "%d\n", rec_charset_idx[i][j]);
+	}
+	fprintf(file, "%d\n", loop2);
+	fprintf(file, "%llu\n", glob);
 }
 
 static int restore_state(FILE *file)
 {
-/*
-	int i, d;
-	uint64_t q;
+	int i, j, d;
+	uint_big r;
 
-	if (fscanf(file, "%d\n", &d) == 1)
-		set = d;
-	else
-		return 1;
+	for (i = 0; i <= maxlength - minlength; i++) {
+		if(fscanf(file, "%llu\n ", &r) == 1)
+			rain[i] = r;
+		else return 1;	
+		for(j = 0; j < maxlength; ++j)
+			if(fscanf(file, "%d\n", &d) == 1)
+				charset_idx[i][j] = d;
+			else return 1;
+	}
+	if(fscanf(file, "%d\n", &d) == 1)
+		loop2 = d;
+	else return 1;
 
-	if (fscanf(file, "%d\n", &d) == 1)
-		num_comb = d;
-	else
-		return 1;
-
-	if (fscanf(file, "%d\n", &d) == 1)
-		word_len = d;
-	else
-		return 1;
-
-	for (i = 0; i <= maxdiff; i++)
-		if (fscanf(file, "%d\n", &d) == 1)
-			done_len[i] = d;
-		else
-			return 1;
-
-	for (i = 0; i < num_comb; i++)
-		if (fscanf(file, "%d\n", &d) == 1)
-			charset_idx[i] = d;
-		else
-			return 1;
-
-	if (fscanf(file, "%d\n", &d) == 1)
-		subsets_cur_len = d;
-	else
-		return 1;
-
-	for (i = 0; i <= maxlength; i++)
-		if (fscanf(file, "%"PRIu64"\n", &q) == 1)
-			num_done[i] = q;
-		else
-			return 1;
-
-	///if (fscanf(file, "%s\n", &charset) != 1)
-	//	return 1;
-
+	if(fscanf(file, "%llu\n", &r) == 1)
+		glob = r;
+	else return 1;
+	
 	state_restored = 1;
 
 	return 0;
-*/
 }
 
 
@@ -247,30 +211,6 @@ static void parse_unicode(char *string)
 	*d = 0;
 }
 
-static int submit(UTF32 *subset)
-{
-	/*
-	UTF8 out[4 * MAX_CAND_LENGTH];
-	int i;
-
-	if (quick_conversion) {
-		for (i = 0; i < word_len; i++)
-			out[i] = subset[i];
-		out[i] = 0;
-	} else if (options.target_enc == UTF_8) {
-		subset[word_len] = 0;
-		utf8_32_to_utf8(out, subset);
-	} else {
-		subset[word_len] = 0;
-		utf32_to_enc(out, sizeof(out), subset);
-	}
-
-	if (options.flags & FLG_MASK_CHK)
-		return do_mask_crack((char*)out);
-	else
-		return crk_process_key((char*)out);
-	*/
-}
 
 static int accu(int a) {
 	int b, c=0;
@@ -279,13 +219,13 @@ static int accu(int a) {
 	return c;
 }
 
-char *roll_on(int loop) {
+static char *roll_on(int loop, UTF32 *cs) {
 	short int mpl = minlength+loop;
  	short int pos = mpl - 1;
 	short int i;
 	char tmp[minlength+loop+1];
-	for(i=0; i<mpl; ++i) {
-		tmp[i] = charset[(charset_idx[loop][i] + rain[loop]) % charcount];
+	for (i=0; i<mpl; ++i) {
+		tmp[i] = cs[(charset_idx[loop][i] + rain[loop]) % charcount];
  		rain[loop]+=i+1;
  	}
  	//subtract what we added in the above loop, minus the modifier
@@ -293,14 +233,17 @@ char *roll_on(int loop) {
 	else if	(charcount % 2 == 0)	rain[loop] -= Accu[loop]-4;
 	else 				rain[loop] -= Accu[loop]-1;
  	
-	while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
+	while (pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 		charset_idx[loop][pos] = 0;
 		--pos;
 	}
 	tmp[mpl] = '\0';
-	crk_process_key(tmp);
+	if (options.flags & FLG_MASK_CHK)
+		do_mask_crack(tmp);
+	else
+		crk_process_key(tmp);
 	//current length is done ?	
-	if(pos < 0) return NULL;
+	if (pos < 0) return NULL;
 	else return "a";
 }
 
@@ -311,7 +254,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	char *default_set;
 	UTF32 *charset_utf32;
 	int required = options.subset_must;
-	
 
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
 	minlength = MIN(MAX_CAND_LENGTH, options.eff_minlength);
@@ -320,20 +262,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		maxlength = MIN(maxlength, DEFAULT_MAX_LEN);
 	if (!options.req_minlength)
 		minlength = 1;
-
-	charset_idx = mem_alloc(sizeof(int) * (maxlength - minlength+1));
-	//rec_charset_idx = mem_alloc(sizeof(int) * (maxlength - minlength+1));
-	Accu = mem_alloc(sizeof(int) * (maxlength - minlength+1));
-
-	glob = 0;
-	for(i=0; i<= maxlength - minlength; ++i) {
-		charset_idx[i] = mem_alloc(sizeof(int) * maxlength);
-		//rec_charset_idx[i] = mem_alloc(sizeof(int) * maxlength);
-		Accu[i] = accu(minlength+i);		
-		for(j=0; j < maxlength; ++j)
-			charset_idx[i][j] = 0;
-	}	
-	rain = mem_alloc(sizeof(uint_big) * (maxlength - minlength + 1));
 
 	default_set = (char*)cfg_get_param("Subsets", NULL, "DefaultCharset");
 	if (!req_charset)
@@ -359,7 +287,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen(charset);
 
-	/*	
+	
 	if (!strcasecmp(charset, "full-unicode")) {
 		charset_utf32 = mem_alloc(0x22000 * sizeof(UTF32));
 		charcount = full_unicode_charset(charset_utf32);
@@ -396,29 +324,41 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			        "than charset (1..%d out of %d)\n",
 			        charcount - 1, charcount);
 		error();
-	}*/
-
+	}
+	
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 
+	if (!state_restored) {
+		glob = 0;
+		loop2 = 0;
+	}
+	for (i=0; i<= maxlength - minlength; ++i) {
+		Accu[i] = accu(minlength+i);		
+		if (!state_restored)		
+			for (j=0; j < maxlength; ++j)
+				charset_idx[i][j] = 0;
+	}
+
 	for (i = 0; i <= maxlength - minlength; i++)
 		keyspace += (__int128)pow((double) charcount, (double) minlength+i);
 
-	loop2 = 0;
 	crk_init(db, fix_state, NULL);
 	
 	while (loop2 <= maxlength - minlength) {
 		loop = loop2;
 		/* Iterate over all lengths */
 		while (loop <= maxlength - minlength) {
-			if(roll_on(loop) == NULL) ++loop2;
+			if (roll_on(loop, charset_utf32) == NULL) ++loop2;
 			++loop;
-			++glob;		
+			++glob;
+			if (state_restored)
+				state_restored = 0;
 		}
 	}
 	crk_done();
 	rec_done(event_abort);
-
+	MEM_FREE(charset_utf32);
 	return 0;
 }
