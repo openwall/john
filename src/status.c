@@ -215,9 +215,6 @@ static char *status_get_ETA(double percent, unsigned int secs_done)
 	if (subsets_cur_len)
 		sprintf(s_ETA, " (%d)", subsets_cur_len);
 	else
-	if (rain_cur_len)
-		sprintf(s_ETA, " (%d)", rain_cur_len);
-	else
 		s_ETA[0] = 0;
 
 	if (percent <= 0)

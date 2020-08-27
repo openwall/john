@@ -63,24 +63,19 @@ typedef uint64_t uint_big;
 int rain_cur_len;
 
 static char *charset;
-static UTF32 subset[MAX_CAND_LENGTH + 1];
-static int done_len[MAX_SUBSET_SIZE + 1];
-static int rec_done_len[MAX_SUBSET_SIZE + 1];
 int **charset_idx;
 int **rec_charset_idx;
 int maxlength;
 int minlength;
-static int rec_num_comb, num_comb;
-static int rec_word_len, word_len;
-static int rec_set, set;
 static int state_restored;
-static int rec_cur_len;
-static int quick_conversion;
 uint_big keyspace;
 static int charcount;
 uint_big *rain;
+uint_big *rec_rain;
 uint_big glob;
+uint_big rec_glob;
 int loop2, loop;//the outer and inner loop
+int rec_loop2, rec_loop;
 int *Accu;//holds the modifiers
 
 static double get_progress(void)
@@ -254,21 +249,18 @@ static void parse_unicode(char *string)
 
 static int submit(UTF32 *subset)
 {
+	/*
 	UTF8 out[4 * MAX_CAND_LENGTH];
 	int i;
 
-	/* Set current word */
 	if (quick_conversion) {
-		/* Quick conversion (only ASCII or ISO-8859-1) */
 		for (i = 0; i < word_len; i++)
 			out[i] = subset[i];
 		out[i] = 0;
 	} else if (options.target_enc == UTF_8) {
-		/* Nearly as quick conversion, from UTF-8-32[tm] to UTF-8 */
 		subset[word_len] = 0;
 		utf8_32_to_utf8(out, subset);
 	} else {
-		/* Slowest conversion, from real UTF-32 to sone legacy codepage */
 		subset[word_len] = 0;
 		utf32_to_enc(out, sizeof(out), subset);
 	}
@@ -277,6 +269,7 @@ static int submit(UTF32 *subset)
 		return do_mask_crack((char*)out);
 	else
 		return crk_process_key((char*)out);
+	*/
 }
 
 static int accu(int a) {
@@ -341,8 +334,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			charset_idx[i][j] = 0;
 	}	
 	rain = mem_alloc(sizeof(uint_big) * (maxlength - minlength + 1));
-
-	done_len[0] = maxlength;
 
 	default_set = (char*)cfg_get_param("Subsets", NULL, "DefaultCharset");
 	if (!req_charset)
