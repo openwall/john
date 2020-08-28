@@ -197,14 +197,13 @@ static int exit_status = 0;
 
 static void john_register_one(struct fmt_main *format)
 {
-	static int override_disable = 0;
-
 	if (options.format && !strcasecmp(options.format, "all")) {
-		override_disable = 1;
-		options.format = NULL;
+		if (options.flags & FLG_TEST_CHK)
+			; /* benchmark needs this string to stay intact */
+		else
+			options.format = NULL;
 	} else
 	if (options.format && !strncasecmp(options.format, "all-", 4)) {
-		override_disable = 1;
 		options.format += 4;
 	}
 
@@ -379,29 +378,6 @@ static void john_register_one(struct fmt_main *format)
 		}
 	}
 
-	/* Format disabled in john.conf */
-	if (!override_disable &&
-	    cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
-	                 format->params.label, 0)) {
-#ifdef DEBUG
-		if (format->params.flags & FMT_DYNAMIC) {
-			/* in debug mode, we 'allow' dyna */
-		} else
-#else
-		if (options.format &&
-		    !strcasecmp(options.format, "dynamic-all") &&
-		    (format->params.flags & FMT_DYNAMIC)) {
-			wildcard_format = 1;
-			/* allow dyna if '-format=dynamic-all' was selected */
-		} else
-#endif
-		if (options.format &&
-		    !strcasecmp(options.format, format->params.label)) {
-			/* allow if specifically requested */
-		} else
-			return;
-	}
-
 	fmt_register(format);
 }
 
@@ -463,8 +439,12 @@ static void john_register_all(void)
 	 * If we used a wildcard to pick format, we want the actually chosen
 	 * one to be filled in.
 	 */
-	if (wildcard_format)
-		options.format = NULL;
+	if (wildcard_format) {
+		if (options.flags & FLG_TEST_CHK)
+			; /* benchmark needs this string to stay intact */
+		else
+			options.format = NULL;
+	}
 }
 
 static void john_log_format(void)
