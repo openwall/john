@@ -8,14 +8,8 @@
 /*
  * TODO:
  * - Profile with Callgrind
- * - Assure hybrid support (mask or external)
  * - Reject other hybrid modes?
- * - Try inlining utf32_to_enc
  * - Are we still using an unnecessary step of indexing?
- *
- * IDEAS:
- * - Store charset in target encoding for quicker conversion, even for
- *   UTF-8 (we can store it in uint32_t)! Beware of endianness.
  *
  * RELATED:
  * - Unicode ranges charsets. Generator? Standalone? --subsets-file=FILE?
