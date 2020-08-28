@@ -341,15 +341,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	while (loop2 <= maxlength - minlength) {
 		loop = loop2;
+		int bail = 0;
 		/* Iterate over all lengths */
 		while (1) {			
 			int skip = 0;
-			
-			if (state_restored)
-				state_restored = 0;
-			else
-				++loop;
-
 			if (options.node_count) {
 				int for_node = loop % options.node_count + 1;
 				skip = for_node < options.node_min ||
@@ -358,9 +353,14 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 			if (!skip) {
 				if (roll_on(loop, charset_utf32) == NULL) ++loop2;
-				++glob;
-				if(loop > maxlength - minlength) break;
+				if(loop >= maxlength - minlength) {
+					bail = 1;
+					break;
+				}
 			}
+			++loop;
+			++glob;
+			if(bail == 1) break;
 		}
 	}
 	crk_done();
