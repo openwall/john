@@ -1,7 +1,7 @@
 SUBSETS mode
 
 Subsets is a brute-force variant that tries to produce candidates in order of
-complexity, but without resorting to advanced stuff like Markov chains.  that
+complexity, but without resorting to advanced stuff like Markov chains.  That
 is, it will try a long poor password such as "gggggggggggggggggg#" much earlier
 than a short one with unique characters like "yok3" and in between them it will
 probably try "bubba" which is slightly longer but has repeated characters.
@@ -18,7 +18,8 @@ resorting to a legacy code page at all.  Obviously it supports session resume
 
 With no further options, "--subsets" will start at length 1 and a subset size
 of 1 (mimicing the "repeats" external mode) and then increment both of them in
-subset keysize order, ending at the format's max. length.  It will use the full
+subset keysize order, ending at length 16 or format's max. length, whichever is
+lower.  Using --max-len=N may bump it to larger than 16.  It will use the full
 charset of printable ASCII (95 characters) but start with tiny subsets and
 increase from there.
 
@@ -33,7 +34,7 @@ charset you want.  You can also use pre-defined charsets 0..9 in john.conf
 using --subsets=N - see the [subsets] section of john.conf.  There is also a
 conf setting "DefaultCharset = N" (setting default to one of the presets) or
 even "DefaultCharset = STRING" for some other default.  Finally there's an
-eastern egg in "--subset=full-unicode".  That is a truly huge charset, do not
+Easter egg in "--subset=full-unicode".  That is a truly huge charset, do not
 count on it getting very far in subset and output lengths.  Unless you let it
 run for ages, it will produce long candidates with very small subsets or vice
 versa.
