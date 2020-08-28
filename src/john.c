@@ -1972,7 +1972,7 @@ static void john_run(void)
 			do_subsets_crack(&database, options.subset_full);
 		else
 		if (options.flags & FLG_RAIN_CHK)
-			do_rain_crack(&database, options.subset_full);
+			do_rain_crack(&database, options.rain_full);
 		else
 #if HAVE_REXGEN
 		if ((options.flags & FLG_REGEX_CHK) &&

@@ -429,6 +429,8 @@ struct options_main {
 	int subset_min_diff;
 /* Subsets, max. diff */
 	int subset_max_diff;
+/* Rain full charset */
+	char *rain_full;
 };
 
 extern struct options_main options;

@@ -124,7 +124,7 @@ static int restore_state(FILE *file)
 	uint_big r;
 
 	for (i = 0; i <= maxlength - minlength; i++) {
-		if(fscanf(file, "%llu\n ", &r) == 1)
+		if(fscanf(file, "%llu\n ", &r) == 1)//all those bigint needs a fix in save and restore state
 			rain[i] = r;
 		else return 1;	
 		for(j = 0; j < maxlength; ++j)
@@ -212,7 +212,7 @@ static void parse_unicode(char *string)
 }
 
 
-static int accu(int a) {
+int accu(int a) {
 	int b, c=0;
 	for(b=1; b<=a; ++b)
 		c+=b;
@@ -244,7 +244,7 @@ static char *roll_on(int loop, UTF32 *cs) {
 		crk_process_key(tmp);
 	//current length is done ?	
 	if (pos < 0) return NULL;
-	else return "a";
+	else return "";
 }
 
 int do_rain_crack(struct db_main *db, char *req_charset)
@@ -253,17 +253,16 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	int fmt_case = (db->format->params.flags & FMT_CASE);
 	char *default_set;
 	UTF32 *charset_utf32;
-	int required = options.subset_must;
 
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
-	minlength = MIN(MAX_CAND_LENGTH, options.eff_minlength);
+	minlength = MAX(options.eff_minlength, 1);
 		
 	if (!options.req_maxlength)
 		maxlength = MIN(maxlength, DEFAULT_MAX_LEN);
 	if (!options.req_minlength)
 		minlength = 1;
 
-	default_set = (char*)cfg_get_param("Subsets", NULL, "DefaultCharset");
+	default_set = (char*)cfg_get_param("Rain", NULL, "DefaultCharset");
 	if (!req_charset)
 		req_charset = default_set;
 
@@ -271,7 +270,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		if (strlen(req_charset) == 1 && isdigit(req_charset[0])) {
 			int cnum = atoi(req_charset);
 			char pl[2] = { '0' + cnum, 0 };
-			char *c = (char*)cfg_get_param("Subsets", NULL, pl);
+			char *c = (char*)cfg_get_param("Rain", NULL, pl);
 
 			if (c)
 				req_charset = c;
@@ -318,18 +317,17 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
-	if (required >= charcount) {
-		if (john_main_process)
-			fprintf(stderr, "Error, required part of charset must be smaller "
-			        "than charset (1..%d out of %d)\n",
-			        charcount - 1, charcount);
-		error();
-	}
-	
+	rain_cur_len = loop2;
+
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 
+	for (i = 0; i <= maxlength - minlength; i++)
+		keyspace += (__int128)pow((double) charcount, (double) minlength+i);
+
+	crk_init(db, fix_state, NULL);
+	
 	if (!state_restored) {
 		glob = 0;
 		loop2 = 0;
@@ -341,20 +339,28 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				charset_idx[i][j] = 0;
 	}
 
-	for (i = 0; i <= maxlength - minlength; i++)
-		keyspace += (__int128)pow((double) charcount, (double) minlength+i);
-
-	crk_init(db, fix_state, NULL);
-	
 	while (loop2 <= maxlength - minlength) {
 		loop = loop2;
 		/* Iterate over all lengths */
-		while (loop <= maxlength - minlength) {
-			if (roll_on(loop, charset_utf32) == NULL) ++loop2;
-			++loop;
-			++glob;
+		while (1) {			
+			int skip = 0;
+			
 			if (state_restored)
 				state_restored = 0;
+			else
+				++loop;
+
+			if (options.node_count) {
+				int for_node = loop % options.node_count + 1;
+				skip = for_node < options.node_min ||
+					for_node > options.node_max;
+			}
+
+			if (!skip) {
+				if (roll_on(loop, charset_utf32) == NULL) ++loop2;
+				++glob;
+				if(loop > maxlength - minlength) break;
+			}
 		}
 	}
 	crk_done();
