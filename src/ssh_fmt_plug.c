@@ -13,6 +13,11 @@
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
+ *
+ * This software is Copyright (c) 2020 Valeriy Khromov <valery.khromov at gmail.com>,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #if FMT_EXTERNS_H
@@ -23,7 +28,10 @@ john_register_one(&fmt_ssh);
 
 #include <string.h>
 #include <stdint.h>
+#include <openssl/conf.h>
 #include <openssl/des.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -271,6 +279,43 @@ bad:
 	return -1;
 }
 
+inline static void handleErrors(void)
+{
+	ERR_print_errors_fp(stderr);
+	abort();
+}
+
+inline static int AES_ctr_decrypt(unsigned char *ciphertext,
+                                  int ciphertext_len, unsigned char *key,
+                                  unsigned char *iv, unsigned char *plaintext)
+{
+	EVP_CIPHER_CTX *ctx;
+
+	int len;
+
+	int plaintext_len;
+
+	if (!(ctx = EVP_CIPHER_CTX_new()))
+		handleErrors();
+
+	if (EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv) != 1)
+		handleErrors();
+
+	EVP_CIPHER_CTX_set_padding(ctx, 0);
+
+	if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len) != 1)
+		handleErrors();
+	plaintext_len = len;
+
+	if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len) != 1)
+		handleErrors();
+	plaintext_len += len;
+
+	EVP_CIPHER_CTX_free(ctx);
+
+	return plaintext_len;
+}
+
 static void common_crypt_code(char *password, unsigned char *out, int full_decrypt)
 {
 	if (cur_salt->cipher == 0) {
@@ -310,7 +355,7 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 			memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 		}
-	} else if (cur_salt->cipher == 2) {  /* new ssh key format handling */
+	} else if (cur_salt->cipher == 2) {  /* new ssh key format handling with aes256-cbc */
 		unsigned char key[32 + 16];
 		AES_KEY akey;
 		unsigned char iv[16];
@@ -324,6 +369,16 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 		// Padding check is unreliable for this type
 		// memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 		// AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
+	} else if (cur_salt->cipher == 6) {  /* new ssh key format handling with aes256-ctr */
+		unsigned char key[32 + 16];
+		unsigned char iv[16];
+
+		// derive (key length + iv length) bytes
+		bcrypt_pbkdf(password, strlen((const char *)password), cur_salt->salt, 16, key,
+		             32 + 16, cur_salt->rounds);
+		memcpy(iv, key + 32, 16);
+		AES_ctr_decrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, 16, key, iv,
+		                out);
 	} else if (cur_salt->cipher == 3) { // EC keys with AES-128
 		unsigned char key[16];
 		AES_KEY akey;
@@ -389,7 +444,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		} else if (cur_salt->cipher == 1) {
 			cracked[index] =
 				!check_padding_and_structure(out, cur_salt->ctl, 0, 16);
-		} else if (cur_salt->cipher == 2) {  // new ssh key format handling
+		} else if (cur_salt->cipher == 2 || cur_salt->cipher == 6) {  // new ssh key format handling
 			cracked[index] =
 				!check_structure_bcrypt(out, cur_salt->ctl);
 		} else if (cur_salt->cipher == 3) { // EC keys
@@ -433,7 +488,7 @@ static int cmp_exact(char *source, int index)
 		return !check_padding_and_structure(out, cur_salt->ctl, 1, 8);
 	} else if (cur_salt->cipher == 1) {
 		return !check_padding_and_structure(out, cur_salt->ctl, 1, 16);
-	} else if (cur_salt->cipher == 2) {  /* new ssh key format handling */
+	} else if (cur_salt->cipher == 2 || cur_salt->cipher == 6) {  /* new ssh key format handling */
 		return 1; // XXX add more checks!
 	} else if (cur_salt->cipher == 3) { // EC keys
 		return 1;

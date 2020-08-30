@@ -7,6 +7,11 @@
 #
 # Copyright (C) 2011, Jeff Forcier <jeff@bitprophet.org>
 #
+# This software is Copyright (c) 2020 Valeriy Khromov <valery.khromov at gmail.com>,
+# and it is hereby released to the general public under the following terms:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+#
 # This file is part of ssh.
 #
 # 'ssh' is free software; you can redistribute it and/or modify it under the
@@ -38,6 +43,7 @@ CIPHER_TABLE = {
     'DES-EDE3-CBC': {'cipher': DES3, 'keysize': 24, 'blocksize': 8, 'mode': "DES3.MODE_CBC"},
     'AES-256-CBC': {'cipher': AES_256, 'keysize': 32, 'blocksize': 16, 'mode': "AES.MODE_CBC"},
     'AES-192-CBC': {'cipher': AES, 'keysize': 24, 'blocksize': 16, 'mode': "AES.MODE_CBC"},
+    'AES-256-CTR': {'cipher': AES_256, 'keysize': 32, 'blocksize': 16, 'mode': "AES.MODE_CTR"},
 }
 
 
@@ -116,7 +122,12 @@ def read_private_key(filename):
         if ktype != 2:
             raise Exception('Can\'t parse DEK-info in private key file')
         else:
-            encryption_type = "AES-256-CBC"
+            if b'aes256-cbc' in data:
+                encryption_type = "AES-256-CBC"
+            elif b'aes256-ctr' in data:
+                encryption_type = "AES-256-CTR"
+            else:
+                raise Exception('Unknown encryption type')
             saltstr = "fefe"  # dummy value, not used
     if encryption_type not in CIPHER_TABLE:
         raise Exception('Unknown private key cipher "%s"' % encryption_type)
@@ -175,8 +186,11 @@ def read_private_key(filename):
     elif keysize == 16 and ktype == 3:  # EC keys using AES-128
         hashline = "%s:$sshng$%s$%s$%s$%s$%s" % (f.name, 3, len(saltstr) // 2,
             saltstr, len(data) // 2, data)
-    elif keysize == 32 and ktype == 2:  # bcrypt pbkdf + aes-256-cbc
+    elif keysize == 32 and encryption_type == "AES-256-CBC" and ktype == 2:  # bcrypt pbkdf + aes-256-cbc
         hashline = "%s:$sshng$%s$%s$%s$%s$%s$%d$%d" % (f.name, 2, len(saltstr) // 2,
+            saltstr, len(data) // 2, data, rounds, ciphertext_begin_offset)
+    elif keysize == 32 and encryption_type == "AES-256-CTR" and ktype == 2:  # bcrypt pbkdf + aes-256-ctr
+        hashline = "%s:$sshng$%s$%s$%s$%s$%s$%d$%d" % (f.name, 6, len(saltstr) // 2,
             saltstr, len(data) // 2, data, rounds, ciphertext_begin_offset)
     else:
         sys.stderr.write("%s uses unsupported cipher, please file a bug!\n" % f.name)
