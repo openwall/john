@@ -42,7 +42,7 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (hexlen(p, &extra) / 2 != len || extra)
 		goto err;
-	if (cipher == 2) {
+	if (cipher == 2 || cipher == 6) {
 		if ((p = strtokm(NULL, "$")) == NULL)	/* rounds */
 			goto err;
 		if (!isdec(p))
@@ -55,7 +55,7 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 		       goto err;
 	}
 
-	if (cipher < 0 || cipher > 5) {
+	if (cipher < 0 || cipher > 6) {
 		fprintf(stderr, "[%s] cipher value of %d is not supported!\n",
 		        self->params.label, cipher);
 		goto err;
@@ -94,7 +94,7 @@ void *ssh_get_salt(char *ciphertext)
 	for (i = 0; i < cs.ctl; i++)
 		cs.ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	if (cs.cipher == 2) {
+	if (cs.cipher == 2 || cs.cipher == 6) {
 		p = strtokm(NULL, "$");
 		cs.rounds = atoi(p);
 		p = strtokm(NULL, "$");
