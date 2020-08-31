@@ -336,10 +336,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	}
 	
 	for (i=0; i<= maxlength - minlength; ++i) {
-		Accu[i] = accu(minlength+i);		
-		if (!state_restored)		
+		Accu[i] = accu(minlength+i);
+		if (!state_restored) {
+			drops[i] = 0;
 			for (j = 0; j < maxlength; ++j)
 				charset_idx[i][j] = 0;
+		}
 	}
 
 	while (loop2 <= maxlength - minlength) {
@@ -353,7 +355,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				state_restored = 0;
 			else
 				set++;
-
+			
 			if (options.node_count) {
 				int for_node = set % options.node_count + 1;
 				skip = for_node < options.node_min ||
@@ -365,35 +367,29 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			if (!skip) {
 				quick_conversion = 1;
 				for(i=0; i<minlength+loop; ++i) {
-					if((rain[i] = charset_utf32[(charset_idx[loop][i])/* + drops[loop]) % charcount*/]) > cp_max)
+					if((rain[i] = charset_utf32[(charset_idx[loop][i] + drops[loop]) % charcount]) > cp_max)
 						quick_conversion = 0;
-					drops[loop]+=i+1;
+					drops[loop]+=(i+1);
 				}
-				if (charcount % 10 == 0) drops[loop] -= Accu[loop]-2;
-				else if (charcount % 2 == 0) drops[loop] -= Accu[loop]-4;
-				else drops[loop] -= Accu[loop]-1;	
-				
+				drops[loop] *= options.node_count;
 				submit(rain);
-				
-				
 			}
 			
-			if(bail) break;
-			
+			if (charcount % 10 == 0) drops[loop] -= (Accu[loop]-2);
+			else if (charcount % 2 == 0) drops[loop] -= (Accu[loop]-4);
+			else drops[loop] -= (Accu[loop]-1);
+						
 			while (pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
 				--pos;
 			}
 			if (pos < 0) { 
 				++loop2;
-				bail = 1;
 				break;
 			}
 			if(++loop > maxlength - minlength) {
-				bail = 1;
 				break;
 			}
-			
 		}
 	}
 	crk_done();
