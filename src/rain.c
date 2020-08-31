@@ -344,19 +344,20 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		}
 	}
 
-	while (loop2 <= maxlength - minlength) {
+	while(loop2 <= maxlength - minlength) {
+	
 		loop = loop2;
 		int bail = 0;
 		/* Iterate over all lengths */
-		while (1) {
+		while(loop <= maxlength - minlength) {
 			int skip = 0;
 
-			if (state_restored)
+			if(state_restored)
 				state_restored = 0;
 			else
-				set++;
+				++set;
 			
-			if (options.node_count) {
+			if(options.node_count) {
 				int for_node = set % options.node_count + 1;
 				skip = for_node < options.node_min ||
 					for_node > options.node_max;
@@ -364,32 +365,39 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			
 			int pos = minlength + loop - 1;
 			
-			if (!skip) {
+			if(!skip) {
 				quick_conversion = 1;
 				for(i=0; i<minlength+loop; ++i) {
 					if((rain[i] = charset_utf32[(charset_idx[loop][i] + drops[loop]) % charcount]) > cp_max)
 						quick_conversion = 0;
-					drops[loop]+=(i+1);
+					drops[loop]+=i+1;
 				}
-				drops[loop] *= options.node_count;
+				
+				drops[loop] -= Accu[loop];		
+				
 				submit(rain);
+				
+			}
+			if (charcount % 10 == 0)
+				drops[loop] += 2;
+
+			else if (charcount % 2 == 0)
+				drops[loop] += 4;
+
+			else
+				++drops[loop];
+				
+			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
+				charset_idx[loop][pos] = 0;
+				if(--pos < 0) {
+					++loop2;
+					break;
+				}
 			}
 			
-			if (charcount % 10 == 0) drops[loop] -= (Accu[loop]-2);
-			else if (charcount % 2 == 0) drops[loop] -= (Accu[loop]-4);
-			else drops[loop] -= (Accu[loop]-1);
-						
-			while (pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
-				charset_idx[loop][pos] = 0;
-				--pos;
-			}
-			if (pos < 0) { 
-				++loop2;
-				break;
-			}
-			if(++loop > maxlength - minlength) {
-				break;
-			}
+					
+				
+			++loop;
 		}
 	}
 	crk_done();
