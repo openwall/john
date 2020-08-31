@@ -519,7 +519,7 @@ def pcap_parser_ntp(fname):
             elif length == 64:
                 sys.stdout.write("%s:$dynamic_82$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
             else:
-                print "Unsupported hash of length %s found!" % len(data)
+                print("Unsupported hash of length %s found!" % len(data))
 
     f.close()
 
@@ -992,7 +992,7 @@ def process_hash(uid, nonce, sha1):
     if len(nonce) == 0:
         return
     uid = int(endian(uid[::-1]), 16)
-    print "%s:$dynamic_24$%s$HEX$%s" % (uid, sha1, nonce)
+    print("%s:$dynamic_24$%s$HEX$%s" % (uid, sha1, nonce))
 
 
 def handle_gg_login105(payload, nonce):
@@ -1004,7 +1004,7 @@ def handle_gg_login105(payload, nonce):
     uid = payload[32:32 + 2*digits].decode("hex")
     offset = 32 + 2*digits + 4
     sha1 = payload[offset:offset + 40]
-    print "%s:$dynamic_24$%s$HEX$%s" % (uid, sha1, nonce)
+    print("%s:$dynamic_24$%s$HEX$%s" % (uid, sha1, nonce))
 
 
 def pcap_parser_gadu(pcapfile):
@@ -1190,7 +1190,7 @@ def pcap_parser_tgsrep(fname):
                     unfinished[(p[IP].src, p[IP].dst, p[TCP].dport)] = (ticketdata, size)
                 else:
                     # OH NO! Oversized!
-                    print 'Too much data received! Source: %s Dest: %s DPort %i' % (p[IP].src, p[IP].dst, p[TCP].dport)
+                    print('Too much data received! Source: %s Dest: %s DPort %i' % (p[IP].src, p[IP].dst, p[TCP].dport))
 
     for p in kploads:
         sys.stdout.write("%s:$tgsrep$%s\n" % (index, p.encode("hex")))
