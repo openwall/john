@@ -63,17 +63,18 @@ typedef uint64_t uint_big;
 int rain_cur_len;
 
 static char *charset;
+static UTF32 rain[MAX_CAND_LENGTH+1];
 static int charset_idx[MAX_CAND_LENGTH][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
 static int rec_charset_idx[MAX_CAND_LENGTH][MAX_CAND_LENGTH];
 static int maxlength;
 static int minlength;
 static int state_restored;
 static uint_big keyspace;
-static int charcount;
-static uint_big rain[MAX_CAND_LENGTH];//same as above
-static uint_big rec_rain[MAX_CAND_LENGTH];
+static uint_big drops[MAX_CAND_LENGTH];//same as above
+static uint_big rec_drops[MAX_CAND_LENGTH];
 static uint_big glob;
 static uint_big rec_glob;
+static int quick_conversion;
 static int loop2, loop;//the outer and inner loop
 static int rec_loop2 ,set;
 static int Accu[MAX_CAND_LENGTH];//holds the modifiers
@@ -94,7 +95,7 @@ static void fix_state(void)
 	int i, j;
 
 	for (i = 0; i <= maxlength - minlength; i++) {
-		rec_rain[i] = rain[i];	
+		rec_drops[i] = drops[i];	
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -110,7 +111,7 @@ static void save_state(FILE *file)
 	int i, j;
 
 	for (i = 0; i <= maxlength - minlength; i++) {
-		fprintf(file, "%llu\n ", rec_rain[i]);	
+		fprintf(file, "%llu\n ", rec_drops[i]);	
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -125,7 +126,7 @@ static int restore_state(FILE *file)
 
 	for (i = 0; i <= maxlength - minlength; i++) {
 		if(fscanf(file, "%llu\n ", &r) == 1)//all those bigint needs a fix in save and restore state
-			rain[i] = r;
+			drops[i] = r;
 		else return 1;	
 		for(j = 0; j < maxlength; ++j)
 			if(fscanf(file, "%d\n", &d) == 1)
@@ -219,37 +220,37 @@ int accu(int a) {
 	return c;
 }
 
-static char *roll_on(int loop, UTF32 *cs) {
-	short int mpl = minlength+loop;
- 	short int pos = mpl - 1;
-	short int i;
-	char tmp[minlength+loop+1];
-	for (i=0; i<mpl; ++i) {
-		tmp[i] = cs[(charset_idx[loop][i] + rain[loop]) % charcount];
- 		rain[loop]+=i+1;
- 	}
- 	//subtract what we added in the above loop, minus the modifier
- 	if	(charcount % 10 == 0)	rain[loop] -= Accu[loop]-2;
-	else if	(charcount % 2 == 0)	rain[loop] -= Accu[loop]-4;
-	else 				rain[loop] -= Accu[loop]-1;
- 	
-	while (pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
-		charset_idx[loop][pos] = 0;
-		--pos;
+static int submit(UTF32 *subset)
+{
+	UTF8 out[4 * MAX_CAND_LENGTH];
+	int i;
+
+	/* Set current word */
+	if (quick_conversion) {
+		/* Quick conversion (only ASCII or ISO-8859-1) */
+		for (i = 0; i < minlength+loop; i++)
+			out[i] = rain[i];
+		out[i] = 0;
+	} else if (options.target_enc == UTF_8) {
+		/* Nearly as quick conversion, from UTF-8-32[tm] to UTF-8 */
+		rain[minlength+loop] = 0;
+		utf8_32_to_utf8(out, rain);
+	} else {
+		/* Slowest conversion, from real UTF-32 to sone legacy codepage */
+		rain[minlength+loop] = 0;
+		utf32_to_enc(out, sizeof(out), rain);
 	}
-	tmp[mpl] = '\0';
+
 	if (options.flags & FLG_MASK_CHK)
-		do_mask_crack(tmp);
+		return do_mask_crack((char*)out);
 	else
-		crk_process_key(tmp);
-	//current length is done ?	
-	if (pos < 0) return NULL;
-	else return "";
+		return crk_process_key((char*)out);
 }
 
 int do_rain_crack(struct db_main *db, char *req_charset)
 {
 	int i, j;
+	unsigned int charcount;
 	int fmt_case = (db->format->params.flags & FMT_CASE);
 	char *default_set;
 	UTF32 *charset_utf32;
@@ -316,7 +317,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		utf32_to_utf8_32(charset_utf32);
 
 	charcount = strlen32(charset_utf32);
-	
+	int cp_max = 255;
 	rain_cur_len = loop2;
 
 	status_init(get_progress, 0);
@@ -328,6 +329,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	crk_init(db, fix_state, NULL);
 	
+
 	if (!state_restored) {
 		glob = 0;
 		loop2 = 0;
@@ -340,12 +342,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	}
 
 	while (loop2 <= maxlength - minlength) {
-		int loop = loop2;
+		loop = loop2;
 		int bail = 0;
 		/* Iterate over all lengths */
-		while (loop <= maxlength - minlength) {
+		while (1) {
 			int skip = 0;
-			
+
 			if (state_restored)
 				state_restored = 0;
 			else
@@ -358,9 +360,29 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			}
 
 			if (!skip) {
-				if (roll_on(loop, charset_utf32) == NULL) ++loop2;	
-				++loop;
+				quick_conversion = 1;
+				for(i=0; i<minlength+loop; ++i) {
+					if((rain[i] = charset_utf32[(charset_idx[loop][i] + drops[loop]) % charcount]) > cp_max);
+					drops[loop]+=i+1;
+				}
+				if (charcount % 10 == 0) drops[loop] -= Accu[loop]-2;
+				else if (charcount % 2 == 0) drops[loop] -= Accu[loop]-4;
+				else drops[loop] -= Accu[loop]-1;
+ 				
+ 				int pos = minlength + loop - 1;
+ 	
+ 				while (pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
+					charset_idx[loop][pos] = 0;
+					--pos;
+				}
+				submit(rain);
+				
+				if(++loop > maxlength - minlength) {
+					bail = 1;
+				}
+				if (pos < 0) { ++loop2;}
 			}
+			if(bail) break;
 		}
 	}
 	crk_done();
