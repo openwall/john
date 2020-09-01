@@ -68,7 +68,7 @@ static int maxlength;
 static int minlength;
 static int state_restored;
 static uint_big keyspace;
-static uint_big subtotal, rec_subtotal;
+static uint_big subtotal;
 static uint_big drops[MAX_CAND_LENGTH];//same as above
 static uint_big rec_drops[MAX_CAND_LENGTH];
 static uint_big counter;
@@ -103,7 +103,6 @@ static void fix_state(void)
 	}
 	rec_cur_len = rain_cur_len;
 	rec_counter = counter;
-	rec_subtotal = subtotal;
 	rec_loop = loop;
 }
 
@@ -121,7 +120,6 @@ static void save_state(FILE *file)
 	}
 	fprintf(file, "%d\n", rec_cur_len);
 	fprintf(file, "%llu\n", (unsigned long long) rec_counter);
-	fprintf(file, "%llu\n", (unsigned long long) rec_subtotal);
 	fprintf(file, "%d\n", rec_loop);
 }
 
@@ -149,10 +147,6 @@ static int restore_state(FILE *file)
 
 	if(fscanf(file, "%llu\n", (unsigned long long *) &r) == 1)
 		counter = r;
-	else return 1;
-	
-	if(fscanf(file, "%llu\n", (unsigned long long *) &r) == 1)
-		subtotal = r;
 	else return 1;
 	
 	if(fscanf(file, "%d\n", &d) == 1)
@@ -283,7 +277,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if (!options.req_minlength)
 		minlength = 1;
 
-	default_set = (char*)cfg_get_param("Rain", NULL, "DefaultCharset");
+	default_set = (char*)cfg_get_param("Rain", NULL, "RainDefaultCharset");
 	if (!req_charset)
 		req_charset = default_set;
 
@@ -307,7 +301,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen(charset);
 
-	
 	if (!strcasecmp(charset, "full-unicode")) {
 		charset_utf32 = mem_alloc(0x22000 * sizeof(UTF32));
 		charcount = full_unicode_charset(charset_utf32);
@@ -342,23 +335,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 	
-	if (!state_restored) {
-		counter = 0;
-		subtotal = 0;
-		rain_cur_len = minlength;
-	}
+	rain_cur_len = minlength;
+	counter = 0;
+	subtotal = 0;
 	
-	for (i=0; i<= maxlength - minlength; i++) {
-		Accu[i] = accu(minlength+i);
-		if (!state_restored) {
-			drops[i] = 0;
-			for (j = 0; j < maxlength; j++)
-				charset_idx[i][j] = 0;
-		}
-	}
-
-	keyspace = (uint_big) pow(charcount, rain_cur_len);
-
 	if(john_main_process) {
 		log_event("Proceeding with \"rain\" mode");
 		log_event("- Charset: %s size %d", req_charset ? req_charset : charset,
@@ -384,9 +364,21 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	
 	crk_init(db, fix_state, NULL);
 	
+	for (i=0; i<= maxlength - minlength; i++) {
+		Accu[i] = accu(minlength+i);
+		if (!state_restored) {
+			drops[i] = 0;
+			for (j = 0; j < maxlength; j++)
+				charset_idx[i][j] = 0;
+		}
+	}
+
+	keyspace = (uint_big) pow(charcount, rain_cur_len);
+	if(rain_cur_len > minlength)
+		subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
+
 	while(rain_cur_len <= maxlength) {
-		if(!state_restored)
-			loop = rain_cur_len - minlength;
+		loop = rain_cur_len - minlength;
 		/* Iterate over all lengths */
 		while(loop <= maxlength - minlength) {
 			int skip = 0;
@@ -435,7 +427,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				rain_cur_len++;
 				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
 				subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
-				if (cfg_get_bool("Rain", NULL, "LengthIterStatus", 1))
+				if (cfg_get_bool("Rain", NULL, "RainLengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
 			loop++;
