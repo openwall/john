@@ -46,9 +46,6 @@
 #include "unicode.h"
 #include "unicode_range.h"
 
-#define SUBSET_DEBUG 1
-
-#define MAX_SUBSET_SIZE 16
 #define MAX_CAND_LENGTH PLAINTEXT_BUFFER_SIZE
 #define DEFAULT_MAX_LEN 16
 
@@ -71,14 +68,16 @@ static int maxlength;
 static int minlength;
 static int state_restored;
 static uint_big keyspace;
+static uint_big subtotal, rec_subtotal;
 static uint_big drops[MAX_CAND_LENGTH];//same as above
 static uint_big rec_drops[MAX_CAND_LENGTH];
-static uint_big glob;
-static uint_big rec_glob;
+static uint_big counter;
+static uint_big rec_counter;
 static int quick_conversion;
-static int loop;//inner loop
-static int set;
+static int loop, rec_loop;//inner loop
+static int set, rec_set;
 static int Accu[MAX_CAND_LENGTH];//holds the modifiers
+
 
 static double get_progress(void)
 {
@@ -86,49 +85,60 @@ static double get_progress(void)
 
 	if (!keyspace)
 		return -1;
+		
 	if (rain_cur_len > maxlength)
 		return 100;
-	return 100.0 * glob / keyspace;
+	
+	return (100.0 * counter) / (keyspace - subtotal);
 }
 
 static void fix_state(void)
 {
 	int i, j;
-
+	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; i++) {
 		rec_drops[i] = drops[i];	
-		for(j = 0; j < maxlength; ++j)
+		for(j = 0; j < maxlength; j++)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
 	rec_cur_len = rain_cur_len;
-	rec_glob = glob;
+	rec_counter = counter;
+	rec_subtotal = subtotal;
+	rec_loop = loop;
 }
 
 
 static void save_state(FILE *file)
 {
-
 	int i, j;
-
+	
+	fprintf(file, "%d\n", rec_set);
+	
 	for (i = 0; i <= maxlength - minlength; i++) {
-		fprintf(file, "%llu\n ", rec_drops[i]);	
-		for(j = 0; j < maxlength; ++j)
+		fprintf(file, "%llu\n ", (unsigned long long) rec_drops[i]);	
+		for(j = 0; j < maxlength; j++)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
 	fprintf(file, "%d\n", rec_cur_len);
-	fprintf(file, "%llu\n", rec_glob);
+	fprintf(file, "%llu\n", (unsigned long long) rec_counter);
+	fprintf(file, "%llu\n", (unsigned long long) rec_subtotal);
+	fprintf(file, "%d\n", rec_loop);
 }
 
 static int restore_state(FILE *file)
 {
 	int i, j, d;
 	uint_big r;
+	
+	if(fscanf(file, "%d\n", &d) == 1)
+		set = d;
+	else return 1;
 
 	for (i = 0; i <= maxlength - minlength; i++) {
-		if(fscanf(file, "%llu\n ", &r) == 1)//all those bigint needs a fix in save and restore state
+		if(fscanf(file, "%llu\n ", (unsigned long long *) &r) == 1)//all those bigint needs a fix in save and restore state
 			drops[i] = r;
 		else return 1;	
-		for(j = 0; j < maxlength; ++j)
+		for(j = 0; j < maxlength; j++)
 			if(fscanf(file, "%d\n", &d) == 1)
 				charset_idx[i][j] = d;
 			else return 1;
@@ -137,8 +147,16 @@ static int restore_state(FILE *file)
 		rain_cur_len = d;
 	else return 1;
 
-	if(fscanf(file, "%llu\n", &r) == 1)
-		glob = r;
+	if(fscanf(file, "%llu\n", (unsigned long long *) &r) == 1)
+		counter = r;
+	else return 1;
+	
+	if(fscanf(file, "%llu\n", (unsigned long long *) &r) == 1)
+		subtotal = r;
+	else return 1;
+	
+	if(fscanf(file, "%d\n", &d) == 1)
+		loop = d;
 	else return 1;
 	
 	state_restored = 1;
@@ -212,8 +230,7 @@ static void parse_unicode(char *string)
 	*d = 0;
 }
 
-
-int accu(int a) {
+static int accu(int a) {
 	int b, c=0;
 	for(b=1; b<=a; ++b)
 		c+=b;
@@ -228,16 +245,16 @@ static int submit(UTF32 *subset)
 	/* Set current word */
 	if (quick_conversion) {
 		/* Quick conversion (only ASCII or ISO-8859-1) */
-		for (i = 0; i < minlength+loop; i++)
+		for (i = 0; i < minlength + loop; i++)
 			out[i] = rain[i];
 		out[i] = 0;
 	} else if (options.target_enc == UTF_8) {
 		/* Nearly as quick conversion, from UTF-8-32[tm] to UTF-8 */
-		rain[minlength+loop] = 0;
+		rain[minlength + loop] = 0;
 		utf8_32_to_utf8(out, rain);
 	} else {
 		/* Slowest conversion, from real UTF-32 to sone legacy codepage */
-		rain[minlength+loop] = 0;
+		rain[minlength + loop] = 0;
 		utf32_to_enc(out, sizeof(out), rain);
 	}
 
@@ -324,29 +341,29 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 
-	for (i = 0; i <= maxlength - minlength; i++)
-		keyspace += (__int128)pow((double) charcount, (double) minlength+i);
-
 	
-
+	crk_init(db, fix_state, NULL);
+	
 	if (!state_restored) {
-		glob = 0;
+		counter = 0;
+		subtotal = 0;
 		rain_cur_len = minlength;
 	}
 	
-	for (i=0; i<= maxlength - minlength; ++i) {
+	for (i=0; i<= maxlength - minlength; i++) {
 		Accu[i] = accu(minlength+i);
 		if (!state_restored) {
 			drops[i] = 0;
-			for (j = 0; j < maxlength; ++j)
+			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
 	}
-	crk_init(db, fix_state, NULL);
+
+	keyspace = (uint_big) pow(charcount, rain_cur_len);
 	
 	while(rain_cur_len <= maxlength) {
-	
-		loop = rain_cur_len - minlength;
+		//if(!state_restored)
+			loop = rain_cur_len - minlength;
 		/* Iterate over all lengths */
 		while(loop <= maxlength - minlength) {
 			int skip = 0;
@@ -354,7 +371,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			if(state_restored)
 				state_restored = 0;
 			else
-				++set;
+				set++;
 			
 			if(options.node_count) {
 				int for_node = set % options.node_count + 1;
@@ -384,16 +401,22 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				drops[loop] += 4;
 
 			else
-				++drops[loop];
+				drops[loop]++;
 				
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
-				if(--pos < 0) {
-					++rain_cur_len;
-				}
+				--pos;
 			}
-			++loop;
-			++glob;
+			if(pos < 0) {
+				counter = 0;
+				rain_cur_len++;
+				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
+				subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
+				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
+					event_pending = event_status = 1;
+			}
+			loop++;
+			counter++;
 		}
 	}
 	crk_done();
