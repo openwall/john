@@ -62,6 +62,7 @@ typedef uint64_t uint_big;
 
 int rain_cur_len;
 
+static int rec_cur_len;
 static char *charset;
 static UTF32 rain[MAX_CAND_LENGTH+1];
 static int charset_idx[MAX_CAND_LENGTH][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
@@ -75,8 +76,8 @@ static uint_big rec_drops[MAX_CAND_LENGTH];
 static uint_big glob;
 static uint_big rec_glob;
 static int quick_conversion;
-static int loop2, loop;//the outer and inner loop
-static int rec_loop2 ,set;
+static int loop;//inner loop
+static int set;
 static int Accu[MAX_CAND_LENGTH];//holds the modifiers
 
 static double get_progress(void)
@@ -85,7 +86,7 @@ static double get_progress(void)
 
 	if (!keyspace)
 		return -1;
-	if (loop2 > maxlength-minlength)
+	if (rain_cur_len > maxlength)
 		return 100;
 	return 100.0 * glob / keyspace;
 }
@@ -99,8 +100,7 @@ static void fix_state(void)
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
-	rain_cur_len = minlength+loop2;
-	rec_loop2 = loop2;
+	rec_cur_len = rain_cur_len;
 	rec_glob = glob;
 }
 
@@ -115,8 +115,8 @@ static void save_state(FILE *file)
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
-	fprintf(file, "%d\n", loop2);
-	fprintf(file, "%llu\n", glob);
+	fprintf(file, "%d\n", rec_cur_len);
+	fprintf(file, "%llu\n", rec_glob);
 }
 
 static int restore_state(FILE *file)
@@ -134,7 +134,7 @@ static int restore_state(FILE *file)
 			else return 1;
 	}
 	if(fscanf(file, "%d\n", &d) == 1)
-		loop2 = d;
+		rain_cur_len = d;
 	else return 1;
 
 	if(fscanf(file, "%llu\n", &r) == 1)
@@ -250,6 +250,8 @@ static int submit(UTF32 *subset)
 int do_rain_crack(struct db_main *db, char *req_charset)
 {
 	int i, j;
+	int cp_max = 255;
+
 	unsigned int charcount;
 	int fmt_case = (db->format->params.flags & FMT_CASE);
 	char *default_set;
@@ -317,9 +319,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		utf32_to_utf8_32(charset_utf32);
 
 	charcount = strlen32(charset_utf32);
-	int cp_max = 255;
-	rain_cur_len = loop2;
-
+	
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
@@ -327,12 +327,11 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	for (i = 0; i <= maxlength - minlength; i++)
 		keyspace += (__int128)pow((double) charcount, (double) minlength+i);
 
-	crk_init(db, fix_state, NULL);
 	
 
 	if (!state_restored) {
 		glob = 0;
-		loop2 = 0;
+		rain_cur_len = minlength;
 	}
 	
 	for (i=0; i<= maxlength - minlength; ++i) {
@@ -343,11 +342,11 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				charset_idx[i][j] = 0;
 		}
 	}
-
-	while(loop2 <= maxlength - minlength) {
+	crk_init(db, fix_state, NULL);
 	
-		loop = loop2;
-		int bail = 0;
+	while(rain_cur_len <= maxlength) {
+	
+		loop = rain_cur_len - minlength;
 		/* Iterate over all lengths */
 		while(loop <= maxlength - minlength) {
 			int skip = 0;
@@ -390,14 +389,11 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
 				if(--pos < 0) {
-					++loop2;
-					break;
+					++rain_cur_len;
 				}
 			}
-			
-					
-				
 			++loop;
+			++glob;
 		}
 	}
 	crk_done();
