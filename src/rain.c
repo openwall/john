@@ -272,6 +272,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	unsigned int charcount;
 	int fmt_case = (db->format->params.flags & FMT_CASE);
 	char *default_set;
+
 	UTF32 *charset_utf32;
 
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
@@ -340,9 +341,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
-
-	
-	crk_init(db, fix_state, NULL);
 	
 	if (!state_restored) {
 		counter = 0;
@@ -360,9 +358,34 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	}
 
 	keyspace = (uint_big) pow(charcount, rain_cur_len);
+
+	if(john_main_process) {
+		log_event("Proceeding with \"rain\" mode");
+		log_event("- Charset: %s size %d", req_charset ? req_charset : charset,
+		          charcount);
+		log_event("- Lengths: %d-%d, max",
+		          MAX(options.eff_minlength, 1), maxlength);
+		if(rec_restored) {
+			fprintf(stderr, "Proceeding with \"rain\"%s%s",
+			        req_charset ? ": " : "",
+			        req_charset ? req_charset : "");
+			if (options.flags & FLG_MASK_CHK)
+				fprintf(stderr, ", hybrid mask:%s", options.mask ?
+				        options.mask : options.eff_mask);
+			if (options.rule_stack)
+				fprintf(stderr, ", rules-stack:%s", options.rule_stack);
+			if (options.req_minlength >= 0 || options.req_maxlength)
+				fprintf(stderr, ", lengths: %d-%d",
+				        options.eff_minlength + mask_add_len,
+				        options.eff_maxlength + mask_add_len);
+			fprintf(stderr, "\n");
+		}
+	}
+	
+	crk_init(db, fix_state, NULL);
 	
 	while(rain_cur_len <= maxlength) {
-		//if(!state_restored)
+		if(!state_restored)
 			loop = rain_cur_len - minlength;
 		/* Iterate over all lengths */
 		while(loop <= maxlength - minlength) {
@@ -412,7 +435,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				rain_cur_len++;
 				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
 				subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
-				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
+				if (cfg_get_bool("Rain", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
 			loop++;
