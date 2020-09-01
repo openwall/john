@@ -339,6 +339,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
+	keyspace = (uint_big) pow((double)charcount, (double)rain_cur_len);
 	
 	if(john_main_process) {
 		log_event("Proceeding with \"rain\" mode");
@@ -363,6 +364,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		}
 	}
 	
+	if(rain_cur_len > minlength)
+		subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
+	
+	
+	
+	
 	for(i=0; i<= maxlength - minlength; i++) {
 		Accu[i] = accu(minlength+i);
 		if(!state_restored) {
@@ -371,14 +378,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				charset_idx[i][j] = 0;
 		}
 	}
-	
-	keyspace = (uint_big) pow(charcount, rain_cur_len);
-	if(rain_cur_len > minlength)
-		subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
+	int loop2 = 0;
 	
 	crk_init(db, fix_state, NULL);
-	
-	do {
+	while(loop2 <= maxlength - minlength) {
 		if(!state_restored)
 			loop = rain_cur_len - minlength;
 		if (options.verbosity >= VERB_DEFAULT)
@@ -411,13 +414,18 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				submit(rain);
 			}
 			if(charcount % 10 == 0) drops[loop] -= Accu[loop] - 2;
+			else if(charcount % 2 == 0) drops[loop] -= Accu[loop] - 4;
+			else drops[loop] -= Accu[loop] - 1;
+			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
 				--pos;
 			}
+			
 			if(pos < 0) {
 				counter = 0;
 				rain_cur_len++;
+				++loop2;
 				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
 				subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
 				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
@@ -426,10 +434,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			loop++;
 			counter++;
 		}
-	} while(rain_cur_len <= maxlength);
-
+	}
 	crk_done();
 	rec_done(event_abort);
+
 	MEM_FREE(charset_utf32);
 	return 0;
 }
