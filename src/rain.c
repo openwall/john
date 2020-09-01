@@ -225,7 +225,8 @@ static void parse_unicode(char *string)
 }
 
 static int accu(int a) {
-	int b, c=0;
+	int b; 
+	int c=0;
 	for(b=1; b<=a; ++b)
 		c+=b;
 	return c;
@@ -331,7 +332,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
-	
 	rain_cur_len = minlength;
 	counter = 0;
 	subtotal = 0;
@@ -406,21 +406,11 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				for(i=0; i<minlength+loop; ++i) {
 					if((rain[i] = charset_utf32[(charset_idx[loop][i] + drops[loop]) % charcount]) > cp_max)
 						quick_conversion = 0;
-					drops[loop]+=i+1;
+					drops[loop] += i + 1;
 				}
-				
-				drops[loop] -= Accu[loop];		
 				submit(rain);
 			}
-			if (charcount % 10 == 0)
-				drops[loop] += 2;
-
-			else if(charcount % 2 == 0)
-				drops[loop] += 4;
-
-			else
-				drops[loop]++;
-				
+			if(charcount % 10 == 0) drops[loop] -= Accu[loop] - 2;
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
 				--pos;
