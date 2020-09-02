@@ -81,6 +81,9 @@
 
 #ifndef CL_DEVICE_TOPOLOGY_AMD
 #define CL_DEVICE_TOPOLOGY_AMD                      0x4037
+#endif
+
+#ifndef CL_DEVICE_TOPOLOGY_TYPE_PCIE_AMD
 typedef union {
 	struct {
 		cl_uint type;
