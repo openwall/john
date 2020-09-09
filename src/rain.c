@@ -100,7 +100,8 @@ static void fix_state(void)
 	
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		rec_rotate[i] = rotate[i];	
+		rec_rotate[i] = rotate[i];
+		rec_strafe[i] = strafe[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -116,7 +117,8 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%llu\n ", (unsigned long long) rec_rotate[i]);	
+		fprintf(file, "%llu\n ", (unsigned long long) rec_rotate[i]);
+		fprintf(file, "%llu\n ", (unsigned long long) rec_strafe[i]);	
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -137,7 +139,12 @@ static int restore_state(FILE *file)
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		if(fscanf(file, "%llu\n ", (unsigned long long *) &r) == 1)//all those bigint needs a fix in save and restore state
 			rotate[i] = r;
-		else return 1;	
+		else return 1;
+		
+		if(fscanf(file, "%llu\n ", (unsigned long long *) &r) == 1)//all those bigint needs a fix in save and restore state
+			strafe[i] = r;
+		else return 1;
+		
 		for(j = 0; j < maxlength; ++j)
 			if(fscanf(file, "%d\n", &d) == 1)
 				charset_idx[i][j] = d;
@@ -373,6 +380,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		rain_cur_len = minlength;
 	else 
 		loop2 = rain_cur_len - minlength;
+	
 	for(i=0; i<= maxlength - minlength; i++) {
 		Accu[i] = accu(i);
 		if(!state_restored) {
@@ -385,11 +393,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	
 	crk_init(db, fix_state, NULL);
 	while(loop2 <= maxlength - minlength) {
+		if(event_abort) break;
 		if(!state_restored)
 			loop = loop2;
-		int bail = 0;
 		/* Iterate over all lengths */
 		while (loop <= maxlength - minlength) {
+			if(event_abort) break;
 			int skip = 0;
 
 			int mpl = minlength + loop;
@@ -421,9 +430,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
  					strafe[loop] += 3;
 				}
 				rotate[loop] -= Accu[loop];
-				if(submit(rain)) {
-					bail = 1;
-				}
+				submit(rain);
 			}
 			//if(bail) break;
 			
