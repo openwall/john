@@ -422,18 +422,22 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				
 				for(i=0; i<mpl; ++i) {
 				
-					if(mpl % 2)
-						strafeValue = (strafe[loop]+i)%mpl;
-					else strafeValue = (strafe[loop]+i*4)%mpl;
+					if(mpl > 4) {
+						if(mpl % 2 == 1)
+							strafeValue  = (strafe[loop]+i)%mpl;
+						else 
+							strafeValue  = (i+mpl/2+2)%mpl;
+					}
+					else
+						strafeValue = i;
 					
 					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeValue] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
 					rotate[loop] += i%2+1;
- 					strafe[loop] += 3;
+ 					strafe[loop] += 1;
 				}
 				rotate[loop] -= Accu[loop];
 				submit(rain);
-				++counter;
 			}
 			
 			//rotate[loop] -= 2 + charcount % 2;
@@ -451,6 +455,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					event_pending = event_status = 1;
 			}
 			++loop;		
+			++counter;
 		}
 	}
 	crk_done();
