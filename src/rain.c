@@ -62,23 +62,22 @@ int rain_cur_len;
 static int rec_cur_len;
 static char *charset;
 static UTF32 rain[MAX_CAND_LENGTH+1];
-static int charset_idx[MAX_CAND_LENGTH][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
-static int rec_charset_idx[MAX_CAND_LENGTH][MAX_CAND_LENGTH];
+static int charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
+static int rec_charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
 static int maxlength;
 static int minlength;
 static int state_restored;
 static uint_big keyspace;
 static uint_big subtotal;
-static uint_big rotate[MAX_CAND_LENGTH];
-static uint_big rec_rotate[MAX_CAND_LENGTH];//same as above
-static uint_big strafe[MAX_CAND_LENGTH];
-static uint_big rec_strafe[MAX_CAND_LENGTH];
+static uint_big rotate[MAX_CAND_LENGTH-1];
+static uint_big rec_rotate[MAX_CAND_LENGTH-1];
+static uint_big strafe[MAX_CAND_LENGTH-1];
+static uint_big rec_strafe[MAX_CAND_LENGTH-1];
 static uint_big counter;
 static uint_big rec_counter;
 static int quick_conversion;
 static int loop, rec_loop;//inner loop
 static int set, rec_set;
-static int Accu[MAX_CAND_LENGTH];//holds the modifiers
 
 
 static double get_progress(void)
@@ -260,14 +259,6 @@ static int submit(UTF32 *subset)
 		return crk_process_key((char*)out);
 }
 
-int accu(int loop) {
-	int i, sum = 0;
-	for(i = 0; i < loop + minlength; ++i) {
-		sum += i%2+1;
-	}
-	return sum;
-}
-
 int do_rain_crack(struct db_main *db, char *req_charset)
 {
 	int i, j;
@@ -377,21 +368,21 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
 	
 	if(!state_restored)
+	{
 		rain_cur_len = minlength;
-	else 
-		loop2 = rain_cur_len - minlength;
-	
-	for(i=0; i<= maxlength - minlength; i++) {
-		Accu[i] = accu(i);
-		if(!state_restored) {
+		
+		for(i=0; i<= maxlength - minlength; i++) {
 			rotate[i] = 0;
 			strafe[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
 	}
+	else 
+		loop2 = rain_cur_len - minlength;
 	
 	crk_init(db, fix_state, NULL);
+	
 	while((loop2 = rain_cur_len - minlength) <= maxlength - minlength) {
 		if(event_abort) break;
 		if(!state_restored)
@@ -426,21 +417,19 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 						if(mpl % 2 == 1)
 							strafeValue  = (strafe[loop]+i)%mpl;
 						else 
-							strafeValue  = (i+mpl/2+2)%mpl;
+							strafeValue  = (i+mpl/2+3)%mpl;
 					}
 					else
 						strafeValue = i;
 					
 					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeValue] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
-					rotate[loop] += i%2+1;
+					rotate[loop] += 1;
  					strafe[loop] += 3;
 				}
-				rotate[loop] -= Accu[loop];
 				submit(rain);
 			}
-			
-			//rotate[loop] -= 2 + charcount % 2;
+			rotate[loop] -= mpl - 2 + charcount % 2;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;

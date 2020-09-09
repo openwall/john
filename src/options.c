@@ -355,7 +355,7 @@ PRINCE_USAGE \
 "--external=MODE            external mode or word filter\n" \
 JOHN_USAGE_REGEX \
 "--subsets[=CHARSET]        \"subsets\" mode (see doc/SUBSETS)\n" \
-"--rain[=CHARSET]           \"rain\" mode (see https://github/e2002e/zhou)\n" \
+"--rain[=CHARSET]           \"rain\" mode (see doc/RAIN)\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
 "--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--session=NAME             give a new session the NAME\n" \
