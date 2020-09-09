@@ -393,17 +393,15 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	
 	crk_init(db, fix_state, NULL);
 	
+	#define mpldisp mpl/2+3
 	
-			#define setStrafeValue(i) \
-			do { \
-				if(mpl > 4) \
-					if(mpl % 2 == 1) \
-						strafeValue = (strafe[loop]+i)%mpl; \
-					else \
-						strafeValue = (i+mpl/2+3)%mpl; \
-				else \
-					strafeValue = i;\
-			} while(0)
+	#define setStrafeValue(i) \
+	do { \
+		if(mplmod2) \
+			strafeValue = (strafe[loop]+i)%mpl; \
+		else \
+			strafeValue = (i+mpldisp)%mpl; \
+	} while(0)
 	
 	while((loop2 = rain_cur_len - minlength) <= maxlength - minlength) {
 		if(event_abort) break;
@@ -433,29 +431,38 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			
 			if(!skip) {
 				quick_conversion = 1;
-				
+				if(mpl > 6)
 				for(i=0; i<mpl; ++i) {
 					setStrafeValue(i);
 					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeValue] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
  					strafe[loop] += 3;
-					rotate[loop] += 2;
+ 					if(mplmod2)
+ 						rotate[loop] += i+1;
+ 					else
+						rotate[loop] += 2;
 				}
-				
+				else
+				for(i=0; i<mpl; ++i) {
+					if( (rain[i] = charset_utf32[charset_idx[loop][i]]) > cp_max)
+						quick_conversion = 0;
+				}
 				submit(rain);
 			}
-
-			int k = 0;
+			
 			#define accu(i) \
 			do { \
 				int j; \
-				for(j=1; j<k; ++j) k += j; \
+				for(j=1; j<=k; ++j) k += j; \
 			} while(0) 
-			
+			if(mpl > 6)
 			if(mplmod2) {
+				int k = 0;
 				accu(mpl);
 				rotate[loop] -= k;
 			}
+			else rotate[loop] -= mpl - 2 + chlenmod2;
+			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
 				--pos;
