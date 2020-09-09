@@ -418,11 +418,11 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			int strafeValue;
 			
 			#define setStrafeValue(i) \
-			if(mpl < 5) \
-				strafeValue = i;\
-			else \
-				strafeValue = (strafe[loop]+i-(i%2)*(1-mpl%2)-1+charcount%2)%mpl;
-					
+				if(mpl % 2) \
+					strafeValue = (strafe[loop]+i)%mpl;\
+				else \
+					strafeValue = (i+3)%mpl;
+						
 			if(!skip) {
 				quick_conversion = 1;
 				
