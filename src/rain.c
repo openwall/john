@@ -41,6 +41,7 @@
 #include "logger.h"
 #include "status.h"
 #include "signals.h"
+#include "external.h"
 #include "recovery.h"
 #include "mask.h"
 #include "unicode.h"
@@ -234,8 +235,15 @@ static void parse_unicode(char *string)
 
 static int submit(UTF32 *subset)
 {
+	char *key;
 	UTF8 out[4 * MAX_CAND_LENGTH];
 	int i;
+
+#define process_key(key_i)	\
+		key = out; \
+		if (!f_filter || ext_filter_body(key_i, key = out)) \
+			if (crk_process_key(key)) \
+				return 1; \
 
 	/* Set current word */
 	if (quick_conversion) {
@@ -364,6 +372,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		}
 	}
 	
+	int chlenmod2 = charcount % 2;
+	
 	if(rain_cur_len > minlength)
 		subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
 	
@@ -383,6 +393,18 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	
 	crk_init(db, fix_state, NULL);
 	
+	
+			#define setStrafeValue(i) \
+			do { \
+				if(mpl > 4) \
+					if(mpl % 2 == 1) \
+						strafeValue = (strafe[loop]+i)%mpl; \
+					else \
+						strafeValue = (i+mpl/2+3)%mpl; \
+				else \
+					strafeValue = i;\
+			} while(0)
+	
 	while((loop2 = rain_cur_len - minlength) <= maxlength - minlength) {
 		if(event_abort) break;
 		if(!state_restored)
@@ -393,6 +415,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			int skip = 0;
 
 			int mpl = minlength + loop;
+			int mplmod2 = mpl % 2;
 			int pos = mpl - 1;
 			
 			if (state_restored)
@@ -412,25 +435,27 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				quick_conversion = 1;
 				
 				for(i=0; i<mpl; ++i) {
-				
-					if(mpl > 4) {
-						if(mpl % 2 == 1)
-							strafeValue  = (strafe[loop]+i)%mpl;
-						else 
-							strafeValue  = (i+mpl/2+3)%mpl;
-					}
-					else
-						strafeValue = i;
-					
+					setStrafeValue(i);
 					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeValue] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
-					rotate[loop] += 1;
  					strafe[loop] += 3;
+					rotate[loop] += 2;
 				}
+				
 				submit(rain);
 			}
-			rotate[loop] -= mpl - 2 + charcount % 2;
+
+			int k = 0;
+			#define accu(i) \
+			do { \
+				int j; \
+				for(j=1; j<k; ++j) k += j; \
+			} while(0) 
 			
+			if(mplmod2) {
+				accu(mpl);
+				rotate[loop] -= k;
+			}
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
 				--pos;
