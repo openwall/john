@@ -417,17 +417,15 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			
 			int strafeValue;
 			
-			#define setStrafeValue(i) \
-			if(mpl % 2) \
-				strafeValue = (strafe[loop]+i)%mpl;\
-			else \
-				strafeValue = (strafe[loop]+i*4)%mpl;
-						
 			if(!skip) {
 				quick_conversion = 1;
 				
 				for(i=0; i<mpl; ++i) {
-					setStrafeValue(i);
+				
+					if(mpl % 2)
+						strafeValue = (strafe[loop]+i)%mpl;
+					else strafeValue = (strafe[loop]+i*4)%mpl;
+					
 					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeValue] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
 					rotate[loop] += i%2+1;
@@ -438,7 +436,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				++counter;
 			}
 			
-			rotate[loop] -= 2 + charcount % 2;
+			//rotate[loop] -= 2 + charcount % 2;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
