@@ -288,7 +288,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		if (strlen(req_charset) == 1 && isdigit(req_charset[0])) {
 			int cnum = atoi(req_charset);
 			char pl[2] = { '0' + cnum, 0 };
-			char *c = (char*)cfg_get_param("Rain", NULL, pl);
+			char *c = (char*)cfg_get_param("Subsets", NULL, pl);
 
 			if (c)
 				req_charset = c;
@@ -387,9 +387,9 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	while(loop2 <= maxlength - minlength) {
 		if(!state_restored)
 			loop = loop2;
-			
+		int bail = 0;
 		/* Iterate over all lengths */
-		while (1) {
+		while (loop <= maxlength - minlength) {
 			int skip = 0;
 
 			int mpl = minlength + loop;
@@ -405,32 +405,34 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				skip = for_node < options.node_min ||
 					for_node > options.node_max;
 			}
-			int strafeValue = 0;
-	
-			#define setStrafeValue(i) \
-			if(mpl < 5) \
-				strafeValue = i; \
-			else \
-				strafeValue = (strafe[loop]+i-(i%2)*(1-mpl%2)-1+charcount%2)%mpl;
+
+			#if(mpl < 5)
+				#define strafeValue i
+			#else
+				#define strafeValue (strafe[loop]+i-(i%2)*(1-mpl%2)-1+charcount%2)%mpl
+			#endif
 			if(!skip) {
 				quick_conversion = 1;
 				
 				for(i=0; i<mpl; ++i) {
-					setStrafeValue(i);
 					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeValue] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
 					rotate[loop] += i%2+1;
  					strafe[loop] += 3;
 				}
-				rotate[loop] -= Accu[loop] - 2 + charcount % 2;
-				submit(rain);
+				rotate[loop] -= Accu[loop];
+				if(submit(rain)) {
+					bail = 1;
+				}
 			}
+			//if(bail) break;
+			
+			rotate[loop] -= 2 + charcount % 2;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
 				--pos;
 			}
-			
 			if(pos < 0) {
 				counter = 0;
 				++rain_cur_len;
@@ -441,7 +443,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					event_pending = event_status = 1;
 			}
 			++counter;
-			if(++loop > maxlength - minlength) break;
+			++loop;		
 		}
 	}
 	crk_done();
