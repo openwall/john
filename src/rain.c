@@ -392,7 +392,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	}
 	
 	crk_init(db, fix_state, NULL);
-	while(loop2 <= maxlength - minlength) {
+	while((loop2 = rain_cur_len - minlength) <= maxlength - minlength) {
 		if(event_abort) break;
 		if(!state_restored)
 			loop = loop2;
@@ -414,16 +414,20 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				skip = for_node < options.node_min ||
 					for_node > options.node_max;
 			}
-
-			#if(mpl < 5)
-				#define strafeValue i
-			#else
-				#define strafeValue (strafe[loop]+i-(i%2)*(1-mpl%2)-1+charcount%2)%mpl
-			#endif
+			
+			int strafeValue;
+			
+			#define setStrafeValue(i) \
+			if(mpl < 5) \
+				strafeValue = i;\
+			else \
+				strafeValue = (strafe[loop]+i-(i%2)*(1-mpl%2)-1+charcount%2)%mpl;
+					
 			if(!skip) {
 				quick_conversion = 1;
 				
 				for(i=0; i<mpl; ++i) {
+					setStrafeValue(i);
 					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeValue] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
 					rotate[loop] += i%2+1;
@@ -431,10 +435,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				}
 				rotate[loop] -= Accu[loop];
 				submit(rain);
+				++counter;
 			}
-			//if(bail) break;
 			
-			rotate[loop] -= 2 + charcount % 2;
+			//rotate[loop] -= 2 + charcount % 2;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
@@ -442,14 +446,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			}
 			if(pos < 0) {
 				counter = 0;
-				++rain_cur_len;
-				++loop2;	
+				++rain_cur_len;	
 				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
 				subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
 				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
-			++counter;
 			++loop;		
 		}
 	}
