@@ -405,22 +405,26 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				skip = for_node < options.node_min ||
 					for_node > options.node_max;
 			}
-			
+			int strafeValue = 0;
+	
+			#define setStrafeValue(i) \
+			if(mpl < 5) \
+				strafeValue = i; \
+			else \
+				strafeValue = (strafe[loop]+i-(i%2)*(1-mpl%2)-1+charcount%2)%mpl;
 			if(!skip) {
 				quick_conversion = 1;
 				
 				for(i=0; i<mpl; ++i) {
-					if( (rain[i] = charset_utf32[ (charset_idx[loop][ (mpl > 4)*((strafe[loop]+i+1-(i%2)*(1-mpl%2)-2+charcount%2)%mpl)\
-					 + (mpl < 5) * (i % mpl) ] + rotate[loop]) % charcount ]) > cp_max)
+					setStrafeValue(i);
+					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeValue] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
 					rotate[loop] += i%2+1;
  					strafe[loop] += 3;
 				}
+				rotate[loop] -= Accu[loop] - 2 + charcount % 2;
 				submit(rain);
-
 			}
-				
-			rotate[loop] -= Accu[loop] - 2 + charcount % 2;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
@@ -436,8 +440,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
-			if(loop++ > maxlength - minlength) break;
 			++counter;
+			if(++loop > maxlength - minlength) break;
 		}
 	}
 	crk_done();
