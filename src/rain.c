@@ -434,13 +434,13 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeValue] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
 					rotate[loop] += i%2+1;
- 					strafe[loop] += 1;
+ 					strafe[loop] += 3;
 				}
 				rotate[loop] -= Accu[loop];
 				submit(rain);
 			}
 			
-			rotate[loop] -= 2 + charcount % 2;
+			//rotate[loop] -= 2 + charcount % 2;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
