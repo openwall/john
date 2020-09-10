@@ -388,9 +388,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			if(!skip) {
 				quick_conversion = 1;
 				for(i=0; i<mpl; ++i) {
-					if((rain[i] = charset_utf32[(charset_idx[loop][((strafe[loop]+i)/2) % mpl] + rotate[loop]) % charcount ]) > cp_max)
+					if((rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]/(mpl/2+mpl%2) + i -1+mpl%2 ) % mpl] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
- 					strafe[loop]+=1;
+					if(mpl > 5)
+ 						strafe[loop] += mpl/2+1;
  					//rotate[loop] +=(i+1)%(mpl/2+1);
  				}
 				submit(rain);
