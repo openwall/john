@@ -403,7 +403,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			int skip = 0;
 
 			int mpl = minlength + loop;
-			int mplmod2 = mpl % 2;
 			int pos = mpl - 1;
 			
 			if (state_restored)
@@ -417,45 +416,32 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 
-			#define mpldisp mpl/2+3
-			
-			#if(mplmod2 == 1)
-			#define mod i+1
-			#define strafeValue (strafe[loop]+i)%mpl
- 			#else	
- 			#define mod 2
- 			#define strafeValue (i+mpldisp)%mpl
- 			#endif
+			int mpldisp = mpl/2+3;
+			int mplmod2 = mpl % 2;
+ 			int strafeIndex;
  			
 			if(!skip) {
 				quick_conversion = 1;
-				if(mpl > 6)
 				for(i=0; i<mpl; ++i) {
-					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeValue] + rotate[loop]) % charcount ]) > cp_max)
+					if(mplmod2) strafeIndex  = (strafe[loop]+i)%mpl;
+					else strafeIndex = (i+mpldisp)%mpl;
+					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeIndex] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
  					strafe[loop] += 3;
- 					rotate[loop] += mod;
-				}
-				else
-				for(i=0; i<mpl; ++i) {
-					if( (rain[i] = charset_utf32[charset_idx[loop][i]]) > cp_max)
-						quick_conversion = 0;
-				}
+ 					rotate[loop] += i+1;
+ 				}
 				submit(rain);
 			}
 			
 			#define accu(i) \
 			do { \
 				int j; \
-				for(j=1; j<=k; ++j) k += j; \
-			} while(0) 
-			if(mpl > 6)
-			if(mplmod2) {
-				int k = 0;
-				accu(mpl);
-				rotate[loop] -= k;
-			}
-			else rotate[loop] -= mpl - 2 + chlenmod2;
+				for(j=1; j<=i; ++j) k += j; \
+			} while(0)
+		
+			int k = 0;
+			accu(mpl);
+			rotate[loop] -= k-4;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
