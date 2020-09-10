@@ -236,14 +236,16 @@ static void parse_unicode(char *string)
 static int submit(UTF32 *subset)
 {
 	char *key;
+	char key_e[PLAINTEXT_BUFFER_SIZE];
 	UTF8 out[4 * MAX_CAND_LENGTH];
 	int i;
-
-#define process_key(key_i)	\
-		key = out; \
-		if (!f_filter || ext_filter_body(key_i, key = out)) \
-			if (crk_process_key(key)) \
-				return 1; \
+	#define process_key(key_i) \
+		do { \
+			key = key_i; \
+			if (!f_filter || ext_filter_body(key_i, key = key_e)) \
+				if (crk_process_key(key)) \
+					return 1;\
+		 } while(0)
 
 	/* Set current word */
 	if (quick_conversion) {
@@ -264,7 +266,7 @@ static int submit(UTF32 *subset)
 	if (options.flags & FLG_MASK_CHK)
 		return do_mask_crack((char*)out);
 	else
-		return crk_process_key((char*)out);
+		process_key((char*)out);
 }
 
 int do_rain_crack(struct db_main *db, char *req_charset)
@@ -371,8 +373,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			fprintf(stderr, "\n");
 		}
 	}
-	
-	int chlenmod2 = charcount % 2;
 	
 	if(rain_cur_len > minlength)
 		subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
