@@ -393,16 +393,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	
 	crk_init(db, fix_state, NULL);
 	
-	#define mpldisp mpl/2+3
-	
-	#define setStrafeValue(i) \
-	do { \
-		if(mplmod2) \
-			strafeValue = (strafe[loop]+i)%mpl; \
-		else \
-			strafeValue = (i+mpldisp)%mpl; \
-	} while(0)
-	
 	while((loop2 = rain_cur_len - minlength) <= maxlength - minlength) {
 		if(event_abort) break;
 		if(!state_restored)
@@ -426,21 +416,25 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				skip = for_node < options.node_min ||
 					for_node > options.node_max;
 			}
+
+			#define mpldisp mpl/2+3
 			
-			int strafeValue;
-			
+			#if(mplmod2 == 1)
+			#define mod i+1
+			#define strafeValue (strafe[loop]+i)%mpl
+ 			#else	
+ 			#define mod 2
+ 			#define strafeValue (i+mpldisp)%mpl
+ 			#endif
+ 			
 			if(!skip) {
 				quick_conversion = 1;
 				if(mpl > 6)
 				for(i=0; i<mpl; ++i) {
-					setStrafeValue(i);
 					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeValue] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
  					strafe[loop] += 3;
- 					if(mplmod2)
- 						rotate[loop] += i+1;
- 					else
-						rotate[loop] += 2;
+ 					rotate[loop] += mod;
 				}
 				else
 				for(i=0; i<mpl; ++i) {
