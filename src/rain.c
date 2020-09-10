@@ -388,10 +388,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			if(!skip) {
 				quick_conversion = 1;
 				for(i=0; i<mpl; ++i) {
-					if( (rain[i] = charset_utf32[(charset_idx[loop][((strafe[loop]+i)/2)%mpl] + rotate[loop]) % charcount ]) > cp_max)
+					if((rain[i] = charset_utf32[(charset_idx[loop][((strafe[loop]+i)/2) % mpl] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
- 					++strafe[loop];
- 					//rotate[loop] +=i%(mpl/((i+1)/2+1));
+ 					strafe[loop]+=1;
+ 					//rotate[loop] +=(i+1)%(mpl/2+1);
  				}
 				submit(rain);
 			}
@@ -399,12 +399,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			#define accu(i) \
 			do { \
 				int j; \
-				for(j=1; j<=i; ++j) k += (j-1) % (mpl /(j / 2 + 1)); \
+				for(j=1; j<=i; ++j) k += j % (mpl/2+1); \
 			} while(0)
 		
 			int k = 0;
 			accu(mpl);
-			//rotate[loop] -= k-2;
+			//rotate[loop] -= k ;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
