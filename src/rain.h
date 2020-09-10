@@ -1,10 +1,3 @@
-/*
- * Copyright (c) 2018 magnum
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted.
- */
-
 #ifndef _JOHN_RAIN_H
 #define _JOHN_RAIN_H
 
