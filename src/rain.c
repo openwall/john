@@ -1,27 +1,3 @@
-/*
- * This software is Copyright (c) 2018 magnum
- * and is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted.
- */
-
-/*
- * TODO:
- * - Profile with Callgrind
- * - Assure hybrid support (mask or external)
- * - Reject other hybrid modes?
- * - Try inlining utf32_to_enc
- * - Are we still using an unnecessary step of indexing?
- *
- * IDEAS:
- * - Store charset in target encoding for quicker conversion, even for
- *   UTF-8 (we can store it in uint32_t)! Beware of endianness.
- *
- * RELATED:
- * - Unicode ranges charsets. Generator? Standalone? --subsets-file=FILE?
- * - Add global options --skip-odd-lengths and --skip-even-lengths (also
- *   affecting mask mode and inc, possibly some external modes)
- */
 #include "os.h"
 
 #include <stdio.h>
@@ -407,19 +383,15 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 
-			int mpldisp = mpl/2+3;
 			int mplmod2 = mpl % 2;
- 			int strafeIndex;
  			
 			if(!skip) {
 				quick_conversion = 1;
 				for(i=0; i<mpl; ++i) {
-					if(mplmod2) strafeIndex  = (strafe[loop]+i)%mpl;
-					else strafeIndex = (i+mpldisp)%mpl;
-					if( (rain[i] = charset_utf32[(charset_idx[loop][strafeIndex] + rotate[loop]) % charcount ]) > cp_max)
+					if( (rain[i] = charset_utf32[(charset_idx[loop][((strafe[loop]+i)/2)%mpl] + rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
- 					strafe[loop] += 3;
- 					rotate[loop] += i+1;
+ 					++strafe[loop];
+ 					//rotate[loop] +=i%(mpl/((i+1)/2+1));
  				}
 				submit(rain);
 			}
@@ -427,12 +399,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			#define accu(i) \
 			do { \
 				int j; \
-				for(j=1; j<=i; ++j) k += j; \
+				for(j=1; j<=i; ++j) k += (j-1) % (mpl /(j / 2 + 1)); \
 			} while(0)
 		
 			int k = 0;
 			accu(mpl);
-			rotate[loop] -= k-4;
+			//rotate[loop] -= k-2;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
