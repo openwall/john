@@ -1,3 +1,8 @@
+/*
+ * This file is part of John the Ripper password cracker,
+ * Copyright (c) 1996-2004,2006,2009-2013,2015 by Solar Designer
+ */
+
 #include "os.h"
 
 #include <stdio.h>
@@ -238,7 +243,7 @@ static int submit(UTF32 *subset)
 
 int do_rain_crack(struct db_main *db, char *req_charset)
 {
-	int i, j, k;
+	int i, j;
 	int cp_max = 255;
 
 	unsigned int charcount;
@@ -384,8 +389,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			}
 
 			int mplmod2 = mpl % 2;
- 			int mplon2p1 = mpl / 2 +1;
  			int mplon4 = mpl / 4;
+ 			int ccmod2 = charcount % 2;
  			
 			if(!skip) {
 				quick_conversion = 1;
@@ -396,7 +401,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 						 		+ rotate[loop]) % charcount ]) > cp_max)
 							quick_conversion = 0;
 						strafe[loop] += 2 * (2-mplmod2);
-	 					rotate[loop] += 2 - charcount % 2;//(i+1)%mplon2p1;
+	 					rotate[loop] += 2 - ccmod2;//(i+1)%mplon2p1;
 	 				}
 				}
 				else {
@@ -404,13 +409,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 						if((rain[i] = charset_utf32[(charset_idx[loop][i]\
 						 		+ rotate[loop]) % charcount ]) > cp_max)
 							quick_conversion = 0;
-	 					rotate[loop] += 2 - charcount % 2;
+	 					rotate[loop] += 2 - ccmod2;
 	 				}		
 				}
 				submit(rain);
 			}
 			
-			k=0;
 			rotate[loop] -= mpl - 2;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
