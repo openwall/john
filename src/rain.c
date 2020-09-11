@@ -238,7 +238,7 @@ static int submit(UTF32 *subset)
 
 int do_rain_crack(struct db_main *db, char *req_charset)
 {
-	int i, j;
+	int i, j, k;
 	int cp_max = 255;
 
 	unsigned int charcount;
@@ -384,17 +384,19 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			}
 
 			int mplmod2 = mpl % 2;
+ 			int mplon2p1 = mpl / 2 +1;
+ 			int mplon4 = mpl / 4;
  			
 			if(!skip) {
 				quick_conversion = 1;
 				if(mpl > 3) {
 					for(i=0; i<mpl; ++i) {
 						if((rain[i] = charset_utf32[(charset_idx[loop][\
-							(strafe[loop]/(mpl/4)+i) % mpl]\
+							(strafe[loop]/mplon4+i) % mpl]\
 						 		+ rotate[loop]) % charcount ]) > cp_max)
 							quick_conversion = 0;
-						strafe[loop] += 2 * (2-mpl%2);
-	 					rotate[loop] +=(i+1)%(mpl/2+1);
+						strafe[loop] += 2 * (2-mplmod2);
+	 					rotate[loop] += 2 - charcount % 2;//(i+1)%mplon2p1;
 	 				}
 				}
 				else {
@@ -402,20 +404,14 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 						if((rain[i] = charset_utf32[(charset_idx[loop][i]\
 						 		+ rotate[loop]) % charcount ]) > cp_max)
 							quick_conversion = 0;
-	 					rotate[loop] +=(i+1)%(mpl/2+1);
+	 					rotate[loop] += 2 - charcount % 2;
 	 				}		
 				}
 				submit(rain);
 			}
-			#define accu(i) \
-			do { \
-				int j; \
-				for(j=1; j<=i; ++j) k += j % (mpl/2+1); \
-			} while(0)
-		
-			int k = 0;
-			accu(mpl);
-			rotate[loop] -= k ;
+			
+			k=0;
+			rotate[loop] -= mpl - 2;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
