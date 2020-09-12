@@ -1,8 +1,3 @@
-/*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2004,2006,2009-2013,2015 by Solar Designer
- */
-
 #ifndef _JOHN_RAIN_H
 #define _JOHN_RAIN_H
 
