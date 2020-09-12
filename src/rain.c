@@ -58,7 +58,7 @@ static uint_big rec_strafe[MAX_CAND_LENGTH-1];
 static uint_big counter;
 static uint_big rec_counter;
 static int quick_conversion;
-static int loop, loop2, rec_loop, rec_loop2;//inner loop
+static int loop, rec_loop;//inner loop
 static int set, rec_set;
 
 
@@ -344,16 +344,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			fprintf(stderr, "\n");
 		}
 	}
-	
-<<<<<<< HEAD
-	for(i=0; i<= maxlength - minlength; i++) {
-		Accu[i] = accu(minlength+i);
-		if(!state_restored) {
-			drops[i] = 0;
-=======
-	if(rain_cur_len > minlength)
-		subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
-	
+		
 	if(!state_restored)
 	{
 		rain_cur_len = minlength;
@@ -361,39 +352,21 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		for(i=0; i<= maxlength - minlength; i++) {
 			rotate[i] = 0;
 			strafe[i] = 0;
->>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
 	}
-<<<<<<< HEAD
-	if(!state_restored)
-		loop2 = 0;
 	
 	keyspace = (uint_big) pow(charcount, rain_cur_len);
 	if(rain_cur_len > minlength)
-		subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
-	
-	crk_init(db, fix_state, NULL);
-	
-	while(loop2 <= maxlength - minlength) {
-		if(!state_restored)
-			loop = loop2;
-		else loop = 0;
-		if (options.verbosity >= VERB_DEFAULT)
-			log_event("Min current length %d , max word len %d.\n%llu words until exhausting min." ,\
-					rain_cur_len, maxlength, (unsigned long long) (keyspace - subtotal));
-=======
-	else 
-		loop2 = rain_cur_len - minlength;
-	
+	subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
+
 	crk_init(db, fix_state, NULL);
 	
 	while((loop2 = rain_cur_len - minlength) <= maxlength - minlength) {
 		if(event_abort) break;
 		if(!state_restored)
 			loop = loop2;
->>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 		/* Iterate over all lengths */
 		while (loop <= maxlength - minlength) {
 			if(event_abort) break;
@@ -428,12 +401,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			}
 			if(!skip) {
 				quick_conversion = 1;
-<<<<<<< HEAD
-				for(i=0; i<minlength+loop; ++i) {
-					if((rain[i] = charset_utf32[(charset_idx[loop][pos-i] + drops[loop]) % charcount]) > cp_max)
-						quick_conversion = 0;
-					drops[loop] += i + 1;
-=======
 				if(mpl > 3) {
 					for(i=0; i<mpl; ++i) {
 						if((rain[i] = charset_utf32[(charset_idx[loop][\
@@ -441,7 +408,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 						 		+ rotate[loop]) % charcount ]) > cp_max)
 							quick_conversion = 0;
 						strafe[loop] += strafeinc;
-	 					//++rotate[loop];
+	 					++rotate[loop];
 	 				}
 				}
 				else {
@@ -449,52 +416,37 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 						if((rain[i] = charset_utf32[charset_idx[loop][i]]) > cp_max)
 							quick_conversion = 0;
 	 				}		
->>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 				}
 				submit(rain);
 				
 			}
-<<<<<<< HEAD
-			if(charcount % 10 == 0) drops[loop] -= Accu[loop]-6;
-			else if(charcount % 2 == 0) drops[loop] -= Accu[loop] - 4;
-			else drops[loop] -= Accu[loop] - 1;
-=======
->>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 			
 			if(strafe[loop] % (mpl + 1) == 0) strafe[loop] = 0;
 			
-			//rotate[loop] -= mpl - 3 * (1 - charcount % 2) - 1;
+			if(charcount % 10 == 0) rotate[loop] -= mpl - 2;
+			else if(charcount % 2 == 0) rotate[loop] -= mpl - 4;
+			else rotate[loop] -= mpl - 1;
 
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
 				--pos;
 			}
-<<<<<<< HEAD
 			
 			counter++;
 			loop++;
 			
 			if(pos < 0) {
-				++loop2;
-				rain_cur_len++;
-=======
-			if(pos < 0) {
 				counter = 0;
 				++rain_cur_len;	
->>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
 				subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
 				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
-<<<<<<< HEAD
-=======
 			++loop;		
 			++counter;
->>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 		}
 	}
-
 	crk_done();
 	rec_done(event_abort);
 	MEM_FREE(charset_utf32);
