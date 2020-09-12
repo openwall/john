@@ -1,27 +1,8 @@
 /*
- * This software is Copyright (c) 2018 magnum
- * and is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted.
+ * This file is part of John the Ripper password cracker,
+ * Copyright (c) 1996-2004,2006,2009-2013,2015 by Solar Designer
  */
 
-/*
- * TODO:
- * - Profile with Callgrind
- * - Assure hybrid support (mask or external)
- * - Reject other hybrid modes?
- * - Try inlining utf32_to_enc
- * - Are we still using an unnecessary step of indexing?
- *
- * IDEAS:
- * - Store charset in target encoding for quicker conversion, even for
- *   UTF-8 (we can store it in uint32_t)! Beware of endianness.
- *
- * RELATED:
- * - Unicode ranges charsets. Generator? Standalone? --subsets-file=FILE?
- * - Add global options --skip-odd-lengths and --skip-even-lengths (also
- *   affecting mask mode and inc, possibly some external modes)
- */
 #include "os.h"
 
 #include <stdio.h>
@@ -41,6 +22,7 @@
 #include "logger.h"
 #include "status.h"
 #include "signals.h"
+#include "external.h"
 #include "recovery.h"
 #include "mask.h"
 #include "unicode.h"
@@ -62,21 +44,22 @@ int rain_cur_len;
 static int rec_cur_len;
 static char *charset;
 static UTF32 rain[MAX_CAND_LENGTH+1];
-static int charset_idx[MAX_CAND_LENGTH][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
-static int rec_charset_idx[MAX_CAND_LENGTH][MAX_CAND_LENGTH];
+static int charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
+static int rec_charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
 static int maxlength;
 static int minlength;
 static int state_restored;
 static uint_big keyspace;
 static uint_big subtotal;
-static uint_big drops[MAX_CAND_LENGTH];//same as above
-static uint_big rec_drops[MAX_CAND_LENGTH];
+static uint_big rotate[MAX_CAND_LENGTH-1];
+static uint_big rec_rotate[MAX_CAND_LENGTH-1];
+static uint_big strafe[MAX_CAND_LENGTH-1];
+static uint_big rec_strafe[MAX_CAND_LENGTH-1];
 static uint_big counter;
 static uint_big rec_counter;
 static int quick_conversion;
 static int loop, loop2, rec_loop, rec_loop2;//inner loop
 static int set, rec_set;
-static int Accu[MAX_CAND_LENGTH];//holds the modifiers
 
 
 static double get_progress(void)
@@ -98,7 +81,8 @@ static void fix_state(void)
 	
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		rec_drops[i] = drops[i];	
+		rec_rotate[i] = rotate[i];
+		rec_strafe[i] = strafe[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -114,7 +98,8 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%llu\n ", (unsigned long long) rec_drops[i]);	
+		fprintf(file, "%llu\n ", (unsigned long long) rec_rotate[i]);
+		fprintf(file, "%llu\n ", (unsigned long long) rec_strafe[i]);	
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -134,8 +119,13 @@ static int restore_state(FILE *file)
 
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		if(fscanf(file, "%llu\n ", (unsigned long long *) &r) == 1)//all those bigint needs a fix in save and restore state
-			drops[i] = r;
-		else return 1;	
+			rotate[i] = r;
+		else return 1;
+		
+		if(fscanf(file, "%llu\n ", (unsigned long long *) &r) == 1)//all those bigint needs a fix in save and restore state
+			strafe[i] = r;
+		else return 1;
+		
 		for(j = 0; j < maxlength; ++j)
 			if(fscanf(file, "%d\n", &d) == 1)
 				charset_idx[i][j] = d;
@@ -224,14 +214,6 @@ static void parse_unicode(char *string)
 	*d = 0;
 }
 
-static int accu(int a) {
-	int b; 
-	int c=0;
-	for(b=1; b<=a; ++b)
-		c+=b;
-	return c;
-}
-
 static int submit(UTF32 *subset)
 {
 	UTF8 out[4 * MAX_CAND_LENGTH];
@@ -286,7 +268,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		if (strlen(req_charset) == 1 && isdigit(req_charset[0])) {
 			int cnum = atoi(req_charset);
 			char pl[2] = { '0' + cnum, 0 };
-			char *c = (char*)cfg_get_param("Rain", NULL, pl);
+			char *c = (char*)cfg_get_param("Subsets", NULL, pl);
 
 			if (c)
 				req_charset = c;
@@ -332,9 +314,9 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
-	rain_cur_len = minlength;
 	counter = 0;
 	subtotal = 0;
+	int loop2 = 0;
 	
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
@@ -363,14 +345,28 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		}
 	}
 	
+<<<<<<< HEAD
 	for(i=0; i<= maxlength - minlength; i++) {
 		Accu[i] = accu(minlength+i);
 		if(!state_restored) {
 			drops[i] = 0;
+=======
+	if(rain_cur_len > minlength)
+		subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
+	
+	if(!state_restored)
+	{
+		rain_cur_len = minlength;
+		
+		for(i=0; i<= maxlength - minlength; i++) {
+			rotate[i] = 0;
+			strafe[i] = 0;
+>>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
 	}
+<<<<<<< HEAD
 	if(!state_restored)
 		loop2 = 0;
 	
@@ -387,41 +383,93 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		if (options.verbosity >= VERB_DEFAULT)
 			log_event("Min current length %d , max word len %d.\n%llu words until exhausting min." ,\
 					rain_cur_len, maxlength, (unsigned long long) (keyspace - subtotal));
+=======
+	else 
+		loop2 = rain_cur_len - minlength;
+	
+	crk_init(db, fix_state, NULL);
+	
+	while((loop2 = rain_cur_len - minlength) <= maxlength - minlength) {
+		if(event_abort) break;
+		if(!state_restored)
+			loop = loop2;
+>>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 		/* Iterate over all lengths */
-		while(loop <= maxlength - minlength) {
+		while (loop <= maxlength - minlength) {
+			if(event_abort) break;
 			int skip = 0;
-
-			if(state_restored)
+			int strafeinc;
+			int strafediv;
+			int mpl = minlength + loop;
+			int pos = mpl - 1;
+			
+			if (state_restored)
 				state_restored = 0;
 			else
 				set++;
-			
-			if(options.node_count) {
+
+			if (options.node_count) {
 				int for_node = set % options.node_count + 1;
 				skip = for_node < options.node_min ||
 					for_node > options.node_max;
 			}
-			
-			int pos = minlength + loop - 1;
-			
+
+			if(mpl % 10 == 0) {
+				strafeinc = 2;
+				strafediv = 1;
+			}
+			else if(mpl % 2 == 0) {
+				strafeinc = 4;
+				strafediv = 1;
+			}
+			else {
+				strafeinc = 2;
+				strafediv = mpl/4;
+			}
 			if(!skip) {
 				quick_conversion = 1;
+<<<<<<< HEAD
 				for(i=0; i<minlength+loop; ++i) {
 					if((rain[i] = charset_utf32[(charset_idx[loop][pos-i] + drops[loop]) % charcount]) > cp_max)
 						quick_conversion = 0;
 					drops[loop] += i + 1;
+=======
+				if(mpl > 3) {
+					for(i=0; i<mpl; ++i) {
+						if((rain[i] = charset_utf32[(charset_idx[loop][\
+							(strafe[loop]/strafediv+i) % mpl]\
+						 		+ rotate[loop]) % charcount ]) > cp_max)
+							quick_conversion = 0;
+						strafe[loop] += strafeinc;
+	 					//++rotate[loop];
+	 				}
+				}
+				else {
+					for(i=0; i<mpl; ++i) {
+						if((rain[i] = charset_utf32[charset_idx[loop][i]]) > cp_max)
+							quick_conversion = 0;
+	 				}		
+>>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 				}
 				submit(rain);
 				
 			}
+<<<<<<< HEAD
 			if(charcount % 10 == 0) drops[loop] -= Accu[loop]-6;
 			else if(charcount % 2 == 0) drops[loop] -= Accu[loop] - 4;
 			else drops[loop] -= Accu[loop] - 1;
+=======
+>>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 			
+			if(strafe[loop] % (mpl + 1) == 0) strafe[loop] = 0;
+			
+			//rotate[loop] -= mpl - 3 * (1 - charcount % 2) - 1;
+
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
 				--pos;
 			}
+<<<<<<< HEAD
 			
 			counter++;
 			loop++;
@@ -429,11 +477,21 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			if(pos < 0) {
 				++loop2;
 				rain_cur_len++;
+=======
+			if(pos < 0) {
+				counter = 0;
+				++rain_cur_len;	
+>>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
 				subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
 				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
+<<<<<<< HEAD
+=======
+			++loop;		
+			++counter;
+>>>>>>> a05be1aed461ebe275fda0d96a8b7633c5276b48
 		}
 	}
 
@@ -442,4 +500,5 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	MEM_FREE(charset_utf32);
 	return 0;
 }
+
 

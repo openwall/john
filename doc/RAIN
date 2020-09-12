@@ -1,0 +1,8 @@
+#rain module by owein douard, yvain29@gmal.com
+
+when iterating on a word of odd length, the indexes are spread so that one character on three is treated,
+then the rest evolves according to the slices of indexes...
+If you want to have a look at this, comment the line 'rotate[loop] -= mpl - 2 + charcount % 2;' of the file rain.c.
+You can note the difference with an even word, where the iteration proceed at the begining and the end.
+
+The rest of the method is a simple rotation of the characters.
