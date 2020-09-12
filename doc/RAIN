@@ -1,8 +1,16 @@
-#rain module by owein douard, yvain29@gmal.com
+#rain module by owein douard, yvain29@gmail.com
 
-when iterating on a word of odd length, the indexes are spread so that one character on three is treated,
-then the rest evolves according to the slices of indexes...
-If you want to have a look at this, comment the line 'rotate[loop] -= mpl - 2 + charcount % 2;' of the file rain.c.
-You can note the difference with an even word, where the iteration proceed at the begining and the end.
+This is a combination of a strafe/slide on the index of the state, that represents the position of the character being worked on,
+and on the value of the state, that represents the character being picked.
+The later being called 'rotate'.
 
-The rest of the method is a simple rotation of the characters.
+When iterating on a word of even length, the index of the bruteforce state is positionned at each quarter of the word,
+if the word is of odd length, the index gets mad and using stdout shows the words sparkling when only the strafe is active.
+
+Both parts of the procedure use a variable that increases differently according to the modulo that cuts it off.
+Modulo is a multiple of 10 ? Or a multiple of 2 ? Or is odd. 
+This technique comes out of trials and reflections, and the need for different values for odd or even modolus values stands out pretty clear but I could not\
+graps the idea of why a modulus value of 10 needs to be taken care differently,
+I just end up thinking that it is normal since we are working with decimals, and that's all...
+
+Good luck with your bruteforce.
