@@ -446,21 +446,21 @@ __kernel void phpass (__global const phpass_password *data,
 		GG(b, c, d, a, x12, S24, 0x8d2a4c8a);
 
 		HH(a, b, c, d, x5, S31, 0xfffa3942);
-		HH(d, a, b, c, x8, S32, 0x8771f681);
+		HHH(d, a, b, c, x8, S32, 0x8771f681);
 		HH(c, d, a, b, x11, S33, 0x6d9d6122);
-		HH(b, c, d, a, x14, S34, 0xfde5380c);
+		HHH(b, c, d, a, x14, S34, 0xfde5380c);
 		HH(a, b, c, d, x1, S31, 0xa4beea44);
-		HH(d, a, b, c, x4, S32, 0x4bdecfa9);
+		HHH(d, a, b, c, x4, S32, 0x4bdecfa9);
 		HH(c, d, a, b, x7, S33, 0xf6bb4b60);
-		HH(b, c, d, a, x10, S34, 0xbebfbc70);
+		HHH(b, c, d, a, x10, S34, 0xbebfbc70);
 		HH(a, b, c, d, x13, S31, 0x289b7ec6);
-		HH(d, a, b, c, x0, S32, 0xeaa127fa);
+		HHH(d, a, b, c, x0, S32, 0xeaa127fa);
 		HH(c, d, a, b, x3, S33, 0xd4ef3085);
-		HH(b, c, d, a, x6, S34, 0x4881d05);
+		HHH(b, c, d, a, x6, S34, 0x4881d05);
 		HH(a, b, c, d, x9, S31, 0xd9d4d039);
-		HH(d, a, b, c, x12, S32, 0xe6db99e5);
+		HHH(d, a, b, c, x12, S32, 0xe6db99e5);
 		HH2(c, d, a, b, S33, 0x1fa27cf8);
-		HH(b, c, d, a, x2, S34, 0xc4ac5665);
+		HHH(b, c, d, a, x2, S34, 0xc4ac5665);
 
 		II(a, b, c, d, x0, S41, 0xf4292244);
 		II(d, a, b, c, x7, S42, 0x432aff97);
