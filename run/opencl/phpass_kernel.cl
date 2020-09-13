@@ -24,14 +24,45 @@ typedef struct {
 	uint v[4];
 } phpass_hash;
 
+#if gpu_amd(DEVICE_INFO)
+#define USE_BITSELECT 1
+#endif
 
-#define H(x, y, z)              (((x) ^ (y)) ^ (z))
-#define H2(x, y, z)             ((x) ^ ((y) ^ (z)))
-#define I(x, y, z)              ((y) ^ ((x) | (~z)))
+#define MD5_LUT3 HAVE_LUT3
 
-#define ROTATE_LEFT(x, s)       rotate(x,(uint)s)
-#define F(x, y, z) bitselect((z), (y), (x))
-#define G(x, y, z) bitselect((y), (x), (z))
+#define ROTATE_LEFT(x, s) rotate(x, (uint)s)
+
+/* The basic MD5 functions */
+#if MD5_LUT3
+#define F(x, y, z)	lut3(x, y, z, 0xca)
+#define G(x, y, z)	lut3(x, y, z, 0xe4)
+#elif USE_BITSELECT
+#define F(x, y, z)	bitselect(z, y, x)
+#define G(x, y, z)	bitselect(y, x, z)
+#else
+#if HAVE_ANDNOT
+#define F(x, y, z)	((x & y) ^ ((~x) & z))
+#else
+#define F(x, y, z)	(z ^ (x & (y ^ z)))
+#endif
+#define G(x, y, z)	(y ^ (z & (x ^ y)))
+#endif
+
+#if MD5_LUT3
+#define H(x, y, z)	lut3(x, y, z, 0x96)
+#define H2 H
+#else
+#define H(x, y, z)	((x ^ y) ^ z)
+#define H2(x, y, z)	(x ^ (y ^ z))
+#endif
+
+#if MD5_LUT3
+#define I(x, y, z)	lut3(x, y, z, 0x39)
+#elif USE_BITSELECT
+#define I(x, y, z)	(y ^ bitselect(0xffffffffU, x, z))
+#else
+#define I(x, y, z)	(y ^ (x | ~z))
+#endif
 
 #define FF(v, w, x, y, z, s, ac)	  \
 	v = ROTATE_LEFT(v + z + ac + F(w, x, y), (uint)s) + w
