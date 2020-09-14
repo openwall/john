@@ -70,7 +70,7 @@ jobs:
     docker:
       - image: claudioandre/john:fedora.30
         environment:
-          OMP_NUM_THREADS: 2
+          OMP_NUM_THREADS: 1
           ASAN_TEST: "yes"
           FULL_TEST: "yes"
           BUILD_OPTS: "--enable-asan --disable-opencl"
