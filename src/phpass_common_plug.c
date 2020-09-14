@@ -49,6 +49,26 @@ struct fmt_tests phpass_common_tests[] = {
 	{"$P$612345678si5M0DDyPpmRCmcltU/YW/", "JohnRipper"}, // note smaller loop count
 	{"$H$712345678WhEyvy1YWzT4647jzeOmo0", "JohnRipper"}, // note smaller loop count (phpbb w/older PHP version)
 	{"$P$B12345678L6Lpt4BxNotVIMILOa9u81", "JohnRipper"}, // note larger loop count  (Wordpress)
+	{"$P$/$elftestvZI8qryAvItDDipNbgRpu0", "123"},
+	{"$P$/$elftestfBLqkB7/Z7m9Yp5lKz8Yl0", "1234"},
+	{"$P$/$elftestcDe.VEWyDmgcrJ5uj8K561", "1234567"},
+	{"$P$/$elftestCH99Hx5wlUMsESqM4R1JA0", "12345678"},
+	{"$P$/$elftestTAOkx4egOt8dB96ENOl0n/", "12345678901"},
+	{"$P$/$elftest5JGnE8Ps0hGzQT9Mj387A0", "123456789012"},
+	{"$P$/$elftestWsJ7oCHvCfLkMtavnwI8b0", "123456789012345"},
+	{"$P$/$elftesteH9rZoTgvlMUz/SERywJj0", "1234567890123456"},
+	{"$P$/$elftest6h05401ID1h0Gw6mINOrx0", "1234567890123456789"},
+	{"$P$/$elftestaF7We2XuR74GBSOJTZz7y1", "12345678901234567890"},
+	{"$P$/$elftest9NZF/EHtO5V/2GAx28gP8/", "12345678901234567890123"},
+	{"$P$/$elftest9GkE8K.SjwYriMO3q0KEX/", "123456789012345678901234"},
+	{"$P$/$elftest7nXdApFzJV2dRoDJ1qP7d1", "123456789012345678901234567"},
+	{"$P$/$elftestszixMZ3o93mWfA5cLJb0P1", "1234567890123456789012345678"},
+	{"$P$/$elftestwwTEf92H/S0Msic99nSlh.", "1234567890123456789012345678901"},
+	{"$P$/$elftestiV.fzEfcYzDEh.ixp3O481", "12345678901234567890123456789012"},
+	{"$P$/$elftesthbTugsGHExTF3KmFAS4BI/", "12345678901234567890123456789012345"},
+	{"$P$/$elftest.HlNNFK/NoHamyLQNvlgH/", "123456789012345678901234567890123456"},
+	{"$P$/$elftest4SM/5aiJcCzhaUptVWBUH/", "123456789012345678901234567890123456789"},
+//	{"$P$/$elftestSCOanM8VQmeR1zlLWq3Rr1", "1234567890123456789012345678901234567890"},
 	{NULL}
 };
 
@@ -57,13 +77,20 @@ int phpass_common_valid(char *ciphertext, struct fmt_main *self)
 	int i;
 	unsigned count_log2;
 
-	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) !=
-	    CIPHERTEXT_LENGTH)
+	if (ciphertext[0] != '$')
 		return 0;
 	// Handle both the phpass signature, and the phpBB v3 signature (same formula)
-	// NOTE we are only dealing with the 'portable' encryption method
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0 && strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG_LEN) != 0)
+	// NOTE we are only dealing with the "portable" hashes
+	if (ciphertext[1] != 'P' && ciphertext[1] != 'H')
 		return 0;
+	if (ciphertext[2] != '$')
+		return 0;
+	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
+		return 0;
+
+	if (self_test_running && !strncmp(ciphertext, "$P$/$elftest", 12))
+		return 1;
+
 	for (i = FORMAT_TAG_LEN; i < CIPHERTEXT_LENGTH; ++i)
 		if (atoi64[ARCH_INDEX(ciphertext[i])] == 0x7F)
 			return 0;

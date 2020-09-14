@@ -269,7 +269,9 @@ __kernel void phpass (__global const phpass_password *data,
 		iend = lws;
 	for (i = istart; i < iend; i++) {
 		if (length != lengths[i]) {
-			unilen = 0xff;
+/* Disable the specialization except for some of our test vectors */
+			if (count != 2)
+				unilen = 0xff;
 			break;
 		}
 	}
