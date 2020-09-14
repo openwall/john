@@ -78,7 +78,6 @@ static struct fmt_tests tests[] = {
 	 * lpa_options = std_hash=true */
 	{"$1$JVDbGx8K$T9h8HK4LZxeLPMTAxCfpc1", "password"},
 	{"$1$1Cu6fEvv$42kuaJ5fMEqyVStPuFG040", "0123456789ABCDE"},
-	{"$1$ql5x.xXL$vYVDhExol2xUBBpERRWcn1", "jtr>hashcat"},
 	{"$1$27iyq7Ya$miN09fW1Scj0DHVNyewoU/", ""},
 	{"$1$84Othc1n$v1cuReaa5lRdGuHaOa76n0", "a"},
 	{"$1$4zq0BsCR$U2ua9WZtDEhzy4gFSiLxN1", "aa"},
