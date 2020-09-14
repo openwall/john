@@ -73,7 +73,7 @@ jobs:
           OMP_NUM_THREADS: 1
           ASAN_TEST: "yes"
           FULL_TEST: "yes"
-          BUILD_OPTS: "--enable-asan --disable-opencl"
+          BUILD_OPTS: "--enable-asan --disable-openmp --disable-opencl"
 
   fast-formats-omp:
     <<: *common_linux
