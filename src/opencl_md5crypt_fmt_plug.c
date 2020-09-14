@@ -141,9 +141,9 @@ static struct fmt_tests tests[] = {
 	{"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
 	{"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
 	/* following hashes are AIX non-standard smd5 hashes */
-	//{"{smd5}s8/xSJ/v$uGam4GB8hOjTLQqvBfxJ2/", "password"},
-	//{"{smd5}alRJaSLb$aKM3H1.h1ycXl5GEVDH1e1", "aixsucks?"},
-	//{"{smd5}eLB0QWeS$Eg.YfWY8clZuCxF0xNrKg.", "0123456789ABCDE"},
+	{"{smd5}s8/xSJ/v$uGam4GB8hOjTLQqvBfxJ2/", "password"},
+	{"{smd5}alRJaSLb$aKM3H1.h1ycXl5GEVDH1e1", "aixsucks?"},
+	{"{smd5}eLB0QWeS$Eg.YfWY8clZuCxF0xNrKg.", "0123456789ABCDE"},
 	{"$1$27iyq7Ya$miN09fW1Scj0DHVNyewoU/", ""},
 	{"$1$84Othc1n$v1cuReaa5lRdGuHaOa76n0", "a"},
 	{"$1$4zq0BsCR$U2ua9WZtDEhzy4gFSiLxN1", "aa"},
@@ -295,10 +295,13 @@ static void *get_salt(char *ciphertext)
 	if (strncmp(ciphertext, md5_salt_prefix, md5_salt_prefix_len) == 0) {
 		pos += md5_salt_prefix_len;
 		ret[8] = '1';
-	}
+	} else
 	if (strncmp(ciphertext, apr1_salt_prefix, apr1_salt_prefix_len) == 0) {
 		pos += apr1_salt_prefix_len;
 		ret[8] = 'a';
+	} else
+	if (strncmp(ciphertext, smd5_salt_prefix, smd5_salt_prefix_len) == 0) {
+		pos += smd5_salt_prefix_len;
 	}
 	// note for {smd5}, ret[8] is left as null.
 	end = pos;
