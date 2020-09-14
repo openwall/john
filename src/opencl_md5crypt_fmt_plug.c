@@ -90,15 +90,10 @@ static struct fmt_main *self;
 #define saltsize (sizeof(crypt_md5_salt))
 
 static struct fmt_tests tests[] = {
+	/* Salt length 8 */
 	{"$1$Btiy90iG$bGn4vzF3g1rIVGZ5odGIp/", "qwerty"},
 	{"$1$7Uu2iTBB$Y4hQl2WvrOA3LBbLDxbAf0", "12345"},
-	{"$1$salt$c813W/s478KCzR0NnHx7j0", "qwerty"},
-	{"$1$salt$8LO.EVfsTf.HATV1Bd0ZP/", "john"},
-	{"$1$salt$TelRRxWBCxlpXmgAeB82R/", "openwall"},
-	{"$1$salt$l9PzDiECW83MOIMFTRL4Y1", "summerofcode"},
-	{"$1$salt$wZ2yVsplRoPoD7IfTvRsa0", "IamMD5"},
-	{"$1$saltstri$9S4.PyBpUZBRZw6ZsmFQE/", "john"},
-	{"$1$saltstri$YmP55hH3qcHg2cCffyxrq/", "ala"}, // was 'broken', with invalid 10 char salt. This has been reduced.
+
 	{"$1$salt1234$mdji1uBBCWZ5m2mIWKvLW.", "a"},
 	{"$1$salt1234$/JUvhIWHD.csWSCPvr7po0", "ab"},
 	{"$1$salt1234$GrxHg1bgkN2HB5CRCdrmF.", "abc"},
@@ -106,7 +101,7 @@ static struct fmt_tests tests[] = {
 	{"$1$salt1234$wn0RbuDtbJlD1Q.X7.9wG/", "abcde"},
 	{"$1$salt1234$lzB83HS4FjzbcD4yMcjl01", "abcdef"},
 	{"$1$salt1234$bklJHN73KS04Kh6j6qPnr.", "abcdefg"},
-	{"$1$salt1234$u4RMKGXG2b/Ud2rFmhqi70", "abcdefgh"},	//saltlen=8,passlen=8
+	{"$1$salt1234$u4RMKGXG2b/Ud2rFmhqi70", "abcdefgh"},
 	{"$1$salt1234$QjP48HUerU7aUYc/aJnre1", "abcdefghi"},
 	{"$1$salt1234$9jmu9ldi9vNw.XDO3TahR.", "abcdefghij"},
 	{"$1$salt1234$d3.LnlDWfkTIej5Ef1sCU/", "abcdefghijk"},
@@ -115,19 +110,13 @@ static struct fmt_tests tests[] = {
 	{"$1$salt1234$FXBreA27b7N7diemBGn5I1", "abcdefghijklmn"},
 	{"$1$salt1234$8d5IPIbTd7J/WNEG4b4cl.", "abcdefghijklmno"},
 
-	//tests from korelogic2010 contest
-	{"$1$bn6UVs3/$S6CQRLhmenR8OmVp3Jm5p0", "sparky"},
-	{"$1$qRiPuG5Z$pLLczmBnwEOD75Vb7YZLg1", "walter"},
-	{"$1$E.qsK.Hy$.eX0H6arTHaGOIFkf6o.a.", "heaven"},
-	{"$1$Hul2mrWs$.NGCgz3fBGDyG7RMGJAdM0", "bananas"},
-	{"$1$1l88Y.UV$swt2d0SPMrBPkdAD8RwSj0", "horses"},
-	{"$1$DiHrL6V7$fCVDD1GEAKB.BjAgJL1ZX0", "maddie"},
-	{"$1$7fpfV7kr$7LgF64DGPtHPktVKdLM490", "bitch1"},
-	{"$1$VKjk2PJc$5wbrtc9oa8kdEO/ocyi06/", "crystal"},
-	{"$1$S66DxkFm$kG.QfeHNLifEDTDmf4pzJ/", "claudia"},
-	{"$1$T2JMeEYj$Y.wDzFvyb9nlH1EiSCI3M/", "august"},
+	/* Salt length 4 */
+	{"$1$salt$c813W/s478KCzR0NnHx7j0", "qwerty"},
+	{"$1$salt$8LO.EVfsTf.HATV1Bd0ZP/", "john"},
+	{"$1$salt$TelRRxWBCxlpXmgAeB82R/", "openwall"},
+	{"$1$salt$l9PzDiECW83MOIMFTRL4Y1", "summerofcode"},
 
-	//tests from MD5_fmt.c
+	/* Tests from MD5_fmt.c */
 	{"$1$12345678$aIccj83HRDBo6ux1bVx7D1", "0123456789ABCDE"},
 	{"$apr1$Q6ZYh...$RV6ft2bZ8j.NGrxLYaJt9.", "test"},
 	{"$1$12345678$f8QoJuo0DpBRfQSD0vglc1", "12345678"},
@@ -140,10 +129,12 @@ static struct fmt_tests tests[] = {
 	{"$apr1$rBXqc...$NlXxN9myBOk95T0AyLAsJ0", "john"},
 	{"$apr1$Grpld/..$qp5GyjwM2dnA5Cdej9b411", "the"},
 	{"$apr1$GBx.D/..$yfVeeYFCIiEXInfRhBRpy/", "ripper"},
-	/* following hashes are AIX non-standard smd5 hashes */
+
+	/* The following hashes are AIX non-standard smd5 hashes */
 	{"{smd5}s8/xSJ/v$uGam4GB8hOjTLQqvBfxJ2/", "password"},
 	{"{smd5}alRJaSLb$aKM3H1.h1ycXl5GEVDH1e1", "aixsucks?"},
 	{"{smd5}eLB0QWeS$Eg.YfWY8clZuCxF0xNrKg.", "0123456789ABCDE"},
+
 	{"$1$27iyq7Ya$miN09fW1Scj0DHVNyewoU/", ""},
 	{"$1$84Othc1n$v1cuReaa5lRdGuHaOa76n0", "a"},
 	{"$1$4zq0BsCR$U2ua9WZtDEhzy4gFSiLxN1", "aa"},
@@ -180,6 +171,25 @@ static struct fmt_tests tests[] = {
 	{"$1$IsuapfCX$4Yq0Adq5nNZgl0LwbSl5Y0", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
 	{"$1$rSZfNcKX$N4XPvGrfhKsyoEcRSaqmG0", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
 #endif
+
+	/* Magic salt values improving code coverage in our OpenCL kernel */
+	{"$1$\1\1\1\1\1\1\1\1$CpiMo9Ok5x5cS7HTPSpi2/", ""},
+	{"$1$\1\1\1\1\1\1\1\1$PlL1xA8u4bQoEigS.0vIi1", "1"},
+	{"$1$\1\1\1\1\1\1\1\1$uAFH1nQlyHHBe2XITi3ju/", "12"},
+	{"$1$\1\1\1\1\1\1\1\1$zeKNOazFW9yQEfw637Dlh/", "123"},
+	{"$1$\1\1\1\1\1\1\1\1$06phtaKgN8hML1YTY6AcK1", "1234"},
+	{"$1$\1\1\1\1\1\1\1\1$5DsDdQpgQSWZJwJISJ9vd/", "12345"},
+	{"$1$\1\1\1\1\1\1\1\1$cob5eKnzQtTfocJ7gQ6Dp/", "123456"},
+	{"$1$\1\1\1\1\1\1\1\1$F8Zh18b9exzessXUpqO7W/", "1234567"},
+	{"$1$\1\1\1\1\1\1\1\1$0lHNntGj78hA2h3hcjWa/1", "12345678"},
+	{"$1$\1\1\1\1\1\1\1\1$/3B/7apV/gSvajVoGZzWL.", "123456789"},
+	{"$1$\1\1\1\1\1\1\1\1$GjUhQ2V3A6yta4c2YigxF/", "1234567890"},
+	{"$1$\1\1\1\1\1\1\1\1$9nAOZQ9Ne7jt2VrU0WWYA.", "12345678901"},
+	{"$1$\1\1\1\1\1\1\1\1$TKOnHtk/2wduQPS2RtObf1", "123456789012"},
+	{"$1$\1\1\1\1\1\1\1\1$gpIWpzKJuTFe5B7NFqxzf1", "1234567890123"},
+	{"$1$\1\1\1\1\1\1\1\1$3qjb3zyK5Rr1ytdCQoLad.", "12345678901234"},
+	{"$1$\1\1\1\1\1\1\1\1$nhkvc676Ag35bviUheifu0", "123456789012345"},
+
 	{NULL}
 };
 

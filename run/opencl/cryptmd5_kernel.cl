@@ -649,6 +649,10 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 	salt.w[0] = ((__constant uint *) &hsalt->salt)[0];
 	salt.w[1] = ((__constant uint *) &hsalt->salt)[1];
 
+/* Don't disable the specialization for our magic test vectors */
+	if (salt.w[0] == 0x01010101)
+		unify = 0;
+
 	init_ctx(&ctx[1], &ctx_buflen[1]);
 	ctx_update(&ctx[1], pass.c, pass_len, &ctx_buflen[1]);
 	ctx_update(&ctx[1], salt.c, salt_len, &ctx_buflen[1]);
