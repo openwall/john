@@ -3,7 +3,6 @@
 [![Downloads](https://img.shields.io/badge/Download-Windows%20Build-blue.svg)](https://github.com/openwall/john-packages/releases/tag/jumbo-dev)
 [![License](https://img.shields.io/badge/License-GPL%20v2%2B-blue.svg)](https://github.com/openwall/john/blob/bleeding-jumbo/doc/LICENSE)
 [![LoC](https://tokei.rs/b1/github/openwall/john?category=code)](https://github.com/openwall/john/tree/bleeding-jumbo)
-[![Contributors](https://img.shields.io/github/contributors/openwall/john.svg?label=Contributors)](https://github.com/openwall/john/graphs/contributors)
 [![Search hit](https://img.shields.io/github/search/openwall/john/goto.svg?label=GitHub%20Hits)](https://github.com/search?utf8=%E2%9C%93&q=john%20the%20ripper&type=)
 
 John the Ripper
