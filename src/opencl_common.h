@@ -182,6 +182,9 @@ unsigned int opencl_get_vector_width(int sequential_id, int size);
 /* Returns number of selected devices */
 int get_number_of_devices_in_use(void);
 
+/* Get the number of available devices (all the OpenCL devices) */
+int get_number_of_available_devices(void);
+
 /* Returns number of requested devices */
 int get_number_of_requested_devices(void);
 

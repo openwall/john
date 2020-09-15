@@ -883,6 +883,10 @@ void opencl_load_environment(void)
 		// Ensure that there is at least one OpenCL device available
 		if (get_number_of_available_devices() == 0) {
 			fprintf(stderr, "No OpenCL devices found\n");
+			if (benchmark_running) {
+				opencl_initialized = 1;
+				return;
+			}
 			error();
 		}
 

@@ -52,6 +52,7 @@
 #include "unicode.h"
 #include "config.h"
 #include "gpu_common.h"
+#include "opencl_common.h"
 #include "mask.h"
 #include "aligned.h"
 
@@ -722,7 +723,7 @@ int benchmark_all(void)
 	int ompt;
 	int ompt_start = omp_get_max_threads();
 #endif
-
+	const char *opencl_was_skipped = "";
 	benchmark_running = 1;
 
 #ifndef BENCH_BUILD
@@ -799,8 +800,23 @@ AGAIN:
 		if ((format->params.flags & FMT_DYNAMIC) ||
 		    strstr(format->params.label, "-opencl") ||
 		    strstr(format->params.label, "-ztex") ||
-		    !strcmp(format->params.label, "crypt"))
+		    !strcmp(format->params.label, "crypt")) {
+#ifdef HAVE_OPENCL
+/*
+ * Allow OpenCL build's "--test" to run on no-OpenCL systems.
+ * It is a hack, but it is necessary since OpenCL must be started
+ * to get the number of devices. OpenCL initialization (enumeration
+ * of platforms and devices, option parsing) is performed only once.
+*/
+			if (strstr(format->params.label, "-opencl")) {
+				opencl_load_environment();
+
+				if (get_number_of_available_devices() == 0)
+					continue;
+			}
+#endif
 			fmt_init(format);
+		}
 
 		/* [GPU-side] mask mode benchmark */
 		if (options.mask) {
@@ -1079,8 +1095,18 @@ next:
 				printf("%u formats benchmarked.\n", total);
 			else
 #endif
-				printf("All %u formats passed self-tests!\n",
-				       total);
+
+#ifdef HAVE_OPENCL
+/*
+ * Allow OpenCL build's "--test" to run on no-OpenCL systems.
+ * Print a message about no OpenCL at the end of the run.
+ */
+				if (get_number_of_available_devices() == 0)
+					opencl_was_skipped = " (OpenCL formats skipped)";
+#endif
+
+				printf("All %u formats passed self-tests!%s\n",
+				       total, opencl_was_skipped);
 		}
 #ifndef BENCH_BUILD
 	if (options.flags & FLG_LOOPTEST) {
