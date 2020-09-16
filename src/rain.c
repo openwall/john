@@ -367,7 +367,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			if(event_abort) break;
 			int skip = 0;
 			int strafeinc;
-			int strafediv;
+			int rotateinc;
 			int mpl = minlength + loop;
 			int pos = mpl - 1;
 			
@@ -384,44 +384,36 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 			if(mpl % 10 == 0) {
 				strafeinc = 2;
-				strafediv = 1;
 			}
 			else if(mpl % 2 == 0) {
 				strafeinc = 4;
-				strafediv = 1;
 			}
 			else {
-				strafeinc = 2;
-				strafediv = mpl/4;
+				strafeinc = 3;
+			}
+			
+			if(charcount % 10 == 0) {
+				rotateinc = 2;
+			}
+			else if(charcount % 2 == 0) {
+				rotateinc = 4;
+			}
+			else {
+				rotateinc = 3;
 			}
 			if(!skip) {
 				quick_conversion = 1;
-				if(mpl > 3) {
-					for(i=0; i<mpl; ++i) {
-						if((rain[i] = charset_utf32[(charset_idx[loop][\
-							(strafe[loop]/strafediv+i) % mpl]\
-						 		+ rotate[loop]) % charcount ]) > cp_max)
-							quick_conversion = 0;
-						strafe[loop] += strafeinc;
-	 					++rotate[loop];
-	 				}
-				}
-				else {
-					for(i=0; i<mpl; ++i) {
-						if((rain[i] = charset_utf32[charset_idx[loop][i]]) > cp_max)
-							quick_conversion = 0;
-	 				}		
-				}
+				for(i=0; i<mpl; ++i) {
+					if((rain[i] = charset_utf32[(charset_idx[loop][\
+						(strafe[loop]+i) % mpl]\
+					 		+ rotate[loop]/(charcount/2)) % charcount ]) > cp_max)
+						quick_conversion = 0;
+					strafe[loop] += strafeinc;
+ 					rotate[loop] += rotateinc;
+ 				}
 				submit(rain);
-				
 			}
 			
-			if(strafe[loop] % (mpl + 1) == 0) strafe[loop] = 0;
-			
-			if(charcount % 10 == 0) rotate[loop] -= mpl - 2;
-			else if(charcount % 2 == 0) rotate[loop] -= mpl - 4;
-			else rotate[loop] -= mpl - 1;
-
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
 				--pos;
