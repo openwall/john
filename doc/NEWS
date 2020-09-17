@@ -125,6 +125,12 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Add support for ssh new-style private keys encrypted using `aes256-ctr`
   cipher.  [vkhromov; 2020]
 
+- Implement full checking in SSH OpenCL format, and drop FMT_NOT_EXACT from
+  both it and the CPU format.  Bugs were squashed as well.  For remaining
+  false-positives (if any), user can selectively use the
+  --keep-guessing option.  [magnum; 2020]
+
+
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
 - Updated to 1.9.0 core, which brought the following relevant major changes:

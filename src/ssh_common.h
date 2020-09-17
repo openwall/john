@@ -21,6 +21,7 @@ struct custom_salt {
 };
 
 extern int ssh_valid(char *ciphertext, struct fmt_main *self);
+extern char *ssh_split(char *ciphertext, int index, struct fmt_main *self);
 extern void *ssh_get_salt(char *ciphertext);
 extern unsigned int ssh_iteration_count(void *salt);
 extern unsigned int ssh_kdf(void *salt);

@@ -40,7 +40,7 @@ typedef struct {
 	uint cracked;
 } ssh_out;
 
-inline void generate_key_bytes(int nbytes, uchar *password, uint32_t len, uchar *salt, unsigned char *key)
+inline void generate_key_bytes(int nbytes, uchar *password, uint32_t len, uchar *salt, uchar *key)
 {
 	uchar digest[16];
 	int keyidx = 0;
@@ -70,14 +70,14 @@ inline void generate_key_bytes(int nbytes, uchar *password, uint32_t len, uchar 
 	}
 }
 
-inline int check_padding_and_structure_EC(unsigned char *out, int length, int strict_mode)
+inline int check_padding_and_structure_EC(uchar *out, int length)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
 
 	// First check padding
 	if (check_pkcs_pad(out, length, 16) < 0)
-		return -1;
+		return 0;
 
 	/* check BER decoding, EC private key file contains:
 	 *
@@ -121,11 +121,10 @@ inline int check_padding_and_structure_EC(unsigned char *out, int length, int st
 	return 1;
 }
 
-inline int check_padding_and_structure(uchar *out, uint length, uint block_size)
+inline int check_padding_and_structure(uchar *out, uint length, uint strict_mode, uint block_size)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
-	uint strict_mode = 0;  // NOTE!
 
 	// First check padding
 	if (check_pkcs_pad(out, length, block_size) < 0)
@@ -195,14 +194,10 @@ inline int check_padding_and_structure(uchar *out, uint length, uint block_size)
 	return 1;
 }
 
-inline int ssh_decrypt(__global const ssh_password *inbuffer, uint gid, __constant ssh_salt *osalt, __global ssh_out *output)
+inline void common_crypt_code(uchar *password, uint len, __constant ssh_salt *osalt, uchar *out, uint full_decrypt)
 {
-	uchar out[CTLEN];
-	int block_size = 8;
-	uchar password[PLAINTEXT_LENGTH];
 	uchar salt[16];
 
-	memcpy_gp(password, inbuffer[gid].v, inbuffer[gid].length);
 	memcpy_macro(salt, osalt->salt, osalt->sl);
 
 	if (osalt->cipher == 0) {
@@ -210,72 +205,107 @@ inline int ssh_decrypt(__global const ssh_password *inbuffer, uint gid, __consta
 		uchar iv[8];
 		uchar key[24];
 
-		block_size = 8;
-		generate_key_bytes(24, password, inbuffer[gid].length, salt, key);
+		generate_key_bytes(24, password, len, salt, key);
 		memcpy_macro(iv, salt, 8);
 		des3_set3key_dec(&ks, key);
-		des3_crypt_cbc(&ks, DES_DECRYPT, SAFETY_FACTOR, iv, MAYBE_CONSTANT, osalt->ct, out);
-		memcpy_macro(iv, osalt->ct + osalt->ctl - 16, 8);
-		des3_crypt_cbc(&ks, DES_DECRYPT, 8, iv, MAYBE_CONSTANT, osalt->ct + osalt->ctl - 8, out + osalt->ctl - 8);
+		if (full_decrypt) {
+			des3_crypt_cbc(&ks, DES_DECRYPT, osalt->ctl, iv, MAYBE_CONSTANT, osalt->ct, out);
+		} else {
+			des3_crypt_cbc(&ks, DES_DECRYPT, SAFETY_FACTOR, iv, MAYBE_CONSTANT, osalt->ct, out);
+			memcpy_macro(iv, osalt->ct + osalt->ctl - 16, 8);
+			des3_crypt_cbc(&ks, DES_DECRYPT, 8, iv, MAYBE_CONSTANT, osalt->ct + osalt->ctl - 8, out + osalt->ctl - 8);
+		}
 	} else if (osalt->cipher == 1) {  // RSA/DSA keys with AES-128
-		unsigned char key[16];
+		uchar key[16];
 		AES_KEY akey;
-		unsigned char iv[16];
+		uchar iv[16];
 
-		block_size = 16;
 		memcpy_macro(iv, osalt->salt, 16);
-		generate_key_bytes(16, password, inbuffer[gid].length, salt, key);
+		generate_key_bytes(16, password, len, salt, key);
 		AES_set_decrypt_key(key, 128, &akey);
-		AES_cbc_decrypt(osalt->ct, out, SAFETY_FACTOR, &akey, iv);
-		memcpy_macro(iv, osalt->ct + osalt->ctl - 32, 16);
-		AES_cbc_decrypt(osalt->ct + osalt->ctl - 16, out + osalt->ctl - 16, 16, &akey, iv);
-	} else if (osalt->cipher == 2) {  // unsupported
+		if (full_decrypt) {
+			AES_cbc_decrypt(osalt->ct, out, osalt->ctl, &akey, iv);
+		} else {
+			AES_cbc_decrypt(osalt->ct, out, SAFETY_FACTOR, &akey, iv);
+			memcpy_macro(iv, osalt->ct + osalt->ctl - 32, 16);
+			AES_cbc_decrypt(osalt->ct + osalt->ctl - 16, out + osalt->ctl - 16, 16, &akey, iv);
+		}
+#if 0
+	} else if (osalt->cipher == 2) {  // bcrypt + AES256-CBC, not yet supported
+	} else if (osalt->cipher == 6) {  // bcrypt + AES256-CTR, not yet supported
+#endif
 	} else if (osalt->cipher == 3) {  // EC keys with AES-128
-		unsigned char key[16];
+		uchar key[16];
 		AES_KEY akey;
-		unsigned char iv[16];
+		uchar iv[16];
 
-		block_size = 16;
 		memcpy_macro(iv, osalt->salt, 16);
-		generate_key_bytes(16, password, inbuffer[gid].length, salt, key);
+		generate_key_bytes(16, password, len, salt, key);
 		AES_set_decrypt_key(key, 128, &akey);
+		// Always full decrypt
 		AES_cbc_decrypt(osalt->ct, out, osalt->ctl, &akey, iv);
-		return check_padding_and_structure_EC(out, osalt->ctl, 0);
 	} else if (osalt->cipher == 4) {  // RSA/DSA keys with AES-192
-		unsigned char key[24];
+		uchar key[24];
 		AES_KEY akey;
-		unsigned char iv[16];
+		uchar iv[16];
 
-		block_size = 16;
 		memcpy_macro(iv, osalt->salt, 16);
-		generate_key_bytes(24, password, inbuffer[gid].length, salt, key);
+		generate_key_bytes(24, password, len, salt, key);
 		AES_set_decrypt_key(key, 192, &akey);
-		AES_cbc_decrypt(osalt->ct, out, SAFETY_FACTOR, &akey, iv);
-		memcpy_macro(iv, osalt->ct + osalt->ctl - 32, 16);
-		AES_cbc_decrypt(osalt->ct + osalt->ctl - 16, out + osalt->ctl - 16, 16, &akey, iv);
+		if (full_decrypt) {
+			AES_cbc_decrypt(osalt->ct, out, osalt->ctl, &akey, iv);
+		} else {
+			AES_cbc_decrypt(osalt->ct, out, SAFETY_FACTOR, &akey, iv);
+			memcpy_macro(iv, osalt->ct + osalt->ctl - 32, 16);
+			AES_cbc_decrypt(osalt->ct + osalt->ctl - 16, out + osalt->ctl - 16, 16, &akey, iv);
+		}
 	} else if (osalt->cipher == 5) {  // RSA/DSA keys with AES-256
-		unsigned char key[32];
+		uchar key[32];
 		AES_KEY akey;
-		unsigned char iv[16];
+		uchar iv[16];
 
-		block_size = 16;
 		memcpy_macro(iv, osalt->salt, 16);
-		generate_key_bytes(32, password, inbuffer[gid].length, salt, key);
+		generate_key_bytes(32, password, len, salt, key);
 		AES_set_decrypt_key(key, 256, &akey);
-		AES_cbc_decrypt(osalt->ct, out, SAFETY_FACTOR, &akey, iv);
-		memcpy_macro(iv, osalt->ct + osalt->ctl - 32, 16);
-		AES_cbc_decrypt(osalt->ct + osalt->ctl - 16, out + osalt->ctl - 16, 16, &akey, iv);
+		if (full_decrypt) {
+			AES_cbc_decrypt(osalt->ct, out, osalt->ctl, &akey, iv);
+		} else {
+			AES_cbc_decrypt(osalt->ct, out, SAFETY_FACTOR, &akey, iv);
+			memcpy_macro(iv, osalt->ct + osalt->ctl - 32, 16);
+			AES_cbc_decrypt(osalt->ct + osalt->ctl - 16, out + osalt->ctl - 16, 16, &akey, iv);
+		}
 	}
-
-	return check_padding_and_structure(out, osalt->ctl, block_size);
 }
 
-__kernel
-void ssh(__global const ssh_password *inbuffer,
-                __global ssh_out *out,
-                __constant ssh_salt *salt)
-{
-	uint idx = get_global_id(0);
+#define QUICK 0
+#define FULL 1
 
-	out[idx].cracked = ssh_decrypt(inbuffer, idx, salt, out);
+inline int ssh_decrypt(uchar *password, uint len, __constant ssh_salt *osalt, __global ssh_out *output)
+{
+	uchar out[CTLEN];
+	int block_size = osalt->cipher == 0 ? 8 : 16;
+
+	common_crypt_code(password, len, osalt, out, QUICK);
+
+	if (osalt->cipher == 3)  // EC keys with AES-128
+		return check_padding_and_structure_EC(out, osalt->ctl);
+
+	if (!check_padding_and_structure(out, osalt->ctl, QUICK, block_size))
+		return 0;
+
+	common_crypt_code(password, len, osalt, out, FULL);
+
+	return check_padding_and_structure(out, osalt->ctl, FULL, block_size);
+}
+
+__kernel void ssh(__global const ssh_password *inbuffer,
+                  __global ssh_out *out,
+                  __constant ssh_salt *salt)
+{
+	uchar password[PLAINTEXT_LENGTH];
+	uint gid = get_global_id(0);
+
+	memcpy_gp(password, inbuffer[gid].v, inbuffer[gid].length);
+
+	out[gid].cracked = ssh_decrypt(password, inbuffer[gid].length, salt, out);
 }
