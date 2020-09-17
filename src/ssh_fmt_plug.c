@@ -98,19 +98,6 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
-static char *split(char *ciphertext, int index, struct fmt_main *self)
-{
-	static char buf[sizeof(struct custom_salt)+100];
-
-	if (strnlen(ciphertext, LINE_BUFFER_SIZE) < LINE_BUFFER_SIZE &&
-	    strstr(ciphertext, "$SOURCE_HASH$"))
-		return ciphertext;
-
-	strnzcpy(buf, ciphertext, sizeof(buf));
-	strlwr(buf);
-	return buf;
-}
-
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
@@ -527,7 +514,7 @@ struct fmt_main fmt_ssh = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT | FMT_SPLIT_UNIFIES_CASE | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE | FMT_HUGE_INPUT,
 		{
 			"KDF/cipher [0=MD5/AES 1=MD5/3DES 2=Bcrypt/AES]",
 			"iteration count",
@@ -540,7 +527,7 @@ struct fmt_main fmt_ssh = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		ssh_valid,
-		split,
+		ssh_split,
 		fmt_default_binary,
 		ssh_get_salt,
 		{

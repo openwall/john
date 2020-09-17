@@ -61,12 +61,31 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	}
 
+	if (strcasestr(self->params.label, "-opencl") && (cipher == 2 || cipher == 6)) {
+		fprintf(stderr, "[%s] cipher value of %d is not yet supported with OpenCL!\n",
+		        self->params.label, cipher);
+		goto err;
+	}
+
 	MEM_FREE(keeptr);
 	return 1;
 
 err:
 	MEM_FREE(keeptr);
 	return 0;
+}
+
+char *ssh_split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char buf[sizeof(struct custom_salt)+100];
+
+	if (strnlen(ciphertext, LINE_BUFFER_SIZE) < LINE_BUFFER_SIZE &&
+	    strstr(ciphertext, "$SOURCE_HASH$"))
+		return ciphertext;
+
+	strnzcpy(buf, ciphertext, sizeof(buf));
+	strlwr(buf);
+	return buf;
 }
 
 void *ssh_get_salt(char *ciphertext)
@@ -132,6 +151,7 @@ unsigned int ssh_kdf(void *salt)
 	case 0:
 		return 1; // MD5 KDF + 3DES
 	case 2:
+	case 6:
 		return 2; // bcrypt-pbkdf
 	default:
 		return 0; // MD5 KDF + AES
