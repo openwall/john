@@ -234,15 +234,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t mem_cpy_sz;
 	size_t N, *M;
 
-	mem_cpy_sz = count * KEY_SIZE_IN_BYTES;
+	M = local_work_size ? &local_work_size : NULL;
+	N = GET_NEXT_MULTIPLE(count, local_work_size);
+
+	mem_cpy_sz = N * KEY_SIZE_IN_BYTES;
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id],
 					    cl_tx_keys, CL_FALSE, 0,
 					    mem_cpy_sz, saved_key,
 					    0, NULL, multi_profilingEvent[0]),
 					    "Failed to write buffer cl_tx_keys.");
-
-	M = local_work_size ? &local_work_size : NULL;
-	N = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					      crypt_kernel, 1,
