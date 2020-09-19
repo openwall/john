@@ -84,6 +84,7 @@ size_t ocl_max_lws;
 
 static char opencl_log[LOG_SIZE];
 static int opencl_initialized;
+int opencl_unavailable;
 
 static void load_device_info(int sequential_id);
 static char* get_device_capability(int sequential_id);
@@ -885,6 +886,7 @@ void opencl_load_environment(void)
 			fprintf(stderr, "No OpenCL devices found\n");
 			if (benchmark_running) {
 				opencl_initialized = 1;
+				opencl_unavailable = 1;
 				return;
 			}
 			error();
