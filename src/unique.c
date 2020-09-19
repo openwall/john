@@ -37,7 +37,7 @@
 #include "jumbo.h"
 
 typedef size_t uq_idx;
-typedef uint32_t uq_hash;
+typedef size_t uq_hash;
 
 #if __SIZEOF_SIZE_T__ == 4
 #define ENTRY_END_HASH			0xFFFFFFFF /* also hard-coded */
@@ -48,7 +48,7 @@ typedef uint32_t uq_hash;
 #define ENTRY_END_HASH			0xFFFFFFFFFFFFFFFFull
 #define ENTRY_END_LIST			0xFFFFFFFFFFFFFFFEull
 #define ENTRY_DUPE			0xFFFFFFFFFFFFFFFDull
-#define HASH_MAX			0xE000000000000000ull
+#define HASH_MAX			0xF800000000000000ull
 #endif
 
 static struct {
@@ -132,7 +132,7 @@ static uq_hash line_hash(char *line)
 		goto out;
 
 	while (*p && p < e) {
-		hash <<= 3; extra <<= 2;
+		hash <<= 5;
 		hash += (uint8_t)p[0];
 		if (!p[1] || &p[1] >= e)
 			break;
