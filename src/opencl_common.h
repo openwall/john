@@ -141,6 +141,7 @@ extern int ocl_always_show_ws;
 extern size_t ocl_max_lws;
 extern struct db_main *ocl_autotune_db;
 extern int autotune_real_db;
+extern int opencl_unavailable;
 
 extern cl_device_id devices[MAX_GPU_DEVICES + 1];
 extern cl_context context[MAX_GPU_DEVICES];

@@ -1101,7 +1101,7 @@ next:
  * Allow OpenCL build's "--test" to run on no-OpenCL systems.
  * Print a message about no OpenCL at the end of the run.
  */
-				if (get_number_of_available_devices() == 0)
+				if (opencl_unavailable)
 					opencl_was_skipped = " (OpenCL formats skipped)";
 #endif
 
