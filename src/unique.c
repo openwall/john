@@ -136,6 +136,7 @@ static uq_hash line_hash(char *line)
 		hash += (uint8_t)p[0];
 		if (!p[1] || &p[1] >= e)
 			break;
+		extra *= hash | 1812433253;
 		extra += (uint8_t)p[1];
 		p += 2;
 		if (hash & HASH_MAX) {
