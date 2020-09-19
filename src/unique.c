@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1998,1999,2002,2003,2005,2006,2011 by Solar Designer
+ * Copyright (c) 1998,1999,2002,2003,2005,2006,2011,2020 by Solar Designer
  * Copyright (c) 2011 by Jim Fougeron
  * Copyright (c) 2016-2019 by magnum
  *
@@ -433,17 +433,20 @@ int unique(int argc, char **argv)
 			if (!strcmp(argv[i], "-cut=LM")) {
 				cut_len = 7;
 				lm_split = 1;
+			} else {
+				char nul = 0;
+				if (sscanf(argv[i], "-cut=%d%c", &cut_len, &nul) < 1 || nul)
+					cut_len = -1;
 			}
-			else
-				sscanf(argv[i], "-cut=%d", &cut_len);
 			if (cut_len < 0 || cut_len >= LINE_BUFFER_SIZE)
 				error_msg("Error, invalid length in the -cut= param\n");
 			pop_arg(i, &argc, argv);
 			continue;
 		}
 		if (!strncmp(argv[i], "-mlc=", 5)) {
-			sscanf(argv[i], "-mlc=%d", &mlc);
-			if (mlc < 2 || mlc >= LINE_BUFFER_SIZE)
+			char nul = 0;
+			if (sscanf(argv[i], "-mlc=%d%c", &mlc, &nul) < 1 || nul ||
+			    mlc < 2 || mlc >= LINE_BUFFER_SIZE)
 				error_msg("Error, -mlc=length must be 2..%d\n", LINE_BUFFER_SIZE);
 			fprintf(stderr, "Will only consider %d first characters of a line for uniqueness\n", mlc);
 			pop_arg(i, &argc, argv);
@@ -453,8 +456,9 @@ int unique(int argc, char **argv)
 			char *new_arg;
 			uint32_t log;
 			size_t buf;
-
-			sscanf(argv[i], "-mem=%d", &log);
+			char nul = 0;
+			if (sscanf(argv[i], "-mem=%d%c", &log, &nul) < 1 || nul)
+				log = 0;
 			buf = ((1ULL << log) * UNIQUE_AVG_LEN) >> 30ULL;
 			fprintf(stderr,
 "Warning: The -mem=%u option is deprecated, use -hash-size=%u (log2 of hash\n"
@@ -467,26 +471,28 @@ int unique(int argc, char **argv)
 			argv[i] = new_arg;
 		}
 		if (!strncmp(argv[i], "-hash-size=", 11)) {
-			int log;
-
-			sscanf(argv[i], "-hash-size=%d", &log);
+			unsigned int log;
+			char nul = 0;
+			if (sscanf(argv[i], "-hash-size=%u%c", &log, &nul) < 1 || nul)
+				log = 0;
 			if (sizeof(uq_idx) < 8 && log > 25)
-				error_msg("Error: This build of unique can't use a -hash-log larger than 25\n");
+				error_msg("Error: This build of unique can't use a -hash-size larger than 25\n");
 
 			unique_hash_log = log;
 			pop_arg(i, &argc, argv);
 			continue;
 		}
 		if (!strncmp(argv[i], "-buf=", 5)) {
-			int p;
-
-			sscanf(argv[i], "-buf=%d", &p);
+			unsigned int p;
+			char nul = 0;
+			if (sscanf(argv[i], "-buf=%u%c", &p, &nul) < 1 || nul)
+				p = 0;
 #if __SIZEOF_SIZE_T__ < 8
 			if (p > 3)
 				error_msg("Error: Can't use a -buf of more than 3 GB (this is a 32-bit build)\n");
 #endif
 			if (!(buf_size = (size_t)p << 30))
-				buf_size = 1 << 19;
+				buf_size = 1U << 28;
 
 			if (!unique_hash_log)
 				unique_hash_log =
@@ -516,16 +522,27 @@ int unique(int argc, char **argv)
 		i++;
 	}
 
-	if (!unique_hash_log)
+	if (unique_hash_log <= 0)
 		unique_hash_log = UNIQUE_HASH_LOG;
+	if (unique_hash_log >= 40)
+		unique_hash_log = 40;
+	unique_hash_size = (size_t)1 << unique_hash_log;
+	if (unique_hash_log < 22 || unique_hash_log >= 40)
+		error_msg("Error: Requested hash size is unreasonably %s (%d, %s/%sB)\n",
+		    unique_hash_log < 30 ? "small" : "large",
+		    (int)unique_hash_log, human_prefix(unique_hash_size),
+		    human_prefix(unique_hash_size * sizeof(*buffer.hash)));
 	unique_hash_log_half = unique_hash_log / 2;
-	unique_hash_size = (1 << unique_hash_log);
 	unique_hash_mask = unique_hash_size - 1;
-	if (buf_size)
-		unique_buffer_size =
-			buf_size - unique_hash_size * sizeof(*buffer.hash);
-	else
+	if (buf_size) {
+		unique_buffer_size = buf_size - unique_hash_size * sizeof(*buffer.hash);
+		if (unique_buffer_size > buf_size)
+			error_msg("Error: Requested hash size exceeds requested total memory allocation\n");
+	} else {
 		unique_buffer_size = UNIQUE_AVG_LEN * unique_hash_size;
+	}
+	if (unique_buffer_size < (1U << 27))
+		error_msg("Error: Input buffer size is unreasonably small (%sB)\n", human_prefix(unique_buffer_size));
 
 	if (argc != 2) {
 		fprintf(stderr,
