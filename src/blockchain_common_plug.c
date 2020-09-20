@@ -103,6 +103,11 @@ int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 	/* various tests */
 	if (out[0] != '{') // fast test
 		return -1;
+	
+	// hack check for android format
+        if (memmem(out, 16, "\"address_book", 13)) {
+                return 0;
+        }
 
 	// "guid" will be found in the first block
 	if (memmem(out, 16, "\"guid\"", 6)) {
