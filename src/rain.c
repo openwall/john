@@ -415,7 +415,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			}
             
             int j, k = 0;
-            for(j=1; j<=i; ++j)
+            for(j=1; j<=mpl; ++j)
                 k += j;
             
 		    rotate[loop] -= k - rotatemod;
