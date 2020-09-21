@@ -187,11 +187,10 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &show_uncracked_str},
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~FLG_MASK_CHK & ~FLG_NOLOG & ~OPT_REQ_PARAM,
-		"%d", &benchmark_time},
+		~FLG_MASK_CHK & ~OPT_REQ_PARAM, "%d", &benchmark_time},
 	{"test-full", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_level},
+		OPT_REQ_PARAM, "%d", &benchmark_level},
 #ifdef HAVE_FUZZ
 	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK,
 		0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT &
@@ -288,7 +287,7 @@ static struct opt_entry opt_list[] = {
 		0, FLG_KEEP_GUESSING},
 	{"stress-test", FLG_LOOPTEST | FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~OPT_REQ_PARAM & ~FLG_NOLOG, "%d", &benchmark_time},
+		~FLG_MASK_CHK & ~OPT_REQ_PARAM, "%d", &benchmark_time},
 	{"tune", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.tune},
 	{NULL}
