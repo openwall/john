@@ -409,17 +409,11 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					 		+ rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
 					strafe[loop] += strafeinc;
- 					rotate[loop] += i+1;
+ 					rotate[loop] += 1;
  				}
 				submit(rain);
 			}
-            
-            int j, k = 0;
-            for(j=1; j<=mpl; ++j)
-                k += j;
-            
-		    rotate[loop] -= k - rotatemod;
-			
+            rotate[loop] -= mpl - rotatemod;
 			int pos = mpl - 1;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
