@@ -366,10 +366,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		while (loop <= maxlength - minlength) {
 			if(event_abort) break;
 			int skip = 0;
-			int strafeinc;
-			int rotateinc;
-			int mpl = minlength + loop;
-			int pos = mpl - 1;
 			
 			if (state_restored)
 				state_restored = 0;
@@ -382,6 +378,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 
+            int strafeinc;
+			int rotatemod;
+			int mpl = minlength + loop;
+
 			if(mpl % 10 == 0) {
 				strafeinc = 2;
 			}
@@ -393,26 +393,34 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			}
 			
 			if(charcount % 10 == 0) {
-				rotateinc = 2;
+				rotatemod = 2;
 			}
 			else if(charcount % 2 == 0) {
-				rotateinc = 4;
+				rotatemod = 4;
 			}
 			else {
-				rotateinc = 3;
+				rotatemod = 3;
 			}
 			if(!skip) {
 				quick_conversion = 1;
 				for(i=0; i<mpl; ++i) {
-					if((rain[i] = charset_utf32[(charset_idx[loop][\
+					if( (rain[i] = charset_utf32[(charset_idx[loop][\
 						(strafe[loop]+i) % mpl]\
-					 		+ rotate[loop]/(charcount/2)) % charcount ]) > cp_max)
+					 		+ rotate[loop]) % charcount ]) > cp_max)
 						quick_conversion = 0;
 					strafe[loop] += strafeinc;
- 					rotate[loop] += rotateinc;
+ 					rotate[loop] += i+1;
  				}
 				submit(rain);
 			}
+            
+            int j, k = 0;
+            for(j=1; j<=i; ++j)
+                k += j;
+            
+		    rotate[loop] -= k - rotatemod;
+			
+			int pos = mpl - 1;
 			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 				charset_idx[loop][pos] = 0;
