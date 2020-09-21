@@ -63,6 +63,8 @@ static int split_events[3] = { 1, 6, 7 };
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
 #include "opencl_autotune.h"
 
+static void release_kernel();
+
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
@@ -84,6 +86,9 @@ static size_t get_task_max_work_group_size()
 /* ------- Create and destroy necessary objects ------- */
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	// Avoid memory leaks.
+	release_clobj();
+
 	pinned_saved_keys = clCreateBuffer(context[gpu_id],
 	                                   CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR,
 	                                   sizeof(sha512_password) * gws, NULL, &ret_code);
@@ -206,8 +211,6 @@ static void release_clobj(void)
 		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys,
 		                                   plain_sorted, 0, NULL, NULL);
 		HANDLE_CLERROR(ret_code, "Error Unmapping saved_plain");
-		HANDLE_CLERROR(clFinish(queue[gpu_id]),
-		               "Error releasing memory mappings");
 
 		MEM_FREE(plaintext);
 		MEM_FREE(calculated_hash);
@@ -230,6 +233,7 @@ static void release_clobj(void)
 		HANDLE_CLERROR(ret_code, "Error Releasing pinned_partial_hashes");
 
 		work_buffer = NULL;
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory");
 	}
 }
 
@@ -321,6 +325,8 @@ static void build_kernel(const char *task, const char *custom_opts)
 {
 	int major, minor;
 
+	release_kernel();
+
 	if (!strlen(custom_opts)) {
 		char opt[MAX_OCLINFO_STRING_LEN];
 		int i;
@@ -376,17 +382,22 @@ static void build_kernel(const char *task, const char *custom_opts)
 
 static void release_kernel()
 {
-	HANDLE_CLERROR(clReleaseKernel(crypt_full_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(crypt_fast_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(preproc_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+	if (program[gpu_id]) {
+		HANDLE_CLERROR(clReleaseKernel(crypt_full_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(crypt_fast_kernel), "Release kernel");
+
+		if (_SPLIT_KERNEL_IN_USE) {
+			HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+			HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
+			HANDLE_CLERROR(clReleaseKernel(preproc_kernel), "Release kernel");
+		}
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		program[gpu_id] = NULL;
+	}
 }
 
 static void init(struct fmt_main *_self)
 {
-
 	self = _self;
 	opencl_prepare_dev(gpu_id);
 }
@@ -519,21 +530,10 @@ static void reset(struct db_main *db)
 
 static void done(void)
 {
-
 	if (program[gpu_id]) {
 		release_clobj();
+		release_kernel();
 		MEM_FREE(indices);
-
-		HANDLE_CLERROR(clReleaseKernel(crypt_full_kernel), "Release kernel");
-		HANDLE_CLERROR(clReleaseKernel(crypt_fast_kernel), "Release kernel");
-
-		if (_SPLIT_KERNEL_IN_USE) {
-			HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
-			HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
-			HANDLE_CLERROR(clReleaseKernel(preproc_kernel), "Release kernel");
-		}
-		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
-		program[gpu_id] = NULL;
 	}
 }
 
