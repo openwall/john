@@ -308,8 +308,6 @@ static void release_clobj()
 		ret_code = clEnqueueUnmapMemObject(queue[gpu_id], pinned_int_key_loc,
 		                                   saved_int_key_loc, 0, NULL, NULL);
 		HANDLE_CLERROR(ret_code, "Error Unmapping key locations");
-		HANDLE_CLERROR(clFinish(queue[gpu_id]),
-		               "Error releasing memory mappings");
 
 		ret_code = clReleaseMemObject(salt_buffer);
 		HANDLE_CLERROR(ret_code, "Error Releasing salt_buffer");
@@ -333,7 +331,8 @@ static void release_clobj()
 		ret_code = clReleaseMemObject(pinned_int_key_loc);
 		HANDLE_CLERROR(ret_code, "Error Releasing pinned_int_key_loc");
 
-		ocl_initialized--;
+		ocl_initialized = 0;
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory");
 	}
 }
 
@@ -533,8 +532,7 @@ static void build_kernel()
 		previous_size = bitmap_size;
 		num_int_cand = mask_int_cand.num_int_cand;
 
-		if (prepare_kernel)
-			release_kernel();
+		release_kernel();
 
 		snprintf(opt, sizeof(opt), "-DBITMAP_SIZE_MINUS1=%u", bitmap_size - 1U);
 
@@ -564,11 +562,13 @@ static void build_kernel()
 
 static void release_kernel()
 {
-	HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+	if (program[gpu_id]) {
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(prepare_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
-	prepare_kernel = NULL;
+		program[gpu_id] = NULL;
+	}
 }
 
 static void init_common(struct fmt_main *_self)
@@ -602,7 +602,6 @@ static void done(void)
 		release_kernel();
 		release_mask_buffers();
 	}
-	program[gpu_id] = NULL;
 	should_tune = 0;
 	ocl_initialized = 0;
 }
