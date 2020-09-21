@@ -286,17 +286,19 @@ static size_t get_task_max_work_group_size()
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(d_vmk), "Release");
-	HANDLE_CLERROR(clReleaseMemObject(d_pswI), "Release");
-	HANDLE_CLERROR(clReleaseMemObject(d_pswSize), "Release");
-	HANDLE_CLERROR(clReleaseMemObject(d_found), "Release");
-	HANDLE_CLERROR(clReleaseMemObject(d_wblocks), "Release");
-	HANDLE_CLERROR(clReleaseMemObject(d_salt), "Release");
-	HANDLE_CLERROR(clReleaseMemObject(d_pad), "Release");
+	if (h_found) {
+		HANDLE_CLERROR(clReleaseMemObject(d_vmk), "Release");
+		HANDLE_CLERROR(clReleaseMemObject(d_pswI), "Release");
+		HANDLE_CLERROR(clReleaseMemObject(d_pswSize), "Release");
+		HANDLE_CLERROR(clReleaseMemObject(d_found), "Release");
+		HANDLE_CLERROR(clReleaseMemObject(d_wblocks), "Release");
+		HANDLE_CLERROR(clReleaseMemObject(d_salt), "Release");
+		HANDLE_CLERROR(clReleaseMemObject(d_pad), "Release");
 
-	MEM_FREE(h_found);
-	MEM_FREE(h_wblocks);
-	MEM_FREE(h_numPsw);
+		MEM_FREE(h_found);
+		MEM_FREE(h_wblocks);
+		MEM_FREE(h_numPsw);
+	}
 }
 
 static void init(struct fmt_main *_self)

@@ -134,11 +134,13 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+	if (ghash) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
-	MEM_FREE(ghash);
-	MEM_FREE(gkey);
+		MEM_FREE(ghash);
+		MEM_FREE(gkey);
+	}
 }
 
 static void init(struct fmt_main *_self)
