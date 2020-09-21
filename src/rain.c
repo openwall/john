@@ -419,9 +419,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				--pos;
 			}
 			
-			counter++;
-			loop++;
-			
 			if(pos < 0) {
 				counter = 0;
 				++rain_cur_len;	
