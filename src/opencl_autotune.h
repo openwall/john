@@ -210,6 +210,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		}
 		find_best_gws(self, gpu_id, rounds, max_duration1, have_lws);
 	} else {
+		release_clobj();
 		create_clobj(global_work_size, self);
 	}
 
