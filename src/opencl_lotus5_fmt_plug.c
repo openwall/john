@@ -76,9 +76,13 @@ static size_t get_task_max_work_group_size()
 	return max_lws;
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	size_t mem_alloc_sz;
+
+	release_clobj();
 
 	mem_alloc_sz = KEY_SIZE_IN_BYTES * gws;
 	cl_tx_keys = clCreateBuffer(context[gpu_id],

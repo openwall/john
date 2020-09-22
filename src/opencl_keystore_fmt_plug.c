@@ -101,8 +101,12 @@ static size_t get_task_max_work_group_size()
 	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	release_clobj();
+
 	outsize = sizeof(keystore_hash) * gws;
 	saltsize = sizeof(keystore_salt);
 
@@ -170,6 +174,7 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx,
 			saved_idx, 0, NULL, NULL), "Unmap saved_idx.");
 		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Release mappings.");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Release buffer pinned_saved_idx.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Release buffer_keys.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Release buffer_idx.");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem_salt");

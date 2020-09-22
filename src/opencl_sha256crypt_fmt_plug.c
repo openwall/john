@@ -85,7 +85,6 @@ static size_t get_task_max_work_group_size()
 /* ------- Create and destroy necessary objects ------- */
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	// Avoid memory leaks.
 	release_clobj();
 
 	pinned_saved_keys = clCreateBuffer(context[gpu_id],
@@ -358,7 +357,6 @@ static void build_kernel(const char *task, const char *custom_opts)
 
 static void release_kernel()
 {
-
 	if (program[gpu_id]) {
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 

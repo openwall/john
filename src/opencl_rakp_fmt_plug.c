@@ -129,9 +129,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void clear_keys(void);
 static void set_key(char *key, int index);
+static void release_clobj(void);
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	release_clobj();
+
 	gws *= ocl_v_width;
 
 	keys = mem_alloc((PLAINTEXT_LENGTH + 1) * gws);

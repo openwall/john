@@ -133,9 +133,13 @@ static size_t get_task_max_work_group_size()
 	           64);
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	unsigned int dummy = 0;
+
+	release_clobj();
 
 	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, max_len * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
@@ -197,8 +201,10 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(pinned_idx), "Release pinned index buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release result buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_benchmark), "Release benchmark flag buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release key buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_idx), "Release index buffer");
+		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_key_loc), "Error Releasing buffer_int_key_loc.");
 		HANDLE_CLERROR(clReleaseMemObject(pinned_int_key_loc), "Error Releasing pinned_int_key_loc.");
 
@@ -214,6 +220,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
+		crypt_kernel = NULL;
 		program[gpu_id] = NULL;
 	}
 }
@@ -283,12 +290,14 @@ static void reset(struct db_main *db)
 	         mask_int_cand.num_int_cand, mask_gpu_is_static
 		);
 
-	opencl_init("$JOHN/opencl/oldoffice_kernel.cl", gpu_id, build_opts);
+	if (!program[gpu_id])
+		opencl_init("$JOHN/opencl/oldoffice_kernel.cl", gpu_id, build_opts);
 
 	/* create kernels to execute */
-	crypt_kernel =
-		clCreateKernel(program[gpu_id], "oldoffice", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	if (!crypt_kernel) {
+		crypt_kernel = clCreateKernel(program[gpu_id], "oldoffice", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	}
 
 	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL, warn, 2,

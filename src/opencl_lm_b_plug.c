@@ -283,9 +283,13 @@ static void lm_finalize_int_keys()
 	}
 }
 
+static void release_buffer_gws();
+
 static void create_buffer_gws(size_t gws)
 {
 	unsigned int i;
+
+	release_buffer_gws();
 
 	opencl_lm_all = (opencl_lm_combined*) mem_alloc ((gws + PADDING)* sizeof(opencl_lm_combined));
 	opencl_lm_keys = (opencl_lm_transfer*) mem_alloc ((gws + PADDING)* sizeof(opencl_lm_transfer));
@@ -339,9 +343,13 @@ static void release_buffer_gws()
 	}
 }
 
+static void release_buffer();
+
 static void create_buffer(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *offset_table, unsigned int ot_size, unsigned int ht_size, unsigned int *bitmaps, unsigned int bmp_size_bits)
 {
 	unsigned int active_placeholders, i;
+
+	release_buffer();
 
 	hash_ids     = (unsigned int *) mem_calloc (3 * num_loaded_hashes + 1, sizeof(unsigned int));
 	zero_buffer = (unsigned int *) mem_calloc (((ht_size - 1) / 32 + 1), sizeof(unsigned int));
@@ -421,9 +429,11 @@ static void release_buffer()
 		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps), "Error releasing buffer_bitmaps.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmap_dupe), "Error releasing buffer_bitmap_dupe.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_lm_keys), "Error releasing buffer_int_lm_keys.");
-		buffer_bitmap_dupe = 0;
+		buffer_bitmap_dupe = NULL;
 	}
 }
+
+static void release_kernels();
 
 static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem, unsigned int use_last_build_opt)
 {
@@ -431,6 +441,8 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 	char build_opts[500];
 	cl_ulong const_cache_size;
 	unsigned int i;
+
+	release_kernels();
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
@@ -520,7 +532,10 @@ static void release_kernels()
 {
 	if (crypt_kernel) {
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Error releasing kernel 0");
-		crypt_kernel = 0;
+		crypt_kernel = NULL;
+
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
+		program[gpu_id] = NULL;
 	}
 }
 
@@ -1157,6 +1172,7 @@ static void reset(struct db_main *db)
 
 		salt = db->salts;
 		bitmap_params = prepare_table(salt, &offset_table, &bitmap_size_bits, &bitmaps);
+		release_buffer();
 		create_buffer(num_loaded_hashes, offset_table, offset_table_size, hash_table_size, bitmaps, bitmap_size_bits);
 
 		if (options.flags & FLG_MASK_CHK) {
@@ -1208,6 +1224,7 @@ static void reset(struct db_main *db)
 			error();
 		}
 		bitmap_params = select_bitmap(num_loaded_hashes, loaded_hashes, &bitmap_size_bits, &bitmaps);
+		release_buffer();
 		create_buffer(num_loaded_hashes, offset_table, offset_table_size, hash_table_size, bitmaps, bitmap_size_bits);
 		auto_tune_all(bitmap_params, num_loaded_hashes, 100, &fmt_opencl_lm, 0);
 
@@ -1245,6 +1262,7 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 		MEM_FREE(hash_table_64);
 
 		bitmap_params = prepare_table(salt, &offset_table, &bitmap_size_bits, &bitmaps);
+		release_buffer();
 		create_buffer(num_loaded_hashes, offset_table, offset_table_size, hash_table_size, bitmaps, bitmap_size_bits);
 
 		init_kernels(bitmap_params, 0, 0, 0, 1);

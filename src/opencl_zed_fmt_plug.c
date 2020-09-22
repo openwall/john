@@ -80,8 +80,12 @@ static size_t get_task_max_work_group_size()
 	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	release_clobj();
+
 	insize = sizeof(zed_password) * gws;
 	outsize = sizeof(zed_hash) * gws;
 	settingsize = sizeof(zed_salt);

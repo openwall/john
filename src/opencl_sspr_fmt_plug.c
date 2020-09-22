@@ -128,10 +128,14 @@ static size_t get_task_max_work_group_size()
 	return max;
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	int i;
 	size_t statesize = sizeof(sspr_state) * gws;
+
+	release_clobj();
 
 	insize = sizeof(sspr_password) * gws;
 	outsize = sizeof(sspr_hash) * gws;

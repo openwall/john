@@ -121,8 +121,12 @@ static size_t get_task_max_work_group_size()
 	                                                          split_kernel));
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t kpc, struct fmt_main *self)
 {
+	release_clobj();
+
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
 	orig_key = mem_calloc(sizeof(*orig_key), kpc);
 	host_crack = mem_calloc(kpc, sizeof(crack_t));
@@ -221,6 +225,7 @@ static void done(void)
 	if (program[gpu_id]) {
 		release_clobj();
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		program[gpu_id] = NULL;

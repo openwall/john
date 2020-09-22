@@ -108,9 +108,14 @@ static size_t get_task_max_work_group_size()
 	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t global_work_size, struct fmt_main *self)
 {
 	cl_int cl_error;
+
+	release_clobj();
+
 	inbuffer = (keyring_password*) mem_calloc(1, insize);
 	outbuffer = (keyring_hash*) mem_alloc(outsize);
 

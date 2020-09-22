@@ -94,10 +94,14 @@ static size_t get_task_max_work_group_size()
 	return s;
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	gws *= ocl_v_width;
 	key_buf_size = PLAINTEXT_LENGTH * gws;
+
+	release_clobj();
 
 	// Allocate memory
 	inbuffer = mem_calloc(1, key_buf_size);

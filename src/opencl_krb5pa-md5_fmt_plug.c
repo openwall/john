@@ -158,8 +158,12 @@ static void set_kernel_args()
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 10, sizeof(buffer_bitmap_dupe), (void *) &buffer_bitmap_dupe), "Error setting argument 11.");
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t kpc, struct fmt_main *self)
 {
+	release_clobj();
+
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * kpc, NULL, &ret_code);
 	if (ret_code != CL_SUCCESS) {
 		saved_plain = (cl_uint *) mem_alloc(BUFSIZE * kpc);
@@ -366,9 +370,12 @@ static void init_kernel(void)
 #endif
 	);
 
-	opencl_build_kernel("$JOHN/opencl/krb5pa-md5_kernel.cl", gpu_id, build_opts, 0);
-	crypt_kernel = clCreateKernel(program[gpu_id], "krb5pa_md5", &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	if (!program[gpu_id])
+		opencl_build_kernel("$JOHN/opencl/krb5pa-md5_kernel.cl", gpu_id, build_opts, 0);
+	if (!crypt_kernel) {
+		crypt_kernel = clCreateKernel(program[gpu_id], "krb5pa_md5", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	}
 }
 
 static void set_key(char *_key, int index);

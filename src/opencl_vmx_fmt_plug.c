@@ -107,8 +107,12 @@ static size_t get_task_max_work_group_size()
 	return s;
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	release_clobj();
+
 	key_buf_size = 64 * gws;
 	outsize = sizeof(vmx_out) * gws;
 
@@ -145,6 +149,7 @@ static void release_clobj(void)
 	if (output) {
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem setting");
+		HANDLE_CLERROR(clReleaseMemObject(vstate), "Release vstate");
 		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 

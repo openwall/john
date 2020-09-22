@@ -86,7 +86,6 @@ static size_t get_task_max_work_group_size()
 /* ------- Create and destroy necessary objects ------- */
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
-	// Avoid memory leaks.
 	release_clobj();
 
 	pinned_saved_keys = clCreateBuffer(context[gpu_id],

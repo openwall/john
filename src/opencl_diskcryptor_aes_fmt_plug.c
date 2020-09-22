@@ -123,8 +123,12 @@ static size_t get_task_max_work_group_size()
 	return MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, final_kernel));
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t kpc, struct fmt_main *self)
 {
+	release_clobj();
+
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
 	orig_key = mem_calloc(kpc, sizeof(*orig_key));
 	host_crack = mem_calloc(kpc, sizeof(out_t));

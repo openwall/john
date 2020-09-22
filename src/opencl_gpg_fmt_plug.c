@@ -119,8 +119,12 @@ static size_t get_task_max_work_group_size()
 	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	release_clobj();
+
 	insize = sizeof(gpg_password) * gws;
 	outsize = sizeof(gpg_hash) * gws;
 	settingsize = sizeof(gpg_salt);
@@ -225,6 +229,8 @@ static void done(void)
 		release_clobj();
 
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel_sha256), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(crypt_kernel_sha512), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		program[gpu_id] = NULL;

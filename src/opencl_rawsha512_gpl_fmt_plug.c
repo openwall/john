@@ -191,7 +191,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	uint32_t hash_id_size;
 	size_t mask_cand = 1, mask_gws = 1;
 
-	// Avoid memory leaks.
 	release_clobj();
 
 	if (mask_int_cand.num_int_cand > 1) {

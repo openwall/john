@@ -96,8 +96,12 @@ static size_t get_task_max_work_group_size()
 	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	release_clobj();
+
 	insize = sizeof(pbkdf2_password) * gws;
 	dksize = sizeof(pbkdf2_hash) * gws;
 	saltsize = sizeof(keychain_salt);
