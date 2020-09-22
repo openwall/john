@@ -86,9 +86,13 @@ static size_t get_task_max_work_group_size()
 	return s;
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	size_t statesize;
+
+	release_clobj();
 
 	statesize = sizeof(keepass_state) * gws;
 	insize = sizeof(password) * gws;

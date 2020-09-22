@@ -459,7 +459,7 @@ void ocl_hc_128_rlobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(buffer_hash_ids), "Error Releasing buffer_hash_ids.");
 		HANDLE_CLERROR(clReleaseMemObject(buffer_bitmaps), "Error Releasing buffer_bitmap.");
 		MEM_FREE(zero_buffer);
-		buffer_bitmaps = 0;
+		buffer_bitmaps = NULL;
 	}
 
 	if (loaded_hashes)

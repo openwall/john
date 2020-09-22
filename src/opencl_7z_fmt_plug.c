@@ -123,9 +123,13 @@ static size_t get_task_max_work_group_size()
 	return s;
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t global_work_size, struct fmt_main *self)
 {
 	cl_int cl_error;
+
+	release_clobj();
 
 	inbuffer = (sevenzip_password*) mem_calloc(1, insize);
 	outbuffer = (sevenzip_hash*) mem_alloc(outsize);

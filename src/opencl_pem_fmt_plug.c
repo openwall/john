@@ -107,8 +107,12 @@ static size_t get_task_max_work_group_size()
 	return s;
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	release_clobj();
+
 	gws *= ocl_v_width;
 
 	key_buf_size = 64 * gws;

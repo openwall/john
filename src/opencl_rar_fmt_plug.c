@@ -117,10 +117,14 @@ static cl_kernel RarInit, RarFinal;
 #define RAR_OPENCL_FORMAT
 #include "rar_common.c"
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	int i;
 	int bench_len = strlen(self->params.tests[0].plaintext) * 2;
+
+	release_clobj();
 
 	pinned_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, UNICODE_LENGTH * gws, NULL , &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
@@ -216,6 +220,8 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_key), "Release saved_key");
 		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_len), "Release saved_len");
 		HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release salt");
+
+		HANDLE_CLERROR(clReleaseMemObject(cl_round), "Release round");
 		HANDLE_CLERROR(clReleaseMemObject(cl_OutputBuf), "Release OutputBuf");
 
 		MEM_FREE(cracked);

@@ -141,9 +141,13 @@ static void pwsafe_set_key(char *key, int index)
 	host_pass[index].length = saved_len;
 }
 
+static void release_clobj(void);
+
 /* ------- Create and destroy necessary objects ------- */
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	release_clobj();
+
 	global_work_size = gws; /* needed for size macros */
 
 	host_pass = mem_calloc(1, insize);

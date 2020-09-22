@@ -109,8 +109,12 @@ static size_t get_task_max_work_group_size()
 			   autotune_get_task_max_work_group_size(FALSE, 0, cmp_kernel));
 }
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	release_clobj();
+
 	gkey = mem_calloc(gws, sizeof(xsha512_key));
 	ghash = mem_calloc(gws, sizeof(xsha512_hash));
 
@@ -150,12 +154,16 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 static void release_clobj(void)
 {
-	HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-	HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
-	HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+	if (ghash) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
+		HANDLE_CLERROR(clReleaseMemObject(mem_binary), "Release mem binary");
+		HANDLE_CLERROR(clReleaseMemObject(mem_cmp), "Release mem cmp");
 
-	MEM_FREE(ghash);
-	MEM_FREE(gkey);
+		MEM_FREE(ghash);
+		MEM_FREE(gkey);
+	}
 }
 
 static void init(struct fmt_main *_self)

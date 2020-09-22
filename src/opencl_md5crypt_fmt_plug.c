@@ -193,10 +193,14 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
+static void release_clobj(void);
+
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	size_t in_size = (sizeof(crypt_md5_password) * gws);
 	size_t out_size = (sizeof(crypt_md5_hash) * gws);
+
+	release_clobj();
 
 	///Allocate memory on the GPU
 	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
