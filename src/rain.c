@@ -240,12 +240,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	UTF32 *charset_utf32;
 
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
-	minlength = MAX(options.eff_minlength, 1);
+	minlength = MAX(options.eff_minlength, 3);
 		
 	if (!options.req_maxlength)
 		maxlength = MIN(maxlength, DEFAULT_MAX_LEN);
 	if (!options.req_minlength)
-		minlength = 1;
+		minlength = 3;
 
 	default_set = (char*)cfg_get_param("Subsets", NULL, "DefaultCharset");
 	if (!req_charset)
@@ -302,9 +302,11 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	charcount = strlen32(charset_utf32);
 	
 	if(charcount % 2 == 0) {
-	    fprintf(stderr, "Only character sets of odd lengths are supported.\n");
+	    if( john_main_process )
+	        fprintf(stderr, "Only character sets of odd lengths are supported.\n");
 	    error();
 	}
+	
 	
 	counter = 0;
 	subtotal = 0;
