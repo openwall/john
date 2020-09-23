@@ -395,15 +395,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			    --pos;
 		    }
 		    
-	        if( (mpl%2) ) {
+	        if( mpl%2 )
 		        strafe[loop] += 4;
-		        if( strafe[loop] % (mpl-2) < 2 ) strafe[loop] = 0;
-			}
-			if( !(mpl%2) ) {
+			else
 		        strafe[loop] += 2;
-		        if( strafe[loop] % (mpl-2) < 2 ) strafe[loop] = 0;
-			}
 			
+	        if( strafe[loop] % (mpl-2) < 2 ) strafe[loop] = 0;
 			
 			if(pos < 0) {
 				counter = 0;

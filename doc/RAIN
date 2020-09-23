@@ -1,16 +1,21 @@
-#rain module by owein douard, yvain29@gmail.com
+#rain module by owein, yvain29@gmail.com  
 
-This is a combination of a strafe/slide on the index of the state, that represents the position of the character being worked on,
-and on the value of the state, that represents the character being picked.
-The later being called 'rotate'.
+The module uses a state, holding the current character (from the set) for each placeholder (characters of the word as in formal speaking).  
 
-When iterating on a word of even length, the index of the bruteforce state is positionned at each quarter of the word,
-if the word is of odd length, the index gets mad and using stdout shows the words sparkling when only the strafe is active.
 
-Both parts of the procedure use a variable that increases differently according to the modulo that cuts it off.
-Modulo is a multiple of 10 ? Or a multiple of 2 ? Or is odd. 
-This technique comes out of trials and reflections, and the need for different values for odd or even modolus values stands out pretty clear but I could not\
-graps the idea of why a modulus value of 10 needs to be taken care differently,
-I just end up thinking that it is normal since we are working with decimals, and that's all...
+2..... characters  
+1..... characters  
+0..... ..........  
+012345 placeholders  
 
-Good luck with your bruteforce.
+This is a bruteforce with word's length 6 and set's size 3; so 3^6 words are ouput.  
+When doing this on a broad range, you generaly don't want to spend a month testing words that start with aaaa...  
+You have several options: use -inc or use -markov, maybe subsets... and you can use this one.  
+
+It is strafing the index of the state by adding a value to the counter of the loop iterating on the placeholders (words length) and cutting it off with a modulo.  
+When the loop is done, we increase the strafe variable by 2 or 4 with respectively even or odd lengths. Then the variable is fixed with:  
+ `if( strafe % (mpl-2) < 2 ) strafe = 0;`  
+In other words it checks for the last character and resets when it's even;  
+when it's odd it has to reach length - 2 or length - 1 with steps of 4 so that is harder to explain.  
+
+Good luck with your bruteforce.  
