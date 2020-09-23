@@ -392,12 +392,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + drops[loop]) % charcount]) > cp_max) {
 						quick_conversion = 0;
 					}
+		            drops[loop]+=3;//odd length is enforced
 				}
 				submit(rain);
 			}
 			
-			drops[loop]+=4;//odd length is enforced
-	        if( drops[loop] % (charcount-2) < 2 ) drops[loop] = 0;
+			if( drops[loop] % (charcount-2) < 2 ) drops[loop] = 0;
 			
             int pos = mpl - 1;
 			
