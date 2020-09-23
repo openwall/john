@@ -113,19 +113,6 @@ typedef union {
 #define CL_DEVICE_WAVEFRONT_WIDTH_AMD               0x4043
 #endif
 
-#ifdef DEBUG_CL_ALLOC
-inline static cl_mem
-john_clCreateBuffer(int l, char *f, cl_context context, cl_mem_flags flags,
-                    size_t size, void *host_ptr, cl_int *errcode_ret)
-{
-	fprintf(stderr, "allocating "Zu" bytes in line %d of %s\n", size, l, f);
-	return clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
-}
-
-#define clCreateBuffer(a, b, c, d, e)   john_clCreateBuffer(__LINE__, \
-                __FILE__, a, b, c, d, e)
-#endif
-
 typedef struct {
 	int device_info;
 	int cores_per_MP;
@@ -286,6 +273,46 @@ void opencl_process_event(void);
 			    NODE, get_error_name(__err), __FILE__, __LINE__, (message)); \
 		} \
 	} while (0)
+
+/*
+ * Debug functions for chasing buffer create/destroy leaks
+ *
+ * To use these, run the following:
+ * perl -pi -e 'BEGIN { $/=NULL } s/(\S+)\s*=\s*clCreate(Buffer|Kernel|ProgramWith(?:Source|Binary))\(/jtrCreate$2($1, /ga; s/(\S+)\s*=\s*CLCREATEBUFFER\(/JTRCREATEBUFFER($1, /ga; s/clRelease(MemObject|Kernel|Program)/jtrRelease$1/g' FILE(S)
+ */
+#define jtrCreateBuffer(buf, context, flags, size, wat, ret)	  \
+	({ \
+		if ((buf)) \
+			error_msg("** %s:%d Memory leak\n", __FILE__, __LINE__); \
+		(buf) = clCreateBuffer((context), (flags), (size), (wat), (ret)); \
+	})
+
+#define JTRCREATEBUFFER(buf, flags, size, ...) jtrCreateBuffer((buf), context[gpu_id], (flags), (size), NULL, &cl_error)
+
+#define jtrCreateKernel(kernel, program, kernel_name, errcode_ret)	  \
+	({ \
+		if ((kernel)) \
+			error_msg("** %s:%d Memory leak\n", __FILE__, __LINE__); \
+		(kernel) = clCreateKernel((program), (kernel_name), (errcode_ret)); \
+	})
+
+#define jtrCreateProgramWithSource(p, a, b, c, d, e)	  \
+	({ \
+		if ((p)) \
+			error_msg("** %s:%d Memory leak\n", __FILE__, __LINE__); \
+		(p) = clCreateProgramWithSource((a), (b), (c), (d), (e)); \
+	})
+
+#define jtrCreateProgramWithBinary(p, a, b, c, d, e, f, g)	  \
+	({ \
+		if ((p)) \
+			error_msg("** %s:%d Memory leak\n", __FILE__, __LINE__); \
+		(p) = clCreateProgramWithBinary((a), (b), (c), (d), (e), (f), (g)); \
+	})
+
+#define jtrReleaseMemObject(buf) ({ cl_mem _b = (buf); (buf) = NULL; clReleaseMemObject(_b); })
+#define jtrReleaseKernel(kernel) ({ cl_kernel _k = (kernel); (kernel) = NULL; clReleaseKernel(_k); })
+#define jtrReleaseProgram(program) ({ cl_program _p = (program); (program) = NULL; clReleaseProgram(_p); })
 
 /* Macro for get a multiple of a given value */
 #define GET_NEXT_MULTIPLE(dividend, divisor)	  \
