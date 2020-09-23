@@ -48,6 +48,8 @@ static uint_big keyspace;
 static uint_big subtotal;
 static int strafe[MAX_CAND_LENGTH-1];
 static int rec_strafe[MAX_CAND_LENGTH-1];
+static uint_big drops[MAX_CAND_LENGTH-1];
+static uint_big rec_drops[MAX_CAND_LENGTH-1];
 static uint_big counter;
 static uint_big rec_counter;
 static int quick_conversion;
@@ -345,6 +347,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		
 		for(i=0; i<= maxlength - minlength; i++) {
 			strafe[i] = 0;
+			drops[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
@@ -381,15 +384,18 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			if(!skip) {
 				quick_conversion = 1;
 				for(i=0; i<mpl; ++i) {
-					if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % mpl]]) > cp_max) {
+					if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + drops[loop]) % charcount]) > cp_max) {
 						quick_conversion = 0;
-				    }
- 			    }
+					}
+				}
 				submit(rain);
 			}
 			
+			drops[loop]+=4;//odd length is enforced
+	        if( drops[loop] % (charcount-2) < 2 ) drops[loop] = 0;
+			
             int pos = mpl - 1;
-            
+			
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
 			    --pos;
