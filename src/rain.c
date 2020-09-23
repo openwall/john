@@ -46,8 +46,8 @@ static int minlength;
 static int state_restored;
 static uint_big keyspace;
 static uint_big subtotal;
-static uint_big strafe[MAX_CAND_LENGTH-1];
-static uint_big rec_strafe[MAX_CAND_LENGTH-1];
+static int strafe[MAX_CAND_LENGTH-1];
+static int rec_strafe[MAX_CAND_LENGTH-1];
 static uint_big counter;
 static uint_big rec_counter;
 static int quick_conversion;
@@ -90,12 +90,12 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%llu\n ", (unsigned long long) rec_strafe[i]);	
+		fprintf(file, "%d\n ", rec_strafe[i]);	
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
 	fprintf(file, "%d\n", rec_cur_len);
-	fprintf(file, "%llu\n", (unsigned long long) rec_counter);
+	fprintf(file, "%llu\n", (unsigned long long) rec_counter);//changeme
 	fprintf(file, "%d\n", rec_loop);
 }
 
@@ -109,7 +109,7 @@ static int restore_state(FILE *file)
 	else return 1;
 
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		if(fscanf(file, "%llu\n ", (unsigned long long *) &r) == 1)//all those bigint needs a fix in save and restore state
+		if(fscanf(file, "%d\n ", &d) == 1)//all those bigint needs a fix in save and restore state
 			strafe[i] = r;
 		else return 1;
 		
@@ -377,8 +377,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			}
 
 			int mpl = minlength + loop;
-        
-            int mplMod2 = mpl % 2;
             
 			if(!skip) {
 				quick_conversion = 1;
