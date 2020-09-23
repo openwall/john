@@ -77,6 +77,7 @@ static void fix_state(void)
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		rec_strafe[i] = strafe[i];
+		rec_drops[i] = drops[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -93,6 +94,7 @@ static void save_state(FILE *file)
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		fprintf(file, "%d\n ", rec_strafe[i]);	
+		fprintf(file, "%llu\n ", rec_drops[i]);	
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -113,6 +115,9 @@ static int restore_state(FILE *file)
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		if(fscanf(file, "%d\n ", &d) == 1)//all those bigint needs a fix in save and restore state
 			strafe[i] = r;
+		else return 1;
+		if(fscanf(file, "%llu\n ", &r) == 1)//all those bigint needs a fix in save and restore state
+			drops[i] = r;
 		else return 1;
 		
 		for(j = 0; j < maxlength; ++j)
@@ -303,9 +308,9 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
-	if(charcount % 2 == 0) {
+	if(charcount % 2 == 0 || charcount < 3) {
 	    if( john_main_process )
-	        fprintf(stderr, "Only character sets of odd lengths are supported.\n");
+	        fprintf(stderr, "Only character sets of odd lengths are supported and they must contain at least 3 symbols.\n");
 	    error();
 	}
 	
