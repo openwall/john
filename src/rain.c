@@ -304,7 +304,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if(charcount % 2 == 0) {
 	    if( john_main_process )
 	        fprintf(stderr, "Only character sets of odd lengths are supported.\n");
-	    //error();
+	    error();
 	}
 	
 	
