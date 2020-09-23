@@ -386,16 +386,21 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % mpl]]) > cp_max) {
 						quick_conversion = 0;
 				    }
- 			        if( mpl % 2 ) strafe[loop] += 1;
  			    }
 				submit(rain);
 			}
 			
             int pos = mpl - 1;
+            
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
 			    --pos;
 		    }
+		    
+	        if( (mpl%2) ) {
+		        strafe[loop] += 4;
+		        if( strafe[loop] % (mpl-2) < 2 ) strafe[loop] = 0;
+			}
 			if( !(mpl%2) ) {
 		        strafe[loop] += 2;
 		        if( strafe[loop] % (mpl-2) < 2 ) strafe[loop] = 0;
