@@ -46,8 +46,6 @@ static int minlength;
 static int state_restored;
 static uint_big keyspace;
 static uint_big subtotal;
-static uint_big rotate[MAX_CAND_LENGTH-1];
-static uint_big rec_rotate[MAX_CAND_LENGTH-1];
 static uint_big strafe[MAX_CAND_LENGTH-1];
 static uint_big rec_strafe[MAX_CAND_LENGTH-1];
 static uint_big counter;
@@ -76,7 +74,6 @@ static void fix_state(void)
 	
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		rec_rotate[i] = rotate[i];
 		rec_strafe[i] = strafe[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
@@ -93,7 +90,6 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%llu\n ", (unsigned long long) rec_rotate[i]);
 		fprintf(file, "%llu\n ", (unsigned long long) rec_strafe[i]);	
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
@@ -113,10 +109,6 @@ static int restore_state(FILE *file)
 	else return 1;
 
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		if(fscanf(file, "%llu\n ", (unsigned long long *) &r) == 1)//all those bigint needs a fix in save and restore state
-			rotate[i] = r;
-		else return 1;
-		
 		if(fscanf(file, "%llu\n ", (unsigned long long *) &r) == 1)//all those bigint needs a fix in save and restore state
 			strafe[i] = r;
 		else return 1;
@@ -345,7 +337,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		rain_cur_len = minlength;
 		
 		for(i=0; i<= maxlength - minlength; i++) {
-			rotate[i] = 0;
 			strafe[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
@@ -378,48 +369,37 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 
-            int strafeinc;
-			int rotatemod;
 			int mpl = minlength + loop;
-
-			if(mpl % 10 == 0) {
-				strafeinc = 2;
-			}
-			else if(mpl % 2 == 0) {
-				strafeinc = 4;
-			}
-			else {
-				strafeinc = 3;
-			}
+        
+            int mplMod2 = mpl % 2;
+            int div; 
+            
+			if( mplMod2 )   div = 2;
+			else            div = 1;   
 			
-			if(charcount % 10 == 0) {
-				rotatemod = 2;
-			}
-			else if(charcount % 2 == 0) {
-				rotatemod = 4;
-			}
-			else {
-				rotatemod = 3;
-			}
 			if(!skip) {
 				quick_conversion = 1;
 				for(i=0; i<mpl; ++i) {
-					if( (rain[i] = charset_utf32[(charset_idx[loop][\
-						(strafe[loop]+i) % mpl]\
-					 		+ rotate[loop]) % charcount ]) > cp_max)
+					if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i)/div % mpl]]) > cp_max) {
 						quick_conversion = 0;
-					strafe[loop] += strafeinc;
- 					rotate[loop] += 1;
+				    }
+					if( mplMod2 )
+			            strafe[loop] += 1;
  				}
 				submit(rain);
 			}
-            rotate[loop] -= mpl - rotatemod;
-			int pos = mpl - 1;
 			
-			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
-				charset_idx[loop][pos] = 0;
-				--pos;
+            int pos = mpl - 1;
+			while(pos >= 0 && ++charset_idx[loop][mpl-1-pos] >= charcount) {
+			    charset_idx[loop][mpl-1-pos] = 0;
+			    --pos;
+		    }
+			
+			if( !(mplMod2) ) {
+			    strafe[loop] += 2;
+			    if( strafe[loop] % (mpl - 2) < 2 ) strafe[loop] += 2;
 			}
+			
 			
 			if(pos < 0) {
 				counter = 0;
