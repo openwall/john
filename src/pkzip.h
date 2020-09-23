@@ -14,7 +14,7 @@ u64 fget64LE(FILE *fp);
 u32 fget32LE(FILE *fp);
 u16 fget16LE(FILE *fp);
 
-#define MAX_PKZ_FILES 3
+#define MAX_PKZ_FILES 8
 
 // These came from the gladman headers
 #define KEY_LENGTH(mode)    (8 * ((mode) & 3) + 8)

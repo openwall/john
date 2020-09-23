@@ -511,13 +511,26 @@ static void done(void)
 
 static void set_salt(void *_salt)
 {
+	int i;
+	int need_fixup = 0;
+	long tot_len = 0;
+
 	salt = *((PKZ_SALT**)_salt);
-	if (salt->H[0].h && salt->H[1].h && salt->H[2].h)
-		return;
+
+	for (i = 0; i < MAX_PKZ_FILES; i++) {
+		if (!salt->H[i].h) {
+			need_fixup = 1;
+			break;
+		}
+	}
+
 	// we 'late' fixup the salt.
-	salt->H[0].h = &salt->zip_data[0];
-	salt->H[1].h = &salt->zip_data[1+salt->H[0].datlen];
-	salt->H[2].h = &salt->zip_data[2+salt->H[0].datlen+salt->H[1].datlen];
+	if (need_fixup) {
+		for (i = 0; i < MAX_PKZ_FILES; i++) {
+			salt->H[i].h = &salt->zip_data[i + tot_len];
+			tot_len += salt->H[i].datlen;
+		}
+	}
 }
 
 static void *get_salt(char *ciphertext)
@@ -530,8 +543,9 @@ static void *get_salt(char *ciphertext)
 	unsigned char *salt_p = a.c;
 	PKZ_SALT *salt, *psalt;
 	long offset=0;
-	char *H[3] = {0,0,0};
-	long ex_len[3] = {0,0,0};
+	char *H[MAX_PKZ_FILES] = { 0 };
+	long ex_len[MAX_PKZ_FILES] = { 0 };
+	long tot_len;
 	u32 offex;
 	size_t i, j;
 	c8 *p, *cp, *cpalloc = (char*)mem_alloc(strlen(ciphertext)+1);
@@ -688,16 +702,21 @@ static void *get_salt(char *ciphertext)
 			salt->H[i].magic = 0;	// remove any 'magic' logic from this hash.
 	}
 
-	psalt = mem_calloc(1, sizeof(PKZ_SALT) + ex_len[0]+ex_len[1]+ex_len[2]+2);
+	tot_len = 0;
+	for (i = 0; i < salt->cnt; i++)
+		tot_len += ex_len[i];
+	tot_len += salt->cnt - 1;
+	psalt = mem_calloc(1, sizeof(PKZ_SALT) + tot_len);
 	memcpy(psalt, salt, sizeof(*salt));
-	memcpy(psalt->zip_data, H[0], ex_len[0]);
-	MEM_FREE(H[0]);
-	if (salt->cnt > 1)
-		memcpy(psalt->zip_data+ex_len[0]+1, H[1], ex_len[1]);
-	MEM_FREE(H[1]);
-	if (salt->cnt > 2)
-		memcpy(psalt->zip_data+ex_len[0]+ex_len[1]+2, H[2], ex_len[2]);
-	MEM_FREE(H[2]);
+
+	tot_len = 0;
+	for (i = 0; i < salt->cnt; i++) {
+		memcpy(psalt->zip_data + i + tot_len, H[i], ex_len[i]);
+		tot_len += ex_len[i];
+		MEM_FREE(H[i]);
+	}
+	tot_len += salt->cnt - 1;
+
 	MEM_FREE(salt);
 
 	psalt->dsalt.salt_alloc_needs_free = 1;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
@@ -705,8 +724,7 @@ static void *get_salt(char *ciphertext)
 	// set the JtR core linkage stuff for this dyna_salt
 	memcpy(salt_p, &psalt, sizeof(psalt));
 	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(PKZ_SALT, cnt);
-	psalt->dsalt.salt_cmp_size =
-		SALT_CMP_SIZE(PKZ_SALT, cnt, zip_data, ex_len[0]+ex_len[1]+ex_len[2]+2);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(PKZ_SALT, cnt, zip_data, tot_len);
 	return salt_p;
 }
 
