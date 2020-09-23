@@ -304,7 +304,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if(charcount % 2 == 0) {
 	    if( john_main_process )
 	        fprintf(stderr, "Only character sets of odd lengths are supported.\n");
-	    error();
+	    //error();
 	}
 	
 	
@@ -379,32 +379,27 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			int mpl = minlength + loop;
         
             int mplMod2 = mpl % 2;
-            int div; 
             
-			if( mplMod2 )   div = 2;
-			else            div = 1;   
-			
 			if(!skip) {
 				quick_conversion = 1;
 				for(i=0; i<mpl; ++i) {
-					if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i)/div % mpl]]) > cp_max) {
+					if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % mpl]]) > cp_max) {
 						quick_conversion = 0;
 				    }
-					if( mplMod2 )
-			            strafe[loop] += 1;
- 				}
+ 			    }
+			
 				submit(rain);
 			}
 			
             int pos = mpl - 1;
-			while(pos >= 0 && ++charset_idx[loop][mpl-1-pos] >= charcount) {
-			    charset_idx[loop][mpl-1-pos] = 0;
+			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
+			    charset_idx[loop][pos] = 0;
 			    --pos;
 		    }
-			
-			if( !(mplMod2) ) {
-			    strafe[loop] += 2;
-			    if( strafe[loop] % (mpl - 2) < 2 ) strafe[loop] += 2;
+		    
+			if( !(mpl%2) ) {
+		        strafe[loop] += 2;
+			    if( strafe[loop] % (mpl-2) < 2 ) strafe[loop] = 0;
 			}
 			
 			
