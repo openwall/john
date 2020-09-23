@@ -10,9 +10,6 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#define _BSD_SOURCE /* for setenv() */
-#define _DEFAULT_SOURCE 1 /* for setenv() */
-
 #if defined (__MINGW32__) || defined (_MSC_VER)
 #define SIGALRM SIGFPE
 #endif
@@ -35,7 +32,7 @@
 #if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
-#include <stdlib.h> /* setenv */
+#include <stdlib.h> /* system(3) */
 
 #include "times.h"
 
@@ -715,7 +712,8 @@ int benchmark_all(void)
 	const char *s_gpu1 = "";
 #endif
 #ifndef BENCH_BUILD
-	unsigned int loop_fail = 0, loop_total = 0;
+	unsigned int loop_fail = 0, loop_total = 1;
+	int nvidia_mem = 0;
 #endif
 	unsigned int total, failed;
 	struct db_main *test_db;
@@ -724,6 +722,7 @@ int benchmark_all(void)
 	int ompt_start = omp_get_max_threads();
 #endif
 	const char *opencl_was_skipped = "";
+
 	benchmark_running = 1;
 
 #ifndef BENCH_BUILD
@@ -732,6 +731,12 @@ int benchmark_all(void)
 		puts("NOTE: This is a debug build, speed will be lower than normal");
 #endif
 
+	if ((options.flags & FLG_LOOPTEST) && system("which nvidia-smi >/dev/null") == 0) {
+		nvidia_mem = 1;
+		fprintf(stderr, "GPU memory at start: ");
+		if (system("nvidia-smi --query-gpu=memory.used --format=csv,noheader"))
+			nvidia_mem = 0;
+	}
 AGAIN:
 	options.loader.field_sep_char = 31;
 #endif
@@ -748,7 +753,7 @@ AGAIN:
 /* Silently skip formats for which we have no tests, unless forced */
 		if (!format->params.tests && format != fmt_list)
 			continue;
-		
+
 /* Format disabled in john.conf */
 		if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS,
 						 format->params.label, 0)) {
@@ -840,7 +845,7 @@ AGAIN:
 
 #ifndef BENCH_BUILD
 		if ((options.flags & FLG_LOOPTEST) && john_main_process)
-			printf("#%u ", ++loop_total);
+			printf("#%u ", loop_total);
 #endif
 		if (john_main_process)
 		printf("%s: %s%s%s%s [%s%s%s%s]... ",
@@ -1070,6 +1075,10 @@ AGAIN:
 		}
 
 next:
+#ifndef BENCH_BUILD
+		if (nvidia_mem && system("nvidia-smi --query-gpu=memory.used --format=csv,noheader"))
+			error();
+#endif
 		fflush(stdout);
 		ldr_free_test_db(test_db);
 		fmt_done(format);
@@ -1110,6 +1119,7 @@ next:
 		}
 #ifndef BENCH_BUILD
 	if (options.flags & FLG_LOOPTEST) {
+		loop_total++;
 		if (event_abort) {
 			uint32_t p = 100 * loop_fail / loop_total;
 			uint32_t pp = 10000 * loop_fail / loop_total - p * 100;
