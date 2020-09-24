@@ -247,12 +247,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	UTF32 *charset_utf32;
 
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
-	minlength = MAX(options.eff_minlength, 3);
+	minlength = MAX(options.eff_minlength, 1);
 		
 	if (!options.req_maxlength)
 		maxlength = MIN(maxlength, DEFAULT_MAX_LEN);
 	if (!options.req_minlength)
-		minlength = 3;
+		minlength = 1;
 
 	default_set = (char*)cfg_get_param("Subsets", NULL, "DefaultCharset");
 	if (!req_charset)
@@ -389,29 +389,33 @@ int do_rain_crack(struct db_main *db, char *req_charset)
             
 			if(!skip) {
 				quick_conversion = 1;
+				if(mpl > 2)
 				for(i=0; i<mpl; ++i) {
-					if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + drops[loop]) % charcount]) > cp_max) {
+					if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + drops[loop]) % charcount]) > cp_max ) {
 						quick_conversion = 0;
 					}
-		            drops[loop] += 2+mplMod2;
+					if( mplMod2 )
+					    strafe[loop] += 1;
+					drops[loop] += 1;
 	            }
-		        submit(rain);
+	            else
+	            for(i=0; i<mpl; ++i) {
+					if( (rain[i] = charset_utf32[charset_idx[loop][i]]) > cp_max ) {
+						quick_conversion = 0;
+					}
+	            }
+                submit(rain);
 			}
-		
-			if( mpl%2 ) {
-	            strafe[loop] += 3;
-	        }
-		    else {
-	            strafe[loop] += 2;
+
+			if( !mplMod2 ) {
+			    strafe[loop] += 2;
+                if( strafe[loop] % (mpl/2) == 0 ) strafe[loop]+=2;
 		    }
-            if( strafe[loop] % (mpl-2) < 2 ) strafe[loop] = 0;
-		
-			
-            if( drops[loop] % (mpl-2) < 2 ) drops[loop] = 0;
-				
-			
+            drops[loop] -= mpl;
+
+		    
             int pos = mpl - 1;
-			
+
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
 			    --pos;
