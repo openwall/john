@@ -19,9 +19,3 @@ When the loop is done, we increase the strafe variable by 2; Then the variable i
 
 Implies length > 1, but the check is done automatically.  
 
-When it's odd the strafe if increased by length/3 for each character in the word, and that is all. It doesn't slide but treats one character on three...
-
-On top of that, a variable is increasing the value of the strafed index and is also cut off.  
-
-The method/technic is called 'rain', but that is quite arbitrary.  
-
