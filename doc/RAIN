@@ -12,16 +12,16 @@ This is a bruteforce with word's length 6 and set's size 3; so 3^6 words are oup
 When doing this on a broad range, you generaly don't want to spend a month testing words that start with aaaa...  
 You have several options: use -inc, -markov, or -subsets... and you can use this one: -rain.   
 
-It is strafing the index of the state by adding a value to the counter of the loop iterating on the placeholders (words length) and cutting it off with a modulo.  
-When the loop is done, we increase the strafe variable by 2 or 4 with respectively even or odd lengths. Then the variable is fixed with:  
- `if( strafe % (length-2) < 2 ) strafe = 0;`  
-In other words it checks for the last character and resets when it's even;  
-when it's odd it has to reach length - 2 or length - 1 with steps of 4 so that is harder to explain but it falls right.   
+When the length is even it is strafing the index of the state by adding a value to the counter of the loop iterating on the placeholders (words length),  
+and cutting it off with a modulo.  
+When the loop is done, we increase the strafe variable by 2; Then the variable is fixed with:  
+ `if( strafe % (length/2) == 0 ) strafe += 2;`  
 
-modulo length-2 implies length > 2.  
+Implies length > 1, but the check is done automatically.  
 
-On top of that, a variable is increasing the value of the strafed index and is also cut off; the same technique is used but the modulo is the character set's  
-length and not the length of the word. So the character set must be bigger than 2 too.   
+When it's odd the strafe if increased by length/3 for each character in the word, and that is all. It doesn't slide but treats one character on three...
+
+On top of that, a variable is increasing the value of the strafed index and is also cut off.  
 
 The method/technic is called 'rain', but that is quite arbitrary.  
 
