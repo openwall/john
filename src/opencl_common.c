@@ -1769,6 +1769,10 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		wg_multiple = get_kernel_preferred_multiple(sequential_id,
 		              crypt_kernel);
 
+	// In case LWS would be greater than GWS, adjust LWS value.
+	if (wg_multiple > global_work_size)
+		wg_multiple = global_work_size;
+
 	if (platform_apple(get_platform_id(sequential_id)) &&
 	    cpu(device_info[sequential_id]))
 		max_group_size = 1;
