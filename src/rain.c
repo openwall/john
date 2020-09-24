@@ -394,8 +394,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + drops[loop]) % charcount]) > cp_max ) {
 						quick_conversion = 0;
 					}
-					if( mplMod2 )
-	                    strafe[loop] += mpl/2;
+					//if( mplMod2 )
+	                //    strafe[loop] += mpl/2;
 	            }
 	            else
 	            for(i=0; i<mpl; ++i) {
@@ -406,9 +406,13 @@ int do_rain_crack(struct db_main *db, char *req_charset)
                 submit(rain);
 			}
 		    
-		    if( !mplMod2 ) {
+		    if( mplMod2 ) {
+		        strafe[loop] += 3;
+                if( strafe[loop] % (mpl/2) == 0 ) strafe[loop]=0;
+		    }
+		    else {
 		        strafe[loop] += 2;
-                if( strafe[loop] % (mpl/2) < 1 ) strafe[loop]+=2;
+                if( strafe[loop] % (mpl/2) == 0 ) strafe[loop]+=2;
 		    }
 		    int pos = mpl - 1;
 
