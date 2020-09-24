@@ -44,14 +44,14 @@ static int rec_charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
 static int maxlength;
 static int minlength;
 static int state_restored;
-static uint_big keyspace;
-static uint_big subtotal;
-static uint_big strafe[MAX_CAND_LENGTH-1];
-static uint_big rec_strafe[MAX_CAND_LENGTH-1];
-static uint_big drops[MAX_CAND_LENGTH-1];//a rotate value wip
-static uint_big rec_drops[MAX_CAND_LENGTH-1];
-static uint_big counter;//linear counter
-static uint_big rec_counter;
+static uint64_t keyspace;
+static uint64_t subtotal;
+static uint64_t strafe[MAX_CAND_LENGTH-1];
+static uint64_t rec_strafe[MAX_CAND_LENGTH-1];
+static uint64_t drops[MAX_CAND_LENGTH-1];//a rotate value wip
+static uint64_t rec_drops[MAX_CAND_LENGTH-1];
+static uint64_t counter;//linear counter
+static uint64_t rec_counter;
 static int quick_conversion;
 static int loop, rec_loop;//inner loop
 static int set, rec_set;
@@ -77,7 +77,7 @@ static void fix_state(void)
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		rec_strafe[i] = strafe[i];
-		rec_drops[i] = drops[i];
+		//rec_drops[i] = drops[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -93,8 +93,8 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, file, "%"PRIu64"\n", rec_strafe[i]);	
-		fprintf(file, file, "%"PRIu64"\n", rec_drops[i]);	
+		fprintf(file, "%"PRIu64"\n", rec_strafe[i]);	
+		//fprintf(file, file, "%"PRIu64"\n", rec_drops[i]);	
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -106,7 +106,7 @@ static void save_state(FILE *file)
 static int restore_state(FILE *file)
 {
 	int i, j, d;
-	uint_big r;
+	uint64_t r;
 	
 	if(fscanf(file, "%d\n", &d) == 1)
 		set = d;
@@ -116,10 +116,11 @@ static int restore_state(FILE *file)
 		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
 			strafe[i] = r;
 		else return 1;
+		/*
 		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
 			drops[i] = r;
 		else return 1;
-		
+		*/
 		for(j = 0; j < maxlength; ++j)
 			if(fscanf(file, "%d\n", &d) == 1)
 				charset_idx[i][j] = d;
@@ -247,12 +248,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	UTF32 *charset_utf32;
 
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
-	minlength = MAX(options.eff_minlength, 1);
+	minlength = MAX(options.eff_minlength, 2);
 		
 	if (!options.req_maxlength)
 		maxlength = MIN(maxlength, DEFAULT_MAX_LEN);
 	if (!options.req_minlength)
-		minlength = 1;
+		minlength = 2;
 
 	default_set = (char*)cfg_get_param("Subsets", NULL, "DefaultCharset");
 	if (!req_charset)
@@ -308,7 +309,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
-	if(charcount % 2 == 0 || charcount < 3) {
+	if( charcount % 2 == 0 ) {
 	    if( john_main_process )
 	        fprintf(stderr, "Only character sets of odd lengths are supported.\n");
 	    error();
@@ -389,19 +390,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
             
 			if(!skip) {
 				quick_conversion = 1;
-				if(mpl > 2)
 				for(i=0; i<mpl; ++i) {
 					if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + drops[loop]) % charcount]) > cp_max ) {
 						quick_conversion = 0;
 					}
 	            }
-	            else
-	            for(i=0; i<mpl; ++i) {
-					if( (rain[i] = charset_utf32[charset_idx[loop][i]]) > cp_max ) {
-						quick_conversion = 0;
-					}
-	            }
-                submit(rain);
+	            submit(rain);
 		    }
 		    
 		    if( mplMod2 ) {
@@ -410,7 +404,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		    }
 		    else {
 		        strafe[loop] += 2;
-                if( strafe[loop] % (mpl/2) == 0 ) strafe[loop]+=2;
+                if( strafe[loop] % (mpl/2) == 0 ) strafe[loop]+=2;//this is why it's an __int128
 		    }
 		    int pos = mpl - 1;
 
