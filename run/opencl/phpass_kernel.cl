@@ -250,7 +250,8 @@ __kernel void phpass (__global const phpass_password *data,
 	length = (uint)data[idx].length;
 
 /*
- * Disable specialization to password length if it varies within the group.
+ * Limit specialization to password length if it varies within the group,
+ * except for some of our test vectors where we keep it for code coverage.
  * We could use tree-like log2(N) reduction here, but we don't bother.
  */
 	__local uint lengths[0x400];
@@ -262,17 +263,25 @@ __kernel void phpass (__global const phpass_password *data,
 		lws = sizeof(lengths) / sizeof(lengths[0]);
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	uint unilen = length;
+	uint unilen = length, maxlen = length;
 	uint istart = lid & ~0x3fU;
 	uint iend = istart + 0x40;
 	if (iend > lws)
 		iend = lws;
+	if (count != 2) /* Not a magic test vector */
 	for (i = istart; i < iend; i++) {
-		if (length != lengths[i]) {
-/* Disable the specialization except for some of our test vectors */
-			if (count != 2)
-				unilen = 0xff;
-			break;
+		uint ilen = lengths[i];
+		if (ilen != length) {
+			unilen = 0;
+			if (ilen > maxlen) {
+				maxlen = ilen;
+/*
+ * We currently have specialization for lengths up to 15 only, so no point
+ * checking further lengths when we already know we won't specialize.
+ */
+				if (maxlen > 15)
+					break;
+			}
 		}
 	}
 #else
@@ -461,7 +470,7 @@ __kernel void phpass (__global const phpass_password *data,
 	x13 = x[13];
 
 #ifdef SCALAR
-	if (unilen < 8)
+	if (maxlen < 8)
 	do {
 		b = 0xefcdab89;
 		c = 0x98badcfe;
@@ -633,7 +642,7 @@ __kernel void phpass (__global const phpass_password *data,
 		x2 = c + 0x98badcfe;
 		x3 = d + 0x10325476;
 	} while (--count);
-	else if (unilen < 12)
+	else if (maxlen < 12)
 	do {
 		b = 0xefcdab89;
 		c = 0x98badcfe;
@@ -805,7 +814,7 @@ __kernel void phpass (__global const phpass_password *data,
 		x2 = c + 0x98badcfe;
 		x3 = d + 0x10325476;
 	} while (--count);
-	else if (unilen < 16)
+	else if (maxlen < 16)
 	do {
 		b = 0xefcdab89;
 		c = 0x98badcfe;
