@@ -311,7 +311,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if(charcount % 2 == 0 || charcount < 3) {
 	    if( john_main_process )
 	        fprintf(stderr, "Only character sets of odd lengths are supported and they must contain at least 3 symbols.\n");
-	    error();
+	    //error();
 	}
 	
 	
@@ -394,9 +394,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + drops[loop]) % charcount]) > cp_max ) {
 						quick_conversion = 0;
 					}
-					if( mplMod2 )
-					    strafe[loop] += 1;
-					drops[loop] += 1;
+					if(mplMod2) strafe[loop] += mpl/3;
+					//drops[loop] += 1;
 	            }
 	            else
 	            for(i=0; i<mpl; ++i) {
@@ -406,18 +405,16 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	            }
                 submit(rain);
 			}
-
 			if( !mplMod2 ) {
 			    strafe[loop] += 2;
                 if( strafe[loop] % (mpl/2) == 0 ) strafe[loop]+=2;
 		    }
-            drops[loop] -= mpl;
-
+		    //else
 		    
             int pos = mpl - 1;
 
-			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
-			    charset_idx[loop][pos] = 0;
+			while(pos >= 0 && ++charset_idx[loop][mpl-1-pos] >= charcount) {
+			    charset_idx[loop][mpl-1-pos] = 0;
 			    --pos;
 		    }
 			
@@ -429,8 +426,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
-			++loop;		
-			++counter;
+			loop++;		
+			counter++;
 		}
 	}
 	crk_done();
