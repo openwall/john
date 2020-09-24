@@ -46,11 +46,11 @@ static int minlength;
 static int state_restored;
 static uint_big keyspace;
 static uint_big subtotal;
-static int strafe[MAX_CAND_LENGTH-1];
-static int rec_strafe[MAX_CAND_LENGTH-1];
-static uint_big drops[MAX_CAND_LENGTH-1];
+static uint_big strafe[MAX_CAND_LENGTH-1];
+static uint_big rec_strafe[MAX_CAND_LENGTH-1];
+static uint_big drops[MAX_CAND_LENGTH-1];//a rotate value wip
 static uint_big rec_drops[MAX_CAND_LENGTH-1];
-static uint_big counter;
+static uint_big counter;//linear counter
 static uint_big rec_counter;
 static int quick_conversion;
 static int loop, rec_loop;//inner loop
@@ -93,13 +93,13 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%d\n ", rec_strafe[i]);	
-		fprintf(file, "%llu\n ", rec_drops[i]);	
+		fprintf(file, file, "%"PRIu64"\n", rec_strafe[i]);	
+		fprintf(file, file, "%"PRIu64"\n", rec_drops[i]);	
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
 	fprintf(file, "%d\n", rec_cur_len);
-	fprintf(file, "%llu\n", (unsigned long long) rec_counter);//changeme
+	fprintf(file, "%"PRIu64"\n", rec_counter);//changeme
 	fprintf(file, "%d\n", rec_loop);
 }
 
@@ -113,10 +113,10 @@ static int restore_state(FILE *file)
 	else return 1;
 
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		if(fscanf(file, "%d\n ", &d) == 1)//all those bigint needs a fix in save and restore state
+		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
 			strafe[i] = r;
 		else return 1;
-		if(fscanf(file, "%llu\n ", &r) == 1)//all those bigint needs a fix in save and restore state
+		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
 			drops[i] = r;
 		else return 1;
 		
@@ -129,7 +129,7 @@ static int restore_state(FILE *file)
 		rain_cur_len = d;
 	else return 1;
 
-	if(fscanf(file, "%llu\n", (unsigned long long *) &r) == 1)
+	if(fscanf(file, "%"PRIu64"\n", &r) == 1)
 		counter = r;
 	else return 1;
 	
@@ -394,8 +394,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + drops[loop]) % charcount]) > cp_max ) {
 						quick_conversion = 0;
 					}
-					//if( mplMod2 )
-	                //    strafe[loop] += mpl/2;
 	            }
 	            else
 	            for(i=0; i<mpl; ++i) {
@@ -404,7 +402,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					}
 	            }
                 submit(rain);
-			}
+		    }
 		    
 		    if( mplMod2 ) {
 		        strafe[loop] += 3;
