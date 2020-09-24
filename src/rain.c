@@ -397,10 +397,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	            }
 	            submit(rain);
 		    }
-		    
+	        
 		    if( mplMod2 ) {
 		        strafe[loop] += 3;
-                if( strafe[loop] % (mpl/2) == 0 ) strafe[loop]=0;
+                if( strafe[loop] % (mpl) == 0 ) strafe[loop]=0;
 		    }
 		    else {
 		        strafe[loop] += 2;
