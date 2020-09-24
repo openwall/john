@@ -406,13 +406,15 @@ static void sig_handle_timer(int signum)
 		int new_abort = 0, new_status = 0;
 #endif
 		while ((c = tty_getchar()) >= 0) {
+#ifndef BENCH_BUILD
 			char verb_msg[] = "Verbosity now 0\n";
-
+#endif
 			if (c == 3 || c == 'q') {
 #if OS_FORK
 				new_abort = 1;
 #endif
 				sig_handle_abort(0);
+#ifndef BENCH_BUILD
 			} else if (c == '>' && options.verbosity < VERB_DEBUG) {
 				options.verbosity++;
 				if (john_main_process) {
@@ -425,6 +427,7 @@ static void sig_handle_timer(int signum)
 					verb_msg[14] += options.verbosity;
 					write_loop(2, verb_msg, sizeof(verb_msg) - 1);
 				}
+#endif
 			} else {
 #if OS_FORK
 				new_status = 1;
