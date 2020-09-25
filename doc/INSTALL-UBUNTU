@@ -41,6 +41,11 @@ build CPU fallback chains for any x86-64 CPU.
 
 ==== If you have AMD GPU(s) (OpenCL support)
 
+    sudo apt-get -y install ocl-icd-opencl-dev opencl-headers
+
+    The above should be sufficient to build JtR with OpenCL support, but to
+    actually use it you also need to install one of the proprietary drivers:
+
     - If you have a recent GPU card and Ubuntu Xenial 16.04 LTS or above,
       the amdgpu-pro graphics stack should be used:
 
@@ -55,6 +60,11 @@ build CPU fallback chains for any x86-64 CPU.
 ==== If you (also) want a CPU device for OpenCL (OpenCL support)
 
     sudo apt-get -y install ocl-icd-opencl-dev opencl-headers pocl-opencl-icd
+
+    We don't recommend using CPUs via OpenCL since JtR is usually far more
+    efficient at using them directly, but you do have this weird option.
+    Instead of or in addition to POCL, you may (also) install Intel's
+    proprietary OpenCL runtime, which is generally more reliable and faster.
 
 ==== Optional MPI support
 

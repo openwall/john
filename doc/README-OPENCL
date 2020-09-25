@@ -2,9 +2,14 @@
 PRELUDE:
 ====================
 
-You can use OpenCL if your video card - from now GPU - supports it.
-ATI/AMD, Intel and Nvidia support it through their SDK available at
-nvidia, Intel and ATI/AMD website.
+If you're on Debian or Ubuntu, please refer to INSTALL-UBUNTU for specific
+instructions.  They're also partially reusable for other distros.  The more
+generic instructions below are unfortunately somewhat out of date compared
+to those in INSTALL-UBUNTU, so we currently recommend those instead.
+
+You can use OpenCL if your video card - from now on GPU - supports it.
+NVIDIA, AMD, and Intel support it through their proprietary SDKs, which
+you can download from their respective websites.
 
 Some recent distros have all (proprietry) stuff available as normal
 packages.  N.B.  DON'T use X11 opensource drivers provided by your
@@ -22,12 +27,12 @@ and AMD's web sites for drivers.  Note that an Intel driver does
 support AMD CPU's and vice versa.
 
 Ensure good cooling; Keep an eye on temperatures.  If the OpenCL runtime
-supports it, GPU temperature will be monitored and shown on status lines
-and there is a user changeable limit in john.conf that will terminate a
-session at 95°C.
+supports it, GPU temperature will be monitored and shown on status lines,
+and there is a user changeable limit in john.conf (by default 95 C), upon
+reaching which the process will either sleep until the temperature
+decreases (the default) or terminate.
 
-This code has been tested on Linux, macOS and Windows, see doc/BUGS for
-known issues.
+This code has been tested on Linux, macOS, and Windows.
 
 GPU formats won't improve your speed on very short runs due to longer
 startup.  It also can't use GPU-side mask generation with "single mode"
