@@ -557,15 +557,15 @@ void listconf_parse_late(void)
 		struct fmt_main *format;
 		int column = 0, dynamics = 0;
 		int grp_dyna;
+		char *format_option = options.format ? options.format : options.format_list;
 
-		grp_dyna = options.format ?
-			strcmp(options.format, "dynamic") ?
-			0 : strstr(options.format, "*") != 0 : 1;
+		grp_dyna = !format_option || !strcasestr(format_option, "dynamic");
 
 		format = fmt_list;
 		do {
 			int length;
 			const char *label = format->params.label;
+
 			if (grp_dyna && !strncmp(label, "dynamic", 7)) {
 				if (dynamics++)
 					continue;
@@ -578,8 +578,11 @@ void listconf_parse_late(void)
 				printf("\n");
 				column = length;
 			}
-			printf("%s%s", label, format->next ? ", " : "\n");
+			printf("%s%s", label,
+			       (format->next && (!grp_dyna || !dynamics || strncmp(format->next->params.label, "dynamic", 7))) ?
+			       ", " : "\n");
 		} while ((format = format->next));
+
 		exit(EXIT_SUCCESS);
 	}
 	if (!strcasecmp(options.listconf, "format-details")) {

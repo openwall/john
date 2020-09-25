@@ -218,6 +218,9 @@ struct options_main {
 /* Ciphertext format name */
 	char *format;
 
+/* Ciphertext format list, as a comma-separated string */
+	char *format_list;
+
 /* Wordlist file name */
 	char *wordlist;
 
