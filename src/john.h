@@ -42,7 +42,6 @@ extern char *john_terminal_locale;
 
 /* Current target for options.max_cands */
 extern unsigned long long john_max_cands;
-extern int wildcard_format;
 
 /* Print loaded/remaining counts */
 extern char *john_loaded_counts(struct db_main *db, char *prelude);

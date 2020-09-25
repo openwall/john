@@ -263,23 +263,6 @@ void rec_save(void)
 #endif
 	opt = rec_argv;
 	while (*++opt) {
-		/*
-		 * If a format wildcard or class (eg. --format=opencl) was used,
-		 * we remove it from argv and replace with the actually chosen one.
-		 */
-		if (wildcard_format && !strncmp(*opt, "--format", 8)) {
-			char **shuf = opt;
-
-			wildcard_format = 0;
-			rec_argc--;
-			while (shuf[1]) {
-				*shuf = shuf[1];
-				shuf++;
-			}
-			*shuf = NULL;
-			if (opt == shuf)
-				break;
-		}
 		/********* Re-write deprecated options *********/
 		if (!strncmp(*opt, "--internal-encoding", 19))
 			memcpy(*opt, "--internal-codepage", 19);

@@ -445,6 +445,16 @@ extern struct fmt_main *fmt_list;
 extern void fmt_register(struct fmt_main *format);
 
 /*
+ * Match req_format to format, supporting wildcards/groups/classes etc.
+ */
+extern int fmt_match(const char *req_format, struct fmt_main *format);
+
+/*
+ * Check for --format=LIST and if so, re-populate fmt_list from it.
+ */
+extern int fmt_check_custom_list(void);
+
+/*
  * Initializes the format's internal structures unless already initialized.
  */
 extern void fmt_init(struct fmt_main *format);

@@ -185,7 +185,6 @@ int *john_child_pids = NULL;
 char *john_terminal_locale ="C";
 
 unsigned long long john_max_cands;
-int wildcard_format;
 
 static int children_ok = 1;
 
@@ -197,185 +196,15 @@ static int exit_status = 0;
 
 static void john_register_one(struct fmt_main *format)
 {
-	if (options.format && !strcasecmp(options.format, "all")) {
-		if (options.flags & FLG_TEST_CHK)
-			; /* benchmark needs this string to stay intact */
-		else
-			options.format = NULL;
-	} else
-	if (options.format && !strncasecmp(options.format, "all-", 4)) {
-		options.format += 4;
-	}
-
 	if (options.format) {
-		char *pos = strchr(options.format, '*');
-
-		if (!strncasecmp(options.format, "dynamic=", 8))
-			pos = NULL;
-		else
-		if (pos != strrchr(options.format, '*')) {
-			if (john_main_process)
-			fprintf(stderr, "Only one wildcard allowed in format "
-			        "name\n");
-			error();
-		}
-
-		if (pos) {
-			/* Wildcard, as in --format=office* */
-			wildcard_format = 1;
-
-			if (strncasecmp(format->params.label, options.format,
-			                (int)(pos - options.format)))
+		if (options.format[0] == '-' && options.format[1]) {
+			if (fmt_match(&options.format[1], format))
 				return;
-			/* Trailer wildcard, as in *office or raw*ng */
-			if (pos[1]) {
-				int wild_len = strlen(++pos);
-				int label_len = strlen(format->params.label);
-				const char *p;
-
-				if (wild_len > label_len)
-					return;
-
-				p = &format->params.label[label_len - wild_len];
-
-				if (strcasecmp(p, pos))
-					return;
-			}
-		} else if (strncasecmp(options.format, "dynamic=", 8) &&
-		           (pos = strchr(options.format, '@'))) {
-			char *reject, *algo = strdup(++pos);
-
-			wildcard_format = 1;
-
-			/* Rejections */
-			if ((reject = strcasestr(algo, "-dynamic"))) {
-				if (format->params.flags & FMT_DYNAMIC) {
-					MEM_FREE (algo);
-					return;
-				}
-				memmove(reject, reject + 8, strlen(reject + 7));
-			}
-			if (!strstr(algo, "-opencl") &&
-			    strstr(format->params.label, "-opencl")) {
-				MEM_FREE (algo);
+		} else if (options.format[0] == '+' && options.format[1]) {
+			if (!fmt_match(&options.format[1], format))
 				return;
-			}
-			if ((reject = strcasestr(algo, "-opencl"))) {
-				if (!strstr(format->params.label, "-opencl")) {
-					MEM_FREE (algo);
-					return;
-				}
-				memmove(reject, reject + 7, strlen(reject + 6));
-			}
-			/* Algo match, eg. --format=@xop or --format=@sha384 */
-			if (!strcasestr(format->params.algorithm_name, algo)) {
-				MEM_FREE (algo);
-				return;
-			}
-			MEM_FREE (algo);
-		} else if ((pos = strchr(options.format, '#'))) {
-			char *reject, *algo = strdup(++pos);
-
-			wildcard_format = 1;
-
-			/* -dynamic means "minus dynamic" as in reject them */
-			if ((reject = strcasestr(algo, "-dynamic"))) {
-				if (format->params.flags & FMT_DYNAMIC) {
-					MEM_FREE (algo);
-					return;
-				}
-				memmove(reject, reject + 8, strlen(reject + 7));
-			}
-			/*
-			 * Although -opencl (or not) means we DO want OpenCL (or not),
-			 * as usual!
-			 */
-			if (!strstr(algo, "-opencl") &&
-			    strstr(format->params.label, "-opencl")) {
-				MEM_FREE (algo);
-				return;
-			}
-			if ((reject = strstr(algo, "-opencl"))) {
-				if (!strstr(format->params.label, "-opencl")) {
-					MEM_FREE (algo);
-					return;
-				}
-				memmove(reject, reject + 7, strlen(reject + 6));
-			}
-			/* Name match, eg. --format=#ipmi or --format=#1password */
-			if (!strcasestr(format->params.format_name, algo)) {
-				MEM_FREE (algo);
-				return;
-			}
-			MEM_FREE (algo);
-		}
-		else if (!strcasecmp(options.format, "dynamic") ||
-			 !strcasecmp(options.format, "dynamic-all")) {
-			wildcard_format = 1;
-			if ((format->params.flags & FMT_DYNAMIC) == 0)
-				return;
-		}
-		else if (!strcasecmp(options.format, "cpu")) {
-			wildcard_format = 1;
-			if (strstr(format->params.label, "-opencl") ||
-			    strstr(format->params.label, "-ztex"))
-				return;
-		}
-		else if (!strcasecmp(options.format, "cpu-dynamic")) {
-			wildcard_format = 1;
-			if (strstr(format->params.label, "-opencl"))
-				return;
-			if (format->params.flags & FMT_DYNAMIC)
-				return;
-		}
-		else if (!strcasecmp(options.format, "opencl")) {
-			wildcard_format = 1;
-			if (!strstr(format->params.label, "-opencl"))
-				return;
-		}
-		else if (!strcasecmp(options.format, "mask")) {
-			wildcard_format = 1;
-			if (!(format->params.flags & FMT_MASK))
-				return;
-		}
-#ifdef _OPENMP
-		else if (!strcasecmp(options.format, "omp")) {
-			wildcard_format = 1;
-			if (!(format->params.flags & FMT_OMP))
-				return;
-		}
-		else if (!strcasecmp(options.format, "cpu+omp")) {
-			wildcard_format = 1;
-			if (!(format->params.flags & FMT_OMP))
-				return;
-			if (strstr(format->params.label, "-opencl"))
-				return;
-		}
-		else if (!strcasecmp(options.format, "cpu+omp-dynamic")) {
-			wildcard_format = 1;
-			if (!(format->params.flags & FMT_OMP))
-				return;
-			if (strstr(format->params.label, "-opencl"))
-				return;
-			if (format->params.flags & FMT_DYNAMIC)
-				return;
-		}
-#endif
-		else if (strcasecmp(options.format, format->params.label)) {
-#ifndef DYNAMIC_DISABLED
-			if (!strncasecmp(options.format, "dynamic=", 8) &&
-			    !strcasecmp(format->params.label, "dynamic=")) {
-				DC_HANDLE H;
-				if (!dynamic_compile(options.format, &H)) {
-					if (dynamic_assign_script_to_format(
-						    H, format))
-						return;
-				} else
-					return;
-			} else
-#endif
-				return;
-		}
+		} else if (!fmt_match(options.format, format))
+			return;
 	}
 
 	fmt_register(format);
@@ -389,9 +218,15 @@ static void john_register_all(void)
 #endif
 
 	if (options.format) {
-	/* The case of the expression for this format is significant */
-		if (strncasecmp(options.format, "dynamic=", 8))
+		/* Dynamic compiler format needs case intact and it can't be used with wildcard or lists */
+		if (strncasecmp(options.format, "dynamic=", 8)) {
 			strlwr(options.format);
+
+			if (strchr(options.format, ',')) {
+				options.format_list = options.format;
+				options.format = NULL;
+			}
+		}
 	}
 
 	/* Let ZTEX formats appear before CPU formats */
@@ -430,20 +265,14 @@ static void john_register_all(void)
 	john_register_one(&fmt_crypt);
 #endif
 
+	/* Do we have --format=LIST? If so, re-build fmt_list from it, in requested order. */
+	if (options.format_list && !fmt_check_custom_list())
+		error_msg("Could not parse format list '%s'\n", options.format_list);
+
 	if (!fmt_list) {
 		if (john_main_process)
 		fprintf(stderr, "Unknown ciphertext format name requested\n");
 		error();
-	}
-	/*
-	 * If we used a wildcard to pick format, we want the actually chosen
-	 * one to be filled in.
-	 */
-	if (wildcard_format) {
-		if (options.flags & FLG_TEST_CHK)
-			; /* benchmark needs this string to stay intact */
-		else
-			options.format = NULL;
 	}
 }
 
