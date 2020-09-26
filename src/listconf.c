@@ -1027,8 +1027,11 @@ void listconf_parse_late(void)
 						        "Test %s %d: ciphertext contains line feed or separator character '%c'\n",
 						        format->params.label, ntests, separator);
 					}
-/* if they are both missing, simply do not output a line at all */
-					if (skip != 3) {
+/*
+ * if they are both unsuitable or it's a magic internal-only test vector,
+ * simply do not output a line at all
+ */
+					if (skip != 3 && !strstr(ciphertext, "$elftest")) {
 						printf("%s%c%d",
 							   format->params.label, separator, ntests);
 						if (skip < 2) {
