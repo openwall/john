@@ -52,6 +52,8 @@ static uint64_t rec_strafe[MAX_CAND_LENGTH-1];
 static uint64_t rotate[MAX_CAND_LENGTH-1];
 static uint64_t rec_rotate[MAX_CAND_LENGTH-1];
 
+static int accu[MAX_CAND_LENGTH-1];
+
 static uint64_t counter;//linear counter
 static uint64_t rec_counter;
 static int quick_conversion;
@@ -79,6 +81,7 @@ static void fix_state(void)
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		rec_strafe[i] = strafe[i];
+		rec_rotate[i] = rotate[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -94,7 +97,8 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%"PRIu64"\n", rec_strafe[i]);	
+		fprintf(file, "%"PRIu64"\n", rec_strafe[i]);
+		fprintf(file, "%"PRIu64"\n", rec_rotate[i]);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -115,6 +119,9 @@ static int restore_state(FILE *file)
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
 			strafe[i] = r;
+		else return 1;
+        if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
+			rotate[i] = r;
 		else return 1;
 
 		for(j = 0; j < maxlength; ++j)
@@ -225,7 +232,6 @@ static int submit(UTF32 *subset)
 		rain[minlength + loop] = 0;
 		utf32_to_enc(out, sizeof(out), rain);
 	}
-
 	if (options.flags & FLG_MASK_CHK)
 		return do_mask_crack((char*)out);
 	else
@@ -251,7 +257,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if (!options.req_minlength)
 		minlength = 1;
 
-	default_set = (char*)cfg_get_param("Subsets", NULL, "DefaultCharset");
+	default_set = (char*)cfg_get_param("Rain", NULL, "DefaultCharset");
 	if (!req_charset)
 		req_charset = default_set;
 
@@ -259,12 +265,11 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		if (strlen(req_charset) == 1 && isdigit(req_charset[0])) {
 			int cnum = atoi(req_charset);
 			char pl[2] = { '0' + cnum, 0 };
-			char *c = (char*)cfg_get_param("Subsets", NULL, pl);
+			char *c = (char*)cfg_get_param("Rain", NULL, pl);
 
 			if (c)
 				req_charset = c;
 		}
-
 		/* Parse \U+HHHH notation */
 		parse_unicode(req_charset);
 		charset = req_charset;
@@ -298,7 +303,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		enc_to_utf32(charset_utf32, (charcount + 1) * sizeof(UTF32),
 		             (UTF8*)charset, charcount);
 	}
-
 	//Performance step: Use UTF-32-8 when applicable
 	if (options.target_enc == UTF_8)
 		utf32_to_utf8_32(charset_utf32);
@@ -310,8 +314,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	        fprintf(stderr, "Only character sets of odd lengths are supported.\n");
 	    error();
 	}
-	
-	
 	counter = 0;
 	subtotal = 0;
 	
@@ -349,14 +351,24 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		for(i=0; i<= maxlength - minlength; i++) {
 			strafe[i] = 0;
 			rotate[i] = 0;
+			accu[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
 	}
+	//we can avoid doing this on the fly
+	for(i=0; i<=maxlength-minlength; ++i) {
+	    if((minlength+i) % 2)
+	        for(j=2; j<=minlength+i; ++j)
+	            accu[i] += j + 2;
+	    else
+	        for(j=1; j<=minlength+i; ++j)
+	            accu[i] += j + 2;
+	}
 	
-	keyspace = (uint_big) pow(charcount, rain_cur_len);
+	keyspace = (uint64_t) pow(charcount, rain_cur_len);
 	if(rain_cur_len > minlength)
-	subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
+	subtotal = (uint64_t) pow((double) charcount, (double) rain_cur_len-1);
 
 	crk_init(db, fix_state, NULL);
 	
@@ -379,64 +391,50 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				skip = for_node < options.node_min ||
 					for_node > options.node_max;
 			}
-
 			int mpl = minlength + loop;
             int mplMod2 = mpl % 2;
-            int modif = 0;
-            if( !mplMod2 ) modif = 3;
             
 			if(!skip) {
 				quick_conversion = 1;
-				if( !(mplMod2) )
+				if( mplMod2 )
 				{
-				    if( mpl > 4 ) {
-					    if( (rain[0] = charset_utf32[charset_idx[loop][(strafe[loop]) % mpl]]) > cp_max ) {
-						        quick_conversion = 0;
-				        }
-				        if( (rain[1] = charset_utf32[charset_idx[loop][(strafe[loop]+1) % mpl]]) > cp_max ) {
-					        quick_conversion = 0;
-				        }
-					    for(i=2; i<mpl; ++i) {
-					        if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % mpl]]) > cp_max ) {
-						        quick_conversion = 0;
-					        }
-	                    }
-	                }
-	                else {
-                        for(i=0; i<mpl; ++i) {
-				            if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % mpl]]) > cp_max ) {
-					            quick_conversion = 0;
-				            }
-				        }
-	                }
-			    }
-	            else {
 		            if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
 					    quick_conversion = 0;
 		            }
                     for(i=1; i<mpl; ++i) {
-					    if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1]]) > cp_max ) {
+					    if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1] + rotate[loop]) % charcount]) > cp_max ) {
 						    quick_conversion = 0;
 					    }
+					    rotate[loop]+=i+3;
 					}
+                    rotate[loop] -= accu[loop];
 	            }
-	            submit(rain);
+	            else
+				{
+				    for(i=0; i<mpl; ++i) {
+				        if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + rotate[loop]) % charcount]) > cp_max ) {
+					        quick_conversion = 0;
+				        }
+                        rotate[loop]+=i+3;
+                    }
+                    rotate[loop] -= accu[loop];
+			    } 
+	            submit(rain);   
 	        }
-		    strafe[loop] += 3;//works with odd set
-		    
+	        strafe[loop] += 3;//works with odd set
+
 		    int pos = mpl - 1;
 
 			while(pos >= 0 && ++charset_idx[loop][mpl-1-pos] >= charcount) {
 			    charset_idx[loop][mpl-1-pos] = 0;
 			    --pos;
 		    }
-			
 			if(pos < 0) {
 				counter = 0;
 				rain_cur_len++;	
 				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
 				subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
-				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
+				if (cfg_get_bool("Rain", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
 			loop++;		

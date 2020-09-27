@@ -2,20 +2,17 @@
 
 The module uses a state, holding the current character (from the set) for each placeholder (characters of the word as in formal speaking).  
 
-
 2..... characters  
 1..... characters  
 0..... ..........  
 012345 placeholders  
-
 This is a bruteforce with word's length 6 and set's size 3; so 3^6 words are ouput.  
+
 When doing this on a broad range, you generaly don't want to spend a month testing words that start with aaaa...  
-You have several options: use -inc, -markov, or -subsets... and you can use this one: -rain.   
+With jtr, you have several options: use -inc, -markov, or -subsets... and you can use this one: -rain.   
 
-When the length is even it is strafing the index of the state by adding a value to the counter of the loop iterating on the placeholders (words length),  
-and cutting it off with a modulo.  
-When the loop is done, we increase the strafe variable by 2; Then the variable is fixed with:  
- `if( strafe % (length/2) == 0 ) strafe += 2;`  
-
-Implies length > 1, but the check is done automatically.  
+This module is using a strafe on the value of i in the loop on i<length, so that the processing of characters rotate.  
+Another thing is that we are rotating the characters being choose from the set, for this purpose another strafing variable is used.  
+Instead of being stuck with either only chunks of the words being processed (first method only) or with repetitive patterns(second method only);  
+the combination of these two methods creates a truly shattered generation that still falls right.    
 
