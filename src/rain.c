@@ -397,7 +397,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					        quick_conversion = 0;
 				        }
 					    for(i=2; i<mpl; ++i) {
-					        if( (rain[i] = charset_utf32[(charset_idx[loop][strafe[loop]+i) % mpl]]) > cp_max ) {
+					        if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % mpl]]) > cp_max ) {
 						        quick_conversion = 0;
 					        }
 	                    }
@@ -415,7 +415,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					    quick_conversion = 0;
 		            }
                     for(i=1; i<mpl; ++i) {
-					    if( (rain[i] = charset_utf32[(charset_idx[loop][strafe[loop]+i) % (mpl-1) + 1]]) > cp_max ) {
+					    if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1]]) > cp_max ) {
 						    quick_conversion = 0;
 					    }
 					}
