@@ -248,12 +248,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	UTF32 *charset_utf32;
 
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
-	minlength = MAX(options.eff_minlength, 2);
+	minlength = MAX(options.eff_minlength, 1);
 		
 	if (!options.req_maxlength)
 		maxlength = MIN(maxlength, DEFAULT_MAX_LEN);
 	if (!options.req_minlength)
-		minlength = 2;
+		minlength = 1;
 
 	default_set = (char*)cfg_get_param("Subsets", NULL, "DefaultCharset");
 	if (!req_charset)
@@ -312,7 +312,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if( charcount % 2 == 0 ) {
 	    if( john_main_process )
 	        fprintf(stderr, "Only character sets of odd lengths are supported.\n");
-	    //error();
+	    error();
 	}
 	
 	
@@ -389,23 +389,27 @@ int do_rain_crack(struct db_main *db, char *req_charset)
             
 			if(!skip) {
 				quick_conversion = 1;
+				if( !(mpl % 2) )
 				for(i=0; i<mpl; ++i) {
 					if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + drops[loop]) % charcount]) > cp_max ) {
 						quick_conversion = 0;
 					}
 	            }
+	            else {
+                    if( (rain[0] = charset_utf32[(charset_idx[loop][0] + drops[loop]) % charcount]) > cp_max ) {
+					    quick_conversion = 0;
+		            }
+                    for(i=1; i<mpl; ++i) {
+					    if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1] + drops[loop]) % charcount]) > cp_max ) {
+						    quick_conversion = 0;
+					    }
+	                }
+	            }
 	            submit(rain);
 		    }
 	        
-		    if( mplMod2 ) {
-		        strafe[loop] += 3;
-		        }
-		    else {
-		        strafe[loop] += 3;//works with odd sets
-                if( strafe[loop] % (charcount) == 0 ) strafe[loop]+=3;
-            }
-            
-            
+	        strafe[loop] += 3;//works with odd sets
+
 		    int pos = mpl - 1;
 
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
@@ -415,7 +419,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			
 			if(pos < 0) {
 				counter = 0;
-				++rain_cur_len;	
+				rain_cur_len++;	
 				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
 				subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
 				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
