@@ -48,8 +48,8 @@ static uint64_t keyspace;
 static uint64_t subtotal;
 static uint64_t strafe[MAX_CAND_LENGTH-1];
 static uint64_t rec_strafe[MAX_CAND_LENGTH-1];
-static uint64_t drops[MAX_CAND_LENGTH-1];//a rotate value wip
-static uint64_t rec_drops[MAX_CAND_LENGTH-1];
+static uint64_t fixOdd[MAX_CAND_LENGTH-1];//a rotate value wip
+static uint64_t rec_fixOdd[MAX_CAND_LENGTH-1];
 static uint64_t counter;//linear counter
 static uint64_t rec_counter;
 static int quick_conversion;
@@ -352,7 +352,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		
 		for(i=0; i<= maxlength - minlength; i++) {
 			strafe[i] = 0;
-			drops[i] = 0;
+			fixOdd[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
@@ -389,27 +389,32 @@ int do_rain_crack(struct db_main *db, char *req_charset)
             
 			if(!skip) {
 				quick_conversion = 1;
-				if( !(mpl % 2) )
+				if( !(mplMod2) )
 				for(i=0; i<mpl; ++i) {
-					if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + drops[loop]) % charcount]) > cp_max ) {
+					if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % mpl]]) > cp_max ) {
 						quick_conversion = 0;
 					}
 	            }
 	            else {
-                    if( (rain[0] = charset_utf32[(charset_idx[loop][0] + drops[loop]) % charcount]) > cp_max ) {
+		            if( (rain[0] = charset_utf32[(charset_idx[loop][0] + fixOdd[loop]) % charcount]) > cp_max ) {
 					    quick_conversion = 0;
 		            }
+                    
                     for(i=1; i<mpl; ++i) {
-					    if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1] + drops[loop]) % charcount]) > cp_max ) {
+					    if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1]]) > cp_max ) {
 						    quick_conversion = 0;
 					    }
+					    fixOdd[loop]+=1;
 	                }
+	                fixOdd[loop] -= mpl - 1;
 	            }
 	            submit(rain);
 		    }
-	        
 	        strafe[loop] += 3;//works with odd sets
-
+            /*
+            for(i=2; i<=mpl; ++i)
+                fixOdd[loop] -= i;
+		    */
 		    int pos = mpl - 1;
 
 			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
