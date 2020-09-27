@@ -1031,7 +1031,9 @@ void listconf_parse_late(void)
  * if they are both unsuitable or it's a magic internal-only test vector,
  * simply do not output a line at all
  */
-					if (skip != 3 && !strstr(ciphertext, "$elftest")) {
+					if (skip != 3 &&
+					    !strstr(ciphertext, "$elftest") &&
+					    !strstr(ciphertext, "\1\1\1\1\1\1\1\1")) {
 						printf("%s%c%d",
 							   format->params.label, separator, ntests);
 						if (skip < 2) {
