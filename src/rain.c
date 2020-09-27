@@ -257,7 +257,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if (!options.req_minlength)
 		minlength = 1;
 
-	default_set = (char*)cfg_get_param("Subsets", NULL, "DefaultCharset");
+	default_set = (char*)cfg_get_param("Rain", NULL, "DefaultCharset");
 	if (!req_charset)
 		req_charset = default_set;
 
@@ -265,7 +265,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		if (strlen(req_charset) == 1 && isdigit(req_charset[0])) {
 			int cnum = atoi(req_charset);
 			char pl[2] = { '0' + cnum, 0 };
-			char *c = (char*)cfg_get_param("Subsets", NULL, pl);
+			char *c = (char*)cfg_get_param("Rain", NULL, pl);
 
 			if (c)
 				req_charset = c;
@@ -391,11 +391,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				skip = for_node < options.node_min ||
 					for_node > options.node_max;
 			}
-
 			int mpl = minlength + loop;
             int mplMod2 = mpl % 2;
-            int modif = 0;
-            if( !mplMod2 ) modif = 3;
             
 			if(!skip) {
 				quick_conversion = 1;
@@ -437,7 +434,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				rain_cur_len++;	
 				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
 				subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
-				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
+				if (cfg_get_bool("Rain", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
 			loop++;		
