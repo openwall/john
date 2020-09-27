@@ -48,8 +48,6 @@ static uint64_t keyspace;
 static uint64_t subtotal;
 static uint64_t strafe[MAX_CAND_LENGTH-1];
 static uint64_t rec_strafe[MAX_CAND_LENGTH-1];
-static uint64_t fixOdd[MAX_CAND_LENGTH-1];//a rotate value wip
-static uint64_t rec_fixOdd[MAX_CAND_LENGTH-1];
 static uint64_t counter;//linear counter
 static uint64_t rec_counter;
 static int quick_conversion;
@@ -77,7 +75,6 @@ static void fix_state(void)
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		rec_strafe[i] = strafe[i];
-		//rec_drops[i] = drops[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -94,7 +91,6 @@ static void save_state(FILE *file)
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		fprintf(file, "%"PRIu64"\n", rec_strafe[i]);	
-		//fprintf(file, file, "%"PRIu64"\n", rec_drops[i]);	
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -116,11 +112,7 @@ static int restore_state(FILE *file)
 		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
 			strafe[i] = r;
 		else return 1;
-		/*
-		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
-			drops[i] = r;
-		else return 1;
-		*/
+
 		for(j = 0; j < maxlength; ++j)
 			if(fscanf(file, "%d\n", &d) == 1)
 				charset_idx[i][j] = d;
@@ -352,7 +344,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		
 		for(i=0; i<= maxlength - minlength; i++) {
 			strafe[i] = 0;
-			fixOdd[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
@@ -396,29 +387,23 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					}
 	            }
 	            else {
-		            if( (rain[0] = charset_utf32[(charset_idx[loop][0] + fixOdd[loop]) % charcount]) > cp_max ) {
+		            if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
 					    quick_conversion = 0;
 		            }
-                    
                     for(i=1; i<mpl; ++i) {
 					    if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1]]) > cp_max ) {
 						    quick_conversion = 0;
 					    }
-					    fixOdd[loop]+=1;
 	                }
-	                fixOdd[loop] -= mpl - 1;
 	            }
 	            submit(rain);
 		    }
 	        strafe[loop] += 3;//works with odd sets
-            /*
-            for(i=2; i<=mpl; ++i)
-                fixOdd[loop] -= i;
-		    */
+
 		    int pos = mpl - 1;
 
-			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
-			    charset_idx[loop][pos] = 0;
+			while(pos >= 0 && ++charset_idx[loop][mpl-1-pos] >= charcount) {
+			    charset_idx[loop][mpl-1-pos] = 0;
 			    --pos;
 		    }
 			
