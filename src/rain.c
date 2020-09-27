@@ -387,14 +387,20 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				quick_conversion = 1;
 				if( !(mplMod2) )
 				{
-				    if( (rain[0] = charset_utf32[charset_idx[loop][(strafe[loop]) % mpl]]) > cp_max ) {
-					    quick_conversion = 0;
-				    }
-					for(i=1; i<mpl; ++i) {
-					    if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + rotate[loop]) % charcount]) > cp_max ) {
-						    quick_conversion = 0;
-					    }
-					    rotate[loop]++;
+				    if( mpl > 4 ) {
+					    for(i=0; i<mpl; ++i) {
+					        if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + rotate[loop]) % charcount]) > cp_max ) {
+						        quick_conversion = 0;
+					        }
+					        rotate[loop]++;
+	                    }
+	                }
+	                else {
+                        for(i=0; i<mpl; ++i) {
+				            if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % mpl]]) > cp_max ) {
+					            quick_conversion = 0;
+				            }
+				        }
 	                }
 			    }
 	            else {
@@ -405,15 +411,14 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					    if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1] + rotate[loop]) % charcount]) > cp_max ) {
 						    quick_conversion = 0;
 					    }
-					    rotate[loop]++;
+					    rotate[loop]+=3;
 	                }
 	            }
 	            submit(rain);
+	            rotate[loop] -= mpl;
 		    }
-		    if( !mplMod2 )
-		        rotate[loop] -= mpl-1;
-	        strafe[loop] += 3;//works with odd sets
-
+		    strafe[loop] += 3;//works with odd set
+		    
 		    int pos = mpl - 1;
 
 			while(pos >= 0 && ++charset_idx[loop][mpl-1-pos] >= charcount) {
