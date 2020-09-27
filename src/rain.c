@@ -382,6 +382,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 			int mpl = minlength + loop;
             int mplMod2 = mpl % 2;
+            int modif = 0;
+            if( !mplMod2 ) modif = 3;
             
 			if(!skip) {
 				quick_conversion = 1;
@@ -395,10 +397,9 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					        quick_conversion = 0;
 				        }
 					    for(i=2; i<mpl; ++i) {
-					        if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + rotate[loop]) % charcount]) > cp_max ) {
+					        if( (rain[i] = charset_utf32[(charset_idx[loop][strafe[loop]+i) % mpl]]) > cp_max ) {
 						        quick_conversion = 0;
 					        }
-					        rotate[loop]+=3;
 	                    }
 	                }
 	                else {
@@ -414,15 +415,13 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					    quick_conversion = 0;
 		            }
                     for(i=1; i<mpl; ++i) {
-					    if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1] + rotate[loop]) % charcount]) > cp_max ) {
+					    if( (rain[i] = charset_utf32[(charset_idx[loop][strafe[loop]+i) % (mpl-1) + 1]]) > cp_max ) {
 						    quick_conversion = 0;
 					    }
-					    rotate[loop]+=3;
-	                }
+					}
 	            }
 	            submit(rain);
-	            rotate[loop] -= mpl - 3;
-		    }
+	        }
 		    strafe[loop] += 3;//works with odd set
 		    
 		    int pos = mpl - 1;
