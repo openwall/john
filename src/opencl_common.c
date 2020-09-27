@@ -1268,6 +1268,26 @@ static char *include_source(const char *pathname, int sequential_id, const char 
 		full_path = quote_str(full_path);
 	}
 
+#ifdef __CYGWIN__
+	/*
+	 * Workaround for OpenCL kernels not found when run from Windows PowerShell.
+	 * CygWin (at least in PowerShell) maps the main JtR folder to "/".
+	 */
+	const char *sandbox_path;
+
+	sandbox_path = realpath(".", NULL);
+
+	if (sandbox_path && sandbox_path[0] == '/' && !strcmp(full_path, "/run/opencl")) {
+		int main_folder_fd;
+
+		if ((main_folder_fd = open("/run/opencl", O_DIRECTORY)) > 0) {
+			fchdir(main_folder_fd);
+			close(main_folder_fd);
+		}
+	}
+	MEM_FREE(sandbox_path);
+#endif
+
 	snprintf(include, LINE_BUFFER_SIZE,
 	         "-I %s %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
 	        full_path,
