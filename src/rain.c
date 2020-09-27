@@ -48,6 +48,10 @@ static uint64_t keyspace;
 static uint64_t subtotal;
 static uint64_t strafe[MAX_CAND_LENGTH-1];
 static uint64_t rec_strafe[MAX_CAND_LENGTH-1];
+
+static uint64_t rotate[MAX_CAND_LENGTH-1];
+static uint64_t rec_rotate[MAX_CAND_LENGTH-1];
+
 static uint64_t counter;//linear counter
 static uint64_t rec_counter;
 static int quick_conversion;
@@ -344,6 +348,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		
 		for(i=0; i<= maxlength - minlength; i++) {
 			strafe[i] = 0;
+			rotate[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
@@ -381,23 +386,32 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			if(!skip) {
 				quick_conversion = 1;
 				if( !(mplMod2) )
-				for(i=0; i<mpl; ++i) {
-					if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % mpl]]) > cp_max ) {
-						quick_conversion = 0;
-					}
-	            }
+				{
+				    if( (rain[0] = charset_utf32[charset_idx[loop][(strafe[loop]) % mpl]]) > cp_max ) {
+					    quick_conversion = 0;
+				    }
+					for(i=1; i<mpl; ++i) {
+					    if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + rotate[loop]) % charcount]) > cp_max ) {
+						    quick_conversion = 0;
+					    }
+					    rotate[loop]++;
+	                }
+			    }
 	            else {
 		            if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
 					    quick_conversion = 0;
 		            }
                     for(i=1; i<mpl; ++i) {
-					    if( (rain[i] = charset_utf32[charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1]]) > cp_max ) {
+					    if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1] + rotate[loop]) % charcount]) > cp_max ) {
 						    quick_conversion = 0;
 					    }
+					    rotate[loop]++;
 	                }
 	            }
 	            submit(rain);
 		    }
+		    if( !mplMod2 )
+		        rotate[loop] -= mpl-1;
 	        strafe[loop] += 3;//works with odd sets
 
 		    int pos = mpl - 1;
