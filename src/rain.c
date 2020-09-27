@@ -312,13 +312,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if( charcount % 2 == 0 ) {
 	    if( john_main_process )
 	        fprintf(stderr, "Only character sets of odd lengths are supported.\n");
-	    error();
+	    //error();
 	}
 	
 	
 	counter = 0;
 	subtotal = 0;
-	int loop2 = 0;
 	
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
@@ -365,10 +364,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	crk_init(db, fix_state, NULL);
 	
-	while((loop2 = rain_cur_len - minlength) <= maxlength - minlength) {
+	while(rain_cur_len - minlength <= maxlength - minlength) {
 		if(event_abort) break;
 		if(!state_restored)
-			loop = loop2;
+			loop = rain_cur_len - minlength;
 		/* Iterate over all lengths */
 		while (loop <= maxlength - minlength) {
 			if(event_abort) break;
@@ -400,16 +399,17 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	        
 		    if( mplMod2 ) {
 		        strafe[loop] += 3;
-                if( strafe[loop] % (mpl) == 0 ) strafe[loop]=0;
-		    }
+		        }
 		    else {
-		        strafe[loop] += 2;
-                if( strafe[loop] % (mpl/2) == 0 ) strafe[loop]+=2;//this is why it's an __int128
-		    }
+		        strafe[loop] += 3;//works with odd sets
+                if( strafe[loop] % (charcount) == 0 ) strafe[loop]+=3;
+            }
+            
+            
 		    int pos = mpl - 1;
 
-			while(pos >= 0 && ++charset_idx[loop][mpl-1-pos] >= charcount) {
-			    charset_idx[loop][mpl-1-pos] = 0;
+			while(pos >= 0 && ++charset_idx[loop][pos] >= charcount) {
+			    charset_idx[loop][pos] = 0;
 			    --pos;
 		    }
 			
