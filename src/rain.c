@@ -388,11 +388,17 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				if( !(mplMod2) )
 				{
 				    if( mpl > 4 ) {
-					    for(i=0; i<mpl; ++i) {
+					    if( (rain[0] = charset_utf32[charset_idx[loop][(strafe[loop]) % mpl]]) > cp_max ) {
+						        quick_conversion = 0;
+				        }
+				        if( (rain[1] = charset_utf32[charset_idx[loop][(strafe[loop]+1) % mpl]]) > cp_max ) {
+					        quick_conversion = 0;
+				        }
+					    for(i=2; i<mpl; ++i) {
 					        if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + rotate[loop]) % charcount]) > cp_max ) {
 						        quick_conversion = 0;
 					        }
-					        rotate[loop]++;
+					        rotate[loop]+=3;
 	                    }
 	                }
 	                else {
@@ -415,7 +421,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	                }
 	            }
 	            submit(rain);
-	            rotate[loop] -= mpl;
+	            rotate[loop] -= mpl - 3;
 		    }
 		    strafe[loop] += 3;//works with odd set
 		    
