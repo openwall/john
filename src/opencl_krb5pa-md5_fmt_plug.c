@@ -330,6 +330,7 @@ static void init_kernel(void)
 	cl_ulong const_cache_size;
 
 	clReleaseKernel(crypt_kernel);
+	crypt_kernel = NULL;
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
