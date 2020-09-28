@@ -60,12 +60,6 @@
 
 #define LOG_SIZE 1024*16
 
-#if !defined(__CYGWIN__) && !defined(__MINGW32__)
-// If true, use realpath(3) for translating eg. "-I./opencl" into an absolute
-// path before submitting as JIT compile option to OpenCL.
-#define I_REALPATH 1
-#endif
-
 // If we are a release build, only output OpenCL build log if
 // there was a fatal error (or --verbosity was increased).
 #ifdef JTR_RELEASE_BUILD
@@ -1167,110 +1161,18 @@ static void print_device_info(int sequential_id)
 	log_event("Device %d: %s%s", sequential_id + 1, device_name, board_name);
 }
 
-/*
- * Given a string, return a newly allocated string that is a copy of
- * the original but quoted. The old string is freed.
- */
-static char *quote_str(char *orig)
+static char *get_build_opts(int sequential_id, const char *opts)
 {
-	char *new = mem_alloc(strlen(orig) + 3);
-	char *s = orig;
-	char *d = new;
-
-	*d++ = '"';
-	while (*s)
-		*d++ = *s++;
-	*d++ = '"';
-	*d = 0;
-
-	MEM_FREE(orig);
-
-	return new;
-}
-
-#if defined(__CYGWIN__) || defined(__MINGW32__)
-static char *mingw_try_relative_path(char *self_path)
-{
-	int len;
-	struct stat file_stat;
-	struct path {
-		char *prefix1, *prefix2;
-	};
-
-	if (!stat(self_path, &file_stat) && S_ISDIR(file_stat.st_mode))
-		return self_path;
-
-	len = strlen(self_path);
-	if (len > PATH_BUFFER_SIZE - 4)
-		return self_path;
-
-	{
-		int i = 0;
-		char *origin = (char *) mem_calloc(len + 1, sizeof(char));
-		char *fixed_path = (char *) mem_calloc(PATH_BUFFER_SIZE, sizeof(char));
-		struct path prefixes[] = {
-			{".",  "./"   /* Child */ },
-			{"..", "../"  /* Root */ },
-			{NULL, NULL}
-		};
-		strncpy(origin, self_path, len);
-		MEM_FREE(self_path);
-
-		while (prefixes[i].prefix1) {
-			if (origin[0] == '/')
-				strcpy(fixed_path, prefixes[i].prefix1);
-			else
-				strcpy(fixed_path, prefixes[i].prefix2);
-			strncat(fixed_path, origin, len);
-
-			if (!stat(fixed_path, &file_stat) && S_ISDIR(file_stat.st_mode))
-				goto found;
-			i++;
-		}
-		/* Give up */
-		MEM_FREE(fixed_path);
-		return origin;
-
-	found:
-		MEM_FREE(origin);
-		return fixed_path;
-	}
-}
-#endif
-
-static char *include_source(const char *pathname, int sequential_id, const char *opts)
-{
-	char *include, *full_path;
+	char *build_opts = mem_alloc(LINE_BUFFER_SIZE);
 	const char *global_opts;
-
-#if I_REALPATH
-	char *pex = (char*)path_expand_safe(pathname);
-
-	if (!(full_path = realpath(pex, NULL)))
-		pexit("realpath()");
-
-	MEM_FREE(pex);
-#else
-	full_path = (char*)path_expand_safe(pathname);
-#if defined(__CYGWIN__) || defined(__MINGW32__)
-	full_path = mingw_try_relative_path(full_path);
-#endif
-#endif
-
-	include = (char *) mem_calloc(LINE_BUFFER_SIZE, sizeof(char));
 
 	if (!(global_opts = getenv("OPENCLBUILDOPTIONS")))
 		if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
 		    SUBSECTION_OPENCL, "GlobalBuildOpts")))
 			global_opts = OPENCLBUILDOPTIONS;
 
-	if (strchr(full_path, ' ')) {
-		full_path = quote_str(full_path);
-	}
-
-	snprintf(include, LINE_BUFFER_SIZE,
-	         "-I %s %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
-	        full_path,
+	snprintf(build_opts, LINE_BUFFER_SIZE,
+	         "-I opencl %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
 	        global_opts,
 	        get_platform_vendor_id(get_platform_id(sequential_id)) ==
 	         PLATFORM_MESA ? "-D__MESA__ " :
@@ -1294,9 +1196,7 @@ static char *include_source(const char *pathname, int sequential_id, const char 
 	        opencl_driver_ver(sequential_id),
 	        opts ? opts : "");
 
-	MEM_FREE(full_path);
-
-	return include;
+	return build_opts;
 }
 
 void opencl_build(int sequential_id, const char *opts, int save, const char *file_name, cl_program *program, const char *kernel_source_file, const char *kernel_source)
@@ -1322,8 +1222,8 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	    clCreateProgramWithSource(context[sequential_id], 1, srcptr,
 	                              NULL, &err_code);
 	HANDLE_CLERROR(err_code, "clCreateProgramWithSource");
-	// include source is thread safe.
-	build_opts = include_source("$JOHN/opencl", sequential_id, opts);
+
+	build_opts = get_build_opts(sequential_id, opts);
 
 	if (options.verbosity > VERB_LEGACY)
 		fprintf(stderr, "Options used: %s %s\n", build_opts,
@@ -1353,8 +1253,44 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	}
 #endif /* HAVE_MPI */
 
-	build_code = clBuildProgram(*program, 0, NULL,
-	                            build_opts, NULL, NULL);
+/*
+ * Build kernels having temporarily chdir'ed to John's home directory.
+ *
+ * This lets us use simply "-I opencl" instead of having to resolve a pathname,
+ * which might contain spaces (which we'd have to quote) and was problematic on
+ * Cygwin when run from Windows PowerShell (apparently, with Cygwin resolving
+ * pathnames differently than the OpenCL backend would for the includes).
+ *
+ * Saving and restoring of the current directory here is incompatible with
+ * concurrent kernel builds by multiple threads, like we'd do with the
+ * PARALLEL_BUILD setting in descrypt-opencl (currently disabled and considered
+ * unsupported).  We'd probably need to save and restore the directory
+ * before/after all kernel builds, not before/after each.
+ *
+ * We primarily use open()/fchdir(), falling back to getcwd()/chdir() when
+ * open() or/and fchdir() fails.
+ */
+	int old_cwd_fd = -1;
+	char old_cwd[PATH_BUFFER_SIZE];
+	old_cwd[0] = 0;
+	char *john_home = (char *)path_expand_safe("$JOHN/");
+	if (john_home[0] && strcmp(john_home, "./")) {
+		old_cwd_fd = open(".", O_RDONLY);
+		if (!getcwd(old_cwd, sizeof(old_cwd))) {
+			old_cwd[0] = 0;
+			if (old_cwd_fd < 0)
+				fprintf(stderr, "Warning: Cannot save current directory: %s\n", strerror(errno));
+		}
+		if (chdir(john_home))
+			pexit("chdir: %s", john_home);
+	}
+	MEM_FREE(john_home);
+	build_code = clBuildProgram(*program, 0, NULL, build_opts, NULL, NULL);
+	if ((old_cwd_fd >= 0 || old_cwd[0]) && /* We'll only have errno when we attempt a *chdir() here */
+	    (old_cwd_fd < 0 || fchdir(old_cwd_fd)) && (!old_cwd[0] || chdir(old_cwd)))
+		fprintf(stderr, "Warning: Cannot restore current directory: %s\n", strerror(errno));
+	if (old_cwd_fd >= 0)
+		close(old_cwd_fd);
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(*program,
 	                                     devices[sequential_id],
