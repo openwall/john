@@ -556,15 +556,17 @@ void listconf_parse_late(void)
 	if (!strcasecmp(options.listconf, "formats")) {
 		struct fmt_main *format;
 		int column = 0, dynamics = 0;
-		int grp_dyna;
+		int grp_dyna, total = 0;
 		char *format_option = options.format ? options.format : options.format_list;
 
-		grp_dyna = !format_option || !strcasestr(format_option, "dynamic");
+		grp_dyna = !format_option || (!strcasestr(format_option, "disabled") && !strcasestr(format_option, "dynamic"));
 
 		format = fmt_list;
 		do {
 			int length;
 			const char *label = format->params.label;
+
+			total++;
 
 			if (grp_dyna && !strncmp(label, "dynamic", 7)) {
 				if (dynamics++)
@@ -572,6 +574,7 @@ void listconf_parse_late(void)
 				else
 					label = "dynamic_n";
 			}
+
 			length = strlen(label) + 2;
 			column += length;
 			if (column > 78) {
@@ -582,6 +585,12 @@ void listconf_parse_late(void)
 			       (format->next && (!grp_dyna || !dynamics || strncmp(format->next->params.label, "dynamic", 7))) ?
 			       ", " : "\n");
 		} while ((format = format->next));
+
+		fflush(stdout);
+		fprintf(stderr, "%d formats", total);
+		if (dynamics)
+			fprintf(stderr, " (%d dynamic formats shown as just \"dynamic_n\" here)", dynamics);
+		fprintf(stderr, "\n");
 
 		exit(EXIT_SUCCESS);
 	}

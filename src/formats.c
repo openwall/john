@@ -23,6 +23,7 @@
 #include "dynamic_compiler.h"
 #ifndef BENCH_BUILD
 #include "options.h"
+#include "config.h"
 #include "loader.h"
 #endif
 #include "john.h"
@@ -71,10 +72,37 @@ static void test_fmt_case(struct fmt_main *format, void *binary,
  */
 int fmt_match(const char *req_format, struct fmt_main *format)
 {
-	char *pos = NULL;
-
 	/* Exact full match */
 	if (!strcasecmp(req_format, format->params.label))
+		return 1;
+
+#ifndef BENCH_BUILD
+	char *pos = NULL;
+
+#ifndef DYNAMIC_DISABLED
+	if (!strncasecmp(req_format, "dynamic=", 8) && !strcasecmp(format->params.label, "dynamic=")) {
+		DC_HANDLE H;
+
+		if (!dynamic_compile(req_format, &H) && !dynamic_assign_script_to_format(H, format))
+			return 1;
+	}
+#endif
+
+	/* Override any config settings such as [Disabled:Formats] */
+	if (!strcasecmp(req_format, "all"))
+		return 1;
+
+	/* Is this format disabled? */
+	if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, format->params.label, 0)) {
+		if (!strcasecmp(req_format, "disabled"))
+			return 1;
+
+		if (!strcasecmp(req_format, "enabled"))
+			return 0;
+
+		if (options.flags & FLG_TEST_CHK)
+			return 0;
+	} else if (!strcasecmp(req_format, "enabled"))
 		return 1;
 
 	/* Label wildcard, as in --format=office* */
@@ -110,7 +138,7 @@ int fmt_match(const char *req_format, struct fmt_main *format)
 		return (strcasestr(format->params.format_name, ++pos) != NULL);
 
 	/* Format classes */
-	if (!strcasecmp(req_format, "dynamic") || !strcasecmp(req_format, "dynamic-all"))
+	if (!strcasecmp(req_format, "dynamic"))
 		return (format->params.flags & FMT_DYNAMIC);
 
 	if (!strcasecmp(req_format, "cpu"))
@@ -128,14 +156,7 @@ int fmt_match(const char *req_format, struct fmt_main *format)
 	if (!strcasecmp(req_format, "omp"))
 		return (format->params.flags & FMT_OMP);
 
-#if !defined BENCH_BUILD && !defined DYNAMIC_DISABLED
-	if (!strncasecmp(req_format, "dynamic=", 8) && !strcasecmp(format->params.label, "dynamic=")) {
-		DC_HANDLE H;
-
-		if (dynamic_compile(req_format, &H) && dynamic_assign_script_to_format(H, format))
-			return 1;
-	}
-#endif
+#endif /* BENCH_BUILD */
 	return 0;
 }
 
@@ -206,6 +227,19 @@ static int prune_formats(char *req_format)
 	return removed;
 }
 
+static int is_in_fmt_list(char *req_format)
+{
+	struct fmt_main *current;
+	int result = 0;
+
+	if ((current = fmt_list))
+	do
+		result += fmt_match(req_format, current);
+	while ((current = current->next));
+
+	return result;
+}
+
 /* Modelled after ldr_split_string */
 static void comma_split(struct list_main *dst, const char *src)
 {
@@ -273,7 +307,7 @@ int fmt_check_custom_list(void)
 			do {
 				if ((req_format->data[0] != '-') && (req_format->data[0] != '+')) {
 					had_i = 1;
-					if (!include_formats(req_format->data, &full_fmt_list)) {
+					if (!include_formats(req_format->data, &full_fmt_list) && !is_in_fmt_list(req_format->data)) {
 						if (john_main_process)
 							fprintf(stderr, "Error: No format matched '%s'%s\n", req_format->data,
 							        num_e ? " after exclusions" : "");
