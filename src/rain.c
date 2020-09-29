@@ -309,11 +309,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
-	if( charcount % 2 == 0 ) {
-	    if( john_main_process )
-	        fprintf(stderr, "Only character sets of odd lengths are supported.\n");
-	    error();
-	}
 	counter = 0;
 	subtotal = 0;
 	
@@ -364,7 +359,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	            accu[i] += j + 1;
 	    else
 	        for(j=1; j<=minlength+i; ++j)
-	            accu[i] += j + 2;
+	            accu[i] += j + 1;
 	}
 	
 	keyspace = (uint64_t) pow(charcount, rain_cur_len);
@@ -396,30 +391,18 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 			if(!skip) {
 				quick_conversion = 1;
-				if( mpl % 2 ) {
-		            if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
-					    quick_conversion = 0;
-		            }
-                    for(i=1; i<mpl; ++i) {
-					    if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % (mpl-1) + 1] + rotate[loop]) % charcount]) > cp_max ) {
-						    quick_conversion = 0;
-					    }
-					    rotate[loop]+=i+3;
-					}
-                    rotate[loop] -= accu[loop];
+	            if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
+				    quick_conversion = 0;
 	            }
-	            else {
-				    for(i=0; i<mpl; ++i) {
-				        if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + rotate[loop]) % charcount]) > cp_max ) {
-					        quick_conversion = 0;
-				        }
-                        rotate[loop]+=i+3;
-                    }
-                    rotate[loop] -= accu[loop];
-			    } 
+                for(i=1; i<mpl; ++i) {
+				    if( (rain[i] = charset_utf32[(charset_idx[loop][i] + rotate[loop]) % charcount]) > cp_max ) {
+					    quick_conversion = 0;
+				    }
+				    rotate[loop]+=i+3;
+				}
+                rotate[loop] -= accu[loop];
 	            submit(rain);
 	        }
-            strafe[loop] += 3;//works with odd set
 
 		    int pos = mpl - 1;
 
