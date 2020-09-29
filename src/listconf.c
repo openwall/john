@@ -556,7 +556,7 @@ void listconf_parse_late(void)
 	if (!strcasecmp(options.listconf, "formats")) {
 		struct fmt_main *format;
 		int column = 0, dynamics = 0;
-		int grp_dyna, total = 0;
+		int grp_dyna, total = 0, add_comma = 0;
 		char *format_option = options.format ? options.format : options.format_list;
 
 		grp_dyna = !format_option || (!strcasestr(format_option, "disabled") && !strcasestr(format_option, "dynamic"));
@@ -577,14 +577,17 @@ void listconf_parse_late(void)
 
 			length = strlen(label) + 2;
 			column += length;
+			if (add_comma)
+				printf(", ");
+			else
+				add_comma = 1;
 			if (column > 78) {
 				printf("\n");
 				column = length;
 			}
-			printf("%s%s", label,
-			       (format->next && (!grp_dyna || !dynamics || strncmp(format->next->params.label, "dynamic", 7))) ?
-			       ", " : "\n");
+			printf("%s", label);
 		} while ((format = format->next));
+		printf("\n");
 
 		fflush(stdout);
 		fprintf(stderr, "%d formats", total);
