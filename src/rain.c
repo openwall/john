@@ -318,6 +318,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	subtotal = 0;
 	
 	status_init(get_progress, 0);
+	
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 	
@@ -360,7 +361,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	for(i=0; i<=maxlength-minlength; ++i) {
 	    if((minlength+i) % 2)
 	        for(j=2; j<=minlength+i; ++j)
-	            accu[i] += j + 2;
+	            accu[i] += j + 1;
 	    else
 	        for(j=1; j<=minlength+i; ++j)
 	            accu[i] += j + 2;
@@ -396,8 +397,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
             
 			if(!skip) {
 				quick_conversion = 1;
-				if( mplMod2 )
-				{
+				if( mplMod2 ) {
 		            if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
 					    quick_conversion = 0;
 		            }
@@ -409,8 +409,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					}
                     rotate[loop] -= accu[loop];
 	            }
-	            else
-				{
+	            else {
 				    for(i=0; i<mpl; ++i) {
 				        if( (rain[i] = charset_utf32[(charset_idx[loop][(strafe[loop]+i) % mpl] + rotate[loop]) % charcount]) > cp_max ) {
 					        quick_conversion = 0;
@@ -419,9 +418,9 @@ int do_rain_crack(struct db_main *db, char *req_charset)
                     }
                     rotate[loop] -= accu[loop];
 			    } 
-	            submit(rain);   
+	            submit(rain);
+	            strafe[loop] += 3;//works with odd set
 	        }
-	        strafe[loop] += 3;//works with odd set
 
 		    int pos = mpl - 1;
 
