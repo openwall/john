@@ -174,7 +174,7 @@ static void init(struct fmt_main *_self)
 
 	Twofish_initialise();
 
-	if (!warned++ && !bench_or_test_running) {
+	if (!warned++ && !bench_or_test_running && !options.listconf) {
 		fprintf(stderr, "[ATTENTION] This format (%s) does not support cascaded cipher modes yet.\n", FORMAT_LABEL);
 	}
 }
