@@ -394,37 +394,52 @@ their number could potentially be decreasing as some hashes get cracked.
 To have the cracked hashes (and possibly salts) removed from all
 processes, you may interrupt and restore the session once in a while.
 
+
 --format=NAME[,NAME...]		force hash type NAME
 
-Override the hash type auto-detection.  You can use this option when
-you're starting a cracking session or along with things like: "--test",
-"--show", "-list" or "--make-charset".  Note that John can't crack hashes
-of different types at the same time.  If you happen to get a password file
-that uses more than one hash type, then you have to invoke John once for
-each hash type and you need to use this option to make John crack hashes of
-types other than the one it would autodetect by default.  For normal use,
-you'd use a full exact format label such as "--format=crypt-md5".  Mainly
-for test and list purposes (see --list=WHAT), you can use a single wildcard,
-as in "--format=mysql-*", "--format=raw*ng" or "--format=*office", or group
-aliases such as "dynamic", "cpu", "omp", "opencl", "ztex" as a format name.
+Override the hash type auto-detection.  You can use this option when you're
+starting a cracking session or along with things like: "--test", "--show",
+"-list" or "--make-charset".  Note that John can't crack hashes of different
+types at the same time.  If you happen to get a password file that has more
+than one hash type, you have to invoke John once for each hash type and you
+need to use this option to make John crack hashes of types other than the
+one it would autodetect by default.  For normal use, you'd use a full exact
+format label such as "--format=crypt-md5".
+
+Mainly for test and list purposes (see --list=WHAT), you can use a single
+wildcard, as in "--format=mysql-*", "--format=raw*ng" or "--format=*office",
+or group aliases such as "dynamic", "cpu", "omp", "opencl", "ztex" as a
+well as the special "all" that will include even formats listed as disabled
+in john.conf (so "./john -test=0 -format=all" will ensure you actually test
+all formats regardless of config).  While on the subject of disabled formats,
+aliases "enabled" or "disabled" can also be used, eg. for listing which of
+them are.
+
 There's also a special way to match any substring within the "algorithm
 name" (the string shown within brackets, e.g. "[DES 128/128 AVX-16]")
-using @tag syntax as in e.g. "--format=@DES" or "--format=@AVX". Similarly
-you can match a substring in the "format name" (the longer name, not the
-label) using #tag format.  For example, if you forgot which format handles
-the  IPMI hashes, you can say --format=#ipmi and the correct format (in
-this case RAKP) will be used.  Regardless of method, the matching ignores
-case.  Several formats can be specified at once, separated by commas, and
-prepending a format, wildcard or class with a "-" will exclude instead of
-include (eg. "--format=#ipmi,-cpu" for again finding the RAKP format but
-this time rejecting the CPU version so will end up finding "RAKP-OpenCL"
-as long as your build supports OpenCL).  The order given of any "include"
-parts of a format list will be honored so this it feature can also be used
-for merely changing format precedence during auto-detection. Prepending a
-format, wildcard or class with a "+" will promote it to a requirement as
-opposed to an inclusion. That is, "--format=omp,+cpu" will first "include"
-any OMP formats but then prune all of them that does not match format class
-"CPU".
+using @tag syntax as in e.g. "--format=@DES" or "--format=@AVX".
+
+Similarly you can match a substring in the "format name" (the longer name,
+not the label) using #tag format.  For example, if you forgot which format
+handles the IPMI hashes, you can say --format=#ipmi and the correct formats
+(in this case RAKP and perhaps RAKP-opencl) will be used.  Regardless of
+method, the matching ignores case.
+
+Several formats can be specified at once separated by commas, and prepending
+a format, wildcard or class with a "-" will exclude instead of include (eg.
+"--format=#ipmi,-cpu" for again finding the RAKP format but this time
+rejecting the CPU version so will end up finding "RAKP-OpenCL" as long as
+your build supports OpenCL.  Prepending a format, wildcard or class with a
+"+" will instead promote it to a "requirement":  "--format=#ipmi,+opencl"
+will also find RAKP-opencl (there would be a slight difference in case eg.
+a ZTEX version were also available).
+
+The order given of any "include" parts of a format list will be honored and
+this can be used for merely changing format precedence while otherwise
+keeping auto-detection.  This means eg. "--format=ztex,opencl,cpu" for a
+crack session will end up in auto-detection among all formats, just like no
+format option was used, except it will prefer ztex over opencl and only use
+a CPU format unless a ZTEX or OpenCL format was available.
 
 The ad-hoc dynamic, or "dynamic compiler" format can not be used in a format
 list or with wildcards, only on it's own.  This is because the expression
@@ -449,12 +464,13 @@ The "--subformat=TYPE" can be added for benchmarking other types, given
 they are supported by the system.  Currently supported TYPEs are
 md5crypt, bcrypt, sha256crypt and sha512crypt.
 
-"--format=crypt" is also a way to make John crack crypt(3) hashes of
-different types at the same time, but doing so results in poor
+Incidentally "--format=crypt" is also a way to make John crack crypt(3)
+hashes of different types at the same time, but doing so results in poor
 performance and in unnecessarily poor results (in terms of passwords
 cracked) for hashes of the "faster" types (as compared to the "slower"
 ones loaded for cracking at the same time).  So you are advised to use
 separate invocations of John, one per hash type.
+
 
 --mem-file-size=SIZE		max. size of wordlist to preload into memory
 
