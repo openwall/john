@@ -400,10 +400,9 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				    }
 				    rotate[loop]+=i+3;
 				}
-                rotate[loop] -= accu[loop];
 	            submit(rain);
 	        }
-
+            rotate[loop] -= accu[loop];
 		    int pos = mpl - 1;
 
 			while(pos >= 0 && ++charset_idx[loop][mpl-1-pos] >= charcount) {
