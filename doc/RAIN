@@ -11,8 +11,7 @@ This is a bruteforce with word's length 6 and set's size 3; so 3^6 words are oup
 When doing this on a broad range, you generaly don't want to spend a month testing words that start with aaaa...  
 With jtr, you have several options: use -inc, -markov, or -subsets... and you can use this one: -rain.   
 
-This module is using a strafe on the value of i in the loop on i<length, so that the processing of characters rotate.  
-Another thing is that we are rotating the characters being choose from the set, for this purpose another strafing variable is used.  
-Instead of being stuck with either only chunks of the words being processed (first method only) or with repetitive patterns(second method only);  
-the combination of these two methods creates a truly shattered generation that still falls right.    
-
+We are rotating the characters being choosen from the set, for this purpose a strafing variable is  
+increased inside of the loop on the length of the words, and decreased by one  
+less iteration and by a value lower by one.   
+This creates mangled patterns that are evolving along with the state of the bruteforce.  
