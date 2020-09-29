@@ -2119,6 +2119,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 	mask_db = db;
 	mask_fmt = db->format;
+	mask_bench_index = 0;
 
 	/* These formats are too wierd for magnum to get working */
 	if (!strcasecmp(mask_fmt->params.label, "descrypt-opencl") ||
