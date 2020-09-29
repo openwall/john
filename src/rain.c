@@ -393,11 +393,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 			int mpl = minlength + loop;
-            int mplMod2 = mpl % 2;
-            
+
 			if(!skip) {
 				quick_conversion = 1;
-				if( mplMod2 ) {
+				if( mpl % 2 ) {
 		            if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
 					    quick_conversion = 0;
 		            }
@@ -419,8 +418,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
                     rotate[loop] -= accu[loop];
 			    } 
 	            submit(rain);
-	            strafe[loop] += 3;//works with odd set
 	        }
+            strafe[loop] += 3;//works with odd set
 
 		    int pos = mpl - 1;
 
