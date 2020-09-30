@@ -46,8 +46,6 @@ static int minlength;
 static int state_restored;
 static uint64_t keyspace;
 static uint64_t subtotal;
-static uint64_t strafe[MAX_CAND_LENGTH-1];
-static uint64_t rec_strafe[MAX_CAND_LENGTH-1];
 
 static uint64_t rotate[MAX_CAND_LENGTH-1];
 static uint64_t rec_rotate[MAX_CAND_LENGTH-1];
@@ -80,7 +78,6 @@ static void fix_state(void)
 	
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		rec_strafe[i] = strafe[i];
 		rec_rotate[i] = rotate[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
@@ -97,7 +94,6 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%"PRIu64"\n", rec_strafe[i]);
 		fprintf(file, "%"PRIu64"\n", rec_rotate[i]);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
@@ -118,9 +114,6 @@ static int restore_state(FILE *file)
 
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
-			strafe[i] = r;
-		else return 1;
-        if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
 			rotate[i] = r;
 		else return 1;
 
@@ -358,7 +351,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	        for(j=2; j<=minlength+i; ++j)
 	            accu[i] += j + 1;
 	    else
-	        for(j=1; j<=minlength+i; ++j)
+	        for(j=1; j<minlength+i; ++j)
 	            accu[i] += j + 1;
 	}
 	
