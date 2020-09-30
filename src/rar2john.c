@@ -733,7 +733,8 @@ int read_vuint (FILE *fp, uint64_t *n, uint32_t *bytes_read) {
  * Process an 'extra' block of data. This is where rar5 stores the
  * encryption block.
  *************************************************************************/
-static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint32_t HeaderType, uint32_t CurBlockPos, const char *archive_name) {
+static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint32_t HeaderType, uint32_t CurBlockPos, const char *archive_name, int *found)
+{
 	uint64_t FieldSize, FieldType, EncVersion, Flags;
 	uint32_t bytes_read=0;
 	int bytes_left=(int)extra_size;
@@ -767,6 +768,7 @@ static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint
                 if (!read_buf(fp, rar5_salt, SIZE_SALT50, &bytes_read)) return 0;
                 if (!read_buf(fp, InitV, SIZE_INITV, &bytes_read)) return 0;
                 if (!read_buf(fp, PswCheck, SIZE_PSWCHECK, &bytes_read)) return 0;
+                (*found)++;
                 printf("%s:$rar5$%d$%s$%d$%s$%d$%s\n",
                     base_aname,
                     SIZE_SALT50, base64_convert_cp(rar5_salt,e_b64_raw,SIZE_SALT50,Hex1,e_b64_hex,sizeof(Hex1),0, 0),
@@ -783,7 +785,8 @@ static int ProcessExtra50(FILE *fp, uint64_t extra_size, uint64_t HeadSize, uint
  * Common file header processing for rar5
  *************************************************************************/
 
-static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType, const char *archive_name) {
+static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType, const char *archive_name, int *found)
+{
 	uint64_t block_size, flags, extra_size=0, data_size=0;
 	uint64_t crypt_version, enc_flags, HeadSize;
 	uint32_t head_crc, header_bytes_read = 0, sizeof_vint;
@@ -799,6 +802,7 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType
             fprintf(stderr, "Error, rar file %s too short, could not read IV from header\n", archive_name);
             return 0;
         }
+        (*found)++;
         printf("%s:$rar5$%d$%s$%d$%s$%d$%s\n",
             base_aname,
             SIZE_SALT50, base64_convert_cp(rar5_salt,e_b64_raw,SIZE_SALT50,Hex1,e_b64_hex,sizeof(Hex1),0, 0),
@@ -873,7 +877,7 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType
         // skip the field name.
         jtr_fseek64(fp, NameSize, SEEK_CUR);
         if (extra_size != 0)
-            ProcessExtra50(fp, extra_size, HeadSize, *HeaderType, CurBlockPos, archive_name);
+	        ProcessExtra50(fp, extra_size, HeadSize, *HeaderType, CurBlockPos, archive_name, found);
 
     } else if (header_type == HEAD_ENDARC) {
         return 0;
@@ -916,16 +920,21 @@ static int process_file5(const char *archive_name) {
                 goto err;
 		}
 	}
+	found = 0;
 	while (1) {
 		uint8_t HeaderType;
+
 		CurBlockPos = (size_t)jtr_ftell64(fp);
-		NextBlockPos = read_rar5_header(fp, CurBlockPos, &HeaderType, archive_name);
+		NextBlockPos = read_rar5_header(fp, CurBlockPos, &HeaderType, archive_name, &found);
 		if (!NextBlockPos)
 			break;
 		// fprintf(stderr, "NextBlockPos is %d Headertype=%d curblockpos=%d\n", NextBlockPos, HeaderType, CurBlockPos);
 		jtr_fseek64(fp, NextBlockPos, SEEK_SET);
 	}
     if (fp) fclose(fp);
+    if (!found)
+	    fprintf(stderr, "! Did not find a valid encrypted candidate in %s\n", archive_name);
+
     return 1;
 err:;
 	if (fp) fclose(fp);
