@@ -703,7 +703,7 @@ char *john_loaded_counts(struct db_main *db, char *prelude)
 	static char buf[128];
 	char nbuf[24];
 
-	if (db->password_count == 0)
+	if (db->password_count == 0 || db->salt_count == 0)
 		return "No remaining hashes";
 
 	if (db->password_count == 1) {
