@@ -338,7 +338,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		rain_cur_len = minlength;
 		
 		for(i=0; i<= maxlength - minlength; i++) {
-			strafe[i] = 0;
 			rotate[i] = 0;
 			accu[i] = 0;
 			for (j = 0; j < maxlength; j++)
