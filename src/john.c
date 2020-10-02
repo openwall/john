@@ -1651,11 +1651,10 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 
 	status_init(NULL, 1);
-	if (argc < 2 ||
-            (argc == 2 &&
-             (!strcasecmp(argv[1], "--help") ||
-              !strcasecmp(argv[1], "-h") ||
-              !strcasecmp(argv[1], "-help"))))
+	if (argc == 2 &&
+	     (!strcasecmp(argv[1], "--help") ||
+	      !strcasecmp(argv[1], "-h") ||
+	      !strcasecmp(argv[1], "-help")))
 	{
 		john_register_all(); /* for printing by opt_init() */
 		show_usage = 1;

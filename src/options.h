@@ -436,9 +436,4 @@ extern struct options_main options;
  */
 extern void opt_init(char *name, int argc, char **argv, int show_usage);
 
-/*
- * Prints the "hidden" options usage
- */
-extern void opt_print_hidden_usage(void);
-
 #endif

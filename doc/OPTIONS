@@ -448,7 +448,7 @@ separate invocations of John, one per hash type.
 
 For performance reasons, Jumbo preloads the wordlist file into memory instead
 of reading line by line, when rules are in use.  The default max. size file
-for this to happen is shown in --list=hidden-options.  A special value is
+for this to happen is shown among the --help options.  A special value is
 --mem-file-size=0. This will force loading to memory regardless of file size
 (take care not to exceed your physical memory limits, or things will just run
 much slower).  NOTE if --save-memory > 2, default preload will be disabled.
