@@ -743,7 +743,7 @@ check: default
 	../run/john --list=build-info
 	$(MAKE) unit-tests
 	../run/john --test=0 --verbosity=2 --format=cpu
-	../run/john --test=0 --verbosity=2 --format=dynamic-all
+	../run/john --test=0 --verbosity=2 --format=+dynamic,all
 
 depend:
 	makedepend -fMakefile.dep -Y *.c 2>> /dev/null
