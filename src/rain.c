@@ -51,6 +51,7 @@ static uint64_t rotate[MAX_CAND_LENGTH-1];
 static uint64_t strafe[MAX_CAND_LENGTH-1];
 
 static uint64_t rec_rotate[MAX_CAND_LENGTH-1];
+static uint64_t rec_strafe[MAX_CAND_LENGTH-1];
 
 static int accu[MAX_CAND_LENGTH-1];
 
@@ -81,6 +82,7 @@ static void fix_state(void)
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		rec_rotate[i] = rotate[i];
+		rec_strafe[i] = strafe[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -97,6 +99,7 @@ static void save_state(FILE *file)
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		fprintf(file, "%"PRIu64"\n", rec_rotate[i]);
+		fprintf(file, "%"PRIu64"\n", rec_strafe[i]);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -117,6 +120,10 @@ static int restore_state(FILE *file)
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
 			rotate[i] = r;
+		else return 1;
+
+		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
+			strafe[i] = r;
 		else return 1;
 
 		for(j = 0; j < maxlength; ++j)
@@ -304,9 +311,9 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
-	if( charcount % 2 )
+	if(charcount < 4)
 	    if( john_main_process ) {
-	        fprintf(stderr, "You must use a charatcer set of even length.\n");
+	        fprintf(stderr, "Character set is too small.\n");
 	        error();
 	    }
 	
@@ -382,26 +389,33 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 			if(!skip) {
 				quick_conversion = 1;
-				if( mpl % 2 ) {
+				if( mpl%2 ) {
 	                if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
 				        quick_conversion = 0;
 	                }
                     for(i=1; i<mpl; ++i) {
-				        if( (rain[i] = charset_utf32[(charset_idx[loop][(i + strafe[loop]) % (mpl-1)+1] + rotate[loop]) % charcount]) > cp_max ) {
+				        if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-1) + 1] + rotate[loop]) % charcount]) > cp_max ) {
 					        quick_conversion = 0;
 				        }
 				    }   
 				}
 				else {
-				    for(i=0; i<mpl; ++i) {
-			            if( (rain[i] = charset_utf32[(charset_idx[loop][(i + strafe[loop]) % mpl] + rotate[loop]) % charcount]) > cp_max ) {
+				    if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
+				        quick_conversion = 0;
+	                }
+	                if( (rain[1] = charset_utf32[charset_idx[loop][1]]) > cp_max ) {
+				        quick_conversion = 0;
+	                }
+				    for(i=2; i<mpl; ++i) {
+			            if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-2)+2] + rotate[loop]) % charcount]) > cp_max ) {
 				            quick_conversion = 0;
 			            }
 			        }   
 				}
 	            submit(rain);
 	        }
-	        strafe[loop] += 4;
+	        strafe[loop] += 2;
+	        rotate[loop] += 2;
 	        
 		    int pos = mpl - 1;
             
