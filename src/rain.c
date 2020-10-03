@@ -314,7 +314,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if(charcount < 4)
 	    if( john_main_process ) {
 	        fprintf(stderr, "Character set is too small.\n");
-	        error();
+	        //error();
 	    }
 	
 	counter = 0;
@@ -389,28 +389,41 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 			if(!skip) {
 				quick_conversion = 1;
-				if( mpl%2 ) {
-	                if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
-				        quick_conversion = 0;
-	                }
-                    for(i=1; i<mpl; ++i) {
-				        if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-1) + 1] + rotate[loop]) % charcount]) > cp_max ) {
-					        quick_conversion = 0;
-				        }
-				    }   
+				if( mpl > 3 ) {
+				    if( mpl%2 ) {
+	                    if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
+				            quick_conversion = 0;
+	                    }
+                        if( (rain[1] = charset_utf32[charset_idx[loop][1]]) > cp_max ) {
+				            quick_conversion = 0;
+	                    }
+                        if( (rain[2] = charset_utf32[charset_idx[loop][2]]) > cp_max ) {
+				            quick_conversion = 0;
+	                    }
+                        for(i=3; i<mpl; ++i) {
+				            if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-3) + 3] + rotate[loop]) % charcount]) > cp_max ) {
+					            quick_conversion = 0;
+				            }
+				        }   
+				    }
+				    else {
+				        if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
+				            quick_conversion = 0;
+	                    }
+	                    if( (rain[1] = charset_utf32[charset_idx[loop][1]]) > cp_max ) {
+				            quick_conversion = 0;
+	                    }
+				        for(i=2; i<mpl; ++i) {
+			                if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-2)+2] + rotate[loop]) % charcount]) > cp_max ) {
+				                quick_conversion = 0;
+			                }
+			            }   
+				    }
 				}
 				else {
-				    if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
-				        quick_conversion = 0;
-	                }
-	                if( (rain[1] = charset_utf32[charset_idx[loop][1]]) > cp_max ) {
-				        quick_conversion = 0;
-	                }
-				    for(i=2; i<mpl; ++i) {
-			            if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-2)+2] + rotate[loop]) % charcount]) > cp_max ) {
-				            quick_conversion = 0;
-			            }
-			        }   
+				    for(i=0; i<mpl; ++i)
+				        if( (rain[i] = charset_utf32[charset_idx[loop][i]]) > cp_max )
+			                quick_conversion = 0;
 				}
 	            submit(rain);
 	        }
