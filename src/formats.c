@@ -70,8 +70,11 @@ static void test_fmt_case(struct fmt_main *format, void *binary,
  * or it can be #name where 'name' must be a substring of format's long name
  * or it can be a format class/group such as "opencl", "dynamic" or "omp"
  */
-int fmt_match(const char *req_format, struct fmt_main *format)
+int fmt_match(const char *req_format, struct fmt_main *format, int override_disable)
 {
+	int enabled = override_disable || !((options.flags & FLG_TEST_CHK) || options.listconf) ||
+		!cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, format->params.label, 0);
+
 	/* Exact full match */
 	if (!strcasecmp(req_format, format->params.label))
 		return 1;
@@ -93,17 +96,10 @@ int fmt_match(const char *req_format, struct fmt_main *format)
 		return 1;
 
 	/* Is this format disabled? */
-	if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, format->params.label, 0)) {
-		if (!strcasecmp(req_format, "disabled"))
-			return 1;
-
-		if (!strcasecmp(req_format, "enabled"))
-			return 0;
-
-		if (options.flags & FLG_TEST_CHK)
-			return 0;
-	} else if (!strcasecmp(req_format, "enabled"))
-		return 1;
+	if (!strcasecmp(req_format, "disabled"))
+		return cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, format->params.label, 0);
+	else if (!strcasecmp(req_format, "enabled"))
+		return !cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, format->params.label, 0);
 
 	/* Label wildcard, as in --format=office* */
 	/* We disregard '*' for dynamic compiler format in case it's part of an expression */
@@ -126,35 +122,35 @@ int fmt_match(const char *req_format, struct fmt_main *format)
 			if (strcasecmp(&format->params.label[label_len - wild_len], pos))
 				return 0;
 		}
-		return 1;
+		return enabled;
 	}
 
 	/* Algo match, eg. --format=@xop or --format=@sha384 */
 	if (strncasecmp(req_format, "dynamic=", 8) && (pos = strchr(req_format, '@')))
-		return (strcasestr(format->params.algorithm_name, ++pos) != NULL);
+		return enabled && strcasestr(format->params.algorithm_name, ++pos);
 
 	/* Long-name match, eg. --format=#ipmi or --format=#1password */
 	if (strncasecmp(req_format, "dynamic=", 8) && (pos = strchr(req_format, '#')))
-		return (strcasestr(format->params.format_name, ++pos) != NULL);
+		return enabled && strcasestr(format->params.format_name, ++pos);
 
 	/* Format classes */
 	if (!strcasecmp(req_format, "dynamic"))
-		return (format->params.flags & FMT_DYNAMIC);
+		return enabled && (format->params.flags & FMT_DYNAMIC);
 
 	if (!strcasecmp(req_format, "cpu"))
-		return !(strstr(format->params.label, "-opencl") || strstr(format->params.label, "-ztex"));
+		return enabled && !(strstr(format->params.label, "-opencl") || strstr(format->params.label, "-ztex"));
 
 	if (!strcasecmp(req_format, "opencl"))
-		return strstr(format->params.label, "-opencl") != NULL;
+		return enabled && strstr(format->params.label, "-opencl");
 
 	if (!strcasecmp(req_format, "ztex"))
-		return strstr(format->params.label, "-ztex") != NULL;
+		return enabled && strstr(format->params.label, "-ztex");
 
 	if (!strcasecmp(req_format, "mask"))
-		return (format->params.flags & FMT_MASK);
+		return enabled && (format->params.flags & FMT_MASK);
 
 	if (!strcasecmp(req_format, "omp"))
-		return (format->params.flags & FMT_OMP);
+		return enabled && (format->params.flags & FMT_OMP);
 
 #endif /* BENCH_BUILD */
 	return 0;
@@ -170,7 +166,7 @@ static int exclude_formats(char *rej_format, struct fmt_main **full_fmt_list)
 
 	if ((current = *full_fmt_list))
 	do {
-		if (fmt_match(rej_format, current)) {
+		if (fmt_match(rej_format, current, 1)) {
 			if (prev)
 				prev->next = current->next;
 			else
@@ -192,7 +188,7 @@ static int include_formats(char *req_format, struct fmt_main **full_fmt_list)
 	if ((current = *full_fmt_list))
 	do {
 		next = current->next;
-		if (fmt_match(req_format, current)) {
+		if (fmt_match(req_format, current, 0)) {
 			if (prev)
 				prev->next = next;
 			else
@@ -207,14 +203,14 @@ static int include_formats(char *req_format, struct fmt_main **full_fmt_list)
 }
 
 /* Requirements. Drop any format(s) NOT matching req_format from new list */
-static int prune_formats(char *req_format)
+static int prune_formats(char *req_format, int override_disable)
 {
 	struct fmt_main *current, *prev = NULL;
 	int removed = 0;
 
 	if ((current = fmt_list))
 	do {
-		if (!fmt_match(req_format, current)) {
+		if (!fmt_match(req_format, current, override_disable)) {
 			if (prev)
 				prev->next = current->next;
 			else
@@ -234,7 +230,7 @@ static int is_in_fmt_list(char *req_format)
 
 	if ((current = fmt_list))
 	do
-		result += fmt_match(req_format, current);
+		result += fmt_match(req_format, current, 1);
 	while ((current = current->next));
 
 	return result;
@@ -316,7 +312,7 @@ int fmt_check_custom_list(void)
 				}
 			} while ((req_format = req_format->next));
 
-			if (had_i == 0)
+			if (!had_i)
 				include_formats("*", &full_fmt_list);
 
 			/* "+" Requirements. Scan the new list and prune formats not matching. */
@@ -327,7 +323,7 @@ int fmt_check_custom_list(void)
 
 					if (!require_fmt[0])
 						error_msg("Error: '%s' in format list doesn't make sense\n", req_format->data);
-					prune_formats(require_fmt);
+					prune_formats(require_fmt, had_i);
 				}
 			} while ((req_format = req_format->next));
 

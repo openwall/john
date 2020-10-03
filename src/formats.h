@@ -447,7 +447,7 @@ extern void fmt_register(struct fmt_main *format);
 /*
  * Match req_format to format, supporting wildcards/groups/classes etc.
  */
-extern int fmt_match(const char *req_format, struct fmt_main *format);
+extern int fmt_match(const char *req_format, struct fmt_main *format, int override_disable);
 
 /*
  * Check for --format=LIST and if so, re-populate fmt_list from it.
