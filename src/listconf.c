@@ -411,6 +411,9 @@ void listconf_parse_early(void)
 
 	if (!strcasecmp(options.listconf, "encodings"))
 	{
+		if (options.format)
+			error_msg("--format not allowed with \"--list=%s\"\n", options.listconf);
+
 		listEncodings(stdout);
 		exit(EXIT_SUCCESS);
 	}
@@ -479,6 +482,9 @@ void listconf_parse_late(void)
 	if ((options.subformat && !strcasecmp(options.subformat, "list")) ||
 	    (options.listconf && !strcasecmp(options.listconf, "subformats")))
 	{
+		if (options.format)
+			error_msg("--format not allowed with \"--list=subformats\"\n");
+
 		dynamic_DISPLAY_ALL_FORMATS();
 /* NOTE if we have other 'generics', like sha1, sha2, rc4... then EACH of them
    should have a DISPLAY_ALL_FORMATS() function and we can call them here. */

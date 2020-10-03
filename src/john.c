@@ -198,14 +198,17 @@ static void john_register_one(struct fmt_main *format)
 {
 	if (options.format) {
 		if (options.format[0] == '-' && options.format[1]) {
-			if (fmt_match(&options.format[1], format))
+			if (fmt_match(&options.format[1], format, 1))
 				return;
 		} else if (options.format[0] == '+' && options.format[1]) {
-			if (!fmt_match(&options.format[1], format))
+			if (!fmt_match(&options.format[1], format, 0))
 				return;
-		} else if (!fmt_match(options.format, format))
+		} else if (!fmt_match(options.format, format, 0))
 			return;
-	}
+	} else if (!options.format_list)
+		if (cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, format->params.label, 0) &&
+		    ((options.flags & FLG_TEST_CHK) || options.listconf))
+			return;
 
 	fmt_register(format);
 }
