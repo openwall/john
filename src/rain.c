@@ -48,6 +48,8 @@ static uint64_t keyspace;
 static uint64_t subtotal;
 
 static uint64_t rotate[MAX_CAND_LENGTH-1];
+static uint64_t strafe[MAX_CAND_LENGTH-1];
+
 static uint64_t rec_rotate[MAX_CAND_LENGTH-1];
 
 static int accu[MAX_CAND_LENGTH-1];
@@ -302,6 +304,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
+	if( charcount % 2 )
+	    if( john_main_process ) {
+	        fprintf(stderr, "You must use a charatcer set of even length.\n");
+	        error();
+	    }
+	
 	counter = 0;
 	subtotal = 0;
 	
@@ -332,31 +340,22 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			fprintf(stderr, "\n");
 		}
 	}
-		
+	
 	if(!state_restored)
 	{
 		rain_cur_len = minlength;
-		
+		srand(time(NULL));
 		for(i=0; i<= maxlength - minlength; i++) {
 			rotate[i] = 0;
+			strafe[i] = 0;
 			accu[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
 	}
-	//we can avoid doing this on the fly
-	for(i=0; i<=maxlength-minlength; ++i) {
-	    if((minlength+i) % 2)
-	        for(j=2; j<=minlength+i; ++j)
-	            accu[i] += j + 1;
-	    else
-	        for(j=1; j<minlength+i; ++j)
-	            accu[i] += j + 1;
-	}
-	
 	keyspace = (uint64_t) pow(charcount, rain_cur_len);
 	if(rain_cur_len > minlength)
-	subtotal = (uint64_t) pow((double) charcount, (double) rain_cur_len-1);
+	    subtotal = (uint64_t) pow((double) charcount, (double) rain_cur_len-1);
 
 	crk_init(db, fix_state, NULL);
 	
@@ -383,19 +382,29 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 			if(!skip) {
 				quick_conversion = 1;
-	            if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
-				    quick_conversion = 0;
-	            }
-                for(i=1; i<mpl; ++i) {
-				    if( (rain[i] = charset_utf32[(charset_idx[loop][i] + rotate[loop]) % charcount]) > cp_max ) {
-					    quick_conversion = 0;
-				    }
-				    rotate[loop]+=i+3;
+				if( mpl % 2 ) {
+	                if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
+				        quick_conversion = 0;
+	                }
+                    for(i=1; i<mpl; ++i) {
+				        if( (rain[i] = charset_utf32[(charset_idx[loop][(i + strafe[loop]) % (mpl-1)+1] + rotate[loop]) % charcount]) > cp_max ) {
+					        quick_conversion = 0;
+				        }
+				    }   
+				}
+				else {
+				    for(i=0; i<mpl; ++i) {
+			            if( (rain[i] = charset_utf32[(charset_idx[loop][(i + strafe[loop]) % mpl] + rotate[loop]) % charcount]) > cp_max ) {
+				            quick_conversion = 0;
+			            }
+			        }   
 				}
 	            submit(rain);
 	        }
-            rotate[loop] -= accu[loop];
+	        strafe[loop] += 4;
+	        
 		    int pos = mpl - 1;
+            
 
 			while(pos >= 0 && ++charset_idx[loop][mpl-1-pos] >= charcount) {
 			    charset_idx[loop][mpl-1-pos] = 0;
