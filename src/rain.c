@@ -311,12 +311,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
-	if(charcount < 4)
-	    if( john_main_process ) {
-	        fprintf(stderr, "Character set is too small.\n");
-	        //error();
-	    }
-	
 	counter = 0;
 	subtotal = 0;
 	
