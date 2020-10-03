@@ -311,6 +311,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
+	if(charcount < 3) {
+	    if(john_main_process) {
+	        fprintf(stderr, "The set must contain more than two characters.\n");
+	        error();
+	}
+	
 	counter = 0;
 	subtotal = 0;
 	
@@ -388,14 +394,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	                    if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max ) {
 				            quick_conversion = 0;
 	                    }
-                        if( (rain[1] = charset_utf32[charset_idx[loop][1]]) > cp_max ) {
-				            quick_conversion = 0;
-	                    }
-                        if( (rain[2] = charset_utf32[charset_idx[loop][2]]) > cp_max ) {
-				            quick_conversion = 0;
-	                    }
-                        for(i=3; i<mpl; ++i) {
-				            if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-3) + 3] + rotate[loop]) % charcount]) > cp_max ) {
+                        for(i=1; i<mpl; ++i) {
+				            if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-1) + 1] + rotate[loop]) % charcount]) > cp_max ) {
 					            quick_conversion = 0;
 				            }
 				        }   
@@ -421,8 +421,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				}
 	            submit(rain);
 	        }
-	        strafe[loop] += 2;
-	        rotate[loop] += 2;
+	        strafe[loop]++;
+	        rotate[loop]++;
 	        
 		    int pos = mpl - 1;
             
