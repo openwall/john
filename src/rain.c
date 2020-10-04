@@ -311,13 +311,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
-	if(charcount < 3) {
-	    if(john_main_process) {
-	        fprintf(stderr, "The set must contain more than two characters.\n");
-	        error();
-	    }
-	}
-	
 	counter = 0;
 	subtotal = 0;
 	
