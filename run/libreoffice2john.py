@@ -50,7 +50,7 @@ def process_file(filename):
     for i in range(0, len(elements)):
         element = elements[i]
         if element.get("{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}full-path") == "content.xml":
-            for j in range(i + 1, i + 1 + 3):
+            for j in range(i + 1, i + 1 + 4):
                 element = elements[j]
                 # print element.items()
                 data = element.get("{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}checksum")
