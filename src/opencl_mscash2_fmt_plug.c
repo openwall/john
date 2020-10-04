@@ -55,6 +55,7 @@ typedef struct {
 
 static cl_uint 		*dcc_hash_host ;
 static cl_uint 		*dcc2_hash_host ;
+static unsigned int    initialized;
 static unsigned char 	(*key_host)[MAX_PLAINTEXT_LENGTH + 1] ;
 static ms_cash2_salt 	currentsalt ;
 static cl_uint          *hmac_sha1_out ;
@@ -84,8 +85,6 @@ static void init(struct fmt_main *__self)
 
 static void reset(struct db_main *db)
 {
-	static unsigned int initialized;
-
 	if (!initialized) {
 		unsigned int i;
 		self->params.max_keys_per_crypt = 0;
@@ -145,6 +144,7 @@ static void done(void) {
 	MEM_FREE(key_host) ;
 	MEM_FREE(hmac_sha1_out);
 	releaseAll();
+	initialized = 0;
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
