@@ -75,6 +75,9 @@ def process_file(filename):
                 data = element.get("{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}key-size")
                 if data:
                     key_size = data
+                data = element.get("{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}start-key-generation-name")
+                if data:
+                    start_key_generation_name = data
 
     if not is_encrypted:
         sys.stderr.write("%s is not an encrypted OpenOffice file!\n" % filename)
@@ -97,7 +100,7 @@ def process_file(filename):
     elif algorithm_name.find("aes256-cbc") > -1:
         algorithm_type = 1
     else:
-        sys.stderr.write("%s uses un-supported encryption!\n" % filename)
+        sys.stderr.write("%s uses unsupported encryption!\n" % filename)
         return 6
 
     if checksum_type.upper().find("SHA1") > -1:
@@ -105,9 +108,21 @@ def process_file(filename):
     elif checksum_type.upper().find("SHA256") > -1:
         checksum_type = 1
     else:
-        sys.stderr.write("%s uses un-supported checksum algorithm!\n" % \
+        sys.stderr.write("%s uses unsupported checksum algorithm!\n" % \
                 filename)
         return 7
+
+    if start_key_generation_name.upper().find("SHA1") > -1:
+        required_checksum_type = 0
+    elif start_key_generation_name.upper().find("SHA256") > -1:
+        required_checksum_type = 1
+    else:
+        required_checksum_type = -1
+
+    if checksum_type != required_checksum_type:
+        sys.stderr.write("%s uses unsupported combination of algorithms!\n" % \
+                filename)
+        return 8
 
     meta_data_available = True
     gecos = ""
