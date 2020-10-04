@@ -47,7 +47,7 @@ def process_file(filename):
 
     is_encrypted = False
     key_size = 16
-    for i in range(0, len(elements)):
+    for i in range(0, len(elements) - 4):
         element = elements[i]
         if element.get("{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}full-path") == "content.xml":
             for j in range(i + 1, i + 1 + 4):
