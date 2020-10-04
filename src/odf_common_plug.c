@@ -41,6 +41,7 @@ int odf_valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p;
+	char cipher_type, checksum_type;
 	int res, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
@@ -50,27 +51,21 @@ int odf_valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* cipher type */
 		goto err;
-	if (strlen(p) != 1)
+	if ((p[0] != '0' && p[0] != '1') || p[1])
 		goto err;
-	res = atoi(p);
-	if (res != 0 && res != 1)
-		goto err;
-
+	cipher_type = p[0];
 	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum type */
 		goto err;
-	if (strlen(p) != 1)
+	if ((p[0] != '0' && p[0] != '1') || p[1])
 		goto err;
-	res = atoi(p);
-	if (res != 0 && res != 1)
-		goto err;
+	checksum_type = p[0];
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iterations */
 		goto err;
 	if (!isdec(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* key size */
 		goto err;
-	res = atoi(p);
-	if (res != 16 && res != 32)
+	if (strcmp(p, "16") && strcmp(p, "32"))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* checksum field (skipped) */
 		goto err;
@@ -80,6 +75,8 @@ int odf_valid(char *ciphertext, struct fmt_main *self)
 	if (res != 40 && res != 64) // 2 hash types (SHA-1 and SHA-256)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* iv length */
+		goto err;
+	if (!isdec(p))
 		goto err;
 	res = atoi(p);
 	if (res > 16 || res < 0)
@@ -92,6 +89,8 @@ int odf_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) >= 10)
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
 	if (res > 32 || res < 0)
 		goto err;
@@ -101,16 +100,23 @@ int odf_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* something (used for original_length from star office hashes) */
 		goto err;
+	if (!isdec(p))
+		goto err;
 	res = atoi(p);
 	if (res > 1024 || res < 0)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* content */
 		goto err;
 	res = strlen(p);
-	if (res > 2048 || res & 1)
+	if (res > 2048 || (res & 1))
 		goto err;
 	if (!ishexlc(p))
 		goto err;
+
+	if (cipher_type != checksum_type) {
+		fprintf(stderr, "ODF: unsupported combination of cipher and hash types\n");
+		goto err;
+	}
 
 	MEM_FREE(keeptr);
 	return 1;
