@@ -1611,7 +1611,6 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 
 static void john_init(char *name, int argc, char **argv)
 {
-	int show_usage = 0;
 	int make_check = (argc == 2 && !strcmp(argv[1], "--make_check"));
 	if (make_check)
 		argv[1] = "--test=0";
@@ -1651,15 +1650,7 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 
 	status_init(NULL, 1);
-	if (argc == 2 &&
-	     (!strcasecmp(argv[1], "--help") ||
-	      !strcasecmp(argv[1], "-h") ||
-	      !strcasecmp(argv[1], "-help")))
-	{
-		john_register_all(); /* for printing by opt_init() */
-		show_usage = 1;
-	}
-	opt_init(name, argc, argv, show_usage);
+	opt_init(name, argc, argv);
 
 	if (options.listconf)
 		listconf_parse_early();

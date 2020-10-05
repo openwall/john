@@ -561,7 +561,7 @@ void rec_restore_args(int lock)
 	argv[argc] = NULL;
 
 	save_rec_name = rec_name;
-	opt_init(argv[0], argc, argv, 0);
+	opt_init(argv[0], argc, argv);
 	rec_name = save_rec_name;
 	rec_name_completed = 1;
 

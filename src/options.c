@@ -464,38 +464,29 @@ JOHN_USAGE_FORK \
 "--devices=N[,..]           set ZTEX device(s) by its(their) serial number(s)\n"
 #endif
 
-static void print_banner(char *name)
+void opt_init(char *name, int argc, char **argv)
 {
-	if (!john_main_process)
-		exit(0);
-
-	printf(JOHN_BANNER, name);
-}
-
-static void print_usage(char *name)
-{
-	if (!john_main_process)
-		exit(0);
-
-	printf(JOHN_BANNER, name);
-	printf(JOHN_USAGE, WORDLIST_BUFFER_DEFAULT>>20,
-	       VERB_MAX, VERB_DEBUG, VERB_DEFAULT);
-
+	if (argc == 2 &&
+	     (!strcasecmp(argv[1], "--help") ||
+	      !strcasecmp(argv[1], "-h") ||
+	      !strcasecmp(argv[1], "-help")))
+	{
+		if (john_main_process) {
+			printf(JOHN_BANNER, name);
+			printf(JOHN_USAGE, WORDLIST_BUFFER_DEFAULT >> 20,
+			       VERB_MAX, VERB_DEBUG, VERB_DEFAULT);
 #if defined(HAVE_OPENCL)
-	printf("%s", JOHN_USAGE_GPU);
+			printf("%s", JOHN_USAGE_GPU);
 #endif
 #if defined(HAVE_ZTEX)
-	printf("%s", JOHN_USAGE_ZTEX);
+			printf("%s", JOHN_USAGE_ZTEX);
 #endif
-	printf("%s", JOHN_USAGE_FORMAT);
-	exit(0);
-}
-void opt_init(char *name, int argc, char **argv, int show_usage)
-{
-	if (show_usage) {
-		print_usage(name);
-	} else {
-		print_banner(name);
+			printf("%s", JOHN_USAGE_FORMAT);
+			exit(0);
+		}
+	} else if(argc < 2) {
+		if (john_main_process)
+			printf(JOHN_BANNER, name);
 	}
 
 	/*
