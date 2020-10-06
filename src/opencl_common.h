@@ -4,7 +4,7 @@
  * Common OpenCL functions go in this file.
  *
  *
- * Copyright (c) 2013-2015 Claudio André <claudioandre.br at gmail.com>,
+ * Copyright (c) 2013-2020 Claudio André <claudioandre.br at gmail.com>,
  * Copyright (c) 2012-2013 magnum,
  * Others and
  * is hereby released to the general public under the following terms:
@@ -152,6 +152,10 @@ extern int device_info[MAX_GPU_DEVICES];
 #define DUR_CONFIG_NAME         "_MaxDuration"
 #define FALSE               0
 
+#define CL_MAX_BUFFERS         32
+#define CL_NO_TRACK             0
+#define CL_TRACK                1
+
 size_t opencl_read_source(const char *kernel_filename, char **kernel_source);
 
 /* Passive init: enumerate platforms and devices and parse options */
@@ -273,6 +277,69 @@ void opencl_process_event(void);
 			    NODE, get_error_name(__err), __FILE__, __LINE__, (message)); \
 		} \
 	} while (0)
+
+/*
+ * Use this function to alloc host and device OpenCL buffers.
+ * Pass host_buffer=NULL if don't want the host buffer to be malloc'ed.
+ * Later, all buffers can be released at once using opencl_release_buf().
+ *
+ * Setting keep_track to zero (0) causes the function to NOT save a reference
+ * of the newly created buffer(s). Therefore, the buffer(s) will not be released
+ * automatically by opencl_release_buf().
+ *
+ * IMPORTANT: the function keeps a reference to host_buffer and buffer_obj. So,
+ *            they can't be freed before a call to opencl_release_buf();
+ */
+cl_mem real_opencl_create_buf_pair(void **, cl_mem *, cl_mem_flags , size_t, int, const char *, int);
+
+#define opencl_create_buf_pair(host_buf, buffer_obj, flags, size, keep_track) \
+    real_opencl_create_buf_pair(host_buf, buffer_obj, flags, size, keep_track, __FILE__, __LINE__)
+
+/* Version for device-side only */
+#define opencl_create_buf(buffer_obj, flags, size, keep_track) \
+	opencl_create_buf_pair(NULL, buffer_obj, flags, size, keep_track)
+
+/*
+ * Use this function to alloc OpenCL buffers and mapped buffers.
+ * Later, all buffers can be released at once using opencl_release_map().
+ */
+void opencl_create_map(cl_mem_flags, size_t, cl_mem *, void **);
+
+/*
+ * Use this function to alloc OpenCL kernels.
+ * Later, all kernels can be released at once using opencl_release_kernels().
+ *
+ * IMPORTANT: the function keeps a reference to the "kernel_obj". So, it can't
+ *            be freed before a call to opencl_release_kernels();
+ */
+cl_kernel opencl_create_kernel(cl_kernel *kernel_obj, const char *kernel_name);
+
+/*
+ * Use this function to release the OpenCL buffer(s).
+ * Passing NULL as the _buffer parameter, causes it to release all
+ * allocated buffers. Via [cl_buffer_list].
+ */
+void opencl_release_buf(cl_mem *);
+
+/*
+ * Use this function to release all OpenCL buffers created using
+ * opencl_create_map(). Via [cl_map_list].
+ */
+void opencl_release_map(void);
+
+/*
+ * Use this function to release the OpenCL kernel(s).
+ * Passing NULL as the kernel_obj parameter, causes it to release all
+ * allocated kernels. Via [cl_kernel_list].
+ */
+void opencl_release_kernel(cl_kernel *kernel_obj);
+
+/* Use this macro for OpenCL kernel argument setting */
+#define CLKERNELARGx(_kernel, _id, _arg)                                               \
+	do { cl_int __errSetKernel;                                                        \
+		__errSetKernel = clSetKernelArg(_kernel, _id, sizeof(_arg), (void *)&_arg);    \
+		HANDLE_CLERROR(__errSetKernel, "Error setting kernel argument");               \
+	} while (0);
 
 /*
  * Debug functions for chasing buffer create/destroy leaks

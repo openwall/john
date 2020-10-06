@@ -7,7 +7,7 @@
  * Copyright (c) 2010-2012 Samuele Giovanni Tonon <samu at linuxasylum dot net>
  * Copyright (c) 2010-2013 Lukas Odzioba <ukasz@openwall.net>
  * Copyright (c) 2010-2019 magnum
- * Copyright (c) 2012-2015 Claudio André <claudioandre.br at gmail.com>
+ * Copyright (c) 2012-2020 Claudio André <claudioandre.br at gmail.com>
  *
  * and is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -87,6 +87,55 @@ static char* get_device_capability(int sequential_id);
 extern int autotune_get_next_gws_size(size_t num, int step, int startup,
                                       int default_value);
 extern int autotune_get_prev_gws_size(size_t num, int step);
+
+/*
+ * List entry.
+ */
+struct kernel_opencl {
+	struct kernel_opencl *next;
+
+	cl_kernel data;
+	cl_kernel *variable;
+};
+
+/*
+ * Main list structure, head is used to start scanning the list, while tail
+ * is used to add new entries.
+ */
+struct opencl_kernels {
+	struct kernel_opencl *head, *tail;
+
+	int count;
+};
+
+/*
+ * List entry.
+ */
+struct buffer_opencl {
+	struct buffer_opencl *next;
+
+	cl_mem data;
+	cl_mem *variable;
+	void **host_ptr;
+};
+
+/*
+ * Main list structure, head is used to start scanning the list, while tail
+ * is used to add new entries.
+ */
+struct opencl_buffers {
+	struct buffer_opencl *head, *tail;
+
+	int count;
+};
+
+//Lists to handle OpenCL buffers and kernels created by OpenCL formats.
+static struct opencl_buffers *cl_buffer_list;
+static struct opencl_kernels *cl_kernel_list;
+static void *cl_map_list[CL_MAX_BUFFERS][2];
+static int cl_map_size;
+static void buf_list_init(struct opencl_buffers **list);
+static void krn_list_init(struct opencl_kernels **list);
 
 // Settings to use for auto-tuning.
 static int buffer_size;
@@ -282,7 +331,8 @@ static char *opencl_driver_ver(int sequential_id)
 	return ret;
 }
 
-static char *remove_spaces(char *str) {
+static char *remove_spaces(char *str)
+{
 
 	char *out = str, *put = str;
 
@@ -855,6 +905,8 @@ void opencl_load_environment(void)
 		amd_probe();
 
 		// Initialize OpenCL global control variables
+		buf_list_init(&cl_buffer_list);
+		krn_list_init(&cl_kernel_list);
 		cmdline_devices[0] = NULL;
 		engaged_devices[0] = DEV_LIST_END;
 		requested_devices[0] = DEV_LIST_END;
@@ -1040,6 +1092,8 @@ void opencl_done()
 	fmt_base_name[0] = 0;
 	opencl_initialized = 0;
 	crypt_kernel = NULL;
+	MEM_FREE(cl_buffer_list);
+	MEM_FREE(cl_kernel_list);
 
 	engaged_devices[0] = engaged_devices[1] = DEV_LIST_END;
 }
@@ -2827,6 +2881,296 @@ char *get_error_name(cl_int cl_error)
 int opencl_calc_min_kpc(size_t lws, size_t gws, int v_width)
 {
 	return gws * v_width;
+}
+
+static void buf_list_init(struct opencl_buffers **list)
+{
+	*list = mem_alloc(sizeof(struct opencl_buffers));
+	(*list)->tail = (*list)->head = NULL;
+	(*list)->count = 0;
+}
+
+static void buf_list_add_link(struct opencl_buffers *list, struct buffer_opencl *entry)
+{
+	entry->next = NULL;
+
+	if (list->tail)
+		list->tail = list->tail->next = entry;
+	else
+		list->tail = list->head = entry;
+
+	list->count++;
+}
+
+static void buf_list_add(struct opencl_buffers *list, cl_mem *data, void **host_ptr)
+{
+	struct buffer_opencl *entry;
+
+	entry = mem_alloc(sizeof(struct buffer_opencl));
+	entry->data = *(data);
+	entry->variable = data;
+	entry->host_ptr = host_ptr;
+
+	buf_list_add_link(list, entry);
+}
+
+static void buf_list_remove(struct opencl_buffers *list, cl_mem data)
+{
+	struct buffer_opencl *current, *prev = NULL;
+
+	for (current = list->head; current; current = current->next) {
+		if (current->data == data) {
+			if (prev)
+				prev->next = current->next;
+
+			if (list->head == current)
+				list->head = current->next;
+			if (list->tail == current)
+				list->tail = prev;
+
+			*(current->variable) = NULL;
+			MEM_FREE(current);
+
+			list->count--;
+
+			/* Done! */
+			break;
+		}
+		prev = current;
+	}
+}
+
+static void krn_list_init(struct opencl_kernels **list)
+{
+	*list = mem_alloc(sizeof(struct opencl_kernels));
+	(*list)->tail = (*list)->head = NULL;
+	(*list)->count = 0;
+}
+
+static void krn_list_add_link(struct opencl_kernels *list, struct kernel_opencl *entry)
+{
+	entry->next = NULL;
+
+	if (list->tail)
+		list->tail = list->tail->next = entry;
+	else
+		list->tail = list->head = entry;
+
+	list->count++;
+}
+
+static void krn_list_add(struct opencl_kernels *list, cl_kernel *data)
+{
+	struct kernel_opencl *entry;
+
+	entry = mem_alloc(sizeof(struct kernel_opencl));
+	entry->data = *(data);
+	entry->variable = data;
+
+	krn_list_add_link(list, entry);
+}
+
+static void krn_list_remove(struct opencl_kernels *list, cl_kernel data)
+{
+	struct kernel_opencl *current, *prev = NULL;
+
+	for (current = list->head; current; current = current->next) {
+		if (current->data == data) {
+			if (prev)
+				prev->next = current->next;
+
+			if (list->head == current)
+				list->head = current->next;
+			if (list->tail == current)
+				list->tail = prev;
+
+			*(current->variable) = NULL;
+			MEM_FREE(current);
+
+			list->count--;
+
+			/* Done! */
+			break;
+		}
+		prev = current;
+	}
+}
+
+/*
+ * Use this function to alloc host and device OpenCL buffers.
+ * Pass host_buffer=NULL if don't want the host buffer to be malloc'ed.
+ * Later, all buffers can be released at once using opencl_release_buf().
+ *
+ * Setting keep_track to zero (0) causes the function to NOT save a reference
+ * of the newly created buffer(s). Therefore, the buffer(s) will not be released
+ * automatically by opencl_release_buf().
+ *
+ * IMPORTANT: the function keeps a reference to host_buffer and buffer_obj. So,
+ *            they can't be freed before a call to opencl_release_buf();
+ */
+cl_mem real_opencl_create_buf_pair(void **host_buffer, cl_mem *buffer_obj, cl_mem_flags flags,
+            size_t size, int keep_track, const char *file, int line)
+{
+	cl_int err_create_buffer;
+
+	if (host_buffer && *(host_buffer))
+#ifdef DEBUG
+		error_msg("** %s:%d Memory leak\n", file, line);
+#else
+		MEM_FREE(host_buffer);
+#endif
+
+	if (*(buffer_obj))
+#ifdef DEBUG
+		error_msg("** %s:%d Memory leak\n", file, line);
+#else
+		opencl_release_buf(buffer_obj);
+#endif
+
+	if (host_buffer)
+		*(host_buffer) = mem_alloc(size);
+
+	*(buffer_obj) =
+		clCreateBuffer(context[gpu_id], flags, size, NULL, &err_create_buffer);
+
+	if (err_create_buffer != CL_SUCCESS) {
+		*(buffer_obj) = NULL;
+		HANDLE_CLERROR(err_create_buffer, "Error allocating GPU memory");
+	} else
+		if (keep_track)
+			buf_list_add(cl_buffer_list, buffer_obj, host_buffer);
+
+	return *(buffer_obj);
+}
+
+/*
+ * Use this function to alloc OpenCL buffers and mapped buffers.
+ * Later, all buffers can be released at once using opencl_release_map().
+ */
+void opencl_create_map(cl_mem_flags buffer_flags, size_t size,
+        cl_mem *out_buffer, void **out_map)
+{
+	*(out_buffer) = clCreateBuffer(context[gpu_id], buffer_flags,
+		size, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating GPU memory");
+
+	*(out_map) = clEnqueueMapBuffer(queue[gpu_id], *(out_buffer),
+		CL_TRUE, CL_MAP_WRITE_INVALIDATE_REGION, 0, size, 0, NULL, NULL,
+		&ret_code);
+	HANDLE_CLERROR(ret_code, "Error allocating GPU memory");
+
+	if (cl_map_size < CL_MAX_BUFFERS) {
+		cl_map_list[cl_map_size][0] = *(out_buffer);
+		cl_map_list[cl_map_size++][1] = *(out_map);
+	}
+}
+
+/*
+ * Use this function to release the OpenCL buffer(s).
+ * Passing NULL as the buffer_obj parameter, causes it to release all
+ * allocated buffers. Via [cl_buffer_list].
+ */
+void opencl_release_buf(cl_mem *buffer_obj)
+{
+	cl_int ret_code = CL_SUCCESS, failure = CL_SUCCESS;
+
+	if (buffer_obj && (*(buffer_obj))) {
+		failure = clReleaseMemObject(*(buffer_obj));
+		*(buffer_obj) = NULL;
+	} else
+		for (; cl_buffer_list->count;) {
+			cl_mem current = cl_buffer_list->head->data;
+			void **host_buf = cl_buffer_list->head->host_ptr;
+
+			ret_code = clReleaseMemObject(current);
+			*(cl_buffer_list->head->variable) = NULL;
+
+			if (host_buf) {
+				MEM_FREE(*(host_buf));
+				*(host_buf) = NULL;
+			}
+			buf_list_remove(cl_buffer_list, current);
+
+			if (ret_code != CL_SUCCESS)
+				failure = ret_code;
+		}
+	HANDLE_CLERROR(failure, "Error Releasing buffers");
+}
+
+/*
+ * Use this function to release all OpenCL buffers created using
+ * opencl_create_map(). Via [cl_map_list].
+ */
+void opencl_release_map()
+{
+	cl_int ret_code  = CL_SUCCESS, failure = CL_SUCCESS;
+
+	for (cl_map_size--; cl_map_size >= 0; cl_map_size--) {
+		if (cl_map_list[cl_map_size][0]) {
+			ret_code = clEnqueueUnmapMemObject(queue[gpu_id],
+				cl_map_list[cl_map_size][0], cl_map_list[cl_map_size][1], 0, NULL, NULL);
+			if (ret_code != CL_SUCCESS)
+				failure = ret_code;
+			ret_code = clReleaseMemObject(cl_map_list[cl_map_size][0]);
+			if (ret_code != CL_SUCCESS)
+				failure = ret_code;
+		}
+		cl_map_list[cl_map_size][0] = NULL;
+		cl_map_list[cl_map_size][1] = NULL;
+	}
+	HANDLE_CLERROR(failure, "Error Releasing mapped buffers");
+	HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing mapped memory");
+	cl_map_size = 0;
+}
+
+/*
+ * Use this function to alloc OpenCL kernels.
+ * Later, all kernels can be released at once using opencl_release_kernels().
+ *
+ * IMPORTANT: the function keeps a reference to the "kernel_obj". So, it can't
+ *            be freed before a call to opencl_release_kernels();
+ */
+cl_kernel opencl_create_kernel(cl_kernel *kernel_obj, const char *kernel_name)
+{
+	cl_int ret_code;
+
+	if (*(kernel_obj))
+		opencl_release_kernel(kernel_obj);
+
+	*(kernel_obj) = clCreateKernel(program[gpu_id], kernel_name, &ret_code);
+
+	if (ret_code != CL_SUCCESS) {
+		*(kernel_obj) = NULL;
+		HANDLE_CLERROR(ret_code, "Error creating the kernel.");
+	} else
+		krn_list_add(cl_kernel_list, kernel_obj);
+
+	return *(kernel_obj);
+}
+
+/*
+ * Use this function to release the OpenCL kernel(s).
+ * Passing NULL as the kernel_obj parameter, causes it to release all
+ * allocated kernels. Via [cl_kernel_list].
+ */
+void opencl_release_kernel(cl_kernel *kernel_obj)
+{
+	cl_int ret_code = CL_SUCCESS, failure = CL_SUCCESS;
+
+	if (kernel_obj && (*(kernel_obj))) {
+		failure = clReleaseKernel(*(kernel_obj));
+		*(kernel_obj) = NULL;
+	} else
+		for (; cl_kernel_list->count;) {
+			cl_kernel current = cl_kernel_list->head->data;
+
+			ret_code = clReleaseKernel(current);
+			krn_list_remove(cl_kernel_list, current);
+
+			if (ret_code != CL_SUCCESS)
+				failure = ret_code;
+		}
+	HANDLE_CLERROR(failure, "Error Releasing kernels");
 }
 
 /***
