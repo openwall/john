@@ -197,9 +197,9 @@ int ext_has_function(const char *mode, const char *function)
 void ext_init(char *mode, struct db_main *db)
 {
 	ext_minlen = options.eff_minlength;
-	ext_cipher_limit = maxlen = options.eff_maxlength;
-	ext_target_utf8 =
-		(options.target_enc <= CP_UNDEF || options.target_enc == UTF_8);
+	maxlen = options.eff_maxlength;
+	ext_cipher_limit = (db && db->format) ? db->format->params.plaintext_length : maxlen;
+	ext_target_utf8 = (options.target_enc <= CP_UNDEF || options.target_enc == UTF_8);
 
 	/* This is second time we are called, just update the above */
 	if (db && db->format)

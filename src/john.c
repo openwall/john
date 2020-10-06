@@ -1189,10 +1189,6 @@ static void john_load(void)
 			    database.format->params.format_name[0] ? ", " : "",
 			    database.format->params.format_name,
 			    database.format->params.algorithm_name);
-
-			/* Tell External our max length */
-			if (options.flags & FLG_EXTERNAL_CHK)
-				ext_init(options.external, &database);
 		}
 
 		total = database.password_count;
@@ -1714,6 +1710,10 @@ static void john_run(void)
 			MIN(options.req_maxlength,
 			    database.format->params.plaintext_length) :
 			database.format->params.plaintext_length;
+
+		/* Tell External our max length */
+		if (options.flags & FLG_EXTERNAL_CHK)
+			ext_init(options.external, &database);
 
 		/* Some formats have a minimum plaintext length */
 		if (options.eff_maxlength < options.eff_minlength) {
