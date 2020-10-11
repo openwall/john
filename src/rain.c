@@ -48,10 +48,10 @@ static uint64_t keyspace;
 static uint64_t subtotal;
 
 static uint64_t rotate[MAX_CAND_LENGTH-1];
-static uint64_t strafe[MAX_CAND_LENGTH-1];
+static uint64_t totalperlen[MAX_CAND_LENGTH-1];
 
 static uint64_t rec_rotate[MAX_CAND_LENGTH-1];
-static uint64_t rec_strafe[MAX_CAND_LENGTH-1];
+static uint64_t rec_totalperlen[MAX_CAND_LENGTH-1];
 
 static int accu[MAX_CAND_LENGTH-1];
 
@@ -82,7 +82,7 @@ static void fix_state(void)
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		rec_rotate[i] = rotate[i];
-		rec_strafe[i] = strafe[i];
+		rec_totalperlen[i] = totalperlen[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -99,7 +99,7 @@ static void save_state(FILE *file)
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		fprintf(file, "%"PRIu64"\n", rec_rotate[i]);
-		fprintf(file, "%"PRIu64"\n", rec_strafe[i]);
+		fprintf(file, "%"PRIu64"\n", rec_totalperlen[i]);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -123,7 +123,7 @@ static int restore_state(FILE *file)
 		else return 1;
 
 		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
-			strafe[i] = r;
+			totalperlen[i] = r;
 		else return 1;
 
 		for(j = 0; j < maxlength; ++j)
@@ -310,7 +310,11 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		utf32_to_utf8_32(charset_utf32);
 
 	charcount = strlen32(charset_utf32);
-	
+	if(charcount % 2) {
+		if(john_main_process)
+			fprintf(stderr, "Cannot use odd length character set.\n");
+		error();
+	}
 	counter = 0;
 	subtotal = 0;
 	
@@ -348,7 +352,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		srand(time(NULL));
 		for(i=0; i<= maxlength - minlength; i++) {
 			rotate[i] = 0;
-			strafe[i] = 0;
+			totalperlen[i] = 0;
 			accu[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
@@ -383,33 +387,18 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 			if(!skip) {
 				quick_conversion = 1;
-				if( mpl > 3 ) {
-				    if( mpl%2 ) {
-	                    if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max )
-				            quick_conversion = 0;
-                        for(i=1; i<mpl; ++i)
-				            if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-1) + 1] + rotate[loop]) % charcount]) > cp_max )
-					            quick_conversion = 0;
-				    }
-				    else {
-				        if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max )
-				            quick_conversion = 0;
-	                    if( (rain[1] = charset_utf32[charset_idx[loop][1]]) > cp_max )
-				            quick_conversion = 0;
-	    		        for(i=2; i<mpl; ++i)
-		                    if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-2)+2] + rotate[loop]) % charcount]) > cp_max ) 
-			                    quick_conversion = 0;
-				    }
-				}
-				else {
-				    for(i=0; i<mpl; ++i)
-				        if( (rain[i] = charset_utf32[charset_idx[loop][i]]) > cp_max )
-			                quick_conversion = 0;
-				}
+				if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
+					quick_conversion = 0;
+				quick_conversion = 1;
+		        for(i=1; i<mpl; ++i) {
+		            if( (rain[i] = charset_utf32[(charset_idx[loop][i] + rotate[loop]) % charcount]) > cp_max )
+			            quick_conversion = 0;
+			        rotate[loop] /= 2;
+			    }
 	            submit(rain);
 	        }
-	        strafe[loop]++;
-	        rotate[loop]++;
+			totalperlen[loop]++;
+	        rotate[loop] = totalperlen[loop];
 	        
 		    int pos = mpl - 1;
             
