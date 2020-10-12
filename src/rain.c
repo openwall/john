@@ -313,7 +313,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if(charcount % 2) {
 		if(john_main_process)
 			fprintf(stderr, "Cannot use odd length character set.\n");
-		error();
+		//error();
 	}
 	counter = 0;
 	subtotal = 0;
@@ -387,43 +387,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 			if(!skip) {
 				quick_conversion = 1;
-<<<<<<< HEAD
-				if( mpl > 3 ) {
-				    if( mpl%2 ) {
-	                    if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max )
-				            quick_conversion = 0;
-                        if( (rain[1] = charset_utf32[charset_idx[loop][1]]) > cp_max )
-				            quick_conversion = 0;
-	                    if( (rain[2] = charset_utf32[charset_idx[loop][2]]) > cp_max )
-				            quick_conversion = 0;
-	    		        for(i=3; i<mpl; ++i) {
-				            if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-3) + 3] + rotate[loop]) % charcount]) > cp_max )
-					            quick_conversion = 0;
-				            //rotate[loop]+=i+1;
-				        }
-				    }
-				    else {
-				        if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max )
-				            quick_conversion = 0;
-	                    if( (rain[1] = charset_utf32[charset_idx[loop][1]]) > cp_max )
-				            quick_conversion = 0;
-	    		        for(i=2; i<mpl; ++i)
-		                    if( (rain[i] = charset_utf32[(charset_idx[loop][(i+strafe[loop]) % (mpl-2)+2] + rotate[loop]) % charcount]) > cp_max ) {
-			                    quick_conversion = 0;
-                            //rotate[loop]++;
-                        }				        
-				    }
-				}
-				else {
-				    for(i=0; i<mpl; ++i)
-				        if( (rain[i] = charset_utf32[charset_idx[loop][i]]) > cp_max )
-			                quick_conversion = 0;
-				}
-	            submit(rain);
-	        }
-	        //for(i=2; i<=mpl; ++i) rotate[loop] -= i;
-	        strafe[loop]++;
-=======
 				if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
 					quick_conversion = 0;
 				quick_conversion = 1;
@@ -434,18 +397,16 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			    }
 	            submit(rain);
 	        }
-			totalperlen[loop]++;
-	        rotate[loop] = totalperlen[loop];
->>>>>>> f7e6712f654920bd428aa379a8bcd02971e7fa16
+            totalperlen[loop]++;
+            rotate[loop] = totalperlen[loop];
 	        
-		    int pos = mpl - 1;
-            
+		    int pos = 0;      
 
-			while(pos >= 0 && ++charset_idx[loop][mpl-1-pos] >= charcount) {
-			    charset_idx[loop][mpl-1-pos] = 0;
-			    --pos;
+			while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
+			    charset_idx[loop][pos] = 0;
+			    pos++;
 		    }
-			if(pos < 0) {
+			if(pos >= mpl) {
 				counter = 0;
 				rain_cur_len++;	
 				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
