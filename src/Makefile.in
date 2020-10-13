@@ -97,7 +97,7 @@ JOHN_OBJS = \
 	rar2john.o \
 	zip2john.o pkzip.o \
 	$(PLUGFORMATS_OBJS) \
-	dyna_salt.o dummy.o \
+	dyna_salt.o dummy.o util.o \
 	gost.o \
 	gpu_common.o \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o crc32.o external.o \
@@ -305,6 +305,8 @@ detect.o:	detect.c
 dmg2john.o:	dmg2john.c autoconfig.h arch.h filevault.h misc.h jumbo.h memory.h os.h os-autoconf.h
 
 dummy.o:	dummy.c common.h arch.h memory.h formats.h params.h misc.h jumbo.h autoconfig.h options.h list.h loader.h getopt.h os.h os-autoconf.h
+
+util.o:	util.c util.h
 
 dynamic_big_crypt.o:	dynamic_big_crypt.c autoconfig.h openssl_local_overrides.h arch.h misc.h jumbo.h common.h memory.h formats.h params.h sha.h aligned.h md4.h md5.h sha2.h jtr_sha2.h johnswap.h stdbool.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h simd-intrinsics-load-flags.h dynamic_types.h gost.h sph_ripemd.h sph_types.h sph_tiger.h sph_haval.h sph_md2.h sph_panama.h sph_skein.h sph_whirlpool.h KeccakHash.h KeccakSponge.h KeccakF-1600-interface.h os.h os-autoconf.h
 
