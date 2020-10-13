@@ -290,6 +290,7 @@ static struct opt_entry opt_list[] = {
 		~FLG_MASK_CHK & ~OPT_REQ_PARAM, "%d", &benchmark_time},
 	{"tune", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.tune},
+	{"force-keys", FLG_FORCE_KEYS},
 	{NULL}
 };
 
@@ -441,7 +442,9 @@ JOHN_USAGE_FORK \
 "--input-encoding=NAME      input encoding (alias for --encoding)\n" \
 "--internal-codepage=NAME   codepage used in rules/masks (see doc/ENCODINGS)\n" \
 "--target-encoding=NAME     output encoding (used by format, see doc/ENCODINGS)\n" \
-"--tune=HOW                 tuning options (auto/report/N)\n"
+"--tune=HOW                 tuning options (auto/report/N)\n" \
+"--force-keys               set up terminal for reading keystrokes even if we're\n" \
+"                           not the foreground process\n"
 
 #define JOHN_USAGE_FORMAT \
 "--format=[NAME|CLASS][,..] force hash of type NAME. The supported formats can\n" \

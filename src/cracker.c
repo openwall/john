@@ -66,6 +66,7 @@
 #include "gpu_common.h"
 #endif
 #include "rules.h"
+#include "tty.h"
 
 #ifdef index
 #undef index
@@ -125,9 +126,13 @@ static void crk_init_salt(void)
 static void crk_help(void)
 {
 	static int printed = 0;
-	if (!john_main_process || printed ||
-	    ((options.flags & FLG_STDOUT) && isatty(fileno(stdout))))
+
+	if (!john_main_process || printed)
 		return;
+
+	if ((options.flags & FLG_STDOUT) && isatty(fileno(stdout)))
+		return;
+
 #ifdef HAVE_MPI
 	if (mpi_p > 1 || getenv("OMPI_COMM_WORLD_SIZE"))
 #ifdef SIGUSR1
@@ -137,16 +142,16 @@ static void crk_help(void)
 #endif
 	else
 #endif
-	if ((options.flags & FLG_STDIN_CHK) || (options.flags & FLG_PIPE_CHK))
+	if (tty_has_keyboard())
+		fprintf(stderr, "Press 'q' or Ctrl-C to abort, almost any other key for status\n");
+	else
 		fprintf(stderr, "Press Ctrl-C to abort, "
 #ifdef SIGUSR1
 		        "or send SIGUSR1 to john process for status\n");
 #else
 		        "or send SIGHUP to john process for status\n");
 #endif
-	else
-	fprintf(stderr, "Press 'q' or Ctrl-C to abort, "
-	    "almost any other key for status\n");
+
 	printed = 1;
 }
 
