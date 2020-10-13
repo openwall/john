@@ -113,8 +113,8 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Added -mlc option to unique - "max. length considered".  [magnum; 2020]
 
-- 7z formats:  Added support for BCJ et. al. (that's pre-processors sometimes
-  used before compression.  Before this we had false negatives for those.
+- 7z formats:  Added support for BCJ and other preprocessors sometimes used
+  before compression.  Before this we had false negatives for such files.
   Also updated LZMA code from upstream, to version 19.00.  [magnum; 2020]
 
 - Upgraded Unicode stuff from version 11.0.0 to 13.0.0.  This affects the
