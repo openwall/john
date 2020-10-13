@@ -17,6 +17,11 @@
 #include "options.h"
 
 /*
+ * Returns true if we set up terminal for reading keystrokes
+ */
+extern int tty_has_keyboard(void);
+
+/*
  * Initializes the terminal for unbuffered non-blocking input. Also registers
  * tty_done() via atexit().
  * stdin_mode indicates whether we're running with "--stdin" (reading candidate

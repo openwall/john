@@ -57,6 +57,12 @@ very large, sorting it will speed up loading.
 These are used to enable the wordlist mode.  If FILE is not specified,
 the one defined in john.conf will be used.
 
+--force-keys
+
+Set the terminal up for reading status/quit keystrokes even if we're not
+the foreground process.  The downside is we might get race conditions so
+you may end up with strange problems hard to reproduce.
+
 --dupe-suppression		suppress all duplicates from wordlist
 
 Normally, consecutive duplicates are ignored when reading a wordlist file.
