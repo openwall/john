@@ -488,6 +488,26 @@ inline unsigned int strlen8(const UTF8 *source)
 	return targetLen;
 }
 
+/*
+ * Return length (in characters) of a string, best-effort.
+ * For a fully valid UTF-8 string, return number of characters.
+ * If the string contains invalid UTF-8, just count bytes from that point.
+ */
+inline size_t strlen_any(const void *source)
+{
+	const UTF8 *src = source;
+	int len;
+
+	len = strlen8(src);
+	if (len < 0) {
+		size_t extra;
+		len = -len;
+		extra = strlen(&((char*)source)[len + 1]);
+		len += extra;
+	}
+	return len;
+}
+
 /* Check if a string is valid UTF-8 */
 int valid_utf8(const UTF8 *source)
 {
