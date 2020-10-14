@@ -98,13 +98,13 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%"PRIu64"\n", rec_rotate[i]);
-		fprintf(file, "%"PRIu64"\n", rec_totalperlen[i]);
+		fprintf(file, "%" PRIu64"\n", rec_rotate[i]);
+		fprintf(file, "%" PRIu64"\n", rec_totalperlen[i]);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
 	fprintf(file, "%d\n", rec_cur_len);
-	fprintf(file, "%"PRIu64"\n", rec_counter);//changeme
+	fprintf(file, "%" PRIu64"\n", rec_counter);//changeme
 	fprintf(file, "%d\n", rec_loop);
 }
 
@@ -118,11 +118,11 @@ static int restore_state(FILE *file)
 	else return 1;
 
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
+		if(fscanf(file, "%" PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
 			rotate[i] = r;
 		else return 1;
 
-		if(fscanf(file, "%"PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
+		if(fscanf(file, "%" PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
 			totalperlen[i] = r;
 		else return 1;
 
@@ -310,11 +310,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		utf32_to_utf8_32(charset_utf32);
 
 	charcount = strlen32(charset_utf32);
-	if(charcount % 2) {
-		if(john_main_process)
-			fprintf(stderr, "Cannot use odd length character set.\n");
-		//error();
-	}
+	
 	counter = 0;
 	subtotal = 0;
 	
@@ -345,7 +341,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			fprintf(stderr, "\n");
 		}
 	}
-	
 	if(!state_restored)
 	{
 		rain_cur_len = minlength;
@@ -387,17 +382,18 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 			if(!skip) {
 				quick_conversion = 1;
+	            //Jumping the first character of the word is mandatory, or we have half uniques.
 				if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
 					quick_conversion = 0;
 				quick_conversion = 1;
 		        for(i=1; i<mpl; ++i) {
 		            if( (rain[i] = charset_utf32[(charset_idx[loop][i] + rotate[loop]) % charcount]) > cp_max )
 			            quick_conversion = 0;
-			        rotate[loop] /= 2;
+			        rotate[loop] /= i/charcount+1;
 			    }
 	            submit(rain);
 	        }
-            totalperlen[loop]++;
+            totalperlen[loop]+=1+mpl%2;
             rotate[loop] = totalperlen[loop];
 	        
 		    int pos = 0;      
