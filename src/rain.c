@@ -311,10 +311,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	charcount = strlen32(charset_utf32);
 	
-	if(charcount % 2) {
+	if( charcount % 2 ) {
 	    if(john_main_process)
-	        fprintf(stderr, "This method seems to only work with even character sets..\n");
-	    //error();
+	        fprintf(stderr, "Not compatible with odd length character sets.\n");
+	    error();
 	}
 	
 	counter = 0;
@@ -386,6 +386,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			}
 			int mpl = minlength + loop;
 
+            //char *freq = "etaoinshrdlcmuwfgypbvkjxqz";            
+            
 			if(!skip) {
 				quick_conversion = 1;
 	            //Jumping the first character of the word is mandatory, or we have half uniques.
@@ -395,11 +397,11 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		        for(i=1; i<mpl; ++i) {
 		            if( (rain[i] = charset_utf32[(charset_idx[loop][i] + rotate[loop]) % charcount]) > cp_max )
 			            quick_conversion = 0;
-			        rotate[loop] /= i/(mpl/2)+1;
+			        rotate[loop] /= 2;
 			    }
 	            submit(rain);
 	        }
-            totalperlen[loop]+=1+mpl%2;
+            totalperlen[loop] += 1;
             rotate[loop] = totalperlen[loop];	        
 		    int pos = 0;      
 
