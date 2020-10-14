@@ -317,6 +317,9 @@ struct options_main {
    is set, or ISO-8859-1 only if FMT_ENC is false. */
 	int target_enc;
 
+/* Terminal encoding, as parsed from LC_ALL or LC_CTYPE */
+	int terminal_enc;
+
 /* If different from target_enc, this is an intermediate encoding only
    used within rules/mask processing. This is only applicable for the case
    "UTF-8 -> rules -> UTF-8" or "mask -> UTF-8". Since the rules engine can't

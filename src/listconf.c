@@ -82,6 +82,7 @@
 #include "regex.h"
 #include "opencl_common.h"
 #include "mask_ext.h"
+#include "john.h"
 #include "version.h"
 #include "listconf.h" /* must be included after version.h */
 
@@ -343,6 +344,9 @@ static void listconf_list_build_info(void)
 		printf("Available physical host memory: %sB\n", human_prefix(avail_mem));
 	else
 		puts("Available physical host memory: unknown");
+
+	printf("Terminal locale string: %s\n", john_terminal_locale);
+	printf("Parsed terminal locale: %s\n", cp_id2name(options.terminal_enc));
 
 // OK, now append debugging options, BUT only output  something if
 // one or more of them is set. IF none set, be silent.

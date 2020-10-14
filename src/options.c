@@ -978,13 +978,13 @@ void opt_init(char *name, int argc, char **argv, int show_usage)
 	}
 
 	if (encoding_str)
-		options.input_enc = cp_name2id(encoding_str);
+		options.input_enc = cp_name2id(encoding_str, 1);
 
 	if (target_enc_str)
-		options.target_enc = cp_name2id(target_enc_str);
+		options.target_enc = cp_name2id(target_enc_str, 1);
 
 	if (internal_cp_str)
-		options.internal_cp = cp_name2id(internal_cp_str);
+		options.internal_cp = cp_name2id(internal_cp_str, 1);
 
 	if (options.input_enc && options.input_enc != UTF_8) {
 		if (!options.target_enc)
