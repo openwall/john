@@ -448,9 +448,7 @@ void ldr_set_encoding(struct fmt_main *format)
 		    !strcasecmp(format->params.label, "netlm") ||
 		    !strcasecmp(format->params.label, "nethalflm")) {
 			options.target_enc =
-				cp_name2id(cfg_get_param(SECTION_OPTIONS,
-				                         NULL,
-				                         "DefaultMSCodepage"));
+				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL, "DefaultMSCodepage"), 1);
 			if (options.target_enc)
 				options.default_target_enc = 1;
 			else
@@ -473,16 +471,12 @@ void ldr_set_encoding(struct fmt_main *format)
 	}
 
 	/* john.conf alternative for --internal-codepage */
-	if (options.flags &
-	    (FLG_RULES_IN_USE | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
-	if ((!options.target_enc || options.target_enc == UTF_8) &&
-	    !options.internal_cp) {
+	if (options.flags & (FLG_RULES_IN_USE | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
+	if ((!options.target_enc || options.target_enc == UTF_8) && !options.internal_cp) {
 		if (!(options.internal_cp =
-			cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-			                         "DefaultInternalCodepage"))))
+		      cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL, "DefaultInternalCodepage"), 1)))
 			options.internal_cp =
-			    cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-			                         "DefaultInternalEncoding"));
+				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL, "DefaultInternalEncoding"), 1);
 	}
 
 	/* Performance opportunity - avoid unneccessary conversions */

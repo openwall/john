@@ -989,8 +989,9 @@ char *cp_id2macro(int encoding)
 }
 
 /* Convert encoding name to numerical ID */
-int cp_name2id(const char *encoding)
+int cp_name2id(const char *encoding, int error_exit)
 {
+	const char *orig_arg = encoding;
 	char enc[16] = "";
 	char *d = enc;
 
@@ -1004,13 +1005,17 @@ int cp_name2id(const char *encoding)
 		encoding += 4;
 	else if (!strncasecmp(encoding, "iso", 3))
 		encoding += 3;
+	/* Strip cp prefix */
+	else if (!strncasecmp(encoding, "cp", 2))
+		encoding += 2;
 
 	/* Lowercase */
-	while (*encoding)
-	if (*encoding >= 'A' && *encoding <= 'Z')
-		*d++ = *encoding++ | 0x20;
-	else
-		*d++ = *encoding++;
+	do {
+		if (*encoding >= 'A' && *encoding <= 'Z')
+			*d++ = *encoding++ | 0x20;
+		else
+			*d++ = *encoding++;
+	} while (*encoding);
 
 	/* Now parse this canonical format */
 	if (!strcmp(enc, "utf8") || !strcmp(enc, "utf-8"))
@@ -1032,58 +1037,61 @@ int cp_name2id(const char *encoding)
 	if (!strcmp(enc, "koi8r") || !strcmp(enc, "koi8-r"))
 		return KOI8_R;
 	else
-	if (!strcmp(enc, "cp437"))
+	if (!strcmp(enc, "437"))
 		return CP437;
 	else
-	if (!strcmp(enc, "cp720"))
+	if (!strcmp(enc, "720"))
 		return CP720;
 	else
-	if (!strcmp(enc, "cp737"))
+	if (!strcmp(enc, "737"))
 		return CP737;
 	else
-	if (!strcmp(enc, "cp850"))
+	if (!strcmp(enc, "850"))
 		return CP850;
 	else
-	if (!strcmp(enc, "cp852"))
+	if (!strcmp(enc, "852"))
 		return CP852;
 	else
-	if (!strcmp(enc, "cp858"))
+	if (!strcmp(enc, "858"))
 		return CP858;
 	else
-	if (!strcmp(enc, "cp866"))
+	if (!strcmp(enc, "866"))
 		return CP866;
 	else
-	if (!strcmp(enc, "cp868"))
+	if (!strcmp(enc, "868"))
 		return CP868;
 	else
-	if (!strcmp(enc, "cp1250"))
+	if (!strcmp(enc, "1250"))
 		return CP1250;
 	else
-	if (!strcmp(enc, "cp1251"))
+	if (!strcmp(enc, "1251"))
 		return CP1251;
 	else
-	if (!strcmp(enc, "cp1252"))
+	if (!strcmp(enc, "1252"))
 		return CP1252;
 	else
-	if (!strcmp(enc, "cp1253"))
+	if (!strcmp(enc, "1253"))
 		return CP1253;
 	else
-	if (!strcmp(enc, "cp1254"))
+	if (!strcmp(enc, "1254"))
 		return CP1254;
 	else
-	if (!strcmp(enc, "cp1255"))
+	if (!strcmp(enc, "1255"))
 		return CP1255;
 	else
-	if (!strcmp(enc, "cp1256"))
+	if (!strcmp(enc, "1256"))
 		return CP1256;
 	else
 	if (!strcmp(enc, "raw") || !strcmp(enc, "ascii"))
 		return ASCII;
 
  err:
-	fprintf(stderr, "Invalid encoding. Supported encodings:\n");
-	listEncodings(stderr);
-	error();
+	if (error_exit) {
+		fprintf(stderr, "Invalid encoding '%s'. Supported encodings:\n", orig_arg);
+		listEncodings(stderr);
+		error();
+	} else
+		return CP_UNDEF;
 }
 
 int cp_class(int encoding)

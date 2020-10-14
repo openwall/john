@@ -182,7 +182,7 @@ int john_main_process = 1;
 int john_child_count = 0;
 int *john_child_pids = NULL;
 #endif
-char *john_terminal_locale ="C";
+char *john_terminal_locale = "C";
 
 unsigned long long john_max_cands;
 
@@ -825,11 +825,10 @@ static void john_load_conf(void)
 	if (!options.input_enc && !(options.flags & FLG_TEST_CHK)) {
 		if ((options.flags & FLG_LOOPBACK_CHK) &&
 		    cfg_get_bool(SECTION_OPTIONS, NULL, "UnicodeStoreUTF8", 0))
-			options.input_enc = cp_name2id("UTF-8");
+			options.input_enc = UTF_8;
 		else {
 			options.input_enc =
-				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-				                          "DefaultEncoding"));
+				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL, "DefaultEncoding"), 1);
 		}
 		options.default_enc = options.input_enc;
 	}
@@ -851,11 +850,9 @@ static void john_load_conf_db(void)
 		    options.target_enc == UTF_8 && options.flags &
 		    (FLG_RULES_IN_USE | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
 			if (!(options.internal_cp =
-			    cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-			    "DefaultInternalCodepage"))))
-			options.internal_cp =
-				cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL,
-			            "DefaultInternalEncoding"));
+			      cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL, "DefaultInternalCodepage"), 1)))
+				options.internal_cp =
+					cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL, "DefaultInternalEncoding"), 1);
 	}
 
 	if (!options.unicode_cp)
@@ -1467,10 +1464,20 @@ static void john_init(char *name, int argc, char **argv)
 	}
 
 #if (!AC_BUILT || HAVE_LOCALE_H)
-	if (setlocale(LC_ALL, "")) {
-		john_terminal_locale = str_alloc_copy(setlocale(LC_ALL, NULL));
+	if (setlocale(LC_CTYPE, "")) {
+		char *parsed = setlocale(LC_CTYPE, NULL);
+
+		if (parsed) {
+			char *p;
+
+			john_terminal_locale = str_alloc_copy(parsed);
+			if ((p = strchr(john_terminal_locale, '.')))
+				parsed = ++p;
+			if (strcmp(parsed, "C"))
+				options.terminal_enc = cp_name2id(parsed, 0);
+		}
 #if HAVE_OPENCL
-		if (strchr(john_terminal_locale, '.'))
+		if (options.terminal_enc)
 			sprintf(gpu_degree_sign, "%ls", DEGREE_SIGN);
 #endif
 		/* We misuse ctype macros so this must be reset */

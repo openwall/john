@@ -263,10 +263,10 @@ int main(int argc, char **argv)
 			printable = 1;
 			break;
 		case 'f':
-			auto_cp = cp_name2id(optarg);
+			auto_cp = cp_name2id(optarg, 1);
 			break;
 		case 'i':
-			inv_cp = cp_name2id(optarg);
+			inv_cp = cp_name2id(optarg, 1);
 			break;
 		case 'l':
 			puts("Supported encodings:");
