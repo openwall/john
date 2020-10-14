@@ -314,7 +314,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if( charcount % 2 ) {
 	    if(john_main_process)
 	        fprintf(stderr, "Not compatible with odd length character sets.\n");
-	    error();
+	    //error();
 	}
 	
 	counter = 0;
@@ -386,7 +386,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			}
 			int mpl = minlength + loop;
 
-            //char *freq = "etaoinshrdlcmuwfgypbvkjxqz";            
+            char *freq = "etaoinshrdlcmuwfgypbvkjxqzETAOINSHRDLCMUWFGYPBVKJXQZ0123456789";            
             
 			if(!skip) {
 				quick_conversion = 1;
@@ -397,13 +397,13 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		        for(i=1; i<mpl; ++i) {
 		            if( (rain[i] = charset_utf32[(charset_idx[loop][i] + rotate[loop]) % charcount]) > cp_max )
 			            quick_conversion = 0;
-			        rotate[loop] /= 2;
+			        rotate[loop] *= ('z'-freq[(totalperlen[loop]+i)%charcount]);	        
 			    }
 	            submit(rain);
 	        }
             totalperlen[loop] += 1;
-            rotate[loop] = totalperlen[loop];	        
-		    int pos = 0;      
+            rotate[loop] = totalperlen[loop];
+            int pos = 0;      
 
 			while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
