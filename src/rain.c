@@ -399,16 +399,15 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		        for(i=1; i<mpl; ++i) {
 		            if( (rain[i] = charset_utf32[(charset_idx[loop][i] + rotate[loop]) % charcount]) > cp_max )
 			            quick_conversion = 0;
-			        rotate[loop] /= 2;
+			        rotate[loop] *= charcount-1;
 			    }
 	            submit(rain);
 	            
+                totalperlen[loop]++;
+                rotate[loop] = totalperlen[loop] * ('z'-freq[totalperlen[loop]%charcount]);
+            
 	        }
-            
-            totalperlen[loop] += mpl;
-            rotate[loop] = totalperlen[loop] * ('z' - freq[charset_idx[loop][mpl-i-1]]) % charcount;// * freq[totalperlen[loop]%charcount];
-            
-            int pos = 0;      
+            int pos = 0;  
 
 			while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
