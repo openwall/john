@@ -38,6 +38,10 @@ int rain_cur_len;
 
 static int rec_cur_len;
 static char *charset;
+const char *freq = "etaoinshrdlcmuwfgypbvkjxqzETAOINSHRDLCMUWFGYPBVKJXQZ0123456789";            
+const char *orig = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQSRTUVWXYZ0123456789";            
+
+static int strength;   
 static UTF32 rain[MAX_CAND_LENGTH+1];
 static int charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
 static int rec_charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
@@ -253,7 +257,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
 	minlength = MAX(options.eff_minlength, 1);
-		
+	strength = MIN(options.rain_strength, 2);	
 	if (!options.req_maxlength)
 		maxlength = MIN(maxlength, DEFAULT_MAX_LEN);
 	if (!options.req_minlength)
@@ -385,8 +389,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 			int mpl = minlength + loop;
-
-            char *freq = "etaoinshrdlcmuwfgypbvkjxqzETAOINSHRDLCMUWFGYPBVKJXQZ0123456789";            
             
 			if(!skip) {
 				quick_conversion = 1;
@@ -397,12 +399,15 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		        for(i=1; i<mpl; ++i) {
 		            if( (rain[i] = charset_utf32[(charset_idx[loop][i] + rotate[loop]) % charcount]) > cp_max )
 			            quick_conversion = 0;
-			        rotate[loop] *= ('z'-freq[(totalperlen[loop]+i)%charcount])*3;	        
+			        rotate[loop] /= 2;
 			    }
 	            submit(rain);
+	            
 	        }
+            
             totalperlen[loop] += 1;
-            rotate[loop] = totalperlen[loop];
+            rotate[loop] = totalperlen[loop] * ('z' - freq[charset_idx[loop][i]]) % charcount;// * freq[totalperlen[loop]%charcount];
+            
             int pos = 0;      
 
 			while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
