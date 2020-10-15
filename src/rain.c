@@ -405,8 +405,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	            
 	        }
             
-            totalperlen[loop] += 1;
-            rotate[loop] = totalperlen[loop] * ('z' - freq[charset_idx[loop][i]]) % charcount;// * freq[totalperlen[loop]%charcount];
+            totalperlen[loop] += mpl;
+            rotate[loop] = totalperlen[loop] * ('z' - freq[charset_idx[loop][mpl-i-1]]) % charcount;// * freq[totalperlen[loop]%charcount];
             
             int pos = 0;      
 
