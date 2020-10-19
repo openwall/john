@@ -365,9 +365,6 @@ static void john_omp_fallback(char **argv) {
 #else
 #define OMP_FALLBACK_PATHNAME path_expand("$JOHN/" OMP_FALLBACK_BINARY)
 #endif
-#if HAVE_MPI
-		mpi_teardown();
-#endif
 		execv(OMP_FALLBACK_PATHNAME, argv);
 #ifdef JOHN_SYSTEMWIDE_EXEC
 		perror("execv: " OMP_FALLBACK_PATHNAME);
@@ -1443,16 +1440,6 @@ static void john_init(char *name, int argc, char **argv)
 
 	CPU_detect_or_fallback(argv, make_check);
 
-#if HAVE_MPI
-	mpi_setup(argc, argv);
-#else
-	if (getenv("OMPI_COMM_WORLD_SIZE"))
-	if (atoi(getenv("OMPI_COMM_WORLD_SIZE")) > 1) {
-		fprintf(stderr, "ERROR: Running under MPI, but this is NOT an"
-		        " MPI build of John.\n");
-		error();
-	}
-#endif
 #ifdef _OPENMP
 	john_omp_init();
 #endif
@@ -1462,6 +1449,13 @@ static void john_init(char *name, int argc, char **argv)
 		john_omp_fallback(argv);
 #endif
 	}
+
+#if HAVE_MPI
+	mpi_setup(argc, argv);
+#else
+	if (getenv("OMPI_COMM_WORLD_SIZE") && atoi(getenv("OMPI_COMM_WORLD_SIZE")) > 1)
+		error_msg("ERROR: Running under MPI, but this is not an MPI build of John.\n");
+#endif
 
 #if (!AC_BUILT || HAVE_LOCALE_H)
 	if (setlocale(LC_CTYPE, "")) {
