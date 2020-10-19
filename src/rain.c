@@ -385,26 +385,39 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 			int mpl = minlength + loop;
-            
+            int mplMod2 = mpl % 2;
 			if(!skip) {
 				quick_conversion = 1;
-		        if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
-					quick_conversion = 0;
-					
-	            quick_conversion = 1;
-	            //Jumping the first character of the word is mandatory, or we have half uniques.
-				
-		        for(i=1; i<mpl; ++i) {
-		            int tmpc = charset_utf32[(charset_idx[loop][i]+rotate[loop])%charcount];
-		            if( (rain[i] = tmpc) > cp_max )
-			            quick_conversion = 0;
-			        totalCperlen[loop]++;
-			        rotate[loop] = totalCperlen[loop] % i;
+				if(!(mplMod2)) {
+	                if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
+					    quick_conversion = 0;	
+	                
+		            if( (rain[1] = charset_utf32[charset_idx[loop][1]]) > cp_max)
+					    quick_conversion = 0;	
+	                
+		            for(i=2; i<mpl; ++i) {
+		                int tmpc = charset_utf32[charset_idx[loop][(i+rotate[loop])%(mpl-2)+2]];
+		                if( (rain[i] = tmpc) > cp_max )
+			                quick_conversion = 0;
+		                //rotate[loop]++;
+			        }   
+			    }
+			    else {
+			        if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
+					    quick_conversion = 0;	
+	                
+			        for(i=1; i<mpl; ++i) {
+		                int tmpc = charset_utf32[charset_idx[loop][(i+rotate[loop])%(mpl-1)+1]];
+		                if( (rain[i] = tmpc) > cp_max )
+			                quick_conversion = 0;
+			        }
 			    }
 				submit(rain);
-                
 	        }
-            int pos = 0;
+	        int pos = 0;
+            
+            totalCperlen[loop] += 2;
+            rotate[loop] = totalCperlen[loop];
 
 			while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
