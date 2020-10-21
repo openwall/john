@@ -54,10 +54,10 @@ static uint64_t keyspace;
 static uint64_t subtotal;
 
 static uint64_t rotate[MAX_CAND_LENGTH-1];
-static uint64_t totalCperlen[MAX_CAND_LENGTH-1];
+static uint64_t totalperlen[MAX_CAND_LENGTH-1];
 
 static uint64_t rec_rotate[MAX_CAND_LENGTH-1];
-static uint64_t rec_totalCperlen[MAX_CAND_LENGTH-1];
+static uint64_t rec_totalperlen[MAX_CAND_LENGTH-1];
 
 static int accu[MAX_CAND_LENGTH-1];
 
@@ -88,7 +88,7 @@ static void fix_state(void)
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		rec_rotate[i] = rotate[i];
-		rec_totalCperlen[i] = totalCperlen[i];
+		rec_totalperlen[i] = totalperlen[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -105,7 +105,7 @@ static void save_state(FILE *file)
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		fprintf(file, "%" PRIu64"\n", rec_rotate[i]);
-		fprintf(file, "%" PRIu64"\n", rec_totalCperlen[i]);
+		fprintf(file, "%" PRIu64"\n", rec_totalperlen[i]);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -129,7 +129,7 @@ static int restore_state(FILE *file)
 		else return 1;
 
 		if(fscanf(file, "%" PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
-			totalCperlen[i] = r;
+			totalperlen[i] = r;
 		else return 1;
 
 		for(j = 0; j < maxlength; ++j)
@@ -353,7 +353,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		srand(time(NULL));
 		for(i=0; i<= maxlength - minlength; i++) {
 			rotate[i] = 0;
-			totalCperlen[i] = 0;
+			totalperlen[i] = 0;
 			accu[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
@@ -385,8 +385,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 			int mpl = minlength + loop;
-            int mplMod2 = mpl % 2;
-			if(!skip) {
+            if(!skip) {
 				quick_conversion = 1;
 				
 		        if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
@@ -397,13 +396,12 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	                if( (rain[i] = tmpc) > cp_max )
 		                quick_conversion = 0;
 					rotate[loop] -= rotate[loop]/charcount;
-	        		//totalCperlen[loop]++;
 	        	}
 				submit(rain);
 	        }
 	        int pos = 0;
-	        totalCperlen[loop]++;
-            rotate[loop] = totalCperlen[loop];
+	        totalperlen[loop]++;
+            rotate[loop] = totalperlen[loop];
 
 			while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
