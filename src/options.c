@@ -137,6 +137,8 @@ static struct opt_entry opt_list[] = {
 		"%u", &options.subset_max_diff},
 	{"rain", FLG_RAIN_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.rain_full},
+	{"rain-strength", FLG_ZERO, 0, FLG_RAIN_CHK, OPT_REQ_PARAM,
+		"%u", &options.rain_strength},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ZERO, 0, FLG_MASK_CHK, OPT_REQ_PARAM,

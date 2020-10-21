@@ -430,6 +430,8 @@ struct options_main {
 	int subset_max_diff;
 /* Rain full charset */
 	char *rain_full;
+/* Rain Strength */
+    int rain_strength;
 };
 
 extern struct options_main options;

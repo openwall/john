@@ -38,6 +38,12 @@ int rain_cur_len;
 
 static int rec_cur_len;
 static char *charset;
+const char *freq = "aeorisn1tl2md0cp3hbuk45g9687yfwjvzxQASERBTMLNPOIDCHGKFJUW.!Y*@V-ZQX_$#,/+?^ %~=&`\\][:<(>\"|{'}";
+const char *freq_alnum = "aeorisn1tl2md0cp3hbuk45g9687yfwjvzxQASERBTMLNPOIDCHGKFJUWYVZQX";
+
+const char *orig = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQSRTUVWXYZ0123456789";            
+
+static int strength;   
 static UTF32 rain[MAX_CAND_LENGTH+1];
 static int charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
 static int rec_charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
@@ -253,7 +259,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
 	minlength = MAX(options.eff_minlength, 1);
-		
+	strength = MIN(options.rain_strength, 2);	
 	if (!options.req_maxlength)
 		maxlength = MIN(maxlength, DEFAULT_MAX_LEN);
 	if (!options.req_minlength)
@@ -310,12 +316,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		utf32_to_utf8_32(charset_utf32);
 
 	charcount = strlen32(charset_utf32);
-	
-	if( charcount % 2 ) {
-	    if(john_main_process)
-	        fprintf(stderr, "Not compatible with odd length character sets.\n");
-	    error();
-	}
 	
 	counter = 0;
 	subtotal = 0;
@@ -385,25 +385,23 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 			int mpl = minlength + loop;
-
-            //char *freq = "etaoinshrdlcmuwfgypbvkjxqz";            
-            
-			if(!skip) {
+            if(!skip) {
 				quick_conversion = 1;
-	            //Jumping the first character of the word is mandatory, or we have half uniques.
-				if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
-					quick_conversion = 0;
-				quick_conversion = 1;
+				
+		        if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
+				    quick_conversion = 0;	
+                
 		        for(i=1; i<mpl; ++i) {
-		            if( (rain[i] = charset_utf32[(charset_idx[loop][i] + rotate[loop]) % charcount]) > cp_max )
-			            quick_conversion = 0;
-			        rotate[loop] /= 2;
-			    }
-	            submit(rain);
+	                int tmpc = charset_utf32[(charset_idx[loop][i]+rotate[loop])%charcount];
+	                if( (rain[i] = tmpc) > cp_max )
+		                quick_conversion = 0;
+					rotate[loop] -= rotate[loop]/charcount;
+	        	}
+				submit(rain);
 	        }
-            totalperlen[loop] += 1;
-            rotate[loop] = totalperlen[loop];	        
-		    int pos = 0;      
+	        int pos = 0;
+	        totalperlen[loop]++;
+            rotate[loop] = totalperlen[loop];
 
 			while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
