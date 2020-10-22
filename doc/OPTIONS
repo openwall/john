@@ -270,15 +270,21 @@ In Jumbo, the --users/groups/shells options above allow a single wildcard
 text matching also becomes case insensitive.
 
 --salts=[-]N[:MAX]		load salts with[out] at least N passwords
+--salts=#M[-N]			load M [to N] most populated salts
 
-This is a feature which allows to achieve better performance in some
-special cases.  For example, you can crack only some salts using
-"--salts=2" faster and then crack the rest using "--salts=-2".  Total
-cracking time will be about the same, but you will likely get some
-passwords cracked earlier.  If MAX is listed, then no hashes are
-loaded where there are more than MAX salts.  This is so that if you
-have run --salts=25 and then later can run --salts=10:24 and none of
-the hashes that were already done from the --salts=25 will be re-done.
+This feature aids in exploiting re-used salts.  For example, you can attack
+all re-used salts using "--salts=2" faster and then crack the rest using
+"--salts=-2".  Total cracking time will be about the same but you will
+likely get some passwords cracked earlier.  If MAX is listed, then no
+salts having more than MAX hashes are loaded.  This is so that if you have
+run --salts=25 you can later run --salts=10:24 for excluding the salts
+already attacked.
+Alternative #M syntax:  Instead of requiring a certain number of hashes
+per salt, we simply say "load the most re-used salt" or "load the M to N
+most re-used salts".
+Regardless of syntax, the re-use counts are considered before sorting out
+already cracked hashes, so a resume or a later attack using same --salts
+option will pick the same set.
 
 --costs=[-]Cn[:Mn][,...]	load salts with[out] cost value Cn [to Mn]
 				for tunable cost parameters

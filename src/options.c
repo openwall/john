@@ -412,7 +412,8 @@ JOHN_USAGE_REGEX \
 "--users=[-]LOGIN|UID[,..]  [do not] load this (these) user(s) only\n" \
 "--groups=[-]GID[,..]       load users [not] of this (these) group(s) only\n" \
 "--shells=[-]SHELL[,..]     load users with[out] this (these) shell(s) only\n" \
-"--salts=[-]COUNT[:MAX]     load salts with[out] COUNT [to MAX] hashes\n" \
+"--salts=[-]COUNT[:MAX]     load salts with[out] COUNT [to MAX] hashes, or\n" \
+"--salts=#M[-N]             load M [to N] most populated salts\n" \
 "--costs=[-]C[:M][,...]     load salts with[out] cost value Cn [to Mn]. For\n" \
 "                           tunable cost parameters, see doc/OPTIONS\n" \
 "--save-memory=LEVEL        enable memory saving, at LEVEL 1..3\n" \
@@ -819,13 +820,25 @@ void opt_init(char *name, int argc, char **argv)
 
 	if (salts_str) {
 		int two_salts = 0;
-		if (sscanf(salts_str, "%d:%d", &options.loader.min_pps, &options.loader.max_pps) == 2)
+
+		if (salts_str[0] == '#') {
+			options.loader.best_pps = 1;
+			salts_str++;
+		}
+
+		if (options.loader.best_pps &&
+		    sscanf(salts_str, "%d-%d", &options.loader.min_pps, &options.loader.max_pps) == 2)
 			two_salts = 1;
-		if (!two_salts && sscanf(salts_str, "%d,%d", &options.loader.min_pps, &options.loader.max_pps) == 2)
+		else if (sscanf(salts_str, "%d:%d", &options.loader.min_pps, &options.loader.max_pps) == 2)
 			two_salts = 1;
-		if (!two_salts){
+		else if (sscanf(salts_str, "%d,%d", &options.loader.min_pps, &options.loader.max_pps) == 2)
+			two_salts = 1;
+
+		if (!two_salts) {
 			sscanf(salts_str, "%d", &options.loader.min_pps);
-			if (options.loader.min_pps < 0) {
+			if (options.loader.best_pps)
+				options.loader.max_pps = options.loader.min_pps;
+			else if (options.loader.min_pps < 0) {
 				options.loader.max_pps = -1 - options.loader.min_pps;
 				options.loader.min_pps = 0;
 			}

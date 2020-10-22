@@ -197,8 +197,11 @@ struct db_options {
 /* Filters to use while loading */
 	struct list_main *users, *groups, *shells;
 
-/* Requested passwords per salt */
+/* Requested passwords per salt (load salts having at least [M:]N hashes) */
 	int min_pps, max_pps;
+
+/* If this is true, min/max_pps refers to "best counts" (load the [M-]N most used salts) */
+	int best_pps;
 
 #ifndef BENCH_BUILD
 /* Requested cost values */

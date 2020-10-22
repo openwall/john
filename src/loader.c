@@ -1407,7 +1407,16 @@ static void ldr_init_sqid(struct db_main *db)
 	} while ((current = current->next));
 }
 
-/* #define DEBUG_SALT_SORT */
+static void ldr_gen_salt_md5(struct db_salt *s, int dynamic)
+{
+#ifndef DYNAMIC_DISABLED
+	if (dynamic) {
+		dynamic_salt_md5(s);
+		return;
+	}
+#endif
+	dyna_salt_md5(s, ldr_fmt_salt_size);
+}
 
 /*
  * This was done as a structure to allow more data to be
@@ -1419,14 +1428,8 @@ static void ldr_init_sqid(struct db_main *db)
  * so for ease of debugging, I have left this as a simple
  * structure
  */
-typedef struct salt_cmp_s
-{
+typedef struct salt_cmp_s {
 	struct db_salt *p;
-#ifdef DEBUG_SALT_SORT
-	/* used by JimF in debugging.  Left in for now */
-	int org_idx;
-	char str[36];
-#endif
 } salt_cmp_t;
 
 /*
@@ -1446,94 +1449,70 @@ static int (*fmt_salt_compare)(const void *x, const void *y);
  * since qsort is pretty quick, and does not call compare any more than
  * is needed to partition sort the data.
  */
-static int ldr_salt_cmp(const void *x, const void *y) {
+static int ldr_salt_cmp(const void *x, const void *y)
+{
 	salt_cmp_t *X = (salt_cmp_t *)x;
 	salt_cmp_t *Y = (salt_cmp_t *)y;
 	int cmp = fmt_salt_compare(X->p->salt, Y->p->salt);
 	return cmp;
 }
 
-static int ldr_salt_cmp_num(const void *x, const void *y) {
+static int ldr_salt_cmp_default(const void *x, const void *y)
+{
 	salt_cmp_t *X = (salt_cmp_t *)x;
 	salt_cmp_t *Y = (salt_cmp_t *)y;
 	int cmp = dyna_salt_cmp(X->p->salt, Y->p->salt, ldr_fmt_salt_size);
 	return cmp;
 }
 
-static void ldr_gen_salt_md5(struct db_salt *s, int dynamic) {
-#ifndef DYNAMIC_DISABLED
-	if (dynamic) {
-		dynamic_salt_md5(s);
-		return;
-	}
-#endif
-	dyna_salt_md5(s, ldr_fmt_salt_size);
+/* Sort by salt's number of hashes (for --salt option) */
+static int ldr_salt_cmp_num(const void *x, const void *y)
+{
+	salt_cmp_t *X = (salt_cmp_t *)x;
+	salt_cmp_t *Y = (salt_cmp_t *)y;
+
+	if (X->p->count > Y->p->count) return -1;
+	if (X->p->count < Y->p->count) return 1;
+	return 0;
 }
 
 /*
- * If there are more than 1 salt AND the format exports a salt_compare
- * function, then we reorder the salt array into the order the format
- * wants them in.  The rationale is usually that the format can
- * gain speed if some of the salts are grouped together.  This was first
- * done for the WPAPSK format so that the format could group all ESSID's
- * in the salts. So the PBKDF2 is computed once (for the first instance
- * of the ESSID), then all of the other salts which are different but
- * have the same ESSID will not have to perform the very costly PBKDF2.
- * The format is designed to work that way, IF the salts come to it in
- * the right order.
- *
- * Later, a bug was found in dynamic (hopefully not in other formats)
- * where formats like md5(md5($p).$s) would fail if there were salts of
- * varying length within the same input file. The longer salts would
- * leave stale data. If we sort the salts based on salt string length,
- * this issue goes away with no performance overhead.  So this function
- * is now also used for dynamic.
- *
- * we sort salts always, so that they are put into a deterministic order.
+ * We always sort salts, so that they are put into a deterministic order.
  * That way, we can restore a session and skip ahead until we find the
  * last salt being worked on. Without a deterministic sort, that logic
  * would fail under many situations.
- *
  */
-static void ldr_sort_salts(struct db_main *db)
+static void ldr_sort_salts(struct db_main *db, int by_count)
 {
 	int i;
 	struct db_salt *s;
-#ifndef DEBUG_SALT_SORT
 	salt_cmp_t *ar;
-#else
-	salt_cmp_t ar[100];  /* array is easier to debug in VC */
-#endif
+
 	if (db->salt_count < 2)
 		return;
 
 	if (john_main_process)
-		log_event("Sorting salts, for performance");
+		log_event("Sorting salts, for %s", by_count ? "picking ones with most hashes" : "deterministic salt-resume");
 
 	fmt_salt_compare = db->format->methods.salt_compare;
-#ifndef DEBUG_SALT_SORT
 	ar = (salt_cmp_t *)mem_alloc(sizeof(salt_cmp_t)*db->salt_count);
-#endif
 	s = db->salts;
 
 	/* load our array of pointers. */
 	for (i = 0; i < db->salt_count; ++i) {
 		ar[i].p = s;
-#ifdef DEBUG_SALT_SORT
-		ar[i].org_idx = i;
-		strncpy(ar[i].str, (char*)s->salt, 36);
-		ar[i].str[35] = 0; /*just in case*/
-#endif
 		s = s->next;
 	}
 
 	ldr_fmt_salt_size = db->format->params.salt_size;
 
 	dyna_salt_init(db->format);
-	if (fmt_salt_compare)
+	if (by_count)
+		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp_num);
+	else if (fmt_salt_compare)
 		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp);
 	else /* Default sort function, ensuring salt resume works if possible */
-		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp_num);
+		qsort(ar, db->salt_count, sizeof(ar[0]), ldr_salt_cmp_default);
 
 	/* Reset salt hash table, if we still have one */
 	if (db->salt_hash) {
@@ -1562,14 +1541,7 @@ static void ldr_sort_salts(struct db_main *db)
 	}
 	s->next = 0;
 
-#ifndef DEBUG_SALT_SORT
 	MEM_FREE(ar);
-#else
-	/* setting s here, allows me to debug quick-watch s=s->next
-	 * over and over again while watching the char* value of s->salt
-	 */
-	s = db->salts;
-#endif
 }
 
 /*
@@ -1671,6 +1643,39 @@ static void ldr_filter_salts(struct db_main *db)
 	if ((current = db->salts))
 	do {
 		if (current->count < min || current->count > max) {
+			dyna_salt_remove(current->salt);
+			if (last)
+				last->next = current->next;
+			else
+				db->salts = current->next;
+
+			db->salt_count--;
+			db->password_count -= current->count;
+		} else
+			last = current;
+	} while ((current = current->next));
+}
+
+/*
+ * Keep [m-]n best salts in terms of number of password hashes.
+ */
+static void ldr_filter_n_best_salts(struct db_main *db)
+{
+	struct db_salt *current, *last;
+	int from = db->options->min_pps;
+	int to = db->options->max_pps;
+	int num = 0;
+
+	if (!from) {
+		if (!to) return;
+		from = to;
+	}
+
+	last = NULL;
+	if ((current = db->salts))
+	do {
+		num++;
+		if (num > to || num < from) {
 			dyna_salt_remove(current->salt);
 			if (last)
 				last->next = current->next;
@@ -2056,13 +2061,17 @@ void ldr_fix_database(struct db_main *db)
 		MEM_FREE(db->salt_hash);
 
 	if (!ldr_loading_testdb) {
-		ldr_filter_salts(db);
+		if (db->options->best_pps) {
+			ldr_sort_salts(db, 1);
+			ldr_filter_n_best_salts(db);
+		} else
+			ldr_filter_salts(db);
 		ldr_filter_costs(db);
 		ldr_remove_marked(db);
 	}
 	ldr_cost_ranges(db);
 	if (!ldr_loading_testdb)
-		ldr_sort_salts(db);
+		ldr_sort_salts(db, 0);
 	ldr_init_hash(db);
 
 	ldr_init_sqid(db);
