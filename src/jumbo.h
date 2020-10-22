@@ -438,7 +438,7 @@ extern int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize);
  * Parse string for boolean. Case insensitive:
  * y/yes/true/1: return 1
  * n/no/false/0: return 0
- * None of the above: return -1
+ * None of the above (including string == NULL): return -1
  */
 extern int parse_bool(char *string);
 

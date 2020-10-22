@@ -260,6 +260,9 @@ struct options_main {
 /* Override config's SingleRetestGuess */
 	char *single_retest_guess;
 
+/* Override (deprecated) NoLoaderDupeCheck config option */
+	char *loader_dupecheck;
+
 /* Configuration file name */
 	char *config;
 

@@ -50,6 +50,19 @@ this option would have the same result as having that word in the gecos
 field of all users named "root" in the input file.  If the wordlist is
 very large, sorting it will speed up loading.
 
+--single-retest-guess=BOOL
+
+Override config file setting for SingleRetestGuess.  Setting this to false
+stops Single mode from re-testing guessed plaintexts with all other salts.
+This is normally only needed for attacking massive, salted, input files
+eg. where you intend to use the --loopback option later instead.
+
+--loader-dupecheck=BOOL
+
+Disable the dupe checking when loading hashes.  This can be used when
+loading massive input files that you know don't contain any dupes, for
+speedup.
+
 --wordlist[=FILE]		wordlist mode, read words from FILE,
 --stdin				or from stdin
 --pipe				much like stdin, but supports rules
@@ -82,9 +95,12 @@ attacked.  Note that by default, some rules are applied too (see john.conf
 "LoopbackRules").  To disable that for a run, just use --rules=none.
 
 --encoding=NAME
+--input-encoding=NAME
+--target-encoding=NAME
+--internal-codepage=NAME
 
-Input data in a character encoding other than the default.  See also
-doc/ENCODINGS.  --list=encodings gives a list of supported encodings.
+Expect/use a character encoding other than the default.  See doc/ENCODINGS.
+Use --list=encodings for a list of supported encodings.
 
 --rules[=(SECTION[,..]|:rule[;..])]
 

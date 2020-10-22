@@ -240,6 +240,8 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &field_sep_char_str},
 	{"config", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.config},
+	{"loader-dupecheck", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
+		OPT_FMT_STR_ALLOC, &options.loader_dupecheck},
 	{"nolog", FLG_NOLOG, FLG_NOLOG}, // Deprecated!
 	{"no-log", FLG_NOLOG, FLG_NOLOG},
 	{"no-mask", FLG_NO_MASK_BENCH, FLG_NO_MASK_BENCH, FLG_TEST_CHK,
@@ -424,6 +426,7 @@ JOHN_USAGE_REGEX \
 "--fix-state-delay=N        performance tweak, see doc/OPTIONS\n" \
 "--config=FILE              use FILE instead of john.conf or john.ini\n" \
 "--log-stderr               log to screen instead of file\n"             \
+"--loader-dupecheck=yes     disable the dupe checking when loading hashes\n" \
 "--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n" \
 "--no-log                   disables creation and writing to john.log file\n"      \
 "--bare-always-valid=Y      treat bare hashes as valid (Y/N)\n" \
