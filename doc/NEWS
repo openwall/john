@@ -148,6 +148,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Add command-line option --loader-dupecheck=<yes/no>, overriding config file.
   Mark the latter as deprecated in config file comments.  [magnum; 2020]
 
+- Add alternative syntax to --salts option for loading "N most populated
+  salts" as opposed to "salts having at least N hashes"  [magnum; 2020]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
