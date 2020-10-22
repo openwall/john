@@ -1035,9 +1035,11 @@ static int crk_salt_loop(void)
 			break;
 	} while ((salt = salt->next));
 
-	if (crk_db->salt_count < sc && john_main_process &&
-	    cfg_get_bool(SECTION_OPTIONS, NULL, "ShowSaltProgress", 0))
+	if (event_delayed_status || (crk_db->salt_count < sc && john_main_process &&
+	                             cfg_get_bool(SECTION_OPTIONS, NULL, "ShowSaltProgress", 0))) {
+		event_delayed_status = 0;
 		event_status = event_pending = 1;
+	}
 
 	if (!salt || crk_db->salt_count < 2)
 		status.resume_salt_md5 = NULL;

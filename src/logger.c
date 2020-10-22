@@ -543,14 +543,14 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 	if (options.verbosity > 2 || (admin && options.verbosity > 1)) {
 		if (options.secure) {
 			secret = components(rep_plain, len);
-			printf("%-16s (%s%s%s%s%s)\n", secret,
+			printf("%-16s (%s%s%s%s%s)     \n", secret,
 			       ADM_START, login, uid_sep, uid_out, ADM_END);
 		} else {
 			char spacer[] = "                ";
 
 			spacer[len > 16 ? 0 : 16 - len] = 0;
 
-			printf("%s%s%s%s (%s%s%s%s%s%s)\n", ADM_START, rep_plain, ADM_END,
+			printf("%s%s%s%s (%s%s%s%s%s%s)     \n", ADM_START, rep_plain, ADM_END,
 			       spacer, ADM_START, login, ADM_END,
 			       uid_sep, uid_out, terminal_reset);
 

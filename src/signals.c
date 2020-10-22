@@ -55,7 +55,7 @@
 #include "john_mpi.h"
 
 volatile int event_pending = 0, event_reload = 0;
-volatile int event_abort = 0, event_save = 0, event_status = 0;
+volatile int event_abort = 0, event_save = 0, event_status = 0, event_delayed_status = 0;
 volatile int event_ticksafety = 0;
 volatile int event_mpiprobe = 0, event_poll_files = 0;
 
@@ -427,6 +427,9 @@ static void sig_handle_timer(int signum)
 					verb_msg[14] += options.verbosity;
 					write_loop(2, verb_msg, sizeof(verb_msg) - 1);
 				}
+			} else if (c == 'd') {
+				event_delayed_status = 1;
+				write_loop(2, "Delayed status pending...\r", 26);
 #endif
 			} else {
 #if OS_FORK
