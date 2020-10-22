@@ -145,6 +145,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   the current batch has been run among all salts.  Under some circumstances
   that make take a good while.  [magnum; 2020]
 
+- Add command-line option --loader-dupecheck=<yes/no>, overriding config file.
+  Mark the latter as deprecated in config file comments.  [magnum; 2020]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 

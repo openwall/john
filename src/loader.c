@@ -937,7 +937,7 @@ void ldr_load_pw_line(struct db_main *db, char *line)
 static void ldr_load_pw_line(struct db_main *db, char *line)
 #endif
 {
-	static int skip_dupe_checking = 0;
+	static int dupe_checking = 1;
 	struct fmt_main *format;
 	int index, count;
 	char *login, *ciphertext, *gecos, *home, *uid;
@@ -972,13 +972,11 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 
 	if (!db->password_hash) {
 		ldr_init_password_hash(db);
-		if (cfg_get_bool(SECTION_OPTIONS, NULL,
-		                 "NoLoaderDupeCheck", 0)) {
-			skip_dupe_checking = 1;
-			if (john_main_process)
-				fprintf(stderr, "No dupe-checking performed "
-				        "when loading hashes.\n");
-		}
+		if ((dupe_checking = parse_bool(options.loader_dupecheck)) == -1)
+			dupe_checking = !cfg_get_bool(SECTION_OPTIONS, NULL, "NoLoaderDupeCheck", 0);
+
+		if (john_main_process && !dupe_checking)
+			fprintf(stderr, "No dupe-checking performed when loading hashes.\n");
 	}
 
 	for (index = 0; index < count; index++) {
@@ -1005,7 +1003,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 			}
 		}
 
-		if (!(db->options->flags & DB_WORDS) && !skip_dupe_checking) {
+		if (!(db->options->flags & DB_WORDS) && dupe_checking) {
 			int collisions = 0;
 			if ((current_pw = db->password_hash[pw_hash]))
 			do {
@@ -1033,7 +1031,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 					    "check for duplicates partially "
 					    "bypassed to speedup loading\n");
 				}
-				skip_dupe_checking = 1;
+				dupe_checking = 0;
 				current_pw = NULL; /* no match */
 				break;
 			} while ((current_pw = current_pw->next_hash));
