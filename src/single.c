@@ -786,6 +786,8 @@ static void single_run(void)
 	do {
 		rec_rule[1] = min[1] = rules_stacked_number;
 		while ((prerule = rpp_next(rule_ctx))) {
+			int sc = single_db->salt_count;
+
 			if (options.node_count && strncmp(prerule, "!!", 2)) {
 				int for_node = rule_number % options.node_count + 1;
 				if (for_node < options.node_min ||
@@ -849,6 +851,12 @@ static void single_run(void)
 				if (salt->keys->rule[1] < min[1])
 					min[1] = salt->keys->rule[1];
 			} while ((salt = salt->next));
+
+			if (event_delayed_status || (single_db->salt_count < sc && john_main_process &&
+			                             cfg_get_bool(SECTION_OPTIONS, NULL, "ShowSaltProgress", 0))) {
+				event_delayed_status = 0;
+				event_status = event_pending = 1;
+			}
 
 			if (event_reload && single_db->salts)
 				crk_reload_pot();
