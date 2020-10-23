@@ -10,7 +10,7 @@
 #include "aes.h"
 #include "twofish.h"
 
-#define FORMAT_NAME             ""
+#define FORMAT_NAME             "PGP Disk / Virtual Disk"
 #define FORMAT_TAG              "$pgpdisk$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 

@@ -34,8 +34,7 @@ john_register_one(&fmt_pgpsda);
 #include "pgpsda_common.h"
 
 #define FORMAT_LABEL            "pgpsda"
-#define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "PGP SDA SHA1 " ARCH_BITS_STR
+#define ALGORITHM_NAME          "SHA1 " ARCH_BITS_STR
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)

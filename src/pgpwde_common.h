@@ -8,7 +8,7 @@
 #include "sha.h"
 #include "aes.h"
 
-#define FORMAT_NAME             ""
+#define FORMAT_NAME             "PGP Whole Disk Encryption"
 #define FORMAT_TAG              "$pgpwde$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 
