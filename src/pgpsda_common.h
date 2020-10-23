@@ -8,7 +8,7 @@
 #include "formats.h"
 #include "sha.h"
 
-#define FORMAT_NAME             ""
+#define FORMAT_NAME             "PGP Self Decrypting Archive"
 #define FORMAT_TAG              "$pgpsda$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 

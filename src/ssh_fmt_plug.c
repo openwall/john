@@ -52,10 +52,10 @@ john_register_one(&fmt_ssh);
 #include "ssh_variable_code.h"
 
 #define FORMAT_LABEL        "SSH"
-#define FORMAT_NAME         ""
+#define FORMAT_NAME         "SSH private key"
 #define FORMAT_TAG          "$sshng$"
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME      "RSA/DSA/EC/OPENSSH (SSH private keys) 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME      "RSA/DSA/EC/OPENSSH 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0x107
 #define PLAINTEXT_LENGTH    32 // XXX

@@ -16,7 +16,7 @@
 #include "lzma/CpuArch.h"
 #include "crc32.h"
 
-#define FORMAT_NAME             "7-Zip"
+#define FORMAT_NAME             "7-Zip archive encryption"
 #define FORMAT_TAG              "$7z$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG)-1)
 #define BENCHMARK_COMMENT       " (512K iterations)"

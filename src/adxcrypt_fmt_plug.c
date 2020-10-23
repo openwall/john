@@ -34,10 +34,10 @@ john_register_one(&fmt_adxcrypt);
 #include "johnswap.h"
 
 #define FORMAT_LABEL            "adxcrypt"
-#define FORMAT_NAME             ""
+#define FORMAT_NAME             "IBM/Toshiba 4690"
 #define FORMAT_TAG              "$adxcrypt$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME          "IBM/Toshiba 4690 - ADXCRYPT 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "ADXCRYPT 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        8
