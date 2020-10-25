@@ -78,7 +78,7 @@ def process(filename, plaintext=None, cipher=0, md=0, minascii=0):
             if PY3:
                 rdata = rdata.decode("ascii")
             sys.stdout.write("%s:$openssl$%s$%s$8$%s$%s$0$%s$%s$%s\n" %
-                             (os.path.basename(filename,) cipher, md, salt,
+                             (os.path.basename(filename), cipher, md, salt,
                               last_chunk,
                               len(rdata) // 2, rdata, s))
 
