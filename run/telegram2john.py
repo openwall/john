@@ -49,7 +49,12 @@ import binascii
 import xml.etree.ElementTree as ET
 import struct
 import hashlib
-from Crypto.Cipher import AES
+
+try:
+    from Crypto.Cipher import AES
+except ImportError:
+    sys.stderr.write("PyCrypto is missing, run 'pip install --user PyCrypto' to install it!\n")
+    sys.exit(-1)
 
 PY3 = sys.version_info[0] == 3
 
