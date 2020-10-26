@@ -408,7 +408,7 @@ def process_xml(file_path):
     if PY3:
         salt = salt.decode("ascii")
 
-    print("$dynamic_1528$%s$HEX$%s" % (h, salt))
+    print("%s:$dynamic_1528$%s$HEX$%s" % (os.path.basename(file_path), h, salt))
 
 def process_map0(file_path):
     if not is_valid_tdfs(file_path):
