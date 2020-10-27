@@ -24,6 +24,7 @@ john_register_one(&fmt_opencl_telegram);
 
 #include "formats.h"
 #include "common.h"
+#define OPENCL_FORMAT
 #include "telegram_common.h"
 #include "options.h"
 #include "jumbo.h"
@@ -51,6 +52,7 @@ typedef struct {
 
 typedef struct {
 	pbkdf2_salt pbkdf2;
+	uint32_t version;
 	uint32_t encrypted_blob_length;
 	unsigned char encrypted_blob[ENCRYPTED_BLOB_LEN];
 } telegram_salt;
