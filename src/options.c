@@ -370,7 +370,7 @@ static struct opt_entry opt_list[] = {
 FUZZ_USAGE \
 PRINCE_USAGE \
 "--encoding=NAME            input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
-"                           doc/ENCODINGS and --list=hidden-options.\n" \
+"                           doc/ENCODINGS.\n" \
 "--rules[=SECTION[,..]]     enable word mangling rules (for wordlist or PRINCE\n" \
 "                           modes), using default or named rules\n" \
 "--rules=:rule[;..]]        same, using \"immediate\" rule(s)\n" \
