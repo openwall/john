@@ -482,11 +482,11 @@ void opt_init(char *name, int argc, char **argv)
 			printf("%s", JOHN_USAGE_ZTEX);
 #endif
 			printf("%s", JOHN_USAGE_FORMAT);
-			exit(0);
 		}
 	} else if(argc < 2) {
 		if (john_main_process)
 			printf(JOHN_BANNER, name);
+		exit(0);
 	}
 
 	/*
