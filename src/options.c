@@ -60,6 +60,7 @@ static char *costs_str;
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
+	{"help", FLG_NONE, 0, 0, 0, 0, 0},
 	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, FLG_STACKING,
 		OPT_FMT_STR_ALLOC, &options.activesinglerules},
 	{"single-retest-guess", FLG_ZERO, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM,
