@@ -973,10 +973,12 @@ static void print_and_cleanup(zip_context *ctx)
 		printf("%"PRIx64"*%s*%s*", ctx->best_files[0].cmp_len, ctx->best_files[0].chksum, ctx->best_files[0].chksum2);
 		print_hex((unsigned char*)ctx->best_files[0].hash_data, ctx->best_files[0].cmp_len);
 	}
+	/* Don't allow our delimiter in there! */
+	replace(filenames, ':', ' ');
 	if (ctx->num_candidates > 1)
-		printf("$/pkzip2$::%s:%s:%s\n", bname, replace(filenames, ':', ' '), ctx->archive.fname);
+		printf("$/pkzip2$::%s:%s:%s\n", bname, filenames, ctx->archive.fname);
 	else
-		printf("$/pkzip2$:%s:%s::%s\n", replace(filenames, ':', ' '), bname, ctx->archive.fname);
+		printf("$/pkzip2$:%s:%s::%s\n", filenames, bname, ctx->archive.fname);
 
 	if (ctx->num_candidates > 1 && !once++)
 		fprintf(stderr,
