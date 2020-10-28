@@ -421,9 +421,10 @@ int gpg2john(int argc, char **argv)
 			if ((cp = strchr(login, '('))) 	memset(cp, 0, 1);
 			if ((cp = strrchr(login, '<'))) memset(cp, 0, 1);
 			gecos_remains += strlen(login);
+			replace(login, ':', ' ');
 			cp = &login[strlen(login) - 1];
 			while (cp > login && *cp == ' ') *cp-- = 0;
-			printf("%s:%s:::%s::%s\n", replace(login, ':', ' '), last_hash, gecos, filename);
+			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
 			MEM_FREE(last_hash);
 		}
 		if (!hash_generated) {
@@ -2542,6 +2543,9 @@ encrypted_Secret_Key(int len, int sha1)
 	/* gecos field is the rest of user data (comment, email) */
 	gecos_remains += strlen(login);
 
+	/* Don't allow our delimiter in there! */
+	replace(login, ':', ' ');
+
 	/* Ditch trailing spaces in login */
 	cp = &login[strlen(login) - 1];
 	while (cp > login && *cp == ' ')
@@ -2563,7 +2567,7 @@ encrypted_Secret_Key(int len, int sha1)
 
 		m_algorithm = PUBLIC;
 		if (last_hash && *last_hash) {
-			printf("%s:%s:::%s::%s\n", replace(login, ':', ' '), last_hash, gecos, filename);
+			printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
 			MEM_FREE(last_hash);
 		}
 		if (dump_subkeys || !is_subkey) {
@@ -2602,7 +2606,7 @@ encrypted_Secret_Key(int len, int sha1)
 			used += len;
 			m_algorithm = PUBLIC;  // Encrypted RSA
 			if (last_hash && *last_hash) {
-				printf("%s:%s:::%s::%s\n", replace(login, ':', ' '), last_hash, gecos, filename);
+				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
 				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {
@@ -2633,7 +2637,7 @@ encrypted_Secret_Key(int len, int sha1)
 				return;
 			used += len;
 			if (last_hash && *last_hash) {
-				printf("%s:%s:::%s::%s\n", replace(login, ':', ' '), last_hash, gecos, filename);
+				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
 				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {
@@ -2666,7 +2670,7 @@ encrypted_Secret_Key(int len, int sha1)
 				return;
 			used += len;
 			if (last_hash && *last_hash) {
-				printf("%s:%s:::%s::%s\n", replace(login, ':', ' '), last_hash, gecos, filename);
+				printf("%s:%s:::%s::%s\n", login, last_hash, gecos, filename);
 				MEM_FREE(last_hash);
 			}
 			if (dump_subkeys || !is_subkey) {

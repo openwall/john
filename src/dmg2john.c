@@ -275,7 +275,8 @@ static void hash_plugin_parse_hash(char *in_filepath)
 		        "count %u\n", name, headerver,
 		        header.kdf_iteration_count);
 
-		printf("%s:$dmg$%d*%d*", replace(name, ':', ' '), headerver, header.kdf_salt_len);
+		replace(name, ':', ' ');
+		printf("%s:$dmg$%d*%d*", name, headerver, header.kdf_salt_len);
 		print_hex(header.kdf_salt, header.kdf_salt_len);
 		printf("*%d*", header.len_wrapped_aes_key);
 		print_hex(header.wrapped_aes_key, header.len_wrapped_aes_key);
@@ -476,7 +477,8 @@ static void hash_plugin_parse_hash(char *in_filepath)
 		}
 
 		/* output hash */
-		printf("%s:$dmg$%d*%d*", replace(name, ':', ' '), headerver, v2_password_header.salt_size);
+		replace(name, ':', ' ');
+		printf("%s:$dmg$%d*%d*", name, headerver, v2_password_header.salt_size);
 		print_hex(v2_password_header.salt, v2_password_header.salt_size);
 		printf("*32*");
 		print_hex(v2_password_header.iv, 32);
