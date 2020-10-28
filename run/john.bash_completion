@@ -153,14 +153,11 @@ _john()
 #	the --pipe option does have leading spaces, and --stdin is mentioned
 #	after --wordlist=FILE.
 #
-#	Some options are listed in the regular usage output, some are listed
-#	with --list=hidden-options.
-#
 #	All options:
-	options="`{ ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null|sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p'; } | sort -u|grep -v -- '--show='`"
+	options="`{ ${first} --help 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; } | sort -u|grep -v -- '--show='`"
 
 	if [[ "_${options}" == "_--stdin" && "_${__john_binary}" != "_" ]] ; then
-		# No options and hidden options with ${first}, but a previous
+		# No options and hidden(deprecated) options with ${first}, but a previous
 		# successful run of this bash completion script found options,
 		# so let's try the previously used name of the john binary,
 		# and assume the user wants to start the same binary (identified
@@ -199,7 +196,7 @@ _john()
 		# jumbo version...)
 		first="${__john_binary}"
 
-		options="`{ ${first} 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; ${first} --list=hidden-options 2>/dev/null| sed -n -e 's#^\(--[a-z-]*\(\[\)\?=\?\).*$#\1#' -e '/--/ p'; } | sort -u`"
+		options="`{ ${first} --help 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; } | sort -u`"
 		if [[ "_${options}" == "_--stdin" ]] ; then
 			_filedir_xspec 2> /dev/null
 			return 0
@@ -377,11 +374,11 @@ _john()
 				# Looks like sed's b is not a good enough replacement for q (which is a GNU extension).
 				# For now this works, because no other option after --format=NAME needs more than
 				#  one line of text
-				formats=`${first} |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\1#' -e 's#/# #g' -e 'p }' | tr A-Z a-z`
+				formats=`${first} --help |sed -n -e '/^--format/,$ {' -e 's#^--format=[ A-Za-z]*:##' -e '/^--/ b' -e 's#^ *##' -e 's#\<dynamic_n\>#dynamic#' -e 's#^\(.*\)$#\1#' -e 's#/# #g' -e 'p }' | tr A-Z a-z`
 			fi
 			# Meanwhile, there are other hidden options using more than one line of text.
 			# But for now, all the format classes fit into a single line.
-			format_classes=`${first} --list=hidden-options  2>/dev/null|sed -n -e 's#,##g ; s#^--format=[ A-Za-z]*:## p'`
+			format_classes=`${first} --help  2>/dev/null|sed -n -e 's#,##g ; s#^--format=[ A-Za-z]*:## p'`
 			COMPREPLY=( $(compgen -W "${formats} ${format_classes}" -- ${cur}) )
 			if [[ "${COMPREPLY[0]}_" == dynamic_ ]] ; then
 				compopt -o nospace
