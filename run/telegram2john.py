@@ -53,11 +53,14 @@ import xml.etree.ElementTree as ET
 import struct
 import hashlib
 
+check_empty_pass = True
+
 try:
     from Crypto.Cipher import AES
 except ImportError:
-    sys.stderr.write("PyCrypto is missing, run 'pip install --user PyCrypto' to install it!\n")
-    sys.exit(-1)
+    check_empty_pass = False
+    sys.stderr.write("For additional functionality, please install the PyCrypto package.\n")
+    sys.stderr.write("run 'pip install --user PyCrypto' to install it!\n")
 
 PY3 = sys.version_info[0] == 3
 
@@ -149,6 +152,10 @@ def is_correct_ige_decryption(file_path, key, data):
     return False
 
 def is_map0_empty_pass(file_path, salt_hex, data_hex):
+    if not check_empty_pass:
+        sys.stderr.write("ATTENTION: it couldn't be verified if a password was set for the file/account: '%s' (please install the PyCrypto package)\n" % file_path)
+        return False
+
     salt = binascii.unhexlify(salt_hex)
     data = binascii.unhexlify(data_hex)
 
@@ -157,6 +164,10 @@ def is_map0_empty_pass(file_path, salt_hex, data_hex):
     return is_correct_ige_decryption(file_path, key, data)
 
 def is_key_datas_empty_pass(file_path, salt_hex, data_hex):
+    if not check_empty_pass:
+        sys.stderr.write("ATTENTION: it couldn't be verified if a password was set for the file/account: '%s' (please install the PyCrypto package)\n" % file_path)
+        return False
+
     salt = binascii.unhexlify(salt_hex)
     data = binascii.unhexlify(data_hex)
 
