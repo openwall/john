@@ -290,12 +290,17 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 	struct db_password **start, **current;
 	int hash, count;
 
+	assert(salt->count >= 1);
+
 	crk_db->password_count--;
 
 	if (!--salt->count) {
 		salt->list = NULL; /* "single crack" mode might care */
 		crk_remove_salt(salt);
-		return;
+		if (!salt->bitmap) {
+/* FIXME: should we BLOB_FREE()? */
+			return;
+		}
 	}
 
 /*
@@ -353,6 +358,7 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
  * during cracking, and will remove entries at that point.
  */
 	if (crk_guesses || (crk_params->flags & FMT_REMOVE)) {
+/* FIXME: should the BLOB_FREE() be unconditional? */
 		BLOB_FREE(crk_db->format, pw->binary);
 		pw->binary = NULL;
 	}
