@@ -22,14 +22,17 @@ file(s) and from Telegram Desktop's local storage (map/key_datas) files"""
 # Special thanks goes to https://github.com/MihaZupan for documenting
 # this hashing scheme.
 #
+# Written by Dhiru Kholia <dhiru at openwall.com> in July, 2018 for JtR
+# project.
+#
+#
 # A newer and stronger algorithm was introduced with Telegram Desktop version
 # 2.1.14: it uses PBKDF2-HMAC-SHA512 with higher iteration count and an initial
 # sha512 hash of pass and salt (https://github.com/openwall/john/issues/4387).
 # The supported Telegram Desktop file types are now the old "map0"/"map1" files
 # and new "key_datas" (or similar named) files.
 #
-# Written by Dhiru Kholia <dhiru at openwall.com> in July, 2018 for JtR
-# project.
+# Updated and refactored by philsmd <philsmd at hashcat.net> in October, 2020.
 #
 #
 # This software is Copyright (c) 2018, Dhiru Kholia <dhiru at openwall.com> and
