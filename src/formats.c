@@ -887,7 +887,11 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (strnlen(current->ciphertext, LINE_BUFFER_SIZE) >
 		    MAX_CIPHERTEXT_SIZE &&
 		    !(format->params.flags & FMT_HUGE_INPUT))
-			return "Long test vector but not FMT_HUGE_INPUT";
+			return "Long test vector ciphertext but no FMT_HUGE_INPUT";
+
+		if (strlen(current->plaintext) > format->params.plaintext_length &&
+		    !(format->params.flags & FMT_TRUNC))
+			return "Long test vector plaintext but no FMT_TRUNC";
 
 		if (!current->fields[1])
 			current->fields[1] = current->ciphertext;
