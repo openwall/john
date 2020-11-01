@@ -58,6 +58,7 @@ extern BF_word BF_magic_w[6];
 extern struct BF_ctx BF_init_state;
 
 int BF_common_valid(char *ciphertext, struct fmt_main *self);
+char *BF_common_split(char *ciphertext, int index, struct fmt_main *self);
 void *BF_common_get_binary(char *ciphertext);
 void *BF_common_get_salt(char *ciphertext);
 unsigned int BF_common_iteration_count(void *salt);
