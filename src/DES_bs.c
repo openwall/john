@@ -483,7 +483,13 @@ int DES_bs_cmp_all(uint32_t *binary, int count)
 #if DES_bs_mt
 	int t, n = (count + (DES_BS_DEPTH - 1)) / DES_BS_DEPTH;
 #endif
+	int retval = 0;
 
+#if defined(_OPENMP) && DES_BS_VECTOR
+#pragma omp parallel for if(n >= 96) default(none) private(value, mask, bit, b, depth, t) shared(n, DES_bs_all_p, retval, binary)
+#elif defined(_OPENMP)
+#pragma omp parallel for if(n >= 96) default(none) private(value, mask, bit, b, t) shared(n, DES_bs_all_p, retval, binary)
+#endif
 	for_each_t(n)
 	for_each_depth() {
 		value = binary[0];
@@ -508,12 +514,16 @@ int DES_bs_cmp_all(uint32_t *binary, int count)
 			b += 2;
 		}
 
+#ifdef _OPENMP
+		retval = 1;
+#else
 		return 1;
+#endif
 next_depth:
 		;
 	}
 
-	return 0;
+	return retval;
 }
 
 int DES_bs_cmp_one(uint32_t *binary, int count, int index)
