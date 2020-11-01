@@ -209,7 +209,7 @@ struct fmt_main fmt_BF = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		BF_common_valid,
-		fmt_default_split,
+		BF_common_split,
 		BF_common_get_binary,
 		BF_common_get_salt,
 		{

@@ -73,6 +73,7 @@ unsigned char BF_atoi64[0x80] = {
 	64, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
 	43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 64, 64, 64, 64, 64
 };
+
 int BF_common_valid(char *ciphertext, struct fmt_main *self)
 {
 	int rounds;
@@ -97,6 +98,18 @@ int BF_common_valid(char *ciphertext, struct fmt_main *self)
 	if (BF_atoi64[ARCH_INDEX(ciphertext[28])] & 0xF) return 0;
 
 	return 1;
+}
+
+char *BF_common_split(char *ciphertext, int index, struct fmt_main *self)
+{
+	if (ciphertext[2] == 'b' || ciphertext[2] == 'y') {
+		static char out[CIPHERTEXT_LENGTH + 1];
+		strcpy(out, ciphertext);
+		out[2] = 'a';
+		return out;
+	}
+
+	return ciphertext;
 }
 
 /*
