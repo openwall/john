@@ -770,13 +770,15 @@ find_format:
 			retval = valid;
 			*ciphertext = prepared;
 			ldr_set_encoding(alt);
+			*format = alt;
 #ifdef HAVE_OPENCL
 			if (options.acc_devices->count && options.fork &&
-			    strstr(alt->params.label, "-opencl"))
-				*format = alt;
-			else
+			    strstr(alt->params.label, "-opencl")) {
+				/* skip format initialization here */
+			} else
 #endif
-			fmt_init(*format = alt);
+			if (!source) /* not --show */
+				fmt_init(alt);
 #ifdef LDR_WARN_AMBIGUOUS
 			if (!source) /* not --show */
 				continue;
