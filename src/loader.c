@@ -2207,7 +2207,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	char *orig_line = NULL;
 	struct fmt_main *format;
 	char *(*split)(char *ciphertext, int index, struct fmt_main *self);
-	int index, count, unify;
+	int index, count;
 	char *login, *ciphertext, *gecos, *home, *uid;
 	char *piece;
 	int pass, found, chars;
@@ -2248,7 +2248,6 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 	if (format) {
 		split = format->methods.split;
-		unify = format->params.flags & FMT_SPLIT_UNIFIES_CASE;
 		if (format->params.flags & FMT_UNICODE) {
 			static int setting = -1;
 			if (setting < 0)
@@ -2266,7 +2265,6 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	} else {
 		split = fmt_default_split;
 		count = 1;
-		unify = 0;
 	}
 
 	if (options.target_enc != UTF_8 &&
@@ -2294,8 +2292,6 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 	for (found = pass = 0; pass == 0 || (pass == 1 && found); pass++)
 	for (index = 0; index < count; index++) {
 		piece = split(ciphertext, index, format);
-		if (unify)
-			piece = strcpy(mem_alloc(strlen(piece) + 1), piece);
 
 		hash = ldr_cracked_hash(piece);
 
@@ -2305,18 +2301,7 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 
 			if (!ldr_pot_source_cmp(pot, piece))
 				break;
-/* This extra check, along with ldr_cracked_hash() being case-insensitive,
- * is only needed for matching some pot file records produced by older
- * versions of John and contributed patches where split() didn't unify the
- * case of hex-encoded hashes. */
-			if (unify &&
-			    format->methods.valid(pot, format) == 1 &&
-			    !strcmp(split(pot, 0, format), piece))
-				break;
 		} while ((current = current->next));
-
-		if (unify)
-			MEM_FREE(piece);
 
 		if (pass) {
 			chars = 0;
