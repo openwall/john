@@ -117,10 +117,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (ciphertext[0] != '_') return 0;
 
-	for (pos = &ciphertext[1]; pos < &ciphertext[9]; pos++)
-	if (!*pos) return 0;
-
-	for (pos = &ciphertext[9]; atoi64[ARCH_INDEX(*pos)] != 0x7F; pos++);
+	for (pos = &ciphertext[1]; atoi64[ARCH_INDEX(*pos)] != 0x7F; pos++);
 	if (*pos || pos - ciphertext != CIPHERTEXT_LENGTH) return 0;
 
 	if (atoi64[ARCH_INDEX(*(pos - 1))] & 3) return 0;
