@@ -132,20 +132,6 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	}
 }
 
-static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
-{
-	static char out[14];
-
-	if (index) {
-		memcpy(out, &ciphertext[2], 2);
-		memcpy(&out[2], &ciphertext[13], 11);
-	} else
-		memcpy(out, ciphertext, 13);
-
-	out[13] = 0;
-	return out;
-}
-
 static WORD *do_IP(WORD in[2])
 {
 	static WORD out[2];
@@ -225,6 +211,25 @@ static WORD raw_get_salt(char *ciphertext)
 		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[8])] << 18);
 	else return DES_atoi64[ARCH_INDEX(ciphertext[0])] |
 		((WORD)DES_atoi64[ARCH_INDEX(ciphertext[1])] << 6);
+}
+
+static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
+{
+	static char out[14];
+
+	if (index) {
+		memcpy(out, &ciphertext[2], 2);
+		memcpy(&out[2], &ciphertext[13], 11);
+	} else
+		memcpy(out, ciphertext, 13);
+	out[13] = 0;
+
+/* Replace potential invalid salts with their valid counterparts */
+	unsigned int salt = raw_get_salt(out);
+	out[0] = itoa64[salt & 0x3f];
+	out[1] = itoa64[salt >> 6];
+
+	return out;
 }
 
 static void *get_salt(char *ciphertext)

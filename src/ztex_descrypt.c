@@ -157,8 +157,13 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 		memcpy(&out[2], &ciphertext[13], 11);
 	} else
 		memcpy(out, ciphertext, 13);
-
 	out[13] = 0;
+
+/* Replace potential invalid salts with their valid counterparts */
+	unsigned int salt = DES_raw_get_salt(out);
+	out[0] = itoa64[salt & 0x3f];
+	out[1] = itoa64[salt >> 6];
+
 	return out;
 }
 
