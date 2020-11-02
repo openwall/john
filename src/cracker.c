@@ -294,13 +294,13 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 
 	crk_db->password_count--;
 
+	BLOB_FREE(crk_db->format, pw->binary);
+
 	if (!--salt->count) {
 		salt->list = NULL; /* "single crack" mode might care */
 		crk_remove_salt(salt);
-		if (!salt->bitmap) {
-/* FIXME: should we BLOB_FREE()? */
+		if (!salt->bitmap)
 			return;
-		}
 	}
 
 /*
@@ -312,7 +312,6 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 		while (*current != pw)
 			current = &(*current)->next;
 		*current = pw->next;
-		BLOB_FREE(crk_db->format, pw->binary);
 		pw->binary = NULL;
 		return;
 	}
@@ -357,11 +356,8 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
  * Or, if FMT_REMOVE, the format explicitly intends to traverse the list
  * during cracking, and will remove entries at that point.
  */
-	if (crk_guesses || (crk_params->flags & FMT_REMOVE)) {
-/* FIXME: should the BLOB_FREE() be unconditional? */
-		BLOB_FREE(crk_db->format, pw->binary);
+	if (crk_guesses || (crk_params->flags & FMT_REMOVE))
 		pw->binary = NULL;
-	}
 }
 
 /* Negative index is not counted/reported (got it from pot sync) */
