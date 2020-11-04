@@ -1,17 +1,4 @@
 #rain module by owein, yvain29@gmail.com  
 
-The module uses a state, holding the current character (from the set) for each placeholder (characters of the word as in formal speaking).  
-
-2..... characters  
-1..... characters  
-0..... ..........  
-012345 placeholders  
-This is a bruteforce with word's length 6 and set's size 3; so 3^6 words are ouput.  
-
-When doing this on a broad range, you generaly don't want to spend a month testing words that start with aaaa...  
-With jtr, you have several options: use -inc, -markov, or -subsets... and you can use this one: -rain.   
-
-We are rotating the characters being choosen from the set, for this purpose a strafing variable is  
-increased inside of the loop on the length of the words, and decreased by one  
-less iteration and by a value lower by one.   
-This creates mangled patterns that are evolving along with the state of the bruteforce.  
+This cracks more keys than incremental mode.
+Best is when you are sure that the password is an hexadecimal one, above that use -inc first. 
