@@ -106,9 +106,9 @@ int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 		return -1;
 	
 	// check for android format. See https://github.com/gurnec/btcrecover/issues/203
-    if (memmem(out, 16, "\"address_book", 13)) {
-        return 0;
-    }
+        if (memmem(out, 16, "\"address_book", 13)) {
+                return 0;
+        }
 
 	// "guid" will be found in the first block
 	if (memmem(out, 16, "\"guid\"", 6)) {
