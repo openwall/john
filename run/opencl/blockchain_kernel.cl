@@ -48,6 +48,11 @@ inline int blockchain_decrypt(__global uchar *derived_key,
 	if (out[0] != '{') // fast test
 		return 0;
 
+	// check for android format. See https://github.com/gurnec/btcrecover/issues/203
+	if (memmem_pc(out, 16, "\"address_book", 13)) {
+		return 1;
+	}
+
 	// "guid" will be found in the first block
 	if (memmem_pc(out, 16, "\"guid\"", 6)) {
 		AES_cbc_decrypt(data + 32, out + 16, SAFETY_FACTOR - 16, &akey, iv);
