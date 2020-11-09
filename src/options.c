@@ -340,8 +340,9 @@ static struct opt_entry opt_list[] = {
 
 #ifdef HAVE_FUZZ
 #define FUZZ_USAGE \
-"--fuzz[=DICTFILE]         fuzz formats' prepare(), valid() and split()\n" \
-"--fuzz-dump[=FROM,TO]     dump the fuzzed hashes between FROM and TO to file pwfile.format\n"
+"--fuzz[=DICTFILE]          fuzz formats' prepare(), valid() and split()\n" \
+"--fuzz-dump[=FROM,TO]      dump the fuzzed hashes between FROM and TO to file\n" \
+"                           pwfile.format\n"
 #else
 #define FUZZ_USAGE ""
 #endif
@@ -359,7 +360,8 @@ static struct opt_entry opt_list[] = {
 "--single=:rule[,..]        same, using \"immediate\" rule(s)\n" \
 "--single-seed=WORD[,WORD]  add static seed word(s) for all salts in single mode\n" \
 "--single-wordlist=FILE     *short* wordlist with static seed words/morphemes\n" \
-"--single-user-seed=FILE    wordlist with seeds per username (user:password[s] format)\n" \
+"--single-user-seed=FILE    wordlist with seeds per username (user:password[s]\n" \
+"                           format)\n" \
 "--single-retest-guess=B    override config for SingleRetestGuess (bool: Y/N)\n" \
 "--wordlist[=FILE] --stdin  wordlist mode, read words from FILE or stdin\n" \
 "                  --pipe   like --stdin, but bulk reads, and allows rules\n" \
@@ -444,14 +446,14 @@ JOHN_USAGE_FORK \
 
 #define JOHN_USAGE_FORMAT \
 "--format=[NAME|CLASS][,..] force hash of type NAME. The supported formats can\n" \
-"                           be seen with --list=formats and --list=subformats. Valid\n" \
-"                           classes: dynamic, cpu, opencl, ztex, mask, omp, all,\n" \
-"                           enabled, disabled.\n"
+"                           be seen with --list=formats and --list=subformats.\n" \
+"                           Valid classes: dynamic, cpu, opencl, ztex, mask, omp,\n" \
+"                           all, enabled, disabled.\n"
 
 #if defined(HAVE_OPENCL)
 #define JOHN_USAGE_GPU \
-"--devices=N[,..]           set OpenCL device(s) (see --list=opencl-devices)\n" \
 "\nOpenCL options:\n" \
+"--devices=N[,..]           set OpenCL device(s) (see --list=opencl-devices)\n" \
 "--force-scalar             force scalar mode\n" \
 "--force-vector-width=N     force vector width N\n" \
 "--lws=N                    force local worksize N\n" \
