@@ -105,8 +105,8 @@ extern char CPU_req_name[];
  */
 static void listconf_list_options()
 {
-	puts("help[:WHAT], subformats, inc-modes, rules, externals, ext-modes, ext-hybrids,");
-	puts("ext-filters, ext-filters-only, build-info, hidden-options, encodings,");
+	puts("help[:WHAT], subformats, inc-modes, rules, externals, ext-modes");
+	puts("ext-hybrids, ext-filters, ext-filters-only, build-info, encodings");
 	puts("formats, format-details, format-all-details, format-methods[:WHICH],");
 	// With "opencl-devices, <conf section name>" added,
 	// the resulting line will get too long
@@ -401,9 +401,10 @@ void listconf_parse_early(void)
 			exit(EXIT_FAILURE);
 		}
 	}
+
 	if (!strcasecmp(options.listconf, "hidden-options"))
 	{
-		opt_print_hidden_usage();
+		opt_usage();
 		exit(EXIT_SUCCESS);
 	}
 
