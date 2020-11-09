@@ -53,11 +53,11 @@ static int state_restored;
 static uint64_t keyspace;
 static uint64_t subtotal;
 
-static uint64_t totalperlen[MAX_CAND_LENGTH-1];
-static uint64_t rec_totalperlen[MAX_CAND_LENGTH-1];
+static uint_big totalCperlen[MAX_CAND_LENGTH-1];
+static uint_big rec_totalCperlen[MAX_CAND_LENGTH-1];
 
-static uint64_t counter;//linear counter
-static uint64_t rec_counter;
+static uint_big counter;//linear counter
+static uint_big rec_counter;
 static int quick_conversion;
 static int loop, rec_loop;//inner loop
 static int set, rec_set;
@@ -82,7 +82,7 @@ static void fix_state(void)
 	
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		rec_totalperlen[i] = totalperlen[i];
+		rec_totalCperlen[i] = totalCperlen[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -98,7 +98,7 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%" PRIu64"\n", rec_totalperlen[i]);
+		fprintf(file, "%" PRIu64"\n", rec_totalCperlen[i]);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -118,7 +118,7 @@ static int restore_state(FILE *file)
 
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		if(fscanf(file, "%" PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
-			totalperlen[i] = r;
+			totalCperlen[i] = r;
 		else return 1;
 
 		for(j = 0; j < maxlength; ++j)
@@ -341,7 +341,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		rain_cur_len = minlength;
 		srand(time(NULL));
 		for(i=0; i<= maxlength - minlength; i++) {
-			totalperlen[i] = 0;
+			totalCperlen[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
@@ -375,22 +375,21 @@ int do_rain_crack(struct db_main *db, char *req_charset)
             if(!skip) {
 				quick_conversion = 1;
 				
-                uint_big rotate = totalperlen[loop];
+                uint_big rotate = totalCperlen[loop];// / (uint_big) pow(2, charcount);
 		        if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
 				    quick_conversion = 0;	
-                
-		        for(i=1; i<mpl; ++i) {
-	                int tmpc = charset_utf32[(charset_idx[loop][i]+rotate)%charcount];
+                for(i=1; i<mpl; ++i) {
+	                int tmpc = charset_utf32[(charset_idx[loop][i] + rotate) % charcount];
 	                if( (rain[i] = tmpc) > cp_max )
 		                quick_conversion = 0;
-					rotate -= rotate/charcount;
-	        	}
+					rotate -= totalCperlen[loop] / (mpl-i);
+				}        	
 				submit(rain);
-	        }
+            }
+            
+            totalCperlen[loop]+=1+charcount%2;
 	        int pos = 0;
-	        totalperlen[loop]++;
-
-			while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
+	        while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
 			    pos++;
 		    }
