@@ -463,11 +463,13 @@ JOHN_USAGE_FORK \
 "--devices=N[,..]           set ZTEX device(s) by its(their) serial number(s)\n"
 #endif
 
-static void opt_banner(char *name) {
+static void opt_banner(char *name)
+{
 	printf(JOHN_BANNER, name);
 }
 
-void opt_usage() {
+void opt_usage()
+{
 	printf(JOHN_USAGE, WORDLIST_BUFFER_DEFAULT >> 20,
 		   VERB_MAX, VERB_DEBUG, VERB_DEFAULT);
 #if defined(HAVE_OPENCL)
