@@ -435,5 +435,6 @@ extern struct options_main options;
  * Initializes the options structure.
  */
 extern void opt_init(char *name, int argc, char **argv);
+extern void opt_usage();
 
 #endif
