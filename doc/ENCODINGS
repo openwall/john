@@ -15,8 +15,8 @@ The new defaults (which can be changed in john.conf) are:
   * Output to screen, log and .pot file is UTF-8.
   * Target encoding for LM is CP850 (and input will be converted accordingly).
   * Internal encoding (eg. for rules processing) is disabled. For Western
-    Europe, ISO-8859-1 is recommended but since this has a performance impact
-    you'll need to use the command-line option or un-comment the line in
+    Europe, ISO-8859-1 is recommended but since this has a slight performance
+    impact you'll need to use the command-line option or un-comment the line in
     john.conf.
 
 For temporarily running "the old way", just give --enc=raw. You will still
@@ -42,6 +42,10 @@ shelter as much of the needed input as possible. For US/Western Europe, any
 this with a Unicode format like NT, it will silently be treated in another
 way internally for performance reasons but the outcome will be the same).
 
+Example: A rule that replaces all instances of "c" within a word with "ç" could
+be written as "-U scç" where "-U" means the rule is rejected unless we're
+running with some legacy codepage configured to handle it.
+
 Mask mode also honors --internal-codepage (or plain --encoding). For
 example, the mask ?L is a placeholder for all lowercase Greek letters if you
 use CP737. If you instead use CP850, it'll be western-european ones.
@@ -58,6 +62,13 @@ UTF-8 multibyte sequences in the middle, resulting in garbage. You can reject
 such rules with -U to have them in use only when UTF-8 is not used.
 
 Caveats:
+Please note that for convenience, any rule, mask or placeholder given in UTF-8
+on command-line or in a config file will be silently translated to whatever
+internal codepage is in use.  This will normally result in just what you'd
+expect but it could sometimes lead to confusion.  For example, if you run that
+"scç" rule with the internal codepage set to CP866, the "ç" can't be translated
+and will currently lead to some other undefined substitution with no warning.
+
 Beware of UTF-8 BOM's. They will cripple the first word in your wordlist or
 the first entry in your hashfile. Try to avoid using Windows tools that add
 them. This version does try to discard them though.

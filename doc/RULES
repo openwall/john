@@ -28,10 +28,9 @@ natively.  Those additional commands may also be useful on their own.
 -8	reject this rule unless current hash type uses 8-bit characters
 -s	reject this rule unless some password hashes were split at loading
 -p	reject this rule unless word pair commands are currently allowed
--u	reject this rule unless --encoding=utf-8 or config variable
-	DefaultEncoding = UTF-8 is used
--U	reject this rule if --encoding=utf-8 or config variable
-	DefaultEncoding = UTF-8 is used
+-u	reject this rule unless the rules engine is running in UTF-8 mode (with
+	no internal codepage configured - see doc/ENCODINGS)
+-U	reject this rule if the rules engine is running in UTF-8 mode
 ->N	reject this rule unless length N or longer is supported
 -<N	reject this rule unless length N or shorter is supported (--min-length)
 
@@ -88,14 +87,9 @@ than that of "l" (length).
 The complement of a class can be specified by uppercasing its name.  For
 example, "?D" matches everything but digits.
 
-NOTE, if running in --encoding=iso-8859-1 (or koi8-r/cp1251/cp866,etc), then the
-high bit characters are added to the respective classes. So in iso-8859-1 mode,
-lower case ?l would include àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþßÿ while in 'normal'
-runs, it is only a-z.
-
-NOTE 2, the rules engine currently have very limited understanding of UTF-8 so
-character classes etc. will only work with ASCII characters, even if using
---encoding=utf-8.
+If you've made John encoding-aware (see doc/ENCODINGS), the applicable national
+characters are added to the respective classes. So in ISO-8859-1 mode, ?l would
+include àáâãäåæçèéêëìíîïðñòóôõöøùúûüýþßÿ while in ASCII mode it is only a-z.
 
 
 	Simple commands.
@@ -120,9 +114,8 @@ WN is a superset of TN.  While TN only case-toggles alphabet letters, eg.
 "a" <-> "A", the WN command will shift-toggle as well.  This is akin to
 using shift or not on a US keyboard, eg. "1" <-> "!".
 
-NOTE, all of these are encoding-aware. Eg. if you do not specify an encoding,
-the l command will lowercase A-Z only. If you use --encoding=iso-8859-1 it will
-also recognise ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖØÙÚÛÜÝÞ and lowercase them properly.
+All of these are encoding-aware.  Eg. if the rules engine is running CP737 it
+will also recognise Greek letters and upper/lowercase them properly.
 
 
 	String commands.
@@ -192,6 +185,11 @@ access commands" below.
 Note that square brackets ("[" and "]") are special characters to the
 preprocessor: you should escape them with a backslash ("\") if using
 these commands.
+
+Note that for UTF-8 (where a single character may be composed from several
+bytes) any notion of "number of characters" or "position N" will in fact
+count bytes, not characters.  Using "--internal-codepage" will mitigate that
+issue completely.  See doc/ENCODINGS.
 
 
 	Charset conversion commands.

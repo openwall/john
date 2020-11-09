@@ -12,6 +12,8 @@
 #include "logger.h"
 #include "common.h" /* for atoi16 */
 #include "misc.h"   /* for strtokm */
+#include "options.h"
+#include "unicode.h"
 
 int rpp_real_run = 0;
 
@@ -116,6 +118,12 @@ static void rpp_process_rule(struct rpp_context *ctx)
 	end = output + RULE_BUFFER_SIZE - 1;
 	flag_p = flag_r = 0;
 	ctx->count = ctx->refs_count = 0;
+
+/*
+ * If rule is given in UTF-8 but we're using an internal codepage, convert it in-place to that codepage.
+ */
+	if (options.internal_cp != UTF_8 && valid_utf8(input) > 1)
+		utf8_to_cp_r((char*)input, (char*)input, strlen((char*)input));
 
 	while (*input && output < end)
 	switch (*input) {
