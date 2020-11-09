@@ -452,10 +452,10 @@ JOHN_USAGE_FORK \
 #define JOHN_USAGE_GPU \
 "--devices=N[,..]           set OpenCL device(s) (see --list=opencl-devices)\n" \
 "\nOpenCL options:\n" \
-"--force-scalar            force scalar mode\n" \
-"--force-vector-width=N    force vector width N\n" \
-"--lws=N                   force local worksize N\n" \
-"--gws=N                   force global worksize N\n\n"
+"--force-scalar             force scalar mode\n" \
+"--force-vector-width=N     force vector width N\n" \
+"--lws=N                    force local worksize N\n" \
+"--gws=N                    force global worksize N\n\n"
 #define JOHN_USAGE_ZTEX \
 "                           or set ZTEX device(s) by its(their) serial number(s)\n"
 #elif defined(HAVE_ZTEX)
