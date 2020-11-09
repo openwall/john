@@ -691,7 +691,6 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 
 /* Flags added in Jumbo */
 		case '>':
-			if (!db && RULE) continue;
 			if (!NEXT) {
 				rules_errno = RULES_ERROR_END;
 				return NULL;
@@ -702,7 +701,6 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 			return NULL;
 
 		case '<':
-			if (!db && RULE) continue;
 			if (!NEXT) {
 				rules_errno = RULES_ERROR_END;
 				return NULL;
@@ -713,12 +711,10 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 			return NULL;
 
 		case 'u':
-			if (!db) continue;
 			if (options.internal_cp == UTF_8) continue;
 			return NULL;
 
 		case 'U':
-			if (!db) continue;
 			if (options.internal_cp != UTF_8) continue;
 			return NULL;
 
