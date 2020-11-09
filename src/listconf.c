@@ -398,6 +398,12 @@ void listconf_parse_early(void)
 		}
 	}
 
+	if (!strcasecmp(options.listconf, "hidden-options"))
+	{
+		opt_usage();
+		exit(EXIT_SUCCESS);
+	}
+
 	if (!strcasecmp(options.listconf, "build-info"))
 	{
 		listconf_list_build_info();
