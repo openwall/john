@@ -41,6 +41,8 @@ def process_file(filename):
         # This was tested on macOS 10.13.2 with cloud syncing turned off.
         if iterations == 0:  # is this a safer check than checking is_protected?
             continue
+        if phash is None:
+            continue
         phash = binascii.hexlify(phash)
         salt = binascii.hexlify(salt)
         if PY3:
