@@ -351,10 +351,11 @@ static struct opt_entry opt_list[] = {
 "Copyright (c) 1996-2020 by " JOHN_COPYRIGHT "\n" \
 "Homepage: https://www.openwall.com/john/\n" \
 "\n" \
-"Usage: %s [OPTIONS] [PASSWORD-FILES]\n" \
-"Use --help to list all available options.\n\n"
+"Usage: %s [OPTIONS] [PASSWORD-FILES]\n"                                                                 \
 
-#define JOHN_USAGE    \
+#define JOHN_BANNER_HELP "Use --help to list all available options.\n"
+
+#define JOHN_USAGE \
 "--help                     print usage summary\n" \
 "--single[=SECTION[,..]]    \"single crack\" mode, using default or named rules\n" \
 "--single=:rule[,..]        same, using \"immediate\" rule(s)\n" \
@@ -464,6 +465,26 @@ JOHN_USAGE_FORK \
 "--devices=N[,..]           set ZTEX device(s) by its(their) serial number(s)\n"
 #endif
 
+void opt_banner(char *name) {
+	printf(JOHN_BANNER, name);
+}
+
+void opt_banner_help() {
+	printf(JOHN_BANNER_HELP);
+}
+
+void opt_usage() {
+	printf(JOHN_USAGE, WORDLIST_BUFFER_DEFAULT >> 20,
+		   VERB_MAX, VERB_DEBUG, VERB_DEFAULT);
+#if defined(HAVE_OPENCL)
+	printf("%s", JOHN_USAGE_GPU);
+#endif
+#if defined(HAVE_ZTEX)
+	printf("%s", JOHN_USAGE_ZTEX);
+#endif
+	printf("%s", JOHN_USAGE_FORMAT);
+}
+
 void opt_init(char *name, int argc, char **argv)
 {
 	if (argc == 2 &&
@@ -472,21 +493,17 @@ void opt_init(char *name, int argc, char **argv)
 	      !strcasecmp(argv[1], "-help")))
 	{
 		if (john_main_process) {
-			printf(JOHN_BANNER, name);
-			printf(JOHN_USAGE, WORDLIST_BUFFER_DEFAULT >> 20,
-			       VERB_MAX, VERB_DEBUG, VERB_DEFAULT);
-#if defined(HAVE_OPENCL)
-			printf("%s", JOHN_USAGE_GPU);
-#endif
-#if defined(HAVE_ZTEX)
-			printf("%s", JOHN_USAGE_ZTEX);
-#endif
-			printf("%s", JOHN_USAGE_FORMAT);
+			opt_banner(name);
+			printf("\n");
+			opt_usage();
 		}
 		exit(0);
 	} else if (argc < 2) {
-		if (john_main_process)
-			printf(JOHN_BANNER, name);
+		if (john_main_process) {
+			opt_banner(name);
+			printf("\n");
+			opt_banner_help();
+		}
 		exit(0);
 	}
 
