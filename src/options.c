@@ -351,9 +351,7 @@ static struct opt_entry opt_list[] = {
 "Copyright (c) 1996-2020 by " JOHN_COPYRIGHT "\n" \
 "Homepage: https://www.openwall.com/john/\n" \
 "\n" \
-"Usage: %s [OPTIONS] [PASSWORD-FILES]\n"                                                                 \
-
-#define JOHN_BANNER_HELP "Use --help to list all available options.\n"
+"Usage: %s [OPTIONS] [PASSWORD-FILES]\n\n"
 
 #define JOHN_USAGE \
 "--help                     print usage summary\n" \
@@ -465,12 +463,8 @@ JOHN_USAGE_FORK \
 "--devices=N[,..]           set ZTEX device(s) by its(their) serial number(s)\n"
 #endif
 
-void opt_banner(char *name) {
+static void opt_banner(char *name) {
 	printf(JOHN_BANNER, name);
-}
-
-void opt_banner_help() {
-	printf(JOHN_BANNER_HELP);
 }
 
 void opt_usage() {
@@ -494,15 +488,13 @@ void opt_init(char *name, int argc, char **argv)
 	{
 		if (john_main_process) {
 			opt_banner(name);
-			printf("\n");
 			opt_usage();
 		}
 		exit(0);
 	} else if (argc < 2) {
 		if (john_main_process) {
 			opt_banner(name);
-			printf("\n");
-			opt_banner_help();
+			printf("Use --help to list all available options.\n");
 		}
 		exit(0);
 	}
