@@ -591,14 +591,15 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			bench_set_keys(format, current, pass);
 		}
 
-		if (salts > 1) format->methods.set_salt(two_salts[index & 1]);
+		if (salts > 1)
+			format->methods.set_salt(two_salts[index & 1]);
 #ifndef BENCH_BUILD
-		format->methods.cmp_all(binary,
-		    format->methods.crypt_all(&count, two_salts_db[index & 1]));
+		int match = format->methods.crypt_all(&count, two_salts_db[index & 1]);
 #else
-		format->methods.cmp_all(binary,
-		    format->methods.crypt_all(&count, NULL));
+		int match = format->methods.crypt_all(&count, NULL);
 #endif
+		if (match)
+			format->methods.cmp_all(binary, match);
 
 		crypts += (uint32_t)count;
 #if !OS_TIMER
