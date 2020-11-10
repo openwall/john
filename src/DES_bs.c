@@ -497,8 +497,8 @@ int DES_bs_cmp_all(uint32_t *binary, int count)
 
 		mask = b[0] START ^ -(value & 1);
 		mask |= b[1] START ^ -((value >> 1) & 1);
-		if (mask == ~(ARCH_WORD)0) goto next_depth;
 		mask |= b[2] START ^ -((value >> 2) & 1);
+		if (mask == ~(ARCH_WORD)0) goto next_depth;
 		mask |= b[3] START ^ -((value >> 3) & 1);
 		if (mask == ~(ARCH_WORD)0) goto next_depth;
 		value >>= 4;
