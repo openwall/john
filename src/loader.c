@@ -1812,6 +1812,10 @@ static void ldr_init_hash(struct db_main *db)
  * comparing it against less than 1 loaded hash on average due to the use of a
  * hash table) vs. the complexity of DES_bs_cmp_all() for all computed hashes
  * at once (but calling it for each loaded hash individually).
+ *
+ * FIXME: This isn't yet aware of our use of SIMD for the comparisons embedded
+ * in crypt_all() for descrypt and LM, nor of our use of OpenMP there and in
+ * DES_bs_cmp_all().  The threshold should be much higher for those cases.
  */
 		threshold = 5 * ARCH_BITS / ARCH_BITS_LOG + 1;
 	}

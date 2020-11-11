@@ -207,12 +207,7 @@ static void set_salt(void *salt)
 	DES_bs_set_salt(*(ARCH_WORD *)salt);
 }
 
-static int crypt_all(int *pcount, struct db_salt *salt)
-{
-	const int count = *pcount;
-	DES_bs_crypt_25(count);
-	return count;
-}
+#define crypt_all DES_bs_crypt_25
 
 static int cmp_one(void *binary, int index)
 {

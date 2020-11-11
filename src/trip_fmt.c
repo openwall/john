@@ -432,7 +432,7 @@ static MAYBE_INLINE void crypt_traverse_by_salt(int count)
 			    buffer[gindex].next < 0) {
 #endif
 				int tindex;
-				DES_bs_crypt_25(lindex);
+				DES_bs_crypt_25(&lindex, NULL);
 				for_each_t(n) {
 					blkcpy58(crypt_out[block_count++],
 					    DES_bs_all.B);
