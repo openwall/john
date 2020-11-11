@@ -80,9 +80,6 @@ static double get_progress(void)
 	if (!keyspace)
 		return -1;
 
-	if (subsets_cur_len > maxlength)
-		return 100;
-
 	return 100.0 * num_done[subsets_cur_len] / keyspace;
 }
 
@@ -594,6 +591,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 		          MAX(options.eff_minlength, 1), maxlength, maxdiff);
 		if (required)
 			log_event("- Required set: First %d of charset", required);
+		log_event("- Total keyspace: %" PRIu64, keyspace);
 		if (rec_restored) {
 			fprintf(stderr, "Proceeding with \"subsets\"%s%s",
 			        req_charset ? ": " : "",
@@ -618,12 +616,13 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 		int target = MIN(num_comb, word_len);
 		uint64_t num_sets = numsets(charcount, num_comb, required);
 		uint64_t num_words = numwords(num_comb, charcount, word_len, required);
+		uint64_t num_per_set = num_words / num_sets;
 		int bail = 0;
 
 		if (options.verbosity >= VERB_DEFAULT)
 		log_event("- Subset size %d, word length %d (%"PRIu64" sets x %"PRIu64
 		          " words), keyspace %"PRIu64, num_comb, word_len, num_sets,
-		          num_words / num_sets, num_words);
+		          num_per_set, num_words);
 
 		if (!state_restored) {
 			/* Initialize first subset */
@@ -668,7 +667,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 				}
 			}
 
-			num_done[word_len] += num_words / num_sets;
+			num_done[word_len] += num_per_set;
 
 			if (bail || num_comb == charcount)
 				break;
@@ -710,12 +709,14 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 
 		if (i > maxdiff) {
 			log_event("- Length %d now fully exhausted", word_len);
-			subsets_cur_len = word_len + 1;
-			keyspace = 0;
-			for (i = min_comb; i <= MIN(subsets_cur_len, maxdiff); i++)
-				keyspace += numwords(i, charcount, subsets_cur_len, required);
-			if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
-				event_pending = event_status = 1;
+			if (word_len < maxlength) {
+				subsets_cur_len = word_len + 1;
+				keyspace = 0;
+				for (i = min_comb; i <= MIN(subsets_cur_len, maxdiff); i++)
+					keyspace += numwords(i, charcount, subsets_cur_len, required);
+				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
+					event_pending = event_status = 1;
+			}
 		}
 
 		/*
