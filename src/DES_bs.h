@@ -154,12 +154,12 @@ extern void DES_bs_crypt(int count, int keys_count);
 /*
  * A simplified special-case implementation: 12-bit salts, 25 iterations.
  */
-extern void DES_bs_crypt_25(int keys_count);
+extern int DES_bs_crypt_25(int *pcount, struct db_salt *salt);
 
 /*
  * Another special-case version: a non-zero IV, no salts, no iterations.
  */
-extern int DES_bs_crypt_LM(int *keys_count, struct db_salt *salt);
+extern int DES_bs_crypt_LM(int *pcount, struct db_salt *salt);
 
 /*
  * Converts an ASCII ciphertext to binary to be used with one of the

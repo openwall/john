@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2003,2010-2013,2015,2019 by Solar Designer
+ * Copyright (c) 1996-2001,2003,2010-2013,2015,2019,2020 by Solar Designer
  *
  * Addition of single DES encryption with no salt by
  * Deepika Dutta Mishra <dipikadutta at gmail.com> in 2012, no
@@ -13,6 +13,7 @@
 
 #include "arch.h"
 #include "common.h"
+#include "formats.h"
 #include "DES_bs.h"
 
 #if DES_BS_ASM && defined(_OPENMP) && defined(__GNUC__)
@@ -141,6 +142,9 @@ typedef __m512i vtype;
 #define vshr(dst, src, shift) \
 	(dst) = _mm512_srli_epi32((src), (shift))
 
+#define vtestallones(src) \
+	(_mm512_cmpeq_epi32_mask((src), vones) == 0xffff)
+
 #ifdef __AVX512F__
 #define vsel(dst, a, b, c) \
 	(dst) = _mm512_ternarylogic_epi32((b), (a), (c), 0xE4)
@@ -172,6 +176,9 @@ typedef __m256i vtype;
 	(dst) = _mm256_slli_epi64((src), (shift))
 #define vshr(dst, src, shift) \
 	(dst) = _mm256_srli_epi64((src), (shift))
+
+#define vtestallones(src) \
+	_mm256_testc_si256((src), vones)
 
 #elif defined(__SSE2__) && DES_BS_DEPTH == 128
 #ifdef __AVX__
@@ -213,6 +220,15 @@ typedef __m128i vtype;
 	(dst) = _mm_slli_epi64((src), (shift))
 #define vshr(dst, src, shift) \
 	(dst) = _mm_srli_epi64((src), (shift))
+
+#ifdef __SSE4_1__
+#include <smmintrin.h>
+#define vtestallones(src) \
+	_mm_testc_si128((src), vones)
+#else
+#define vtestallones(src) \
+	(_mm_movemask_epi8(_mm_cmpeq_epi32((src), vones)) == 0xffff)
+#endif
 
 #elif defined(__MMX__) && ARCH_BITS != 64 && DES_BS_DEPTH == 64
 #include <mmintrin.h>
@@ -263,6 +279,19 @@ typedef unsigned ARCH_WORD vtype;
 	(dst) = (src) << (shift)
 #define vshr(dst, src, shift) \
 	(dst) = (src) >> (shift)
+
+#ifdef _OPENMP
+/*
+ * When using OpenMP, it's desirable to compare hashes inside crypt_all() even
+ * in scalar builds, so that we do this from the same parallel section with
+ * computation (saving on thread synchronization) and with data still in caches
+ * of the same CPUs.  Without OpenMP, the code in cmp_all() is about as good,
+ * and that interface provides per-loaded-hash information to the caller, so no
+ * point in pre-checking in crypt_all() first.
+ */
+#define vtestallones(src) \
+	((src) == vones)
+#endif
 
 /* Assume that 0 always fits in one load immediate instruction */
 #undef vzero
@@ -685,14 +714,25 @@ void DES_bs_set_salt(ARCH_WORD salt)
 #define y(p, q) vxorf(*(vtype *)&b[p] bd, *(vtype *)&k[q] kd)
 #define z(r) ((vtype *)&b[r] bd)
 
-void DES_bs_crypt_25(int keys_count)
+int DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 {
+	int keys_count = *pcount;
 #if DES_bs_mt
 	int t, n = (keys_count + (DES_BS_DEPTH - 1)) / DES_BS_DEPTH;
 #endif
+#ifdef vtestallones
+#ifdef _OPENMP
+	volatile
+#endif
+	int precheck = salt && !salt->bitmap;
+#endif
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p, keys_count)
+#ifdef vtestallones
+#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p, salt, precheck, benchmark_running, self_test_running)
+#else
+#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p)
+#endif
 #endif
 	for_each_t(n) {
 #if DES_BS_EXPAND
@@ -794,10 +834,63 @@ swap:
 		k -= (0x300 + 48);
 		rounds_and_swapped = 0x108;
 		if (--iterations) goto swap;
+
+#ifdef vtestallones
+		if (precheck) {
+			struct db_password *pw = salt->list;
+			do {
+				uint32_t binary = *(uint32_t *)pw->binary;
+				for_each_depth() {
+					uint32_t u = binary;
+					vtype mask = *z(26);
+					if (u & (1 << 26))
+						vnot(mask, mask);
+					int bit = 0;
+					do {
+						vtype v = *z(bit);
+						if (u & 1)
+							vnot(v, v);
+						vor(mask, mask, v);
+						if (vtestallones(mask)) goto next_depth;
+						v = *z(bit + 1);
+						if (u & 2)
+							vnot(v, v);
+						vor(mask, mask, v);
+						if (vtestallones(mask)) goto next_depth;
+						v = *z(bit + 2);
+						if (u & 4)
+							vnot(v, v);
+						vor(mask, mask, v);
+						if (vtestallones(mask)) goto next_depth;
+						v = *z(bit + 3);
+						if (u & 8)
+							vnot(v, v);
+						vor(mask, mask, v);
+						if (vtestallones(mask)) goto next_depth;
+						u >>= 4;
+					} while ((bit += 4) <= 28);
+
+#if DES_bs_mt
+					precheck = 0;
+					goto next_batch;
+#else
+					return keys_count;
+#endif
+
+next_depth:
+					;
+				}
+			} while ((pw = pw->next) && (!benchmark_running || self_test_running));
+		}
+#if DES_bs_mt
+next_batch:
+#endif
+#endif
+
 #if DES_bs_mt
 		continue;
 #else
-		return;
+		return keys_count;
 #endif
 
 next:
@@ -815,6 +908,13 @@ finalize_keys:
 #endif
 		goto body;
 	}
+
+#ifdef vtestallones
+	if (precheck)
+		return 0;
+#endif
+
+	return keys_count;
 }
 
 void DES_bs_crypt(int count, int keys_count)
@@ -989,9 +1089,19 @@ int DES_bs_crypt_LM(int *pcount, struct db_salt *salt)
 #if DES_bs_mt
 	int t, n = (keys_count + (DES_BS_DEPTH - 1)) / DES_BS_DEPTH;
 #endif
+#ifdef vtestallones
+#ifdef _OPENMP
+	volatile
+#endif
+	int precheck = salt && !salt->bitmap;
+#endif
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p, keys_count)
+#ifdef vtestallones
+#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p, salt, precheck, benchmark_running, self_test_running)
+#else
+#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p)
+#endif
 #endif
 	for_each_t(n) {
 		ARCH_WORD **k;
@@ -1090,7 +1200,74 @@ int DES_bs_crypt_LM(int *pcount, struct db_salt *salt)
 
 			k += 96;
 		} while (--rounds);
+
+#ifdef vtestallones
+		if (precheck) {
+			struct db_password *pw = salt->list;
+			do {
+				uint32_t binary = *(uint32_t *)pw->binary;
+				for_each_depth() {
+					uint32_t u = binary;
+					vtype mask = *z(20);
+					if (u & (1 << 20))
+						vnot(mask, mask);
+					vtype v = *z(14);
+					if (u & (1 << 14))
+						vnot(v, v);
+					vor(mask, mask, v);
+					v = *z(26);
+					if (u & (1 << 26))
+						vnot(v, v);
+					vor(mask, mask, v);
+					if (vtestallones(mask)) goto next_depth;
+					int bit = 0;
+					do {
+						v = *z(bit);
+						if (u & 1)
+							vnot(v, v);
+						vor(mask, mask, v);
+						if (vtestallones(mask)) goto next_depth;
+						v = *z(bit + 1);
+						if (u & 2)
+							vnot(v, v);
+						vor(mask, mask, v);
+						if (vtestallones(mask)) goto next_depth;
+						v = *z(bit + 2);
+						if (u & 4)
+							vnot(v, v);
+						vor(mask, mask, v);
+						if (vtestallones(mask)) goto next_depth;
+						v = *z(bit + 3);
+						if (u & 8)
+							vnot(v, v);
+						vor(mask, mask, v);
+						if (vtestallones(mask)) goto next_depth;
+						u >>= 4;
+					} while ((bit += 4) <= 28);
+
+#if DES_bs_mt
+					precheck = 0;
+					goto next_batch;
+#else
+					return keys_count;
+#endif
+
+next_depth:
+					;
+				}
+			} while ((pw = pw->next) && (!benchmark_running || self_test_running));
+		}
+#if DES_bs_mt
+next_batch:
+		;
+#endif
+#endif
 	}
+
+#ifdef vtestallones
+	if (precheck)
+		return 0;
+#endif
 
 	return keys_count;
 }
