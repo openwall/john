@@ -95,7 +95,7 @@ retry:
 	if (n > DES_bs_mt_max)
 		n = DES_bs_mt_max;
 	DES_bs_min_kpc = n * DES_BS_DEPTH;
-	{
+	if (n > 1) {
 		int max = n * cpt;
 		while (max > DES_bs_mt_max)
 			max -= n;
