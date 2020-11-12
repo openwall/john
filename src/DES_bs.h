@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2010-2012,2015,2017 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2010-2012,2015,2017,2020 by Solar Designer
  */
 
 /*
@@ -83,10 +83,16 @@ extern DES_bs_vector DES_bs_P[64];
 
 #if defined(_OPENMP) && !DES_BS_ASM
 #define DES_bs_mt			1
-#if __AVX2__
+#if defined(__AVX2__) && DES_BS_DEPTH == 256
+#define DES_bs_cpt			24
+#elif defined(__XOP__) && DES_BS_DEPTH == 128
 #define DES_bs_cpt			16
+#elif defined(__AVX512BW__) && DES_BS_DEPTH == 512
+/* 8 is optimal for 2 threads/core, 12 for 1 thread/core */
+#define DES_bs_cpt			11
 #else
-#define DES_bs_cpt			32
+/* Scalar, various 128-bit SIMD, Xeon Phi MIC, Xeon Phi AVX512F */
+#define DES_bs_cpt			48
 #endif
 #define DES_bs_mt_max			(DES_bs_cpt * 1024)
 extern int DES_bs_min_kpc, DES_bs_max_kpc;
