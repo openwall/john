@@ -1,11 +1,10 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2002,2005,2010-2012, 2017 by Solar Designer
+ * Copyright (c) 1996-2002,2005,2010-2012,2017,2020 by Solar Designer
  *
  * Addition of single DES encryption with no salt by
  * Deepika Dutta Mishra <dipikadutta at gmail.com> in
  * 2012, no rights reserved.
- *
  */
 
 #ifdef _MSC_VER
@@ -89,6 +88,7 @@ void DES_bs_init(int LM, int cpt)
  * We allocate one extra entry (will be at "thread number" -1) to hold "ones"
  * and "salt" fields that are shared between threads.
  */
+retry:
 	n = omp_get_max_threads();
 	if (n < 1)
 		n = 1;
@@ -106,8 +106,13 @@ void DES_bs_init(int LM, int cpt)
 	DES_bs_nt = n;
 	if (!DES_bs_all_p) {
 		DES_bs_n_alloc = n;
-		DES_bs_all_p = mem_alloc_tiny(
-		    ++n * DES_bs_all_size, MEM_ALIGN_PAGE);
+		uint64_t size = (uint64_t)++n * DES_bs_all_size;
+		if (size >= (1U << 31) - MEM_ALIGN_PAGE) {
+			cpt--;
+			assert(cpt > 0);
+			goto retry;
+		}
+		DES_bs_all_p = mem_alloc_tiny(size, MEM_ALIGN_PAGE);
 	}
 #endif
 
