@@ -14,7 +14,6 @@
 use warnings;
 use strict;
 use Getopt::Long;
-use Digest::MD5 qw(md5_hex);
 
 # NOTE, if this is changed in params.h, we need to update it here!
 my $LINE_BUFFER_SIZE = 0x400;
@@ -110,6 +109,8 @@ sub fixlongline {
 	if ($verbosity > 1) {
 		print STDERR sprintf("Long line %d: '%.50s(...)'\n", $line_no, $_[0])
 	}
+	require Digest::MD5;
+	import Digest::MD5 qw(md5_hex);
 	$cato++;
 	my $line = $_[0];
 	my $pass = substr($line, $pos);
