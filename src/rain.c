@@ -44,7 +44,7 @@ const char *freq_alnum = "aeorisn1tl2md0cp3hbuk45g9687yfwjvzxQASERBTMLNPOIDCHGKF
 const char *orig = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQSRTUVWXYZ0123456789";            
 
 static int strength;   
-static UTF32 rain[MAX_CAND_LENGTH+1];
+static UTF32 word[MAX_CAND_LENGTH+1];
 static int charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
 static int rec_charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
 static int maxlength;
@@ -53,8 +53,8 @@ static int state_restored;
 static uint64_t keyspace;
 static uint64_t subtotal;
 
-static uint_big totalCperlen[MAX_CAND_LENGTH-1];
-static uint_big rec_totalCperlen[MAX_CAND_LENGTH-1];
+static uint_big rain[MAX_CAND_LENGTH-1];
+static uint_big rec_rain[MAX_CAND_LENGTH-1];
 
 static uint_big counter;//linear counter
 static uint_big rec_counter;
@@ -82,7 +82,7 @@ static void fix_state(void)
 	
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		rec_totalCperlen[i] = totalCperlen[i];
+		rec_rain[i] = rain[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -98,7 +98,7 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%" PRIu64"\n", rec_totalCperlen[i]);
+		fprintf(file, "%" PRIu64"\n", rec_rain[i]);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -118,7 +118,7 @@ static int restore_state(FILE *file)
 
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		if(fscanf(file, "%" PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
-			totalCperlen[i] = r;
+			rain[i] = r;
 		else return 1;
 
 		for(j = 0; j < maxlength; ++j)
@@ -209,7 +209,7 @@ static void parse_unicode(char *string)
 	*d = 0;
 }
 
-static int submit(UTF32 *subset)
+static int submit(UTF32 *word)
 {
 	UTF8 out[4 * MAX_CAND_LENGTH];
 	int i;
@@ -218,21 +218,28 @@ static int submit(UTF32 *subset)
 	if (quick_conversion) {
 		/* Quick conversion (only ASCII or ISO-8859-1) */
 		for (i = 0; i < minlength + loop; i++)
-			out[i] = rain[i];
+			out[i] = word[i];
 		out[i] = 0;
 	} else if (options.target_enc == UTF_8) {
 		/* Nearly as quick conversion, from UTF-8-32[tm] to UTF-8 */
-		rain[minlength + loop] = 0;
-		utf8_32_to_utf8(out, rain);
+		word[minlength + loop] = 0;
+		utf8_32_to_utf8(out, word);
 	} else {
 		/* Slowest conversion, from real UTF-32 to sone legacy codepage */
-		rain[minlength + loop] = 0;
-		utf32_to_enc(out, sizeof(out), rain);
+		word[minlength + loop] = 0;
+		utf32_to_enc(out, sizeof(out), word);
 	}
 	if (options.flags & FLG_MASK_CHK)
 		return do_mask_crack((char*)out);
 	else
 		return crk_process_key((char*)out);
+}
+
+int accu(int x) {
+    int a = 0, b;
+    for(b=1; b<x; ++b)
+        a+=b;
+    return a;
 }
 
 int do_rain_crack(struct db_main *db, char *req_charset)
@@ -248,7 +255,9 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
 	minlength = MAX(options.eff_minlength, 1);
-	strength = MIN(options.rain_strength, 2);	
+	
+	//strength = MIN(options.rain_strength, 2);	
+	
 	if (!options.req_maxlength)
 		maxlength = MIN(maxlength, DEFAULT_MAX_LEN);
 	if (!options.req_minlength)
@@ -341,7 +350,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		rain_cur_len = minlength;
 		srand(time(NULL));
 		for(i=0; i<= maxlength - minlength; i++) {
-			totalCperlen[i] = 0;
+			rain[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
@@ -375,19 +384,20 @@ int do_rain_crack(struct db_main *db, char *req_charset)
             if(!skip) {
 				quick_conversion = 1;
 				
-                uint_big rotate = totalCperlen[loop];// / (uint_big) pow(2, charcount);
-		        if( (rain[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
+                uint_big rotate = rain[loop];// / (uint_big) pow(2, charcount);
+		        if( (word[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
 				    quick_conversion = 0;	
                 for(i=1; i<mpl; ++i) {
 	                int tmpc = charset_utf32[(charset_idx[loop][i] + rotate) % charcount];
-	                if( (rain[i] = tmpc) > cp_max )
+	                if( (word[i] = tmpc) > cp_max )
 		                quick_conversion = 0;
-		            rotate /= totalCperlen[loop] % (charcount / 2) + 1;// % charcount + 1;
-		            totalCperlen[loop] += 2;
-		            
+		            rotate -= rotate / charcount;
+		            rain[loop] += i; 
                 }
-			    submit(rain);
+			    submit(word);
             }
+            rain[loop] -= accu(mpl) - 1;
+            
             int pos = 0;
 	        while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
