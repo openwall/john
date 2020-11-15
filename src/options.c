@@ -427,7 +427,7 @@ JOHN_USAGE_REGEX \
 "--fix-state-delay=N        performance tweak, see doc/OPTIONS\n" \
 "--config=FILE              use FILE instead of john.conf or john.ini\n" \
 "--log-stderr               log to screen instead of file\n"             \
-"--loader-dupecheck=yes     disable the dupe checking when loading hashes\n" \
+"--loader-dupecheck=no      disable the dupe checking when loading hashes\n" \
 "--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n" \
 "--no-log                   disables creation and writing to john.log file\n"      \
 "--bare-always-valid=Y      treat bare hashes as valid (Y/N)\n" \
