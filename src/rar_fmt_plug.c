@@ -4,7 +4,7 @@
  * and OMP, AES-NI and OpenCL support.
  *
  * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012-2019, magnum
+ * and Copyright (c) 2012-2020, magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -369,6 +369,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
+inline static void check_all_rar(rar_file *cur_file, int count)
+{
+	unsigned int index;
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (index = 0; index < count; index++)
+		check_rar(cur_file, index, &aes_key[index * 16], &aes_iv[index * 16]);
+}
+
+static int cmp_all(void *binary, int count)
+{
+	fmt_data *blob = binary;
+	rar_file *cur_file = blob->blob;
+	int index;
+
+	check_all_rar(cur_file, count);
+
+	for (index = 0; index < count; index++)
+		if (cracked[index])
+			return 1;
+	return 0;
+}
+
 struct fmt_main fmt_rar = {
 {
 		FORMAT_LABEL,
@@ -402,7 +427,7 @@ struct fmt_main fmt_rar = {
 		{
 			fmt_default_binary_hash
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		NULL,
 		set_salt,
 		set_key,

@@ -4,7 +4,7 @@
  * and OMP, AES-NI and OpenCL support.
  *
  * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012-2019, magnum
+ * and Copyright (c) 2012-2020, magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -92,9 +92,17 @@ john_register_one(&fmt_ocl_rar);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
+typedef struct {
+	uint round;
+	union {
+		unsigned char c[20]; /* When finished key.w[0..3] is the AES key, key[4] is early reject flag */
+		unsigned int w[5];
+	} key;
+	unsigned char iv[16];
+} rar_out;
+
 static const char * warn[] = {
-	"key xfer: "  ,  ", len xfer: "   , ", init: " , ", loop: " ,
-	", final: ", ", key xfer: ", ", iv xfer: "
+	"key xfer: ",  ", len xfer: ",  ", init: ",  ", loop: ",  ", final: ",  ", post: "
 };
 
 static int split_events[] = { 3, -1, -1 };
@@ -102,7 +110,7 @@ static int split_events[] = { 3, -1, -1 };
 #define STEP			0
 #define SEED			256
 
-//This file contains auto-tuning routine(s). Has to be included after formats definitions.
+// This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 
 #define ITERATIONS		0x40000
@@ -110,9 +118,13 @@ static int split_events[] = { 3, -1, -1 };
 
 static struct fmt_main *self;
 
-static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_OutputBuf, cl_round, cl_aes_key, cl_aes_iv;
-static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt, pinned_aes_key, pinned_aes_iv;
-static cl_kernel RarInit, RarFinal;
+static cl_mem cl_saved_key, cl_saved_len, cl_salt, cl_OutputBuf, cl_FileBuf;
+static cl_mem pinned_saved_key, pinned_saved_len, pinned_salt;
+static cl_kernel RarInit, RarFinal, RarCheck;
+
+static rar_out *output;
+static size_t max_blob_size;
+static int salt_single;
 
 #define RAR_OPENCL_FORMAT
 #include "rar_common.c"
@@ -151,79 +163,57 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_salt");
 	memset(saved_salt, 0, 8);
 
-	cl_OutputBuf = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * 5 * gws, NULL, &ret_code);
+	cl_OutputBuf = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(rar_out) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating device memory");
 
-	cl_round = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(cl_int) * gws, NULL, &ret_code);
+	cl_FileBuf = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_blob_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating device memory");
-
-	// aes_key is uchar[16] but kernel treats it as uint[4]
-	pinned_aes_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * 4 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
-	cl_aes_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(cl_uint) * 4 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error allocating device memory");
-	aes_key = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], pinned_aes_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * 4 * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_key");
-	memset(aes_key, 0, 16 * gws);
-
-	pinned_aes_iv = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, 16 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error allocating page-locked memory");
-	cl_aes_iv = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, 16 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error allocating device memory");
-	aes_iv = (unsigned char*) clEnqueueMapBuffer(queue[gpu_id], pinned_aes_iv, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 16 * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory aes_iv");
-	memset(aes_iv, 0, 16 * gws);
 
 	HANDLE_CLERROR(clSetKernelArg(RarInit, 0, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(RarInit, 1, sizeof(cl_mem), (void*)&cl_round), "Error setting argument 1");
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_round), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 3");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 4");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(cl_mem), (void*)&cl_aes_iv), "Error setting argument 5");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 4");
 
 	HANDLE_CLERROR(clSetKernelArg(RarFinal, 0, sizeof(cl_mem), (void*)&cl_saved_len), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(RarFinal, 1, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(RarFinal, 2, sizeof(cl_mem), (void*)&cl_aes_key), "Error setting argument 2");
 
+	HANDLE_CLERROR(clSetKernelArg(RarCheck, 0, sizeof(cl_mem), (void*)&cl_OutputBuf), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(RarCheck, 1, sizeof(cl_mem), (void*)&cl_FileBuf), "Error setting argument 1");
+
+	output = mem_alloc(sizeof(rar_out) * gws);
 	cracked = mem_alloc(sizeof(*cracked) * gws);
 }
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return MIN(
-		MIN(autotune_get_task_max_work_group_size(FALSE, 0, RarInit),
-		    autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel)),
-		autotune_get_task_max_work_group_size(FALSE, 0, RarFinal));
+	size_t s = autotune_get_task_max_work_group_size(FALSE, 0, RarInit);
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, RarFinal));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, RarCheck));
+	return s;
 }
 
 static void release_clobj(void)
 {
 	if (cracked) {
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_aes_key, aes_key, 0, NULL, NULL), "Error Unmapping aes_key");
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_aes_iv, aes_iv, 0, NULL, NULL), "Error Unmapping aes_iv");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_len, saved_len, 0, NULL, NULL), "Error Unmapping saved_len");
 		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_salt, saved_salt, 0, NULL, NULL), "Error Unmapping saved_salt");
 		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-		HANDLE_CLERROR(clReleaseMemObject(cl_aes_key), "Release aes_key");
-		HANDLE_CLERROR(clReleaseMemObject(cl_aes_iv), "Release aes_iv");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release saved_key");
 		HANDLE_CLERROR(clReleaseMemObject(cl_saved_len), "Release saved_len");
 		HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_aes_key), "Release aes_key");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_aes_iv), "Release aes_iv");
 		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_key), "Release saved_key");
 		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_len), "Release saved_len");
 		HANDLE_CLERROR(clReleaseMemObject(pinned_salt), "Release salt");
-
-		HANDLE_CLERROR(clReleaseMemObject(cl_round), "Release round");
 		HANDLE_CLERROR(clReleaseMemObject(cl_OutputBuf), "Release OutputBuf");
+		HANDLE_CLERROR(clReleaseMemObject(cl_FileBuf), "Release FileBuf");
 
+		MEM_FREE(output);
 		MEM_FREE(cracked);
 	}
 }
@@ -236,6 +226,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(RarInit), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(RarFinal), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(RarCheck), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		MEM_FREE(unpack_data);
@@ -297,15 +288,17 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 		RarFinal = clCreateKernel(program[gpu_id], "RarFinal", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+		RarCheck = clCreateKernel(program[gpu_id], "RarCheck", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	}
 
-	//Initialize openCL tuning (library) for this format.
+	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events,
 	                       warn, 3, self,
 	                       create_clobj, release_clobj,
-	                       UNICODE_LENGTH + sizeof(cl_int) * 14, 0, db);
+	                       UNICODE_LENGTH, 0, db);
 
-	//Auto tune execution from shared/included code.
+	// Auto tune execution from shared/included code.
 	autotune_run(self, ITERATIONS, 0, 200);
 }
 
@@ -313,8 +306,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int k;
+	struct db_password *pw;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
+
+	salt_single = (salt->count == 1);
 
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer saved_len");
@@ -327,11 +323,63 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarFinal, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
 
-	// read back aes key & iv
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_key, CL_FALSE, 0, 16 * gws, aes_key, 0, NULL, multi_profilingEvent[5]), "failed in reading key back");
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_aes_iv, CL_TRUE, 0, 16 * gws, aes_iv, 0, NULL, multi_profilingEvent[6]), "failed in reading iv back");
+	/*
+	 * Walk the blobs for this salt, early-rejecting on GPU
+	 */
+	if ((pw = salt->list))
+	do {
+		fmt_data *blob = pw->binary;
+		rar_file *file = blob->blob;
 
-	return count;
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_FileBuf, CL_TRUE, 0,
+		                                    sizeof(rar_file) + file->gpu_size, file, 0, NULL, NULL),
+		               "failed in reading result");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarCheck, 1, NULL, &gws, lws, 0, NULL,
+		                                      multi_profilingEvent[5]),
+		               "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_OutputBuf, CL_TRUE, 0, sizeof(rar_out) * gws, output, 0,
+		                                   NULL, NULL), "failed in reading result");
+
+		for (k = 0; k < count; k++)
+			if (output[k].key.w[4])
+				return count;
+	} while ((pw = pw->next));
+
+	return 0;
+}
+
+static int cmp_all(void *binary, int count)
+{
+	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
+	fmt_data *blob = binary;
+	rar_file *file = blob->blob;
+	int index;
+
+	if (count && !salt_single) {
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_FileBuf, CL_TRUE, 0,
+		                                    sizeof(rar_file) + file->gpu_size, file, 0, NULL, NULL),
+		               "failed in reading result");
+		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarCheck, 1, NULL, &gws, lws, 0, NULL, NULL),
+		               "failed in clEnqueueNDRangeKernel");
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_OutputBuf, CL_TRUE, 0, sizeof(rar_out) * gws, output, 0,
+		                                   NULL, NULL), "failed in reading result");
+	}
+
+#ifdef _OPENMP
+#pragma omp parallel for
+#endif
+	for (index = 0; index < count; index++) {
+		if (output[index].key.w[4])
+			check_rar(file, index, output[index].key.c, output[index].iv);
+		else
+			cracked[index] = 0;
+	}
+
+	for (index = 0; index < count; index++)
+		if (cracked[index])
+			return 1;
+	return 0;
 }
 
 struct fmt_main fmt_ocl_rar = {
@@ -367,7 +415,7 @@ struct fmt_main fmt_ocl_rar = {
 		{
 			fmt_default_binary_hash
 		},
-		fmt_default_salt_hash,
+		salt_hash,
 		NULL,
 		set_salt,
 		set_key,
