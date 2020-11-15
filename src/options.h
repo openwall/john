@@ -190,7 +190,7 @@
 #define FLG_RULE_SKIP_NOP		0x0800000000000000ULL
 #define FLG_NO_MASK_BENCH		0x1000000000000000ULL
 /* Configure terminal for reading keystrokes even if we're not the foreground process */
-#define FLG_FORCE_KEYS			0x2000000000000000ULL
+#define FLG_FORCE_TTY			0x2000000000000000ULL
 
 /*
  * Macro for getting correct node number regardless of if MPI or not
