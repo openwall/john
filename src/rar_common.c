@@ -1,12 +1,14 @@
 /*
  * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012-2019, magnum
+ * and Copyright (c) 2012-2020, magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
 
 #include "misc.h"	// error()
+#include "john.h"
+#include "loader.h"
 
 #define BINARY_SIZE     sizeof(fmt_data)
 #define BINARY_ALIGN    sizeof(size_t)
@@ -20,11 +22,16 @@ static int (*cracked);
 static unpack_data_t (*unpack_data);
 
 static unsigned int *saved_len;
+#ifndef RAR_OPENCL_FORMAT
 static unsigned char *aes_key;
 static unsigned char *aes_iv;
+#endif
 
 #define FORMAT_TAG          "$RAR3$*"
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
+
+#define YEL	"\x1b[0;33m"
+#define NRM	"\x1b[0m"
 
 static struct fmt_tests cpu_tests[] = {
 	{"$RAR3$*0*b109105f5fe0b899*d4f96690b1a8fe1f120b0290a85a2121", "test"},
@@ -116,17 +123,22 @@ static struct fmt_tests gpu_tests[] = {
 #endif
 
 typedef struct {
+	uint64_t pack_size;
+	uint64_t unp_size;
+#ifdef RAR_OPENCL_FORMAT
+	uint64_t gpu_size;
+	unsigned char last_iv[16];
+	unsigned char last_data[16];
+#endif
 	int type;	/* 0 = -hp, 1 = -p */
 	/* for rar -p mode only: */
 	union {
 		unsigned int w;
 		unsigned char c[4];
 	} crc;
-	uint64_t pack_size;
-	uint64_t unp_size;
 	int method;
 	unsigned char data[1];
-} rarfile;
+} rar_file;
 
 static void set_key(char *key, int index)
 {
@@ -147,7 +159,7 @@ static void set_key(char *key, int index)
 static void *get_binary(char *ciphertext)
 {
 	static fmt_data out;
-	rarfile *file = NULL;
+	rar_file *file = NULL;
 	unsigned int i, type, ex_len;
 	char *saltcopy = strdup(ciphertext);
 	char *keep_ptr = saltcopy;
@@ -167,7 +179,7 @@ static void *get_binary(char *ciphertext)
 		char *encoded_ct = strtokm(NULL, "*");
 
 		ex_len = 16;
-		out.size = sizeof(rarfile) + ex_len;
+		out.size = sizeof(rar_file) + ex_len;
 		out.flags = FMT_DATA_TINY;
 		file = mem_calloc_tiny(out.size, BINARY_ALIGN);
 		out.blob = file;
@@ -178,6 +190,9 @@ static void *get_binary(char *ciphertext)
 			file->data[i] = atoi16[ARCH_INDEX(encoded_ct[i * 2])] * 16 + atoi16[ARCH_INDEX(encoded_ct[i * 2 + 1])];
 
 		file->pack_size = 16;
+#ifdef RAR_OPENCL_FORMAT
+		file->gpu_size = 16;
+#endif
 	}
 	else {
 		char *p = strtokm(NULL, "*");
@@ -194,7 +209,7 @@ static void *get_binary(char *ciphertext)
 
 		/* load ciphertext. We allocate and load all files
 		   here, and they are freed when password found. */
-		out.size = sizeof(rarfile) + ex_len;
+		out.size = sizeof(rar_file) + ex_len;
 		out.flags = FMT_DATA_ALLOC;
 		file = mem_calloc(1, out.size);
 		out.blob = file;
@@ -230,8 +245,27 @@ static void *get_binary(char *ciphertext)
 			}
 			fclose(fp);
 		}
+#ifdef RAR_OPENCL_FORMAT
+		if (file->pack_size > 16)
+			memcpy(file->last_iv, file->data + file->pack_size - 32, 16);
+		memcpy(file->last_data, file->data + file->pack_size - 16, 16);
+#endif
 		p = strtokm(NULL, "*");
 		file->method = atoi16[ARCH_INDEX(p[0])] * 16 + atoi16[ARCH_INDEX(p[1])];
+
+#ifdef RAR_OPENCL_FORMAT
+		if (file->method == 0x30) {
+			int pad_size = (16 - (unp_size & 15)) & 15;
+			unsigned int speed = opencl_speed_index(gpu_id) / 100;
+			size_t max_gpu_mem = get_max_mem_alloc_size(gpu_id) - sizeof(rar_file);
+			size_t mem_threshold;
+
+			mem_threshold = MIN(speed * pad_size, max_gpu_mem);
+
+			file->gpu_size = (pack_size > mem_threshold) ? 16 : pack_size;
+		} else
+			file->gpu_size = 16;
+#endif
 		if (file->method != 0x30)
 #if ARCH_LITTLE_ENDIAN
 			file->crc.w = ~file->crc.w;
@@ -239,6 +273,22 @@ static void *get_binary(char *ciphertext)
 			file->crc.w = JOHNSWAP(~file->crc.w);
 #endif
 	}
+
+#ifdef RAR_OPENCL_FORMAT
+	max_blob_size = MAX(max_blob_size, sizeof(rar_file) + file->gpu_size);
+
+	if (!ocl_autotune_running)
+#endif
+	if (options.verbosity > VERB_DEFAULT && john_main_process && !ldr_in_pot && !bench_or_test_running) {
+		if (file->method == 0x30) {
+			fprintf(stderr, YEL "%.32s(...) 0x30 size %"PRIu64", pad size %d\n" NRM,
+			        ciphertext, file->unp_size, (int)(16 - (file->unp_size & 15)) & 15);
+		} else if (file->type == 0)
+			fprintf(stderr, YEL "%.32s(...) solid\n" NRM, ciphertext);
+		else
+			fprintf(stderr, YEL "%.32s(...) 0x%02x size %"PRIu64"\n" NRM, ciphertext, file->method, file->pack_size);
+	}
+
 
 	MEM_FREE(keep_ptr);
 	return &out;
@@ -422,16 +472,11 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 	unsigned int ncount[4];
 	unsigned char *count = (unsigned char*)ncount;
 	unsigned char bit_length[20];
-#ifdef DEBUG
-	unsigned char *was = next;
-#endif
 
 #if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
 	hold = JOHNSWAP(*(unsigned int*)next);
 #else
-	hold = next[3] + (((unsigned int)next[2]) << 8) +
-		(((unsigned int)next[1]) << 16) +
-		(((unsigned int)next[0]) << 24);
+	hold = next[3] + (((unsigned int)next[2]) << 8) + (((unsigned int)next[1]) << 16) + (((unsigned int)next[0]) << 24);
 #endif
 	next += 4;	// we already have the first 32 bits
 	hold <<= 2;	// we already processed 2 bits, PPM and keepOldTable
@@ -450,9 +495,7 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 				bit_length[i] = 15;
 			} else {
 				zero_count += 2;
-				while (zero_count-- > 0 &&
-				       i < sizeof(bit_length) /
-				       sizeof(bit_length[0]))
+				while (zero_count-- > 0 && i < sizeof(bit_length) / sizeof(bit_length[0]))
 					bit_length[i++] = 0;
 				i--;
 			}
@@ -460,14 +503,6 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 			bit_length[i] = length;
 		}
 	}
-
-#ifdef DEBUG
-	if (next - was > 16) {
-		fprintf(stderr, "*** (possible) BUG: check_huffman() needed %u bytes, we only have 16 (bits=%d, hold=0x%08x)\n", (int)(next - was), bits, hold);
-		dump_stuff_msg("complete buffer", was, 16);
-		error();
-	}
-#endif
 
 	/* Count the number of codes for each code length */
 	memset(count, 0, 16);
@@ -493,151 +528,116 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 	return 1; /* Passed this check! */
 }
 
-inline static void check_rar(rarfile *cur_file, int count)
+inline static void check_rar(rar_file *cur_file, int index, unsigned char *key, const unsigned char *_iv)
 {
-	unsigned int index;
+	AES_KEY aes_ctx;
+	unsigned char iv[16];
+	unsigned char plain[16 + 8]; /* Some are safety margin for check_huffman() */
 
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++) {
-		AES_KEY aes_ctx;
-		unsigned char key[16], iv[16];
+	memcpy(iv, _iv, 16);
 
-		memcpy(key, &aes_key[index * 16], 16);
-		memcpy(iv, &aes_iv[index * 16], 16);
+	/* AES decrypt, uses aes_iv, aes_key and blob */
+	if (cur_file->type == 0) {	/* rar-hp mode */
+		AES_set_decrypt_key(key, 128, &aes_ctx);
+		AES_cbc_encrypt(cur_file->data, plain, 16, &aes_ctx, iv, AES_DECRYPT);
 
-		/* AES decrypt, uses aes_iv, aes_key and blob */
-		if (cur_file->type == 0) {	/* rar-hp mode */
-			unsigned char plain[16];
+		cracked[index] = !memcmp(plain, "\xc4\x3d\x7b\x00\x40\x07\x00", 7);
+		return;
+	} else {
+		if (cur_file->method == 0x30) {	/* stored, not deflated */
+			CRC32_t crc;
+			unsigned char crc_out[4];
+			uint64_t size = cur_file->unp_size;
+			unsigned char *cipher = cur_file->data;
 
-			AES_set_decrypt_key(key, 128, &aes_ctx);
-			AES_cbc_encrypt(cur_file->data, plain, 16,
-			                &aes_ctx, iv, AES_DECRYPT);
+			/* Check padding for early rejection, when possible */
+			if (cur_file->unp_size % 16) {
+				const char zeros[16] = { 0 };
+				const int pad_start = cur_file->unp_size % 16;
+				const int pad_size = 16 - pad_start;
+				unsigned char last_iv[16];
 
-			cracked[index] = !memcmp(plain, "\xc4\x3d\x7b\x00\x40\x07\x00", 7);
-		} else {
-			if (cur_file->method == 0x30) {	/* stored, not deflated */
-				CRC32_t crc;
-				unsigned char crc_out[4];
-				unsigned char plain[0x8000];
-				uint64_t size = cur_file->unp_size;
-				unsigned char *cipher = cur_file->data;
-
-				/* Check padding for early rejection, when possible */
-				if (cur_file->unp_size % 16) {
-					const char zeros[16] = { 0 };
-					const int pad_start = cur_file->unp_size % 16;
-					const int pad_size = 16 - pad_start;
-					unsigned char last_iv[16];
-
-					if (cur_file->pack_size < 32) {
-						memcpy(last_iv, iv, 16);
-						AES_set_decrypt_key(key, 128, &aes_ctx);
-						AES_cbc_encrypt(cur_file->data, plain, 16,
-						                &aes_ctx, last_iv, AES_DECRYPT);
-					} else {
-						memcpy(last_iv,
-						       cur_file->data + cur_file->pack_size - 32, 16);
-						AES_set_decrypt_key(key, 128, &aes_ctx);
-						AES_cbc_encrypt(cur_file->data +
-						                cur_file->pack_size - 16, plain,
-						                16, &aes_ctx, last_iv, AES_DECRYPT);
-					}
-					cracked[index] = !memcmp(&plain[pad_start],
-					                         zeros, pad_size);
-					if (!cracked[index])
-						continue;
-				}
-
-				/* Use full decryption with CRC check.
-				   Compute CRC of the decompressed plaintext */
-				CRC32_Init(&crc);
-
-				while (size) {
-					unsigned int inlen = (size > 0x8000) ? 0x8000 : size;
-
-					AES_set_decrypt_key(key, 128, &aes_ctx);
-					AES_cbc_encrypt(cipher, plain, MAX(inlen, 16),
-					                &aes_ctx, iv, AES_DECRYPT);
-
-					CRC32_Update(&crc, plain, inlen);
-					size -= inlen;
-					cipher += inlen;
-				}
-				CRC32_Final(crc_out, crc);
-
-				/* Compare computed CRC with stored CRC */
-				cracked[index] = !memcmp(crc_out, &cur_file->crc.c, 4);
-			} else {
-				const int solid = 0;
-				unpack_data_t *unpack_t;
-				unsigned char plain[20];
-				unsigned char pre_iv[16];
-
-				memcpy(pre_iv, iv, 16);
-
-				/* Decrypt just one block for early rejection */
 				AES_set_decrypt_key(key, 128, &aes_ctx);
-				AES_cbc_encrypt(cur_file->data, plain, 16,
-				                &aes_ctx, pre_iv, AES_DECRYPT);
 
-				/* Early rejection */
-				if (plain[0] & 0x80) {
-					// PPM checks here.
-					if (!(plain[0] & 0x20) ||    // Reset bit must be set
-					    (plain[1] & 0x80)) {     // MaxMB must be < 128
-						cracked[index] = 0;
-						continue;
-					}
+				if (cur_file->pack_size < 32) {
+					memcpy(last_iv, iv, 16);
+					AES_cbc_encrypt(cur_file->data, plain, 16, &aes_ctx, last_iv, AES_DECRYPT);
 				} else {
-					// LZ checks here.
-					if ((plain[0] & 0x40) ||     // KeepOldTable can't be set
-					    !check_huffman(plain)) { // Huffman table check
-						cracked[index] = 0;
-						continue;
-					}
+					memcpy(last_iv, cur_file->data + cur_file->pack_size - 32, 16);
+					AES_cbc_encrypt(cur_file->data + cur_file->pack_size - 16, plain,
+					                16, &aes_ctx, last_iv, AES_DECRYPT);
 				}
+				if (!(cracked[index] = !memcmp(&plain[pad_start], zeros, pad_size)))
+					return;
+			}
+
+			/* Use full decryption with CRC check.
+			   Compute CRC of the decompressed plaintext */
+			CRC32_Init(&crc);
+			AES_set_decrypt_key(key, 128, &aes_ctx);
+
+			while (size) {
+				unsigned int inlen = (size > 16) ? 16 : size;
+
+				AES_cbc_encrypt(cipher, plain, 16, &aes_ctx, iv, AES_DECRYPT);
+				CRC32_Update(&crc, plain, inlen);
+
+				size -= inlen;
+				cipher += inlen;
+			}
+			CRC32_Final(crc_out, crc);
+
+			/* Compare computed CRC with stored CRC */
+			cracked[index] = !memcmp(crc_out, &cur_file->crc.c, 4);
+			return;
+		} else {
+			const int solid = 0;
+			unpack_data_t *unpack_t;
+			unsigned char pre_iv[16];
+
+			memcpy(pre_iv, iv, 16);
+
+			/* Decrypt just one block for early rejection */
+			AES_set_decrypt_key(key, 128, &aes_ctx);
+			AES_cbc_encrypt(cur_file->data, plain, 16, &aes_ctx, pre_iv, AES_DECRYPT);
+
+			/* Early rejection */
+			if (plain[0] & 0x80) {
+				// PPM checks here.
+				if (!(plain[0] & 0x20) ||    // Reset bit must be set
+				    (plain[1] & 0x80)) {     // MaxMB must be < 128
+					cracked[index] = 0;
+					return;
+				}
+			} else {
+				// LZ checks here.
+				if ((plain[0] & 0x40) ||     // KeepOldTable can't be set
+				    !check_huffman(plain)) { // Huffman table check
+					cracked[index] = 0;
+					return;
+				}
+			}
 
 #ifdef _OPENMP
-				unpack_t = &unpack_data[omp_get_thread_num()];
+			unpack_t = &unpack_data[omp_get_thread_num()];
 #else
-				unpack_t = unpack_data;
+			unpack_t = unpack_data;
 #endif
-				unpack_t->max_size = cur_file->unp_size;
-				unpack_t->dest_unp_size = cur_file->unp_size;
-				unpack_t->pack_size = cur_file->pack_size;
-				unpack_t->iv = iv;
-				unpack_t->ctx = &aes_ctx;
-				unpack_t->key = key;
+			unpack_t->max_size = cur_file->unp_size;
+			unpack_t->dest_unp_size = cur_file->unp_size;
+			unpack_t->pack_size = cur_file->pack_size;
+			unpack_t->iv = iv;
+			unpack_t->ctx = &aes_ctx;
+			unpack_t->key = key;
 
-				/* Reset key for full deflate check */
-				AES_set_decrypt_key(key, 128, &aes_ctx);
-				if (rar_unpack29(cur_file->data, solid, unpack_t))
-					cracked[index] = !memcmp(&unpack_t->unp_crc,
-					                         &cur_file->crc.c, 4);
-				else
-					cracked[index] = 0;
-			}
+			/* Reset key for full deflate check */
+			AES_set_decrypt_key(key, 128, &aes_ctx);
+			if (rar_unpack29(cur_file->data, solid, unpack_t))
+				cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
+			else
+				cracked[index] = 0;
 		}
 	}
-}
-
-static int cmp_all(void *binary, int count)
-{
-	fmt_data *blob = binary;
-	rarfile *cur_file = blob->blob;
-	int index;
-
-#ifdef RAR_OPENCL_FORMAT
-	if (!ocl_autotune_running)
-#endif
-		check_rar(cur_file, count);
-
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
 }
 
 static int cmp_one(void *binary, int index)
@@ -648,4 +648,16 @@ static int cmp_one(void *binary, int index)
 static int cmp_exact(char *source, int index)
 {
 	return 1;
+}
+
+static int salt_hash(void *salt)
+{
+	unsigned char *s = (unsigned char*)salt;
+	unsigned int hash = 5381;
+	unsigned int i;
+
+	for (i = 0; i < SALT_SIZE; i++)
+		hash = ((hash << 5) + hash) ^ s[i];
+
+	return hash & (SALT_HASH_SIZE - 1);
 }

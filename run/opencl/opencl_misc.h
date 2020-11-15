@@ -1,7 +1,7 @@
 /*
  * OpenCL common macros
  *
- * Copyright (c) 2014-2015, magnum
+ * Copyright (c) 2014-2020, magnum
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
@@ -607,6 +607,40 @@ inline int memcmp_pp(const void *s1, const void *s2, uint size)
 	union {
 		const uint *w;
 		const uchar *c;
+	} b;
+
+	a.c = s1;
+	b.c = s2;
+
+	if (((size_t)s1 & 0x03) == ((size_t)s2 & 0x03)) {
+		while (((size_t)a.c) & 0x03 && size--)
+			if (*b.c++ != *a.c++)
+				return 1;
+
+		while (size >= 4) {
+			if (*b.w++ != *a.w++)
+				return 1;
+			size -= 4;
+		}
+	}
+
+	while (size--)
+		if (*b.c++ != *a.c++)
+			return 1;
+
+	return 0;
+}
+
+/* s1 is private mem, s2 is global mem */
+inline int memcmp_pg(const void *s1, __global const void *s2, uint size)
+{
+	union {
+		const uint *w;
+		const uchar *c;
+	} a;
+	union {
+		__global const uint *w;
+		__global const uchar *c;
 	} b;
 
 	a.c = s1;
