@@ -137,7 +137,7 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   had the corresponding feature.  [magnum; 2020]
 
 - Improve handling of using stdin or pipe vs. reading keystrokes.  This
-  includes a new option --force-keys that will set the terminal up for
+  includes a new option --force-tty that will set the terminal up for
   reading status/quit keystrokes even if we're not the foreground process.
   [magnum; 2020]
 

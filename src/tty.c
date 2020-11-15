@@ -79,9 +79,9 @@ void tty_init(opt_flags stdin_mode)
 
 /*
  * Give up the keyboard if we're not the foreground process.  This can be
- * overridden with --force-keys option.
+ * overridden with --force-tty option.
  */
-	if (!(options.flags & FLG_FORCE_KEYS) && tcgetpgrp(fd) != getpid()) {
+	if (!(options.flags & FLG_FORCE_TTY) && tcgetpgrp(fd) != getpid()) {
 		close(fd);
 		return;
 	}
@@ -147,8 +147,8 @@ void tty_done(void)
 
 	fd = tty_fd; tty_fd = -1;
 
-/* Do the usually-best-thing in the race condition sometimes caused by --force-keys */
-	if (options.flags & FLG_FORCE_KEYS)
+/* Do the usually-best-thing in the race condition sometimes caused by --force-tty */
+	if (options.flags & FLG_FORCE_TTY)
 		saved_ti.c_lflag |= (ICANON | ECHO);
 
 	tcsetattr(fd, TCSANOW, &saved_ti);
