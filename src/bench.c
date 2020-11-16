@@ -472,6 +472,12 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			dbsalt = dbsalt->next;
 		if (dbsalt) {
 			two_salts_db[index] = dbsalt;
+			if (dbsalt->count > 1) {
+				dbsalt->list->next = NULL;
+				dbsalt->count = 1;
+				dbsalt->bitmap = NULL;
+				dbsalt->hash = NULL;
+			}
 		} else {
 			puts("Warning: Could not find salt in db");
 			two_salts_db[index] = test_db->salts;
