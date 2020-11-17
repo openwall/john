@@ -601,3 +601,18 @@ int DES_bs_get_hash_5t(int index)
 {
 	return DES_bs_get_hash(index, 27, 1);
 }
+
+void DES_bs_generate_plaintext(unsigned char *plaintext)
+{
+	int i;
+#if DES_BS_VECTOR
+	int depth;
+#endif
+
+	/* Set same plaintext for all bit layers */
+	for (i = 0; i < 64; i++) {
+		ARCH_WORD value = -(ARCH_WORD)((plaintext[i >> 3] >> (7 - (i & 7))) & 1);
+		for_each_depth()
+			DES_bs_P[i] DEPTH = value;
+	}
+}
