@@ -729,7 +729,7 @@ int DES_bs_crypt_25(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #ifdef vtestallones
-#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p, salt, precheck, benchmark_running, self_test_running)
+#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p, salt, precheck)
 #else
 #pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p)
 #endif
@@ -880,7 +880,7 @@ swap:
 next_depth:
 					;
 				}
-			} while ((pw = pw->next) && (!benchmark_running || self_test_running));
+			} while ((pw = pw->next));
 		}
 #if DES_bs_mt
 next_batch:
@@ -1098,7 +1098,7 @@ int DES_bs_crypt_LM(int *pcount, struct db_salt *salt)
 
 #ifdef _OPENMP
 #ifdef vtestallones
-#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p, salt, precheck, benchmark_running, self_test_running)
+#pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p, salt, precheck)
 #else
 #pragma omp parallel for default(none) private(t) shared(n, DES_bs_all_p)
 #endif
@@ -1255,7 +1255,7 @@ int DES_bs_crypt_LM(int *pcount, struct db_salt *salt)
 next_depth:
 					;
 				}
-			} while ((pw = pw->next) && (!benchmark_running || self_test_running));
+			} while ((pw = pw->next));
 		}
 #if DES_bs_mt
 next_batch:
