@@ -77,9 +77,8 @@ typedef struct {
 	DES_bs_vector *Ens[48];	/* Pointers into B[] for non-salted E */
 } DES_bs_combined;
 
-//store plaintext//
+/* Plaintext for single DES encryption with no salt */
 extern DES_bs_vector DES_bs_P[64];
-
 
 #if defined(_OPENMP) && !DES_BS_ASM
 #define DES_bs_mt			1
