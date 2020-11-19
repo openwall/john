@@ -975,31 +975,6 @@ static void load_extra_pots(struct db_main *db, void (*process_file)(struct db_m
 	} while ((line = line->next));
 }
 
-static void db_main_free(struct db_main *db)
-{
-	if (db->format &&
-	    (db->format->params.flags & (FMT_DYNA_SALT | FMT_BLOB))) {
-		struct db_salt *psalt = db->salts;
-		while (psalt) {
-			struct db_password *pw = psalt->list;
-
-			if ((db->format->params.flags & FMT_BLOB) && pw &&
-			    pw->binary &&
-			    ((fmt_data*)pw->binary)->flags == FMT_DATA_ALLOC) {
-				do {
-					fmt_data *bin = pw->binary;
-					BLOB_FREE(db->format, bin);
-				} while ((pw = pw->next));
-			}
-			if (db->format->params.flags & FMT_DYNA_SALT)
-				dyna_salt_remove(psalt->salt);
-			psalt = psalt->next;
-		}
-	}
-	MEM_FREE(db->salt_hash);
-	MEM_FREE(db->cracked_hash);
-}
-
 static void john_load(void)
 {
 	struct list_entry *current;
@@ -1240,29 +1215,34 @@ static void john_load(void)
 			build_fake_salts_for_regen_lost(database.salts);
 	}
 
-	/*
-	 * Nefarious hack and memory leak. Among other problems, we'd want
-	 * ldr_drop_database() after this, but it's built with mem_alloc_tiny()
-	 * so it's not trivial. Works like a champ though, except with
-	 * DEScrypt. I have no idea why, maybe because LM and DES share code?
-	 */
-	if (options.flags & FLG_LOOPBACK_CHK &&
-	    database.format != &fmt_LM && database.format != &fmt_DES) {
+/*
+ * For --loopback mode:  Call the code normally used for --show, assembling
+ * any password halves and producing a list of passwords that are later
+ * processed in wordlist.c.  This code *only* fetches assembled passwords,
+ * any single-hash words are fetched later by trivially reading the pot file.
+ */
+	if (options.flags & FLG_LOOPBACK_CHK) {
 		struct db_main loop_db;
-		struct fmt_main *save_list = fmt_list;
-		char *loop_pot = options.wordlist ?
-			options.wordlist : options.activepot;
+		struct fmt_main *saved_LM_next, *saved_DES_next, *saved_list;
+		char *loop_pot = options.wordlist ? options.wordlist : options.activepot;
 
+		/* This is a bit of hack, we need to restore these afterwards. */
+		saved_list = fmt_list;
+		saved_LM_next = fmt_LM.next;
+		saved_DES_next = fmt_DES.next;
+
+		/*
+		 * For performance, build a temporary format list with
+		 * only the "split formats".  We'll restore it later.
+		 */
 		fmt_list = &fmt_LM;
+		fmt_list->next = &fmt_DES;
+		fmt_list->next->next = NULL;
 
 		options.loader.flags |= DB_CRACKED;
 		ldr_init_database(&loop_db, &options.loader);
 
 		ldr_show_pot_file(&loop_db, loop_pot);
-/*
- * Load optional extra (read-only) pot files. If an entry is a directory,
- * we read all files in it. We currently do NOT recurse.
- */
 		load_extra_pots(&loop_db, &ldr_show_pot_file);
 
 		loop_db.options->flags |= DB_PLAINTEXTS;
@@ -1283,9 +1263,14 @@ static void john_load(void)
 				        loop_db.plaintexts->count);
 		}
 		database.plaintexts = loop_db.plaintexts;
+
+		/* Restore anything we messed with (needed or not) */
 		options.loader.flags &= ~DB_CRACKED;
-		fmt_list = save_list;
-		db_main_free(&loop_db);
+		fmt_list = saved_list;
+		fmt_DES.next = saved_DES_next;
+		fmt_LM.next = saved_LM_next;
+
+		ldr_free_db(&loop_db, 0);
 	}
 
 #ifdef _OPENMP
@@ -1652,7 +1637,7 @@ static void john_run(void)
 				test_db = &database;
 			where = fmt_self_test(database.format, test_db);
 			if (!(options.flags & FLG_NOTESTS))
-				ldr_free_test_db(test_db);
+				ldr_free_db(test_db, 1);
 			if (where) {
 				fprintf(stderr, "Self test failed (%s)\n",
 				    where);
@@ -1893,11 +1878,7 @@ static void john_done(void)
 
 	path_done();
 
-/*
- * This may not be the correct place to free this, it likely
- * can be freed much earlier, but it works here
- */
-	db_main_free(&database);
+	ldr_free_db(&database, 0);
 	cleanup_tiny_memory();
 	check_abort(0);
 }

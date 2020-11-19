@@ -1329,7 +1329,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 	return testdb;
 }
 
-void ldr_free_test_db(struct db_main *db)
+void ldr_free_db(struct db_main *db, int base)
 {
 	if (db) {
 		if (db->format &&
@@ -1353,7 +1353,8 @@ void ldr_free_test_db(struct db_main *db)
 		}
 		MEM_FREE(db->salt_hash);
 		MEM_FREE(db->cracked_hash);
-		MEM_FREE(db);
+		if (base)
+			MEM_FREE(db);
 	}
 }
 
