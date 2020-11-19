@@ -59,7 +59,7 @@ any command-line options.
 Some new reject rules and character classes are implemented, see doc/RULES.
 If you use rules without --internal-codepage, some wordlist rules may cut
 UTF-8 multibyte sequences in the middle, resulting in garbage. You can reject
-such rules with -U to have them in use only when UTF-8 is not used.
+such rules with -U to have them in use only when an internal codepage is used.
 
 Caveats:
 Please note that for convenience, any rule, mask or placeholder given in UTF-8
