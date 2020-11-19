@@ -315,9 +315,9 @@ extern struct db_main *ldr_init_test_db(struct fmt_main *format,
                                         struct db_main *real);
 
 /*
- * Destroy a fake database.
+ * Destroy a database. If 'base' is true, then also frees the db pointer
  */
-extern void ldr_free_test_db(struct db_main *db);
+extern void ldr_free_db(struct db_main *db, int base);
 
 /*
  * Loads cracked passwords into the database.

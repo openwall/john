@@ -161,7 +161,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 }
 
 // lol, who cares about memory leaks here.  This is just the benchmark builder
-void ldr_free_test_db(struct db_main *db)
+void ldr_free_db(struct db_main, int)
 {
 }
 #endif
@@ -1066,7 +1066,7 @@ next:
 			error();
 #endif
 		fflush(stdout);
-		ldr_free_test_db(test_db);
+		ldr_free_db(test_db, 1);
 		fmt_done(format);
 #ifndef BENCH_BUILD
 		if (options.flags & FLG_MASK_CHK) {
