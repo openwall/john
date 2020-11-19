@@ -711,7 +711,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 			return NULL;
 
 		case 'u':
-			if (options.internal_cp == UTF_8) continue;
+			if (options.internal_cp == UTF_8 || options.internal_cp == ASCII) continue;
 			return NULL;
 
 		case 'U':

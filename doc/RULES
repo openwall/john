@@ -28,9 +28,8 @@ natively.  Those additional commands may also be useful on their own.
 -8	reject this rule unless current hash type uses 8-bit characters
 -s	reject this rule unless some password hashes were split at loading
 -p	reject this rule unless word pair commands are currently allowed
--u	reject this rule unless the rules engine is running in UTF-8 mode (with
-	no internal codepage configured - see doc/ENCODINGS)
--U	reject this rule if the rules engine is running in UTF-8 mode
+-u	reject this rule if an internal codepage is configured (doc/ENCODINGS)
+-U	reject this rule unless an internal codepage is configured
 ->N	reject this rule unless length N or longer is supported
 -<N	reject this rule unless length N or shorter is supported (--min-length)
 
