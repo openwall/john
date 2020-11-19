@@ -1886,7 +1886,7 @@ sph_dec64le(const void *src)
 		sph_u64 tmp;
 
 		__asm__ __volatile__ (
-			"ldxa [%1]0x88,%0" : "=r" (tmp) : "r" (src));
+			"ldxa [%1]0x88,%0" : "=r" (tmp) : "r" (src), "m" (*(const sph_u64 *)src));
 		return tmp;
 /*
  * Not worth it generally.
@@ -1947,7 +1947,7 @@ sph_dec64le_aligned(const void *src)
 #if SPH_SPARCV9_GCC_64 && !SPH_NO_ASM
 	sph_u64 tmp;
 
-	__asm__ __volatile__ ("ldxa [%1]0x88,%0" : "=r" (tmp) : "r" (src));
+	__asm__ __volatile__ ("ldxa [%1]0x88,%0" : "=r" (tmp) : "r" (src), "m" (*(const sph_u64 *)src));
 	return tmp;
 /*
  * Not worth it generally.
