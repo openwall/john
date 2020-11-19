@@ -22,7 +22,7 @@
 #define BINARY_SIZE             key_len
 #define BINARY_ALIGN            MEM_ALIGN_NONE
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              MEM_ALIGN_NONE
+#define SALT_ALIGN              sizeof(int)
 
 struct custom_salt {
 	int algo;
