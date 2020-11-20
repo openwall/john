@@ -17,7 +17,7 @@
 #ifdef HMAC_MSG_TYPE
 #define USE_DATA_BUF
 #else
-#define HMAC_MSG_TYPE __private
+#define HMAC_MSG_TYPE __private const
 #endif
 
 #ifndef HMAC_OUT_TYPE
@@ -25,11 +25,11 @@
 #endif
 
 inline void hmac_sha512(HMAC_KEY_TYPE const void *_key, uint key_len,
-                        HMAC_MSG_TYPE const void *_data, uint data_len,
+                        HMAC_MSG_TYPE void *_data, uint data_len,
                         HMAC_OUT_TYPE void *_digest, uint digest_len)
 {
 	HMAC_KEY_TYPE const uchar *key = _key;
-	HMAC_MSG_TYPE const uchar *data = _data;
+	HMAC_MSG_TYPE uchar *data = _data;
 	HMAC_OUT_TYPE uchar *digest = _digest;
 	ulong pW[16];
 	uchar *buf = (uchar*)pW;
@@ -62,7 +62,7 @@ inline void hmac_sha512(HMAC_KEY_TYPE const void *_key, uint key_len,
 		pW[5] ^= 0x3636363636363636;
 		pW[6] ^= 0x3636363636363636;
 		pW[7] ^= 0x3636363636363636;
-		memset_p(&buf[64], 0x36, 64);
+		memset_p(&buf[64], 0x36, 128 - 64);
 	} else
 #endif
 	{
