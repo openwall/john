@@ -54,7 +54,7 @@ john_register_one(&fmt_pkzip);
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    7
 
-#define PLAINTEXT_LENGTH    31
+#define PLAINTEXT_LENGTH    63
 
 #define BINARY_SIZE         0
 #define BINARY_ALIGN        1
@@ -731,7 +731,7 @@ static void *get_salt(char *ciphertext)
 static void set_key(char *key, int index)
 {
 	/* Keep the PW, so we can return it in get_key if asked to do so */
-	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 	dirty = 1;
 }
 
