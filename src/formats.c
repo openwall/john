@@ -72,14 +72,13 @@ static void test_fmt_case(struct fmt_main *format, void *binary,
  */
 int fmt_match(const char *req_format, struct fmt_main *format, int override_disable)
 {
-	int enabled = override_disable || !((options.flags & FLG_TEST_CHK) || options.listconf) ||
-		!cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, format->params.label, 0);
-
 	/* Exact full match */
 	if (!strcasecmp(req_format, format->params.label))
 		return 1;
 
 #ifndef BENCH_BUILD
+	int enabled = override_disable || !((options.flags & FLG_TEST_CHK) || options.listconf) ||
+		!cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, format->params.label, 0);
 	char *pos = NULL;
 
 #ifndef DYNAMIC_DISABLED
