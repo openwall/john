@@ -161,7 +161,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 }
 
 // lol, who cares about memory leaks here.  This is just the benchmark builder
-void ldr_free_db(struct db_main, int)
+void ldr_free_db(struct db_main* foo, int bar)
 {
 }
 #endif
