@@ -171,13 +171,13 @@ static struct opt_entry opt_list[] = {
 		FLG_CRACKING_SUP, FLG_SINGLE_CHK | FLG_BATCH_CHK,
 		"%u", &options.length},
 	{"restore", FLG_RESTORE_SET, FLG_RESTORE_CHK,
-		0, ~FLG_RESTORE_SET & ~OPT_REQ_PARAM,
+		0, ~FLG_RESTORE_SET & OPT_ALL_FLAGS,
 		OPT_FMT_STR_ALLOC, &options.session},
 	{"session", FLG_SESSION, FLG_SESSION,
 		FLG_CRACKING_SUP, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.session},
 	{"status", FLG_STATUS_SET, FLG_STATUS_CHK,
-		0, ~FLG_STATUS_SET & ~OPT_REQ_PARAM & ~FLG_DYNFMT,
+		0, ~FLG_STATUS_SET & OPT_ALL_FLAGS & ~FLG_DYNFMT,
 		OPT_FMT_STR_ALLOC, &options.session},
 	{"make-charset", FLG_MAKECHR_SET, FLG_MAKECHR_CHK,
 		0, FLG_CRACKING_CHK | FLG_SESSION | OPT_REQ_PARAM,
@@ -187,18 +187,18 @@ static struct opt_entry opt_list[] = {
 		OPT_FMT_STR_ALLOC, &show_uncracked_str},
 	{"test", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~FLG_MASK_CHK & ~OPT_REQ_PARAM, "%d", &benchmark_time},
+		~FLG_MASK_CHK & OPT_ALL_FLAGS, "%d", &benchmark_time},
 	{"test-full", FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
 		OPT_REQ_PARAM, "%d", &benchmark_level},
 #ifdef HAVE_FUZZ
 	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK,
 		0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT &
-		~FLG_SAVEMEM & ~FLG_DYNFMT & ~OPT_REQ_PARAM & ~FLG_NOLOG,
+		~FLG_SAVEMEM & ~FLG_DYNFMT & OPT_ALL_FLAGS & ~FLG_NOLOG,
 		OPT_FMT_STR_ALLOC, &options.fuzz_dic},
 	{"fuzz-dump", FLG_FUZZ_DUMP_SET, FLG_FUZZ_DUMP_CHK,
 		0, ~FLG_FUZZ_SET & ~FLG_FUZZ_DUMP_SET & ~FLG_FORMAT &
-		~FLG_SAVEMEM & ~FLG_DYNFMT & ~OPT_REQ_PARAM & ~FLG_NOLOG,
+		~FLG_SAVEMEM & ~FLG_DYNFMT & OPT_ALL_FLAGS & ~FLG_NOLOG,
 		OPT_FMT_STR_ALLOC, &options.fuzz_dump},
 #endif
 	{"users", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM,
@@ -283,13 +283,10 @@ static struct opt_entry opt_list[] = {
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
 	{"costs", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
                 OPT_FMT_STR_ALLOC, &costs_str},
-	{"keep-guessing", FLG_KEEP_GUESSING, FLG_KEEP_GUESSING,
-		0, FLG_NO_KEEP_GUESSING},
-	{"no-keep-guessing", FLG_NO_KEEP_GUESSING, FLG_NO_KEEP_GUESSING,
-		0, FLG_KEEP_GUESSING},
+	{"keep-guessing", FLG_ZERO, 0, 0, OPT_THREESTATE, NULL, &options.keep_guessing},
 	{"stress-test", FLG_LOOPTEST | FLG_TEST_SET, FLG_TEST_CHK,
 		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT &
-		~FLG_MASK_CHK & ~OPT_REQ_PARAM, "%d", &benchmark_time},
+		~FLG_MASK_CHK & OPT_ALL_FLAGS, "%d", &benchmark_time},
 	{"tune", FLG_ZERO, 0, 0, OPT_REQ_PARAM,
 		OPT_FMT_STR_ALLOC, &options.tune},
 	{"force-tty", FLG_FORCE_TTY},
