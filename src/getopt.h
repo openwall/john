@@ -18,6 +18,14 @@
 #include "common.h"
 
 /*
+ * In Jumbo, options with flg_set == FLG_ZERO gets free dupe checking simply
+ * by counting "seen", without an option-specific flag.  FLG_ZERO is actually
+ * just 0, the use of it is merely to "mark" entries where we use this, for
+ * more "visibility" of it.
+ */
+#define FLG_ZERO			0x0
+
+/*
  * Option flags bitmask type.
  */
 typedef uint64_t opt_flags;
@@ -47,15 +55,21 @@ struct opt_entry {
 /* Pointer to buffer where the parameter is to be stored */
 	void *param;
 
-/* Used to detect dupe options without a specific option flag. This is
- * used only with FLG_NONE and OPT_REQ_PARAM. */
-	int param_set;
+/* The value of a threestate --foo or --no-foo option (if seen) */
+	int threestate_bool;
+
+/* Used to detect dupe options without a specific option flag, simply counting
+ * that it's not used twice. This is used only when flg_set is 0 (we do use
+ * FLG_ZERO to emphasize it, but that macro is defined as 0) */
+	int seen;
 };
 
 /*
- * Special flag for req_clr.
+ * Special flags for req_clr.
  */
+#define OPT_THREESTATE			0x40000000
 #define OPT_REQ_PARAM			0x80000000
+#define OPT_ALL_FLAGS			~(OPT_THREESTATE | OPT_REQ_PARAM)
 
 /*
  * Additional parameter formats.

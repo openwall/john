@@ -17,8 +17,6 @@
 #include "getopt.h"
 #include "john.h"
 
-#define FLG_ZERO			0x0
-
 static char *opt_errors[] = {
 	NULL,	/* No error */
 	"Unknown option",
@@ -28,7 +26,13 @@ static char *opt_errors[] = {
 	"Invalid options combination or duplicate option"
 };
 
+/*
+ * These are used for argument expansion to the session file.
+ * Note that three-state option --foobar given abbreviated as --no-fo will
+ * have `completed` as "foobar" and `completed_negated` set to true.
+ */
 static char *completed, *completed_param;
+static int completed_negated;
 
 static char *opt_find(struct opt_entry *list, char *opt,
 	struct opt_entry **entry)
@@ -36,9 +40,14 @@ static char *opt_find(struct opt_entry *list, char *opt,
 	char *name, *param;
 	size_t length;
 	struct opt_entry *found;
+	int negated = 0;
 
 	if (opt[0] == '-') {
 		if (*(name = opt + 1) == '-') name++;
+		if (!strncmp(name, "no-", 3)) {
+			negated = 1;
+			name += 3;
+		}
 		if (!(param = strchr(name, '=')))
 			param = strchr(name, ':');
 		if (param) {
@@ -70,6 +79,7 @@ static char *opt_find(struct opt_entry *list, char *opt,
 
 		if ((*entry = found))
 		{
+			found->threestate_bool = !(completed_negated = negated);
 			completed = found->name;
 			completed_param = param;
 			return param;
@@ -105,11 +115,16 @@ static int opt_process_one(struct opt_entry *list, opt_flags *flg, char *opt)
 	struct opt_entry *entry;
 
 	completed = NULL;
+	completed_negated = 0;
 
 	param = opt_find(list, opt, &entry);
 	if (!entry) return OPT_ERROR_UNKNOWN;
 
 	if (*flg & entry->flg_set & entry->flg_clr) return OPT_ERROR_COMB;
+
+	/* Dupe checking just by keeping track of seen */
+	if (entry->flg_set == FLG_ZERO && entry->seen++)
+		return OPT_ERROR_COMB;
 
 	*flg &= ~entry->flg_clr;
 	*flg |= entry->flg_set;
@@ -121,11 +136,6 @@ static int opt_process_one(struct opt_entry *list, opt_flags *flg, char *opt)
 		} else
 		if (opt_process_param(param, entry->format, entry->param))
 			return OPT_ERROR_PARAM_INV;
-
-		/* Dupe checking without an option flag */
-		if (param && entry->flg_set == FLG_ZERO &&
-		    entry->req_clr & OPT_REQ_PARAM && entry->param_set++)
-			return OPT_ERROR_COMB;
 	} else
 	if (param) return OPT_ERROR_PARAM_EXT;
 
@@ -154,7 +164,7 @@ void opt_process(struct opt_entry *list, opt_flags *flg, char **argv)
 	/* Clear Jumbo dupe-check in case we're resuming */
 	if ((lp = list))
 	while (lp->name)
-		lp++->param_set = 0;
+		lp++->seen = 0;
 
 	if (*(opt = argv))
 	while (*++opt)
@@ -167,6 +177,7 @@ void opt_process(struct opt_entry *list, opt_flags *flg, char **argv)
 
 void opt_check(struct opt_entry *list, opt_flags flg, char **argv)
 {
+	struct opt_entry *entry;
 	char **opt;
 	int res;
 
@@ -178,15 +189,27 @@ void opt_check(struct opt_entry *list, opt_flags flg, char **argv)
 				        opt_errors[res], *opt);
 			error();
 		}
-		/* Alter **argv to reflect to full option names */
+		/* Expand **argv to reflect the full option names */
 		else if (*opt[0] == '-') {
 			int len = strlen(completed) + 2 + 1;
+			if (completed_negated)
+				len += 3;
 			if (completed_param)
 				len += strlen(completed_param) + 1;
 			*opt = mem_alloc_tiny(len, MEM_ALIGN_NONE);
-			sprintf(*opt, "--%s%s%s", completed,
+			sprintf(*opt, "--%s%s%s%s",
+			        completed_negated ? "no-" : "",
+			        completed,
 			        completed_param ? "=" : "",
 			        completed_param ? completed_param : "");
 		}
+	}
+
+	/* Set all three-states */
+	if ((entry = list))
+	while (entry->name) {
+		if (entry->req_clr & OPT_THREESTATE)
+			*(int*)entry->param = entry->seen ? entry->threestate_bool : -1;
+		entry++;
 	}
 }

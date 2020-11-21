@@ -386,18 +386,17 @@ void fmt_init(struct fmt_main *format)
 		if (john_main_process && !(options.flags & FLG_TEST_CHK) && !options.listconf) {
 			if (format->params.flags & FMT_NOT_EXACT) {
 				fprintf(stderr, "Note: This format may emit false positives, ");
-				if (options.flags & FLG_NO_KEEP_GUESSING)
+				if (options.keep_guessing == 0)
 					fprintf(stderr, "but we will stop after finding first\n");
 				else
-					fprintf(stderr, "so it will keep trying even after finding a\n");
-				fprintf(stderr, "possible candidate.\n");
-			} else if (options.flags & FLG_KEEP_GUESSING)
+					fprintf(stderr, "so it will keep trying even after finding a possible candidate.\n");
+			} else if (options.keep_guessing == 1)
 				fprintf(stderr, "Note: Will keep guessing even after finding a possible candidate.\n");
 		}
 
-		if (options.flags & FLG_KEEP_GUESSING)
+		if (options.keep_guessing == 1)
 			format->params.flags |= FMT_NOT_EXACT;
-		else if (options.flags & FLG_NO_KEEP_GUESSING)
+		else if (options.keep_guessing == 0)
 			format->params.flags &= ~FMT_NOT_EXACT;
 #endif
 		format->private.initialized = 1;

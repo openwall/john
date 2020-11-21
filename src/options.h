@@ -111,12 +111,6 @@
 /* fork() requested, and process count specified */
 #define FLG_FORK			0x04000000
 
-/*
- * In Jumbo, the combination flg_set == FLG_ZERO and req_clr == OPT_REQ_PARAM
- * gets dupe checking automatically, without a specific flag.
- */
-#define FLG_ZERO			0x0
-
 /* .pot file used as wordlist, options.wordlist is set to the file name, or
  * we use the active .pot file */
 #define FLG_LOOPBACK_CHK		0x08000000
@@ -127,10 +121,11 @@
 #define FLG_PIPE_SET			(FLG_PIPE_CHK | FLG_WORDLIST_SET)
 /* Dynamic load of foreign format module */
 #define FLG_DYNFMT			0x20000000
-/* Turn off logging */
-#define FLG_NOLOG			0x40000000
 
-/* Note that 0x80000000 is taken for OPT_REQ_PARAM, see getopt.h */
+/*
+ * Note that 0x40000000 is taken for OPT_THREESTATE, and
+ *           0x80000000 is taken for OPT_REQ_PARAM, see getopt.h
+ */
 
 /* Log to stderr */
 #define FLG_LOG_STDERR			0x0000000100000000ULL
@@ -157,9 +152,13 @@
 #define FLG_SECOND_ENC			0x0000040000000000ULL
 /* --verbosity */
 #define FLG_VERBOSITY			0x0000080000000000ULL
-/* Sets FMT_NOT_EXACT, searching for cleartext collisions */
-#define FLG_KEEP_GUESSING		0x0000100000000000ULL
-#define FLG_NO_KEEP_GUESSING		0x0000200000000000ULL
+
+/*
+ * These are free for using!
+ *		0x0000100000000000ULL
+ *		0x0000200000000000ULL
+ */
+
 /* Loops self-test forever */
 #define FLG_LOOPTEST			0x0000400000000000ULL
 /* Mask mode is stacked */
@@ -191,6 +190,8 @@
 #define FLG_NO_MASK_BENCH		0x1000000000000000ULL
 /* Configure terminal for reading keystrokes even if we're not the foreground process */
 #define FLG_FORCE_TTY			0x2000000000000000ULL
+/* Turn off logging */
+#define FLG_NOLOG			0x4000000000000000ULL
 
 /*
  * Macro for getting correct node number regardless of if MPI or not
@@ -438,6 +439,8 @@ struct options_main {
 	int subset_min_diff;
 /* Subsets, max. diff */
 	int subset_max_diff;
+/* --[no-]keep-guessing option */
+	int keep_guessing;
 };
 
 extern struct options_main options;
