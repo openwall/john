@@ -34,8 +34,7 @@ static char *opt_errors[] = {
 static char *completed, *completed_param;
 static int completed_negated;
 
-static char *opt_find(struct opt_entry *list, char *opt,
-	struct opt_entry **entry)
+static char *opt_find(struct opt_entry *list, char *opt, struct opt_entry **entry)
 {
 	char *name, *param;
 	size_t length;
@@ -43,7 +42,8 @@ static char *opt_find(struct opt_entry *list, char *opt,
 	int negated = 0;
 
 	if (opt[0] == '-') {
-		if (*(name = opt + 1) == '-') name++;
+		if (*(name = opt + 1) == '-')
+			name++;
 		if (!strncmp(name, "no-", 3)) {
 			negated = 1;
 			name += 3;
@@ -55,7 +55,8 @@ static char *opt_find(struct opt_entry *list, char *opt,
 			if (c && param > c)
 				param = c;
 			length = param - name;
-			if (!*++param) param = NULL;
+			if (!*++param)
+				param = NULL;
 		} else
 			length = strlen(name);
 
@@ -68,8 +69,7 @@ static char *opt_find(struct opt_entry *list, char *opt,
 					if (length == strlen(list->name))
 						break;
 				} else {
-					if (strncmp(found->name, list->name,
-					            strlen(found->name))) {
+					if (strncmp(found->name, list->name, strlen(found->name))) {
 						*entry = NULL;
 						return NULL;
 					}
@@ -77,8 +77,7 @@ static char *opt_find(struct opt_entry *list, char *opt,
 			}
 		} while ((++list)->name);
 
-		if ((*entry = found))
-		{
+		if ((*entry = found)) {
 			found->threestate_bool = !(completed_negated = negated);
 			completed = found->name;
 			completed_param = param;
@@ -118,12 +117,14 @@ static int opt_process_one(struct opt_entry *list, opt_flags *flg, char *opt)
 	completed_negated = 0;
 
 	param = opt_find(list, opt, &entry);
-	if (!entry) return OPT_ERROR_UNKNOWN;
+	if (!entry)
+		return OPT_ERROR_UNKNOWN;
 
-	if (*flg & entry->flg_set & entry->flg_clr) return OPT_ERROR_COMB;
+	if (*flg & entry->flg_set & entry->flg_clr)
+		return OPT_ERROR_COMB;
 
 	/* Dupe checking just by keeping track of seen */
-	if (entry->flg_set == FLG_ZERO && entry->seen++)
+	if (entry->flg_set == FLG_ONCE && entry->seen++)
 		return OPT_ERROR_COMB;
 
 	*flg &= ~entry->flg_clr;
@@ -137,7 +138,8 @@ static int opt_process_one(struct opt_entry *list, opt_flags *flg, char *opt)
 		if (opt_process_param(param, entry->format, entry->param))
 			return OPT_ERROR_PARAM_INV;
 	} else
-	if (param) return OPT_ERROR_PARAM_EXT;
+	if (param)
+		return OPT_ERROR_PARAM_EXT;
 
 	return OPT_ERROR_NONE;
 }
@@ -147,7 +149,8 @@ static int opt_check_one(struct opt_entry *list, opt_flags flg, char *opt)
 	struct opt_entry *entry;
 
 	opt_find(list, opt, &entry);
-	if (!entry) return OPT_ERROR_UNKNOWN;
+	if (!entry)
+		return OPT_ERROR_UNKNOWN;
 
 	if ((flg & entry->req_set) != entry->req_set || (flg & entry->req_clr))
 		return OPT_ERROR_COMB;
@@ -157,14 +160,14 @@ static int opt_check_one(struct opt_entry *list, opt_flags flg, char *opt)
 
 void opt_process(struct opt_entry *list, opt_flags *flg, char **argv)
 {
-	struct opt_entry *lp;
+	struct opt_entry *entry;
 	char **opt;
 	int res;
 
 	/* Clear Jumbo dupe-check in case we're resuming */
-	if ((lp = list))
-	while (lp->name)
-		lp++->seen = 0;
+	if ((entry = list))
+	while (entry->name)
+		entry++->seen = 0;
 
 	if (*(opt = argv))
 	while (*++opt)
@@ -185,13 +188,13 @@ void opt_check(struct opt_entry *list, opt_flags flg, char **argv)
 	while (*++opt) {
 		if ((res = opt_check_one(list, flg, *opt))) {
 			if (john_main_process)
-				fprintf(stderr, "%s: \"%s\"\n",
-				        opt_errors[res], *opt);
+				fprintf(stderr, "%s: \"%s\"\n", opt_errors[res], *opt);
 			error();
 		}
 		/* Expand **argv to reflect the full option names */
 		else if (*opt[0] == '-') {
 			int len = strlen(completed) + 2 + 1;
+
 			if (completed_negated)
 				len += 3;
 			if (completed_param)

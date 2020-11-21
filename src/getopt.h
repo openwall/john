@@ -18,12 +18,12 @@
 #include "common.h"
 
 /*
- * In Jumbo, options with flg_set == FLG_ZERO gets free dupe checking simply
- * by counting "seen", without an option-specific flag.  FLG_ZERO is actually
+ * In Jumbo, options with flg_set == FLG_ONCE gets free dupe checking simply
+ * by counting "seen", without an option-specific flag.  FLG_ONCE is actually
  * just 0, the use of it is merely to "mark" entries where we use this, for
  * more "visibility" of it.
  */
-#define FLG_ZERO			0x0
+#define FLG_ONCE			0x0
 
 /*
  * Option flags bitmask type.
@@ -60,7 +60,8 @@ struct opt_entry {
 
 /* Used to detect dupe options without a specific option flag, simply counting
  * that it's not used twice. This is used only when flg_set is 0 (we do use
- * FLG_ZERO to emphasize it, but that macro is defined as 0) */
+ * FLG_ONCE to emphasize it, but that macro is defined as 0).
+ * Note that when this is used, we can't detect mutually-exclusive options */
 	int seen;
 };
 
