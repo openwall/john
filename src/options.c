@@ -144,9 +144,9 @@ static struct opt_entry opt_list[] = {
 		0, ~FLG_FUZZ_SET & ~FLG_FUZZ_DUMP_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_DYNFMT & OPT_ALL_FLAGS & ~FLG_NOLOG,
 		OPT_FMT_STR_ALLOC, &options.fuzz_dump},
 #endif
-	{"users", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.loader.users},
-	{"groups", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.loader.groups},
-	{"shells", FLG_NONE, 0, FLG_PASSWD, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.loader.shells},
+	{"users", FLG_MULTI, 0, FLG_PASSWD, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.loader.users},
+	{"groups", FLG_MULTI, 0, FLG_PASSWD, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.loader.groups},
+	{"shells", FLG_MULTI, 0, FLG_PASSWD, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.loader.shells},
 	{"salts", FLG_ONCE, 0, FLG_PASSWD, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &salts_str},
 	{"save-memory", FLG_SAVEMEM, FLG_SAVEMEM, 0, OPT_REQ_PARAM, "%u", &mem_saving_level},
 	{"node", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.node_str},
@@ -188,7 +188,7 @@ static struct opt_entry opt_list[] = {
 	{"gws", FLG_ONCE, 0, 0, OPT_REQ_PARAM, Zu, &options.gws},
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
-	{"devices", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.acc_devices},
+	{"devices", FLG_MULTI, 0, 0, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.acc_devices},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
 	{"costs", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &costs_str},
