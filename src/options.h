@@ -28,6 +28,8 @@
 
 /*
  * Core Option flags bitmasks (low 32 bits):
+ *
+ * getopt.h defines FLG_MULTI to 0x00000010
  */
 /* An action requested */
 #define FLG_ACTION			0x00000001
@@ -37,8 +39,6 @@
 #define FLG_PWD_SUP			0x00000004
 /* An option requires password files */
 #define FLG_PWD_REQ			(0x00000008 | FLG_PWD_SUP)
-/* Some option that doesn't have its own flag is specified */
-#define FLG_NONE			0x00000010
 /* A cracking mode enabled */
 #define FLG_CRACKING_CHK		0x00000020
 #define FLG_CRACKING_SUP		0x00000040

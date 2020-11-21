@@ -169,6 +169,29 @@ void opt_process(struct opt_entry *list, opt_flags *flg, char **argv)
 	while (entry->name)
 		entry++->seen = 0;
 
+	/* Sanity checks for code bugs, as opposed to option syntax */
+	if ((entry = list))
+	do {
+		if (!entry->name)
+			break;
+		if (entry->flg_set & FLG_MULTI) {
+			if (!entry->format || entry->format[0] != OPT_FMT_ADD_LIST_MULTI[0]) {
+				if (john_main_process)
+					fprintf(stderr, "Bug: FLG_MULTI given without using OPT_FMT_ADD_LIST_MULTI for \"--%s\"\n",
+					        entry->name);
+				error();
+			}
+		}
+		if (entry->req_clr & OPT_THREESTATE) {
+			if (entry->format) {
+				if (john_main_process)
+					fprintf(stderr, "Bug: OPT_THREESTATE given without format being NULL for \"--%s\"\n", entry->name);
+				error();
+			}
+		}
+	} while (entry++);
+
+
 	if (*(opt = argv))
 	while (*++opt)
 	if ((res = opt_process_one(list, flg, *opt))) {

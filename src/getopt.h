@@ -17,13 +17,15 @@
 
 #include "common.h"
 
-/*
- * In Jumbo, options with flg_set == FLG_ONCE gets free dupe checking simply
+/* In Jumbo, options with flg_set == FLG_ONCE gets free dupe checking simply
  * by counting "seen", without an option-specific flag.  FLG_ONCE is actually
  * just 0, the use of it is merely to "mark" entries where we use this, for
- * more "visibility" of it.
- */
+ * more "visibility" of it. */
 #define FLG_ONCE			0x0
+/* An option that is specifically allowed to be given more than one time
+ * (as opposed to FLG_ONCE) but doesn't need any mutually-exclude logic.
+ * Only used for lists, and only with OPT_FMT_ADD_LIST_MULTI */
+#define FLG_MULTI			0x00000010
 
 /*
  * Option flags bitmask type.
