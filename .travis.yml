@@ -1,7 +1,8 @@
 language: c
 dist: bionic
+os: linux
 
-matrix:
+jobs:
   include:
 
   # #### CPU formats test (gcc)
@@ -56,16 +57,6 @@ matrix:
   - os: osx
     osx_image: xcode9.4
     env: OPENCL="yes"
-
-  # #########################################
-  # #### Extra Testing Scheme
-  # #########################################
-
-  # #### Intel OpenCL runtime Docker based testing
-  - if: branch = bleeding-jumbo AND env(TRAVIS_PULL_REQUEST) = false
-    os: linux
-    compiler: gcc
-    env: DOCKER="yes" OPENCL="yes"
 
 script:
   - .travis/travis-ci.sh

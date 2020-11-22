@@ -1,5 +1,23 @@
 #!/bin/bash
 
+# if requested, run all tests
+if [[ "$TRAVIS_PULL_REQUEST_BRANCH" != "force-travis" ]]; then
+
+    # on the main branch, run all tests
+    if [[ "$TRAVIS_BRANCH" != "bleeding-jumbo" || "$TRAVIS_PULL_REQUEST" =~ ^[0-9]+$ ]]; then
+        
+        # otherwise, run only one job (MacOS for now)    
+        if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then
+            echo '---------------------------------- Skipping CI ---------------------------------'
+            echo 'In order to spare resources, skip Travis CI build.'
+            echo '--------------------------------------------------------------------------------'
+
+            # Nothing to do.
+            exit 0
+        fi
+    fi
+fi
+
 # Need a docker image to run the tests
 if [[ "$DOCKER" == "yes" ]]; then
     docker run --cap-add SYS_PTRACE -v "$(pwd)":/cwd claudioandre/john:opencl sh -c \
