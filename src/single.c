@@ -184,24 +184,33 @@ static void single_init(void)
 		}
 	}
 
-	if (options.single_retest_guess)
-		retest_guessed = parse_bool(options.single_retest_guess);
-	else {
+	/*
+	 * Deprecated option --single-retest-guess=BOOL or new option
+	 * --[no-]single-retest-guess (tri-state) may override SingleRetestGuessed
+	 *
+	 * Bodge for deprecated syntax. When dropping it we'll drop this interim variable
+	 */
+	int option_retest = 0;
+
+	option_retest = parse_bool(options.single_retest_guess);
+
+	if ((retest_guessed = option_retest) == -1) {
+
 		retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL, "SingleRetestGuessed", 1);
-		if (single_db->salt_count == 1 && !retest_guessed) {
-			fprintf(stderr,
-			        "Note: Ignoring SingleRetestGuessed config option because only one salt is loaded.\n"
-			        "      You can force it with --single-retest-guess=n but it wouldn't speed up the session.\n");
+
+		if (!retest_guessed && single_db->salt_count == 1) {
 			retest_guessed = 0;
-		} else if (!retest_guessed)
-			fprintf(stderr, "Note: SingleRetestGuessed is turned OFF in config\n");
+			if (john_main_process)
+				fprintf(stderr, "Note: Ignoring SingleRetestGuessed option because only one salt is loaded.\n"
+				                "      You can force it with --single-retest-guess\n");
+		}
 	}
 
-	if (retest_guessed == -1)
-		error_msg("Expected boolean value for --single-retest-guess=BOOL\n");
+	if (!retest_guessed && john_main_process)
+		fprintf(stderr, "Will not try cracked passwords against other salts\n");
 
-	if (options.seed_per_user && retest_guessed && !options.single_retest_guess)
-		fprintf(stderr, "Note: You might want --single-retest-guess=n when using --single-user-seed\n");
+	if (options.seed_per_user && retest_guessed && option_retest == -1)
+		fprintf(stderr, "Note: You might want --single-retest-guess when using --single-user-seed\n");
 
 	if ((words_pair_max = cfg_get_int(SECTION_OPTIONS, NULL,
 	                                  "SingleWordsPairMax")) < 0)

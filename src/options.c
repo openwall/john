@@ -61,8 +61,11 @@ static char *costs_str;
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
 	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, FLG_STACKING, OPT_FMT_STR_ALLOC, &options.activesinglerules},
-	{"single-retest-guess", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC,
-		&options.single_retest_guess},
+/*
+ * single-retest-guess=<bool> is deprecated, drop support after releasing 1.9.0-Jumbo-2
+ * and instead use format NULL and change options.single_retest_guess to an int
+ */
+	{"single-retest-guess", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_TRISTATE, OPT_FMT_STR_ALLOC, &options.single_retest_guess},
 	{"single-seed", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.seed_word},
 	{"single-wordlist", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.seed_file},
 	{"single-user-seed", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.seed_per_user},
@@ -268,7 +271,7 @@ static struct opt_entry opt_list[] = {
 "--single-wordlist=FILE     *short* wordlist with static seed words/morphemes\n" \
 "--single-user-seed=FILE    wordlist with seeds per username (user:password[s]\n" \
 "                           format)\n" \
-"--single-retest-guess=B    override config for SingleRetestGuess (bool: Y/N)\n" \
+"--[no-]single-retest-guess override config for SingleRetestGuess\n" \
 "--wordlist[=FILE] --stdin  wordlist mode, read words from FILE or stdin\n" \
 "                  --pipe   like --stdin, but bulk reads, and allows rules\n" \
 "--mem-file-size=SIZE       size threshold for wordlist preload (default %u MB)\n" \
