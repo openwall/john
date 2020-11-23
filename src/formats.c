@@ -394,7 +394,7 @@ void fmt_init(struct fmt_main *format)
 				fprintf(stderr, "Note: Will keep guessing even after finding a possible candidate.\n");
 		}
 
-		if (options.keep_guessing == 1)
+		if (options.keep_guessing == 1) /* tri-state */
 			format->params.flags |= FMT_NOT_EXACT;
 		else if (options.keep_guessing == 0)
 			format->params.flags &= ~FMT_NOT_EXACT;

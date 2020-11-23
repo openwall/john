@@ -630,7 +630,7 @@ void log_event(const char *format, ...)
 	va_list args;
 	int count1, count2;
 
-	if (options.flags & FLG_LOG_STDERR) {
+	if (options.log_stderr) {
 		unsigned int Time;
 
 		if (LogDateStderrFormat && *LogDateStderrFormat) {
