@@ -181,7 +181,7 @@ MISC TIPS:
 ====================
     All MPI nodes must share the same working directory, usually over NFS. When
     a larger number of nodes is in use, the overhead for writing to the log
-    file (which includes file locking) may become an overhead. Use the -nolog
+    file (which includes file locking) may become an overhead. Use the -no-log
     option to disable logging or -verb=2 option to reduce chatter.
 
 ====================

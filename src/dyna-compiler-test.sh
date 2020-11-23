@@ -20,10 +20,10 @@ do_test()
   rm -f ./dyna-comp.pot
   if [ "x$3" = "xSHOW" ]
   then
-    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot --session=dyna-comp --nolog
+    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot --session=dyna-comp --no-log
   else
-    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot --session=dyna-comp --nolog > /dev/null 2>&1
-    VAL=`../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot --session=dyna-comp --nolog 2> /dev/null | tail -1`
+    ../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot --session=dyna-comp --no-log > /dev/null 2>&1
+    VAL=`../run/john dyna-comp.in -w=dyna-comp.dic -format=dynamic="$2" --pot=./dyna-comp.pot --session=dyna-comp --no-log 2> /dev/null | tail -1`
     if [ "x$VAL" != 'xNo password hashes left to crack (see FAQ)' ]
     then
       echo "FAILURE!!! $1 -> $2"
