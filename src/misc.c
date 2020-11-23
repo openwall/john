@@ -734,4 +734,20 @@ int64_t host_avail_mem(void)
 
 	return avail_mem;
 }
+
+int parse_bool(char *string)
+{
+	if (string) {
+		if (string == OPT_TRISTATE_NO_PARAM || !strcasecmp(string, "y") ||
+		    !strcasecmp(string, "yes") || !strcasecmp(string, "t") ||
+		    !strcasecmp(string, "true") || !strcasecmp(string, "1"))
+			return 1;
+		if (string == OPT_TRISTATE_NEGATED || !strcasecmp(string, "n") ||
+		    !strcasecmp(string, "no") || !strcasecmp(string, "f") ||
+		    !strcasecmp(string, "false") || !strcasecmp(string, "0"))
+			return 0;
+	}
+	return -1;
+}
+
 #endif

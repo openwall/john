@@ -445,21 +445,6 @@ int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize)
 	return real_len;
 }
 
-int parse_bool(char *string)
-{
-	if (string) {
-		if (!strcasecmp(string, "y") || !strcasecmp(string, "yes") ||
-		    !strcasecmp(string, "t") || !strcasecmp(string, "true") ||
-		    !strcasecmp(string, "1"))
-			return 1;
-		if (!strcasecmp(string, "n") || !strcasecmp(string, "no") ||
-		    !strcasecmp(string, "f") || !strcasecmp(string, "false") ||
-		    !strcasecmp(string, "0"))
-			return 0;
-	}
-	return -1;
-}
-
 char *replace(char *string, char c, char n)
 {
 	if (c != n) {

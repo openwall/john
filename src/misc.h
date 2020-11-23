@@ -232,4 +232,12 @@ extern int64_t host_total_mem(void);
  */
 extern int64_t host_avail_mem(void);
 
+/*
+ * Parse string for boolean. Case insensitive:
+ * y/yes/true/1/OPT_TRISTATE_NO_PARAM: return 1
+ * n/no/false/0/OPT_TRISTATE_NEGATED: return 0
+ * None of the above (including string == NULL): return -1
+ */
+extern int parse_bool(char *string);
+
 #endif
