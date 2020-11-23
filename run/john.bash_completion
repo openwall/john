@@ -153,8 +153,10 @@ _john()
 #	the --pipe option does have leading spaces, and --stdin is mentioned
 #	after --wordlist=FILE.
 #
+#   Some are listed like --[no-]keep-guessing, expanded to both variants
+#
 #	All options:
-	options="`{ ${first} --help 2>/dev/null|sed -n -e 's#^ *\(--[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e '/^--/ p'; echo --stdin; } | sort -u|grep -v -- '--show='`"
+	options="`{ ${first} --help 2>/dev/null | sed -n -e 's#^ *\(--\(\[no-\]\)\?[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e 's#^--\[no-\]\(.*\)#--\1\n--no-\1#' -e '/^--/ p' ; echo --stdin; } | sort -u | grep -v -- '--show='`"
 
 	if [[ "_${options}" == "_--stdin" && "_${__john_binary}" != "_" ]] ; then
 		# No options and hidden(deprecated) options with ${first}, but a previous
