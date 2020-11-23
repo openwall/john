@@ -455,7 +455,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		          (char*)ct,
 		          repkey, key, crk_db->options->field_sep_char, index);
 
-		if (options.flags & FLG_CRKSTAT)
+		if (options.crack_status)
 			event_pending = event_status = 1;
 
 		crk_db->guess_count++;

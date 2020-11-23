@@ -168,7 +168,7 @@ static struct opt_entry opt_list[] = {
 	{"loader-dupecheck", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.loader_dupecheck},
 	{"no-log", FLG_NOLOG, FLG_NOLOG},
 	{"log-stderr", FLG_ONCE, 0, 0, OPT_BOOL, NULL, &options.log_stderr},
-	{"crack-status", FLG_CRKSTAT, FLG_CRKSTAT},
+	{"crack-status", FLG_ONCE, 0, 0, OPT_TRISTATE, NULL, &options.crack_status},
 	{"mkpc", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%d", &options.force_maxkeys},
 	{"min-length", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.req_minlength},
 	{"max-length", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.req_maxlength},
@@ -336,7 +336,7 @@ JOHN_USAGE_REGEX \
 "--no-log                   disables creation and writing to john.log file\n"      \
 "--bare-always-valid=Y      treat bare hashes as valid (Y/N)\n" \
 "--progress-every=N         emit a status line every N seconds\n" \
-"--crack-status             emit a status line whenever a password is cracked\n" \
+"--[no-]crack-status        emit a status line whenever a password is cracked\n" \
 "--[no-]keep-guessing       try finding plaintext collisions\n" \
 "--max-candidates=[-]N      gracefully exit after this many candidates tried.\n" \
 "                           (if negative, reset count on each crack)\n" \
