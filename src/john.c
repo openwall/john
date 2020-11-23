@@ -806,10 +806,9 @@ static void john_load_conf(void)
 	options.abort_file = cfg_get_param(SECTION_OPTIONS, NULL, "AbortFile");
 	options.pause_file = cfg_get_param(SECTION_OPTIONS, NULL, "PauseFile");
 
-	/* This is --crack-status. We toggle here, so if it's enabled in
-	   john.conf, we can disable it using the command line option */
-	if (cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0))
-		options.flags ^= FLG_CRKSTAT;
+	/* Config CrackStatus may be overridden by --crack-status tri-state */
+	if (options.crack_status == -1)
+		options.crack_status = cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0);
 
 #if HAVE_OPENCL
 	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "ForceScalar", 0))
