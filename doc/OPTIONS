@@ -530,12 +530,11 @@ hash types.
 
 This will turn off logging to file (default john.log) in case you are sure
 you wont need it.  The log can sometimes become huge (such as when working
-with many 'fast' rules on a fast format).  The older name --nolog is
-deprecated but will continue to work until next release.
+with many 'fast' rules on a fast format).
 
 --log-stderr
 
-Log to screen (stderr) instead of to file.
+Log to screen (stderr) as well as (unless you also use --no-log) to file.
 
 --bare-always-valid=C
 

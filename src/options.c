@@ -82,11 +82,11 @@ static struct opt_entry opt_list[] = {
 	{"prince-keyspace", FLG_PRINCE_KEYSPACE | FLG_STDOUT, 0, FLG_PRINCE_CHK, FLG_RULES_IN_USE},
 	{"prince-mmap", FLG_PRINCE_MMAP, 0, FLG_PRINCE_CHK, FLG_PRINCE_CASE_PERMUTE},
 #endif
-	/* -enc is an alias for -input-enc for legacy reasons */
+	/* -enc is an alias for -input-enc for logic reasons, never deprecated */
 	{"encoding", FLG_INPUT_ENC, FLG_INPUT_ENC, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &encoding_str},
 	{"input-encoding", FLG_INPUT_ENC, FLG_INPUT_ENC, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &encoding_str},
 	{"internal-codepage", FLG_SECOND_ENC, FLG_SECOND_ENC, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &internal_cp_str},
-	/* -internal-encoding is a deprecated alias for -internal-codepage */
+	/* -internal-encoding is a deprecated alias for -internal-codepage. Remove after releasing 1.9.0-Jumbo-2 */
 	{"internal-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &internal_cp_str},
 	{"target-encoding", FLG_SECOND_ENC, FLG_SECOND_ENC, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &target_enc_str},
 	{"stdin", FLG_STDIN_SET, FLG_CRACKING_CHK},
@@ -165,7 +165,6 @@ static struct opt_entry opt_list[] = {
 	{"field-separator-char", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &field_sep_char_str},
 	{"config", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.config},
 	{"loader-dupecheck", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.loader_dupecheck},
-	{"nolog", FLG_NOLOG, FLG_NOLOG}, // Deprecated!
 	{"no-log", FLG_NOLOG, FLG_NOLOG},
 	{"no-mask", FLG_NO_MASK_BENCH, FLG_NO_MASK_BENCH, FLG_TEST_CHK, FLG_MASK_CHK},
 	{"log-stderr", FLG_LOG_STDERR, FLG_LOG_STDERR},
