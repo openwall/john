@@ -269,6 +269,13 @@ void rec_save(void)
 		else
 		if (!strcmp(*opt, "--nolog"))
 			*opt = "--no-log";
+		else
+		if (!strncmp(*opt, "--single-retest-guess=", 22)) {
+			if (parse_bool(*opt + 22))
+				(*opt)[21] = 0;
+			else
+				*opt = "--no-single-retest-guess";
+		}
 		/***********************************************/
 		else
 #if HAVE_MPI
