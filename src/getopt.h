@@ -9,6 +9,34 @@
  */
 
 /*
+ * Spec. for OPT_TRISTATE:
+ *
+ * For format NULL (implies %d):
+ *   option not given      Set options.foobar to -1
+ *   --foobar              Set options.foobar to 1
+ *   --no-foobar           Set options.foobar to 0
+ *   --[no-]foobar=123     OPT_ERROR_PARAM_EXT
+ *
+ * OPT_BOOL is just a special case of the above, which doesn't touch
+ * options.foobar if the option was not given (so will be 0).
+ *
+ * For format %d:
+ *   option not given      Set options.foobar to -1
+ *   --foobar              Set options.foobar to 1
+ *   --no-foobar           Set options.foobar to 0
+ *   --foobar=123          Set options.foobar to 123 (or OPT_ERROR_PARAM_REQ)
+ *   --no-foobar=123       OPT_ERROR_PARAM_EXT
+ *
+ * For format OPT_FMT_STR_ALLOC:
+ *   option not given      options.foobar is NULL (is not touched)
+ *   --foobar              if OPT_REQ_PARAM: OPT_ERROR_PARAM_REQ,
+ *                         otherwise set options.foobar to OPT_TRISTATE_NO_PARAM
+ *   --no-foobar           Set options.foobar to OPT_TRISTATE_NEGATED
+ *   --foobar=filename     Alloc options.foobar and copy "filename" to it
+ *   --no-foobar=filename  OPT_ERROR_PARAM_EXT
+ */
+
+/*
  * Command line option processing.
  */
 
@@ -17,14 +45,12 @@
 
 #include "common.h"
 
-/* In Jumbo, options with flg_set == FLG_ONCE gets free dupe checking simply
- * by counting "seen", without an option-specific flag.  FLG_ONCE is actually
- * just 0, the use of it is merely to "mark" entries where we use this, for
- * more "visibility" of it. */
+/* Re-usable flag for an option that can only be used once but can't be
+ * distinguished from others using this flag */
 #define FLG_ONCE			0x0
-/* An option that is specifically allowed to be given more than one time
- * (as opposed to FLG_ONCE) but doesn't need any mutually-exclude logic.
- * Only used for lists, and only with OPT_FMT_ADD_LIST_MULTI */
+
+/* Re-usable flag for an option that is specifically allowed to be given
+ * more than once but can't be distinguished from others using this flag */
 #define FLG_MULTI			0x00000010
 
 /*
@@ -57,22 +83,26 @@ struct opt_entry {
 /* Pointer to buffer where the parameter is to be stored */
 	void *param;
 
-/* The value of a threestate --foo or --no-foo option (if seen) */
-	int threestate_bool;
-
-/* Used to detect dupe options without a specific option flag, simply counting
- * that it's not used twice. This is used only when flg_set is 0 (we do use
- * FLG_ONCE to emphasize it, but that macro is defined as 0).
- * Note that when this is used, we can't detect mutually-exclusive options */
+/* Used to detect dupe options, unless flg_set includes FLG_MULTI. */
 	int seen;
 };
+
+extern void *opt_tri_negated;
+extern void *opt_tri_noparam;
 
 /*
  * Special flags for req_clr.
  */
-#define OPT_THREESTATE			0x40000000
+#define OPT_BOOL			0x20000000
+#define OPT_TRISTATE			0x40000000
 #define OPT_REQ_PARAM			0x80000000
-#define OPT_ALL_FLAGS			~(OPT_THREESTATE | OPT_REQ_PARAM)
+#define OPT_ALL_FLAGS			~(OPT_BOOL | OPT_TRISTATE | OPT_REQ_PARAM)
+
+/*
+ * Tri-state OPT_FMT_STR_ALLOC with optional argument
+ */
+#define OPT_TRISTATE_NEGATED		opt_tri_negated
+#define OPT_TRISTATE_NO_PARAM		opt_tri_noparam
 
 /*
  * Additional parameter formats.
@@ -90,6 +120,7 @@ struct opt_entry {
 #define OPT_ERROR_PARAM_INV		3	/* Invalid parameter */
 #define OPT_ERROR_PARAM_EXT		4	/* Extra parameter */
 #define OPT_ERROR_COMB			5	/* Invalid combination */
+#define OPT_ERROR_DUPE			6	/* Duplicate option */
 
 /*
  * Processes all the command line options. Updates the supplied flags and
