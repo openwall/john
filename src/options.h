@@ -27,101 +27,101 @@
 #include "john_mpi.h"
 
 /* An action requested */
-#define FLG_ACTION			0x00000001
+#define FLG_ACTION			0x0000000000000001ULL
 /* Password files specified */
-#define FLG_PASSWD			0x00000002
+#define FLG_PASSWD			0x0000000000000002ULL
 /* An option supports password files */
-#define FLG_PWD_SUP			0x00000004
+#define FLG_PWD_SUP			0x0000000000000004ULL
 /* An option requires password files */
-#define FLG_PWD_REQ			(0x00000008 | FLG_PWD_SUP)
+#define FLG_PWD_REQ			(0x0000000000000008ULL | FLG_PWD_SUP)
 /*
- * getopt.h defines FLG_MULTI to 0x00000010
+ * getopt.h defines FLG_MULTI to 0x0000000000000010
  */
 /* A cracking mode enabled */
-#define FLG_CRACKING_CHK		0x00000020
-#define FLG_CRACKING_SUP		0x00000040
+#define FLG_CRACKING_CHK		0x0000000000000020ULL
+#define FLG_CRACKING_SUP		0x0000000000000040ULL
 #define FLG_CRACKING_SET \
 	(FLG_CRACKING_CHK | FLG_CRACKING_SUP | FLG_ACTION | FLG_PWD_REQ)
 /* Wordlist mode enabled, options.wordlist is set to the file name, or
  * we get it from john.conf */
-#define FLG_WORDLIST_CHK		0x00000080
+#define FLG_WORDLIST_CHK		0x0000000000000080ULL
 #define FLG_WORDLIST_SET \
 	(FLG_WORDLIST_CHK | FLG_CRACKING_SET | FLG_RULES_ALLOW)
 /* Wordlist mode enabled, reading from stdin */
-#define FLG_STDIN_CHK			0x00000100
+#define FLG_STDIN_CHK			0x0000000000000100ULL
 #define FLG_STDIN_SET			(FLG_STDIN_CHK | FLG_WORDLIST_SET)
 /* Wordlist rules enabled */
-#define FLG_RULES_CHK			0x00000200
+#define FLG_RULES_CHK			0x0000000000000200ULL
 #define FLG_RULES_SET			(FLG_RULES_CHK | FLG_RULES_IN_USE)
 /* "Single crack" mode enabled */
-#define FLG_SINGLE_CHK			0x00000400
+#define FLG_SINGLE_CHK			0x0000000000000400ULL
 #define FLG_SINGLE_SET			(FLG_SINGLE_CHK | FLG_CRACKING_SET)
 /* Incremental mode enabled */
-#define FLG_INC_CHK			0x00000800
+#define FLG_INC_CHK			0x0000000000000800ULL
 #define FLG_INC_SET			(FLG_INC_CHK | FLG_CRACKING_SET)
 /* Mask mode enabled (might be hybrid) */
-#define FLG_MASK_CHK			0x00001000
+#define FLG_MASK_CHK			0x0000000000001000ULL
 #define FLG_MASK_SET \
 	(FLG_MASK_CHK | FLG_ACTION | FLG_CRACKING_SUP | FLG_PWD_SUP)
 /* External mode or word filter enabled */
-#define FLG_EXTERNAL_CHK		0x00002000
+#define FLG_EXTERNAL_CHK		0x0000000000002000ULL
 #define FLG_EXTERNAL_SET \
 	(FLG_EXTERNAL_CHK | FLG_ACTION | FLG_CRACKING_SUP | FLG_PWD_SUP)
 /* Batch cracker */
-#define FLG_BATCH_CHK			0x00004000
+#define FLG_BATCH_CHK			0x0000000000004000ULL
 #define FLG_BATCH_SET			(FLG_BATCH_CHK | FLG_CRACKING_SET)
 /* Stdout mode */
-#define FLG_STDOUT			0x00008000
+#define FLG_STDOUT			0x0000000000008000ULL
 /* Restoring an interrupted session */
-#define FLG_RESTORE_CHK			0x00010000
+#define FLG_RESTORE_CHK			0x0000000000010000ULL
 #define FLG_RESTORE_SET			(FLG_RESTORE_CHK | FLG_ACTION)
 /* A session name is set */
-#define FLG_SESSION			0x00020000
+#define FLG_SESSION			0x0000000000020000ULL
 /* Print status of a session */
-#define FLG_STATUS_CHK			0x00040000
+#define FLG_STATUS_CHK			0x0000000000040000ULL
 #define FLG_STATUS_SET			(FLG_STATUS_CHK | FLG_ACTION)
 /* Make a charset */
-#define FLG_MAKECHR_CHK			0x00080000
+#define FLG_MAKECHR_CHK			0x0000000000080000ULL
 #define FLG_MAKECHR_SET \
 	(FLG_MAKECHR_CHK | FLG_ACTION | FLG_PWD_SUP)
 /* Show cracked passwords */
-#define FLG_SHOW_CHK			0x00100000
+#define FLG_SHOW_CHK			0x0000000000100000
 #define FLG_SHOW_SET \
 	(FLG_SHOW_CHK | FLG_ACTION | FLG_PWD_REQ)
 /* Perform a benchmark */
-#define FLG_TEST_CHK			0x00200000
+#define FLG_TEST_CHK			0x0000000000200000ULL
 #define FLG_TEST_SET \
 	(FLG_TEST_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 #ifdef HAVE_FUZZ
 /* Perform a fuzzing */
-#define FLG_FUZZ_CHK			0x00400000
+#define FLG_FUZZ_CHK			0x0000000000400000ULL
 #define FLG_FUZZ_SET \
 	(FLG_FUZZ_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 /* Dump fuzzed hashes */
-#define FLG_FUZZ_DUMP_CHK		0x00800000
+#define FLG_FUZZ_DUMP_CHK		0x0000000000800000ULL
 #define FLG_FUZZ_DUMP_SET \
 	(FLG_FUZZ_DUMP_CHK | FLG_CRACKING_SUP | FLG_ACTION)
 #endif
 /* Ciphertext format forced */
-#define FLG_FORMAT			0x01000000
+#define FLG_FORMAT			0x0000000001000000ULL
 /* Memory saving enabled */
-#define FLG_SAVEMEM			0x02000000
+#define FLG_SAVEMEM			0x0000000002000000ULL
 /* fork() requested, and process count specified */
-#define FLG_FORK			0x04000000
+#define FLG_FORK			0x0000000004000000ULL
 
 /* .pot file used as wordlist, options.wordlist is set to the file name, or
  * we use the active .pot file */
-#define FLG_LOOPBACK_CHK		0x08000000
+#define FLG_LOOPBACK_CHK		0x0000000008000000ULL
 #define FLG_LOOPBACK_SET	  \
 	(FLG_LOOPBACK_CHK | FLG_WORDLIST_SET | FLG_CRACKING_SET | FLG_DUPESUPP)
 /* pipe mode enabled, reading from stdin with rules support */
-#define FLG_PIPE_CHK			0x10000000
+#define FLG_PIPE_CHK			0x0000000010000000ULL
 #define FLG_PIPE_SET			(FLG_PIPE_CHK | FLG_WORDLIST_SET)
 
 /*
- * Note that 0x20000000 is taken for OPT_BOOL,
- *           0x40000000 is taken for OPT_TRISTATE, and
- *           0x80000000 is taken for OPT_REQ_PARAM, see getopt.h
+ * Note that 0x0000000020000000 is taken for OPT_BOOL,
+ *           0x0000000040000000 is taken for OPT_TRISTATE, and
+ *           0x0000000080000000 is taken for OPT_REQ_PARAM, see getopt.h
  *
  * These are available for using!
  *		0x0000000100000000ULL
@@ -152,7 +152,8 @@
 /* --verbosity */
 #define FLG_VERBOSITY			0x0000080000000000ULL
 /* Loops self-test forever */
-#define FLG_LOOPTEST			0x0000400000000000ULL
+#define FLG_LOOPTEST_CHK		0x0000400000000000ULL
+#define FLG_LOOPTEST_SET		(FLG_LOOPTEST_CHK | FLG_TEST_SET)
 /* Mask mode is stacked */
 #define FLG_MASK_STACKED		0x0000800000000000ULL
 /* Stacking modes */

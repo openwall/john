@@ -1124,6 +1124,29 @@ static void john_load(void)
 			}
 #endif
 
+#if HAVE_OPENCL
+			if (!strstr(database.format->params.label, "-opencl")) {
+				if (options.lws) {
+					if (john_main_process)
+						fprintf(stderr,
+						        "The \"--lws\" option is valid only for OpenCL formats\n");
+					error();
+				}
+				if (options.gws) {
+					if (john_main_process)
+						fprintf(stderr,
+						        "The \"--gws\" option is valid only for OpenCL formats\n");
+					error();
+				}
+				if (options.flags & (FLG_SCALAR | FLG_VECTOR)) {
+					if (john_main_process)
+						fprintf(stderr,
+						        "The \"--force-scalar\" and \"--force-vector\" options are valid only for OpenCL formats\n");
+					error();
+				}
+			}
+#endif
+
 #if HAVE_ZTEX
 			if (strstr(database.format->params.label, "-ztex")
 					&& options.fork) {

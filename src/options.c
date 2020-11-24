@@ -58,6 +58,13 @@ static char *field_sep_char_str, *show_uncracked_str, *salts_str;
 static char *encoding_str, *target_enc_str, *internal_cp_str;
 static char *costs_str;
 
+/* Common req_clr for use with any options using FLG_ONCE or FLG_MULTI */
+#define USUAL_REQ_CLR (FLG_STATUS_CHK | FLG_RESTORE_CHK)
+
+/* Common req_clr for --test, --test-full and --stress-test */
+#define TEST_REQ_CLR (~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_MASK_CHK & ~FLG_NO_MASK_BENCH & \
+                      ~FLG_VERBOSITY & ~FLG_INPUT_ENC & ~FLG_SECOND_ENC & ~GETOPT_FLAGS)
+
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
 	{"single", FLG_SINGLE_SET, FLG_CRACKING_CHK, 0, FLG_STACKING, OPT_FMT_STR_ALLOC, &options.activesinglerules},
@@ -74,8 +81,7 @@ static struct opt_entry opt_list[] = {
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 	{"prince", FLG_PRINCE_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
-	{"prince-loopback", FLG_PRINCE_SET | FLG_PRINCE_LOOPBACK | FLG_DUPESUPP, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC,
-		&options.wordlist},
+	{"prince-loopback", FLG_PRINCE_SET | FLG_PRINCE_LOOPBACK | FLG_DUPESUPP, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"prince-elem-cnt-min", FLG_ONCE, 0, FLG_PRINCE_CHK, OPT_REQ_PARAM, "%d", &prince_elem_cnt_min},
 	{"prince-elem-cnt-max", FLG_ONCE, 0, FLG_PRINCE_CHK, OPT_REQ_PARAM, "%d", &prince_elem_cnt_max},
 	{"prince-skip", FLG_ONCE, 0, FLG_PRINCE_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &prince_skip_str},
@@ -99,8 +105,7 @@ static struct opt_entry opt_list[] = {
 #else
 	{"pipe", FLG_PIPE_SET, FLG_CRACKING_CHK},
 #endif
-	{"rules", FLG_RULES_SET, FLG_RULES_CHK, FLG_RULES_ALLOW, FLG_STDIN_CHK, OPT_FMT_STR_ALLOC,
-		&options.activewordlistrules},
+	{"rules", FLG_RULES_SET, FLG_RULES_CHK, FLG_RULES_ALLOW, FLG_STDIN_CHK, OPT_FMT_STR_ALLOC, &options.activewordlistrules},
 	{"rules-stack", FLG_RULES_STACK_SET, FLG_RULES_STACK_CHK, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.rule_stack},
 	{"rules-skip-nop", FLG_RULE_SKIP_NOP, FLG_RULE_SKIP_NOP, FLG_RULES_IN_USE},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.charset},
@@ -121,33 +126,23 @@ static struct opt_entry opt_list[] = {
 	{"8", FLG_ONCE, 0, FLG_MASK_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.custom_mask[7]},
 	{"9", FLG_ONCE, 0, FLG_MASK_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.custom_mask[8]},
 	{"markov", FLG_MKV_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.mkv_param},
-	{"mkv-stats", FLG_ONCE, 0, FLG_MKV_SET, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.mkv_stats},
+	{"mkv-stats", FLG_ONCE, 0, FLG_MKV_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.mkv_stats},
 	{"external", FLG_EXTERNAL_SET, FLG_EXTERNAL_CHK, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.external},
 #if HAVE_REXGEN
 	{"regex", FLG_REGEX_SET, FLG_REGEX_CHK, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.regex},
 #endif
 	{"stdout", FLG_STDOUT, FLG_STDOUT, FLG_CRACKING_SUP, FLG_SINGLE_CHK | FLG_BATCH_CHK, "%u", &options.length},
-	{"restore", FLG_RESTORE_SET, FLG_RESTORE_CHK, 0, ~FLG_RESTORE_SET & OPT_ALL_FLAGS, OPT_FMT_STR_ALLOC,
-		&options.session},
+	{"restore", FLG_RESTORE_SET, FLG_RESTORE_CHK, 0, ~FLG_RESTORE_SET & ~GETOPT_FLAGS, OPT_FMT_STR_ALLOC, &options.session},
 	{"session", FLG_SESSION, FLG_SESSION, FLG_CRACKING_SUP, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.session},
-	{"status", FLG_STATUS_SET, FLG_STATUS_CHK, 0, ~FLG_STATUS_SET & OPT_ALL_FLAGS, OPT_FMT_STR_ALLOC,
-		&options.session},
-	{"make-charset", FLG_MAKECHR_SET, FLG_MAKECHR_CHK, 0, FLG_CRACKING_CHK | FLG_SESSION | OPT_REQ_PARAM,
-		OPT_FMT_STR_ALLOC, &options.charset},
+	{"status", FLG_STATUS_SET, FLG_STATUS_CHK, 0, ~FLG_STATUS_SET & ~GETOPT_FLAGS, OPT_FMT_STR_ALLOC, &options.session},
+	{"make-charset", FLG_MAKECHR_SET, FLG_MAKECHR_CHK, 0, FLG_CRACKING_CHK | FLG_SESSION | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.charset},
 	{"show", FLG_SHOW_SET, FLG_SHOW_CHK, 0, FLG_CRACKING_SUP | FLG_MAKECHR_CHK, OPT_FMT_STR_ALLOC, &show_uncracked_str},
-	{"test", FLG_TEST_SET, FLG_TEST_CHK,
-		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_MASK_CHK & OPT_ALL_FLAGS,
-		"%d", &benchmark_time},
-	{"test-full", FLG_TEST_SET, FLG_TEST_CHK,
-		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & OPT_REQ_PARAM,
-		"%d", &benchmark_level},
+	{"test", FLG_TEST_SET, FLG_TEST_CHK, 0, TEST_REQ_CLR, "%d", &benchmark_time},
+	{"test-full", FLG_TEST_SET, FLG_TEST_CHK, 0, TEST_REQ_CLR & OPT_REQ_PARAM, "%d", &benchmark_level},
+	{"stress-test", FLG_LOOPTEST_SET, FLG_LOOPTEST_CHK, 0, ~FLG_LOOPTEST_SET & TEST_REQ_CLR, "%d", &benchmark_time},
 #ifdef HAVE_FUZZ
-	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK,
-		0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & OPT_ALL_FLAGS & ~FLG_NOLOG,
-		OPT_FMT_STR_ALLOC, &options.fuzz_dic},
-	{"fuzz-dump", FLG_FUZZ_DUMP_SET, FLG_FUZZ_DUMP_CHK,
-		0, ~FLG_FUZZ_SET & ~FLG_FUZZ_DUMP_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & OPT_ALL_FLAGS & ~FLG_NOLOG,
-		OPT_FMT_STR_ALLOC, &options.fuzz_dump},
+	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK, 0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_NOLOG & ~GETOPT_FLAGS, OPT_FMT_STR_ALLOC, &options.fuzz_dic},
+	{"fuzz-dump", FLG_FUZZ_DUMP_SET, FLG_FUZZ_DUMP_CHK, 0, ~FLG_FUZZ_SET & ~FLG_FUZZ_DUMP_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_NOLOG & ~GETOPT_FLAGS, OPT_FMT_STR_ALLOC, &options.fuzz_dump},
 #endif
 	{"users", FLG_MULTI, 0, FLG_PASSWD, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.loader.users},
 	{"groups", FLG_MULTI, 0, FLG_PASSWD, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.loader.groups},
@@ -156,51 +151,46 @@ static struct opt_entry opt_list[] = {
 	{"save-memory", FLG_SAVEMEM, FLG_SAVEMEM, 0, OPT_REQ_PARAM, "%u", &mem_saving_level},
 	{"node", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.node_str},
 #if OS_FORK
-	{"fork", FLG_FORK, FLG_FORK, FLG_CRACKING_CHK, FLG_STDIN_CHK | FLG_STDOUT | FLG_PIPE_CHK | OPT_REQ_PARAM,
-		"%u", &options.fork},
+	{"fork", FLG_FORK, FLG_FORK, FLG_CRACKING_CHK, FLG_STDIN_CHK | FLG_STDOUT | FLG_PIPE_CHK | OPT_REQ_PARAM, "%u", &options.fork},
 #endif
-	{"pot", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.activepot},
+	{"pot", FLG_ONCE, 0, FLG_PWD_SUP, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.activepot},
 	{"format", FLG_FORMAT, FLG_FORMAT, 0, FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.format},
-	{"subformat", FLG_ONCE, 0, 0, FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.subformat},
-	{"list", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.listconf},
-	{"mem-file-size", FLG_ONCE, 0, FLG_WORDLIST_CHK, (FLG_DUPESUPP | FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM),
-		Zu, &options.max_wordfile_memory},
-	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, 0, FLG_STDIN_CHK | FLG_PIPE_CHK},
+	{"subformat", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.subformat},
+	{"list", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.listconf},
+	{"mem-file-size", FLG_ONCE, 0, FLG_WORDLIST_CHK, FLG_DUPESUPP | FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM, Zu, &options.max_wordfile_memory},
+	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK, FLG_STDIN_CHK | FLG_PIPE_CHK},
 	{"fix-state-delay", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.max_fix_state_delay},
-	{"field-separator-char", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &field_sep_char_str},
-	{"config", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.config},
+	{"field-separator-char", FLG_ONCE, 0, FLG_PWD_SUP, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &field_sep_char_str},
+	{"config", FLG_ONCE, 0, 0, USUAL_REQ_CLR | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.config},
 	{"loader-dupecheck", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_TRISTATE, NULL, &options.loader_dupecheck},
-	{"no-log", FLG_NOLOG, FLG_NOLOG},
-	{"log-stderr", FLG_ONCE, 0, 0, OPT_BOOL, NULL, &options.log_stderr},
-	{"crack-status", FLG_ONCE, 0, 0, OPT_TRISTATE, NULL, &options.crack_status},
+	{"no-log", FLG_NOLOG, FLG_NOLOG, 0, FLG_TEST_CHK},
+	{"log-stderr", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_TEST_CHK | OPT_BOOL, NULL, &options.log_stderr},
+	{"crack-status", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_TRISTATE, NULL, &options.crack_status},
 	{"mkpc", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%d", &options.force_maxkeys},
 	{"min-length", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.req_minlength},
 	{"max-length", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.req_maxlength},
 	{"length", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.req_length},
-	{"max-candidates", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%lld", &options.max_cands},
-	{"max-run-time", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%d", &options.max_run_time},
-	{"progress-every", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.status_interval},
-	{"regen-lost-salts", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &regen_salts_options},
-	{"bare-always-valid", FLG_ONCE, 0, 0, OPT_REQ_PARAM, "%c", &options.dynamic_bare_hashes_always_valid},
+	{"max-candidates", FLG_ONCE, 0, FLG_CRACKING_CHK, USUAL_REQ_CLR | OPT_REQ_PARAM, "%lld", &options.max_cands},
+	{"max-run-time", FLG_ONCE, 0, FLG_CRACKING_CHK, USUAL_REQ_CLR | OPT_REQ_PARAM, "%d", &options.max_run_time},
+	{"progress-every", FLG_ONCE, 0, FLG_CRACKING_CHK, USUAL_REQ_CLR | OPT_REQ_PARAM, "%u", &options.status_interval},
+	{"regen-lost-salts", FLG_ONCE, 0, FLG_CRACKING_CHK, USUAL_REQ_CLR | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &regen_salts_options},
+	{"bare-always-valid", FLG_ONCE, 0, FLG_PWD_REQ, OPT_REQ_PARAM, "%c", &options.dynamic_bare_hashes_always_valid},
 	{"reject-printable", FLG_REJECT_PRINTABLE, FLG_REJECT_PRINTABLE},
 	{"verbosity", FLG_VERBOSITY, FLG_VERBOSITY, 0, OPT_REQ_PARAM, "%u", &options.verbosity},
 #ifdef HAVE_OPENCL
 	{"force-scalar", FLG_SCALAR, FLG_SCALAR, 0, FLG_VECTOR},
-	{"force-vector-width", FLG_VECTOR, FLG_VECTOR, 0, (FLG_SCALAR | OPT_REQ_PARAM), "%u", &options.v_width},
-	{"lws", FLG_ONCE, 0, 0, OPT_REQ_PARAM, Zu, &options.lws},
-	{"gws", FLG_ONCE, 0, 0, OPT_REQ_PARAM, Zu, &options.gws},
+	{"force-vector-width", FLG_VECTOR, FLG_VECTOR, 0, FLG_SCALAR | OPT_REQ_PARAM, "%u", &options.v_width},
+	{"lws", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, Zu, &options.lws},
+	{"gws", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, Zu, &options.gws},
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
-	{"devices", FLG_MULTI, 0, 0, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.acc_devices},
+	{"devices", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.acc_devices},
 #endif
-	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS},
-	{"costs", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &costs_str},
-	{"keep-guessing", FLG_ONCE, 0, 0, OPT_TRISTATE, NULL, &options.keep_guessing},
-	{"stress-test", FLG_LOOPTEST | FLG_TEST_SET, FLG_TEST_CHK,
-		0, ~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_MASK_CHK & OPT_ALL_FLAGS,
-		"%d", &benchmark_time},
-	{"tune", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.tune},
-	{"force-tty", FLG_FORCE_TTY},
+	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS, 0, USUAL_REQ_CLR | FLG_STDOUT},
+	{"costs", FLG_ONCE, 0, 0, USUAL_REQ_CLR | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &costs_str},
+	{"keep-guessing", FLG_ONCE, 0, FLG_CRACKING_CHK, USUAL_REQ_CLR | FLG_STDOUT | OPT_TRISTATE, NULL, &options.keep_guessing},
+	{"tune", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.tune},
+	{"force-tty", FLG_FORCE_TTY, FLG_FORCE_TTY, FLG_CRACKING_CHK},
 	{NULL}
 };
 
