@@ -2,6 +2,12 @@
  * Common code for the SSH format.
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE /* for strcasestr() */
+#endif
+#include <string.h>
+#include <stdlib.h> /* for atoi() */
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
