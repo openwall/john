@@ -212,8 +212,8 @@ static void single_init(void)
 	if (options.seed_per_user && retest_guessed && option_retest == -1)
 		fprintf(stderr, "Note: You might want --single-retest-guess when using --single-user-seed\n");
 
-	if ((words_pair_max = cfg_get_int(SECTION_OPTIONS, NULL,
-	                                  "SingleWordsPairMax")) < 0)
+	if ((words_pair_max = options.single_pair_max) < 0)
+	if ((words_pair_max = cfg_get_int(SECTION_OPTIONS, NULL, "SingleWordsPairMax")) < 0)
 		words_pair_max = SINGLE_WORDS_PAIR_MAX;
 
 	if ((max_recursion = cfg_get_int(SECTION_OPTIONS, NULL,
@@ -402,18 +402,24 @@ static void single_init(void)
 	orig_min_kpc = single_db->format->params.min_keys_per_crypt;
 	single_db->format->params.min_keys_per_crypt = key_count;
 
-	if (single_seed->count) {
+	/*
+	 * Some auto-increase of words pairing, unless completely disabled.
+	 */
+	if (words_pair_max && single_seed->count) {
 		words_pair_max += single_seed->count;
 		log_event("- SingleWordsPairMax increased for %d global seed words",
 		          single_seed->count);
 	}
-	if (log2(key_count) > words_pair_max) {
+	if (words_pair_max && log2(key_count) > words_pair_max) {
 		words_pair_max = log2(key_count);
 		log_event("- SingleWordsPairMax increased to %d for high KPC (%d)",
 		          log2(key_count), key_count);
 	}
 
-	log_event("- SingleWordsPairMax used is %d", words_pair_max);
+	if (words_pair_max)
+		log_event("- SingleWordsPairMax used is %d", words_pair_max);
+	else
+		log_event("- Single words pairing disabled");
 	log_event("- SingleRetestGuessed = %s",retest_guessed ? "true" : "false");
 	if (my_buf_share)
 		log_event("- SingleMaxBufferSize = %sB%s", human_prefix(my_buf_share),
