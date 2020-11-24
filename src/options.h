@@ -256,8 +256,10 @@ struct options_main {
  */
 	char *single_retest_guess;
 
-/* Override (deprecated) NoLoaderDupeCheck config option */
-	char *loader_dupecheck;
+/*
+ * --no-loader-dupecheck option tri-state option (vs. deprecated config option)
+ */
+	int loader_dupecheck;
 
 /* Configuration file name */
 	char *config;

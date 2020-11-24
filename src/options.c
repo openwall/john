@@ -168,7 +168,7 @@ static struct opt_entry opt_list[] = {
 	{"fix-state-delay", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.max_fix_state_delay},
 	{"field-separator-char", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &field_sep_char_str},
 	{"config", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.config},
-	{"loader-dupecheck", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.loader_dupecheck},
+	{"loader-dupecheck", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_TRISTATE, NULL, &options.loader_dupecheck},
 	{"no-log", FLG_NOLOG, FLG_NOLOG},
 	{"log-stderr", FLG_ONCE, 0, 0, OPT_BOOL, NULL, &options.log_stderr},
 	{"crack-status", FLG_ONCE, 0, 0, OPT_TRISTATE, NULL, &options.crack_status},
@@ -334,7 +334,7 @@ JOHN_USAGE_REGEX \
 "--fix-state-delay=N        performance tweak, see doc/OPTIONS\n" \
 "--config=FILE              use FILE instead of john.conf or john.ini\n" \
 "--log-stderr               log to screen instead of file\n"             \
-"--loader-dupecheck=no      disable the dupe checking when loading hashes\n" \
+"--no-loader-dupecheck      disable the dupe checking when loading hashes\n" \
 "--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n" \
 "--no-log                   disables creation and writing to john.log file\n"      \
 "--bare-always-valid=Y      treat bare hashes as valid (Y/N)\n" \

@@ -972,7 +972,8 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 
 	if (!db->password_hash) {
 		ldr_init_password_hash(db);
-		if ((dupe_checking = parse_bool(options.loader_dupecheck)) == -1)
+		if ((dupe_checking = options.loader_dupecheck) == -1)
+			/* Config option is deprecated; Drop after 1.9.0-Jumbo-2 */
 			dupe_checking = !cfg_get_bool(SECTION_OPTIONS, NULL, "NoLoaderDupeCheck", 0);
 
 		if (john_main_process && !dupe_checking)
