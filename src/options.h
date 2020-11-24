@@ -244,8 +244,8 @@ struct options_main {
 /* Single mode global seed word(s) (--single-seed) */
 	char *seed_word;
 
-/* Single mode global seed wordlist file name (--single-wordlist) */
-	char *seed_file;
+/* Single mode global seed wordlist file name(s) (--single-wordlist) */
+	struct list_main *seed_files;
 
 /* Single mode wordlist per username (--single-user-seed) */
 	char *seed_per_user;

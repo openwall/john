@@ -1160,20 +1160,23 @@ void ldr_load_pw_file(struct db_main *db, char *name)
 			ldr_words_max = INT_MAX;
 
 		if (options.seed_word)
-			ldr_split_string(single_seed,
-			                 ldr_conv(options.seed_word));
+			ldr_split_string(single_seed, ldr_conv(options.seed_word));
 
-		if (options.seed_file) {
-			FILE *file;
-			const char *name = path_expand(options.seed_file);
-			char line[LINE_BUFFER_SIZE];
+		if (options.seed_files) {
+			struct list_entry *file_list = options.seed_files->head;
 
-			if (!(file = fopen(name, "r")))
-				pexit("fopen: %s", name);
-			while (fgetl(line, sizeof(line), file))
-				list_add_unique(single_seed, ldr_conv(line));
-			if (fclose(file))
-				pexit("fclose");
+			do {
+				FILE *file;
+				const char *name = path_expand(file_list->data);
+				char line[LINE_BUFFER_SIZE];
+
+				if (!(file = fopen(name, "r")))
+					pexit("fopen: %s", name);
+				while (fgetl(line, sizeof(line), file))
+					ldr_split_string(single_seed, ldr_conv(line));
+				if (fclose(file))
+					pexit("fclose");
+			} while ((file_list = file_list->next));
 		}
 
 		if ((conf_seeds = cfg_get_list("List.Single:", "SeedWords"))) {
