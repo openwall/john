@@ -771,10 +771,14 @@ linux-alpha-ccc:
 
 linux-sparc64:
 	$(LN) sparc64.h arch.h
-	$(MAKE) $(PROJ) \
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -m64 -mcpu=ultrasparc -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -m64 -lcrypt"
+	@echo "Failing after this point just means some helper tools did not build:"
+	$(MAKE_ORIG) $(PROJ_PCAP)
+	@echo "All done"
 
 linux-sparc:
 	$(LN) sparc32.h arch.h
