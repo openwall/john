@@ -1128,13 +1128,17 @@ int main(int argc, char *argv[])
 			offset = DOT11_OFFSET_DOT11;
 			break;
 
+#ifdef DLT_TZSP
 		case DLT_TZSP:
 			offset = DOT11_OFFSET_TZSP;
 			break;
+#endif
 
+#ifdef DLT_PRISM_HEADER
 		case DLT_PRISM_HEADER:
 			offset = DOT11_OFFSET_PRISMAVS;
 			break;
+#endif
 
 		default:
 			fprintf(stderr, "Unrecognized datalink type %d.\n", datalink);
