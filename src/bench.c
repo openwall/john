@@ -738,7 +738,7 @@ int benchmark_all(void)
 		puts("NOTE: This is a debug build, speed will be lower than normal");
 #endif
 
-	if ((options.flags & FLG_LOOPTEST) && system("which nvidia-smi >/dev/null") == 0) {
+	if ((options.flags & FLG_LOOPTEST_CHK) && system("which nvidia-smi >/dev/null") == 0) {
 		nvidia_mem = 1;
 		fprintf(stderr, "GPU memory at start: ");
 		if (system("nvidia-smi --query-gpu=memory.used --format=csv,noheader"))
@@ -830,7 +830,7 @@ AGAIN:
 #endif /* _OPENMP */
 
 #ifndef BENCH_BUILD
-		if ((options.flags & FLG_LOOPTEST) && john_main_process)
+		if ((options.flags & FLG_LOOPTEST_CHK) && john_main_process)
 			printf("#%u ", loop_total);
 #endif
 		if (john_main_process)
@@ -1104,7 +1104,7 @@ next:
 				       total, opencl_was_skipped);
 		}
 #ifndef BENCH_BUILD
-	if (options.flags & FLG_LOOPTEST) {
+	if (options.flags & FLG_LOOPTEST_CHK) {
 		loop_total++;
 		if (event_abort) {
 			uint32_t p = 100 * loop_fail / loop_total;

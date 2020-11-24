@@ -51,7 +51,7 @@
 
 /* Re-usable flag for an option that is specifically allowed to be given
  * more than once but can't be distinguished from others using this flag */
-#define FLG_MULTI			0x00000010
+#define FLG_MULTI			0x0000000000000010ULL
 
 /*
  * Option flags bitmask type.
@@ -93,10 +93,10 @@ extern void *opt_tri_noparam;
 /*
  * Special flags for req_clr.
  */
-#define OPT_BOOL			0x20000000
-#define OPT_TRISTATE			0x40000000
-#define OPT_REQ_PARAM			0x80000000
-#define OPT_ALL_FLAGS			~(OPT_BOOL | OPT_TRISTATE | OPT_REQ_PARAM)
+#define OPT_BOOL			0x0000000020000000ULL
+#define OPT_TRISTATE			0x0000000040000000ULL
+#define OPT_REQ_PARAM			0x0000000080000000ULL
+#define GETOPT_FLAGS			(OPT_BOOL | OPT_TRISTATE | OPT_REQ_PARAM)
 
 /*
  * Tri-state OPT_FMT_STR_ALLOC with optional argument
