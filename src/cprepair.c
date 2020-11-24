@@ -241,7 +241,7 @@ static int process_file(char *name)
 
 int main(int argc, char **argv)
 {
-	signed char c;
+	int c;
 
 	options.verbosity = VERB_DEFAULT;
 

@@ -261,9 +261,8 @@ int
 main(int argc, char *argv[])
 #endif
 {
-  signed char c;
   char *p, *host, *realm, user[128];
-  int i;
+  int c, i;
 
   host = realm = NULL;
 
