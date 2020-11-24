@@ -124,13 +124,12 @@
  *           0x80000000 is taken for OPT_REQ_PARAM, see getopt.h
  *
  * These are available for using!
+ *		0x0000000100000000ULL
  *		0x0000000400000000ULL
  *		0x0000100000000000ULL
  *		0x0000200000000000ULL
  */
 
-/* Dynamic load of foreign format module */
-#define FLG_DYNFMT			0x0000000100000000ULL
 /* Markov mode enabled */
 #define FLG_MKV_CHK			0x0000000200000000ULL
 #define FLG_MKV_SET			(FLG_MKV_CHK | FLG_CRACKING_SET)
