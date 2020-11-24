@@ -55,20 +55,6 @@ void list_add_link(struct list_main *list, struct list_entry *entry)
 	list->count++;
 }
 
-void list_add_multi(struct list_main *list, char *data)
-{
-	char *comma;
-
-	do {
-		if ((comma = strchr(data, ','))) *comma = 0;
-
-		list_add(list, data);
-
-		data = comma + 1;
-		if (comma) *comma = ',';
-	} while (comma);
-}
-
 void list_add_unique(struct list_main *list, char *data)
 {
 	struct list_entry *current;
@@ -79,6 +65,22 @@ void list_add_unique(struct list_main *list, char *data)
 	} while ((current = current->next));
 
 	list_add(list, data);
+}
+
+void list_add_multi(struct list_main *list, char *data)
+{
+	char *comma;
+
+	do {
+		if ((comma = strchr(data, ',')))
+			*comma = 0;
+
+		list_add_unique(list, data);
+
+		data = comma + 1;
+		if (comma)
+			*comma = ',';
+	} while (comma);
 }
 
 void list_add_global_unique(struct list_main *list, struct list_main *global,
