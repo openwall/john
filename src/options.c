@@ -67,7 +67,7 @@ static struct opt_entry opt_list[] = {
  */
 	{"single-retest-guess", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_TRISTATE, OPT_FMT_STR_ALLOC, &options.single_retest_guess},
 	{"single-seed", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.seed_word},
-	{"single-wordlist", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.seed_file},
+	{"single-wordlist", FLG_MULTI, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.seed_files},
 	{"single-user-seed", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.seed_per_user},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
