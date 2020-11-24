@@ -198,7 +198,14 @@ static void *get_salt(char *ciphertext)
 	char static_hash[MD5_LEN_HEX+1];
 	char *saltcopy = saltBuf;
 
+/*
+ * Zeroize both structs so that any padding gaps have defined values and thus
+ * salt comparisons work reliably.  Note that we memcpy() md5_ctx into
+ * salt.ctx_dyna_data, which copies md5_ctx's padding gaps too.
+ */
 	memset(&salt, 0, sizeof(salt));
+	memset(&md5_ctx, 0, sizeof(md5_ctx));
+
 	strcpy(saltBuf, ciphertext);
 	saltcopy += FORMAT_TAG_LEN;	/* skip over "$sip$*" */
 	memset(&login, 0, sizeof(login_t));
