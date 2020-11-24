@@ -34,7 +34,9 @@ typedef struct {
 	MD5_u32plus A, B, C, D;
 	MD5_u32plus lo, hi;
 	unsigned char buffer[64];
+#if !ARCH_ALLOWS_UNALIGNED
 	MD5_u32plus block[16];
+#endif
 } MD5_CTX;
 
 extern void MD5_Init(MD5_CTX *ctx);
