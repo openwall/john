@@ -116,6 +116,8 @@ static int opt_process_param(char *param, char *format, void *buffer)
 		return 0;
 	} else
 	if (format[0] == OPT_FMT_ADD_LIST_MULTI[0]) {
+		if (*(struct list_main **)buffer == NULL)
+			list_init((struct list_main **)buffer);
 		list_add_multi(*(struct list_main **)buffer, param);
 		return 0;
 	} else
