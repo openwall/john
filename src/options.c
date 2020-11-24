@@ -69,6 +69,7 @@ static struct opt_entry opt_list[] = {
 	{"single-seed", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.seed_word},
 	{"single-wordlist", FLG_MULTI, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.seed_files},
 	{"single-user-seed", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.seed_per_user},
+	{"single-pair-max", FLG_ONCE, 0, FLG_SINGLE_CHK, OPT_TRISTATE | OPT_REQ_PARAM, "%d", &options.single_pair_max},
 	{"wordlist", FLG_WORDLIST_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 	{"loopback", FLG_LOOPBACK_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.wordlist},
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
@@ -272,6 +273,8 @@ static struct opt_entry opt_list[] = {
 "--single-user-seed=FILE    wordlist with seeds per username (user:password[s]\n" \
 "                           format)\n" \
 "--[no-]single-retest-guess override config for SingleRetestGuess\n" \
+"--single-pair-max=N        override max. number of word pairs generated (%u)\n" \
+"--no-single-pair           disable single word pair generation\n" \
 "--wordlist[=FILE] --stdin  wordlist mode, read words from FILE or stdin\n" \
 "                  --pipe   like --stdin, but bulk reads, and allows rules\n" \
 "--mem-file-size=SIZE       size threshold for wordlist preload (default %u MB)\n" \
@@ -384,7 +387,7 @@ static void opt_banner(char *name)
 
 void opt_usage()
 {
-	printf(JOHN_USAGE, WORDLIST_BUFFER_DEFAULT >> 20,
+	printf(JOHN_USAGE, SINGLE_WORDS_PAIR_MAX, WORDLIST_BUFFER_DEFAULT >> 20,
 		   VERB_MAX, VERB_DEBUG, VERB_DEFAULT);
 #if defined(HAVE_OPENCL)
 	printf("%s", JOHN_USAGE_GPU);

@@ -251,6 +251,12 @@ struct options_main {
 	char *seed_per_user;
 
 /*
+ * Override words_pair_max (--single-pair-max=N tri-state). The actual negated
+ * version is --no-single-pair-max but we list it as --no-single-pair to avoid
+ * confusion.
+ */
+	int single_pair_max;
+/*
  * --[no]-single-retest-guess tri-state option (vs. deprecated config option)
  */
 	char *single_retest_guess;
