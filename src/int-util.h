@@ -119,6 +119,11 @@ static inline uint32_t div128_32(uint64_t dividend_hi, uint64_t dividend_lo, uin
 static inline uint32_t ident32(uint32_t x) { return x; }
 static inline uint64_t ident64(uint64_t x) { return x; }
 
+#undef swap32
+#define swap32 john_swap32
+#undef swap64
+#define swap64 john_swap64
+
 static inline uint32_t swap32(uint32_t x) {
   x = ((x & 0x00ff00ff) << 8) | ((x & 0xff00ff00) >> 8);
   return (x << 16) | (x >> 16);
