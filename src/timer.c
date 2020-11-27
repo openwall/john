@@ -122,9 +122,9 @@ void sTimer_ClearTime(sTimer *t)
 	t->m_fRunning = 0;
 }
 
-uint64_t sTimer_GetSecs(sTimer *t)
+double sTimer_GetSecs(sTimer *t)
 {
-	uint64_t retval;
+	double retval;
 
 	if (t->m_fRunning) {
 		if (sm_HRTicksPerSec)
@@ -134,7 +134,7 @@ uint64_t sTimer_GetSecs(sTimer *t)
 	}
 	if (!sm_HRTicksPerSec) {
 		// This is process time
-		uint64_t d = (t->m_cEndTime - t->m_cStartTime);
+		double d = (t->m_cEndTime - t->m_cStartTime);
 
 		if (d > 0)
 			retval = d / CLOCKS_PER_SEC;
@@ -143,7 +143,7 @@ uint64_t sTimer_GetSecs(sTimer *t)
 	}
 	else {
 		// This is wall-clock time
-		uint64_t d = (HRGETTICKS(t->m_hrEndTime) - HRGETTICKS(t->m_hrStartTime));
+		double d = (HRGETTICKS(t->m_hrEndTime) - HRGETTICKS(t->m_hrStartTime));
 
 		if (d > 0)
 			retval = d / sm_HRTicksPerSec;

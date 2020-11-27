@@ -85,16 +85,16 @@ typedef struct sTimer_s {
 	clock_t m_cEndTime;
 	hr_timer m_hrStartTime;
 	hr_timer m_hrEndTime;
-	uint64_t m_dAccumSeconds;
+	double m_dAccumSeconds;
 } sTimer;
 
 extern void sTimer_Init(sTimer *t);      // Init
 extern void sTimer_Start(sTimer *t, int bClear /*=true*/);  // Start the timer
 extern void sTimer_Stop(sTimer *t);      // Stop the timer
 extern void sTimer_ClearTime(sTimer *t); // Clears out the time to 0
-extern uint64_t sTimer_GetSecs(sTimer *t); // If timer running returns elapsed;
-                                           // if stopped returns timed interval;
-                                           // if not started returns 0.
+extern double sTimer_GetSecs(sTimer *t); // If timer running returns elapsed;
+                                         // if stopped returns timed interval;
+                                         // if not started returns 0.
 
 extern uint64_t sm_HRTicksPerSec;  // HR ticks per second (claimed)
 extern uint64_t sm_hrPrecision;    // HR ticks per second (observed, guess)
