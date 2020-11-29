@@ -214,7 +214,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
         /* DES encrypt the password with the password itself by using the key as salt */
         char key[10];
         strnzcpy(key, saved_key[index], 9);
-        key[9] = 0;
         ascii2ebcdic((unsigned char *)key);
         ebcdic_padding((unsigned char *)key);
         DES_ecb_encrypt((const_DES_cblock*)key, (DES_cblock*)crypt_out[index], &schedules[index], DES_ENCRYPT);
