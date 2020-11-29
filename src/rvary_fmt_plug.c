@@ -56,7 +56,6 @@ static struct fmt_tests rvary_tests[] = {
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 static DES_key_schedule (*schedules);
-static int dirty;
 
 static const unsigned char a2e[256] = {
     0,  1,  2,  3, 55, 45, 46, 47, 22,  5, 37, 11, 12, 13, 14, 15,
@@ -201,20 +200,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
     for (index = 0; index < count; index++) {
-        if (dirty) {
-            DES_cblock des_key;
-            int i;
+        DES_cblock des_key;
+        int i;
 
-            /* process key */
-            for (i = 0; saved_key[index][i]; i++)
-                des_key[i] = a2e_precomputed[ARCH_INDEX(saved_key[index][i])];
+        /* process key */
+        for (i = 0; saved_key[index][i]; i++)
+            des_key[i] = a2e_precomputed[ARCH_INDEX(saved_key[index][i])];
 
-            /* replace missing characters in userid by (EBCDIC space (0x40) XOR 0x55) << 1 */
-            while (i < 8)
-                des_key[i++] = 0x2a;
+        /* replace missing characters in the password with (EBCDIC space (0x40) XOR 0x55) << 1 */
+        while (i < 8)
+            des_key[i++] = 0x2a;
 
-            DES_set_key_unchecked(&des_key, &schedules[index]);
-        }
+        DES_set_key_unchecked(&des_key, &schedules[index]);
         /* DES encrypt the password with the password itself by using the key as salt */
         char key[10];
         strnzcpy(key, saved_key[index], 9);
@@ -223,7 +220,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
         ebcdic_padding((unsigned char *)key);
         DES_ecb_encrypt((const_DES_cblock*)key, (DES_cblock*)crypt_out[index], &schedules[index], DES_ENCRYPT);
     }
-    dirty = 0;
 
     return count;
 }
@@ -251,7 +247,6 @@ static int cmp_exact(char *source, int index)
 static void rvary_set_key(char *key, int index)
 {
     strnzcpy(saved_key[index], key, sizeof(*saved_key));
-    dirty = 1;
 }
 
 static char *get_key(int index)
