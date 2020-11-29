@@ -45,6 +45,19 @@ john_register_one(&fmt_rvary);
 #define OMP_SCALE               4
 #endif
 
+static struct fmt_tests rvary_tests[] = {
+    {"$rvary$**5AA70358A9C369E0", "QWERTY1"},
+    {"$rvary$**EB59EE07FC74AE77", "PASSWORD"},
+    {"$rvary$**062314297C496E0E", "AAAAAAAA"},
+    {"$rvary$**0FF48804F759193F", "TESTTEST"},
+    {NULL}
+};
+
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
+static DES_key_schedule (*schedules);
+static int dirty;
+
 static const unsigned char a2e[256] = {
     0,  1,  2,  3, 55, 45, 46, 47, 22,  5, 37, 11, 12, 13, 14, 15,
     16, 17, 18, 19, 60, 61, 50, 38, 24, 25, 63, 39, 28, 29, 30, 31,
@@ -113,19 +126,6 @@ static void print_hex(unsigned char *str, int len)
     printf("\n");
 }
 #endif
-
-static struct fmt_tests rvary_tests[] = {
-    {"$rvary$**5AA70358A9C369E0", "QWERTY1"},
-    {"$rvary$**EB59EE07FC74AE77", "PASSWORD"},
-    {"$rvary$**062314297C496E0E", "AAAAAAAA"},
-    {"$rvary$**0FF48804F759193F", "TESTTEST"},
-    {NULL}
-};
-
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
-static DES_key_schedule (*schedules);
-static int dirty;
 
 static void init(struct fmt_main *self)
 {
