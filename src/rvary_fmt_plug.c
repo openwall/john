@@ -16,19 +16,12 @@ extern struct fmt_main fmt_rvary;
 john_register_one(&fmt_rvary);
 #else
 
-#include <string.h>
 #include <openssl/des.h>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "crc32.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
 #include "options.h"
 
 #define FORMAT_LABEL            "RVARY"
