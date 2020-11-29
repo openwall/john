@@ -6,7 +6,7 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
- * Dump format: $rvary$*hash
+ * Dump format: $rvary$hash
  *
  */
 
@@ -33,7 +33,7 @@ john_register_one(&fmt_rvary);
 
 #define FORMAT_LABEL            "RVARY"
 #define FORMAT_NAME             ""
-#define FORMAT_TAG              "$rvary$*"
+#define FORMAT_TAG              "$rvary$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "DES 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
@@ -122,10 +122,10 @@ static void print_hex(unsigned char *str, int len)
 #endif
 
 static struct fmt_tests rvary_tests[] = {
-	{"$rvary$*5AA70358A9C369E0", "QWERTY1"},
-	{"$rvary$*EB59EE07FC74AE77", "PASSWORD"},
-	{"$rvary$*062314297C496E0E", "AAAAAAAA"},
-	{"$rvary$*0FF48804F759193F", "TESTTEST"},
+	{"$rvary$5AA70358A9C369E0", "QWERTY1"},
+	{"$rvary$EB59EE07FC74AE77", "PASSWORD"},
+	{"$rvary$062314297C496E0E", "AAAAAAAA"},
+	{"$rvary$0FF48804F759193F", "TESTTEST"},
 	{NULL}
 };
 
@@ -181,15 +181,14 @@ static void *get_binary(char *ciphertext)
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
-	char *p;
 	int i;
 
-	p = strrchr(ciphertext, '*') + 1;
+	ciphertext += FORMAT_TAG_LEN;
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] =
-			(atoi16[ARCH_INDEX(*p)] << 4) |
-			atoi16[ARCH_INDEX(p[1])];
-		p += 2;
+			(atoi16[ARCH_INDEX(*ciphertext)] << 4) |
+			atoi16[ARCH_INDEX(ciphertext[1])];
+		ciphertext += 2;
 	}
 
 	return out;
