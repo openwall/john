@@ -210,7 +210,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
                 des_key[i] = a2e_precomputed[ARCH_INDEX(saved_key[index][i])];
 
             /* replace missing characters in userid by (EBCDIC space (0x40) XOR 0x55) << 1 */
-            while (i < 9)
+            while (i < 8)
                 des_key[i++] = 0x2a;
 
             DES_set_key_unchecked(&des_key, &schedules[index]);
