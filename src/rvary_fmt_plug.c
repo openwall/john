@@ -42,7 +42,7 @@ john_register_one(&fmt_rvary);
 #define MAX_KEYS_PER_CRYPT      256
 
 #ifndef OMP_SCALE
-#define OMP_SCALE               4 // Tuned w/ MKPC for super
+#define OMP_SCALE               4
 #endif
 
 static const unsigned char a2e[256] = {
