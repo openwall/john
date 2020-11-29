@@ -46,10 +46,10 @@ john_register_one(&fmt_rvary);
 #endif
 
 static struct fmt_tests rvary_tests[] = {
-    {"$rvary$**5AA70358A9C369E0", "QWERTY1"},
-    {"$rvary$**EB59EE07FC74AE77", "PASSWORD"},
-    {"$rvary$**062314297C496E0E", "AAAAAAAA"},
-    {"$rvary$**0FF48804F759193F", "TESTTEST"},
+    {"$rvary$*5AA70358A9C369E0", "QWERTY1"},
+    {"$rvary$*EB59EE07FC74AE77", "PASSWORD"},
+    {"$rvary$*062314297C496E0E", "AAAAAAAA"},
+    {"$rvary$*0FF48804F759193F", "TESTTEST"},
     {NULL}
 };
 
@@ -156,7 +156,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
     ctcopy = strdup(ciphertext);
     keeptr = ctcopy;
     ctcopy += FORMAT_TAG_LEN;
-    ctcopy += 1; /* Skip empty salt */
     if (hexlenu(ctcopy, &extra) != CIPHERTEXT_LENGTH || extra)
         goto err;
     MEM_FREE(keeptr);
