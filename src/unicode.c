@@ -1303,41 +1303,6 @@ void initUnicode(int type)
 	for (i = 0; i < 128; ++i)
 		CP_from_Unicode[i] = i;
 
-	/* EmulateBrokenEncoding hack */
-	if (options.replacement_character == 0) {
-		/* Best-effort conversion hack */
-		for (i = 0; i < 128; ++i) {
-			switch (cp_class(encoding)) {
-
-				case CP_DOS:
-					CP_from_Unicode[CP437_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[CP720_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[CP737_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[CP850_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[CP852_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[CP858_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[CP866_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[CP868_to_unicode_high128[i]] = i+128;
-					break;
-
-				case CP_WIN:
-					CP_from_Unicode[CP1250_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[CP1251_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[CP1252_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[CP1253_to_unicode_high128[i]] = i+128;
-					break;
-
-				default:
-					CP_from_Unicode[ISO_8859_1_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[ISO_8859_2_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[ISO_8859_7_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[ISO_8859_15_to_unicode_high128[i]] = i+128;
-					CP_from_Unicode[KOI8_R_to_unicode_high128[i]] = i+128;
-
-			}
-		}
-	}
-
 	/* Now our actual selected codepage */
 	for (i = 0; i < 128; ++i) {
 		switch(encoding) {

@@ -61,14 +61,21 @@ If you use rules without --internal-codepage, some wordlist rules may cut
 UTF-8 multibyte sequences in the middle, resulting in garbage. You can reject
 such rules with -U to have them in use only when an internal codepage is used.
 
-Caveats:
-Please note that for convenience, any rule, mask or placeholder given in UTF-8
-on command-line or in a config file will be silently translated to whatever
-internal codepage is in use.  This will normally result in just what you'd
-expect but it could sometimes lead to confusion.  For example, if you run that
-"scç" rule with the internal codepage set to CP866, the "ç" can't be translated
-and will currently lead to some other undefined substitution with no warning.
+Please note that for convenience any rule, mask or placeholder given in UTF-8
+on command-line or in a config file can be silently converted to whatever
+internal codepage is in use at the time:
 
+For this to happen with RULES, you must prepend them with "-U".  If such
+conversion fails for a rule, that rule will be rejected (silently, but logged).
+Thus you can have rules for various codepages such as "-U sRЯ" and "-U sc©" in
+place - and only one of them, both, or none will be used, depending on what
+internal codepage is active.
+
+For MASKS, such conversion is required: If no internal codepage was selected,
+or if the selected one can't hold all of the characters, you'll get an error
+describing the problem.
+
+Caveats:
 Beware of UTF-8 BOM's. They will cripple the first word in your wordlist or
 the first entry in your hashfile. Try to avoid using Windows tools that add
 them. This version does try to discard them though.

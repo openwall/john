@@ -119,11 +119,29 @@ static void rpp_process_rule(struct rpp_context *ctx)
 	flag_p = flag_r = 0;
 	ctx->count = ctx->refs_count = 0;
 
-/*
- * If rule is given in UTF-8 but we're using an internal codepage, convert it in-place to that codepage.
- */
-	if (options.internal_cp != UTF_8 && valid_utf8(input) > 1)
-		utf8_to_cp_r((char*)input, (char*)input, strlen((char*)input));
+	if (options.internal_cp != UTF_8 && options.internal_cp != ENC_RAW) {
+		/*
+		 * Rules encoded as UTF-8 and guarded with -U reject flag will be converted
+		 * in-place to current internal codepage, if possible.
+		 * If this fails, we need to reject all rules rendered from this PP rule, so
+		 * we change -U to -- which is later parsed as "always reject".
+		 */
+		if (input[0] == '-' && input[1] == 'U' && valid_utf8(input) > 1) {
+			char conv[RULE_BUFFER_SIZE];
+
+			utf8_to_cp_r(ctx->input->data, conv, RULE_BUFFER_SIZE);
+
+			if (strlen(conv) == strlen8(input))
+				strcpy(ctx->input->data, conv); /* Always shorter than original */
+			else {
+				static int warned;
+
+				if (!warned++)
+					log_event("- Rule preprocessor: Rejected rule(s) not fitting current internal codepage");
+				input[1] = '-';
+			}
+		}
+	}
 
 	while (*input && output < end)
 	switch (*input) {
