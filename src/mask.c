@@ -132,7 +132,7 @@ static char* parse_hex(char *string)
  * This function must pass any escaped characters on, as-is (still escaped).
  * This function must ignore ? inside square brackets as unchanged [a-c1?2] is [a-c1?2]
  */
-static char* expand_cplhdr(char *string)
+static char* expand_cplhdr(char *string, int *conv_err)
 {
 	static char out[0x8000];
 	unsigned char *s = (unsigned char*)string;
@@ -154,10 +154,19 @@ static char* expand_cplhdr(char *string)
 		} else
 		if (!in_brackets && *s == '?' && s[1] >= '1' && s[1] <= '9') {
 			int ab = 0;
-			char *cs = options.custom_mask[s[1] - '1'];
+			int pidx = s[1] - '1';
+			char *cs = options.custom_mask[pidx];
+
+			if (conv_err[pidx]) {
+				if (john_main_process)
+					fprintf(stderr,
+					        "Error: Selected internal codepage can't hold all chars of mask placeholder ?%d\n",
+					        pidx + 1);
+				error();
+			}
 			if (*cs == 0) {
-				fprintf(stderr, "Mask error: custom placeholder"
-					" %.2s not defined\n", s);
+				if (john_main_process)
+					fprintf(stderr, "Error: Custom mask placeholder ?%d not defined\n", pidx + 1);
 				error();
 			}
 			if (*cs != '[') {
@@ -174,10 +183,8 @@ static char* expand_cplhdr(char *string)
 				if (*s == '[') {
 					++in_brackets;
 					if (s[1] == ']') {
-						// empty brace. Abort with error.
 						if (john_main_process)
-							fprintf(stderr,"Mask error: "
-							"empty group [] not valid\n");
+							fprintf(stderr, "Error: Invalid mask: Empty group []\n");
 						error();
 					}
 				}
@@ -223,10 +230,9 @@ static char* plhdr2string(char p, int fmt_case)
 	    (p == 'L' || p == 'U' || p == 'D' || p == 'S')) {
 		if (john_main_process)
 			fprintf(stderr,
-			    "Can't use ?%c placeholder without using an 8-bit legacy codepage for\n"
-			    "--internal-codepage%s\n", p,
-			    (options.internal_cp == UTF_8) ?
-			    " (UTF-8 is not a codepage, it's a Unicode encoding)." : ".");
+			        "Error: Can't use ?%c placeholder without setting an 8-bit legacy codepage with\n"
+			        "       --internal-codepage%s.\n", p,
+			        (options.internal_cp == UTF_8) ? " (UTF-8 is not a codepage)" : "");
 		error();
 	}
 
@@ -914,7 +920,7 @@ static char* plhdr2string(char p, int fmt_case)
  */
 	default:
 		if (john_main_process)
-			fprintf(stderr, "Can't nest custom placeholder ?%c.\n", p);
+			fprintf(stderr, "Error: Can't nest custom mask placeholder ?%c.\n", p);
 		error();
 	}
 
@@ -1117,8 +1123,7 @@ static void parse_braces(char *mask, mask_parsed_ctx *parsed_mask)
 	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++)
 		if ((load_op(i) == -1) ^ (load_cl(i) == -1)) {
 			if (john_main_process)
-				fprintf(stderr, "Parsing unsuccessful, missing closing"
-				        " bracket\n");
+				fprintf(stderr, "Error: Mask parsing unsuccessful, missing closing bracket\n");
 			error();
 		}
 }
@@ -1437,9 +1442,9 @@ static void truncate_mask(mask_cpu_context *cpu_mask_ctx, int range_idx)
 
 	if (range_idx < mask_max_skip_loc && mask_max_skip_loc != -1) {
 		if (john_main_process)
-			fprintf(stderr, "Format internal ranges (first %d range positions)"
-			        " cannot be truncated!\n"
-			        "Use a larger min-length, or non-gpu format.\n",
+			fprintf(stderr,
+			        "Error: Format's internal mask ranges (first %d positions) cannot be truncated!\n"
+			        "       Increase min. length and use some other mode/format for the shorter.\n",
 			        mask_max_skip_loc + 1);
 		error();
 	}
@@ -1849,8 +1854,7 @@ static uint64_t divide_work(mask_cpu_context *cpu_mask_ctx)
 
 	if (!my_candidates && !mask_increments_len) {
 		if (john_main_process)
-			fprintf(stderr, "%u: Insufficient work. Cannot distribute "
-			        "work among nodes!\n", options.node_min);
+			fprintf(stderr, "%u: Error: Insufficient work. Cannot distribute work among nodes!\n", options.node_min);
 		error();
 	}
 
@@ -2114,6 +2118,7 @@ static void finalize_mask(int len);
  */
 void mask_init(struct db_main *db, char *unprocessed_mask)
 {
+	int conv_err[MAX_NUM_CUST_PLHDR] = { 0 };
 	int i;
 
 	mask_db = db;
@@ -2135,7 +2140,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	if ((options.flags & FLG_MASK_STACKED) && max_keylen < 2) {
 		if (john_main_process)
 			fprintf(stderr,
-			        "Too short max-length for hybrid mask\n");
+			        "Error: Too short max. length for hybrid mask\n");
 		error();
 	}
 
@@ -2215,13 +2220,32 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 
 	/* Handle command-line (or john.conf) masks given in UTF-8 */
 	if (options.input_enc == UTF_8 && options.internal_cp != UTF_8) {
-		if (valid_utf8((UTF8*)mask) > 1)
+		if (valid_utf8((UTF8*)mask) > 1) {
+			int u8_length = strlen8((UTF8*)mask);
+
 			utf8_to_cp_r(mask, mask, strlen(mask));
-		for (i = 0; i < MAX_NUM_CUST_PLHDR; i++)
-			if (valid_utf8((UTF8*)options.custom_mask[i]) > 1)
-				utf8_to_cp_r(options.custom_mask[i],
-				             options.custom_mask[i],
-				             strlen(options.custom_mask[i]));
+			if (strlen(mask) != u8_length) {
+				if (john_main_process)
+					fprintf(stderr, "Error: The selected internal codepage can't hold all characters of mask\n");
+				error();
+			}
+		}
+
+		for (i = 0; i < MAX_NUM_CUST_PLHDR; i++) {
+			if (valid_utf8((UTF8*)options.custom_mask[i]) > 1) {
+				int u8_length = strlen8((UTF8*)options.custom_mask[i]);
+				int size = strlen(options.custom_mask[i]);
+				char *tmp_buf;
+
+				tmp_buf = mem_alloc(size); /* result is guaranteed to be at least one byte smaller */
+				utf8_to_cp_r(options.custom_mask[i], tmp_buf, size);
+				if (strlen(tmp_buf) != u8_length)
+					conv_err[i] = 1; /* Defer error until expand_cplhdr() - if placeholder is used */
+				else
+					strnzcpy(options.custom_mask[i], tmp_buf, size);
+				MEM_FREE(tmp_buf);
+			}
+		}
 	}
 
 	/* Expand static placeholders within custom ones */
@@ -2232,7 +2256,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 				    mask_fmt->params.flags & FMT_CASE));
 
 	/* Finally expand custom placeholders ?1 .. ?9 */
-	mask = expand_cplhdr(mask);
+	mask = expand_cplhdr(mask, conv_err);
 
 	/*
 	 * UTF-8 is not supported in mask mode unless -internal-codepage is used
@@ -2240,8 +2264,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	 */
 	if (options.internal_cp == UTF_8 && valid_utf8((UTF8*)mask) > 1) {
 		if (john_main_process)
-			fprintf(stderr,
-			        "Mask contains UTF-8 characters; --internal-codepage is required!\n");
+			fprintf(stderr, "Error: Mask contains UTF-8 characters; --internal-codepage is required!\n");
 		error();
 	}
 
@@ -2336,8 +2359,7 @@ static void finalize_mask(int len)
 			    mask_add_len >= (unsigned int)len &&
 			    mask_num_qw == 1) {
 				if (john_main_process)
-				fprintf(stderr, "Hybrid mask must contain ?w/?W"
-				        " after truncation for max. length\n");
+				fprintf(stderr, "Error: Hybrid mask must contain ?w/?W after truncation for max. length\n");
 				error();
 			}
 		} else {
@@ -2352,14 +2374,12 @@ static void finalize_mask(int len)
 
 		if (mask_num_qw == 0) {
 			if (john_main_process)
-				fprintf(stderr,
-				        "Hybrid mask must contain ?w or ?W\n");
+				fprintf(stderr, "Error: Hybrid mask must contain ?w or ?W\n");
 			error();
 		}
 	} else {
 		if (mask_num_qw && john_main_process)
-			fprintf(stderr,
-			        "Warning: ?w has no special meaning in pure mask mode\n");
+			fprintf(stderr, "Warning: ?w has no special meaning unless running hybrid mask\n");
 		if (mask_add_len > len)
 			mask_add_len = len;
 	}
