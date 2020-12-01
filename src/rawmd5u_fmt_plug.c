@@ -110,8 +110,7 @@ static void init(struct fmt_main *self)
 		tests[4].ciphertext = "8007d9070b27db7b30433df2cd10abc1";
 		tests[4].plaintext = "\xC3\xBC\xE2\x82\xAC";	// u-umlaut and euro
 	} else {
-		if (options.target_enc != ASCII &&
-		    options.target_enc != ISO_8859_1) {
+		if (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1) {
 			/* This avoids an if clause for every set_key */
 			self->methods.set_key = set_key_CP;
 		}

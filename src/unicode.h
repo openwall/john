@@ -46,7 +46,8 @@
 /* Arbitrary CP-to-integer mapping, for switches, arrays etc. */
 #define AUTO           -1 /* try to auto-detect UTF-8 */
 #define CP_UNDEF        0
-#define ASCII           1
+#define ASCII           1 /* ASCII + transparent 8-bit - like John proper */
+#define ENC_RAW         ASCII
 #define CP437           2
 #define CP720           3
 #define CP737           4
@@ -313,9 +314,9 @@ extern UTF8 CP_isSeparator[0x100];
 extern UTF8 CP_isDigit[0x100];
 
 /* These are encoding-aware but not LC_CTYPE */
-#define enc_islower(c) (options.internal_cp == ASCII ? (c >= 'a' && c <= 'z') : CP_isLower[ARCH_INDEX(c)])
-#define enc_isupper(c) (options.internal_cp == ASCII ? (c >= 'A' && c <= 'Z') : CP_isUpper[ARCH_INDEX(c)])
-#define enc_isdigit(c) (options.internal_cp == ASCII ? (c >= '0' && c <= '9') : CP_isDigit[ARCH_INDEX(c)])
+#define enc_islower(c) (options.internal_cp == ENC_RAW ? (c >= 'a' && c <= 'z') : CP_isLower[ARCH_INDEX(c)])
+#define enc_isupper(c) (options.internal_cp == ENC_RAW ? (c >= 'A' && c <= 'Z') : CP_isUpper[ARCH_INDEX(c)])
+#define enc_isdigit(c) (options.internal_cp == ENC_RAW ? (c >= '0' && c <= '9') : CP_isDigit[ARCH_INDEX(c)])
 #define enc_tolower(c) (char)CP_down[ARCH_INDEX(c)]
 #define enc_toupper(c) (char)CP_up[ARCH_INDEX(c)]
 

@@ -860,10 +860,8 @@ static void john_load_conf_db(void)
 	/* Unicode (UTF-16) formats may lack encoding support. We
 	   must stop the user from trying to use it because it will
 	   just result in false negatives. */
-	if (database.format && options.target_enc != ASCII &&
-	    options.target_enc != ISO_8859_1 &&
-	    database.format->params.flags & FMT_UNICODE &&
-	    !(database.format->params.flags & FMT_ENC)) {
+	if (database.format && options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1 &&
+	    database.format->params.flags & FMT_UNICODE && !(database.format->params.flags & FMT_ENC)) {
 		if (john_main_process)
 			fprintf(stderr, "This format does not yet support"
 			        " other encodings than ISO-8859-1\n");
@@ -874,8 +872,7 @@ static void john_load_conf_db(void)
 		options.store_utf8 = cfg_get_bool(SECTION_OPTIONS,
 		                                  NULL, "UnicodeStoreUTF8", 0);
 	else
-		options.store_utf8 = options.target_enc != ASCII &&
-			cfg_get_bool(SECTION_OPTIONS, NULL, "CPstoreUTF8", 0);
+		options.store_utf8 = options.target_enc != ENC_RAW && cfg_get_bool(SECTION_OPTIONS, NULL, "CPstoreUTF8", 0);
 
 	if (options.target_enc != options.input_enc &&
 	    options.input_enc != UTF_8) {
@@ -889,7 +886,7 @@ static void john_load_conf_db(void)
 	if (!(options.flags & FLG_SHOW_CHK) && !options.loader.showuncracked) {
 		if (options.flags & (FLG_PASSWD | FLG_WORDLIST_CHK |
 		                     FLG_STDIN_CHK | FLG_PIPE_CHK))
-		if (options.default_enc && options.input_enc != ASCII)
+		if (options.default_enc && options.input_enc != ENC_RAW)
 			fprintf(stderr, "Using default input encoding: %s\n",
 			        cp_id2name(options.input_enc));
 
@@ -1581,7 +1578,7 @@ static void john_init(char *name, int argc, char **argv)
 	gpu_log_temp();
 #endif
 
-	if (john_main_process && options.target_enc != ASCII) {
+	if (john_main_process && options.target_enc != ENC_RAW) {
 		log_event("- %s input encoding enabled",
 		          cp_id2name(options.input_enc));
 

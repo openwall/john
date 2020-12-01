@@ -302,7 +302,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 	,offset_table_size, hash_table_size_128, shift64_ot_sz, shift64_ht_sz,
 	num_ld_hashes, mask_int_cand.num_int_cand, bitmap_para, mask_gpu_is_static,
 	(unsigned long long)const_cache_size, cp_id2macro(options.target_enc),
-	options.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
+	options.internal_cp == UTF_8 ? cp_id2macro(ENC_RAW) :
 	cp_id2macro(options.internal_cp), PLAINTEXT_LENGTH,
 	static_gpu_locations[0]
 #if MASK_FMT_INT_PLHDR > 1

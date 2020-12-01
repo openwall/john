@@ -206,8 +206,8 @@ static void read_file(struct db_main *db, char *name, int flags,
 	char line_buf[LINE_BUFFER_SIZE], *line, *ex_size_line;
 	int warn_enc;
 
-	warn_enc = john_main_process && (options.target_enc != ASCII) &&
-		cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0);
+	warn_enc = (john_main_process && (options.target_enc != ENC_RAW) &&
+	            cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0));
 
 	if (flags & RF_ALLOW_DIR) {
 		if (stat(name, &file_stat)) {
@@ -2275,9 +2275,8 @@ static void ldr_show_pw_line(struct db_main *db, char *line)
 		} else {
 			static int setting = -1;
 			if (setting < 0)
-				setting = options.target_enc != ASCII &&
-				    cfg_get_bool(SECTION_OPTIONS, NULL,
-				    "CPstoreUTF8", 0);
+				setting = (options.target_enc != ENC_RAW &&
+				           cfg_get_bool(SECTION_OPTIONS, NULL, "CPstoreUTF8", 0));
 			options.store_utf8 = setting;
 		}
 	} else {

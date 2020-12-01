@@ -164,8 +164,7 @@ static void init(struct fmt_main *self)
 	if (options.target_enc == UTF_8)
 		fmt_mssql.params.plaintext_length = PLAINTEXT_LENGTH * 3;
 
-	if (options.target_enc != ISO_8859_1 &&
-	    options.target_enc != ASCII)
+	if (options.target_enc != ISO_8859_1 && options.target_enc != ENC_RAW)
 		fmt_mssql.methods.set_key = set_key_enc;
 }
 

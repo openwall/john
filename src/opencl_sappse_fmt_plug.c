@@ -150,7 +150,7 @@ static void reset(struct db_main *db)
 		snprintf(build_opts, sizeof(build_opts),
 		         "-DPLAINTEXT_LENGTH=%d -D%s -D%s", PLAINTEXT_LENGTH,
 		         cp_id2macro(options.target_enc),
-		         options.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
+		         options.internal_cp == UTF_8 ? cp_id2macro(ENC_RAW) :
 		         cp_id2macro(options.internal_cp));
 
 		opencl_init("$JOHN/opencl/sap_pse_kernel.cl",
