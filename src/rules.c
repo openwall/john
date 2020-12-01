@@ -661,7 +661,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 		break;
 
 	case '-':
-		if (!hc_logic && (NEXT < '0' || NEXT > '9')) // HC hack
+		if (!hc_logic && (NEXT < '0' || NEXT == '8' || NEXT > '9')) // HC hack
 		switch (RULE) {
 		case ':':
 			continue;
@@ -1912,8 +1912,6 @@ char *rules_process_stack_all(char *key, rule_stack *ctx)
 }
 
 /*
- * This function is currently not used outside of rules.c, thus not exported.
- *
  * Checks if all the rules for context are valid. Returns the number of rules,
  * or returns zero and sets rules_errno on error.
  *
@@ -1969,11 +1967,9 @@ static void rules_load_normalized_list(struct cfg_line *pLine)
 {
 	while (pLine) {
 		if (pLine->data) {
-/*
- * this call will 'reduce' the rule by stripping no-op's. NOTE, this rule
- * (in Wordlist) returns false (6, ie "Unknown rule reject flag")
- * -[:c] <* >2 !?A \p1[lc] M [PI]  It does not like the -[:c] without a DB ?
- */
+			/*
+			 * this will 'reduce' the rule by stripping no-op's.
+			 */
 			char *rule = rules_reject(pLine->data, -1, NULL, NULL);
 			if (rule) {
 				rules_normalize_add_line(rule, pLine->id);
