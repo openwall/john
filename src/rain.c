@@ -43,7 +43,6 @@ const char *freq_alnum = "aeorisn1tl2md0cp3hbuk45g9687yfwjvzxQASERBTMLNPOIDCHGKF
 
 const char *orig = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQSRTUVWXYZ0123456789";            
 
-static int strength;   
 static UTF32 word[MAX_CAND_LENGTH+1];
 static int charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
 static int rec_charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
@@ -91,6 +90,28 @@ static void fix_state(void)
 	rec_loop = loop;
 }
 
+static char *big2str(uint_big orig) {
+	uint_big b = orig;
+	static char str[41];
+	int c = 0;
+	int x;
+	while(b) {
+		str[c] = 0x30 + b%10;
+		b/=10;
+		c++;
+	}
+	char tmp[c/2];
+	for(x=0; x<c; ++x) {
+		if(x<c/2) {
+			tmp[x] = str[c-x-1];
+			str[c-x-1] = str[x];
+		}
+		else {
+			str[c-x-1] = tmp[x-c/2];
+		}
+	}
+	return str;
+}
 
 static void save_state(FILE *file)
 {
@@ -98,19 +119,19 @@ static void save_state(FILE *file)
 	
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%" PRIu64"\n", rec_rain[i]);
+		fprintf(file, "%s\n", big2str(rec_rain[i]));
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
 	fprintf(file, "%d\n", rec_cur_len);
-	fprintf(file, "%" PRIu64"\n", rec_counter);//changeme
+	fprintf(file, "%s\n", big2str(rec_counter));//changeme
 	fprintf(file, "%d\n", rec_loop);
 }
-
+//TODO: import int128 from file as string and convert to true simd values
 static int restore_state(FILE *file)
 {
 	int i, j, d;
-	uint64_t r;
+	uint_big r;
 	
 	if(fscanf(file, "%d\n", &d) == 1)
 		set = d;
@@ -143,8 +164,23 @@ static int restore_state(FILE *file)
 	return 0;
 }
 
+static uint_big powi(uint32_t b, uint32_t p)
+{
+	uint_big res = 1;
 
+	if (b == 0)
+		return 0;
 
+	while (p--) {
+		uint_big temp = res * b;
+
+		if (temp < res)
+			return UINT_BIG_MAX;
+		res = temp;
+	}
+
+	return res;
+}
 
 /* Parse \U+HHHH and \U+HHHHH notation to characters, in place. */
 static void parse_unicode(char *string)
@@ -355,9 +391,9 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				charset_idx[i][j] = 0;
 		}
 	}
-	keyspace = (uint64_t) pow(charcount, rain_cur_len);
+	keyspace = powi(charcount, rain_cur_len);
 	if(rain_cur_len > minlength)
-	    subtotal = (uint64_t) pow((double) charcount, (double) rain_cur_len-1);
+	    subtotal = powi(charcount, rain_cur_len-1);
 
 	crk_init(db, fix_state, NULL);
 	
@@ -381,24 +417,24 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 			int mpl = minlength + loop;
-            if(!skip) {
+        	if(!skip) {
 				quick_conversion = 1;
-				
-                uint_big rotate = rain[loop];// / (uint_big) pow(2, charcount);
-		        if( (word[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
-				    quick_conversion = 0;	
-                for(i=1; i<mpl; ++i) {
-	                int tmpc = charset_utf32[(charset_idx[loop][i] + rotate) % charcount];
-	                if( (word[i] = tmpc) > cp_max )
-		                quick_conversion = 0;
-		            rotate -= rotate / charcount;
-		            rain[loop] += i; 
-                }
-			    submit(word);
-            }
-            rain[loop] -= accu(mpl) - 1;
-            
-            int pos = 0;
+					
+		    	uint_big rotate = rain[loop];// / (uint_big) pow(2, charcount);
+			    if( (word[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
+					quick_conversion = 0;	
+		    	for(i=1; i<mpl; ++i) {
+			        int tmpc = charset_utf32[(charset_idx[loop][i] + rotate) % charcount];
+			        if( (word[i] = tmpc) > cp_max )
+				        quick_conversion = 0;
+				    rotate -= rotate / charcount;
+				    rain[loop] += i; 
+		        }
+				    submit(word);
+		    }
+		    rain[loop] -= accu(mpl) - 1;
+		    
+		    int pos = 0;
 	        while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
 			    pos++;
@@ -406,8 +442,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			if(pos >= mpl) {
 				counter = 0;
 				rain_cur_len++;	
-				keyspace = (uint_big) pow((double) charcount, (double) rain_cur_len);
-				subtotal = (uint_big) pow((double) charcount, (double) rain_cur_len-1);
+				keyspace = powi(charcount, rain_cur_len);
+				subtotal = powi(charcount, rain_cur_len-1);
 				if (cfg_get_bool("Rain", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
