@@ -973,8 +973,7 @@ static void init(struct fmt_main *self)
 		self->methods.set_key = set_key_utf8;
 		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
 	} else {
-		if (options.target_enc != ASCII &&
-		    options.target_enc != ISO_8859_1)
+		if (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)
 			self->methods.set_key = set_key_CP;
 	}
 	if (!saved_key) {

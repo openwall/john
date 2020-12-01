@@ -565,7 +565,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 		error();
 	}
 
-	if (options.target_enc == ASCII || options.target_enc == ISO_8859_1)
+	if (options.target_enc == ENC_RAW || options.target_enc == ISO_8859_1)
 		cp_max = 255;
 
 	if (maxdiff > charcount)

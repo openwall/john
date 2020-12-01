@@ -3339,7 +3339,7 @@ inline static void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 				__SSE_append_string_to_input(input_buf[idx].c,idx_mod,Str,len,bf_ptr,1);
 			}
 		} else {
-			if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
+			if (utf16 == 2 || (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)) {
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
 
@@ -3371,7 +3371,7 @@ inline static void __append_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigned
 	}
 #endif
 	if (utf16) {
-		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
+		if (utf16 == 2 || (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)) {
 			UTF16 utf16Str[ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
@@ -3455,7 +3455,7 @@ inline static void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 				__SSE_append_string_to_input(input_buf2[idx].c,idx_mod,Str,len,bf_ptr,1);
 			}
 		} else {
-			if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+			if (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1) {
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
 
@@ -3487,7 +3487,7 @@ inline static void __append2_string(DYNA_OMP_PARAMSm unsigned char *Str, unsigne
 	}
 #endif
 	if (utf16) {
-		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
+		if (utf16 == 2 || (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)) {
 			UTF16 utf16Str[ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
@@ -3767,7 +3767,7 @@ void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 			unsigned int idx_mod = j&(SIMD_COEF_32-1);
 			unsigned int bf_ptr = total_len[idx][idx_mod];
 			if (utf16) {
-				if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
+				if (utf16 == 2 || (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)) {
 					UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 					int outlen;
 					int maxlen=27;
@@ -3797,7 +3797,7 @@ void DynamicFunc__append_keys(DYNA_OMP_PARAMS)
 	}
 #endif
 	if (utf16) {
-		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
+		if (utf16 == 2 || (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)) {
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp, *cpi;
@@ -3972,7 +3972,7 @@ void DynamicFunc__append_keys2(DYNA_OMP_PARAMS)
 			unsigned int idx_mod = j&(SIMD_COEF_32-1);
 			unsigned int bf_ptr = total_len2[idx][idx_mod];
 			if (utf16) {
-				if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
+				if (utf16 == 2 || (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)) {
 					UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 					int outlen;
 					int maxlen=27;
@@ -4002,7 +4002,7 @@ void DynamicFunc__append_keys2(DYNA_OMP_PARAMS)
 	}
 #endif
 	if (utf16) {
-		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
+		if (utf16 == 2 || (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)) {
 			for (; j < til; ++j) {
 				unsigned int z;
 				unsigned char *cp, *cpi;
@@ -5681,7 +5681,7 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		if (utf16) {
-			if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
+			if (utf16 == 2 || (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)) {
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
 				if (utf16 == 1)
@@ -5705,7 +5705,7 @@ void DynamicFunc__overwrite_salt_to_input1_no_size_fix(DYNA_OMP_PARAMS)
 	}
 #endif
 	if (utf16) {
-		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
+		if (utf16 == 2 || (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)) {
 			UTF16 utf16Str[ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
@@ -5769,7 +5769,7 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS)
 #ifdef SIMD_COEF_32
 	if (dynamic_use_sse==1) {
 		if (utf16) {
-			if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
+			if (utf16 == 2 || (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)) {
 				UTF16 utf16Str[27+1]; // 27 chars is 'max' that fits in SSE without overflow, so that is where we limit it at now
 				int outlen;
 				if (utf16 == 1)
@@ -5793,7 +5793,7 @@ void DynamicFunc__overwrite_salt_to_input2_no_size_fix(DYNA_OMP_PARAMS)
 	}
 #endif
 	if (utf16) {
-		if (utf16 == 2 || (options.target_enc != ASCII && options.target_enc != ISO_8859_1)) {
+		if (utf16 == 2 || (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)) {
 			UTF16 utf16Str[ENCODED_EFFECTIVE_MAX_LENGTH + 1];
 			int outlen;
 			if (utf16 == 1)
@@ -7928,7 +7928,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 				i = 0;
 			}
 			if (Setup->pPreloads[i].ciphertext[0] == 'A' && Setup->pPreloads[i].ciphertext[1] == '=') {
-				if (options.target_enc != ASCII && options.target_enc != ISO_8859_1)
+				if (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)
 					continue;
 				pfx[cnt].ciphertext = str_alloc_copy(&Setup->pPreloads[i].ciphertext[2]);
 			}

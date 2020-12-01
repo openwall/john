@@ -52,7 +52,7 @@ void mscash1_adjust_tests(struct fmt_main *self, unsigned target_encoding,
 		mscash1_common_tests[1].plaintext = "\xC3\xBC";         // German u-umlaut in UTF-8
 		mscash1_common_tests[2].ciphertext = "M$user#9121790702dda0fa5d353014c334c2ce";
 		mscash1_common_tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs
-	} else if (target_encoding == ASCII || target_encoding == ISO_8859_1) {
+	} else if (target_encoding == ENC_RAW || target_encoding == ISO_8859_1) {
 		mscash1_common_tests[1].ciphertext = "M$\xFC#48f84e6f73d6d5305f6558a33fa2c9bb";
 		mscash1_common_tests[1].plaintext = "\xFC";         // German u-umlaut in ISO_8859_1
 		mscash1_common_tests[2].ciphertext = "M$\xFC\xFC#593246a8335cf0261799bda2a2a9c623";

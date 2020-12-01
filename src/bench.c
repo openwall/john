@@ -770,9 +770,8 @@ AGAIN:
 		}
 
 /* Just test the encoding-aware formats if --encoding was used explicitly */
-		if (!options.default_enc && options.target_enc != ASCII &&
-		    options.target_enc != ISO_8859_1 &&
-		    !(format->params.flags & FMT_ENC)) {
+		if (!options.default_enc && options.target_enc != ENC_RAW &&
+		    options.target_enc != ISO_8859_1 && !(format->params.flags & FMT_ENC)) {
 			if (options.format == NULL ||
 			    strcasecmp(format->params.label, options.format))
 				continue;
@@ -842,8 +841,7 @@ AGAIN:
 		    format->params.benchmark_comment,
 		    format->params.algorithm_name,
 #ifndef BENCH_BUILD
-#define ENC_SET (!options.default_enc && options.target_enc != ASCII && \
-                                         options.target_enc != ISO_8859_1)
+#define ENC_SET (!options.default_enc && options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)
 
 		    (benchmark_time && format->params.flags & FMT_MASK &&
 		     (options.flags & FLG_MASK_CHK)) ? "/mask accel" : "",

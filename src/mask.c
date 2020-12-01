@@ -219,8 +219,7 @@ static char* plhdr2string(char p, int fmt_case)
 			p = 'L';
 	}
 
-	if ((options.internal_cp == ASCII ||
-	     options.internal_cp == UTF_8) &&
+	if ((options.internal_cp == ENC_RAW || options.internal_cp == UTF_8) &&
 	    (p == 'L' || p == 'U' || p == 'D' || p == 'S')) {
 		if (john_main_process)
 			fprintf(stderr,

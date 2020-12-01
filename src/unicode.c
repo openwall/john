@@ -974,7 +974,7 @@ void listEncodings(FILE *fd)
 	        "CP1250, CP1251, CP1252, CP1253, CP1254, CP1255, CP1256\n");
 }
 
-static char *enc_name[] = { "UNDEF", "ASCII", "CP437", "CP720", "CP737",
+static char *enc_name[] = { "UNDEF", "RAW", "CP437", "CP720", "CP737",
                             "CP850", "CP852", "CP858", "CP866", "CP868",
                             "CP1250", "CP1251", "CP1252", "CP1253", "CP1254",
                             "CP1255", "CP1256", "ISO-8859-1",
@@ -991,7 +991,7 @@ char *cp_id2name(int encoding)
 	error();
 }
 
-static char *enc_macro[] = { "UNDEF", "ASCII", "CP437", "CP720", "CP737",
+static char *enc_macro[] = { "UNDEF", "ENC_RAW", "CP437", "CP720", "CP737",
                              "CP850", "CP852", "CP858", "CP866", "CP868",
                              "CP1250", "CP1251", "CP1252", "CP1253", "CP1254",
                              "CP1255", "CP1256", "ISO_8859_1",
@@ -1103,7 +1103,7 @@ int cp_name2id(const char *encoding, int error_exit)
 		return CP1256;
 	else
 	if (!strcmp(enc, "raw") || !strcmp(enc, "ascii"))
-		return ASCII;
+		return ENC_RAW;
 
  err:
 	if (error_exit) {
@@ -1137,7 +1137,7 @@ void initUnicode(int type)
 
 	/* Default to core John's behavior */
 	if (!options.input_enc) {
-		options.input_enc = ASCII;
+		options.input_enc = ENC_RAW;
 		options.default_enc = 1;
 	}
 
@@ -1188,7 +1188,7 @@ void initUnicode(int type)
  * format we are using. This is still TBD on how best to do it.
  */
 	if (type == UNICODE_MS_OLD) {
-		if (encoding == ASCII) {
+		if (encoding == ENC_RAW) {
 /*
  * The 'proper' default encoding for mssql IS CP1252. The test suite will have
  * a TON of failures, unless this is set this way.  All of the data IN that

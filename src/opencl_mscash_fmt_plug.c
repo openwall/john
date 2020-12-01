@@ -296,7 +296,7 @@ static void init_kernel(void)
 #endif
 	, mask_int_cand.num_int_cand, mask_gpu_is_static,
 	(unsigned long long)const_cache_size, cp_id2macro(options.target_enc),
-	options.internal_cp == UTF_8 ? cp_id2macro(ASCII) :
+	options.internal_cp == UTF_8 ? cp_id2macro(ENC_RAW) :
 	cp_id2macro(options.internal_cp), PLAINTEXT_LENGTH,
 	static_gpu_locations[0]
 #if MASK_FMT_INT_PLHDR > 1

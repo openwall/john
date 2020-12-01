@@ -711,11 +711,11 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 			return NULL;
 
 		case 'u':
-			if (options.internal_cp == UTF_8 || options.internal_cp == ASCII) continue;
+			if (options.internal_cp == UTF_8 || options.internal_cp == ENC_RAW) continue;
 			return NULL;
 
 		case 'U':
-			if (options.internal_cp != UTF_8) continue;
+			if (options.internal_cp != UTF_8 && options.internal_cp != ENC_RAW) continue;
 			return NULL;
 
 		default:
@@ -750,8 +750,8 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 	int length;
 	int which;
 
-	if (!(options.flags & FLG_SINGLE_CHK) &&
-	    options.internal_cp != UTF_8 && options.target_enc == UTF_8)
+	if (!(options.flags & FLG_SINGLE_CHK) && options.internal_cp != UTF_8 &&
+	    options.internal_cp != ENC_RAW && options.target_enc == UTF_8)
 		memory = word = utf8_to_cp_r(word_in, cpword,
 		                             PLAINTEXT_BUFFER_SIZE - 1);
 	else
@@ -1745,8 +1745,8 @@ out_OK:
 		if (skip_length && length > skip_length)
 			return NULL;
 	}
-	if (!(options.flags & FLG_MASK_STACKED) &&
-	    options.internal_cp != UTF_8 && options.target_enc == UTF_8) {
+	if (!(options.flags & FLG_MASK_STACKED) && options.internal_cp != UTF_8 &&
+	    options.internal_cp != ENC_RAW && options.target_enc == UTF_8) {
 		char out[PLAINTEXT_BUFFER_SIZE + 1];
 
 		strcpy(in, cp_to_utf8_r(in, out, STACK_MAXLEN));

@@ -184,7 +184,7 @@ static void init(struct fmt_main *self)
 		tests[4].plaintext = "\xE2\x82\xAC\xE2\x82\xAC";
 		tests[4].ciphertext = "$NT$682467b963bb4e61943e170a04f7db46";
 	} else {
-		if (options.target_enc != ASCII && options.target_enc != ISO_8859_1) {
+		if (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1) {
 			/* This avoids an if clause for every set_key */
 			self->methods.set_key = set_key_CP;
 		}
