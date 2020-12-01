@@ -90,80 +90,6 @@ static void fix_state(void)
 	rec_loop = loop;
 }
 
-static char *big2str(uint_big orig) {
-	uint_big b = orig;
-	static char str[41];
-	int c = 0;
-	int x;
-	while(b) {
-		str[c] = 0x30 + b%10;
-		b/=10;
-		c++;
-	}
-	char tmp[c/2];
-	for(x=0; x<c; ++x) {
-		if(x<c/2) {
-			tmp[x] = str[c-x-1];
-			str[c-x-1] = str[x];
-		}
-		else {
-			str[c-x-1] = tmp[x-c/2];
-		}
-	}
-	return str;
-}
-
-static void save_state(FILE *file)
-{
-	int i, j;
-	
-	fprintf(file, "%d\n", rec_set);
-	for (i = 0; i <= maxlength - minlength; ++i) {
-		fprintf(file, "%s\n", big2str(rec_rain[i]));
-		for(j = 0; j < maxlength; ++j)
-			fprintf(file, "%d\n", rec_charset_idx[i][j]);
-	}
-	fprintf(file, "%d\n", rec_cur_len);
-	fprintf(file, "%s\n", big2str(rec_counter));//changeme
-	fprintf(file, "%d\n", rec_loop);
-}
-//TODO: import int128 from file as string and convert to true simd values
-static int restore_state(FILE *file)
-{
-	int i, j, d;
-	uint_big r;
-	
-	if(fscanf(file, "%d\n", &d) == 1)
-		set = d;
-	else return 1;
-
-	for (i = 0; i <= maxlength - minlength; ++i) {
-		if(fscanf(file, "%" PRIu64"\n", &r) == 1)//all those bigint needs a fix in save and restore state
-			rain[i] = r;
-		else return 1;
-
-		for(j = 0; j < maxlength; ++j)
-			if(fscanf(file, "%d\n", &d) == 1)
-				charset_idx[i][j] = d;
-			else return 1;
-	}
-	if(fscanf(file, "%d\n", &d) == 1)
-		rain_cur_len = d;
-	else return 1;
-
-	if(fscanf(file, "%"PRIu64"\n", &r) == 1)
-		counter = r;
-	else return 1;
-	
-	if(fscanf(file, "%d\n", &d) == 1)
-		loop = d;
-	else return 1;
-	
-	state_restored = 1;
-
-	return 0;
-}
-
 static uint_big powi(uint32_t b, uint32_t p)
 {
 	uint_big res = 1;
@@ -180,6 +106,101 @@ static uint_big powi(uint32_t b, uint32_t p)
 	}
 
 	return res;
+}
+
+static void big2str(uint_big orig, char *str) {
+	uint_big b = orig, total = 0;
+	int c = 0;
+	int x;
+	
+	do {
+		str[c] = b%10 + '0';
+		total += (b % 10) * powi(10, c);
+		b /= 10;
+		++c;
+		
+	} while(total < orig);
+	
+	//printf("%llu ", total);
+	char tmp[c/2];
+	
+	for(x=0; x<c; ++x) {
+		if(x<=c/2) {
+			tmp[x] = str[x];
+			str[x] = str[c-x-1];
+		}
+		else {
+			str[x] = tmp[c-x-1];
+		}
+	}
+	
+	str[c] = '\0';
+	//printf("%s\n", str);
+	
+}
+
+static uint_big str2big(char *str) {
+	int x;
+	static uint_big num = 0;
+	int c = 1;
+	for(x=strlen(str); x>=0; --x) {
+		num += (str[x]-'0') * powi(10, c);
+		c++;
+	}
+	return num;
+}
+
+static void save_state(FILE *file)
+{
+	int i, j;
+	char str[40];
+	memset(str, 0, 40);
+	fprintf(file, "%d\n", rec_set);
+	for (i = 0; i <= maxlength - minlength; ++i) {
+		big2str(rec_rain[i], str);
+		fprintf(file, "%s\n", str);
+		for(j = 0; j < maxlength; ++j)
+			fprintf(file, "%d\n", rec_charset_idx[i][j]);
+	}
+	fprintf(file, "%d\n", rec_cur_len);
+	big2str(rec_counter, str);
+	fprintf(file, "%s\n", str);
+	fprintf(file, "%d\n", rec_loop);
+}
+static int restore_state(FILE *file)
+{
+	int i, j, d;
+	char str[41];
+	
+	if(fscanf(file, "%d\n", &d) == 1)
+		set = d;
+	else return 1;
+
+	for (i = 0; i <= maxlength - minlength; ++i) {
+		if(fscanf(file, "%s\n",  str) == 1)
+			rain[i] = str2big(str);
+		else return 1;
+
+		for(j = 0; j < maxlength; ++j)
+			if(fscanf(file, "%d\n", &d) == 1)
+				charset_idx[i][j] = d;
+			else return 1;
+	}
+	if(fscanf(file, "%d\n", &d) == 1)
+		rain_cur_len = d;
+	else return 1;
+
+	if(fscanf(file, "%s\n", str) == 1)
+		counter = str2big(str);
+	else return 1;
+	
+	if(fscanf(file, "%d\n", &d) == 1)
+		loop = d;
+	else return 1;
+	
+	state_restored = 1;
+
+	return 0;
 }
 
 /* Parse \U+HHHH and \U+HHHHH notation to characters, in place. */
@@ -385,7 +406,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	{
 		rain_cur_len = minlength;
 		srand(time(NULL));
-		for(i=0; i<= maxlength - minlength; i++) {
+		for(i = 0; i <= maxlength - minlength; i++) {
 			rain[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
