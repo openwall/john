@@ -121,7 +121,6 @@ static void big2str(uint_big orig, char *str) {
 		
 	} while(total < orig);
 	
-	//printf("%llu ", total);
 	char tmp[c/2];
 	
 	for(x=0; x<c; ++x) {
@@ -133,10 +132,7 @@ static void big2str(uint_big orig, char *str) {
 			str[x] = tmp[c-x-1];
 		}
 	}
-	
-	str[c] = '\0';
-	//printf("%s\n", str);
-	
+	str[c] = '\0';	
 }
 
 static uint_big str2big(char *str) {
