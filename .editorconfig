@@ -27,6 +27,10 @@ tab_width = 8
 indent_style = space
 indent_size = 2
 
+[7z2john.pl]
+indent_style = space
+indent_size = 2
+
 # M4 is a bastard
 [*.{ac,m4}]
 indent_style = space
