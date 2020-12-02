@@ -1344,7 +1344,6 @@ def process_file(filename):
                         return
             return
 
-    version = 1  # MultiBit Classic
     pdata = b"".join(data.split())
     if len(pdata) < 64:
         sys.stderr.write("%s: Short length for a MultiBit wallet file!\n" % bname)
@@ -1352,12 +1351,11 @@ def process_file(filename):
 
     try:
         pdata = base64.b64decode(pdata[:64])
-        if not pdata.startswith("Salted__"):
-            version = 2
-        if len(pdata) < 48:
-            # sys.stderr.write("%s: Short length for a MultiBit wallet file!\n" % bname)
-            # return
-            version = 2  # MultiBit HD possibly?
+
+        if pdata.startswith(b"Salted__"):
+            version = 1  # MultiBit Classic
+        else:
+            version = 2  # MultiBit HD possibly? We need more tests!
     except:
         version = 2  # MultiBit HD possibly?
 
