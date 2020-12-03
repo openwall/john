@@ -138,8 +138,8 @@ static void big2str(uint_big orig, char *str) {
 static uint_big str2big(char *str) {
 	int x;
 	static uint_big num = 0;
-	int c = 1;
-	for(x=strlen(str); x>=0; --x) {
+	int c = 0;
+	for(x=strlen(str)-1; x>=0; --x) {
 		num += (str[x]-'0') * powi(10, c);
 		c++;
 	}
@@ -449,7 +449,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		        }
 				    submit(word);
 		    }
-		    rain[loop] -= accu(mpl) - 1;
+		    rain[loop] -= accu(mpl)-1;
 		    
 		    int pos = 0;
 	        while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
