@@ -27,8 +27,8 @@ _arguments -C -s \
   '(--prince-case-permute)'--prince-case-permute'[permute case of first letter]' \
   '(--prince-mmap)'--prince-mmap'[memory-map infile (not available with case permute)]' \
   '(--prince-keyspace)'--prince-keyspace'[just show total keyspace that would be produced]' \
-  '(--encoding)'{--encoding=-,--input-encoding=-}[input data is non-ascii (eg. UTF-8, ISO-8859-1)]:encoding to use:->list-encodings' \
-  '(--rules,-r,--stdin)'{--rules=-,-r=-,-r\:-}'[use rule]:rule to use:->list-rules' \
+  '(--encoding)'{--encoding=-,--input-encoding=-}'[input data is non-ascii (eg. UTF-8, ISO-8859-1)]:encoding to use:->list-encodings' \
+  '(--rules,-r,--stdin)'{--rules=-,-r=-}'[use rule]:rule to use:->list-rules' \
   '(--rules-stack)'--rules-stack='[stacked rules]' \
   '(--rules-skip-nop)'--rules-skip-nop='[skip any NOP ":" rules (you already ran w/o rules]' \
   '(--mask)'--mask='[mask mode using MASK (or default from john.conf)]' \
@@ -48,19 +48,19 @@ _arguments -C -s \
   '(--no-mask)'--no-mask'[used with --test for alternate benchmark w/o mask]' \
   '(--skip-self-tests)'--skip-self-tests'[skip self tests]' \
   '(--test-full)'--test-full'[run more thorough self-tests]' \
-  '(--users'--users='[do not load these users only]:user login or uid' \
-  '(--groups'--groups='[do not load these group only]:group gid' \
-  '(--salts'--salts='[load salts with(out) COUNT (to MAX) hashes]:salts' \
-  '(--costs'--costs='[load salts with(out) cost value Cn (to Mn)]:costs' \
+  '(--users)'--users=-'[do not load these users only]:user login or uid' \
+  '(--groups)'--groups=-'[do not load these group only]:group gid' \
+  '(--salts)'--salts=-'[load salts with(out) COUNT (to MAX) hashes]:salts' \
+  '(--costs)'--costs=-'[load salts with(out) cost value Cn (to Mn)]:costs' \
   '(--make-charset)'--make-charset=-'[make a charset file. It will be overwritten]:charset file:_files' \
   '(--pot)'--pot=-'[pot file to use]:pot file:_files' \
-  '(--node)'--node=-'[this node's number range out of TOTAL count]:number' \
+  '(--node)'--node=-"[this node's number range out of TOTAL count]:number" \
   '(--subformat)'--subformat=-'[pick a benchmark format for --format=crypt]:format to use:->list-formats' \
   '(--mkpc)'--mkpc=-'[request a lower max. keys per crypt]:number' \
   '(--min-length)'--min-length=-'[request a minimum candidate length in bytes]:number' \
   '(--max-length)'--max-length=-'[request a maximum candidate length in bytes]:number' \
   '(--length)'--length=-'[shortcut for --min-len=N --max-len=N]:number' \
-  '(--field-separator-char)'--field-separator-chat=-'[use "C" instead of the "":" in input and pot files]:char' \
+  '(--field-separator-char)'--field-separator-char=-'[use "C" instead of ":" in input and pot files]:char' \
   '(--fix-state-delay)'--fix-state-delay=-'[performance tweak, see doc/OPTIONS]:number' \
   '(--verbosity)'--verbosity=-'[change verbosity (1-5 or 6 for debug, default 3)]:number' \
   '(--show)'{--show,--show=LEFT}'[show cracked passwords (if =LEFT, then uncracked)]' \
