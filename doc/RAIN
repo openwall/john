@@ -1,4 +1,8 @@
-#rain module by owein, yvain29@gmail.com  
+#rain module by yvain douard, yvain29@gmail.com  
 
-This cracks more keys than incremental mode.
-Best is when you are sure that the password is an hexadecimal one, above that use -inc first. 
+This uses a counter and a modulo. Division by the modulo's factor is done to catch the correct count.
+I recommend using it only to test hashes that have limited character sets.
+Even though no work/researches have been made to carve the passwords according to the manufacturers of routers,
+this will be less vain than running an incremental attack on a wpa password.
+
+You can use -mask with gpu and cpu, but don't put more placeholders than needed te reach max speed.
