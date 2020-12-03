@@ -124,7 +124,7 @@ static void big2str(uint_big orig, char *str) {
 	char tmp[c/2];
 	
 	for(x=0; x<c; ++x) {
-		if(x<=c/2) {
+		if(x<c/2+c%2) {
 			tmp[x] = str[x];
 			str[x] = str[c-x-1];
 		}
