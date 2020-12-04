@@ -288,13 +288,6 @@ static int submit(UTF32 *word)
 		return crk_process_key((char*)out);
 }
 
-int accu(int x) {
-    int a = 0, b;
-    for(b=1; b<x; ++b)
-        a+=b;
-    return a;
-}
-
 int do_rain_crack(struct db_main *db, char *req_charset)
 {
 	int i, j;
@@ -445,11 +438,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			        if( (word[i] = tmpc) > cp_max )
 				        quick_conversion = 0;
 				    rotate -= rotate / charcount;
-				    rain[loop] += i; 
-		        }
+				}
 				    submit(word);
 		    }
-		    rain[loop] -= accu(mpl)-1;
+		    rain[loop]++;
 		    
 		    int pos = 0;
 	        while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
