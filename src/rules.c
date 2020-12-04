@@ -724,6 +724,13 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 			if (options.internal_cp != UTF_8 && options.internal_cp != ENC_RAW) continue;
 			return NULL;
 
+		case 'R':
+			if (rules_stacked_after) continue;
+			return NULL;
+
+		case 'S':
+			if (!rules_stacked_after) continue;
+			return NULL;
 /*
  * Any failed UTF-8-to-codepage translations change '-U' to '--' in
  * rpp_process_rule(), as an "always reject" hack.
