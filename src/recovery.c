@@ -225,10 +225,6 @@ static void save_salt_state()
 	}
 	*p = 0;
 	fprintf(rec_file, "slt-v2\n%s\n", md5_buf);
-	// bug found in original salt-restore.  if the cracks per loop value is NOT the same,
-	// then we end up skipping processing some data. So we save this value, and then
-	// when we resume IF this value is not the same, we ignore the salt resume, and just
-	// start from salt zero.
 	fprintf(rec_file, "%d\n", crk_max_keys_per_crypt());
 }
 
@@ -614,10 +610,8 @@ static void restore_salt_state(int type)
 	if (strlen(buf) != 32 || !ishex(buf))
 		rec_format_error("multi-salt");
 	if (type == 2) {
-		// the first crack, we seek to the above salt, BUT only if we
-		// still have exactly same count of max_crypts_per  If the max
-		// changes, then we simply start over at salt#1 to avoid any
-		// salt records NOT being processed. properly.
+		// the first crack, we seek to the above salt, BUT initially
+		// capping effective max_keys_per_crypt to what it was before
 		status.resume_salt = strtoul(buf2, NULL, 10);
 	} else if (type == 1) {
 		// tells cracker to ignore the check, since this information was not
