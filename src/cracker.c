@@ -73,6 +73,7 @@
 #endif
 
 static fix_state_fp fp_fix_state;
+static int crk_process_key_max_keys;
 static struct db_main *crk_db;
 static struct fmt_params *crk_params;
 static struct fmt_methods crk_methods;
@@ -203,6 +204,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 #endif
 
 	if (db->loaded) crk_init_salt();
+	crk_process_key_max_keys = 0; /* use slow path at first */
 	crk_last_key = crk_key_index = 0;
 	crk_last_salt = NULL;
 
@@ -1056,6 +1058,7 @@ static int crk_salt_loop(void)
 	if (salt)
 		return 1;
 
+	crk_process_key_max_keys = 0; /* use slow path next time */
 	crk_key_index = 0;
 	crk_last_salt = NULL;
 	if (options.flags & FLG_MASK_STACKED)
@@ -1097,14 +1100,23 @@ int crk_process_buffer(void)
 
 static int process_key(char *key)
 {
+	if (crk_key_index < crk_process_key_max_keys) {
+		crk_methods.set_key(key, crk_key_index++);
+
+		if (crk_key_index >= crk_process_key_max_keys)
+			return crk_salt_loop();
+
+		return 0;
+	}
+
 	if (crk_db->loaded) {
 		int max_keys = crk_params->max_keys_per_crypt;
 
-		if (max_keys > 1) {
-			if (options.force_maxkeys)
-				max_keys = MIN(max_keys, options.force_maxkeys);
-			if (status.resume_salt)
-				max_keys = MIN(max_keys, status.resume_salt);
+		if (options.force_maxkeys | status.resume_salt) { /* bitwise OR */
+			if (options.force_maxkeys && max_keys > options.force_maxkeys)
+				max_keys = options.force_maxkeys;
+			if (status.resume_salt && max_keys > status.resume_salt)
+				max_keys = status.resume_salt;
 		}
 
 		if (crk_key_index == 0)
@@ -1114,6 +1126,8 @@ static int process_key(char *key)
 
 		if (crk_key_index >= max_keys)
 			return crk_salt_loop();
+
+		crk_process_key_max_keys = max_keys; /* use fast path next time */
 
 		return 0;
 	}
