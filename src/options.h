@@ -184,8 +184,10 @@
 /* Configure terminal for reading keystrokes even if we're not the foreground process */
 #define FLG_FORCE_TTY			0x2000000000000000ULL
 /* Turn off logging */
-#define FLG_NOLOG			0x4000000000000000ULL
+#define FLG_NOLOG				0x4000000000000000ULL
 
+#define FLG_RAIN_CHK			0x8000000000000000ULL //biggest flag yet
+#define FLG_RAIN_SET			(FLG_RAIN_CHK | FLG_CRACKING_SET) 
 /*
  * Macro for getting correct node number regardless of if MPI or not
  */
@@ -448,6 +450,8 @@ struct options_main {
 	int log_stderr;
 /* Emit a status line for every password cracked */
 	int crack_status;
+/* Rain full charset */
+	char *rain_full;
 };
 
 extern struct options_main options;

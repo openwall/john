@@ -296,6 +296,7 @@ JOHN_USAGE_REGEX \
 "--subsets-min-diff=N       Minimum unique characters in subset\n" \
 "--subsets-max-diff=[-]N    Maximum unique characters in subset (negative N is\n" \
 "                           relative to word length)\n" \
+"--rain[=CHARSET]           \"rain\" mode (see doc/RAIN)\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
 "--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--session=NAME             give a new session the NAME\n" \
