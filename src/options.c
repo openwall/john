@@ -114,6 +114,8 @@ static struct opt_entry opt_list[] = {
 	{"subsets-required", FLG_ONCE, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM, "%u", &options.subset_must},
 	{"subsets-min-diff", FLG_ONCE, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM, "%u", &options.subset_min_diff},
 	{"subsets-max-diff", FLG_ONCE, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM, "%u", &options.subset_max_diff},
+	{"rain", FLG_RAIN_SET, FLG_CRACKING_CHK,
+		0, 0, OPT_FMT_STR_ALLOC, &options.rain_full},
 	{"no-mask", FLG_NO_MASK_BENCH, FLG_NO_MASK_BENCH, FLG_TEST_CHK, FLG_MASK_CHK},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ONCE, 0, FLG_MASK_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
