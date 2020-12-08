@@ -240,12 +240,11 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 		kpc_warn_limit = CRK_KPC_WARN;
 
 	if (!(options.flags & FLG_SINGLE_CHK))
-		crk_stacked_rule_count =
-			rules_init_stack(options.rule_stack, &crk_rule_stack, db);
+		rules_stacked_after = !!(crk_stacked_rule_count = rules_init_stack(options.rule_stack, &crk_rule_stack, db));
 	else
 		crk_stacked_rule_count = 0;
 
-	if (!(rules_stacked_after = (crk_stacked_rule_count > 0)))
+	if (crk_stacked_rule_count == 0)
 		crk_stacked_rule_count = 1;
 
 	if (rules_stacked_after)
