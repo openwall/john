@@ -436,9 +436,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		    	for(i=1; i<mpl; ++i) {
 			        int tmpc = charset_utf32[(charset_idx[loop][i] + rotate) % charcount];
 			        if( (word[i] = tmpc) > cp_max )
-				        quick_conversion = 0;
-				    //rotate /= (i + mpl % 2) / (mpl / 2 + mpl % 2 + 1) + 1;
-					rotate -= rotate / charcount;
+				    	quick_conversion = 0;
+					
+				    rotate /= i/7/2+1;
+				    rotate += i;
 				}
 			    submit(word);
 			}
