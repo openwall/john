@@ -639,7 +639,7 @@ void rules_init(struct db_main *db, int max_length)
 	}
 	rules_init_length(max_length);
 
-	rules_stacked_after = options.flags & (FLG_RULES_CHK | FLG_SINGLE_CHK) && (options.flags & FLG_RULES_STACK_CHK);
+	rules_stacked_after = (options.flags & (FLG_RULES_CHK | FLG_SINGLE_CHK)) && (options.flags & FLG_RULES_STACK_CHK);
 }
 
 char *rules_reject(char *rule, int split, char *last, struct db_main *db)
@@ -1910,7 +1910,7 @@ char *rules_process_stack_all(char *key, rule_stack *ctx)
 		}
 	}
 
-	rules_stacked_after = !!(options.flags & (FLG_RULES_CHK || FLG_SINGLE_CHK));
+	rules_stacked_after = !!(options.flags & (FLG_RULES_CHK | FLG_SINGLE_CHK));
 
 	if (!stack_rules_mute && options.verbosity <= VERB_DEFAULT) {
 		stack_rules_mute = 1;
