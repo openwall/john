@@ -370,7 +370,7 @@ bitlocker2john.o:	bitlocker2john.c autoconfig.h arch.h missing_getopt.h jumbo.h 
 
 list.o:	list.c memory.h arch.h list.h os.h os-autoconf.h autoconfig.h jumbo.h
 
-listconf.o:	listconf.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h params.h path.h formats.h misc.h options.h list.h loader.h getopt.h unicode.h dynamic.h dynamic_types.h config.h regex.h john_build_rule.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) version.h listconf.h
+listconf.o:	listconf.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h params.h path.h formats.h misc.h options.h list.h loader.h getopt.h unicode.h dynamic.h dynamic_types.h config.h regex.h john_build_rule.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) version.h listconf.h timer.h
 
 LM_fmt.o:	LM_fmt.c arch.h misc.h jumbo.h autoconfig.h memory.h DES_bs.h common.h loader.h params.h list.h formats.h os.h os-autoconf.h
 
