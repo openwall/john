@@ -2130,6 +2130,12 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	    !strcasecmp(mask_fmt->params.label, "lm-opencl"))
 		format_cannot_reset = 1;
 
+	/* Using "--mask" alone will use default mask and iterate over length */
+	if (!(options.flags & FLG_MASK_STACKED) && !unprocessed_mask &&
+	    options.req_minlength < 0 && !options.req_maxlength)
+		mask_increments_len = 1;
+
+	/* Specified length range given */
 	if ((options.req_minlength >= 0 || options.req_maxlength) &&
 	    (options.eff_minlength != options.eff_maxlength) &&
 	    !(options.flags & FLG_MASK_STACKED))
