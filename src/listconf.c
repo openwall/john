@@ -142,10 +142,6 @@ static void listconf_list_build_info(void)
 #ifdef __GNU_MP_VERSION
 	int gmp_major, gmp_minor, gmp_patchlevel;
 #endif
-	sTimer test;
-
-	sTimer_Init(&test);
-
 	puts("Version: " JTR_GIT_VERSION);
 	puts("Build: " JOHN_BLD _MP_VERSION DEBUG_STRING ASAN_STRING UBSAN_STRING);
 #ifdef SIMD_COEF_32
@@ -323,13 +319,15 @@ static void listconf_list_build_info(void)
 	printf("times(2) CLK_TCK is %ld\n", clk_tck);
 #endif
 #if defined (__MINGW32__) || defined (_MSC_VER)
-	printf("Using clock(3) for timers, claimed resolution %ss, observed %ss\n",
-	       human_prefix_small(1.0 / CLOCKS_PER_SEC),
-	       human_prefix_small(1.0 / sm_cPrecision));
+	printf("Using clock(3) for timers, resolution %ss\n", human_prefix_small(1.0 / CLOCKS_PER_SEC));
 #else
 	printf("Using times(2) for timers, resolution %ss\n", human_prefix_small(1.0 / clk_tck));
 #endif
-	printf("HR timer claimed resolution %ss, observed %ss\n", human_prefix_small(1.0 / sm_HRTicksPerSec), human_prefix_small(1.0 / sm_hrPrecision));
+	int latency;
+	uint64_t precision = john_timer_stats(&latency);
+
+	printf("HR timer: %s, %s %ss\n", john_nano_clock, latency ? "latency" : "resolution",
+	       human_prefix_small(precision / 1000000000.0));
 
 	int64_t total_mem = host_total_mem();
 

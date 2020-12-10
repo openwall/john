@@ -1716,7 +1716,7 @@ generic.h:
 bench: $(BENCH_OBJS)
 	$(LD) $(BENCH_OBJS) $(LDFLAGS) -o bench
 
-listconf.o: version.h listconf.h listconf.c
+listconf.o: version.h listconf.h listconf.c timer.h
 
 dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dynamic_big_crypt_generator.sh dynamic_big_crypt_chopper.pl unused/dynamic_big_crypt.c
 	$(shell ./dynamic_big_crypt_generator.sh)
