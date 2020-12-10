@@ -334,12 +334,12 @@ static void john_log_format2(void)
 	/* Messages require extra info not available in john_log_format().
 		These are delayed until mask_init(), fmt_reset() */
 	chunk = min_chunk = database.format->params.max_keys_per_crypt;
-	if (options.flags & (FLG_SINGLE_CHK | FLG_BATCH_CHK) &&
-	    chunk < SINGLE_HASH_MIN)
-			chunk = SINGLE_HASH_MIN;
+	if (options.force_maxkeys && options.force_maxkeys < chunk)
+		chunk = min_chunk = options.force_maxkeys;
+	if ((options.flags & (FLG_SINGLE_CHK | FLG_BATCH_CHK)) && chunk < SINGLE_HASH_MIN)
+		chunk = SINGLE_HASH_MIN;
 	if (chunk > 1)
-		log_event("- Candidate passwords %s be buffered and "
-			"tried in chunks of %d",
+		log_event("- Candidate passwords %s be buffered and tried in chunks of %d",
 			min_chunk > 1 ? "will" : "may",
 			chunk);
 }
