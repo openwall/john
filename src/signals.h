@@ -37,6 +37,7 @@ extern volatile int event_save;		/* Save the crash recovery file */
 extern volatile int event_status;	/* Status display requested */
 extern volatile int event_delayed_status;	/* Status display requested after current batch */
 extern volatile int event_ticksafety;	/* System time in ticks may overflow */
+extern volatile int event_fix_state;    /* For cracker */
 #ifdef HAVE_MPI
 extern volatile int event_mpiprobe;	/* MPI probe for messages requested */
 #endif

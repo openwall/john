@@ -186,8 +186,6 @@ static int restore_state(FILE *file)
 	return 0;
 }
 
-static int fix_state_delay;
-
 static void fix_state(void)
 {
 	if (hybrid_rec_rule || hybrid_rec_line || hybrid_rec_pos) {
@@ -201,10 +199,6 @@ static void fix_state(void)
 
 	if (options.flags & FLG_REGEX_CHK)
 		return;
-
-	if (++fix_state_delay < options.max_fix_state_delay)
-		return;
-	fix_state_delay=0;
 
 	rec_rule = rule_number;
 	rec_line = line_number;
@@ -527,9 +521,6 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			        options.eff_maxlength + mask_add_len);
 		fprintf(stderr, "\n");
 	}
-
-	if (options.flags & FLG_STACKED)
-		options.max_fix_state_delay = 0;
 
 	if (name) {
 		char *cp, csearch;

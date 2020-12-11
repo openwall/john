@@ -58,6 +58,7 @@ volatile int event_pending = 0, event_reload = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0, event_delayed_status = 0;
 volatile int event_ticksafety = 0;
 volatile int event_mpiprobe = 0, event_poll_files = 0;
+volatile int event_fix_state = 0;
 
 volatile int timer_abort = 0, timer_status = 0;
 static int timer_save_interval;
@@ -389,6 +390,9 @@ static void sig_handle_timer(int signum)
 		event_status = event_pending = 1;
 	}
 #endif /* OS_TIMER */
+
+	event_fix_state = 1;
+
 #endif /* !BENCH_BUILD */
 
 	if (!--timer_ticksafety_value) {

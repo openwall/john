@@ -518,14 +518,6 @@ Other non-printable characters can be written in hex \xHH notation (the TAB
 character can also be specified with --field-separator-char=\x09).  Note that
 a side effect is that the pot file will get this field separator too.
 
---fix-state-delay=N		only determine the wordlist offset every N times
-
-This is an optimization for wordlist mode which helps on some systems.  This
-just limits the number of times that the ftell() call is performed.  The one
-side effect is that if John is aborted and later restarted it may redo more
-tests.  Thus, the use of this option is only sensible desirable for very fast
-hash types.
-
 --no-log			disable log file
 
 This will turn off logging to file (default john.log) in case you are sure

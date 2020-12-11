@@ -61,7 +61,6 @@ _arguments -C -s \
   '(--max-length)'--max-length=-'[request a maximum candidate length in bytes]:number' \
   '(--length)'--length=-'[shortcut for --min-len=N --max-len=N]:number' \
   '(--field-separator-char)'--field-separator-char=-'[use "C" instead of ":" in input and pot files]:char' \
-  '(--fix-state-delay)'--fix-state-delay=-'[performance tweak, see doc/OPTIONS]:number' \
   '(--verbosity)'--verbosity=-'[change verbosity (1-5 or 6 for debug, default 3)]:number' \
   '(--show)'{--show,--show=LEFT}'[show cracked passwords (if =LEFT, then uncracked)]' \
   '(--format)'--format=-'[use specific format]:format to use:->list-formats' \
