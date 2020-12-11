@@ -159,6 +159,9 @@ static struct opt_entry opt_list[] = {
 	{"list", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.listconf},
 	{"mem-file-size", FLG_ONCE, 0, FLG_WORDLIST_CHK, FLG_DUPESUPP | FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM, Zu, &options.max_wordfile_memory},
 	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK, FLG_STDIN_CHK | FLG_PIPE_CHK},
+/*
+ * --fix-state-delay=N is deprecated and ignored, drop support after releasing 1.9.0-Jumbo-2
+ */
 	{"fix-state-delay", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.max_fix_state_delay},
 	{"field-separator-char", FLG_ONCE, 0, FLG_PWD_SUP, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &field_sep_char_str},
 	{"config", FLG_ONCE, 0, 0, USUAL_REQ_CLR | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.config},
@@ -324,7 +327,6 @@ JOHN_USAGE_REGEX \
 "--max-length=N             request a maximum candidate length in bytes\n" \
 "--length=N                 shortcut for --min-len=N --max-len=N\n" \
 "--field-separator-char=C   use 'C' instead of the ':' in input and pot files\n" \
-"--fix-state-delay=N        performance tweak, see doc/OPTIONS\n" \
 "--config=FILE              use FILE instead of john.conf or john.ini\n" \
 "--log-stderr               log to screen instead of file\n"             \
 "--no-loader-dupecheck      disable the dupe checking when loading hashes\n" \

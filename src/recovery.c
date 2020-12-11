@@ -272,6 +272,14 @@ void rec_save(void)
 			else
 				*opt = "--no-single-retest-guess";
 		}
+		else
+		if (!strncmp(*opt, "--fix-state-delay", 17)) {
+			char **o = opt;
+			do
+				*o = o[1];
+			while (*++o);
+			rec_argc--;
+		}
 		/***********************************************/
 		else
 #if HAVE_MPI
