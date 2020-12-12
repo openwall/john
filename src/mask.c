@@ -2265,12 +2265,12 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask = expand_cplhdr(mask, conv_err);
 
 	/*
-	 * UTF-8 is not supported in mask mode unless -internal-codepage is used
-	 * except for UTF-16 formats (eg. NT).
+	 * UTF-8 is not supported in mask mode unless -internal-codepage is used.
 	 */
 	if (options.internal_cp == UTF_8 && valid_utf8((UTF8*)mask) > 1) {
 		if (john_main_process)
-			fprintf(stderr, "Error: Mask contains UTF-8 characters; --internal-codepage is required!\n");
+			fprintf(stderr, "Error: Mask contains UTF-8 characters; You need to set a legacy codepage\n"
+			        "       with --internal-codepage (UTF-8 is not a codepage).\n");
 		error();
 	}
 
