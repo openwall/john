@@ -2131,7 +2131,7 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 		format_cannot_reset = 1;
 
 	/* Using "--mask" alone will use default mask and iterate over length */
-	if (!(options.flags & FLG_MASK_STACKED) && !unprocessed_mask &&
+	if (!(options.flags & FLG_MASK_STACKED) && (options.flags & FLG_CRACKING_CHK) && !unprocessed_mask &&
 	    options.req_minlength < 0 && !options.req_maxlength)
 		mask_increments_len = 1;
 
