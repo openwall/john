@@ -53,6 +53,9 @@
 #include "status.h"
 #include "signals.h"
 #include "john_mpi.h"
+#ifdef HAVE_MPI
+#include "tty.h" /* For tty_has_keyboard() */
+#endif
 
 volatile int event_pending = 0, event_reload = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0, event_delayed_status = 0;
@@ -324,9 +327,8 @@ static void sig_handle_timer(int signum)
 #endif
 #ifndef BENCH_BUILD
 #if OS_TIMER
-	/* Some stuff only done every few seconds */
-	if (timer_save_interval < 4 ||
-	    ((timer_save_interval - timer_save_value) & 3) == 3) {
+	/* Some stuff only done every fourth second */
+	if (((timer_save_interval - timer_save_value) & 3) == 0) {
 #ifdef HAVE_MPI
 		if (!event_reload && mpi_p > 1) {
 			event_pending = event_mpiprobe = 1;
@@ -358,8 +360,8 @@ static void sig_handle_timer(int signum)
 #else /* no OS_TIMER */
 	time = status_get_time();
 
-	/* Some stuff only done every few seconds */
-	if ((time & 3) == 3) {
+	/* Some stuff only done every fourth second */
+	if ((time & 3) == 0) {
 #ifdef HAVE_MPI
 		if (!event_reload && mpi_p > 1) {
 			event_pending = event_mpiprobe = 1;
@@ -401,7 +403,9 @@ static void sig_handle_timer(int signum)
 		event_ticksafety = event_pending = 1;
 	}
 
-#ifndef HAVE_MPI
+#ifdef HAVE_MPI
+	if (tty_has_keyboard())
+#else
 	if (john_main_process)
 #endif
 	{
