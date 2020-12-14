@@ -48,6 +48,9 @@ static struct termios saved_ti;
 static int in_stdin_mode;
 #endif
 
+/*
+ * This must be async signal-safe (for MPI builds, at least)
+ */
 int tty_has_keyboard(void)
 {
 #if !defined(__DJGPP__) && !defined(__MINGW32__) && !defined (_MSC_VER)
