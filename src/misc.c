@@ -574,7 +574,7 @@ char *human_prefix(uint64_t num)
 	}
 
 	if (*p)
-		snprintf(out, 16, "%u %c", (uint32_t)num, *p);
+		snprintf(out, 16, "%u %ci", (uint32_t)num, *p);
 	else
 		snprintf(out, 16, "%u ", (uint32_t)num);
 
