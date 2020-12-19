@@ -2383,7 +2383,10 @@ def find_rc4_passinfo_xls(filename, stream):
         data = stream.read(length)
 
         if type == 0x2f:  # FILEPASS
-            if data[0:2] == b"\x00\x00":  # XOR obfuscation
+            if length == 4:  # Excel 95 XOR obfuscation
+                sys.stderr.write("%s : Excel 95 XOR obfuscation detected, key : %s, hash : %s\n" % \
+                    (filename, binascii.hexlify(data[0:2]), binascii.hexlify(data[2:4])))
+            elif data[0:2] == b"\x00\x00":  # XOR obfuscation
                 sys.stderr.write("%s : XOR obfuscation detected, key : %s, hash : %s\n" % \
                     (filename, binascii.hexlify(data[2:4]), binascii.hexlify(data[4:6])))
             elif data[0:6] == b'\x01\x00\x01\x00\x01\x00':
@@ -3067,6 +3070,8 @@ def process_file(filename):
         return process_new_office(filename)
     if ["Workbook"] in ole.listdir():
         stream = "Workbook"
+    elif ["Book"] in ole.listdir():
+        stream = "Book"
     elif ["WordDocument"] in ole.listdir():
         typ = 1
         sdoc = ole.openstream("WordDocument")
@@ -3093,7 +3098,7 @@ def process_file(filename):
         (filename, stream)
         return 3
 
-    if stream == "Workbook":
+    if stream == "Workbook" or stream == "Book":
         typ = 0
         passinfo = find_rc4_passinfo_xls(filename, workbookStream)
         if passinfo is None:
