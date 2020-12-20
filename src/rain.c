@@ -61,7 +61,6 @@ static int quick_conversion;
 static int loop, rec_loop;//inner loop
 static int set, rec_set;
 
-
 static double get_progress(void)
 {
 	emms();
@@ -427,23 +426,19 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 			int mpl = minlength + loop;
+        	
+    		if(++rain[loop] >= charcount)
+				rain[loop]=1;
+			uint_big rotate = rain[loop];			
         	if(!skip) {
 				quick_conversion = 1;
-					
-		    	uint_big rotate = rain[loop];
-			    if( (word[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
-					quick_conversion = 0;	
-		    	for(i=1; i<mpl; ++i) {
-			        int tmpc = charset_utf32[(charset_idx[loop][i] + rotate) % charcount];
-			        if( (word[i] = tmpc) > cp_max )
+			    for(i=0; i<mpl; ++i) {
+					rotate += 2;
+		    		if((word[i] = charset_utf32[charset_idx[loop][(i+rotate)%mpl]]) > cp_max)
 				    	quick_conversion = 0;
-					
-				    rotate /= i/7/2+1;
-				    rotate += i;
 				}
-			    submit(word);
+				submit(word);
 			}
-		    rain[loop]++;
 		    int pos = 0;
 	        while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
 			    charset_idx[loop][pos] = 0;
@@ -457,7 +452,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				if (cfg_get_bool("Rain", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
-			loop++;		
+			loop++;
 			counter++;
 		}
 	}
