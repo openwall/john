@@ -1,8 +1,7 @@
 #rain module by yvain douard, yvain29@gmail.com  
 
-This uses a counter and a modulo. Division by the modulo's factor is done to catch the correct count.
-I recommend using it only to test hashes that have limited character sets.
-Even though no work/researches have been made to carve the passwords according to the manufacturers of routers,
-this will be less vain than running an incremental attack on a wpa password.
-
-You can use -mask with gpu and cpu, but don't put more placeholders than needed te reach max speed.
+Experimental.
+Strafing the index is good, effectiveness depends on the combination entropy/performance.
+Even though the treated placeholder rotate, big chunks of initial characters will be present above a certain length.
+So now you should limit the length to about 8 with lowercase set, untill I find a way to impact on the character selection as previously.
+Don't forget to use -mask=?w...
