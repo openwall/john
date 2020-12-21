@@ -426,15 +426,16 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					for_node > options.node_max;
 			}
 			int mpl = minlength + loop;
-        	
-    		if(++rain[loop] >= charcount)
-				rain[loop]=1;
-			uint_big rotate = rain[loop];			
+
+    		uint_big rotate = rain[loop];
+			++rain[loop];
         	if(!skip) {
 				quick_conversion = 1;
-			    for(i=0; i<mpl; ++i) {
-		    		if((word[i] = charset_utf32[charset_idx[loop][(i+rotate)%mpl]]) > cp_max)
-				    	quick_conversion = 0;
+				word[0] = charset_utf32[charset_idx[loop][0]];
+			    for(i=1; i<mpl; ++i) {
+		 			if((word[i] = charset_utf32[(charset_idx[loop][i]+rotate)%charcount]) > cp_max)
+						quick_conversion = 0;
+					rotate += rotate/charcount;
 				}
 				submit(word);
 			}
