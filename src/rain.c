@@ -53,6 +53,7 @@ static uint64_t keyspace;
 static uint64_t subtotal;
 
 static uint_big rain[MAX_CAND_LENGTH-1];
+static uint_big step[MAX_CAND_LENGTH-1];
 static uint_big rec_rain[MAX_CAND_LENGTH-1];
 
 static uint_big counter;//linear counter
@@ -396,6 +397,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		srand(time(NULL));
 		for(i = 0; i <= maxlength - minlength; i++) {
 			rain[i] = 0;
+			step[i] = 1;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
@@ -427,15 +429,20 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			}
 			int mpl = minlength + loop;
 
-    		uint_big rotate = rain[loop];
-			++rain[loop];
+    		step[loop]+=2-charcount%2;
+			if(step[loop] > charcount)
+				step[loop] = 1;
+				
+			uint_big rotate = rain[loop];
+			rain[loop]+=step[loop];
+
+	
         	if(!skip) {
 				quick_conversion = 1;
-				word[0] = charset_utf32[charset_idx[loop][0]];
-			    for(i=1; i<mpl; ++i) {
+				for(i=0; i<mpl; ++i) {
 		 			if((word[i] = charset_utf32[(charset_idx[loop][i]+rotate)%charcount]) > cp_max)
 						quick_conversion = 0;
-					rotate += rotate/charcount;
+					rotate += rotate / charcount;
 				}
 				submit(word);
 			}
