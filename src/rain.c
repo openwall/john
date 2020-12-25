@@ -52,27 +52,29 @@ static int state_restored;
 static uint64_t keyspace;
 static uint64_t subtotal;
 
-static uint_big rain[MAX_CAND_LENGTH-1];
-static uint_big step[MAX_CAND_LENGTH-1];
-static uint_big rec_rain[MAX_CAND_LENGTH-1];
+static uint_big total;
 
+static int loop2;
+static int rec_loop2;
+
+static uint_big C;//linear counter
 static uint_big counter;//linear counter
 static uint_big rec_counter;
+
 static int quick_conversion;
-static int loop, rec_loop;//inner loop
 static int set, rec_set;
 
 static double get_progress(void)
 {
 	emms();
-
+	
 	if (!keyspace)
 		return -1;
 		
 	if (rain_cur_len > maxlength)
 		return 100;
 	
-	return (100.0 * counter) / (keyspace - subtotal);
+	return (100.0 * C) / (keyspace - subtotal);
 }
 
 static void fix_state(void)
@@ -81,13 +83,12 @@ static void fix_state(void)
 	
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		rec_rain[i] = rain[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
 	rec_cur_len = rain_cur_len;
-	rec_counter = counter;
-	rec_loop = loop;
+	rec_counter = C;
+	rec_loop2 = loop2;
 }
 
 static uint_big powi(uint32_t b, uint32_t p)
@@ -153,15 +154,13 @@ static void save_state(FILE *file)
 	memset(str, 0, 40);
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		big2str(rec_rain[i], str);
-		fprintf(file, "%s\n", str);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
 	fprintf(file, "%d\n", rec_cur_len);
 	big2str(rec_counter, str);
 	fprintf(file, "%s\n", str);
-	fprintf(file, "%d\n", rec_loop);
+	fprintf(file, "%d\n", rec_loop2);
 }
 static int restore_state(FILE *file)
 {
@@ -173,10 +172,6 @@ static int restore_state(FILE *file)
 	else return 1;
 
 	for (i = 0; i <= maxlength - minlength; ++i) {
-		if(fscanf(file, "%s\n",  str) == 1)
-			rain[i] = str2big(str);
-		else return 1;
-
 		for(j = 0; j < maxlength; ++j)
 			if(fscanf(file, "%d\n", &d) == 1)
 				charset_idx[i][j] = d;
@@ -191,7 +186,7 @@ static int restore_state(FILE *file)
 	else return 1;
 	
 	if(fscanf(file, "%d\n", &d) == 1)
-		loop = d;
+		loop2 = d;
 	else return 1;
 	
 	state_restored = 1;
@@ -262,7 +257,7 @@ static void parse_unicode(char *string)
 	*d = 0;
 }
 
-static int submit(UTF32 *word)
+static int submit(UTF32 *word, int loop)
 {
 	UTF8 out[4 * MAX_CAND_LENGTH];
 	int i;
@@ -395,9 +390,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	{
 		rain_cur_len = minlength;
 		srand(time(NULL));
+		loop2 = 0;
+		counter = 0;
+		C = 0;
 		for(i = 0; i <= maxlength - minlength; i++) {
-			rain[i] = 0;
-			step[i] = 1;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
@@ -408,59 +404,54 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	crk_init(db, fix_state, NULL);
 	
-	while(rain_cur_len - minlength <= maxlength - minlength) {
-		if(event_abort) break;
-		if(!state_restored)
-			loop = rain_cur_len - minlength;
-		/* Iterate over all lengths */
-		while (loop <= maxlength - minlength) {
-			if(event_abort) break;
-			int skip = 0;
+	int l;
+	for(l=loop2; l <= maxlength-minlength; ++l) {
+		if(event_abort) 
+			break;
+		
+		uint_big subtotal = 0;
+		if(l > 0)
+			subtotal = powi(charcount, minlength+l-1);
+		total = powi(charcount, minlength+l) - subtotal;
+		for(C=counter; C < total; ++C) {
+			if(event_abort)
+				break;
 			
-			if (state_restored)
-				state_restored = 0;
-			else
-				set++;
-
-			if (options.node_count) {
-				int for_node = set % options.node_count + 1;
-				skip = for_node < options.node_min ||
-					for_node > options.node_max;
-			}
-			int mpl = minlength + loop;
-
-    		step[loop]+=2-charcount%2;
-			if(step[loop] > charcount)
-				step[loop] = 1;
+			int loop;
+			for(loop = l; loop <= maxlength-minlength; ++loop) {
+				if(event_abort)
+					break;
 				
-			uint_big rotate = rain[loop];
-			rain[loop]+=step[loop];
+				int skip = 0;
+		
+				if (state_restored)
+					state_restored = 0;
+				else
+					set++;
 
-	
-        	if(!skip) {
-				quick_conversion = 1;
-				for(i=0; i<mpl; ++i) {
-		 			if((word[i] = charset_utf32[(charset_idx[loop][i]+rotate)%charcount]) > cp_max)
-						quick_conversion = 0;
-					rotate += rotate / charcount;
+				if (options.node_count) {
+					int for_node = set % options.node_count + 1;
+					skip = for_node < options.node_min ||
+						for_node > options.node_max;
 				}
-				submit(word);
+				int mpl = minlength + loop;
+
+				//rotate the bruteforce
+				if(!skip) {
+					quick_conversion = 1;
+					for(i=0; i<mpl; ++i) {
+			 			if((word[i] = charset_utf32[charset_idx[loop][i]]) > cp_max)
+							quick_conversion = 0;
+					}
+					submit(word, loop);
+				}
+				for(i=0; i<mpl; ++i) {
+		 			if(++charset_idx[loop][i] >= charcount) {
+						charset_idx[loop][i] = 0;
+						break;
+					}
+				}
 			}
-		    int pos = 0;
-	        while(pos < mpl && ++charset_idx[loop][pos] >= charcount) {
-			    charset_idx[loop][pos] = 0;
-			    pos++;
-		    }
-			if(pos >= mpl) {
-				counter = 0;
-				rain_cur_len++;	
-				keyspace = powi(charcount, rain_cur_len);
-				subtotal = powi(charcount, rain_cur_len-1);
-				if (cfg_get_bool("Rain", NULL, "LengthIterStatus", 1))
-					event_pending = event_status = 1;
-			}
-			loop++;
-			counter++;
 		}
 	}
 	crk_done();
