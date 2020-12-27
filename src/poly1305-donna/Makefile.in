@@ -1,0 +1,38 @@
+@SET_MAKE@
+CC = @CC@
+CXX = @CXX@
+AS = @CC@
+LD = @CC@
+CPP = @CC@
+CPPFLAGS = @CPPFLAGS@
+CFLAGS = @CFLAGS@ @CFLAGS_EXTRA@ -Wno-unused-function
+ASFLAGS = @ASFLAGS@ -c @EXTRA_AS_FLAGS@
+LDFLAGS = @LDFLAGS@
+AR = @AR@
+FIND = @FIND@
+RM = /bin/rm -f
+
+IN = poly1305-donna.o
+
+all: poly1305-donna.a
+default: poly1305-donna.a
+
+poly1305-donna.o: poly1305-donna.c
+	$(CC) -DHAVE_CONFIG_H $(CFLAGS) $(CPPFLAGS) -c poly1305-donna.c -o poly1305-donna.o
+
+.PHONY: subdirs $(SUBDIRS)
+
+subdirs: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) -C $@ all
+
+poly1305-donna.a: $(SUBDIRS) poly1305-donna.o
+	$(AR) -rs $@ $(IN)
+
+clean:
+	$(FIND) . -name \*.a -exec $(RM) {} \;
+	$(FIND) . -name \*.o -exec $(RM) {} \;
+
+distclean: clean
+	$(RM) Makefile
