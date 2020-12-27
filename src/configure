@@ -16508,7 +16508,7 @@ echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${host_cpu} $
 
 HOST_OS="$host_os"
 
-ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile secp256k1/Makefile ed25519-donna/Makefile"
+ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile secp256k1/Makefile ed25519-donna/Makefile poly1305-donna/Makefile"
 
 
 CFLAGS_EXTRA_BACKUP=$CFLAGS_EXTRA
@@ -17225,6 +17225,7 @@ do
     "aes/openssl/Makefile") CONFIG_FILES="$CONFIG_FILES aes/openssl/Makefile" ;;
     "secp256k1/Makefile") CONFIG_FILES="$CONFIG_FILES secp256k1/Makefile" ;;
     "ed25519-donna/Makefile") CONFIG_FILES="$CONFIG_FILES ed25519-donna/Makefile" ;;
+    "poly1305-donna/Makefile") CONFIG_FILES="$CONFIG_FILES poly1305-donna/Makefile" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
