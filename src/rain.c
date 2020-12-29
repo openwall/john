@@ -52,14 +52,16 @@ static int state_restored;
 static uint64_t keyspace;
 static uint64_t subtotal;
 
-static uint_big total;
-
 static int loop2;
 static int rec_loop2;
 
-static uint_big C;//linear counter
+static int C;
+static int rec_C;
+
 static uint_big counter;//linear counter
 static uint_big rec_counter;
+static uint_big x;
+static int l, c;
 
 static int quick_conversion;
 static int set, rec_set;
@@ -74,7 +76,7 @@ static double get_progress(void)
 	if (rain_cur_len > maxlength)
 		return 100;
 	
-	return (100.0 * C) / (keyspace - subtotal);
+	return (100.0 * x) / (keyspace - subtotal);
 }
 
 static void fix_state(void)
@@ -87,8 +89,9 @@ static void fix_state(void)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
 	rec_cur_len = rain_cur_len;
-	rec_counter = C;
-	rec_loop2 = loop2;
+	rec_counter = x;
+	rec_loop2 = l;
+	rec_C = c;
 }
 
 static uint_big powi(uint32_t b, uint32_t p)
@@ -161,6 +164,7 @@ static void save_state(FILE *file)
 	big2str(rec_counter, str);
 	fprintf(file, "%s\n", str);
 	fprintf(file, "%d\n", rec_loop2);
+	fprintf(file, "%d\n", rec_C);
 }
 static int restore_state(FILE *file)
 {
@@ -187,6 +191,10 @@ static int restore_state(FILE *file)
 	
 	if(fscanf(file, "%d\n", &d) == 1)
 		loop2 = d;
+	else return 1;
+	
+	if(fscanf(file, "%d\n", &d) == 1)
+		C = d;
 	else return 1;
 	
 	state_restored = 1;
@@ -392,7 +400,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		srand(time(NULL));
 		loop2 = 0;
 		counter = 0;
-		C = 0;
+		C = 1;
 		for(i = 0; i <= maxlength - minlength; i++) {
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
@@ -404,52 +412,55 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	crk_init(db, fix_state, NULL);
 	
-	int l;
-	for(l=loop2; l <= maxlength-minlength; ++l) {
-		if(event_abort) 
-			break;
-		
-		uint_big subtotal = 0;
-		if(l > 0)
-			subtotal = powi(charcount, minlength+l-1);
-		total = powi(charcount, minlength+l) - subtotal;
-		for(C=counter; C < total; ++C) {
-			if(event_abort)
+	for(c=C; c<=charcount; ++c) {
+		for(l=loop2; l <= maxlength-minlength; ++l) {
+			if(event_abort) 
 				break;
-			
-			int loop;
-			for(loop = l; loop <= maxlength-minlength; ++loop) {
+			uint_big total = powi(c, minlength+l);
+			uint_big subtotal2 = 0;
+			if(l > 0)
+				subtotal2 = powi(c, minlength+l-1);
+
+			for(x = counter ; x < total-subtotal2; ++x) {
 				if(event_abort)
 					break;
-				
-				int skip = 0;
-		
-				if (state_restored)
-					state_restored = 0;
-				else
-					set++;
-
-				if (options.node_count) {
-					int for_node = set % options.node_count + 1;
-					skip = for_node < options.node_min ||
-						for_node > options.node_max;
-				}
-				int mpl = minlength + loop;
-
-				//rotate the bruteforce
-				if(!skip) {
-					quick_conversion = 1;
-					for(i=0; i<mpl; ++i) {
-			 			if((word[i] = charset_utf32[charset_idx[loop][i]]) > cp_max)
-							quick_conversion = 0;
-					}
-					submit(word, loop);
-				}
-				for(i=0; i<mpl; ++i) {
-		 			if(++charset_idx[loop][i] >= charcount) {
-						charset_idx[loop][i] = 0;
+				int loop;
+				for(loop = l; loop <= maxlength-minlength; ++loop) {
+					if(event_abort)
 						break;
+
+					int skip = 0;
+
+					if (state_restored)
+						state_restored = 0;
+					else
+						set++;
+
+					if (options.node_count) {
+						int for_node = set % options.node_count + 1;
+						skip = for_node < options.node_min ||
+							for_node > options.node_max;
 					}
+					int mpl = minlength + loop;
+					if(!skip) {
+						quick_conversion = 1;
+						for(i=0; i<mpl; ++i) {
+				 			if((word[i] = charset_utf32[charset_idx[loop][i]]) > cp_max)
+								quick_conversion = 0;
+						}
+					}
+					//enforce: must be at least one character from the next step (loop on c)
+					int over = 0;
+					for(i=0; i<mpl; ++i) {
+			 			if(++charset_idx[loop][i] >= c) {
+							charset_idx[loop][i] = 0;
+							over = 1;
+							break;
+						}
+					}
+					if(!skip)
+						if(over)
+							submit(word, loop);
 				}
 			}
 		}
