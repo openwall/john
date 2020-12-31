@@ -1,7 +1,3 @@
 #rain module by yvain douard, yvain29@gmail.com  
 
-Experimental.
-Strafing the index is good, effectiveness depends on the combination entropy/performance.
-Even though the treated placeholder rotate, big chunks of initial characters will be present above a certain length.
-So now you should limit the length to about 8 with lowercase set, untill I find a way to impact on the character selection as previously.
-Don't forget to use -mask=?w...
+Use with -rain=charset, charset should be in order of frequency.
