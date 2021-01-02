@@ -446,10 +446,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					int mpl = minlength + loop;
 					if(!skip) {
 						quick_conversion = 1;
-						//removing dups is possible with x%step, but word[0] is not looping on all chars. Unacceptable..
-						word[0] = charset_utf32[x%charcount];
+						if((word[0] = charset_utf32[x%c]) > cp_max)
+							quick_conversion = 0;
 						for(i=1; i<mpl; ++i) {
-				 			if((word[i] = charset_utf32[(charset_idx[loop][i]+charcount/(x%c+1)-1)%charcount]) > cp_max)
+				 			if((word[i] = charset_utf32[(charset_idx[loop][i]+(charcount/(x%c+1)-1))%charcount]) > cp_max)
 								quick_conversion = 0;
 						}
 					}
