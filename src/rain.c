@@ -412,10 +412,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	crk_init(db, fix_state, NULL);
 	
-	for(l=loop2; l <= maxlength-minlength; ++l) {
+	for(c=C; c<=charcount; ++c) {
 		if(event_abort) 
 			break;
-		for(c=C; c<=charcount; ++c) {
+		for(l=loop2; l <= maxlength-minlength; ++l) {
 			if(event_abort) 
 				break;
 			uint_big total = powi(c, minlength+l);
