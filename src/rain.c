@@ -49,7 +49,7 @@ static int rec_charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
 static int maxlength;
 static int minlength;
 static int state_restored;
-static uint64_t keyspace;
+static uint64_t total;
 static uint64_t subtotal;
 
 static int loop2;
@@ -70,13 +70,13 @@ static double get_progress(void)
 {
 	emms();
 	
-	if (!keyspace)
+	if (!total)
 		return -1;
 		
 	if (rain_cur_len > maxlength)
 		return 100;
 	
-	return (100.0 * x) / (keyspace - subtotal);
+	return (100.0 * x) / (total - subtotal);
 }
 
 static void fix_state(void)
@@ -406,68 +406,58 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				charset_idx[i][j] = 0;
 		}
 	}
-	keyspace = powi(charcount, rain_cur_len);
-	if(rain_cur_len > minlength)
-	    subtotal = powi(charcount, rain_cur_len-1);
 
 	crk_init(db, fix_state, NULL);
 	
-	for(c=C; c<=charcount; ++c) {
+	//for(c=C; c<=charcount; ++c) {
+	//	if(event_abort) 
+	//		break;
+	for(l=loop2; l <= maxlength-minlength; ++l) {
 		if(event_abort) 
 			break;
-		for(l=loop2; l <= maxlength-minlength; ++l) {
-			if(event_abort) 
-				break;
-			uint_big total = powi(c, minlength+l);
-			uint_big subtotal2 = 0;
-			if(l > 0)
-				subtotal2 = powi(c, minlength+l-1);
+		uint_big total = powi(charcount, minlength+l);
+		subtotal = 0;
+		if(l > 0)
+			subtotal = powi(charcount, minlength+l-1);
 
-			for(x = counter ; x < total-subtotal2; ++x) {
+		for(x = counter ; x < total-subtotal; ++x) {
+			if(event_abort)
+				break;
+			int loop;
+			for(loop = l; loop <= maxlength-minlength; ++loop) {
 				if(event_abort)
 					break;
-				int loop;
-				for(loop = l; loop <= maxlength-minlength; ++loop) {
-					if(event_abort)
-						break;
 
-					int skip = 0;
+				int skip = 0;
 
-					if (state_restored)
-						state_restored = 0;
-					else
-						set++;
+				if (state_restored)
+					state_restored = 0;
+				else
+					set++;
 
-					if (options.node_count) {
-						int for_node = set % options.node_count + 1;
-						skip = for_node < options.node_min ||
-							for_node > options.node_max;
-					}
-					int mpl = minlength + loop;
-					if(!skip) {
-						quick_conversion = 1;
-						if((word[0] = charset_utf32[charset_idx[loop][0]]) > cp_max)
-							quick_conversion = 0;
-						for(i=1; i<mpl; ++i) {
-				 			if((word[i] = charset_utf32[(charset_idx[loop][i]+(charcount/(x%c+1)-1))%charcount]) > cp_max)
-								quick_conversion = 0;
-						}
-					}
-					//enforce: must be at least one character from the next step (loop on c)
-					int over = 0;
+				if (options.node_count) {
+					int for_node = set % options.node_count + 1;
+					skip = for_node < options.node_min ||
+						for_node > options.node_max;
+				}
+				int mpl = minlength + loop;
+				if(!skip) {
+					quick_conversion = 1;
 					for(i=0; i<mpl; ++i) {
-			 			if(++charset_idx[loop][i] >= c) {
-							charset_idx[loop][i] = 0;
-							over = 1;
-							break;
-						}
+			 			if((word[i] = charset_utf32[charset_idx[loop][i]]) > cp_max)
+							quick_conversion = 0;
 					}
-					if(!skip)
-						if(over)
-							submit(word, loop);
+					submit(word, loop);
+				}
+				for(i=0; i<mpl; ++i) {
+		 			if(++charset_idx[loop][i] >= charcount) {
+						charset_idx[loop][i] = 0;
+						break;
+					}
 				}
 			}
 		}
+	//}
 	}
 	crk_done();
 	rec_done(event_abort);
