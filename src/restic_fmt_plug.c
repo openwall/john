@@ -25,31 +25,41 @@ john_register_one(&fmt_restic);
 #include "formats.h"
 #include "misc.h"
 #include "poly1305-donna/poly1305-donna.h"
-#include "yescrypt/sysendian.h"
 #include "yescrypt/yescrypt.h"
 
 #define FORMAT_NAME "Restic Repository"
 #define FORMAT_LABEL "restic"
 #define FORMAT_TAG "$restic$"
 #define TAG_LENGTH (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME "PBKDF2/scrypt Poly1305"
+/* SCRYPT_ALGORITHM_NAME is based on scrypt_fmt.c */
+#if !defined(JOHN_NO_SIMD) && defined(__XOP__)
+#define SCRYPT_ALGORITHM_NAME "Salsa20/8 128/128 XOP"
+#elif !defined(JOHN_NO_SIMD) && defined(__AVX__)
+#define SCRYPT_ALGORITHM_NAME "Salsa20/8 128/128 AVX"
+#elif !defined(JOHN_NO_SIMD) && defined(__SSE2__)
+#define SCRYPT_ALGORITHM_NAME "Salsa20/8 128/128 SSE2"
+#else
+#define SCRYPT_ALGORITHM_NAME "Salsa20/8 32/" ARCH_BITS_STR
+#endif
+#define ALGORITHM_NAME "scrypt " SCRYPT_ALGORITHM_NAME ", Poly1305"
 #define PLAINTEXT_LENGTH 125
 #define BINARY_SIZE 16 /* MAC */
 #define BINARY_ALIGN sizeof(uint32_t)
 #define DATA_SIZE 160
+#define SALT_SIZE sizeof(restic_salt)
 #define SALT_ALIGN sizeof(uint32_t)
 #define MAC_SIZE 16
 #define NONCE_SIZE 16
 #define BENCHMARK_COMMENT ""
-#define BENCHMARK_LENGTH 7
+#define BENCHMARK_LENGTH 0x507
 #define MIN_KEYS_PER_CRYPT 1
 #define MAX_KEYS_PER_CRYPT 1
+#define OMP_SCALE 1
 
 static int max_threads;
 static yescrypt_local_t *local;
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
-static uint64_t poly1305_key_mask[2];
 
 typedef struct restic_salt {
 	uint32_t N;
@@ -61,7 +71,7 @@ typedef struct restic_salt {
 
 static restic_salt *cur_salt;
 
-static struct fmt_tests restic_tests[] = {
+static struct fmt_tests tests[] = {
 	{
 		"$restic$scrypt*8192*8*1*ed29ad65948797a275f15b1da36fdd2b0247a7772d69ecfdf21141d837fb0780b6fb48cf7ccc3e4146a105dee0df4851256e204671d97c718c7e6b4a7a8cfb75*879acc157daa013218fcccf6b60be20f1e52baa893698a589f026165f51bbb1da03b0a5db42885d8bcffb34030b0bb26716e9f7c950cccb674494d63d104ee8808e713a7d483a6a0ef36b14aaac652eaa3a92b12f9d7a4cfead72ed0a216ccaeb0ddf9c6e94aa84c82590ae9a6ffc1b48b4fba163635ffb4e0633de668827e567e8c834539ae18d750be6f8f86f12101b04ab926fa570038eb6f78ef6021c1b1",
 		"penance"
@@ -75,7 +85,14 @@ static struct fmt_tests restic_tests[] = {
 
 static void init(struct fmt_main *self)
 {
+	omp_autotune(self, OMP_SCALE);
+
+#ifdef _OPENMP
+	max_threads = omp_get_max_threads();
+#else
 	max_threads = 1;
+#endif
+
 	local = mem_alloc(sizeof(*local) * max_threads);
 	int i;
 	for (i = 0; i < max_threads; i++)
@@ -83,9 +100,6 @@ static void init(struct fmt_main *self)
 
 	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));
-
-	be64enc(&poly1305_key_mask[0], 0xFFFFFF0FFCFFFF0FULL);
-	be64enc(&poly1305_key_mask[1], 0XFCFFFF0FFCFFFF0FULL);
 }
 
 static void done(void)
@@ -129,7 +143,7 @@ err:
 	return 0;
 }
 
-void *restic_get_binary(char *ciphertext)
+static void *get_binary(char *ciphertext)
 {
 	static unsigned char c[BINARY_SIZE];
 	char *p;
@@ -145,15 +159,18 @@ void *restic_get_binary(char *ciphertext)
 	return c;
 }
 
-void *restic_get_salt(char *ciphertext)
+static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
-	restic_salt *cur_salt;
 
-	cur_salt = mem_calloc_tiny(sizeof(restic_salt), SALT_ALIGN);
+	static restic_salt *cur_salt;
+	if (cur_salt)
+		memset(cur_salt, 0, sizeof(*cur_salt));
+	else
+		cur_salt = mem_calloc_tiny(sizeof(*cur_salt), SALT_ALIGN);
 
 	ctcopy += TAG_LENGTH;
 
@@ -182,40 +199,40 @@ void *restic_get_salt(char *ciphertext)
 	return cur_salt;
 }
 
-unsigned int restic_tunable_cost_N(void *salt)
+static unsigned int tunable_cost_N(void *salt)
 {
 	restic_salt *rs = salt;
-	return (unsigned int)rs->N;
+	return rs->N;
 }
 
-unsigned int restic_tunable_cost_r(void *salt)
+static unsigned int tunable_cost_r(void *salt)
 {
 	restic_salt *rs = salt;
-	return (unsigned int)rs->r;
+	return rs->r;
 }
 
-unsigned int restic_tunable_cost_p(void *salt)
+static unsigned int tunable_cost_p(void *salt)
 {
 	restic_salt *rs = salt;
-	return (unsigned int)rs->p;
+	return rs->p;
 }
 
-void restic_set_salt(void *salt)
+static void set_salt(void *salt)
 {
 	cur_salt = (restic_salt *)salt;
 }
 
-void restic_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
 	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
-char *restic_get_key(int index)
+static char *get_key(int index)
 {
 	return saved_key[index];
 }
 
-int restic_cmp_all(void *binary, int count)
+static int cmp_all(void *binary, int count)
 {
 	int index;
 
@@ -225,31 +242,35 @@ int restic_cmp_all(void *binary, int count)
 	return 0;
 }
 
-int restic_cmp_one(void *binary, int index)
+static int cmp_one(void *binary, int index)
 {
 	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
-int restic_cmp_exact(char *source, int index)
+static int cmp_exact(char *source, int index)
 {
 	return 1;
 }
 
-static int restic_crypt_all(int *pcount, struct db_salt *salt)
+static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
 	int index;
 	int failed = 0;
 	yescrypt_params_t params = {.N = cur_salt->N, .r = cur_salt->r, .p = cur_salt->p};
+
 #ifdef _OPENMP
-	#pragma omp parallel for
+#pragma omp parallel for default(none) private(index) shared(count, failed, params, max_threads, local, saved_key, cur_salt, crypt_out)
 #endif
 	for (index = 0; index < count; index++) {
-		uint8_t kdf_out[64];
+		union {
+			uint8_t u8[80];
+			uint64_t u64[10];
+		} kdf_out;
 #ifdef _OPENMP
 		int t = omp_get_thread_num();
 		if (t >= max_threads) {
-			#pragma omp atomic
+#pragma omp atomic
 			failed |= 2;
 			continue;
 		}
@@ -258,28 +279,39 @@ static int restic_crypt_all(int *pcount, struct db_salt *salt)
 #endif
 		if (yescrypt_kdf(NULL, &local[t], (const uint8_t *)saved_key[index],
 		                 strlen(saved_key[index]),
-		                 (const uint8_t *)cur_salt->salt, sizeof(cur_salt->salt), &params, kdf_out,
-		                 sizeof(kdf_out))) {
+		                 (const uint8_t *)cur_salt->salt, sizeof(cur_salt->salt), &params, kdf_out.u8, 64)) {
+#ifdef _OPENMP
+#pragma omp atomic
 			failed |= 1;
+#else
+			failed = 1;
+			break;
+#endif
 		}
 
-		uint8_t *poly1305_key = kdf_out + 32;
+		static const union {
+			uint8_t u8[16];
+			uint64_t u64[2];
+		} key_mask = {
+			.u8 = {
+				0xff, 0xff, 0xff, 0x0f, 0xfc, 0xff, 0xff, 0x0f,
+				0xfc, 0xff, 0xff, 0x0f, 0xfc, 0xff, 0xff, 0x0f
+			}
+		};
+		kdf_out.u64[6] &= key_mask.u64[0];
+		kdf_out.u64[7] &= key_mask.u64[1];
+		const uint8_t *poly1305_key = &kdf_out.u8[32];
+
 		const unsigned char *nonce = cur_salt->data;
 		const unsigned char *ciphertext = cur_salt->data + NONCE_SIZE;
-		unsigned char prepared_key[32];
-		uint64_t masked_key[32 / sizeof(uint64_t)];
-
-		memcpy(masked_key, poly1305_key, 32);
-		masked_key[2] &= poly1305_key_mask[0];
-		masked_key[3] &= poly1305_key_mask[1];
 
 		AES_KEY aeskey;
-		AES_set_encrypt_key((unsigned char *)masked_key, 128, &aeskey);
+		AES_set_encrypt_key(poly1305_key, 128, &aeskey);
+		unsigned char *prepared_key = &kdf_out.u8[48];
 		AES_ecb_encrypt(nonce, prepared_key + 16, &aeskey, AES_ENCRYPT);
-		memcpy(prepared_key, masked_key + 2, 16);
-		poly1305_auth((unsigned char *)crypt_out[index], ciphertext, 128,
-		              prepared_key);
+		poly1305_auth((unsigned char *)crypt_out[index], ciphertext, 128, prepared_key);
 	}
+
 	if (failed) {
 #ifdef _OPENMP
 		if (failed & 2) {
@@ -290,10 +322,11 @@ static int restic_crypt_all(int *pcount, struct db_salt *salt)
 		fprintf(stderr, "scrypt failed: %s\n", strerror(errno));
 		error();
 	}
+
 	return count;
 }
 
-struct fmt_main fmt_restic = {/* fmt_params */
+struct fmt_main fmt_restic = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -304,16 +337,15 @@ struct fmt_main fmt_restic = {/* fmt_params */
 		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
-		sizeof(restic_salt),
+		SALT_SIZE,
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{"N", "r", "p"},
 		{FORMAT_TAG},
-		restic_tests
+		tests
 	},
-	/* fmt_methods */
 	{
 		init,
 		done,
@@ -321,21 +353,21 @@ struct fmt_main fmt_restic = {/* fmt_params */
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
-		restic_get_binary,
-		restic_get_salt,
-		{restic_tunable_cost_N, restic_tunable_cost_r, restic_tunable_cost_p},
+		get_binary,
+		get_salt,
+		{tunable_cost_N, tunable_cost_r, tunable_cost_p},
 		fmt_default_source,
 		{fmt_default_binary_hash},
 		fmt_default_salt_hash,
 		NULL,
-		restic_set_salt,
-		restic_set_key,
-		restic_get_key,
+		set_salt,
+		set_key,
+		get_key,
 		fmt_default_clear_keys,
-		restic_crypt_all,
+		crypt_all,
 		{fmt_default_get_hash},
-		restic_cmp_all,
-		restic_cmp_one,
-		restic_cmp_exact
+		cmp_all,
+		cmp_one,
+		cmp_exact
 	}
 };
