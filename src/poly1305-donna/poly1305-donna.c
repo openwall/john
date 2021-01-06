@@ -11,9 +11,23 @@
 #else
 
 /* auto detect between 32bit / 64bit */
-#define HAS_SIZEOF_INT128_64BIT (defined(__SIZEOF_INT128__) && defined(__LP64__))
-#define HAS_MSVC_64BIT (defined(_MSC_VER) && defined(_M_X64))
-#define HAS_GCC_4_4_64BIT (defined(__GNUC__) && defined(__LP64__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 4))))
+#if (defined(__SIZEOF_INT128__) && defined(__LP64__))
+#define HAS_SIZEOF_INT128_64BIT 1
+#else
+#define HAS_SIZEOF_INT128_64BIT 0
+#endif
+
+#if (defined(_MSC_VER) && defined(_M_X64))
+#define HAS_MSVC_64BIT 1
+#else
+#define HAS_MSVC_64BIT 0
+#endif
+
+#if (defined(__GNUC__) && defined(__LP64__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 4))))
+#define HAS_GCC_4_4_64BIT 1
+#else
+#define HAS_GCC_4_4_64BIT 0
+#endif
 
 #if (HAS_SIZEOF_INT128_64BIT || HAS_MSVC_64BIT || HAS_GCC_4_4_64BIT)
 #include "poly1305-donna-64.h"
