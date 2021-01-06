@@ -6,15 +6,16 @@ if [[ "$TRAVIS_PULL_REQUEST_BRANCH" != "force-travis" ]]; then
     # on the main branch, run all tests
     if [[ "$TRAVIS_BRANCH" != "bleeding-jumbo" || "$TRAVIS_PULL_REQUEST" =~ ^[0-9]+$ ]]; then
 
-#        # otherwise, run only Linux jobs for now
-#        if [[ "$TRAVIS_OS_NAME" != "linux" ]]; then
+        # otherwise, run only Linux jobs for now
+        if [[ "$TRAVIS_OS_NAME" != "linux" ]]; then
             echo '---------------------------------- Skipping CI ---------------------------------'
             echo 'In order to spare resources, skip Travis CI build.'
             echo '--------------------------------------------------------------------------------'
 
             # Nothing to do.
             exit 0
-#        fi
+        fi
+        echo 'Proceeding with build'
     fi
 fi
 
