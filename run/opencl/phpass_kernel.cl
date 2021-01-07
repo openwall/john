@@ -66,31 +66,31 @@ typedef struct {
 #endif
 
 #define FF(v, w, x, y, z, s, ac)	  \
-	v = ROTATE_LEFT(v + z + ac + F(w, x, y), (uint)s) + w
+	v = ROTATE_LEFT(v + z + ac + F(w, x, y), s) + w
 
 #define FF2(v, w, x, y, s, ac)	  \
 	v = ROTATE_LEFT(v + ac + F(w, x, y), s) + w
 
 #define GG(v, w, x, y, z, s, ac)	  \
-	v = ROTATE_LEFT(v + z + ac + G(w, x, y), (uint)s) + w;
+	v = ROTATE_LEFT(v + z + ac + G(w, x, y), s) + w
 
 #define GG2(v, w, x, y, s, ac)	  \
 	v = ROTATE_LEFT(v + ac + G(w, x, y), s) + w
 
 #define HH(v, w, x, y, z, s, ac)	  \
-	v = ROTATE_LEFT(v + z + ac + H(w, x, y), (uint)s) + w;
+	v = ROTATE_LEFT(v + z + ac + H(w, x, y), s) + w
 
 #define HH2(v, w, x, y, s, ac) 	  \
 	v = ROTATE_LEFT(v + ac + H(w, x, y), s) + w
 
 #define HHH(v, w, x, y, z, s, ac)	  \
-	v = ROTATE_LEFT(v + z + ac + H2(w, x, y), (uint)s) + w;
+	v = ROTATE_LEFT(v + z + ac + H2(w, x, y), s) + w
 
 #define HHH2(v, w, x, y, s, ac)	  \
-	v = ROTATE_LEFT(v + ac + H2(w, x, y), (uint)s) + w;
+	v = ROTATE_LEFT(v + ac + H2(w, x, y), s) + w
 
 #define II(v, w, x, y, z, s, ac)	  \
-	v = ROTATE_LEFT(v + z + ac + I(w, x, y), (uint)s) + w;
+	v = ROTATE_LEFT(v + z + ac + I(w, x, y), s) + w
 
 #define II2(v, w, x, y, s, ac)	  \
 	v = ROTATE_LEFT(v + ac + I(w, x, y), s) + w
