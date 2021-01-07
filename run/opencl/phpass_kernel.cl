@@ -478,12 +478,11 @@ __kernel void phpass (__global const phpass_password *data,
 	if (maxlen < 8)
 	do {
 		b = ACF2;
-		c = ACF3;
 
 		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
 		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
@@ -551,25 +550,19 @@ __kernel void phpass (__global const phpass_password *data,
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II2(c, d, a, b, S43, 0xa3014314);
 		II2(b, c, d, a, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II2(d, a, b, c, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, (0x2ad7d2bb + ACF3));
-		II2(b, c, d, a, S44, 0xeb86d391);
-
-		x0 = a;
-		x1 = b;
-		x2 = c;
-		x3 = d;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
 	else if (unilen == 8)
 	do {
 		b = ACF2;
-		c = ACF3;
 
 		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
 		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
@@ -637,25 +630,19 @@ __kernel void phpass (__global const phpass_password *data,
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II(c, d, a, b, 0x80, S43, 0xa3014314);
 		II2(b, c, d, a, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II2(d, a, b, c, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, (0x2ad7d2bb + ACF3));
-		II2(b, c, d, a, S44, 0xeb86d391);
-
-		x0 = a;
-		x1 = b;
-		x2 = c;
-		x3 = d;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
 	else if (maxlen < 12)
 	do {
 		b = ACF2;
-		c = ACF3;
 
 		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
 		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
@@ -723,25 +710,19 @@ __kernel void phpass (__global const phpass_password *data,
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II(c, d, a, b, x6, S43, 0xa3014314);
 		II2(b, c, d, a, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II2(d, a, b, c, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, (0x2ad7d2bb + ACF3));
-		II2(b, c, d, a, S44, 0xeb86d391);
-
-		x0 = a;
-		x1 = b;
-		x2 = c;
-		x3 = d;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
 	else if (unilen == 12)
 	do {
 		b = ACF2;
-		c = ACF3;
 
 		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
 		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
@@ -809,25 +790,19 @@ __kernel void phpass (__global const phpass_password *data,
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II(c, d, a, b, x6, S43, 0xa3014314);
 		II2(b, c, d, a, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II2(d, a, b, c, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, (0x2ad7d2bb + ACF3));
-		II2(b, c, d, a, S44, 0xeb86d391);
-
-		x0 = a;
-		x1 = b;
-		x2 = c;
-		x3 = d;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
 	else if (maxlen < 16)
 	do {
 		b = ACF2;
-		c = ACF3;
 
 		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
 		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
@@ -895,26 +870,20 @@ __kernel void phpass (__global const phpass_password *data,
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II(c, d, a, b, x6, S43, 0xa3014314);
 		II2(b, c, d, a, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II2(d, a, b, c, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, (0x2ad7d2bb + ACF3));
-		II2(b, c, d, a, S44, 0xeb86d391);
-
-		x0 = a;
-		x1 = b;
-		x2 = c;
-		x3 = d;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
 	else
 #endif
 	do {
 		b = ACF2;
-		c = ACF3;
 
 		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
 		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
@@ -982,15 +951,10 @@ __kernel void phpass (__global const phpass_password *data,
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II(c, d, a, b, x6, S43, 0xa3014314);
 		II(b, c, d, a, x13, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II(d, a, b, c, x11, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, (0x2ad7d2bb + ACF3));
-		II(b, c, d, a, x9, S44, 0xeb86d391);
-
-		x0 = a;
-		x1 = b;
-		x2 = c;
-		x3 = d;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + x11 + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + x9 + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
 
 	x0 += ACF1;
