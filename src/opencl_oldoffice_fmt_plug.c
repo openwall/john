@@ -246,7 +246,7 @@ static void reset(struct db_main *db)
 	int i;
 
 	if (crypt_kernel)
-		release_clobj();
+		done();
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
@@ -306,6 +306,8 @@ static void reset(struct db_main *db)
 
 	// Auto tune execution from shared/included code.
 	autotune_run(self, 1, gws_limit, 100);
+
+	new_keys = 1;
 }
 
 /* Based on ldr_cracked_hash from loader.c */
