@@ -116,6 +116,8 @@ static struct opt_entry opt_list[] = {
 	{"subsets-max-diff", FLG_ONCE, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM, "%u", &options.subset_max_diff},
 	{"rain", FLG_RAIN_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.rain_full},
+	{"tacking", FLG_TACKING_SET, FLG_CRACKING_CHK,
+		0, 0, OPT_FMT_STR_ALLOC, &options.tacking_full},
 	{"no-mask", FLG_NO_MASK_BENCH, FLG_NO_MASK_BENCH, FLG_TEST_CHK, FLG_MASK_CHK},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ONCE, 0, FLG_MASK_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
@@ -296,7 +298,8 @@ JOHN_USAGE_REGEX \
 "--subsets-min-diff=N       Minimum unique characters in subset\n" \
 "--subsets-max-diff=[-]N    Maximum unique characters in subset (negative N is\n" \
 "                           relative to word length)\n" \
-"--rain[=CHARSET]           \"rain\" mode (see doc/RAIN)\n" \
+"--rain[=CHARSET]           \"rain\" mode\n" \
+"--tacking[=CHARSET]        \"tacking\" mode\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
 "--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--session=NAME             give a new session the NAME\n" \

@@ -34,10 +34,10 @@ typedef uint64_t uint_big;
 #define UINT_BIG_MAX UINT64_MAX
 #endif
 
-int rain_cur_len;
+int tacking_cur_len;
 
 static int rec_cur_len;
-static char *charset;           
+static char *charset;
 
 static UTF32 word[MAX_CAND_LENGTH+1];
 static int charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
@@ -48,8 +48,8 @@ static int state_restored;
 static uint64_t total;
 static uint64_t subtotal;
 
-static int loop2;
-static int rec_loop2;
+static int loop;
+static int rec_loop;
 
 static int C;
 static int rec_C;
@@ -58,37 +58,11 @@ static uint_big counter;//linear counter
 static uint_big rec_counter;
 static uint_big x;
 static int l, c;
+static uint_big tacking[MAX_CAND_LENGTH-1];
+static uint_big rec_tacking[MAX_CAND_LENGTH-1];
 
 static int quick_conversion;
 static int set, rec_set;
-
-static double get_progress(void)
-{
-	emms();
-	
-	if (!total)
-		return -1;
-		
-	if (rain_cur_len > maxlength)
-		return 100;
-	
-	return (100.0 * x) / (total - subtotal);
-}
-
-static void fix_state(void)
-{
-	int i, j;
-	
-	rec_set = set;
-	for (i = 0; i <= maxlength - minlength; ++i) {
-		for(j = 0; j < maxlength; ++j)
-			rec_charset_idx[i][j] = charset_idx[i][j];
-	}
-	rec_cur_len = rain_cur_len;
-	rec_counter = x;
-	rec_loop2 = l;
-	rec_C = c;
-}
 
 static uint_big powi(uint32_t b, uint32_t p)
 {
@@ -146,22 +120,55 @@ static uint_big str2big(char *str) {
 	return num;
 }
 
+static double get_progress(void)
+{
+	emms();
+	
+	if (!total)
+		return -1;
+		
+	if (tacking_cur_len > maxlength)
+		return 100;
+	
+	return (100.0 * x) / (total - subtotal);
+}
+
+static void fix_state(void)
+{
+	int i, j;
+	
+	rec_set = set;
+	for (i = 0; i <= maxlength - minlength; ++i) {
+		rec_tacking[i] = tacking[i];
+		for(j = 0; j < maxlength; ++j)
+			rec_charset_idx[i][j] = charset_idx[i][j];
+	}
+	rec_cur_len = tacking_cur_len;
+	rec_counter = x;
+	rec_loop = l;
+	rec_C = c;
+}
+
 static void save_state(FILE *file)
 {
 	int i, j;
-	char str[40];
-	memset(str, 0, 40);
+	char str[41];
 	fprintf(file, "%d\n", rec_set);
 	for (i = 0; i <= maxlength - minlength; ++i) {
+		memset(str, 0, 40);
+		big2str(tacking[i], str);
+		fprintf(file, "%s\n", str);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
 	fprintf(file, "%d\n", rec_cur_len);
+	memset(str, 0, 40);
 	big2str(rec_counter, str);
 	fprintf(file, "%s\n", str);
-	fprintf(file, "%d\n", rec_loop2);
+	fprintf(file, "%d\n", rec_loop);
 	fprintf(file, "%d\n", rec_C);
 }
+
 static int restore_state(FILE *file)
 {
 	int i, j, d;
@@ -172,21 +179,31 @@ static int restore_state(FILE *file)
 	else return 1;
 
 	for (i = 0; i <= maxlength - minlength; ++i) {
+		if(fscanf(file, "%s\n", str) == 1) {
+			str[40] = 0;
+			memset(str, 0, 40);
+			tacking[i] = 	str2big(str);
+		}
+		else return 1;
+
 		for(j = 0; j < maxlength; ++j)
 			if(fscanf(file, "%d\n", &d) == 1)
 				charset_idx[i][j] = d;
 			else return 1;
 	}
 	if(fscanf(file, "%d\n", &d) == 1)
-		rain_cur_len = d;
+		tacking_cur_len = d;
 	else return 1;
 
-	if(fscanf(file, "%s\n", str) == 1)
+	if(fscanf(file, "%s\n", str) == 1) {
+		str[40] = 0;
+		memset(str, 0, 40);
 		counter = str2big(str);
+	}
 	else return 1;
 	
 	if(fscanf(file, "%d\n", &d) == 1)
-		loop2 = d;
+		loop = d;
 	else return 1;
 	
 	if(fscanf(file, "%d\n", &d) == 1)
@@ -287,7 +304,7 @@ static int submit(UTF32 *word, int loop)
 		return crk_process_key((char*)out);
 }
 
-int do_rain_crack(struct db_main *db, char *req_charset)
+int do_tacking_crack(struct db_main *db, char *req_charset)
 {
 	int i, j;
 	int cp_max = 255;
@@ -306,7 +323,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if (!options.req_minlength)
 		minlength = 1;
 
-	default_set = (char*)cfg_get_param("Rain", NULL, "DefaultCharset");
+	default_set = (char*)cfg_get_param("Tacking", NULL, "DefaultCharset");
 	if (!req_charset)
 		req_charset = default_set;
 
@@ -314,7 +331,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		if (strlen(req_charset) == 1 && isdigit(req_charset[0])) {
 			int cnum = atoi(req_charset);
 			char pl[2] = { '0' + cnum, 0 };
-			char *c = (char*)cfg_get_param("Rain", NULL, pl);
+			char *c = (char*)cfg_get_param("Tacking", NULL, pl);
 
 			if (c)
 				req_charset = c;
@@ -367,13 +384,13 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	rec_init(db, save_state);
 	
 	if(john_main_process) {
-		log_event("Proceeding with \"rain\" mode");
+		log_event("Proceeding with \"tacking\" mode");
 		log_event("- Charset: %s size %d", req_charset ? req_charset : charset,
 		          charcount);
 		log_event("- Lengths: %d-%d, max",
 		          MAX(options.eff_minlength, 1), maxlength);
 		if(rec_restored) {
-			fprintf(stderr, "Proceeding with \"rain\"%s%s",
+			fprintf(stderr, "Proceeding with \"tacking\"%s%s",
 			        req_charset ? ": " : "",
 			        req_charset ? req_charset : "");
 			if (options.flags & FLG_MASK_CHK)
@@ -390,12 +407,13 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	}
 	if(!state_restored)
 	{
-		rain_cur_len = minlength;
+		tacking_cur_len = minlength;
 		srand(time(NULL));
-		loop2 = 0;
+		loop = 0;
 		counter = 0;
 		C = 1;
 		for(i = 0; i <= maxlength - minlength; i++) {
+			tacking[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
@@ -403,11 +421,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	crk_init(db, fix_state, NULL);
 	
-	//for(c=C; c<=charcount; ++c) {
-	//	if(event_abort) 
-	//		break;
-	for(l=loop2; l <= maxlength-minlength; ++l) {
-		if(event_abort) 
+	for(l=loop; l <= maxlength-minlength; ++l) {
+		if(event_abort)
 			break;
 		uint_big total = powi(charcount, minlength+l);
 		subtotal = 0;
@@ -417,8 +432,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		for(x = counter ; x < total-subtotal; ++x) {
 			if(event_abort)
 				break;
-			int loop;
-			for(loop = l; loop <= maxlength-minlength; ++loop) {
+			int loop2;
+			for(loop2 = l; loop2 <= maxlength-minlength; ++loop2) {
 				if(event_abort)
 					break;
 
@@ -434,24 +449,38 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 					skip = for_node < options.node_min ||
 						for_node > options.node_max;
 				}
-				int mpl = minlength + loop;
+				int mpl = minlength + loop2;
 				if(!skip) {
 					quick_conversion = 1;
 					for(i=0; i<mpl; ++i) {
-			 			if((word[i] = charset_utf32[charset_idx[loop][i]]) > cp_max)
-							quick_conversion = 0;
+			 			if(tacking[loop2] % 2 || mpl < 4) {
+							if((word[i] = charset_utf32[charset_idx[loop2][i]]) > cp_max)
+								quick_conversion = 0;
+						}
+						else {
+							if((word[i] = charset_utf32[charset_idx[loop2][mpl-i-1]]) > cp_max)
+								quick_conversion = 0;
+						}
 					}
-					submit(word, loop);
+					submit(word, loop2);
 				}
-				for(i=0; i<mpl; ++i) {
-		 			if(++charset_idx[loop][i] >= charcount) {
-						charset_idx[loop][i] = 0;
-						break;
+				if(tacking[loop2] % 2 || mpl < 4) {
+					int pos = 0;
+					while(pos < mpl && ++charset_idx[loop2][pos] >= charcount) {
+						charset_idx[loop2][pos] = 0;
+						pos++;
 					}
 				}
+				else {
+					int pos = mpl-1;
+					while(pos > mpl/2 && ++charset_idx[loop2][pos] >= charcount) {
+						charset_idx[loop2][pos] = 0;
+						pos--;
+					}
+				}
+				tacking[loop2]++;
 			}
 		}
-	//}
 	}
 	crk_done();
 	rec_done(event_abort);
