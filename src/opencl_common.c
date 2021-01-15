@@ -390,39 +390,12 @@ static char *opencl_driver_info(int sequential_id)
 
 static char *ns2string(cl_ulong nanosec)
 {
-	char *buf = mem_alloc_tiny(16, MEM_ALIGN_NONE);
-	int s, ms, us, ns;
-
-	ns = nanosec % 1000;
-	nanosec /= 1000;
-	us = nanosec % 1000;
-	nanosec /= 1000;
-	ms = nanosec % 1000;
-	s = nanosec / 1000;
-
-	if (s) {
-		if (ms)
-			snprintf(buf, 16, "%d.%03ds", s, ms);
-		else
-			snprintf(buf, 16, "%ds", s);
-	} else if (ms) {
-		if (us)
-			snprintf(buf, 16, "%d.%03dms", ms, us);
-		else
-			snprintf(buf, 16, "%dms", ms);
-	} else if (us) {
-		if (ns)
-			snprintf(buf, 16, "%d.%03dus", us, ns);
-		else
-			snprintf(buf, 16, "%dus", us);
-	} else
-		snprintf(buf, 16, "%dns", ns);
-	return buf;
+	return human_prefix_small(nanosec / 1E9);
 }
 
 static char *ms2string(int millisec)
 {
-	return ns2string(millisec * 1000000ULL);
+	return human_prefix_small(millisec / 1E3);
 }
 
 static int get_if_device_is_in_use(int sequential_id)
@@ -1611,7 +1584,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			runtime += (endTime - startTime);
 
 		if (options.verbosity >= VERB_MAX)
-			fprintf(stderr, "%s%s%s%s", warnings[i], mult,
+			fprintf(stderr, "%s%s%ss%s", warnings[i], mult,
 			        ns2string(endTime - startTime), (amd_bug) ? "*" : "");
 
 		/* Single-invocation duration limit */
@@ -1620,7 +1593,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			runtime = looptime = 0;
 
 			if (options.verbosity >= VERB_MAX)
-				fprintf(stderr, " (exceeds %s)", ms2string(duration_time));
+				fprintf(stderr, " (exceeds %ss)", ms2string(duration_time));
 			break;
 		}
 	}
@@ -1839,7 +1812,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		if (!endTime)
 			break;
 		if (options.verbosity > VERB_LEGACY)
-			fprintf(stderr, " %s%s\n", ns2string(sumEndTime - sumStartTime),
+			fprintf(stderr, " %ss%s\n", ns2string(sumEndTime - sumStartTime),
 			    ((double)(sumEndTime - sumStartTime) / kernelExecTimeNs < 0.997)
 			        ? "+" : "");
 		if ((double)(sumEndTime - sumStartTime) / kernelExecTimeNs < 0.997) {
@@ -1874,35 +1847,6 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 	if (!self->methods.tunable_cost_value[0] || !ocl_autotune_db->real)
 		dyna_salt_remove(salt);
-}
-
-static char *human_speed(unsigned long long int speed)
-{
-	static char out[32];
-	char p = '\0';
-
-	if (speed > 1000000) {
-		speed /= 1000;
-		p = 'K';
-	}
-	if (speed > 1000000) {
-		speed /= 1000;
-		p = 'M';
-	}
-	if (speed > 1000000) {
-		speed /= 1000;
-		p = 'G';
-	}
-	if (speed > 1000000) {
-		speed /= 1000;
-		p = 'T'; /* you wish */
-	}
-	if (p)
-		snprintf(out, sizeof(out), "%llu%cc/s", speed, p);
-	else
-		snprintf(out, sizeof(out), "%lluc/s", speed);
-
-	return out;
 }
 
 uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id)
@@ -1985,7 +1929,7 @@ void opencl_find_best_gws(int step, int max_duration,
 	}
 	if (options.verbosity > VERB_LEGACY) {
 		fprintf(stderr, "Calculating best GWS for LWS="Zu"; "
-		        "max. %s single kernel invocation.\n",
+		        "max. %ss single kernel invocation.\n",
 		        local_work_size, ms2string(duration_time));
 	}
 
@@ -2028,8 +1972,7 @@ void opencl_find_best_gws(int step, int max_duration,
 		speed = rounds * raw_speed;
 
 		if (options.verbosity > VERB_LEGACY)
-			fprintf(stderr, "gws: %9zu\t%10s%12llu "
-			        "rounds/s%10s per crypt_all()",
+			fprintf(stderr, "gws: %9zu%13s%12llu rounds/s%11ss per crypt_all()",
 			        num, human_speed(raw_speed), speed, ns2string(run_time));
 
 		/*
@@ -2064,8 +2007,7 @@ void opencl_find_best_gws(int step, int max_duration,
 		speed = rounds * raw_speed;
 
 		if (options.verbosity > VERB_LEGACY)
-			fprintf(stderr, "gws: %9zu\t%10s%12llu "
-			        "rounds/s%10s per crypt_all()",
+			fprintf(stderr, "gws: %9zu%13s%12llu rounds/s%11ss per crypt_all()",
 			        num, human_speed(raw_speed), speed, ns2string(run_time));
 
 		if (speed < best_speed) {

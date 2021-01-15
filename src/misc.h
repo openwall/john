@@ -190,16 +190,23 @@ const char *jtr_lltoa(int64_t num, char *result, int result_len, int base);
 const char *jtr_ulltoa(uint64_t num, char *result, int result_len, int base);
 
 /*
- * Change some large number to a string possibly using binary prefix,
- * eg. 437281954 -> "417 Mi"
- * Note: "leaks" 16 bytes each time (mem_alloc_tiny)
+ * From a potentially large number produce a string possibly using binary
+ * prefix, eg. 437281954 -> "417 Mi".
+ * Note: "leaks" 16 bytes each time (mem_alloc_tiny).
  */
 extern char *human_prefix(uint64_t num);
 
 /*
- * Change some tiny number to a string possibly using SI prefix
- * eg. 0.123 -> "123 m"
- * Note: "leaks" 16 bytes each time (mem_alloc_tiny)
+ * From a potentially large number produce a cps string possibly using
+ * prefix, eg. 437281954 -> "437281K c/s".
+ * Note: "leaks" 16 bytes each time (mem_alloc_tiny).
+ */
+extern char *human_speed(uint64_t speed);
+
+/*
+ * From a potentially tiny number produce a string possibly using SI prefix
+ * eg. 0.000123 -> "123 u" or 0.123456 -> "123.456 m".
+ * Note: "leaks" 16 bytes each time (mem_alloc_tiny).
  */
 extern char *human_prefix_small(double num);
 

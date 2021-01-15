@@ -195,12 +195,13 @@ void omp_autotune_run(struct db_main *db)
 
 		if (john_main_process && options.verbosity >= VERB_MAX) {
 			if (threads > 1)
-				printf("OMP scale %d: %d crypts (%dx%d) in %f seconds, %d c/s",
-				       scale, crypts, crypts / this_kpc, this_kpc, duration, cps);
+				printf("OMP scale %d: %d crypts (%dx%d) in %ss, %s",
+				       scale, crypts, crypts / this_kpc, this_kpc, human_prefix_small(duration),
+				       human_speed(cps));
 			else
-				printf("MKPC %d: %d crypts (%dx%d) in %f seconds, %d c/s",
-				       this_kpc, crypts, crypts / this_kpc, this_kpc,
-				       duration, cps);
+				printf("MKPC %d: %d crypts (%dx%d) in %ss, %s",
+				       this_kpc, crypts, crypts / this_kpc, this_kpc, human_prefix_small(duration),
+				       human_speed(cps));
 		}
 
 		if (cps >= (best_cps * req_gain)) {
