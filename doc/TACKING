@@ -1,0 +1,5 @@
+#tacking module writen by owein yvain29@gmail.com
+
+Use with -tacking=charset and a mask for performances.
+Be carefull with this one, the entropy is not beaten at some point.
+On a dual core cpu, using lower character set, It can be used for words up to about length 12.
