@@ -567,9 +567,8 @@ char *human_prefix(uint64_t num)
 	char prefixes[] = "\0KMGTPEZY";
 	char *p = prefixes;
 
-	while (p[1] && (num >= (100 << 10) ||
-	                (!(num & 1023) && num >= (1 << 10)))) {
-		num = (num >> 10);
+	while (p[1] && (num >= (100 << 10) || (!(num & 1023) && num >= (1 << 10)))) {
+		num >>= 10;
 		p++;
 	}
 
@@ -581,21 +580,55 @@ char *human_prefix(uint64_t num)
 	return out;
 }
 
-char *human_prefix_small(double num)
+char *human_speed(uint64_t speed)
 {
 	char *out = mem_alloc_tiny(16, MEM_ALIGN_NONE);
-	char prefixes[] = "\0munp";
+	char prefixes[] = "\0KMGTPEZY";
 	char *p = prefixes;
 
-	while (p[1] && num > 0 && num < 1) {
-		num *= 1000;
+	while (p[1] && speed >= 1000000) {
+		speed /= 1000;
 		p++;
 	}
 
 	if (*p)
-		snprintf(out, 16, "%u %c", (uint32_t)num, *p);
+		snprintf(out, 16, "%u%c c/s", (uint32_t)speed, *p);
 	else
-		snprintf(out, 16, "%u ", (uint32_t)num);
+		snprintf(out, 16, "%u c/s", (uint32_t)speed);
+
+	return out;
+}
+
+char *human_prefix_small(double num)
+{
+	char *out = mem_alloc_tiny(16, MEM_ALIGN_NONE);
+	uint64_t number = num * 1E9;
+	int whole, milli, micro, nano;
+
+	nano = number % 1000;
+	number /= 1000;
+	micro = number % 1000;
+	number /= 1000;
+	milli = number % 1000;
+	whole = number / 1000;
+
+	if (whole) {
+		if (milli)
+			snprintf(out, 16, "%d.%03d ", whole, milli);
+		else
+			snprintf(out, 16, "%d ", whole);
+	} else if (milli) {
+		if (micro)
+			snprintf(out, 16, "%d.%03d m", milli, micro);
+		else
+			snprintf(out, 16, "%d m", milli);
+	} else if (micro) {
+		if (nano)
+			snprintf(out, 16, "%d.%03d u", micro, nano);
+		else
+			snprintf(out, 16, "%d u", micro);
+	} else
+		snprintf(out, 16, "%d n", nano);
 
 	return out;
 }
