@@ -54,6 +54,9 @@ static int rec_loop;
 static int step[MAX_CAND_LENGTH-1];
 static int rec_step[MAX_CAND_LENGTH-1];
 
+static int rotate[MAX_CAND_LENGTH-1];
+static int rec_rotate[MAX_CAND_LENGTH-1];
+
 static uint_big counter;//linear counter
 static uint_big rec_counter;
 static uint_big x;
@@ -140,6 +143,7 @@ static void fix_state(void)
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		rec_tacking[i] = tacking[i];
 		rec_step[i] = step[i];
+		rec_rotate[i] = rotate[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -158,6 +162,7 @@ static void save_state(FILE *file)
 		big2str(tacking[i], str);
 		fprintf(file, "%s\n", str);
 		fprintf(file, "%d\n", rec_step[i]);
+		fprintf(file, "%d\n", rec_rotate[i]);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -187,6 +192,10 @@ static int restore_state(FILE *file)
 
 		if(fscanf(file, "%d\n", &d) == 1)
 			step[i] = d;
+		else return 1;
+		
+		if(fscanf(file, "%d\n", &d) == 1)
+			rotate[i] = d;
 		else return 1;
 
 		for(j = 0; j < maxlength; ++j)
@@ -373,6 +382,12 @@ int do_tacking_crack(struct db_main *db, char *req_charset)
 		utf32_to_utf8_32(charset_utf32);
 
 	charcount = strlen32(charset_utf32);
+	if(charcount % 2) {
+		if(john_main_process) {
+			fprintf(stderr, "Tacking mode only supports even lengths character sets.\n");
+		}
+		exit(-1);
+	}
 	
 	counter = 0;
 	subtotal = 0;
@@ -413,6 +428,7 @@ int do_tacking_crack(struct db_main *db, char *req_charset)
 		for(i = 0; i <= maxlength - minlength; i++) {
 			tacking[i] = 0;
 			step[i] = 0;
+			rotate[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
@@ -425,7 +441,6 @@ int do_tacking_crack(struct db_main *db, char *req_charset)
 		subtotal = 0;
 		if(l > 0)
 			subtotal = powi(charcount, minlength+l-1);
-
 		for(x = counter ; x < total-subtotal; ++x) {
 			if(event_abort)
 				break;
@@ -449,18 +464,20 @@ int do_tacking_crack(struct db_main *db, char *req_charset)
 				int mpl = minlength + loop2;
 				if(!skip) {
 					quick_conversion = 1;
-					step[loop2]+= 3 - mpl % 2;
+					step[loop2]+= 2+mpl%2;
 					if(step[loop2] >= mpl)
-						step[loop2] = 3 - mpl % 2;
+						step[loop2] = 2-mpl%2;
+					
 					for(i=0; i<mpl; ++i) {
 			 			if(tacking[loop2] % 2 || mpl < 4) {
-							if((word[i] = charset_utf32[charset_idx[loop2][(i+step[loop2]) % mpl]]) > cp_max)
+							if((word[i] = charset_utf32[(charset_idx[loop2][(i+step[loop2]) % mpl]+rotate[loop2])%charcount]) > cp_max)
 								quick_conversion = 0;
 						}
 						else {
-							if((word[i] = charset_utf32[charset_idx[loop2][(mpl-i-1+step[loop2]/2) % mpl]]) > cp_max)
+							if((word[i] = charset_utf32[(charset_idx[loop2][(mpl-i-1+step[loop2]) % mpl]+rotate[loop2])%charcount]) > cp_max)
 								quick_conversion = 0;
 						}
+			 			rotate[loop2]++;
 					}
 					submit(word, loop2);
 				}
