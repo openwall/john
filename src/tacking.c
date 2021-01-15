@@ -48,16 +48,15 @@ static int state_restored;
 static uint64_t total;
 static uint64_t subtotal;
 
-static int loop;
+static int loop, l;
 static int rec_loop;
 
-static int C;
-static int rec_C;
+static int step[MAX_CAND_LENGTH-1];
+static int rec_step[MAX_CAND_LENGTH-1];
 
 static uint_big counter;//linear counter
 static uint_big rec_counter;
 static uint_big x;
-static int l, c;
 static uint_big tacking[MAX_CAND_LENGTH-1];
 static uint_big rec_tacking[MAX_CAND_LENGTH-1];
 
@@ -140,13 +139,13 @@ static void fix_state(void)
 	rec_set = set;
 	for (i = 0; i <= maxlength - minlength; ++i) {
 		rec_tacking[i] = tacking[i];
+		rec_step[i] = step[i];
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
 	rec_cur_len = tacking_cur_len;
 	rec_counter = x;
 	rec_loop = l;
-	rec_C = c;
 }
 
 static void save_state(FILE *file)
@@ -158,6 +157,7 @@ static void save_state(FILE *file)
 		memset(str, 0, 40);
 		big2str(tacking[i], str);
 		fprintf(file, "%s\n", str);
+		fprintf(file, "%d\n", rec_step[i]);
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -166,7 +166,6 @@ static void save_state(FILE *file)
 	big2str(rec_counter, str);
 	fprintf(file, "%s\n", str);
 	fprintf(file, "%d\n", rec_loop);
-	fprintf(file, "%d\n", rec_C);
 }
 
 static int restore_state(FILE *file)
@@ -184,6 +183,10 @@ static int restore_state(FILE *file)
 			memset(str, 0, 40);
 			tacking[i] = 	str2big(str);
 		}
+		else return 1;
+
+		if(fscanf(file, "%d\n", &d) == 1)
+			step[i] = d;
 		else return 1;
 
 		for(j = 0; j < maxlength; ++j)
@@ -205,11 +208,7 @@ static int restore_state(FILE *file)
 	if(fscanf(file, "%d\n", &d) == 1)
 		loop = d;
 	else return 1;
-	
-	if(fscanf(file, "%d\n", &d) == 1)
-		C = d;
-	else return 1;
-	
+
 	state_restored = 1;
 
 	return 0;
@@ -411,16 +410,14 @@ int do_tacking_crack(struct db_main *db, char *req_charset)
 		srand(time(NULL));
 		loop = 0;
 		counter = 0;
-		C = 1;
 		for(i = 0; i <= maxlength - minlength; i++) {
 			tacking[i] = 0;
+			step[i] = 0;
 			for (j = 0; j < maxlength; j++)
 				charset_idx[i][j] = 0;
 		}
 	}
-
 	crk_init(db, fix_state, NULL);
-	
 	for(l=loop; l <= maxlength-minlength; ++l) {
 		if(event_abort)
 			break;
@@ -452,13 +449,16 @@ int do_tacking_crack(struct db_main *db, char *req_charset)
 				int mpl = minlength + loop2;
 				if(!skip) {
 					quick_conversion = 1;
+					step[loop2]+= 3 - mpl % 2;
+					if(step[loop2] >= mpl)
+						step[loop2] = 3 - mpl % 2;
 					for(i=0; i<mpl; ++i) {
 			 			if(tacking[loop2] % 2 || mpl < 4) {
-							if((word[i] = charset_utf32[charset_idx[loop2][i]]) > cp_max)
+							if((word[i] = charset_utf32[charset_idx[loop2][(i+step[loop2]) % mpl]]) > cp_max)
 								quick_conversion = 0;
 						}
 						else {
-							if((word[i] = charset_utf32[charset_idx[loop2][mpl-i-1]]) > cp_max)
+							if((word[i] = charset_utf32[charset_idx[loop2][(mpl-i-1+step[loop2]/2) % mpl]]) > cp_max)
 								quick_conversion = 0;
 						}
 					}
