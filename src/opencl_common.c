@@ -589,7 +589,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "%u: Error creating context for device %d "
 			        "(%d:%d): %s, %s\n",
-			        NODE, sequential_id,
+			        NODE, sequential_id + 1,
 			        get_platform_id(sequential_id),
 			        get_device_id(sequential_id), get_error_name(ret_code),
 			        retry < RACE_CONDITION_DEBUG ? "retrying" : "giving up");
@@ -607,7 +607,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "%u: Error creating command queue for "
 			        "device %d (%d:%d): %s, %s\n", NODE,
-			        sequential_id, get_platform_id(sequential_id),
+			        sequential_id + 1, get_platform_id(sequential_id),
 			        get_device_id(sequential_id), get_error_name(ret_code),
 			        retry < RACE_CONDITION_DEBUG ? "retrying" : "giving up");
 			if (++retry > RACE_CONDITION_DEBUG)
@@ -617,7 +617,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 	} while (ret_code != CL_SUCCESS);
 
 #ifdef OCL_DEBUG
-	fprintf(stderr, "  Device %d: %s\n", sequential_id, opencl_data);
+	fprintf(stderr, "  Device %d: %s\n", sequential_id + 1, opencl_data);
 #endif
 
 	// Success.
