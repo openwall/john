@@ -944,7 +944,8 @@ err:;
 
 static int usage(char *name)
 {
-	fprintf(stderr,"Usage: %s <rar file(s)>\n", name);
+	fprintf(stderr, "Usage: %s [-v] <rar file(s)>\n", name);
+	fprintf(stderr, " -v\tAdd some verbosity/debug output\n");
 	return EXIT_FAILURE;
 }
 
