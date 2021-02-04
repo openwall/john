@@ -182,7 +182,7 @@ BENCH_OBJS = \
 	$(BENCH_MD5_OBJS_DEPEND) \
 	$(BENCH_BF_OBJS_DEPEND) \
 	bench-t.o best.o common_g.o config_g.o formats_g.o jumbo.o dyna_salt.o \
-	memory.o miscnl.o params.o path.o signals_g.o tty.o
+	memory.o miscnl.o params.o path.o signals_g.o tty-t.o
 
 GENMKVPWD_OBJS = \
 	genmkvpwd.o mkvlib.o memory.o miscnl.o path.o jumbo.o
@@ -1946,6 +1946,9 @@ miscnl.o: misc.c
 
 bench-t.o: bench.c
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -DBENCH_BUILD bench.c -o bench-t.o
+
+tty-t.o: tty.c
+	$(CC) $(CFLAGS) $(OPT_NORMAL) -DBENCH_BUILD tty.c -o tty-t.o
 
 *_fmt_plug.c: Makefile.legacy john.c
 	@
