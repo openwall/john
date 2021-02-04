@@ -189,7 +189,7 @@ static int fexpect(FILE *stream, int c)
 }
 
 static int checksum_only, use_magic;
-static int force_1_byte_checksum, force_2_byte_checksum;
+static int allow_2_byte_checksum;
 static char *ascii_fname, *only_fname;
 
 static char *MagicTypes[] = { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", "PST", NULL };
@@ -744,8 +744,8 @@ static int load_local_header(zip_file *zfp, zip_ptr *p)
 static int process_legacy(zip_file *zfp, zip_ptr *p)
 {
 	FILE *fp = zfp->fp;
+	int force_1_byte_checksum = 0;
 
-	force_1_byte_checksum = 0;
 	fprintf(stderr, "ver %d.%d ", p->version / 10, p->version % 10);
 
 	if ( (p->flags & FLAG_ENCRYPTED) &&
@@ -779,7 +779,8 @@ static int process_legacy(zip_file *zfp, zip_ptr *p)
 				// OLD winzip (I think 8.01 or before), is also supposed to be 2 byte.
 				// old v1 pkzip (the DOS builds) are 2 byte checksums.
 			{
-				zfp->check_bytes = 2;
+				if (allow_2_byte_checksum) // See #4541
+					zfp->check_bytes = 2;
 				zfp->check_in_crc = 0;
 			}
 
@@ -791,10 +792,7 @@ static int process_legacy(zip_file *zfp, zip_ptr *p)
 
 		scan_for_data_descriptor(zfp, p);
 
-		// Command line option -2 will override libarchive EFH
-		if (force_2_byte_checksum)
-			zfp->check_bytes = 2;
-		else if (force_1_byte_checksum)
+		if (force_1_byte_checksum)
 			zfp->check_bytes = 1;
 
 		fprintf(stderr,
@@ -1176,7 +1174,7 @@ static int usage(char *name)
 	fprintf(stderr, "    supported. These hashes do not reveal actual file data.\n");
 	fprintf(stderr, " -m Use \"file magic\" as known-plain if applicable. This can be faster but\n");
 	fprintf(stderr, "    not 100%% safe in all situations.\n");
-	fprintf(stderr, " -2 Force 2 byte checksum computation.\n");
+	fprintf(stderr, " -2 Allow 2 byte checksums (faster but may lead to false negatives).\n");
 	fprintf(stderr, "\nNOTE: By default it is assumed that all files in each archive have the same\n");
 	fprintf(stderr, "password. If that's not the case, the produced hash may be uncrackable.\n");
 	fprintf(stderr, "To avoid this, use -o option to pick a file at a time.\n");
@@ -1209,8 +1207,8 @@ int zip2john(int argc, char **argv)
 			fprintf(stderr, "Using file 'magic' signatures if applicable (not 100%% safe)\n");
 			break;
 		case '2':
-			force_2_byte_checksum = 1;
-			fprintf(stderr, "Forcing a 2 byte checksum detection\n");
+			allow_2_byte_checksum = 1;
+			fprintf(stderr, "Allowing 2 byte checksum detection (not 100%% safe)\n");
 			break;
 		case 's':
 			do_scan = 1;
