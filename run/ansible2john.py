@@ -31,6 +31,7 @@ def process_file(filename):
 
     data = open(filename, "rb").read()
     if not data.startswith(HEADER):
+        sys.stderr.write("File doesn't start with %s\n" % HEADER)
         return
 
     tmpdata = data.splitlines()
