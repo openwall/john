@@ -804,6 +804,7 @@ string_to_key(void)
 {
 	int has_iv = YES;
 	int type = Getc();
+	int i;
 
 	switch (type) {
 	case 0:
@@ -820,11 +821,13 @@ string_to_key(void)
 		// hash_algs(Getc());
 		m_hashAlgorithm = Getc();
 		if (gpg_dbg) fprintf(stderr, "\t\tSalt - ");
-		if (gpg_dbg)
-			dump(8);
-		else
-			give(8, m_salt, sizeof(m_salt));
-		if (gpg_dbg) fprintf(stderr, "\n");
+		give(8, m_salt, sizeof(m_salt));
+		if (gpg_dbg) {
+			for (i = 0; i < 8; ++i) {
+				fprintf(stderr, "%02x", m_salt[i]);
+			}
+			fprintf(stderr, "\n");
+		}
 		break;
 	case 2:
 		if (gpg_dbg) fprintf(stderr, "\tReserved string-to-key(s2k %d)\n", type);
@@ -836,11 +839,13 @@ string_to_key(void)
 		m_hashAlgorithm = Getc();
 		// hash_algs(Getc());
 		if (gpg_dbg) fprintf(stderr, "\t\tSalt - ");
-		if (gpg_dbg)
-			dump(8);
-		else
-			give(8, m_salt, sizeof(m_salt));
-		if (gpg_dbg) fprintf(stderr, "\n");
+		give(8, m_salt, sizeof(m_salt));
+		if (gpg_dbg) {
+			for (i = 0; i < 8; ++i) {
+				fprintf(stderr, "%02x", m_salt[i]);
+			}
+			fprintf(stderr, "\n");
+		}
 		{
 			int count, c = Getc();
 			count = (16 + (c & 15)) << ((c >> 4) + EXPBIAS);
@@ -1138,8 +1143,11 @@ Symmetrically_Encrypted_and_MDC_Packet(int len, int first, int partial, char *ha
 	if (first) {
 		cp = hash;
 		totlen = 0;
-		if (gpg_dbg) fprintf(stderr, "\tVer %d\n", Getc());
-		Getc(); // version (we only read this from the first packet. Not read from rest of the 'partial' packets.
+		if (gpg_dbg) {
+			fprintf(stderr, "\tVer %d\n", Getc());
+		} else {
+			Getc(); // version (we only read this from the first packet. Not read from rest of the 'partial' packets.
+		}
 	} else
 		++len;  // we want the 'full' length for subsquent partial packets, since the logic is len-1 we simply fake it out.
 	totlen += (len-1);
