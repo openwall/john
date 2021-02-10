@@ -1,0 +1,34 @@
+
+CC = gcc
+CXX = @CXX@
+AS = gcc
+LD = gcc
+CPP = gcc
+YASM =
+AR = ar
+FIND = find
+
+IN = poly1305-donna.o
+
+all: poly1305-donna.a
+default: poly1305-donna.a
+
+poly1305-donna.o: poly1305-donna.c
+	$(CC) -DHAVE_CONFIG_H $(CFLAGS) -c poly1305-donna.c -o poly1305-donna.o
+
+.PHONY: subdirs $(SUBDIRS)
+
+subdirs: $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) -C $@ all
+
+poly1305-donna.a: $(SUBDIRS) poly1305-donna.o
+	$(AR) -rs $@ $(IN)
+
+clean:
+	$(FIND) . -name \*.a -exec $(RM) {} \;
+	$(FIND) . -name \*.o -exec $(RM) {} \;
+
+distclean: clean
+	$(RM) Makefile
