@@ -553,8 +553,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 		*p = 0;
 		fields[0] = *login = no_username;
 		fields[1] = *ciphertext;
-		if (strnlen(*ciphertext, LINE_BUFFER_SIZE + 1) >
-		    LINE_BUFFER_SIZE) {
+		if (strnlen(*ciphertext, MAX_CIPHERTEXT_SIZE + 1) > MAX_CIPHERTEXT_SIZE) {
 			huge_line = 1;
 		}
 	}
@@ -596,7 +595,7 @@ static int ldr_split_line(char **login, char **ciphertext,
 	gid = fields[3];
 	shell = fields[6];
 
-	if (SPLFLEN(1) > LINE_BUFFER_SIZE) {
+	if (SPLFLEN(1) > MAX_CIPHERTEXT_SIZE) {
 		huge_line = 1;
 	}
 	else if (SPLFLEN(2) == 32 || SPLFLEN(3) == 32) {
