@@ -499,6 +499,13 @@ static void john_omp_show_info(void)
 }
 #endif
 
+static void john_set_tristates(void)
+{
+	/* Config CrackStatus may be overridden by --crack-status tri-state */
+	if (options.crack_status == -1)
+		options.crack_status = cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0);
+}
+
 #if OS_FORK
 static void john_fork(void)
 {
@@ -557,6 +564,7 @@ static void john_fork(void)
 				unsigned int node_id = options.node_min;
 				rec_done(-2);
 				rec_restore_args(1);
+				john_set_tristates();
 				if (node_id != options.node_min + i)
 					fprintf(stderr,
 					    "Inconsistent crash recovery file:"
@@ -609,6 +617,7 @@ static void john_set_mpi(void)
 				unsigned int node_id = options.node_min;
 				rec_done(-2);
 				rec_restore_args(1);
+				john_set_tristates();
 				if (node_id != options.node_min + mpi_id)
 					fprintf(stderr,
 					    "Inconsistent crash recovery file:"
@@ -805,10 +814,6 @@ static void john_load_conf(void)
 		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtSave", 1);
 	options.abort_file = cfg_get_param(SECTION_OPTIONS, NULL, "AbortFile");
 	options.pause_file = cfg_get_param(SECTION_OPTIONS, NULL, "PauseFile");
-
-	/* Config CrackStatus may be overridden by --crack-status tri-state */
-	if (options.crack_status == -1)
-		options.crack_status = cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0);
 
 #if HAVE_OPENCL
 	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "ForceScalar", 0))
@@ -1510,6 +1515,9 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 	/* Process configuration options that depend on cfg_init() */
 	john_load_conf();
+
+	/* Stuff that need to be reset again after rec_restore_args */
+	john_set_tristates();
 
 #ifdef _OPENMP
 	john_omp_maybe_adjust_or_fallback(argv);
