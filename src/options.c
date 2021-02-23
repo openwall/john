@@ -267,18 +267,11 @@ static struct opt_entry opt_list[] = {
 "--single-wordlist=FILE     *short* wordlist with static seed words/morphemes\n" \
 "--single-user-seed=FILE    wordlist with seeds per username (user:password[s]\n" \
 "                           format)\n" \
-"--[no-]single-retest-guess override config for SingleRetestGuess\n" \
 "--single-pair-max=N        override max. number of word pairs generated (%u)\n" \
 "--no-single-pair           disable single word pair generation\n" \
+"--[no-]single-retest-guess override config for SingleRetestGuess\n" \
 "--wordlist[=FILE] --stdin  wordlist mode, read words from FILE or stdin\n" \
 "                  --pipe   like --stdin, but bulk reads, and allows rules\n" \
-"--mem-file-size=SIZE       size threshold for wordlist preload (default %u MB)\n" \
-"--loopback[=FILE]          like --wordlist, but extract words from a .pot file\n" \
-"--dupe-suppression         suppress all dupes in wordlist (and force preload)\n" \
-FUZZ_USAGE \
-PRINCE_USAGE \
-"--encoding=NAME            input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
-"                           doc/ENCODINGS.\n" \
 "--rules[=SECTION[,..]]     enable word mangling rules (for wordlist or PRINCE\n" \
 "                           modes), using default or named rules\n" \
 "--rules=:rule[;..]]        same, using \"immediate\" rule(s)\n" \
@@ -286,12 +279,16 @@ PRINCE_USAGE \
 "                           modes that otherwise don't support rules\n" \
 "--rules-stack=:rule[;..]   same, using \"immediate\" rule(s)\n" \
 "--rules-skip-nop           skip any NOP \":\" rules (you already ran w/o rules)\n" \
+"--loopback[=FILE]          like --wordlist, but extract words from a .pot file\n" \
+"--mem-file-size=SIZE       size threshold for wordlist preload (default %u MB)\n" \
+"--dupe-suppression         suppress all dupes in wordlist (and force preload)\n" \
 "--incremental[=MODE]       \"incremental\" mode [using section MODE]\n" \
 "--incremental-charcount=N  override CharCount for incremental mode\n" \
+"--external=MODE            external mode or word filter\n" \
 "--mask[=MASK]              mask mode using MASK (or default from john.conf)\n" \
 "--markov[=OPTIONS]         \"Markov\" mode (see doc/MARKOV)\n" \
 "--mkv-stats=FILE           \"markov\" stats file (see doc/MARKOV)\n" \
-"--external=MODE            external mode or word filter\n" \
+PRINCE_USAGE \
 JOHN_USAGE_REGEX \
 "--subsets[=CHARSET]        \"subsets\" mode (see doc/SUBSETS)\n" \
 "--subsets-required=N       The N first characters of \"subsets\" charset are\n" \
@@ -302,20 +299,19 @@ JOHN_USAGE_REGEX \
 "--subsets-prefer-short     Prefer shorter candidates over smaller subsets\n" \
 "--subsets-prefer-small     Prefer smaller subsets over shorter candidates\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
+"--status[=NAME]            print status of a session [called NAME]\n" \
 "--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--session=NAME             give a new session the NAME\n" \
-"--status[=NAME]            print status of a session [called NAME]\n" \
 "--make-charset=FILE        make a charset file. It will be overwritten\n" \
-"--reject-printable         reject printable binaries\n" \
 "--show[=left]              show cracked passwords [if =left, then uncracked]\n" \
 "--show=formats             show information about hashes in a file (JSON)\n" \
 "--show=invalid             show lines that are not valid for selected format(s)\n" \
 "--test[=TIME]              run tests and benchmarks for TIME seconds each\n" \
 "                           (if TIME is explicitly 0, test w/o benchmark)\n" \
 "--stress-test[=TIME]       loop self tests forever\n" \
+"--test-full=LEVEL          run more thorough self-tests\n" \
 "--no-mask                  used with --test for alternate benchmark w/o mask\n" \
 "--skip-self-tests          skip self tests\n" \
-"--test-full=LEVEL          run more thorough self-tests\n" \
 "--users=[-]LOGIN|UID[,..]  [do not] load this (these) user(s) only\n" \
 "--groups=[-]GID[,..]       load users [not] of this (these) group(s) only\n" \
 "--shells=[-]SHELL[,..]     load users with[out] this (these) shell(s) only\n" \
@@ -337,25 +333,40 @@ JOHN_USAGE_REGEX \
 "--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n" \
 "--no-log                   disables creation and writing to john.log file\n"      \
 "--bare-always-valid=Y      treat bare hashes as valid (Y/N)\n" \
-"--progress-every=N         emit a status line every N seconds\n" \
+"--config=FILE              use FILE instead of john.conf or john.ini\n" \
 "--[no-]crack-status        emit a status line whenever a password is cracked\n" \
+"--encoding=NAME            input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
+"                           doc/ENCODINGS.\n" \
+"--force-tty                set up terminal for reading keystrokes even if we're\n" \
+"                           not the foreground process\n" \
+"--field-separator-char=C   use 'C' instead of the ':' in input and pot files\n" \
+"--fix-state-delay=N        performance tweak, see doc/OPTIONS\n" \
+FUZZ_USAGE \
+"--input-encoding=NAME      input encoding (alias for --encoding)\n" \
+"--internal-codepage=NAME   codepage used in rules/masks (see doc/ENCODINGS)\n" \
 "--[no-]keep-guessing       try finding plaintext collisions\n" \
+"--length=N                 shortcut for --min-len=N --max-len=N\n" \
+"--list=WHAT                list capabilities, see --list=help or doc/OPTIONS\n" \
+"--log-stderr               log to screen instead of file\n"             \
+"--min-length=N             request a minimum candidate length in bytes\n" \
+"--max-length=N             request a maximum candidate length in bytes\n" \
 "--max-candidates=[-]N      gracefully exit after this many candidates tried.\n" \
 "                           (if negative, reset count on each crack)\n" \
 "--max-run-time=[-]N        gracefully exit after this many seconds (if negative,\n" \
 "                           reset timer on each crack)\n" \
-"--regen-lost-salts=N       brute force unknown salts (see doc/OPTIONS)\n" \
-JOHN_USAGE_FORK \
+"--mkpc=N                   request a lower max. keys per crypt\n" \
+"--no-log                   disables creation and writing to john.log file\n"      \
+"--no-loader-dupecheck      disable the dupe checking when loading hashes\n" \
 "--pot=NAME                 pot file to use\n" \
-"--list=WHAT                list capabilities, see --list=help or doc/OPTIONS\n" \
-"--input-encoding=NAME      input encoding (alias for --encoding)\n" \
-"--internal-codepage=NAME   codepage used in rules/masks (see doc/ENCODINGS)\n" \
+"--progress-every=N         emit a status line every N seconds\n" \
+"--regen-lost-salts=N       brute force unknown salts (see doc/OPTIONS)\n" \
+"--reject-printable         reject printable binaries\n" \
 "--target-encoding=NAME     output encoding (used by format, see doc/ENCODINGS)\n" \
 "--tune=HOW                 tuning options (auto/report/N)\n" \
-"--force-tty                set up terminal for reading keystrokes even if we're\n" \
-"                           not the foreground process\n"
+"--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n"
 
 #define JOHN_USAGE_FORMAT \
+"--subformat=FORMAT         pick a benchmark format for --format=crypt\n" \
 "--format=[NAME|CLASS][,..] force hash of type NAME. The supported formats can\n" \
 "                           be seen with --list=formats and --list=subformats.\n" \
 "                           Valid classes: dynamic, cpu, opencl, ztex, mask, omp,\n" \
@@ -391,6 +402,7 @@ void opt_usage()
 #if defined(HAVE_ZTEX)
 	printf("%s", JOHN_USAGE_ZTEX);
 #endif
+	printf("%s", JOHN_USAGE_FORK);
 	printf("%s", JOHN_USAGE_FORMAT);
 }
 
