@@ -189,7 +189,6 @@ static int fexpect(FILE *stream, int c)
 }
 
 static int checksum_only, use_magic;
-static int allow_2_byte_checksum;
 static char *ascii_fname, *only_fname;
 
 static char *MagicTypes[] = { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", "PST", NULL };
@@ -229,7 +228,6 @@ typedef struct _zip_file
 {
 	FILE *fp;
 	const char *fname;
-	int check_in_crc; // ??? only used for debug output...
 	int check_bytes;  // number of valid bytes in checksum
 	int zip64; // Is ZIP64 format (has ZIP64 EOCD)
 } zip_file;
@@ -744,7 +742,6 @@ static int load_local_header(zip_file *zfp, zip_ptr *p)
 static int process_legacy(zip_file *zfp, zip_ptr *p)
 {
 	FILE *fp = zfp->fp;
-	int force_1_byte_checksum = 0;
 
 	fprintf(stderr, "ver %d.%d ", p->version / 10, p->version % 10);
 
@@ -766,41 +763,18 @@ static int process_legacy(zip_file *zfp, zip_ptr *p)
 			xfseek(fp, efh_datasize, SEEK_CUR);
 
 			extra_len_used += 4 + efh_datasize;
-			if (efh_id == 0x07c8 ||  // Info-ZIP Macintosh (old, J. Lee)
-				efh_id == 0x334d ||  // Info-ZIP Macintosh (new, D. Haase's 'Mac3' field)
-				efh_id == 0x4d49 ||  // Info-ZIP OpenVMS (obsolete)
-				efh_id == 0x5855 ||  // Info-ZIP UNIX (original; also OS/2, NT, etc.)
-				efh_id == 0x6375 ||  // Info-ZIP UTF-8 comment field
-				efh_id == 0x7075 ||  // Info-ZIP UTF-8 name field
-				efh_id == 0x7855 ||  // Info-ZIP UNIX (16-bit UID/GID info)
-				efh_id == 0x7875)    // Info-ZIP UNIX 3rd generation (generic UID/GID, ...)
-
-				// 7zip ALSO is 2 byte checksum, but I have no way to find them.  NOTE, it is 2 bytes of CRC, not timestamp like InfoZip.
-				// OLD winzip (I think 8.01 or before), is also supposed to be 2 byte.
-				// old v1 pkzip (the DOS builds) are 2 byte checksums.
-			{
-				if (allow_2_byte_checksum) // See #4541
-					zfp->check_bytes = 2;
-				zfp->check_in_crc = 0;
-			}
-
-			// This suggests libarchive and/or eZip was involved, and seems to
-			// indicate we only have a 1-byte valid CS. See #4300
-			if (efh_id == 0x6c78)
-				force_1_byte_checksum = 1;
 		}
+
+		if (p->version < 20)
+			zfp->check_bytes = 2;
 
 		scan_for_data_descriptor(zfp, p);
 
-		if (force_1_byte_checksum)
-			zfp->check_bytes = 1;
-
 		fprintf(stderr,
-		        "%s/%s PKZIP%s Encr:%s%s cmplen=%"PRIu64", decmplen=%"PRIu64", crc=%X type=%"PRIu16"\n",
+		        "%s/%s PKZIP%s Encr: %s cmplen=%"PRIu64", decmplen=%"PRIu64", crc=%X type=%"PRIu16"\n",
 		        jtr_basename(zfp->fname), p->file_name,
 		        zfp->zip64 ? "64" : "",
-		        zfp->check_bytes == 2 ? " 2b chk," : "",
-		        zfp->check_in_crc ? "" : " TS_chk,",
+		        zfp->check_bytes == 2 ? "2b chk," : "TS_chk,",
 		        p->cmp_len, p->decomp_len, p->crc, p->cmptype);
 
 		MEM_FREE(p->hash_data);
@@ -886,7 +860,6 @@ static void init_zip_context(zip_context *ctx, const char *fname, FILE *fp)
 {
 	memset(ctx, 0, sizeof(*ctx));
 	ctx->archive.fname = fname;
-	ctx->archive.check_in_crc = 1;
 	ctx->archive.check_bytes = 1;
 	ctx->archive.fp = fp;
 }
@@ -1174,7 +1147,6 @@ static int usage(char *name)
 	fprintf(stderr, "    supported. These hashes do not reveal actual file data.\n");
 	fprintf(stderr, " -m Use \"file magic\" as known-plain if applicable. This can be faster but\n");
 	fprintf(stderr, "    not 100%% safe in all situations.\n");
-	fprintf(stderr, " -2 Allow 2 byte checksums (faster but may lead to false negatives).\n");
 	fprintf(stderr, "\nNOTE: By default it is assumed that all files in each archive have the same\n");
 	fprintf(stderr, "password. If that's not the case, the produced hash may be uncrackable.\n");
 	fprintf(stderr, "To avoid this, use -o option to pick a file at a time.\n");
@@ -1205,10 +1177,6 @@ int zip2john(int argc, char **argv)
 		case 'm':
 			use_magic = 1;
 			fprintf(stderr, "Using file 'magic' signatures if applicable (not 100%% safe)\n");
-			break;
-		case '2':
-			allow_2_byte_checksum = 1;
-			fprintf(stderr, "Allowing 2 byte checksum detection (not 100%% safe)\n");
 			break;
 		case 's':
 			do_scan = 1;

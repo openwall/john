@@ -143,7 +143,7 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Make keypress [d] special: It will also emit a status line, but not until
   the current batch has been run among all salts.  Under some circumstances
-  that make take a good while.  [magnum; 2020]
+  that may take a good while.  [magnum; 2020]
 
 - Add command-line option --loader-dupecheck=<yes/no>, overriding config file.
   Mark the latter as deprecated in config file comments.  [magnum; 2020]
@@ -159,6 +159,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Addition of mosquitto2john.py for cracking of Eclipse Mosquitto passwd files.
   [blackfell; 2021]
+
+- Final fixes for zip2john selection of 1-byte or 2-byte early-reject checks,
+  after seeing several issues and digging into the specs.  [magnum; 2021]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
@@ -563,4 +566,3 @@ Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
   mostly part of our development process and not the release, although some
   CI-related files do exist in our released tree.
   [Claudio, magnum; 2015-2019]
-
