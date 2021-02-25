@@ -1,20 +1,13 @@
 /*
  * zip2john processes input ZIP files into a format suitable for use with JtR.
  *
- * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is
+ * Copyright (c) 2011-2018 Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * Copyright (c) 2011-2018 JimF, Copyright (c) 2020 Simon Rettberg,
+ * Copyright (c) 2013-2021 magnum,
  * and it is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted.
- *
- * Updated in Aug 2011 by JimF.  Added PKZIP 'old' encryption.  The signature on the
- * pkzip will be $pkzip$ and does not look like the AES version written by Dhiru
- * Also fixed some porting issues, such as variables needing declared at top of blocks.
- *
- * Updated in 2020 by Simon Rettberg. Handle archives by scanning their central
- * directory first, which is more robust with archives that have been created using
- * streams. The old behavior of scanning for local headers from the start of the
- * file is still available through the -s option. Also fixed some minor issues and
- * refactored the code for slightly less redundant code beween AES and legacy.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  *
  * References:
  *
@@ -38,13 +31,27 @@
  * For type = 0, for ZIP files encrypted using AES
  * filename:$zip$*type*hex(CRC)*encryption_strength*hex(salt)*hex(password_verfication_value):hex(authentication_code)
  *
- * For original pkzip encryption:  (JimF, with longer explaination of fields)
- * filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$   (deprecated)
- * filename:$pkzip2$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*TC*DA]*$/pkzip2$   (new format, with 2 checksums)
+ * Original $pkzip$ only had CS, fixed to be part of CRC, which was found out sometimes inappropriate.
+ * filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$
+ *   CS  2 bytes of checksum data.
+ *
+ * The newer $pkzip2$ addressed the problem by adding TC (as in timestamp), but still neither zip2john or
+ * the format really knew when to use which (resulting in suboptimal early rejection).
+ * filename:$pkzip2$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*TC*DA]*$/pkzip2$ (with 2 checksums: CS & TC)
+ *   CS  2 bytes of checksum data.
+ *   TC  2 bytes of checksum data (from timestamp)
+ *
+ * Current version (Feb 2021) reverted to original $pkzip$ but now with the one correct value put in CS: Sometimes
+ * it's taken from timestamp, sometimes part of the CRC.
+ * filename:$pkzip$C*B*[DT*MT{CL*UL*CR*OF*OX}*CT*DL*CS*DA]*$/pkzip$
+ *   CS  Depending on archive, 2 bytes of either checksum data or timestamp.
+ *
  * All numeric and 'binary data' fields are stored in hex.
  *
  * C   is the count of hashes present (the array of items, inside the []  C can be 1 to 8.).
- * B   is number of valid bytes in the checksum (1 or 2).  Unix zip is 2 bytes, all others are 1 (NOTE, some can be 0)
+ * B   is number of valid bytes in the CS.  For ZIP version [needed to extract] < 2.0, this is 2, otherwise it's 1.
+ *     The B value should actually be defined within the ARRAY below, not per archive. For now we set it to 1 if any
+ *     of the files limits it.
  * ARRAY of data starts here
  *   DT  is a "Data Type enum".  This will be 1 2 or 3.  1 is 'partial'. 2 and 3 are full file data (2 is inline, 3 is load from file).
  *   MT  Magic Type enum.  0 is no 'type'.  255 is 'text'. Other types (like MS Doc, GIF, etc), see source.
@@ -57,8 +64,8 @@
  *     END OF 'optional' fields.
  *   CT  Compression type  (0 or 8)  0 is stored, 8 is imploded.
  *   DL  Length of the DA data.
- *   CS  2 bytes of checksum data.
- *   TC  2 bytes of checksum data (from timestamp)
+ *   CS  2 bytes of checksum data, from CRC, *or* from either CRC or timestamp (see above).
+ *   TC  2 bytes of checksum data, from timestamp (only $pkzip2$, see above).
  *   DA  This is the 'data'.  It will be hex data if DT == 1 or 2. If DT == 3, then it is a filename (name of the .zip file).
  * END of array item.  There will be C (count) array items.
  * The format string will end with $/pkzip$
@@ -211,8 +218,7 @@ typedef struct _zip_ptr
 	uint64_t      offset, offex;
 	uint64_t      cmp_len, decomp_len;
 	uint32_t      crc;
-	char          chksum[5];
-	char          chksum2[5];
+	char          cs[5]; // High-order word of either crc or timestamp
 	int           zip64; // Has extended header with 64bit data
 	uint16_t      lastmod_date, lastmod_time;
 	uint16_t      extrafield_length;
@@ -765,17 +771,27 @@ static int process_legacy(zip_file *zfp, zip_ptr *p)
 			extra_len_used += 4 + efh_datasize;
 		}
 
-		if (p->version < 20)
-			zfp->check_bytes = 2;
+		if (p->version >= 20)
+			zfp->check_bytes = 1;
+		else if (zfp->check_bytes == 1)
+			fprintf(stderr, "** 2b ** ");
 
 		scan_for_data_descriptor(zfp, p);
 
+		// Ok, now set checksum bytes.  This will depend upon if from crc, or from timestamp
+		if (p->flags & FLAG_LOCAL_SIZE_UNKNOWN)
+			sprintf(p->cs, "%02x%02x", p->lastmod_time >> 8, p->lastmod_time & 0xFF);
+		else
+			sprintf(p->cs, "%02x%02x", (p->crc >> 24) & 0xFF, (p->crc >> 16) & 0xFF);
+
+
 		fprintf(stderr,
-		        "%s/%s PKZIP%s Encr: %s cmplen=%"PRIu64", decmplen=%"PRIu64", crc=%X type=%"PRIu16"\n",
+		        "%s/%s PKZIP%s Encr: %s%scmplen=%"PRIu64", decmplen=%"PRIu64", crc=%08X ts=%04X cs=%s type=%"PRIu16"\n",
 		        jtr_basename(zfp->fname), p->file_name,
 		        zfp->zip64 ? "64" : "",
-		        zfp->check_bytes == 2 ? "2b chk," : "TS_chk,",
-		        p->cmp_len, p->decomp_len, p->crc, p->cmptype);
+		        zfp->check_bytes == 2 ? "2b chk, " : "",
+		        p->flags & FLAG_LOCAL_SIZE_UNKNOWN ? "TS_chk, " : "",
+		        p->cmp_len, p->decomp_len, p->crc, p->lastmod_time, p->cs, p->cmptype);
 
 		MEM_FREE(p->hash_data);
 		p->hash_data = mem_alloc(p->cmp_len + 1);
@@ -783,10 +799,6 @@ static int process_legacy(zip_file *zfp, zip_ptr *p)
 			fprintf(stderr, "Error, fread could not read the data from the file: %s\n", zfp->fname);
 			return 0;
 		}
-
-		// Ok, now set checksum bytes.  This will depend upon if from crc, or from timestamp
-		sprintf(p->chksum, "%02x%02x", (p->crc>>24)&0xFF, (p->crc>>16)&0xFF);
-		sprintf(p->chksum2, "%02x%02x", p->lastmod_time>>8, p->lastmod_time&0xFF);
 
 		return 1;
 	}
@@ -860,7 +872,7 @@ static void init_zip_context(zip_context *ctx, const char *fname, FILE *fp)
 {
 	memset(ctx, 0, sizeof(*ctx));
 	ctx->archive.fname = fname;
-	ctx->archive.check_bytes = 1;
+	ctx->archive.check_bytes = 2;
 	ctx->archive.fp = fp;
 }
 
@@ -915,7 +927,7 @@ static void print_and_cleanup(zip_context *ctx)
 	filenames = strdup(ctx->best_files[0].file_name);
 	bname = jtr_basename(ctx->archive.fname);
 
-	printf("%s%s%s:$pkzip2$%x*%x*", bname,
+	printf("%s%s%s:$pkzip$%x*%x*", bname,
 			 ctx->num_candidates == 1 ? "/" : "",
 			 ctx->num_candidates == 1 ? ctx->best_files[0].file_name : "",
 			 ctx->num_candidates, ctx->archive.check_bytes);
@@ -935,21 +947,21 @@ static void print_and_cleanup(zip_context *ctx)
 			len = 12+180;
 		if (len > ctx->best_files[i].cmp_len)
 			len = ctx->best_files[i].cmp_len; // even though we 'could' output a '2', we do not.  We only need one full inflate CRC check file.
-		printf("1*%x*%x*%"PRIx64"*%s*%s*", ctx->best_files[i].magic_type, ctx->best_files[i].cmptype, (uint64_t)len, ctx->best_files[i].chksum, ctx->best_files[i].chksum2);
+		printf("1*%x*%x*%"PRIx64"*%s*", ctx->best_files[i].magic_type, ctx->best_files[i].cmptype, (uint64_t)len, ctx->best_files[i].cs);
 		print_hex((unsigned char*)ctx->best_files[i].hash_data, len);
 	}
 	// Ok, now output the 'little' one (the first).
 	if (!checksum_only) {
 		printf("%x*%x*%"PRIx64"*%"PRIx64"*%x*%"PRIx64"*%"PRIx64"*%x*", 2, ctx->best_files[0].magic_type, ctx->best_files[0].cmp_len, ctx->best_files[0].decomp_len, ctx->best_files[0].crc, ctx->best_files[0].offset, ctx->best_files[0].offex, ctx->best_files[0].cmptype);
-		printf("%"PRIx64"*%s*%s*", ctx->best_files[0].cmp_len, ctx->best_files[0].chksum, ctx->best_files[0].chksum2);
+		printf("%"PRIx64"*%s*", ctx->best_files[0].cmp_len, ctx->best_files[0].cs);
 		print_hex((unsigned char*)ctx->best_files[0].hash_data, ctx->best_files[0].cmp_len);
 	}
 	/* Don't allow our delimiter in there! */
 	replace(filenames, ':', ' ');
 	if (ctx->num_candidates > 1)
-		printf("$/pkzip2$::%s:%s:%s\n", bname, filenames, ctx->archive.fname);
+		printf("$/pkzip$::%s:%s:%s\n", bname, filenames, ctx->archive.fname);
 	else
-		printf("$/pkzip2$:%s:%s::%s\n", filenames, bname, ctx->archive.fname);
+		printf("$/pkzip$:%s:%s::%s\n", filenames, bname, ctx->archive.fname);
 
 	if (ctx->num_candidates > 1 && !once++)
 		fprintf(stderr,
