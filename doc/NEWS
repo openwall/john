@@ -161,7 +161,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   [blackfell; 2021]
 
 - Final fixes for zip2john selection of 1-byte or 2-byte early-reject checks,
-  after seeing several issues and digging into the specs.  [magnum; 2021]
+  as well as exactly what source to use for that check, after seeing several
+  issues and digging into the specs.  Note that a re-run of zip2john is needed
+  for correct cracking. [magnum; 2021]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):

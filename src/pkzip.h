@@ -1,3 +1,10 @@
+/*
+ * This software is Copyright (c) 2011-2018 Jim Fougeron,
+ * Copyright (c) 2013-2021 magnum,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
 #ifndef PKZIP_H
 #define PKZIP_H
 
@@ -38,6 +45,7 @@ typedef struct zip_magic_signatures_t {
 
 typedef struct zip_hash_type_t {
 	u8 *h;						// at getsalt time, we leave these null.  Later in setsalt, we 'fix' them
+	u8 type;					// JtR hash version. Version 2 ($pkzip2$) is now the deprecated one.
 	u16 c;
 	u16 c2;
 	u64 datlen;
