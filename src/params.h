@@ -146,7 +146,7 @@
 /*
  * Default crash recovery file saving delay in timer intervals.
  */
-#define TIMER_SAVE_DELAY		(600 / TIMER_INTERVAL)
+#define TIMER_SAVE_DELAY		(60 / TIMER_INTERVAL)
 
 /*
  * Default benchmark time in seconds (per cracking algorithm).
