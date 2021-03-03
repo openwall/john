@@ -44,11 +44,29 @@ if test "x$enable_native_tests" = xyes; then
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT(no)]
   )
+  CC="$CC_BACKUP -march=armv8-a+simd"
+  AC_MSG_CHECKING([for ASIMD])
+  AC_RUN_IFELSE(
+    [
+    AC_LANG_SOURCE(
+    [[#include <arm_neon.h>
+  #include <stdio.h>
+  extern void exit(int);
+  int main(){uint32x4_t t;*((long*)&t)=1;t=veorq_u32(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-march=armv8-a+simd"]
+     [SIMD_NAME="ASIMD"]
+     [AC_MSG_RESULT([yes])]
+     [ARCH_LINK=arm64le.h]
+    ,[CPU_NOTFOUND="1"]
+     [AC_MSG_RESULT(no)]
+  )
 else
 dnl ======================================================================
 dnl               cross-compile versions of the same tests
 dnl ======================================================================
   AC_MSG_CHECKING([for NEON])
+  CC="$CC_BACKUP -mfpu=neon"
   AC_LINK_IFELSE(
     [
     AC_LANG_SOURCE(
@@ -59,6 +77,23 @@ dnl ======================================================================
     )]
     ,[CPU_BEST_FLAGS="-mfpu=neon"]
      [SIMD_NAME="NEON"]
+     [AC_MSG_RESULT([yes])]
+    ,[CPU_NOTFOUND="1"]
+     [AC_MSG_RESULT(no)]
+  )
+  AC_MSG_CHECKING([for ASIMD])
+  CC="$CC_BACKUP -march=armv8-a+simd"
+  AC_LINK_IFELSE(
+    [
+    AC_LANG_SOURCE(
+    [[#include <arm_neon.h>
+  #include <stdio.h>
+  extern void exit(int);
+  int main(){uint32x4_t t;*((long*)&t)=1;t=veorq_u32(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}]]
+    )]
+    ,[CPU_BEST_FLAGS="-march=armv8-a+simd"]
+     [SIMD_NAME="ASIMD"]
+     [ARCH_LINK=arm64le.h]
      [AC_MSG_RESULT([yes])]
     ,[CPU_NOTFOUND="1"]
      [AC_MSG_RESULT(no)]
