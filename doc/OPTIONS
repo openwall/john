@@ -163,6 +163,11 @@ assumes that to be the significant password length and truncates
 longer words (like a few formats, eg. DEScrypt, do). If you instead
 say --max-length=LENGTH, longer candidates will instead be rejected.
 
+Please note that session save/resume is inherently unreliable when
+using --stdout piped to some external program:  Buffering by OS and/
+or by the receiving program may cause a resume too far into the
+keyspace. It's supported, but only as a "best-effort" functionality.
+
 --restore[=NAME]		restore an interrupted session
 
 Continues an interrupted cracking session, reading state information
