@@ -368,5 +368,3 @@ The preprocess rule [\x01-\xff] will be replaced with 255 characters
 
 Please refer to the default configuration file for John the Ripper for
 many example uses of the features described in here.
-
-$Owl$
