@@ -607,8 +607,11 @@ void opt_init(char *name, int argc, char **argv)
 		status_print();
 #if OS_FORK
 		if (options.fork) {
-			unsigned int i, node_max = options.node_max;
-			for (i = options.node_min + 1; i <= node_max; i++) {
+			unsigned int node_max = options.node_max;
+			unsigned int range = node_max - options.node_min + 1;
+			unsigned int npf = range / options.fork;
+			unsigned int i = options.node_min;
+			while ((i += npf) <= node_max) {
 				rec_name = rec_name_orig;
 				rec_name_completed = 0;
 				rec_restoring_now = 0;
@@ -844,6 +847,7 @@ void opt_init(char *name, int argc, char **argv)
 				options.node_max += mpi_p - 1;
 #endif
 		}
+		unsigned int range = options.node_max - options.node_min + 1;
 		if (n < 2)
 			msg = "valid syntax is MIN-MAX/TOTAL or N/TOTAL";
 		else if (!options.node_min)
@@ -855,9 +859,8 @@ void opt_init(char *name, int argc, char **argv)
 		else if (options.node_max > options.node_count)
 			msg = "node numbers can't exceed node count";
 #if OS_FORK
-		else if (options.fork &&
-		    options.node_max - options.node_min + 1 != options.fork)
-			msg = "range must be consistent with --fork number";
+		else if (options.fork && range % options.fork)
+			msg = "node range must be divisible by fork count";
 #endif
 #ifdef HAVE_MPI
 		if (mpi_p > 1 &&
@@ -866,10 +869,9 @@ void opt_init(char *name, int argc, char **argv)
 #endif
 		else if (!options.fork &&
 #ifdef HAVE_MPI
-		         mpi_p == 1 &&
+		    mpi_p == 1 &&
 #endif
-		    options.node_max - options.node_min + 1 ==
-		    options.node_count)
+		    range == options.node_count)
 			msg = "node numbers can't span the whole range";
 		if (msg) {
 			if (john_main_process)
