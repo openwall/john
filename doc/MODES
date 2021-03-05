@@ -199,5 +199,3 @@ in case of using a GPU-enabled format that supports it, mask mode will even be
 accelerated on GPU with a huge performance boost.  Having said that, there are
 things you can only do with rules, and other things that only regex can
 achieve, so mask mode is not always the best fit.
-
-$Owl$

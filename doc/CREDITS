@@ -72,5 +72,3 @@ Developer's Kit) that I used for the Win32 port:
 	http://www.delorie.com/djgpp/
 
 * Charles W Sandmann - for CWSDPMI, the DPMI server used with DJGPP.
-
-$Owl$
