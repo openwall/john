@@ -1,5 +1,6 @@
 The following changes have been made between John 1.9.0 and 1.9.1-dev:
 
+* Let "--node" numbers range be any multiple of "--fork" process count.
 * Fixed "--status" to work right on sessions that use "--fork" with "--node".
 * Added two external modes: Filter_NoRepeats skips candidate passwords that
 contain the same character more than once, and Filter_Repeats is its inverse.

@@ -534,6 +534,9 @@ static void john_fork(void)
 	pids = mem_alloc_tiny((options.fork - 1) * sizeof(*pids),
 	    sizeof(*pids));
 
+	unsigned int range = options.node_max - options.node_min + 1;
+	unsigned int npf = range / options.fork;
+
 	for (i = 1; i < options.fork; i++) {
 		switch ((pid = fork())) {
 		case -1:
@@ -541,8 +544,6 @@ static void john_fork(void)
 
 		case 0:
 			sig_preinit();
-			options.node_min += i;
-			options.node_max = options.node_min;
 #if HAVE_OPENCL
 			/* Poor man's multi-device support */
 			if (options.acc_devices->count &&
@@ -560,17 +561,26 @@ static void john_fork(void)
 				usleep(i * 100000);
 			}
 #endif
-			if (rec_restoring_now) {
-				unsigned int node_id = options.node_min;
+ 			if (rec_restoring_now) {
+				unsigned int save_min = options.node_min;
+				unsigned int save_max = options.node_max;
+				unsigned int save_count = options.node_count;
+				unsigned int save_fork = options.fork;
+				options.node_min += i * npf;
+				options.node_max = options.node_min + npf - 1;
 				rec_done(-2);
 				rec_restore_args(1);
 				john_set_tristates();
-				if (node_id != options.node_min + i)
+				if (options.node_min != save_min ||
+				    options.node_max != save_max ||
+				    options.node_count != save_count ||
+				    options.fork != save_fork)
 					fprintf(stderr,
 					    "Inconsistent crash recovery file:"
 					    " %s\n", rec_name);
-				options.node_min = options.node_max = node_id;
 			}
+			options.node_min += i * npf;
+			options.node_max = options.node_min + npf - 1;
 			sig_init_child();
 			return;
 
