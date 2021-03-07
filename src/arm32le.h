@@ -27,7 +27,7 @@
 #define ARCH_INT_GT_32			0
 #endif
 
-#define ARCH_ALLOWS_UNALIGNED		0
+#define ARCH_ALLOWS_UNALIGNED		__ARM_FEATURE_UNALIGNED
 #define ARCH_INDEX(x)			((unsigned int)(unsigned char)(x))
 
 #define CPU_DETECT			0
