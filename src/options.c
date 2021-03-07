@@ -863,9 +863,8 @@ void opt_init(char *name, int argc, char **argv)
 			msg = "node range must be divisible by fork count";
 #endif
 #ifdef HAVE_MPI
-		if (mpi_p > 1 &&
-		    options.node_max - options.node_min + 1 != mpi_p)
-			msg = "range must be consistent with MPI node count";
+		else if (mpi_p > 1 && range % mpi_p)
+			msg = "node range must be divisible by MPI node count";
 #endif
 		else if (!options.fork &&
 #ifdef HAVE_MPI
