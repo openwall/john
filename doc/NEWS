@@ -165,6 +165,8 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   issues and digging into the specs.  Note that a re-run of zip2john is needed
   for correct cracking. [magnum; 2021]
 
+- Allow any node range divisible by fork (or MPI) count.  [Solar, magnum; 2021]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
