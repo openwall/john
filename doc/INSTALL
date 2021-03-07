@@ -153,16 +153,21 @@ that probably work fine but these instructions are for "Homebrew":
 
   1. Install Homebrew:
 	http://mxcl.github.io/homebrew/
-  2. Install Homebrew's gcc and openssl:
+  2. Install Homebrew's gcc and OpenSSL:
 	brew install gcc openssl
-  3. Make sure /usr/local/bin precedes /usr/bin in your $PATH
-  4. Configure, possibly adding a CC option for pointing to a specific gcc:
-        ./configure CC="gcc-6"
+  3. Consider adding homebrew directories such as /usr/local/bin and/or
+     /opt/homebrew/bin to your $PATH.
+  4. Configure, possibly adding a CC option for pointing to a specific gcc and
+     using whatever LDFLAGS and CPPFLAGS was recommended when you installed
+     Homebrew's OpenSSL:
+        ./configure CC="/opt/homebrew/bin/gcc-10" \
+          LDFLAGS="-L/opt/homebrew/opt/openssl@1.1/lib" \
+          CPPFLAGS="-I/opt/homebrew/opt/openssl@1.1/include"
   5. Clean old files and make:
         make -s clean && make -sj4
 
-After the above, you should be able to get an optimal build with AVX and/or
-whatever extra features your CPU has got.
+After the above, you should be able to get an optimal build with AVX/ASIMD
+or whatever extra features your CPU has got.
 
 If you get weird problems including things like "error: unknown type name
 'dispatch_block_t'" on 10.10 Yosemite, you might need to apply a patch for
@@ -171,7 +176,7 @@ From John's "src" directory:
 
   sudo patch -b -N -p0 < unused/Yosemite.patch
 
-The patch is not needed for 10.11 "El Capitan".
+The patch is not needed for 10.11 "El Capitan" or later!
 
 NOTE: The above command will create backup files. If you ever want to restore
 everything as it were originally:
