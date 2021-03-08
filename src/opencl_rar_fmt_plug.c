@@ -40,7 +40,14 @@
  *
  */
 
-#ifdef HAVE_OPENCL
+#if HAVE_OPENCL
+
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#include "arch.h"
+
+#if ARCH_ALLOWS_UNALIGNED || __ARM_FEATURE_UNALIGNED
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_ocl_rar;
@@ -54,11 +61,6 @@ john_register_one(&fmt_ocl_rar);
 #include <omp.h>
 #endif
 
-#if AC_BUILT
-#include "autoconfig.h"
-#endif
-
-#include "arch.h"
 #include "sha.h"
 #include "crc32.h"
 #include "misc.h"
@@ -433,4 +435,14 @@ struct fmt_main fmt_ocl_rar = {
 
 #endif /* plugin stanza */
 
+#else
+#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
+#ifdef __GNUC__
+#warning ": target system requires aligned memory access, RAR OpenCL format disabled:"
+#elif _MSC_VER
+#pragma message(": target system requires aligned memory access, RAR OpenCL format disabled:")
+#endif
+#endif
+
+#endif /* ARCH_ALLOWS_UNALIGNED || __ARM_FEATURE_UNALIGNED */
 #endif /* HAVE_OPENCL */

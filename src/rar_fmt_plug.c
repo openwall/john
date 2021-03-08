@@ -45,7 +45,7 @@
 #endif
 #include "arch.h"
 
-#if ARCH_ALLOWS_UNALIGNED
+#if ARCH_ALLOWS_UNALIGNED || __ARM_FEATURE_UNALIGNED
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rar;
@@ -453,4 +453,4 @@ struct fmt_main fmt_rar = {
 #endif
 #endif
 
-#endif	/* ARCH_ALLOWS_UNALIGNED */
+#endif	/* ARCH_ALLOWS_UNALIGNED || __ARM_FEATURE_UNALIGNED */
