@@ -21,7 +21,10 @@ of 1 (mimicing the "repeats" external mode) and then increment both of them in
 subset keysize order, ending at length 16 or format's max. length, whichever is
 lower.  Using --max-len=N may bump it to larger than 16.  It will use the full
 charset of printable ASCII (95 characters) but start with tiny subsets and
-increase from there.
+increase from there.  By default, no more than 7 different characters from the
+charset will be used for any word even at lengths over 7 (this can be bumped,
+see SUBSET SIZES below).  In other words, by default the mode is exhaustive
+only up to length 7 if run to completion.
 
 Obviously normal options like --min-len, --max-len and --target-encoding also
 applies.
@@ -105,8 +108,11 @@ is required, eg:
 
 SUBSET SIZES
 
-The options --subsets-min-diff=N and --subsets-max-diff=N (or the similar
-variants in john.conf) let you put a limit on complexity.  Normally it's not
-needed unless you want a session that actually runs to finish before you die
-of age.  For the --subsets-max-diff=N option, a negative N is parsed as "max.
-length - N".
+The options --subsets-min-diff=N and --subsets-max-diff=N (and the similar
+variants in john.conf) let you put a limit on complexity.  Normally there's
+little need to change them except for small charsets (such as digits only,
+where you may want a max. of 10 for eventually exhausting the keyspace at
+lengths over 7, or the hex examples above, where you could similarly want a
+max. of 16) or when you want a session that actually runs to finish before
+you die of age.  For the --subsets-max-diff=N option, a negative N is parsed
+as "max. length - N".
