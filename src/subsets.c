@@ -584,14 +584,35 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 		keyspace += numwords(i, charcount, subsets_cur_len, required);
 
 	if (john_main_process) {
+		int len;
+		uint64_t total_keyspace = 0;
+
+		for (len = subsets_cur_len; len <= maxlength; len++) {
+			for (i = min_comb; i <= MIN(len, maxdiff); i++) {
+				uint64_t nw = numwords(i, charcount, len, required);
+				if (total_keyspace + nw < total_keyspace) {
+					total_keyspace = 0;
+					break;
+				}
+				total_keyspace += nw;
+			}
+			if (!total_keyspace)
+				break;
+		}
+
 		log_event("Proceeding with \"subsets\" mode");
 		log_event("- Charset: %s size %d", req_charset ? req_charset : charset,
 		          charcount);
 		log_event("- Lengths: %d-%d, max. subset size %d",
-		          MAX(options.eff_minlength, 1), maxlength, maxdiff);
+		          word_len, maxlength, maxdiff);
 		if (required)
 			log_event("- Required set: First %d of charset", required);
-		log_event("- Total keyspace: %" PRIu64, keyspace);
+		if (total_keyspace)
+			log_event("- Total keyspace: %" PRIu64, total_keyspace);
+		else
+			log_event("- Total keyspace: larger than 64-bit");
+		if (word_len < maxlength)
+			log_event("- Length %d total keyspace: %" PRIu64, subsets_cur_len, keyspace);
 		if (rec_restored) {
 			fprintf(stderr, "Proceeding with \"subsets\"%s%s",
 			        req_charset ? ": " : "",
@@ -714,6 +735,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 				keyspace = 0;
 				for (i = min_comb; i <= MIN(subsets_cur_len, maxdiff); i++)
 					keyspace += numwords(i, charcount, subsets_cur_len, required);
+				log_event("- Length %d total keyspace: %" PRIu64, subsets_cur_len, keyspace);
 				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
