@@ -63,7 +63,7 @@ static char *costs_str;
 
 /* Common req_clr for --test, --test-full and --stress-test */
 #define TEST_REQ_CLR (~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_MASK_CHK & ~FLG_NO_MASK_BENCH & \
-                      ~FLG_VERBOSITY & ~FLG_INPUT_ENC & ~FLG_SECOND_ENC & ~GETOPT_FLAGS)
+                      ~FLG_VERBOSITY & ~FLG_INPUT_ENC & ~FLG_SECOND_ENC & ~GETOPT_FLAGS & ~FLG_NOTESTS)
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
@@ -442,6 +442,12 @@ void opt_init(char *name, int argc, char **argv)
 	if ((options.flags & FLG_TEST_CHK) && benchmark_time &&
 	    !(options.flags & FLG_NO_MASK_BENCH))
 		options.flags |= FLG_MASK_SET;
+
+	if ((options.flags & (FLG_TEST_CHK | FLG_NOTESTS)) == (FLG_TEST_CHK | FLG_NOTESTS) && !benchmark_time) {
+		if (john_main_process)
+			fprintf(stderr, "Can't run a self-test-only while also skipping self-test!\n");
+		error();
+	}
 
 #if HAVE_REXGEN
 	/* We allow regex as parent for hybrid mask, not vice versa */
