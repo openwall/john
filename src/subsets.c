@@ -39,11 +39,9 @@
 #include "unicode.h"
 #include "unicode_range.h"
 
-#define SUBSET_DEBUG 1
-
 #define MAX_SUBSET_SIZE 16
 #define MAX_CAND_LENGTH PLAINTEXT_BUFFER_SIZE
-#define DEFAULT_MAX_LEN 16
+#define DEFAULT_MAX_LEN 32
 
 #if JTR_HAVE_INT128
 typedef uint128_t uint_big;
@@ -182,18 +180,14 @@ static uint_big powi(uint32_t b, uint32_t p)
 		uint_big temp = res * b;
 
 		if (temp < res)
-#if SUBSET_DEBUG
-			error_msg("%s(%u, %u) overflow\n", __FUNCTION__, b, orig);
-#else
-			return UINT_BIG_MAX
-#endif
+			error_msg("Subsets: %s(%u, %u) overflow\n", __FUNCTION__, b, orig);
 		res = temp;
 	}
 
 	return res;
 }
 
-/* Max 34! for uint128_t or 20! for uint64_t*/
+/* Max 34! for uint128_t or 20! for uint64_t */
 static uint_big fac(uint32_t n)
 {
 	uint_big res = n;
@@ -206,11 +200,7 @@ static uint_big fac(uint32_t n)
 		uint_big temp = res * n;
 
 		if (temp < res)
-#if SUBSET_DEBUG
-			error_msg("%s(%u) overflow\n", __FUNCTION__, orig);
-#else
-			return UINT_BIG_MAX
-#endif
+			error_msg("Subsets: %s(%u) overflow\n", __FUNCTION__, orig);
 		res = temp;
 	}
 
@@ -380,7 +370,7 @@ static int submit(UTF32 *subset)
 		subset[word_len] = 0;
 		utf8_32_to_utf8(out, subset);
 	} else {
-		/* Slowest conversion, from real UTF-32 to sone legacy codepage */
+		/* Slowest conversion, from real UTF-32 to some legacy codepage */
 		subset[word_len] = 0;
 		utf32_to_enc(out, sizeof(out), subset);
 	}
@@ -490,6 +480,12 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 	if (maxdiff < min_comb)
 		maxdiff = min_comb;
 
+	if (options.eff_minlength > maxlength) {
+		if (john_main_process)
+			fprintf(stderr, "Subsets: Too large min. length\n");
+		error();
+	}
+
 	num_comb = min_comb;
 
 	if (maxdiff > MAX_SUBSET_SIZE)
@@ -580,21 +576,28 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 
-	for (i = min_comb; i <= MIN(subsets_cur_len, maxdiff); i++)
-		keyspace += numwords(i, charcount, subsets_cur_len, required);
+	for (i = min_comb; i <= MIN(subsets_cur_len, maxdiff); i++) {
+		uint64_t nw = numwords(i, charcount, subsets_cur_len, required);
+		keyspace += nw;
+		if (keyspace < nw) {
+			keyspace = 0;
+			break;
+		}
+	}
 
 	if (john_main_process) {
 		int len;
 		uint64_t total_keyspace = 0;
 
+		if (keyspace)
 		for (len = subsets_cur_len; len <= maxlength; len++) {
 			for (i = min_comb; i <= MIN(len, maxdiff); i++) {
 				uint64_t nw = numwords(i, charcount, len, required);
-				if (total_keyspace + nw < total_keyspace) {
+				total_keyspace += nw;
+				if (total_keyspace < nw) {
 					total_keyspace = 0;
 					break;
 				}
-				total_keyspace += nw;
 			}
 			if (!total_keyspace)
 				break;
@@ -611,8 +614,12 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 			log_event("- Total keyspace: %" PRIu64, total_keyspace);
 		else
 			log_event("- Total keyspace: larger than 64-bit");
-		if (word_len < maxlength)
-			log_event("- Length %d total keyspace: %" PRIu64, subsets_cur_len, keyspace);
+		if (word_len < maxlength) {
+			if (keyspace)
+				log_event("- Length %d total keyspace: %" PRIu64, subsets_cur_len, keyspace);
+			else
+				log_event("- Length %d total keyspace: larger than 64-bit", subsets_cur_len);
+		}
 		if (rec_restored) {
 			fprintf(stderr, "Proceeding with \"subsets\"%s%s",
 			        req_charset ? ": " : "",
@@ -733,9 +740,18 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 			if (word_len < maxlength) {
 				subsets_cur_len = word_len + 1;
 				keyspace = 0;
-				for (i = min_comb; i <= MIN(subsets_cur_len, maxdiff); i++)
-					keyspace += numwords(i, charcount, subsets_cur_len, required);
-				log_event("- Length %d total keyspace: %" PRIu64, subsets_cur_len, keyspace);
+				for (i = min_comb; i <= MIN(subsets_cur_len, maxdiff); i++) {
+					uint64_t nw = numwords(i, charcount, subsets_cur_len, required);
+					keyspace += nw;
+					if (keyspace < nw) {
+						keyspace = 0;
+						break;
+					}
+				}
+				if (keyspace)
+					log_event("- Length %d total keyspace: %" PRIu64, subsets_cur_len, keyspace);
+				else
+					log_event("- Length %d total keyspace: larger than 64-bit", subsets_cur_len);
 				if (cfg_get_bool("Subsets", NULL, "LengthIterStatus", 1))
 					event_pending = event_status = 1;
 			}
