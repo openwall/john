@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 '''
 deepsound2john extracts password hashes from audio files containing encrypted
 data steganographically embedded by DeepSound (http://jpinsoft.net/deepsound/).

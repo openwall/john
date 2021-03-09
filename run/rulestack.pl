@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 
 # This script will stack rules from john's .conf file. (2 3 or 4 sections get stacked)
 

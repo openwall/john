@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # pwsafe2john processes input Password Safe files into a format suitable
 # for use with JtR.

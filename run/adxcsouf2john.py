@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 # This utility extracts ADXCRYPT password hashes from IBM/Toshiba 4690 OS
 # ADXCSOUF.DAT (more well-known, hence the name of the utility) and SHA-1

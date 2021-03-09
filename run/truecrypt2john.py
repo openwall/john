@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # TrueCrypt volume importion to a format usable by John The Ripper
 #

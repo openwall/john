@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # Copyright (C) 2012, Dhiru Kholia <dhiru@openwall.com>
 # Copyright (C) 2015, Dhiru Kholia <dhiru@openwall.com>

@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #
 # potcheck.pl   This script is used to upgrade john's .pot file, to find
 #               problems, and 'fix' them, and other things.

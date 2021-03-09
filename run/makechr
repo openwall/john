@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/sh
 #
 # This is a script to (re-)generate the .chr files using passwords in john.pot
 # and applying all of the defined external mode filters.  To speed it up on a

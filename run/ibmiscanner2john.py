@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # ibmiscanner2john.py (by Rob Schoemaker (@5up3rUs3r))

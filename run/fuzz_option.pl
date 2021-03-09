@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #
 # This file is part of John the Ripper password cracker,
 # Copyright (c) 2015 by Solar Designer

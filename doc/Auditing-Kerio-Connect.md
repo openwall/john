@@ -38,7 +38,7 @@ These are the hashed passwords. Hashing is done using PKBDF2-HMAC-SHA1 with
 The following script can be used to reverse these "D3S" scrambled password strings.
 
 ```python
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import sys
 from Crypto.Cipher import DES3  # pip install --user pycrypto
@@ -177,7 +177,7 @@ to a single DES encryption operation. We can simplify the decryption script as
 follows,
 
 ```python
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import sys
 from Crypto.Cipher import DES  # pip install --user pycrypto
@@ -224,7 +224,7 @@ SHA:e2e9aa4757186ed5e8fdce538ce77b759298e2224f07c43f1d499533
 These can be converted into JtR format using the following script,
 
 ```python
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 import sys
 

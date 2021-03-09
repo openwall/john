@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #
 # This software is Copyright (c) 2014 magnum
 # and it is hereby released to the general public under the following terms:

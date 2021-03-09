@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #
 # this script will compare speed between a dynamic format using
 # the dynamic_x and (same) format using the dynamic=expr(xxx)

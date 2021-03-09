@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #
 # John the Ripper benchmark output comparison tool, revision 4.1
 # Copyright (c) 2011 Solar Designer

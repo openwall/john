@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # This software is Copyright (c) 2016, Sanju Kholia <sanju.kholia at gmail.com>
 # and it is hereby released to the general public under the following terms:

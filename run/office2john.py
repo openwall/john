@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # olefile (formerly OleFileIO_PL) version 0.42 2015-01-25
 #

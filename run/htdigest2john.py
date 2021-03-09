@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # The htdigest2john.py utility processes htdigest files into a format suitable
 # for use with JtR.

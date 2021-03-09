@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # Script to extract "hashes" from password protected Apple Notes databases.
 #

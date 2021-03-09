@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # known_hosts2john processes input "known_hosts" files into a format suitable
 # for use with JtR.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # This software is Copyright (c) 2015, Dhiru Kholia <kholia at kth.se> and
 # Maxime Hulliger <hulliger at kth.se> and it is hereby released to the general

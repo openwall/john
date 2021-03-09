@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # Written by Dhiru Kholia <dhiru at openwall.com> in March, 2013
 # My code is under "Simplified BSD License"

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # This software is Copyright (c) 2019 - Dhiru Kholia, Copyright (c) 2018 -
 # axcheron, and it is hereby released under the MIT License.

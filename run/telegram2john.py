@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 
 """Utility to extract "hashes" from Telegram Android app's userconfing.xml
 file(s) and from Telegram Desktop's local storage (map/key_datas) files"""

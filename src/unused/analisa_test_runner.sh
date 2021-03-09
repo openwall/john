@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 # Written by Claudio André <claudioandre.br@gmail.com>
 

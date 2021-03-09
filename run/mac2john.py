@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # NOTE: This script is only tested with Python 3.6, Python 2.7, and Python
 # 2.6.9. It cannot work with Python 2.5.x.

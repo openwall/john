@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
+
 # -*- coding: iso-8859-15 -*-
 # This software is Copyright (c) 2018, Dhiru Kholia <dhiru at openwall.com> and
 # it is hereby released to the general public under the following terms:

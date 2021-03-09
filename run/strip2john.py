@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 """strip2john.py processes STRIP files into a format suitable
 for use with JtR.

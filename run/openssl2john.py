@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # This utility helps in cracking files encrypted using "openssl enc" command.
 #

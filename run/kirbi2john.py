@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # Based on the Kerberoast script from Tim Medin to extract the Kerberos tickets
 # from a kirbi file (https://github.com/nidem/kerberoast).

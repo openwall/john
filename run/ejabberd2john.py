@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/python3
 
 # Extracts hashes from "ejabberdctl dump output.txt" file(s).
 #

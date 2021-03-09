@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # The encfs2john.py utility processes EncFS files into a format suitable for
 # use with JtR.

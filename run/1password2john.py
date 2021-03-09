@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # Written by Dhiru Kholia <dhiru at openwall.com> in July 2012 for JtR project.
 # Copyright (c) 2012-2013, Dhiru Kholia.

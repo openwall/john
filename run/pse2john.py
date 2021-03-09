@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 """pysap - Python library for crafting SAP's network protocols packets"""
 

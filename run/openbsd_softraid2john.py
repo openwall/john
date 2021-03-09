@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 #  Copyright (c) 2014 Thiébaud Weksteen <thiebaud at weksteen dot fr>

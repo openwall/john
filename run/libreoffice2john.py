@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # The libreoffice2john.py utility processes OpenOffice / LibreOffice files into
 # a format suitable for use with JtR.

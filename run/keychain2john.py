@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # keychain2john processes input Mac OS X keychain files into a format suitable
 # for use with JtR.

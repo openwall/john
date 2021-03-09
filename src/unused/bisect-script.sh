@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/usr/bin/bash -e
 #
 # Edit this script for testing current issue, place it in base directory
 # (at same level as src, doc, run)

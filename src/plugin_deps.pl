@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #
 # Warning: Trying to understand this script will make your brain bleed.
 

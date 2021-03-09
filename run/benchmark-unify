@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #
 # John the Ripper benchmark output conversion tool, revision 1
 # Copyrigth (c) 2012, Frank Dittrich

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # This software is Copyright (c) 2013 Dhiru Kholia <dhiru at openwall.com>, and

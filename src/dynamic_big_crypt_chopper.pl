@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #
 # This software was written by Jim Fougeron jfoug AT cox dot net
 # in 2015. No copyright is claimed, and the software is hereby

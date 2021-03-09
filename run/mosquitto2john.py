@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # This software is Copyright (c) 2021, Blackfell <github at blackfell.net>
 # and it is hereby released to the general public under the following terms:

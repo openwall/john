@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 """sipdump2john.py processes sipdump output files (dump files)
 into a format suitable for use with JtR."""

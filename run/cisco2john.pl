@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #
 # Basic Cisco type 4 - password decoder by Kost, Dhiru
 # and magnum

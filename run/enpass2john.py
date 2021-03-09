@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 """enpass2john.py extracts hashes from Enpass Password Manager databases"""
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # This software is Copyright (c) 2017, Dhiru Kholia <dhiru.kholia at gmail.com>
 # and it is hereby released under GPL v2 license.

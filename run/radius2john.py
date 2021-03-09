@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # This software is Copyright (c) 2019 Maxime GOYETTE <maxgoyette0-at-gmail.com>,
 # and it is hereby released to the general public under the following terms:

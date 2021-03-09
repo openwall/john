@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 """ikescan2john.py processes ike-scan output files into a format suitable
 for use with JtR."""

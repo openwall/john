@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 """filezilla2john.py extracts password hashes from "FileZilla Server.xml" files."""
 

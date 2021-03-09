@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/sh
 #
 # This is a script to send mail to all users whose passwords got cracked.
 # This is not always a good idea, though, since lots of people do not

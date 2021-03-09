@@ -9,7 +9,7 @@
 # http://www.gnu.org/licenses/gpl-2.0.html
 ######################################################################
 
-#!/bin/bash
+#!/usr/bin/bash
 
 # Build options (system wide, disable checks, etc.)
 SYSTEM_WIDE='--with-systemwide --enable-rexgen'

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 # Convert McAfee ePO passwords to John format.
 #                   -- nicolas.collignon@synacktiv.com

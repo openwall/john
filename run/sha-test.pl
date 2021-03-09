@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 # http://www.perl.com/CPAN-local/modules/by-module/MIME/MIME-Base64-2.06.tar.gz
 # http://www.perl.com/CPAN-local/modules/by-module/SHA/SHA-1.2.tar.gz
 

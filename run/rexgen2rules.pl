@@ -1,4 +1,4 @@
-#! /usr/bin/env perl
+#! /usr/bin/perl
 # Script to generate rules for John the Ripper from rexgen rules
 
 # Copyright © 2014 Aleksey Cherepanov <aleksey.4erepanov@gmail.com>

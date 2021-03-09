@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 
 # This software is Copyright (c) 2011 Didier ARENZANA <darenzana-at-gmail.com>,
 # and it is hereby released to the general public under the following terms:

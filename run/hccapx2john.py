@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 '''
 Process hccapx file into a format suitable for use with JtR.
 Implements AP nonce correction as user supplied argument or

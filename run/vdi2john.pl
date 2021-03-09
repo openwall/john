@@ -1,4 +1,4 @@
-#!/usr/bin/env perl
+#!/usr/bin/perl
 #############################################################################
 # vdi2john.   This will convert *.vbox files (which list the encryption
 # information about the associated *.vdi file) into the proper format for

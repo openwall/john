@@ -1,4 +1,4 @@
-#! /usr/bin/env perl -l
+#! /usr/bin/perl -l
 # John rules generator for combination of 1337-speak substitutions.
 # Proof of concept
 
