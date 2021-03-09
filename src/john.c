@@ -589,6 +589,8 @@ static void john_fork(void)
 		}
 	}
 
+	options.node_max = options.node_min + npf - 1;
+
 #if HAVE_OPENCL
 	/* Poor man's multi-device support */
 	if (options.acc_devices->count &&
@@ -607,8 +609,6 @@ static void john_fork(void)
 	john_main_process = 1;
 	john_child_pids = pids;
 	john_child_count = options.fork - 1;
-
-	options.node_max = options.node_min;
 }
 
 /*
