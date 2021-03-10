@@ -575,9 +575,7 @@ static void john_fork(void)
 				    options.node_max != save_max ||
 				    options.node_count != save_count ||
 				    options.fork != save_fork)
-					fprintf(stderr,
-					    "Inconsistent crash recovery file:"
-					    " %s\n", rec_name);
+					error_msg("Inconsistent crash recovery file: %s\n", rec_name);
 			}
 			options.node_min += i * npf;
 			options.node_max = options.node_min + npf - 1;
@@ -637,9 +635,7 @@ static void john_set_mpi(void)
 				    options.node_max != save_max ||
 				    options.node_count != save_count ||
 				    options.fork != save_fork)
-					fprintf(stderr,
-					    "Inconsistent crash recovery file:"
-					    " %s\n", rec_name);
+					error_msg("Inconsistent crash recovery file: %s\n", rec_name);
 			}
 		}
 	}
