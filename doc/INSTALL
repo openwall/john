@@ -142,32 +142,38 @@ it's actually overkill. Spend the time learning tricks instead!
 
 	Optimal build on OS X
 
-Using OS X, you can install Xcode (free) and then its "command line tools"
-and after that a normal build should work fine. However, using native
-gcc (which is really clang) results in suboptimal performance and some
+Using OS X, you can install Xcode (free in App Store) and then its "command
+line tools" and after that a normal build should work fine.  However, using
+native gcc (which is really clang) results in suboptimal performance and some
 formats are disabled due to ancient OpenSSL.  Also, clang doesn't have any
 OpenMP support.
 
-Here's how to make the best possible of your hardware. There are alternatives
+Here's how to make the best possible of your hardware.  There are alternatives
 that probably work fine but these instructions are for "Homebrew":
 
-  1. Install Homebrew:
-	http://mxcl.github.io/homebrew/
-  2. Install Homebrew's gcc and OpenSSL:
+  1. Install Xcode (free in App Store).
+  2. Install Xcode's command-line tools:
+	xcode-select --install
+     You'll need to re-run that command after any little update of macOS,
+     because the command-line tools silently disappeared and you'll get a silly
+     "error: C compiler cannot create executables" when trying to build John.
+  3. Install Homebrew, by following the instructions given here:
+	https://brew.sh
+  4. Install Homebrew's gcc and OpenSSL:
 	brew install gcc openssl
-  3. Consider adding homebrew directories such as /usr/local/bin and/or
+  5. Consider adding homebrew directories such as /usr/local/bin and/or
      /opt/homebrew/bin to your $PATH.
-  4. Configure, possibly adding a CC option for pointing to a specific gcc and
+  6. Configure, possibly adding a CC option for pointing to a specific gcc and
      using whatever LDFLAGS and CPPFLAGS was recommended when you installed
      Homebrew's OpenSSL:
         ./configure CC="/opt/homebrew/bin/gcc-10" \
-          LDFLAGS="-L/opt/homebrew/opt/openssl@1.1/lib" \
-          CPPFLAGS="-I/opt/homebrew/opt/openssl@1.1/include"
-  5. Clean old files and make:
+          LDFLAGS="-L/opt/homebrew/opt/openssl/lib" \
+          CPPFLAGS="-I/opt/homebrew/opt/openssl/include"
+  7. Clean old files and make:
         make -s clean && make -sj4
 
-After the above, you should be able to get an optimal build with AVX/ASIMD
-or whatever extra features your CPU has got.
+After the above, you should have a fairly optimal build with AVX/ASIMD or
+whatever extra features your CPU has got.
 
 If you get weird problems including things like "error: unknown type name
 'dispatch_block_t'" on 10.10 Yosemite, you might need to apply a patch for
