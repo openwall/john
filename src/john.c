@@ -642,9 +642,10 @@ static void john_set_mpi(void)
 					    " %s\n", rec_name);
 			}
 		}
-		options.node_min += mpi_id * npf;
-		options.node_max = options.node_min + npf - 1;
 	}
+	options.node_min += mpi_id * npf;
+	options.node_max = options.node_min + npf - 1;
+
 	fflush(stdout);
 	fflush(stderr);
 }
