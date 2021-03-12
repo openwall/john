@@ -105,7 +105,7 @@ static int process_key_stack_rules(char *key);
 /* Expose max_keys_per_crypt to the world (needed in recovery.c) */
 int crk_max_keys_per_crypt(void)
 {
-	return  crk_params->max_keys_per_crypt;
+	return options.force_maxkeys ? options.force_maxkeys : crk_params->max_keys_per_crypt;
 }
 
 static void crk_dummy_set_salt(void *salt)

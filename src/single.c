@@ -250,6 +250,11 @@ static void single_init(void)
 
 	length = options.eff_maxlength;
 	key_count = single_db->format->params.min_keys_per_crypt;
+
+	/* Do not allocate buffers we'll never use */
+	if (options.force_maxkeys && key_count > options.force_maxkeys)
+		key_count = options.force_maxkeys;
+
 	if (key_count < SINGLE_HASH_MIN)
 		key_count = SINGLE_HASH_MIN;
 /*
