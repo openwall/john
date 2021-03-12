@@ -764,10 +764,10 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 		 */
 		num_comb = min_comb;
 		while (done_len[num_comb] == maxlength && num_comb < maxdiff)
-			word_len = done_len[++num_comb];
+			num_comb++;
 
 		/* Are we done yet? */
-		if (++word_len > maxlength)
+		if ((word_len = done_len[num_comb] + 1) > maxlength)
 			break;
 
 		if (num_comb < maxdiff && done_len[num_comb + 1] + 1 < maxlength &&
