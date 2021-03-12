@@ -299,10 +299,11 @@ JOHN_USAGE_REGEX \
 "--subsets-prefer-short     Prefer shorter candidates over smaller subsets\n" \
 "--subsets-prefer-small     Prefer smaller subsets over shorter candidates\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
-"--status[=NAME]            print status of a session [called NAME]\n" \
-"--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--session=NAME             give a new session the NAME\n" \
-"--make-charset=FILE        make a charset file. It will be overwritten\n" \
+"--status[=NAME]            print status of a session [called NAME]\n" \
+"--[no-]crack-status        emit a status line whenever a password is cracked\n" \
+"--progress-every=N         emit a status line every N seconds\n" \
+"--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--show[=left]              show cracked passwords [if =left, then uncracked]\n" \
 "--show=formats             show information about hashes in a file (JSON)\n" \
 "--show=invalid             show lines that are not valid for selected format(s)\n" \
@@ -323,22 +324,23 @@ JOHN_USAGE_REGEX \
 "--node=MIN[-MAX]/TOTAL     this node's number range out of TOTAL count\n" \
 "--log-stderr               log to screen instead of file\n"             \
 "--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n" \
+"--no-log                   disables creation and writing to john.log file\n"  \
 "--bare-always-valid=Y      treat bare hashes as valid (Y/N)\n" \
 "--config=FILE              use FILE instead of john.conf or john.ini\n" \
-"--[no-]crack-status        emit a status line whenever a password is cracked\n" \
 "--encoding=NAME            input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
 "                           doc/ENCODINGS.\n" \
+"--input-encoding=NAME      input encoding (alias for --encoding)\n" \
+"--target-encoding=NAME     output encoding (used by format, see doc/ENCODINGS)\n" \
 "--force-tty                set up terminal for reading keystrokes even if we're\n" \
 "                           not the foreground process\n" \
 "--field-separator-char=C   use 'C' instead of the ':' in input and pot files\n" \
 "--fix-state-delay=N        performance tweak, see doc/OPTIONS\n" \
 FUZZ_USAGE \
-"--input-encoding=NAME      input encoding (alias for --encoding)\n" \
 "--internal-codepage=NAME   codepage used in rules/masks (see doc/ENCODINGS)\n" \
 "--[no-]keep-guessing       try finding plaintext collisions\n" \
-"--length=N                 shortcut for --min-len=N --max-len=N\n" \
 "--list=WHAT                list capabilities, see --list=help or doc/OPTIONS\n" \
-"--log-stderr               log to screen instead of file\n"             \
+"--length=N                 shortcut for --min-len=N --max-len=N\n" \
+"--make-charset=FILE        make a charset file. It will be overwritten\n" \
 "--min-length=N             request a minimum candidate length in bytes\n" \
 "--max-length=N             request a maximum candidate length in bytes\n" \
 "--max-candidates=[-]N      gracefully exit after this many candidates tried.\n" \
@@ -346,13 +348,10 @@ FUZZ_USAGE \
 "--max-run-time=[-]N        gracefully exit after this many seconds (if negative,\n" \
 "                           reset timer on each crack)\n" \
 "--mkpc=N                   request a lower max. keys per crypt\n" \
-"--no-log                   disables creation and writing to john.log file\n"      \
 "--no-loader-dupecheck      disable the dupe checking when loading hashes\n" \
 "--pot=NAME                 pot file to use\n" \
-"--progress-every=N         emit a status line every N seconds\n" \
 "--regen-lost-salts=N       brute force unknown salts (see doc/OPTIONS)\n" \
 "--reject-printable         reject printable binaries\n" \
-"--target-encoding=NAME     output encoding (used by format, see doc/ENCODINGS)\n" \
 "--tune=HOW                 tuning options (auto/report/N)\n" \
 
 #define JOHN_USAGE_FORMAT \
