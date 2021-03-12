@@ -329,9 +329,9 @@ JOHN_USAGE_REGEX \
 "--field-separator-char=C   use 'C' instead of the ':' in input and pot files\n" \
 "--config=FILE              use FILE instead of john.conf or john.ini\n" \
 "--log-stderr               log to screen instead of file\n"             \
-"--no-loader-dupecheck      disable the dupe checking when loading hashes\n" \
 "--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n" \
 "--no-log                   disables creation and writing to john.log file\n"      \
+"--no-loader-dupecheck      disable the dupe checking when loading hashes\n" \
 "--bare-always-valid=Y      treat bare hashes as valid (Y/N)\n" \
 "--config=FILE              use FILE instead of john.conf or john.ini\n" \
 "--[no-]crack-status        emit a status line whenever a password is cracked\n" \
@@ -363,7 +363,6 @@ FUZZ_USAGE \
 "--reject-printable         reject printable binaries\n" \
 "--target-encoding=NAME     output encoding (used by format, see doc/ENCODINGS)\n" \
 "--tune=HOW                 tuning options (auto/report/N)\n" \
-"--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n"
 
 #define JOHN_USAGE_FORMAT \
 "--subformat=FORMAT         pick a benchmark format for --format=crypt\n" \
