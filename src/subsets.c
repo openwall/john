@@ -111,7 +111,6 @@ static void save_state(FILE *file)
 	fprintf(file, "%d\n", rec_cur_len);
 	for (i = 0; i <= maxlength; i++)
 		fprintf(file, "%"PRIu64"\n", rec_num_done[i]);
-	//fprintf(file, "%s\n", charset); /* In case we can get it from conf */
 }
 
 static int restore_state(FILE *file)
@@ -156,10 +155,6 @@ static int restore_state(FILE *file)
 			num_done[i] = q;
 		else
 			return 1;
-
-	/* In case we can get it from conf */
-	//if (fscanf(file, "%s\n", &charset) != 1)
-	//	return 1;
 
 	state_restored = 1;
 
@@ -758,31 +753,53 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 		}
 
 		/*
-		 * Next length or next subset size, whichever has smaller keyspace.
-		 * A larger subset size than next, of *same* length, can actually be
-		 * smaller - but we never pick that.
+		 * Prefer keeping candidate length small
 		 */
+		if (options.flags & FLG_SUBSETS_SHORT) {
+			if (num_comb < maxdiff && num_comb < word_len) {
+				num_comb++;
+				continue;
+			}
+			else if (word_len < maxlength) {
+				word_len++;
+				num_comb = min_comb;
+				continue;
+			}
+		}
+
 		num_comb = min_comb;
 		while (done_len[num_comb] == maxlength && num_comb < maxdiff)
 			num_comb++;
 
-		/* Are we done yet? */
 		if ((word_len = done_len[num_comb] + 1) > maxlength)
 			break;
 
-		if (num_comb < maxdiff && done_len[num_comb + 1] + 1 < maxlength &&
-		    numwords(num_comb + 1, charcount, done_len[num_comb + 1] + 1,
-		             required) <
-		    numwords(num_comb, charcount, word_len, required)) {
-			num_comb++;
-			word_len = done_len[num_comb] + 1;
+		/*
+		 * Prefer keeping subset size small.
+		 */
+		if (options.flags & FLG_SUBSETS_SMALL)
+			continue;
+
+		/*
+		 * Default: Look for shortest pending set of (length, subset size).
+		 */
+		uint64_t nw = numwords(num_comb, charcount, word_len, required);
+		uint64_t smallest = nw;
+
+		int i, best_i = 0;
+
+		for (i = 1; num_comb + i <= maxdiff; i++) {
+			if (done_len[num_comb + i] + 1 < maxlength) {
+				uint64_t alt_nw = numwords(num_comb + i, charcount, done_len[num_comb + i] + 1, required);
+				if (alt_nw < smallest) {
+					smallest = alt_nw;
+					best_i = i;
+				}
+			}
 		}
-		else if (num_comb + 1 < maxdiff &&
-		         done_len[num_comb + 2] + 1 < maxlength &&
-		         numwords(num_comb + 2, charcount, done_len[num_comb + 2] + 1,
-		                  required) <
-		         numwords(num_comb, charcount, word_len, required)) {
-			num_comb += 2;
+
+		if (smallest < nw) {
+			num_comb += best_i;
 			word_len = done_len[num_comb] + 1;
 		}
 	}

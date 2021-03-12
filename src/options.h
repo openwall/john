@@ -124,14 +124,16 @@
  *           0x0000000080000000 is taken for OPT_REQ_PARAM, see getopt.h
  *
  * These are available for using!
- *		0x0000000100000000ULL
- *		0x0000000400000000ULL
  *		0x0000100000000000ULL
  *		0x0000200000000000ULL
  */
 
+/* Subsets prefer finishing shorter lengths */
+#define FLG_SUBSETS_SHORT		0x0000000100000000ULL
+/* Subsets prefer finishing smaller sets */
+#define FLG_SUBSETS_SMALL		0x0000000200000000ULL
 /* Markov mode enabled */
-#define FLG_MKV_CHK			0x0000000200000000ULL
+#define FLG_MKV_CHK			0x0000000400000000ULL
 #define FLG_MKV_SET			(FLG_MKV_CHK | FLG_CRACKING_SET)
 /* Wordlist dupe suppression */
 #define FLG_DUPESUPP			0x0000000800000000ULL

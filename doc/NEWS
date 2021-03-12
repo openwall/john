@@ -168,8 +168,11 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Allow any node range divisible by fork (or MPI) count.  [Solar, magnum; 2021]
 
 - Fix autoconf selection of arch.h for Apple M1.  Improve ARM pseudo-intrinsics
-  portability (would fail on clang).  Allow __ARM_FEATURE_UNALIGNED to set our
-  ARCH_ALLOWS_UNALIGNED macro.  [magnum; 2021]
+  portability (would fail on clang).  Allow RAR formats to build on ARM where we
+  detect it can handle unaligned memory access.  [magnum; 2021]
+
+- Add options --subsets-prefer-short and --subsets-prefer-small to Subsets
+  mode, affecting candidate order.  [magnum; 2021]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
