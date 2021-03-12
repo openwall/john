@@ -321,17 +321,8 @@ JOHN_USAGE_REGEX \
 "                           tunable cost parameters, see doc/OPTIONS\n" \
 "--save-memory=LEVEL        enable memory saving, at LEVEL 1..3\n" \
 "--node=MIN[-MAX]/TOTAL     this node's number range out of TOTAL count\n" \
-"--subformat=FORMAT         pick a benchmark format for --format=crypt\n" \
-"--mkpc=N                   request a lower max. keys per crypt\n" \
-"--min-length=N             request a minimum candidate length in bytes\n" \
-"--max-length=N             request a maximum candidate length in bytes\n" \
-"--length=N                 shortcut for --min-len=N --max-len=N\n" \
-"--field-separator-char=C   use 'C' instead of the ':' in input and pot files\n" \
-"--config=FILE              use FILE instead of john.conf or john.ini\n" \
 "--log-stderr               log to screen instead of file\n"             \
 "--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n" \
-"--no-log                   disables creation and writing to john.log file\n"      \
-"--no-loader-dupecheck      disable the dupe checking when loading hashes\n" \
 "--bare-always-valid=Y      treat bare hashes as valid (Y/N)\n" \
 "--config=FILE              use FILE instead of john.conf or john.ini\n" \
 "--[no-]crack-status        emit a status line whenever a password is cracked\n" \
