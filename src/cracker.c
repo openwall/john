@@ -1161,10 +1161,12 @@ static int process_key(char *key)
 	sig_timer_emu_tick();
 #endif
 
+	if (options.verbosity > 1 || event_status)
+		strnzcpy(crk_stdout_key, key, crk_params->plaintext_length + 1);
+
 	if (event_pending && crk_process_event())
 		return 1;
 
-	strnzcpy(crk_stdout_key, key, crk_params->plaintext_length + 1);
 	if (options.verbosity > 1)
 		puts(crk_stdout_key);
 
