@@ -301,9 +301,9 @@ JOHN_USAGE_REGEX \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
 "--session=NAME             give a new session the NAME\n" \
 "--status[=NAME]            print status of a session [called NAME]\n" \
+"--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--[no-]crack-status        emit a status line whenever a password is cracked\n" \
 "--progress-every=N         emit a status line every N seconds\n" \
-"--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--show[=left]              show cracked passwords [if =left, then uncracked]\n" \
 "--show=formats             show information about hashes in a file (JSON)\n" \
 "--show=invalid             show lines that are not valid for selected format(s)\n" \
