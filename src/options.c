@@ -295,6 +295,7 @@ JOHN_USAGE_REGEX \
 "                           the \"required set\" (see doc/SUBSETS)\n" \
 "--subsets-min-diff=N       Minimum unique characters in subset\n" \
 "--subsets-max-diff=[-]N    Maximum unique characters in subset (negative N is\n" \
+"--make-charset=FILE        make a charset, FILE will be overwritten\n" \
 "                           relative to word length)\n" \
 "--subsets-prefer-short     Prefer shorter candidates over smaller subsets\n" \
 "--subsets-prefer-small     Prefer smaller subsets over shorter candidates\n" \
@@ -340,7 +341,6 @@ FUZZ_USAGE \
 "--[no-]keep-guessing       try finding plaintext collisions\n" \
 "--list=WHAT                list capabilities, see --list=help or doc/OPTIONS\n" \
 "--length=N                 shortcut for --min-len=N --max-len=N\n" \
-"--make-charset=FILE        make a charset, FILE will be overwritten\n" \
 "--min-length=N             request a minimum candidate length in bytes\n" \
 "--max-length=N             request a maximum candidate length in bytes\n" \
 "--max-candidates=[-]N      gracefully exit after this many candidates tried.\n" \
