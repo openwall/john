@@ -321,9 +321,9 @@ JOHN_USAGE_REGEX \
 "--salts=#M[-N]             load M [to N] most populated salts\n" \
 "--costs=[-]C[:M][,...]     load salts with[out] cost value Cn [to Mn]. For\n" \
 "                           tunable cost parameters, see doc/OPTIONS\n" \
-"--save-memory=LEVEL        enable memory saving, at LEVEL 1..3\n" \
 JOHN_USAGE_FORK \
 "--node=MIN[-MAX]/TOTAL     this node's number range out of TOTAL count\n" \
+"--save-memory=LEVEL        enable memory saving, at LEVEL 1..3\n" \
 "--log-stderr               log to screen instead of file\n"             \
 "--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n" \
 "--no-log                   disables creation and writing to john.log file\n"  \
