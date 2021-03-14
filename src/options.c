@@ -322,6 +322,7 @@ JOHN_USAGE_REGEX \
 "--costs=[-]C[:M][,...]     load salts with[out] cost value Cn [to Mn]. For\n" \
 "                           tunable cost parameters, see doc/OPTIONS\n" \
 "--save-memory=LEVEL        enable memory saving, at LEVEL 1..3\n" \
+JOHN_USAGE_FORK \
 "--node=MIN[-MAX]/TOTAL     this node's number range out of TOTAL count\n" \
 "--log-stderr               log to screen instead of file\n"             \
 "--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n" \
@@ -391,7 +392,6 @@ void opt_usage()
 #if defined(HAVE_ZTEX)
 	printf("%s", JOHN_USAGE_ZTEX);
 #endif
-	printf("%s", JOHN_USAGE_FORK);
 	printf("%s", JOHN_USAGE_FORMAT);
 }
 
