@@ -229,7 +229,7 @@ static struct opt_entry opt_list[] = {
 "--prince[=FILE]            PRINCE mode, read words from FILE\n" \
 "--prince-loopback[=FILE]   fetch words from a .pot file\n" \
 "--prince-elem-cnt-min=N    minimum number of elements per chain (1)\n" \
-"--prince-elem-cnt-max=[N]  maximum number of elements per chain (negative N is\n" \
+"--prince-elem-cnt-max=[-]N maximum number of elements per chain (negative N is\n" \
 "                           relative to word length) (8)\n" \
 "--prince-skip=N            initial skip\n" \
 "--prince-limit=N           limit number of candidates generated\n" \
