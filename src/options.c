@@ -340,7 +340,7 @@ FUZZ_USAGE \
 "--[no-]keep-guessing       try finding plaintext collisions\n" \
 "--list=WHAT                list capabilities, see --list=help or doc/OPTIONS\n" \
 "--length=N                 shortcut for --min-len=N --max-len=N\n" \
-"--make-charset=FILE        make a charset file. It will be overwritten\n" \
+"--make-charset=FILE        make a charset, FILE will be overwritten\n" \
 "--min-length=N             request a minimum candidate length in bytes\n" \
 "--max-length=N             request a maximum candidate length in bytes\n" \
 "--max-candidates=[-]N      gracefully exit after this many candidates tried.\n" \
