@@ -295,10 +295,10 @@ JOHN_USAGE_REGEX \
 "                           the \"required set\" (see doc/SUBSETS)\n" \
 "--subsets-min-diff=N       Minimum unique characters in subset\n" \
 "--subsets-max-diff=[-]N    Maximum unique characters in subset (negative N is\n" \
-"--make-charset=FILE        make a charset, FILE will be overwritten\n" \
-"                           relative to word length)\n" \
 "--subsets-prefer-short     Prefer shorter candidates over smaller subsets\n" \
 "--subsets-prefer-small     Prefer smaller subsets over shorter candidates\n" \
+"--make-charset=FILE        make a charset, FILE will be overwritten\n" \
+"                           relative to word length)\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
 "--session=NAME             give a new session the NAME\n" \
 "--status[=NAME]            print status of a session [called NAME]\n" \
