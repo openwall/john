@@ -3,7 +3,7 @@
  * Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>,
  * Copyright (c) 2012 Solar Designer,
  * Copyright (c) 2011-2015 JimF,
- * Copyright (c) 2011-2018 magnum,
+ * Copyright (c) 2011-2021 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -115,8 +115,7 @@ void md5_unreverse(uint32_t *hash)
 
 #undef INIT_A
 
-void SIMDmd5body(vtype* _data, unsigned int *out,
-                uint32_t *reload_state, unsigned SSEi_flags)
+void SIMDmd5body(uint32_t* _data, uint32_t *out, uint32_t *reload_state, unsigned int SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_MD5];
 	vtype a[SIMD_PARA_MD5];
@@ -136,11 +135,11 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 #endif
 
 	if (SSEi_flags & SSEi_FLAT_IN) {
-		// Move _data to __data, mixing it SIMD_COEF_32 wise.
+		// Move _data to data, mixing it SIMD_COEF_32 wise.
 #if __SSE4_1__ || __MIC__
-		unsigned k;
+		unsigned int k;
 		vtype *W = w;
-		uint32_t *saved_key = (uint32_t*)_data;
+		uint32_t *saved_key = _data;
 		MD5_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -156,10 +155,10 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 			W += 16;
 		}
 #else
-		unsigned j, k;
+		unsigned int j, k;
 		uint32_t *p = (uint32_t*)w;
 		vtype *W = w;
-		uint32_t *saved_key = (uint32_t*)_data;
+		uint32_t *saved_key = _data;
 		MD5_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -194,7 +193,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 		// now set our data pointer to point to this 'mixed' data.
 		data = w;
 	} else
-		data = _data;
+		data = (vtype*)_data;
 
 	if (!(SSEi_flags & SSEi_RELOAD))
 	{
@@ -356,7 +355,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD5_PARA_DO(i)
 		{
-			uint32_t *o = (uint32_t*)&out[i*4*VS32];
+			uint32_t *o = &out[i*4*VS32];
 #if __AVX512F__ || __MIC__
 			vtype idxs = vset_epi32(15*4,14*4,13*4,12*4,
 			                        11*4,10*4, 9*4, 8*4,
@@ -584,7 +583,7 @@ static MAYBE_INLINE void dispatch(unsigned char buffers[8][64*MD5_SSE_NUM_KEYS],
 				mmxput3(buffers, bufferid, length, 2, saltlen, f);
 				break;
 		}
-		SIMDmd5body((vtype*)&buffers[bufferid], f, NULL, SSEi_MIXED_IN);
+		SIMDmd5body((uint32_t*)&buffers[bufferid], f, NULL, SSEi_MIXED_IN);
 		if (j++ < 1000 % 42 - 1)
 			continue;
 		if (j == 1000 % 42) {
@@ -804,8 +803,7 @@ void md4_unreverse(uint32_t *hash)
 #undef INIT_B
 #undef INIT_A
 
-void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
-                unsigned SSEi_flags)
+void SIMDmd4body(uint32_t* _data, uint32_t *out, uint32_t *reload_state, unsigned int SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_MD4];
 	vtype a[SIMD_PARA_MD4];
@@ -821,11 +819,11 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 	vtype *data;
 
 	if (SSEi_flags & SSEi_FLAT_IN) {
-		// Move _data to __data, mixing it SIMD_COEF_32 wise.
+		// Move _data to data, mixing it SIMD_COEF_32 wise.
 #if __SSE4_1__ || __MIC__
-		unsigned k;
+		unsigned int k;
 		vtype *W = w;
-		uint32_t *saved_key = (uint32_t*)_data;
+		uint32_t *saved_key = _data;
 		MD4_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -841,10 +839,10 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 			W += 16;
 		}
 #else
-		unsigned j, k;
+		unsigned int j, k;
 		uint32_t *p = (uint32_t*)w;
 		vtype *W = w;
-		uint32_t *saved_key = (uint32_t*)_data;
+		uint32_t *saved_key = _data;
 		MD4_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -879,7 +877,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 		// now set our data pointer to point to this 'mixed' data.
 		data = w;
 	} else
-		data = _data;
+		data = (vtype*)_data;
 
 	if (!(SSEi_flags & SSEi_RELOAD))
 	{
@@ -1028,7 +1026,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		MD4_PARA_DO(i)
 		{
-			uint32_t *o = (uint32_t*)&out[i*4*VS32];
+			uint32_t *o = &out[i*4*VS32];
 #if __AVX512F__ || __MIC__
 			vtype idxs = vset_epi32(15*4,14*4,13*4,12*4,
 			                        11*4,10*4, 9*4, 8*4,
@@ -1300,8 +1298,7 @@ void sha1_unreverse3(uint32_t *hash)
 #undef INIT_D
 #undef INIT_E
 
-void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
-                 unsigned SSEi_flags)
+void SIMDSHA1body(uint32_t* _data, uint32_t *out, uint32_t *reload_state, unsigned int SSEi_flags)
 {
 	vtype w[16*SIMD_PARA_SHA1];
 	vtype a[SIMD_PARA_SHA1];
@@ -1315,11 +1312,11 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 	vtype *data;
 
 	if (SSEi_flags & SSEi_FLAT_IN) {
-		// Move _data to __data, mixing it SIMD_COEF_32 wise.
+		// Move _data to data, mixing it SIMD_COEF_32 wise.
 #if __SSE4_1__ || __MIC__
-		unsigned k;
+		unsigned int k;
 		vtype *W = w;
-		uint32_t *saved_key = (uint32_t*)_data;
+		uint32_t *saved_key = _data;
 		SHA1_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -1356,10 +1353,10 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 			W += 16;
 		}
 #else
-		unsigned j, k;
+		unsigned int j, k;
 		uint32_t *p = (uint32_t*)w;
 		vtype *W = w;
-		uint32_t *saved_key = (uint32_t*)_data;
+		uint32_t *saved_key = _data;
 		SHA1_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_4BUF_INPUT) {
@@ -1395,7 +1392,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 		// now set our data pointer to point to this 'mixed' data.
 		data = w;
 	} else
-		data = _data;
+		data = (vtype*)_data;
 
 	if (!(SSEi_flags & SSEi_RELOAD))
 	{
@@ -1582,7 +1579,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		SHA1_PARA_DO(i)
 		{
-			uint32_t *o = (uint32_t*)&out[i*5*VS32];
+			uint32_t *o = &out[i*5*VS32];
 #if __AVX512F__ || __MIC__
 			vtype idxs = vset_epi32(15*5,14*5,13*5,12*5,
 			                        11*5,10*5, 9*5, 8*5,
@@ -1893,7 +1890,7 @@ void sha224_unreverse(uint32_t *hash)
 
 #undef INIT_D
 
-void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned SSEi_flags)
+void SIMDSHA256body(uint32_t *data, uint32_t *out, uint32_t *reload_state, unsigned int SSEi_flags)
 {
 	vtype a[SIMD_PARA_SHA256],
 		  b[SIMD_PARA_SHA256],
@@ -1914,7 +1911,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 	if (SSEi_flags & SSEi_FLAT_IN) {
 
 #if __SSE4_1__ || __MIC__
-		saved_key = (uint32_t*)data;
+		saved_key = data;
 		SHA256_PARA_DO(k)
 		{
 			w = _w[k].w;
@@ -1952,7 +1949,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 		}
 #else
 		unsigned int j;
-		saved_key = (uint32_t*)data;
+		saved_key = data;
 		SHA256_PARA_DO(k)
 		{
 			uint32_t *p = _w[k].p;
@@ -1987,9 +1984,6 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 #endif
 	} else
 		memcpy(_w, data, 16*sizeof(vtype)*SIMD_PARA_SHA256);
-
-//	dump_stuff_shammx(w, 64, 0);
-
 
 	if (SSEi_flags & SSEi_RELOAD) {
 		if ((SSEi_flags & SSEi_RELOAD_INP_FMT) == SSEi_RELOAD_INP_FMT)
@@ -2200,7 +2194,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		SHA256_PARA_DO(i)
 		{
-			uint32_t *o = (uint32_t*)&out[i*8*VS32];
+			uint32_t *o = &out[i*8*VS32];
 #if __AVX512F__ || __MIC__
 			vtype idxs = vset_epi32(15<<3,14<<3,13<<3,12<<3,
 			                        11<<3,10<<3, 9<<3, 8<<3,
@@ -2455,8 +2449,7 @@ void sha384_unreverse(uint64_t *hash)
 
 #undef INIT_D
 
-void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
-                   unsigned SSEi_flags)
+void SIMDSHA512body(uint64_t *data, uint64_t *out, uint64_t *reload_state, unsigned int SSEi_flags)
 {
 	unsigned int i, k;
 
@@ -2472,7 +2465,7 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 	vtype tmp1[SIMD_PARA_SHA512], tmp2[SIMD_PARA_SHA512];
 
 	if (SSEi_flags & SSEi_FLAT_IN) {
-		uint64_t *_data = (uint64_t*)data;
+		uint64_t *_data = data;
 		SHA512_PARA_DO(k)
 		{
 			if (SSEi_flags & SSEi_2BUF_INPUT) {
@@ -2520,8 +2513,6 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 		}
 	} else
 		memcpy(w, data, 16 * sizeof(vtype) * SIMD_PARA_SHA512);
-
-	//dump_stuff_shammx64_msg("\nindex 2", w, 128, 2);
 
 	if (SSEi_flags & SSEi_RELOAD) {
 		if ((SSEi_flags & SSEi_RELOAD_INP_FMT) == SSEi_RELOAD_INP_FMT)
@@ -2749,7 +2740,7 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		SHA512_PARA_DO(i)
 		{
-			uint64_t *o = (uint64_t*)&out[i*8*VS64];
+			uint64_t *o = &out[i*8*VS64];
 #if __AVX512F__ || __MIC__
 			vtype idxs = vset_epi64(7<<3, 6<<3, 5<<3, 4<<3,
 			                        3<<3, 2<<3, 1<<3, 0<<3);
