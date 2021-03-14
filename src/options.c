@@ -336,7 +336,6 @@ JOHN_USAGE_FORK \
 "--force-tty                set up terminal for reading keystrokes even if we're\n" \
 "                           not the foreground process\n" \
 "--field-separator-char=C   use 'C' instead of the ':' in input and pot files\n" \
-"--fix-state-delay=N        performance tweak, see doc/OPTIONS\n" \
 FUZZ_USAGE \
 "--internal-codepage=NAME   codepage used in rules/masks (see doc/ENCODINGS)\n" \
 "--[no-]keep-guessing       try finding plaintext collisions\n" \
