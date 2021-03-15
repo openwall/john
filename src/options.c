@@ -140,7 +140,7 @@ static struct opt_entry opt_list[] = {
 	{"make-charset", FLG_MAKECHR_SET, FLG_MAKECHR_CHK, 0, FLG_CRACKING_CHK | FLG_SESSION | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.charset},
 	{"show", FLG_SHOW_SET, FLG_SHOW_CHK, 0, FLG_CRACKING_SUP | FLG_MAKECHR_CHK, OPT_FMT_STR_ALLOC, &show_uncracked_str},
 	{"test", FLG_TEST_SET, FLG_TEST_CHK, 0, TEST_REQ_CLR, "%d", &benchmark_time},
-	{"test-full", FLG_TEST_SET, FLG_TEST_CHK, 0, TEST_REQ_CLR & OPT_REQ_PARAM, "%d", &benchmark_level},
+	{"test-full", FLG_TEST_SET, FLG_TEST_CHK, 0, TEST_REQ_CLR | OPT_REQ_PARAM, "%d", &benchmark_level},
 	{"stress-test", FLG_LOOPTEST_SET, FLG_LOOPTEST_CHK, 0, ~FLG_LOOPTEST_SET & TEST_REQ_CLR, "%d", &benchmark_time},
 #ifdef HAVE_FUZZ
 	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK, 0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_NOLOG & ~GETOPT_FLAGS, OPT_FMT_STR_ALLOC, &options.fuzz_dic},
