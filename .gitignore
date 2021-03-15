@@ -95,6 +95,7 @@ src/john_build_rule.h
 src/memdbg_defines.h
 src/secp256k1/secp256k1.a
 src/ed25519-donna/ed25519-donna.a
+src/poly1305-donna/poly1305-donna.a
 src/stamp-h1
 src/version.h
 src/version.h.new
