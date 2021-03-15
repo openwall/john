@@ -62,8 +62,8 @@ john_register_one(&fmt_fde);
 #define BENCHMARK_LENGTH    0x107
 #define BINARY_SIZE         0
 #define BINARY_ALIGN        1
-#define SALT_ALIGN          8
 #define SALT_SIZE           sizeof(struct custom_salt)
+#define SALT_ALIGN          sizeof(void*)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT  (SSE_GROUP_SZ_SHA1 * 4)
@@ -86,8 +86,8 @@ static int *cracked;
 static int max_cracked;
 
 static struct custom_salt {
-	int loaded;
 	unsigned char *cipherbuf;
+	int loaded;
 	int keysize;
 	int iterations; // NOTE, not used. Hard coded to 2000 for FDE from Android <= 4.3 (PBKDF2-SHA1)
 	int saltlen;
@@ -95,7 +95,6 @@ static struct custom_salt {
 	unsigned char salt[16];
 	unsigned char mkey[64];
 	unsigned char iv[16];
-
 } *cur_salt;
 
 static void init(struct fmt_main *self)
