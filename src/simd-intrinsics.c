@@ -3,7 +3,7 @@
  * Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>,
  * Copyright (c) 2012 Solar Designer,
  * Copyright (c) 2011-2015 JimF,
- * Copyright (c) 2011-2018 magnum,
+ * Copyright (c) 2011-2021 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -118,7 +118,11 @@ void md5_unreverse(uint32_t *hash)
 void SIMDmd5body(vtype* _data, unsigned int *out,
                 uint32_t *reload_state, unsigned SSEi_flags)
 {
-	vtype w[16*SIMD_PARA_MD5];
+	union {
+		vtype vec[16*SIMD_PARA_MD5];
+		uint32_t u32[1];
+	} uw;
+	vtype *w = uw.vec;
 	vtype a[SIMD_PARA_MD5];
 	vtype b[SIMD_PARA_MD5];
 	vtype c[SIMD_PARA_MD5];
@@ -157,7 +161,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 		}
 #else
 		unsigned j, k;
-		uint32_t *p = (uint32_t*)w;
+		uint32_t *p = uw.u32;
 		vtype *W = w;
 		uint32_t *saved_key = (uint32_t*)_data;
 		MD5_PARA_DO(k)
@@ -807,7 +811,11 @@ void md4_unreverse(uint32_t *hash)
 void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
                 unsigned SSEi_flags)
 {
-	vtype w[16*SIMD_PARA_MD4];
+	union {
+		vtype vec[16*SIMD_PARA_MD4];
+		uint32_t u32[1];
+	} uw;
+	vtype *w = uw.vec;
 	vtype a[SIMD_PARA_MD4];
 	vtype b[SIMD_PARA_MD4];
 	vtype c[SIMD_PARA_MD4];
@@ -842,7 +850,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 		}
 #else
 		unsigned j, k;
-		uint32_t *p = (uint32_t*)w;
+		uint32_t *p = uw.u32;
 		vtype *W = w;
 		uint32_t *saved_key = (uint32_t*)_data;
 		MD4_PARA_DO(k)
@@ -1303,7 +1311,11 @@ void sha1_unreverse3(uint32_t *hash)
 void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
                  unsigned SSEi_flags)
 {
-	vtype w[16*SIMD_PARA_SHA1];
+	union {
+		vtype vec[16*SIMD_PARA_SHA1];
+		uint32_t u32[1];
+	} uw;
+	vtype *w = uw.vec;
 	vtype a[SIMD_PARA_SHA1];
 	vtype b[SIMD_PARA_SHA1];
 	vtype c[SIMD_PARA_SHA1];
@@ -1357,7 +1369,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 		}
 #else
 		unsigned j, k;
-		uint32_t *p = (uint32_t*)w;
+		uint32_t *p = uw.u32;
 		vtype *W = w;
 		uint32_t *saved_key = (uint32_t*)_data;
 		SHA1_PARA_DO(k)
