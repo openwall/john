@@ -478,7 +478,7 @@ char *pbkdf2_hmac_sha1_prepare(char *fields[10], struct fmt_main *self)
 void *pbkdf2_hmac_sha1_binary(char *ciphertext) {
 	static union {
 		unsigned char c[PBKDF2_SHA1_MAX_BINARY_SIZE];
-		ARCH_WORD dummy;
+		uint32_t dummy;
 	} buf;
 	unsigned char *out = buf.c;
 	char *p;
@@ -655,7 +655,7 @@ char *pbkdf2_hmac_sha256_prepare(char *fields[10], struct fmt_main *self) {
 void *pbkdf2_hmac_sha256_binary(char *ciphertext) {
 	static union {
 		char c[PBKDF2_SHA256_BINARY_SIZE];
-		ARCH_WORD dummy;
+		uint32_t dummy;
 	} buf;
 	char *ret = buf.c;
 	char *c = ciphertext;
