@@ -41,7 +41,7 @@
 
 #define MAX_SUBSET_SIZE 16
 #define MAX_CAND_LENGTH PLAINTEXT_BUFFER_SIZE
-#define DEFAULT_MAX_LEN 32
+#define DEFAULT_MAX_LEN 16
 
 #if JTR_HAVE_INT128
 typedef uint128_t uint_big;
