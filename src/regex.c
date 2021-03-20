@@ -44,8 +44,8 @@ char *stpcpy(char *dst, const char *src) {
 #endif
 
 char *rexgen_alphabets[256];
-static c_iterator_ptr iter = NULL;
-static c_regex_ptr regex_ptr = NULL;
+static c_iterator_ptr iter = c_iterator_none;
+static c_regex_ptr regex_ptr = c_regex_none;
 static char *save_str;
 static const char *cur_regex, *save_regex;
 static char *restore_str, *restore_regex;
@@ -184,6 +184,10 @@ void SetupAlpha(const char *regex_alpha)
 	}
 }
 
+void parser_error(const char* msg) {
+	fprintf(stderr, "%s\n", msg);
+}
+
 int do_regex_hybrid_crack(struct db_main *db, const char *regex,
                           const char *base_word, int regex_case,
                           const char *regex_alpha)
@@ -218,7 +222,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		rec_init_hybrid(save_state_hybrid);
 		crk_set_hybrid_fix_state_func_ptr(rex_hybrid_fix_state);
 
-		regex_ptr = c_regex_cb_mb(regex, callback);
+		regex_ptr = c_regex_cb_mb(regex, callback, parser_error);
 		if (!regex_ptr) {
 			c_simplestring_delete(buffer);
 			fprintf(stderr,
@@ -333,7 +337,7 @@ void do_regex_crack(struct db_main *db, const char *regex)
 	crk_init(db, fix_state, NULL);
 	rec_init_hybrid(save_state_hybrid);
 
-	regex_ptr = c_regex_cb_mb(regex, callback);
+	regex_ptr = c_regex_cb_mb(regex, callback, parser_error);
 	if (!regex_ptr) {
 		fprintf(stderr,
 		        "Error, invalid regex expression.  John exiting now\n");

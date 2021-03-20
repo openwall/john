@@ -2,6 +2,12 @@ Rexgen.txt - This document describes how to use the rexgen library, to perform
 regex expression work within JtR.  Rexgen library is copywrite Jan Starke,
 jan.starke@outofbed.org   The regex.c code in JtR by JimF, Spring 2014.
 
+WARNING
+
+Since maintenance for the rexgen library appears to have stopped for almost
+two years, support for --regex might have to be dropped in future releases!
+
+
 First off, see the section at the bottom of this document about how to obtain
 build and install librexgen.
 
@@ -82,11 +88,57 @@ https://github.com/teeshop/rexgen
 
 git clone --recursive https://github.com/teeshop/rexgen.git
 
-As of this writing the last known good version is 2.0.8 so you may want
-to check that out.
 
-Once you download it, it requires a cmake environment, along with flex and
-bison to be installed and working.  To build, see instructions on this page:
+As of this writing there is no known good rexgen version.
+The latest commit is
+
+    commit 585e86da6a07a63ec7a871320b307457661d557c
+    Author: Jan Starke <teeshop@users.noreply.github.com>
+    Date:   Thu Apr 11 08:38:41 2019 +0200
+
+        Update README.md
+
+
+With recent compiler changes, it isn't even possible to compile rexgen.
+To avoid build errors, the following change is required, see
+pull request https://github.com/janstarke/rexgen/pull/64:
+
+diff --git a/src/librexgen/iterator/iterator.h b/src/librexgen/iterator/iterator.h
+index 5b99c77..eabf264 100644
+--- a/src/librexgen/iterator/iterator.h
++++ b/src/librexgen/iterator/iterator.h
+@@ -26,6 +26,7 @@
+ #include <librexgen/osdepend.h>
+ #include <librexgen/state/serializablestate.h>
+ #include <librexgen/state/invaliditeratoridexception.h>
++#include <stdexcept>
+ #include <memory>
+
+ #ifdef __cplusplus
+
+
+In order to avoid erors when building john with rexgen support, an additional
+change is required:
+
+diff --git a/src/librexgen/c/ApiContext.h b/src/librexgen/c/ApiContext.h
+index 9885c7e..4c943e7 100644
+--- a/src/librexgen/c/ApiContext.h
++++ b/src/librexgen/c/ApiContext.h
+@@ -23,8 +23,8 @@
+ typedef int c_regex_ptr;
+ typedef int c_iterator_ptr;
+
+-const c_regex_ptr c_regex_none = 0;
+-const c_iterator_ptr c_iterator_none = 0;
++static const c_regex_ptr c_regex_none = 0;
++static const c_iterator_ptr c_iterator_none = 0;
+
+ #ifdef __cplusplus
+ #include <librexgen/regex/regex.h>
+
+
+Rexgen requires a cmake environment, along with flex and bison
+to be installed and working.  To build, see instructions on this page:
 
 https://github.com/teeshop/rexgen/blob/master/README.md
 
@@ -97,7 +149,11 @@ cd rexgen/src
 ./build.sh
 sudo ./install.sh
 
+
 If there are no errors (especially from cmake), librexgen should be installed.
+Don't forget to run ldconfig afterwards.
+
+sudo ldconfig
 
 To test:
 rexgen '[0-2]password[A-C]'
@@ -111,8 +167,52 @@ rexgen '[0-2]password[A-C]'
 1passwordC
 2passwordC
 
-Once you are at this point, rexgen is installed.  JtR ./configure now needs
+
+Once rexgen is installed, JtR ./configure now needs
 --enable-rexgen to detect and use the library.
+
+
+KNOWN ISSUES
+
+1.
+The rexgen manpage includes this example:
+
+Examples
+       rexgen index.php?id=[1-5]
+              Would create the results
+              index.php?id=1
+              index.php?id=2
+              index.php?id=3
+              index.php?id=4
+              index.php?id=5
+
+However, to produce the desired output, you have to run
+       rexgen 'index\.php\?id=[1-5]'
+
+(Note the single quotes and the need to escape both '.' and '?'.)
+
+2.
+While some invalid regular expressions are correctly detected and reported,
+others will cause segmentation faults:
+
+$ rexgen 'a[]'
+Segmentation fault (core dumped)
+
+$ rexgen 'a\1'
+Segmentation fault (core dumped)
+
+
+Using the same illegal regular expressions with ./john --regex will also cause
+segmentation faults:
+
+$ ./john --stdout --regex='a[]'
+Segmentation fault (core dumped)
+
+$ ./john --stdout --regex='a\1'
+Segmentation fault (core dumped)
+
+
+
 
 Note, JtR help document is NOT here to troubleshoot installation of this
 library.  A simple how to do it (when thing work right), is what was listed.
