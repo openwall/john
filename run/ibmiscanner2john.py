@@ -7,6 +7,12 @@
 # Output is sent to stdout. Redirect stdout to create a file for JtR.
 # See hackthelegacy.org for ibmiscanner tooling
 
+# Example input hash with username=heidi and password=diamonds
+# heidi:2B22E1F044E51AB1A645FC21A42019FEDD8B6950
+# Output:
+# heidi:$as400ssha1$2B22E1F044E51AB1A645FC21A42019FEDD8B6950$heidi
+
+
 import sys
 import os
 
@@ -20,10 +26,9 @@ def process_file(filename):
             try:
                 data = line.split(':')
                 out = data[0] + ":$as400ssha1$" + data[1] + "$" + data[0]
-                print out.encode('utf-8')
+                print(out)
             except:
                 sys.stderr.write("Error: parsing of line '%s' failed - skipping\n" % line)
-                pass
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
