@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 """
 androidfde2john.py, program to "convert" Android FDE images / disks into JtR
