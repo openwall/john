@@ -75,7 +75,7 @@ dnl We define "--disable-FEATURE" when default is "auto".
 dnl MPI is not "auto" because its network usage might scare people:
 AC_ARG_ENABLE([openmp-for-fast-formats], [AC_HELP_STRING([--enable-openmp-for-fast-formats], [Enable OpenMP for fast formats (usually a bad idea - use fork instead)])], [ompfast=$enableval], [ompfast=no])
 AC_ARG_ENABLE([mpi], [AC_HELP_STRING([--enable-mpi], [Use OpenMPI])], [enable_mpi=$enableval], [enable_mpi=no])
-AC_ARG_ENABLE([rexgen], [AC_HELP_STRING([--enable-rexgen], [Enable use of rexgen library (experimental)])], [enable_rexgen=$enableval], [enable_rexgen=no])
+AC_ARG_ENABLE([rexgen], [AC_HELP_STRING([--enable-rexgen], [Enable use of rexgen library (unreliable!)])], [enable_rexgen=$enableval], [enable_rexgen=no])
 AC_ARG_ENABLE([pcap], [AC_HELP_STRING([--disable-pcap], [Do not build helpers depending on PCAP])], [enable_pcap=$enableval], [enable_pcap=auto])
 AC_ARG_ENABLE([native-tests], [AC_HELP_STRING([--disable-native-tests], [Do not test build system for target features.])], [enable_native_tests=$enableval], [enable_native_tests=auto])
 AC_ARG_ENABLE([native-march], [AC_HELP_STRING([--enable-native-march], [Use things like -march=native if valid compiler option(s).])], [enable_native_march=$enableval], [enable_native_march=no])
@@ -659,7 +659,7 @@ dnl Check for rexgen only if rexgen wanted
 if test "x$enable_rexgen" != xno ; then
   AC_CHECK_HEADER([librexgen/version.h],
     [AC_SEARCH_LIBS([rexgen_version_int],[rexgen librexgen],
-      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x020006); }],
+      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x020009); }],
         AC_MSG_RESULT([usable]) && [using_rexgen=yes],
         AC_MSG_RESULT([TOO old. Rexgen not usable!]))]
     )]
