@@ -221,5 +221,3 @@ new()/next()/next().... and know that the script restored itself properly.
 
 Following the above rules and functions, a external-hybrid script can do
 pretty much anything required to transform/morph/mangle words.
-
-$Owl$

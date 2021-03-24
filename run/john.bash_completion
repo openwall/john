@@ -1,6 +1,6 @@
 # bash completion for john and unique commands (John the Ripper)
 #
-# This software is Copyright (c) 2012 Frank Dittrich
+# This software is Copyright (c) 2012-2021 Frank Dittrich
 # and hereby released to the general public under the following terms:
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
@@ -97,7 +97,7 @@ shopt -s extglob
 ## have grep && have sed && have tr &&
 _john()
 {
-	local first cur options valopts compreplya compreplyb encodings formats format_classes
+	local first cur options valopts compreplya compreplyb encodings formats format_classes help
 	local primitives subformats list dir cmd cmd2 i ver ver1 ver2 ver3 prev words prefix option
 
 	# Without LC_ALL=C, [A-Z] match [a-z] (case "${cur}" in ... esac)
@@ -156,7 +156,14 @@ _john()
 #   Some are listed like --[no-]keep-guessing, expanded to both variants
 #
 #	All options:
-	options="`{ ${first} --help 2>/dev/null | sed -n -e 's#^ *\(--\(\[no-\]\)\?[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e 's#^--\[no-\]\(.*\)#--\1\n--no-\1#' -e '/^--/ p' ; echo --stdin; } | sort -u | grep -v -- '--show='`"
+	if [[ "_${ver1}" == "_" ]]; then
+		# jumbo
+		help="--help"
+	else
+		# core
+		help=""
+	fi
+	options="`{ ${first} ${help} 2>/dev/null | sed -n -e 's#^ *\(--\(\[no-\]\)\?[a-z-]*\(\[\)\?=\?\(LIST\)\?\).*$#\1#' -e 's#^--\[no-\]\(.*\)#--\1\n--no-\1#' -e '/^--/ p' ; echo --stdin; } | sort -u | grep -v -- '--show='`"
 
 	if [[ "_${options}" == "_--stdin" && "_${__john_binary}" != "_" ]] ; then
 		# No options and hidden(deprecated) options with ${first}, but a previous
@@ -246,14 +253,7 @@ _john()
 	# slower than the current approach
 
 	# Check if completion is requested for a valid option
-	# --prince= is a hack for now, should be made generic:
-	if [[ "${cur}" == --prince[=:]* || "${cur}" == -prince[=:]* ]]; then
-		COMPREPLY=("--prince")
-	# The same hack is needed for --fuzz as well, because we have
-	# --fuzz[=something] and --fuzz-dump[=something]
-	elif [[ "${cur}" == --fuzz[=:]* || "${cur}" == -fuzz[=:]* ]]; then
-		COMPREPLY=("--fuzz")
-	elif [[ "${cur}" == --* ]] ; then
+	if [[ "${cur}" == --* ]] ; then
 		COMPREPLY=( $(compgen -W "${options}" -- "${cur%%[=:]*}") )
 	else
 		COMPREPLY=( $(compgen -W "${options}" -- "-${cur%%[=:]*}") )
@@ -262,23 +262,24 @@ _john()
 	# Check the number of different possible completions
 	# for the (possibly abbreviated) option
 	i=${#COMPREPLY[*]}
-	if [[ $i -eq 1 ]] ; then
-		# (abbreviated) option is not ambiguous
+	IFS=$'\n' COMPREPLY=($(sort <<<"${COMPREPLY[*]}"))
+	unset IFS
+	if [[ $i -ne 0 && ${COMPREPLY[$i - 1]} == ${COMPREPLY[0]%%=*}* ]]; then
+		# (abbreviated) option is not ambiguous or
+		# option is also part of a longer option name
 		if [[ "${cur}" != *[=:]* ]] ; then
 			# No value specified.
 			if [[ $valopts == *${COMPREPLY[0]}* ]] ; then
 				# Option allows a value
 				if [[ "${cur}" == ${COMPREPLY[0]} ]] ; then
-					# Option has not been abbreviated
-					if [[ "_${__john_completion}" == "_2" ]]; then
+					if [[ $i -eq 1 && "_${__john_completion}" == "_2" ]] ; then
 						# User specific setting requests adding a '='
 						COMPREPLY=( $(compgen -W "${cur}=" -- ${cur}) )
 						compopt -o nospace
 						return
-					else
-						# Completion might depend on the option
-						option="${cur}"
 					fi
+					COMPREPLY=( $(compgen -W "${options} ${cur}=" -- ${cur}) )
+					return
 				else
 					# Option has been abbreviated
 					# make sure no trailing space gets added
@@ -435,7 +436,7 @@ _john()
 			done
 			return 0
 			;;
-		--wordlist=*|--mkv-stats=*|--prince=*|--fuzz=*|--fuzz-dump=*|--single-wordlist=*)
+		--wordlist=*|--mkv-stats=*|--prince=*|--fuzz=*|--single-wordlist=*)
 			# as long as Markov stats files can have any name,
 			# I can just reuse the --wordlist= logic for --mkv-stats=*
 			cur=${cur#*[=:]}
@@ -443,7 +444,7 @@ _john()
 			_filedir
 			return 0
 			;;
- 		--rules|--single)
+		--rules|--rules-stack|--single)
 			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=rules #"`
 			list=`${cmd} 2>/dev/null`
 			if [[ $? -ne 0 ]] ; then
@@ -457,7 +458,7 @@ _john()
 			COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			return 0
 			;;
-		--rules=*|--single=*)
+		--rules=*|--rules-stack=*|--single=*)
 			cmd=`echo ${COMP_LINE}|sed "s# ${cur}# --list=rules #"`
 			list=`${cmd} 2>/dev/null`
 			if [[ $? -ne 0 ]] ; then
@@ -622,7 +623,8 @@ _john()
 			;;
 		--show=?(*))
 			cur=`echo ${cur#*[=:]} | tr A-Z a-z`
-			COMPREPLY=( $(compgen -W "left formats types invalid" -- ${cur}) )
+			list=`${first} --show=help dummy 2>&1 | grep -v "^Invalid" | sed 's#--show=\?\([^,]*\),\?#\1#g' `
+			COMPREPLY=( $(compgen -W "${list}" -- ${cur}) )
 			return 0
 			;;
 		--users=?(-)+(L|U)*|--groups=+(-|G)*|--shells=+(-|S)*|--salts=+(-|C)*)
@@ -645,7 +647,7 @@ _john()
 			;;
 		--salts=*)
 			cur=${cur#*=}
-			COMPREPLY=( $(compgen -W "COUNT -COUNT" -- ${cur}) )
+			COMPREPLY=( $(compgen -W "COUNT -COUNT #M #M-N" -- ${cur}) )
 			return 0
 			;;
 		--encoding=*|--intermediate-enc=*|--internal-codepage=*|--internal-encoding=*|--target-encoding=*|--input-encoding=*)
@@ -694,7 +696,7 @@ _john()
 			COMPREPLY=( $(compgen -W "${encodings}" -- ${cur}) )
 			return 0
 			;;
-		--pot=*|--loopback=*)
+		--pot=*|--loopback=*|--prince-loopback=*)
 			# if --pot= is used, john always looks for
 			# the file in $PWD (tested with system-wide
 			# and local builds of john)
@@ -854,14 +856,28 @@ _john()
 			return 0
 			;;
 		--bare-always-valid=*)
-			# --bare-always-valid=Y
+			# --bare-always-valid=Y Y/N
 			cur=${cur#*[=:]}
-			COMPREPLY=( $(compgen -W "Y" -- ${cur}) )
+			COMPREPLY=( $(compgen -W "Y N" -- ${cur}) )
 			return 0
 			;;
 		--verbosity=*)
 			cur=${cur#*[=:]}
-			COMPREPLY=( $(compgen -W "1 2 3 4 5" -- ${cur}) )
+			COMPREPLY=( $(compgen -W "1 2 3 4 5 6" -- ${cur}) )
+			return 0
+			;;
+		--fuzz-dump)
+			COMPREPLY=( $(compgen -W "--fuzz-dump --fuzz-dump=FROM,TO" -- ${cur}) )
+			return 0
+			;;
+		--tune=)
+			cur=${cur#*[=:]}
+			COMPREPLY=( $(compgen -W "auto report N" -- ${cur}) )
+			return 0
+			;;
+		--tune=*)
+			cur=${cur#*[=:]}
+			COMPREPLY=( $(compgen -W "auto report" -- ${cur}) )
 			return 0
 			;;
 		-*+(=|:))
@@ -889,6 +905,8 @@ _unique()
 {
 	local first cur usage options valopts compreplya compreplyb
 
+	LC_ALL=C
+
 	COMPREPLY=()
 
 	_get_comp_words_by_ref -n = cur
@@ -896,7 +914,12 @@ _unique()
 # we need to make sure we run the correct program, not some other program
 # called unique which is located somewhere in $PATH
 	first="${COMP_WORDS[0]}"
-	usage=`${first}|grep '^Usage:'|sed 's#^Usage:\? \?[^ ]*unique *##'`
+	usage=`${first} 2>&1 |grep '^-'|sed 's#^\(-[a-z_=-]*\).*$#\1#'`
+	options="${usage}"
+	if [[ "_${usage}" == "_" ]] ; then
+		usage=`${first} 2>&1 |grep '^Usage:'|sed 's#^Usage:\? \?[^ ]*unique *##'`
+		options=`echo ${usage}|sed 's# #\n#g'|grep '^\[.*\]$'|sed 's#^.\(.*\).$#\1#'|sed 's#=.*$#=#'`
+	fi
 	case "_${cur}" in
 #		_|_${first})
 #			if [[ "_${usage}" != "_OUTPUT-FILE" ]] ; then
@@ -907,7 +930,7 @@ _unique()
 #			fi
 #			return 0
 #			;;
-		_-cut=*|_-mem=*)
+		_-buf=*|_-cut=*|_-hash-size=*|_-mem=*|_-mlc=*)
 			return 0
 			;;
 		_-inp=*|_-ex_file=*|_-ex_file_only=*)
@@ -924,7 +947,6 @@ _unique()
 			;;
 		_-*)
 			if [[ "_${usage}_" != "_OUTPUT-FILE_" ]] ; then
-				options=`echo ${usage}|sed 's# #\n#g'|grep '^\[.*\]$'|sed 's#^.\(.*\).$#\1#'|sed 's#=.*$#=#'`
 				valopts=`echo "${options}"|grep '='`
 				compreplya=`compgen -W "${options}" -- ${cur}`
 				compreplyb=`compgen -W "${valopts}" -- ${cur}`

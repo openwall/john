@@ -33,9 +33,9 @@ john_register_one(&fmt_opencl_pbkdf2_hmac_sha512);
 #define FORMAT_NAME              "GRUB2 / OS X 10.8+"
 #define ALGORITHM_NAME           "PBKDF2-SHA512 OpenCL"
 #define BINARY_ALIGN             8
-#define SALT_ALIGN               8
 #define PLAINTEXT_LENGTH         110
 #define SALT_SIZE                sizeof(salt_t)
+#define SALT_ALIGN               sizeof(uint64_t)
 #define KERNEL_NAME              "pbkdf2_sha512_kernel"
 #define SPLIT_KERNEL_NAME        "pbkdf2_sha512_loop"
 

@@ -563,6 +563,8 @@ int rules_init_stack(char *ruleset, rule_stack *stack_ctx,
 		rules_init(db, options.eff_maxlength + mask_add_len);
 		rule_count = rules_count(&ctx, -1);
 
+		rules_stacked_after = 0;
+
 		if (john_main_process)
 			log_event("- %d preprocessed stacked rules", rule_count);
 
@@ -609,6 +611,8 @@ int rules_init_stack(char *ruleset, rule_stack *stack_ctx,
 			log_event("- No stacked rules");
 	}
 
+	rules_stacked_after = rule_count && (options.flags & (FLG_RULES_CHK | FLG_SINGLE_CHK));
+
 	return rule_count;
 }
 
@@ -634,6 +638,8 @@ void rules_init(struct db_main *db, int max_length)
 		rules_init_convs();
 	}
 	rules_init_length(max_length);
+
+	rules_stacked_after = (options.flags & (FLG_RULES_CHK | FLG_SINGLE_CHK)) && (options.flags & FLG_RULES_STACK_CHK);
 }
 
 char *rules_reject(char *rule, int split, char *last, struct db_main *db)
@@ -718,6 +724,13 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 			if (options.internal_cp != UTF_8 && options.internal_cp != ENC_RAW) continue;
 			return NULL;
 
+		case 'R':
+			if (rules_stacked_after) continue;
+			return NULL;
+
+		case 'S':
+			if (!rules_stacked_after) continue;
+			return NULL;
 /*
  * Any failed UTF-8-to-codepage translations change '-U' to '--' in
  * rpp_process_rule(), as an "always reject" hack.
@@ -1857,7 +1870,7 @@ char *rules_process_stack(char *key, rule_stack *ctx)
 	if ((word = rules_apply(key, ctx->rule->data, -1, last)))
 		last = word;
 
-	rules_stacked_after = 1;
+	rules_stacked_after = !!(options.flags & (FLG_RULES_CHK | FLG_SINGLE_CHK));
 
 	return word;
 }
@@ -1897,7 +1910,7 @@ char *rules_process_stack_all(char *key, rule_stack *ctx)
 		}
 	}
 
-	rules_stacked_after = 1;
+	rules_stacked_after = !!(options.flags & (FLG_RULES_CHK | FLG_SINGLE_CHK));
 
 	if (!stack_rules_mute && options.verbosity <= VERB_DEFAULT) {
 		stack_rules_mute = 1;

@@ -261,7 +261,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	//Assure buffers have no "trash data".
 	memset(plaintext, '\0', BUFFER_SIZE * gws);
 	memset(saved_idx, '\0', sizeof(uint32_t) * gws);
-	memset(saved_int_key_loc, 0x80, sizeof(uint32_t) * mask_gws);
+	memset(saved_int_key_loc, '\0', sizeof(uint32_t) * mask_gws);
 }
 
 static void release_clobj()

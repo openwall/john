@@ -143,7 +143,7 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Make keypress [d] special: It will also emit a status line, but not until
   the current batch has been run among all salts.  Under some circumstances
-  that make take a good while.  [magnum; 2020]
+  that may take a good while.  [magnum; 2020]
 
 - Add command-line option --loader-dupecheck=<yes/no>, overriding config file.
   Mark the latter as deprecated in config file comments.  [magnum; 2020]
@@ -153,6 +153,26 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Add support for Telegram Desktop >= 2.2.0/2.1.14b, CPU-only for now.
   [philsmd, magnum; 2020]
+
+- Drop support for --fix-state-delay option, and instead do something better
+  in the cracker engine - by default, and for all modes.  [magnum; 2020]
+
+- Addition of mosquitto2john.py for cracking of Eclipse Mosquitto passwd files.
+  [blackfell; 2021]
+
+- Final fixes for zip2john selection of 1-byte or 2-byte early-reject checks,
+  as well as exactly what source to use for that check, after seeing several
+  issues and digging into the specs.  Note that a re-run of zip2john is needed
+  for correct cracking.  [magnum; 2021]
+
+- Allow any node range divisible by fork (or MPI) count.  [Solar, magnum; 2021]
+
+- Fix autoconf selection of arch.h for Apple M1.  Improve ARM pseudo-intrinsics
+  portability (would fail on clang).  Allow RAR formats to build on ARM where we
+  detect it can handle unaligned memory access.  [magnum; 2021]
+
+- Add options --subsets-prefer-short and --subsets-prefer-small to Subsets
+  mode, affecting candidate order.  [magnum; 2021]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):

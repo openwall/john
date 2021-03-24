@@ -18,10 +18,13 @@ resorting to a legacy code page at all.  Obviously it supports session resume
 
 With no further options, "--subsets" will start at length 1 and a subset size
 of 1 (mimicing the "repeats" external mode) and then increment both of them in
-subset keysize order, ending at length 16 or format's max. length, whichever is
-lower.  Using --max-len=N may bump it to larger than 16.  It will use the full
-charset of printable ASCII (95 characters) but start with tiny subsets and
-increase from there.
+subset keysize order, ending at length 32 or format's max. length, whichever is
+lower.  Using --max-len=N you can bump it to larger than 32, or decrease it.
+The full charset of printable ASCII (95 characters) will be used, starting with
+tiny subsets and increasing from there.  By default, no more than 7 different
+characters from the charset will be used for any word even at lengths over 7
+(this can be bumped, see SUBSET SIZES below).  In other words, by default the
+mode is exhaustive only up to length 7 if run to completion.
 
 Obviously normal options like --min-len, --max-len and --target-encoding also
 applies.
@@ -103,10 +106,28 @@ is required, eg:
 -subsets=0123456789abcdefghijklmnopqrstuvwxyz --subsets-required=10
 
 
+CANDIDATE ORDER
+
+The keyspace is divided in many sets of (length, subset size).  By default, the
+smallest pending such set is picked, which means it will exhaust subset size 1
+first, for all lengths, so mimicing the old --external=repeats mode.  Further
+into the process it will jump between lengths and subset sizes in order to
+complete smaller sets early.  This can be changed by using one of the options
+--subsets-prefer-small which will make it strictly prefer smallest set size, or
+--subsets-prefer-short which instead exhausts each length rather than jumping
+to small sets at longer lengths (so, for example, it will no longer mimic the
+external repeats mode at the very start of the run).  Using any or none of
+these options, the full keyspace will obviously be the same - only the order
+changes.
+
+
 SUBSET SIZES
 
-The options --subsets-min-diff=N and --subsets-max-diff=N (or the similar
-variants in john.conf) let you put a limit on complexity.  Normally it's not
-needed unless you want a session that actually runs to finish before you die
-of age.  For the --subsets-max-diff=N option, a negative N is parsed as "max.
-length - N".
+The options --subsets-min-diff=N and --subsets-max-diff=N (and the similar
+variants in john.conf) let you put a limit on complexity.  Normally there's
+little need to change them except for small charsets (such as digits only,
+where you may want a max. of 10 for eventually exhausting the keyspace at
+lengths over 7, or the hex examples above, where you could similarly want a
+max. of 16) or when you want a session that actually runs to finish before
+you die of age.  For the --subsets-max-diff=N option, a negative N is parsed
+as "max. length - N".

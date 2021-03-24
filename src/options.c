@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2019 by Solar Designer
+ * Copyright (c) 1996-2021 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF and magnum (and various others?)
  *
@@ -63,7 +63,7 @@ static char *costs_str;
 
 /* Common req_clr for --test, --test-full and --stress-test */
 #define TEST_REQ_CLR (~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_MASK_CHK & ~FLG_NO_MASK_BENCH & \
-                      ~FLG_VERBOSITY & ~FLG_INPUT_ENC & ~FLG_SECOND_ENC & ~GETOPT_FLAGS)
+                      ~FLG_VERBOSITY & ~FLG_INPUT_ENC & ~FLG_SECOND_ENC & ~GETOPT_FLAGS & ~FLG_NOTESTS)
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
@@ -118,6 +118,8 @@ static struct opt_entry opt_list[] = {
 		0, 0, OPT_FMT_STR_ALLOC, &options.rain_full},
 	{"tacking", FLG_TACKING_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.tacking_full},
+	{"subsets-prefer-short", FLG_SUBSETS_SHORT, FLG_SUBSETS_SHORT, FLG_SUBSETS_CHK, FLG_SUBSETS_SMALL},
+	{"subsets-prefer-small", FLG_SUBSETS_SMALL, FLG_SUBSETS_SMALL, FLG_SUBSETS_CHK, FLG_SUBSETS_SHORT},
 	{"no-mask", FLG_NO_MASK_BENCH, FLG_NO_MASK_BENCH, FLG_TEST_CHK, FLG_MASK_CHK},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ONCE, 0, FLG_MASK_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
@@ -142,7 +144,7 @@ static struct opt_entry opt_list[] = {
 	{"make-charset", FLG_MAKECHR_SET, FLG_MAKECHR_CHK, 0, FLG_CRACKING_CHK | FLG_SESSION | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.charset},
 	{"show", FLG_SHOW_SET, FLG_SHOW_CHK, 0, FLG_CRACKING_SUP | FLG_MAKECHR_CHK, OPT_FMT_STR_ALLOC, &show_uncracked_str},
 	{"test", FLG_TEST_SET, FLG_TEST_CHK, 0, TEST_REQ_CLR, "%d", &benchmark_time},
-	{"test-full", FLG_TEST_SET, FLG_TEST_CHK, 0, TEST_REQ_CLR & OPT_REQ_PARAM, "%d", &benchmark_level},
+	{"test-full", FLG_TEST_SET, FLG_TEST_CHK, 0, TEST_REQ_CLR | OPT_REQ_PARAM, "%d", &benchmark_level},
 	{"stress-test", FLG_LOOPTEST_SET, FLG_LOOPTEST_CHK, 0, ~FLG_LOOPTEST_SET & TEST_REQ_CLR, "%d", &benchmark_time},
 #ifdef HAVE_FUZZ
 	{"fuzz", FLG_FUZZ_SET, FLG_FUZZ_CHK, 0, ~FLG_FUZZ_DUMP_SET & ~FLG_FUZZ_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_NOLOG & ~GETOPT_FLAGS, OPT_FMT_STR_ALLOC, &options.fuzz_dic},
@@ -163,6 +165,9 @@ static struct opt_entry opt_list[] = {
 	{"list", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.listconf},
 	{"mem-file-size", FLG_ONCE, 0, FLG_WORDLIST_CHK, FLG_DUPESUPP | FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM, Zu, &options.max_wordfile_memory},
 	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK, FLG_STDIN_CHK | FLG_PIPE_CHK},
+/*
+ * --fix-state-delay=N is deprecated and ignored, drop support after releasing 1.9.0-Jumbo-2
+ */
 	{"fix-state-delay", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.max_fix_state_delay},
 	{"field-separator-char", FLG_ONCE, 0, FLG_PWD_SUP, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &field_sep_char_str},
 	{"config", FLG_ONCE, 0, 0, USUAL_REQ_CLR | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.config},
@@ -211,14 +216,14 @@ static struct opt_entry opt_list[] = {
 
 #if OS_FORK
 #define JOHN_USAGE_FORK \
-"--fork=N                   fork N processes\n"
+"--fork=N                   Fork N processes\n"
 #else
 #define JOHN_USAGE_FORK ""
 #endif
 
 #if HAVE_REXGEN
 #define JOHN_USAGE_REGEX \
-"--regex=REGEXPR            regular expression mode (see doc/README.librexgen)\n"
+"--regex=REGEXPR            Regular expression mode (see doc/README.librexgen)\n"
 #else
 #define JOHN_USAGE_REGEX ""
 #endif
@@ -226,17 +231,17 @@ static struct opt_entry opt_list[] = {
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #define PRINCE_USAGE \
 "--prince[=FILE]            PRINCE mode, read words from FILE\n" \
-"--prince-loopback[=FILE]   fetch words from a .pot file\n" \
-"--prince-elem-cnt-min=N    minimum number of elements per chain (1)\n" \
-"--prince-elem-cnt-max=[N]  maximum number of elements per chain (negative N is\n" \
+"--prince-loopback[=FILE]   Fetch words from a .pot file\n" \
+"--prince-elem-cnt-min=N    Minimum number of elements per chain (1)\n" \
+"--prince-elem-cnt-max=[-]N Maximum number of elements per chain (negative N is\n" \
 "                           relative to word length) (8)\n" \
-"--prince-skip=N            initial skip\n" \
-"--prince-limit=N           limit number of candidates generated\n" \
-"--prince-wl-dist-len       calculate length distribution from wordlist\n" \
-"--prince-wl-max=N          load only N words from input wordlist\n" \
-"--prince-case-permute      permute case of first letter\n" \
-"--prince-mmap              memory-map infile (not available with case permute)\n" \
-"--prince-keyspace          just show total keyspace that would be produced\n" \
+"--prince-skip=N            Initial skip\n" \
+"--prince-limit=N           Limit number of candidates generated\n" \
+"--prince-wl-dist-len       Calculate length distribution from wordlist\n" \
+"--prince-wl-max=N          Load only N words from input wordlist\n" \
+"--prince-case-permute      Permute case of first letter\n" \
+"--prince-mmap              Memory-map infile (not available with case permute)\n" \
+"--prince-keyspace          Just show total keyspace that would be produced\n" \
 "                           (disregarding skip and limit)\n"
 #else
 #define PRINCE_USAGE ""
@@ -244,8 +249,8 @@ static struct opt_entry opt_list[] = {
 
 #ifdef HAVE_FUZZ
 #define FUZZ_USAGE \
-"--fuzz[=DICTFILE]          fuzz formats' prepare(), valid() and split()\n" \
-"--fuzz-dump[=FROM,TO]      dump the fuzzed hashes between FROM and TO to file\n" \
+"--fuzz[=DICTFILE]          Fuzz formats' prepare(), valid() and split()\n" \
+"--fuzz-dump[=FROM,TO]      Dump the fuzzed hashes between FROM and TO to file\n" \
 "                           pwfile.format\n"
 #else
 #define FUZZ_USAGE ""
@@ -253,51 +258,49 @@ static struct opt_entry opt_list[] = {
 
 #define JOHN_BANNER	  \
 "John the Ripper " JTR_GIT_VERSION _MP_VERSION DEBUG_STRING ASAN_STRING UBSAN_STRING " [" JOHN_BLD "]\n" \
-"Copyright (c) 1996-2020 by " JOHN_COPYRIGHT "\n" \
+"Copyright (c) 1996-2021 by " JOHN_COPYRIGHT "\n" \
 "Homepage: https://www.openwall.com/john/\n" \
 "\n" \
 "Usage: %s [OPTIONS] [PASSWORD-FILES]\n\n"
 
 #define JOHN_USAGE \
-"--help                     print usage summary\n" \
-"--single[=SECTION[,..]]    \"single crack\" mode, using default or named rules\n" \
-"--single=:rule[,..]        same, using \"immediate\" rule(s)\n" \
-"--single-seed=WORD[,WORD]  add static seed word(s) for all salts in single mode\n" \
-"--single-wordlist=FILE     *short* wordlist with static seed words/morphemes\n" \
-"--single-user-seed=FILE    wordlist with seeds per username (user:password[s]\n" \
+"--help                     Print usage summary\n" \
+"--single[=SECTION[,..]]    \"Single crack\" mode, using default or named rules\n" \
+"--single=:rule[,..]        Same, using \"immediate\" rule(s)\n" \
+"--single-seed=WORD[,WORD]  Add static seed word(s) for all salts in single mode\n" \
+"--single-wordlist=FILE     *Short* wordlist with static seed words/morphemes\n" \
+"--single-user-seed=FILE    Wordlist with seeds per username (user:password[s]\n" \
 "                           format)\n" \
-"--[no-]single-retest-guess override config for SingleRetestGuess\n" \
-"--single-pair-max=N        override max. number of word pairs generated (%u)\n" \
-"--no-single-pair           disable single word pair generation\n" \
-"--wordlist[=FILE] --stdin  wordlist mode, read words from FILE or stdin\n" \
+"--single-pair-max=N        Override max. number of word pairs generated (%u)\n" \
+"--no-single-pair           Disable single word pair generation\n" \
+"--[no-]single-retest-guess Override config for SingleRetestGuess\n" \
+"--wordlist[=FILE] --stdin  Wordlist mode, read words from FILE or stdin\n" \
 "                  --pipe   like --stdin, but bulk reads, and allows rules\n" \
-"--mem-file-size=SIZE       size threshold for wordlist preload (default %u MB)\n" \
-"--loopback[=FILE]          like --wordlist, but extract words from a .pot file\n" \
-"--dupe-suppression         suppress all dupes in wordlist (and force preload)\n" \
-FUZZ_USAGE \
-PRINCE_USAGE \
-"--encoding=NAME            input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
-"                           doc/ENCODINGS.\n" \
-"--rules[=SECTION[,..]]     enable word mangling rules (for wordlist or PRINCE\n" \
+"--rules[=SECTION[,..]]     Enable word mangling rules (for wordlist or PRINCE\n" \
 "                           modes), using default or named rules\n" \
-"--rules=:rule[;..]]        same, using \"immediate\" rule(s)\n" \
-"--rules-stack=SECTION[,..] stacked rules, applied after regular rules or to\n" \
+"--rules=:rule[;..]]        Same, using \"immediate\" rule(s)\n" \
+"--rules-stack=SECTION[,..] Stacked rules, applied after regular rules or to\n" \
 "                           modes that otherwise don't support rules\n" \
-"--rules-stack=:rule[;..]   same, using \"immediate\" rule(s)\n" \
-"--rules-skip-nop           skip any NOP \":\" rules (you already ran w/o rules)\n" \
-"--incremental[=MODE]       \"incremental\" mode [using section MODE]\n" \
-"--incremental-charcount=N  override CharCount for incremental mode\n" \
-"--mask[=MASK]              mask mode using MASK (or default from john.conf)\n" \
+"--rules-stack=:rule[;..]   Same, using \"immediate\" rule(s)\n" \
+"--rules-skip-nop           Skip any NOP \":\" rules (you already ran w/o rules)\n" \
+"--loopback[=FILE]          Like --wordlist, but extract words from a .pot file\n" \
+"--mem-file-size=SIZE       Size threshold for wordlist preload (default %u MB)\n" \
+"--dupe-suppression         Suppress all dupes in wordlist (and force preload)\n" \
+"--incremental[=MODE]       \"Incremental\" mode [using section MODE]\n" \
+"--incremental-charcount=N  Override CharCount for incremental mode\n" \
+"--external=MODE            External mode or word filter\n" \
+"--mask[=MASK]              Mask mode using MASK (or default from john.conf)\n" \
 "--markov[=OPTIONS]         \"Markov\" mode (see doc/MARKOV)\n" \
-"--mkv-stats=FILE           \"markov\" stats file (see doc/MARKOV)\n" \
-"--external=MODE            external mode or word filter\n" \
+"--mkv-stats=FILE           \"Markov\" stats file\n" \
+PRINCE_USAGE \
 JOHN_USAGE_REGEX \
-"--subsets[=CHARSET]        \"subsets\" mode (see doc/SUBSETS)\n" \
+"--subsets[=CHARSET]        \"Subsets\" mode (see doc/SUBSETS)\n" \
 "--subsets-required=N       The N first characters of \"subsets\" charset are\n" \
-"                           the \"required set\" (see doc/SUBSETS)\n" \
+"                           the \"required set\"\n" \
 "--subsets-min-diff=N       Minimum unique characters in subset\n" \
 "--subsets-max-diff=[-]N    Maximum unique characters in subset (negative N is\n" \
 "                           relative to word length)\n" \
+<<<<<<< HEAD
 "--rain[=CHARSET]           \"rain\" mode\n" \
 "--tacking[=CHARSET]        \"tacking\" mode\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
@@ -310,53 +313,69 @@ JOHN_USAGE_REGEX \
 "--show=formats             show information about hashes in a file (JSON)\n" \
 "--show=invalid             show lines that are not valid for selected format(s)\n" \
 "--test[=TIME]              run tests and benchmarks for TIME seconds each\n" \
+=======
+"--subsets-prefer-short     Prefer shorter candidates over smaller subsets\n" \
+"--subsets-prefer-small     Prefer smaller subsets over shorter candidates\n" \
+"--make-charset=FILE        Make a charset, FILE will be overwritten\n" \
+"--stdout[=LENGTH]          Just output candidate passwords [cut at LENGTH]\n" \
+"--session=NAME             Give a new session the NAME\n" \
+"--status[=NAME]            Print status of a session [called NAME]\n" \
+"--restore[=NAME]           Restore an interrupted session [called NAME]\n" \
+"--[no-]crack-status        Emit a status line whenever a password is cracked\n" \
+"--progress-every=N         Emit a status line every N seconds\n" \
+"--show[=left]              Show cracked passwords [if =left, then uncracked]\n" \
+"--show=formats             Show information about hashes in a file (JSON)\n" \
+"--show=invalid             Show lines that are not valid for selected format(s)\n" \
+"--test[=TIME]              Run tests and benchmarks for TIME seconds each\n" \
+>>>>>>> 55255e4a8e1bf62e9ddb8bc009f22affd1d0fbf9
 "                           (if TIME is explicitly 0, test w/o benchmark)\n" \
-"--stress-test[=TIME]       loop self tests forever\n" \
-"--no-mask                  used with --test for alternate benchmark w/o mask\n" \
-"--skip-self-tests          skip self tests\n" \
-"--test-full=LEVEL          run more thorough self-tests\n" \
-"--users=[-]LOGIN|UID[,..]  [do not] load this (these) user(s) only\n" \
-"--groups=[-]GID[,..]       load users [not] of this (these) group(s) only\n" \
-"--shells=[-]SHELL[,..]     load users with[out] this (these) shell(s) only\n" \
-"--salts=[-]COUNT[:MAX]     load salts with[out] COUNT [to MAX] hashes, or\n" \
-"--salts=#M[-N]             load M [to N] most populated salts\n" \
-"--costs=[-]C[:M][,...]     load salts with[out] cost value Cn [to Mn]. For\n" \
+"--stress-test[=TIME]       Loop self tests forever\n" \
+"--test-full=LEVEL          Run more thorough self-tests\n" \
+"--no-mask                  Used with --test for alternate benchmark w/o mask\n" \
+"--skip-self-tests          Skip self tests\n" \
+"--users=[-]LOGIN|UID[,..]  [Do not] load this (these) user(s) only\n" \
+"--groups=[-]GID[,..]       Load users [not] of this (these) group(s) only\n" \
+"--shells=[-]SHELL[,..]     Load users with[out] this (these) shell(s) only\n" \
+"--salts=[-]COUNT[:MAX]     Load salts with[out] COUNT [to MAX] hashes, or\n" \
+"--salts=#M[-N]             Load M [to N] most populated salts\n" \
+"--costs=[-]C[:M][,...]     Load salts with[out] cost value Cn [to Mn]. For\n" \
 "                           tunable cost parameters, see doc/OPTIONS\n" \
-"--save-memory=LEVEL        enable memory saving, at LEVEL 1..3\n" \
-"--node=MIN[-MAX]/TOTAL     this node's number range out of TOTAL count\n" \
-"--subformat=FORMAT         pick a benchmark format for --format=crypt\n" \
-"--mkpc=N                   request a lower max. keys per crypt\n" \
-"--min-length=N             request a minimum candidate length in bytes\n" \
-"--max-length=N             request a maximum candidate length in bytes\n" \
-"--length=N                 shortcut for --min-len=N --max-len=N\n" \
-"--field-separator-char=C   use 'C' instead of the ':' in input and pot files\n" \
-"--fix-state-delay=N        performance tweak, see doc/OPTIONS\n" \
-"--config=FILE              use FILE instead of john.conf or john.ini\n" \
-"--log-stderr               log to screen instead of file\n"             \
-"--no-loader-dupecheck      disable the dupe checking when loading hashes\n" \
-"--verbosity=N              change verbosity (1-%u or %u for debug, default %u)\n" \
-"--no-log                   disables creation and writing to john.log file\n"      \
-"--bare-always-valid=Y      treat bare hashes as valid (Y/N)\n" \
-"--progress-every=N         emit a status line every N seconds\n" \
-"--[no-]crack-status        emit a status line whenever a password is cracked\n" \
-"--[no-]keep-guessing       try finding plaintext collisions\n" \
-"--max-candidates=[-]N      gracefully exit after this many candidates tried.\n" \
-"                           (if negative, reset count on each crack)\n" \
-"--max-run-time=[-]N        gracefully exit after this many seconds (if negative,\n" \
-"                           reset timer on each crack)\n" \
-"--regen-lost-salts=N       brute force unknown salts (see doc/OPTIONS)\n" \
 JOHN_USAGE_FORK \
-"--pot=NAME                 pot file to use\n" \
-"--list=WHAT                list capabilities, see --list=help or doc/OPTIONS\n" \
-"--input-encoding=NAME      input encoding (alias for --encoding)\n" \
-"--internal-codepage=NAME   codepage used in rules/masks (see doc/ENCODINGS)\n" \
-"--target-encoding=NAME     output encoding (used by format, see doc/ENCODINGS)\n" \
-"--tune=HOW                 tuning options (auto/report/N)\n" \
-"--force-tty                set up terminal for reading keystrokes even if we're\n" \
-"                           not the foreground process\n"
+"--node=MIN[-MAX]/TOTAL     This node's number range out of TOTAL count\n" \
+"--save-memory=LEVEL        Enable memory saving, at LEVEL 1..3\n" \
+"--log-stderr               Log to screen instead of file\n"             \
+"--verbosity=N              Change verbosity (1-%u or %u for debug, default %u)\n" \
+"--no-log                   Disables creation and writing to john.log file\n"  \
+"--bare-always-valid=Y      Treat bare hashes as valid (Y/N)\n" \
+"--config=FILE              Use FILE instead of john.conf or john.ini\n" \
+"--encoding=NAME            Input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
+"                           doc/ENCODINGS.\n" \
+"--input-encoding=NAME      Input encoding (alias for --encoding)\n" \
+"--internal-codepage=NAME   Codepage used in rules/masks (see doc/ENCODINGS)\n" \
+"--target-encoding=NAME     Output encoding (used by format)\n" \
+"--force-tty                Set up terminal for reading keystrokes even if we're\n" \
+"                           not the foreground process\n" \
+"--field-separator-char=C   Use 'C' instead of the ':' in input and pot files\n" \
+FUZZ_USAGE \
+"--[no-]keep-guessing       Try finding plaintext collisions\n" \
+"--list=WHAT                List capabilities, see --list=help or doc/OPTIONS\n" \
+"--length=N                 Shortcut for --min-len=N --max-len=N\n" \
+"--min-length=N             Request a minimum candidate length in bytes\n" \
+"--max-length=N             Request a maximum candidate length in bytes\n" \
+"--max-candidates=[-]N      Gracefully exit after this many candidates tried.\n" \
+"                           (if negative, reset count on each crack)\n" \
+"--max-run-time=[-]N        Gracefully exit after this many seconds (if negative,\n" \
+"                           reset timer on each crack)\n" \
+"--mkpc=N                   Request a lower max. keys per crypt\n" \
+"--no-loader-dupecheck      Disable the dupe checking when loading hashes\n" \
+"--pot=NAME                 Pot file to use\n" \
+"--regen-lost-salts=N       Brute force unknown salts (see doc/OPTIONS)\n" \
+"--reject-printable         Reject printable binaries\n" \
+"--tune=HOW                 Tuning options (auto/report/N)\n" \
 
 #define JOHN_USAGE_FORMAT \
-"--format=[NAME|CLASS][,..] force hash of type NAME. The supported formats can\n" \
+"--subformat=FORMAT         Pick a benchmark format for --format=crypt\n" \
+"--format=[NAME|CLASS][,..] Force hash of type NAME. The supported formats can\n" \
 "                           be seen with --list=formats and --list=subformats.\n" \
 "                           Valid classes: dynamic, cpu, opencl, ztex, mask, omp,\n" \
 "                           all, enabled, disabled.\n"
@@ -364,16 +383,16 @@ JOHN_USAGE_FORK \
 #if defined(HAVE_OPENCL)
 #define JOHN_USAGE_GPU \
 "\nOpenCL options:\n" \
-"--devices=N[,..]           set OpenCL device(s) (see --list=opencl-devices)\n" \
-"--force-scalar             force scalar mode\n" \
-"--force-vector-width=N     force vector width N\n" \
-"--lws=N                    force local worksize N\n" \
-"--gws=N                    force global worksize N\n\n"
+"--devices=N[,..]           Set OpenCL device(s) (see --list=opencl-devices)\n" \
+"--force-scalar             Force scalar mode\n" \
+"--force-vector-width=N     Force vector width N\n" \
+"--lws=N                    Force local worksize N\n" \
+"--gws=N                    Force global worksize N\n\n"
 #define JOHN_USAGE_ZTEX \
 "                           or set ZTEX device(s) by its(their) serial number(s)\n"
 #elif defined(HAVE_ZTEX)
 #define JOHN_USAGE_ZTEX \
-"--devices=N[,..]           set ZTEX device(s) by its(their) serial number(s)\n"
+"--devices=N[,..]           Set ZTEX device(s) by its(their) serial number(s)\n"
 #endif
 
 static void opt_banner(char *name)
@@ -446,6 +465,12 @@ void opt_init(char *name, int argc, char **argv)
 	if ((options.flags & FLG_TEST_CHK) && benchmark_time &&
 	    !(options.flags & FLG_NO_MASK_BENCH))
 		options.flags |= FLG_MASK_SET;
+
+	if ((options.flags & (FLG_TEST_CHK | FLG_NOTESTS)) == (FLG_TEST_CHK | FLG_NOTESTS) && !benchmark_time) {
+		if (john_main_process)
+			fprintf(stderr, "Can't run a self-test-only while also skipping self-test!\n");
+		error();
+	}
 
 #if HAVE_REXGEN
 	/* We allow regex as parent for hybrid mask, not vice versa */
@@ -611,8 +636,11 @@ void opt_init(char *name, int argc, char **argv)
 		status_print();
 #if OS_FORK
 		if (options.fork) {
-			unsigned int i;
-			for (i = 2; i <= options.fork; i++) {
+			unsigned int node_max = options.node_max;
+			unsigned int range = node_max - options.node_min + 1;
+			unsigned int npf = range / options.fork;
+			unsigned int i = options.node_min;
+			while ((i += npf) <= node_max) {
 				rec_name = rec_name_orig;
 				rec_name_completed = 0;
 				rec_restoring_now = 0;
@@ -848,6 +876,7 @@ void opt_init(char *name, int argc, char **argv)
 				options.node_max += mpi_p - 1;
 #endif
 		}
+		unsigned int range = options.node_max - options.node_min + 1;
 		if (n < 2)
 			msg = "valid syntax is MIN-MAX/TOTAL or N/TOTAL";
 		else if (!options.node_min)
@@ -859,21 +888,18 @@ void opt_init(char *name, int argc, char **argv)
 		else if (options.node_max > options.node_count)
 			msg = "node numbers can't exceed node count";
 #if OS_FORK
-		else if (options.fork &&
-		    options.node_max - options.node_min + 1 != options.fork)
-			msg = "range must be consistent with --fork number";
+		else if (options.fork && range % options.fork)
+			msg = "node range must be divisible by fork count";
 #endif
 #ifdef HAVE_MPI
-		if (mpi_p > 1 &&
-		    options.node_max - options.node_min + 1 != mpi_p)
-			msg = "range must be consistent with MPI node count";
+		else if (mpi_p > 1 && range % mpi_p)
+			msg = "node range must be divisible by MPI node count";
 #endif
 		else if (!options.fork &&
 #ifdef HAVE_MPI
-		         mpi_p == 1 &&
+		    mpi_p == 1 &&
 #endif
-		    options.node_max - options.node_min + 1 ==
-		    options.node_count)
+		    range == options.node_count)
 			msg = "node numbers can't span the whole range";
 		if (msg) {
 			if (john_main_process)

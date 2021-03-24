@@ -52,6 +52,7 @@
 #define PBKDF2_SHA256_MAX_CIPHERTEXT_LENGTH (PBKDF2_SHA256_TAG_LEN + 6 + 1 + (PBKDF2_32_MAX_SALT_SIZE*4+2)/3 + 1 + (PBKDF2_SHA256_MAX_BINARY_SIZE*4+2)/3)
 
 #define PBKDF2_SHA512_BINARY_SIZE           64
+#define PBKDF2_SHA512_BINARY_ALIGN          sizeof(uint64_t)
 #define PBKDF2_SHA512_FORMAT_TAG            "$pbkdf2-hmac-sha512$"
 #define PBKDF2_SHA512_TAG_LEN               (sizeof(PBKDF2_SHA512_FORMAT_TAG) - 1)
 /* other signatures handled within prepare */

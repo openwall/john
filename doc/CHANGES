@@ -1,3 +1,10 @@
+The following changes have been made between John 1.9.0 and 1.9.1-dev:
+
+* Let "--node" numbers range be any multiple of "--fork" process count.
+* Fixed "--status" to work right on sessions that use "--fork" with "--node".
+* Added two external modes: Filter_NoRepeats skips candidate passwords that
+contain the same character more than once, and Filter_Repeats is its inverse.
+
 The following changes have been made between John 1.8.0 and 1.9.0:
 
 * Increased the interleaving for bcrypt on x86-64 from 2x to 3x for a major
@@ -376,5 +383,3 @@ OpenBSD/PowerPC, OpenBSD/PA-RISC, OpenBSD/VAX, NetBSD/VAX, Solaris/SPARC64,
 Mac OS X (PowerPC and x86), SCO, BeOS.
 * Bug and portability fixes, and new bugs.
 * Bonus: "Strip" cracker included in the default john.conf (john.ini).
-
-$Owl$

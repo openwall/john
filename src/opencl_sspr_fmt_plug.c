@@ -41,9 +41,6 @@ john_register_one(&fmt_opencl_sspr);
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        64
-#define BINARY_ALIGN            MEM_ALIGN_WORD
-#define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              4
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define SALT_LENGTH             32

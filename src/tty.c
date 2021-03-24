@@ -48,6 +48,9 @@ static struct termios saved_ti;
 static int in_stdin_mode;
 #endif
 
+/*
+ * This must be async signal-safe (for MPI builds, at least)
+ */
 int tty_has_keyboard(void)
 {
 #if !defined(__DJGPP__) && !defined(__MINGW32__) && !defined (_MSC_VER)
@@ -81,7 +84,10 @@ void tty_init(opt_flags stdin_mode)
  * Give up the keyboard if we're not the foreground process.  This can be
  * overridden with --force-tty option.
  */
-	if (!(options.flags & FLG_FORCE_TTY) && tcgetpgrp(fd) != getpid()) {
+#ifndef BENCH_BUILD
+	if (!(options.flags & FLG_FORCE_TTY))
+#endif
+	if (tcgetpgrp(fd) != getpid()) {
 		close(fd);
 		return;
 	}
@@ -148,8 +154,10 @@ void tty_done(void)
 	fd = tty_fd; tty_fd = -1;
 
 /* Do the usually-best-thing in the race condition sometimes caused by --force-tty */
+#ifndef BENCH_BUILD
 	if (options.flags & FLG_FORCE_TTY)
 		saved_ti.c_lflag |= (ICANON | ECHO);
+#endif
 
 	tcsetattr(fd, TCSANOW, &saved_ti);
 

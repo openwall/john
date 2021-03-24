@@ -66,31 +66,31 @@ typedef struct {
 #endif
 
 #define FF(v, w, x, y, z, s, ac)	  \
-	v = ROTATE_LEFT(v + z + ac + F(w, x, y), (uint)s) + w
+	v = ROTATE_LEFT(v + z + ac + F(w, x, y), s) + w
 
 #define FF2(v, w, x, y, s, ac)	  \
 	v = ROTATE_LEFT(v + ac + F(w, x, y), s) + w
 
 #define GG(v, w, x, y, z, s, ac)	  \
-	v = ROTATE_LEFT(v + z + ac + G(w, x, y), (uint)s) + w;
+	v = ROTATE_LEFT(v + z + ac + G(w, x, y), s) + w
 
 #define GG2(v, w, x, y, s, ac)	  \
 	v = ROTATE_LEFT(v + ac + G(w, x, y), s) + w
 
 #define HH(v, w, x, y, z, s, ac)	  \
-	v = ROTATE_LEFT(v + z + ac + H(w, x, y), (uint)s) + w;
+	v = ROTATE_LEFT(v + z + ac + H(w, x, y), s) + w
 
 #define HH2(v, w, x, y, s, ac) 	  \
 	v = ROTATE_LEFT(v + ac + H(w, x, y), s) + w
 
 #define HHH(v, w, x, y, z, s, ac)	  \
-	v = ROTATE_LEFT(v + z + ac + H2(w, x, y), (uint)s) + w;
+	v = ROTATE_LEFT(v + z + ac + H2(w, x, y), s) + w
 
 #define HHH2(v, w, x, y, s, ac)	  \
-	v = ROTATE_LEFT(v + ac + H2(w, x, y), (uint)s) + w;
+	v = ROTATE_LEFT(v + ac + H2(w, x, y), s) + w
 
 #define II(v, w, x, y, z, s, ac)	  \
-	v = ROTATE_LEFT(v + z + ac + I(w, x, y), (uint)s) + w;
+	v = ROTATE_LEFT(v + z + ac + I(w, x, y), s) + w
 
 #define II2(v, w, x, y, s, ac)	  \
 	v = ROTATE_LEFT(v + ac + I(w, x, y), s) + w
@@ -118,6 +118,11 @@ typedef struct {
 #define AC4pCb                          0xb18b7a77
 #define MASK1                           0x77777777
 
+#define ACF1				0x67452301
+#define ACF2				0xefcdab89
+#define ACF3				0x98badcfe
+#define ACF4				0x10325476
+
 inline void md5(MAYBE_VECTOR_UINT len,
                 __private MAYBE_VECTOR_UINT *internal_ret,
                 __private MAYBE_VECTOR_UINT *x)
@@ -125,9 +130,9 @@ inline void md5(MAYBE_VECTOR_UINT len,
 	MAYBE_VECTOR_UINT x14 = len << 3;
 
 	MAYBE_VECTOR_UINT a;
-	MAYBE_VECTOR_UINT b = 0xefcdab89;
-	MAYBE_VECTOR_UINT c = 0x98badcfe;
-	MAYBE_VECTOR_UINT d;        // = 0x10325476;
+	MAYBE_VECTOR_UINT b = ACF2;
+	MAYBE_VECTOR_UINT c = ACF3;
+	MAYBE_VECTOR_UINT d;        // = ACF4;
 
 	a = AC1 + x[0];
 	a = ROTATE_LEFT(a, S11);
@@ -205,10 +210,10 @@ inline void md5(MAYBE_VECTOR_UINT len,
 	II(c, d, a, b, x[2], S43, 0x2ad7d2bb);
 	II(b, c, d, a, x[9], S44, 0xeb86d391);
 
-	internal_ret[0] = a + 0x67452301;
-	internal_ret[1] = b + 0xefcdab89;
-	internal_ret[2] = c + 0x98badcfe;
-	internal_ret[3] = d + 0x10325476;
+	internal_ret[0] = a + ACF1;
+	internal_ret[1] = b + ACF2;
+	internal_ret[2] = c + ACF3;
+	internal_ret[3] = d + ACF4;
 }
 
 __kernel void phpass (__global const phpass_password *data,
@@ -454,10 +459,10 @@ __kernel void phpass (__global const phpass_password *data,
 	MAYBE_VECTOR_UINT x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13;
 	MAYBE_VECTOR_UINT x14 = len << 3;
 
-	x0 = x[0];
-	x1 = x[1];
-	x2 = x[2];
-	x3 = x[3];
+	x0 = x[0] - ACF1;
+	x1 = x[1] - ACF2;
+	x2 = x[2] - ACF3;
+	x3 = x[3] - ACF4;
 	x4 = x[4];
 	x5 = x[5];
 	x6 = x[6];
@@ -472,19 +477,18 @@ __kernel void phpass (__global const phpass_password *data,
 #ifdef SCALAR
 	if (maxlen < 8)
 	do {
-		b = 0xefcdab89;
-		c = 0x98badcfe;
+		b = ACF2;
 
-		a = AC1 + x0;
+		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + AC2pCd;
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
-		c = F(d, a, b) + x2 + AC3pCc;
+		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
 		c = ROTATE_LEFT(c, S13);
 		c += d;                 /* 3 */
-		b = F(c, d, a) + x3 + AC4pCb;
+		b = F(c, d, a) + x3 + (AC4pCb + ACF4);
 		b = ROTATE_LEFT(b, S14);
 		b += c;
 		FF(a, b, c, d, x4, S11, 0xf57c0faf);
@@ -500,20 +504,20 @@ __kernel void phpass (__global const phpass_password *data,
 		FF(c, d, a, b, x14, S13, 0xa679438e);
 		FF2(b, c, d, a, S14, 0x49b40821);
 
-		GG(a, b, c, d, x1, S21, 0xf61e2562);
+		GG(a, b, c, d, x1, S21, (0xf61e2562 + ACF2));
 		GG2(d, a, b, c, S22, 0xc040b340);
 		GG2(c, d, a, b, S23, 0x265e5a51);
-		GG(b, c, d, a, x0, S24, 0xe9b6c7aa);
+		GG(b, c, d, a, x0, S24, (0xe9b6c7aa + ACF1));
 		GG(a, b, c, d, x5, S21, 0xd62f105d);
 		GG2(d, a, b, c, S22, 0x2441453);
 		GG2(c, d, a, b, S23, 0xd8a1e681);
 		GG(b, c, d, a, x4, S24, 0xe7d3fbc8);
 		GG2(a, b, c, d, S21, 0x21e1cde6);
 		GG(d, a, b, c, x14, S22, 0xc33707d6);
-		GG(c, d, a, b, x3, S23, 0xf4d50d87);
+		GG(c, d, a, b, x3, S23, (0xf4d50d87 + ACF4));
 		GG2(b, c, d, a, S24, 0x455a14ed);
 		GG2(a, b, c, d, S21, 0xa9e3e905);
-		GG(d, a, b, c, x2, S22, 0xfcefa3f8);
+		GG(d, a, b, c, x2, S22, (0xfcefa3f8 + ACF3));
 		GG2(c, d, a, b, S23, 0x676f02d9);
 		GG2(b, c, d, a, S24, 0x8d2a4c8a);
 
@@ -521,56 +525,50 @@ __kernel void phpass (__global const phpass_password *data,
 		HHH2(d, a, b, c, S32, 0x8771f681);
 		HH2(c, d, a, b, S33, 0x6d9d6122);
 		HHH(b, c, d, a, x14, S34, 0xfde5380c);
-		HH(a, b, c, d, x1, S31, 0xa4beea44);
+		HH(a, b, c, d, x1, S31, (0xa4beea44 + ACF2));
 		HHH(d, a, b, c, x4, S32, 0x4bdecfa9);
 		HH2(c, d, a, b, S33, 0xf6bb4b60);
 		HHH2(b, c, d, a, S34, 0xbebfbc70);
 		HH2(a, b, c, d, S31, 0x289b7ec6);
-		HHH(d, a, b, c, x0, S32, 0xeaa127fa);
-		HH(c, d, a, b, x3, S33, 0xd4ef3085);
+		HHH(d, a, b, c, x0, S32, (0xeaa127fa + ACF1));
+		HH(c, d, a, b, x3, S33, (0xd4ef3085 + ACF4));
 		HHH2(b, c, d, a, S34, 0x4881d05);
 		HH2(a, b, c, d, S31, 0xd9d4d039);
 		HHH2(d, a, b, c, S32, 0xe6db99e5);
 		HH2(c, d, a, b, S33, 0x1fa27cf8);
-		HHH(b, c, d, a, x2, S34, 0xc4ac5665);
+		HHH(b, c, d, a, x2, S34, (0xc4ac5665 + ACF3));
 
-		II(a, b, c, d, x0, S41, 0xf4292244);
+		II(a, b, c, d, x0, S41, (0xf4292244 + ACF1));
 		II2(d, a, b, c, S42, 0x432aff97);
 		II(c, d, a, b, x14, S43, 0xab9423a7);
 		II(b, c, d, a, x5, S44, 0xfc93a039);
 		II2(a, b, c, d, S41, 0x655b59c3);
-		II(d, a, b, c, x3, S42, 0x8f0ccc92);
+		II(d, a, b, c, x3, S42, (0x8f0ccc92 + ACF4));
 		II2(c, d, a, b, S43, 0xffeff47d);
-		II(b, c, d, a, x1, S44, 0x85845dd1);
+		II(b, c, d, a, x1, S44, (0x85845dd1 + ACF2));
 		II2(a, b, c, d, S41, 0x6fa87e4f);
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II2(c, d, a, b, S43, 0xa3014314);
 		II2(b, c, d, a, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II2(d, a, b, c, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, 0x2ad7d2bb);
-		II2(b, c, d, a, S44, 0xeb86d391);
-
-		x0 = a + 0x67452301;
-		x1 = b + 0xefcdab89;
-		x2 = c + 0x98badcfe;
-		x3 = d + 0x10325476;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
 	else if (unilen == 8)
 	do {
-		b = 0xefcdab89;
-		c = 0x98badcfe;
+		b = ACF2;
 
-		a = AC1 + x0;
+		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + AC2pCd;
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
-		c = F(d, a, b) + x2 + AC3pCc;
+		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
 		c = ROTATE_LEFT(c, S13);
 		c += d;                 /* 3 */
-		b = F(c, d, a) + x3 + AC4pCb;
+		b = F(c, d, a) + x3 + (AC4pCb + ACF4);
 		b = ROTATE_LEFT(b, S14);
 		b += c;
 		FF(a, b, c, d, x4, S11, 0xf57c0faf);
@@ -586,20 +584,20 @@ __kernel void phpass (__global const phpass_password *data,
 		FF(c, d, a, b, x14, S13, 0xa679438e);
 		FF2(b, c, d, a, S14, 0x49b40821);
 
-		GG(a, b, c, d, x1, S21, 0xf61e2562);
+		GG(a, b, c, d, x1, S21, (0xf61e2562 + ACF2));
 		GG(d, a, b, c, 0x80, S22, 0xc040b340);
 		GG2(c, d, a, b, S23, 0x265e5a51);
-		GG(b, c, d, a, x0, S24, 0xe9b6c7aa);
+		GG(b, c, d, a, x0, S24, (0xe9b6c7aa + ACF1));
 		GG(a, b, c, d, x5, S21, 0xd62f105d);
 		GG2(d, a, b, c, S22, 0x2441453);
 		GG2(c, d, a, b, S23, 0xd8a1e681);
 		GG(b, c, d, a, x4, S24, 0xe7d3fbc8);
 		GG2(a, b, c, d, S21, 0x21e1cde6);
 		GG(d, a, b, c, x14, S22, 0xc33707d6);
-		GG(c, d, a, b, x3, S23, 0xf4d50d87);
+		GG(c, d, a, b, x3, S23, (0xf4d50d87 + ACF4));
 		GG2(b, c, d, a, S24, 0x455a14ed);
 		GG2(a, b, c, d, S21, 0xa9e3e905);
-		GG(d, a, b, c, x2, S22, 0xfcefa3f8);
+		GG(d, a, b, c, x2, S22, (0xfcefa3f8 + ACF3));
 		GG2(c, d, a, b, S23, 0x676f02d9);
 		GG2(b, c, d, a, S24, 0x8d2a4c8a);
 
@@ -607,56 +605,50 @@ __kernel void phpass (__global const phpass_password *data,
 		HHH2(d, a, b, c, S32, 0x8771f681);
 		HH2(c, d, a, b, S33, 0x6d9d6122);
 		HHH(b, c, d, a, x14, S34, 0xfde5380c);
-		HH(a, b, c, d, x1, S31, 0xa4beea44);
+		HH(a, b, c, d, x1, S31, (0xa4beea44 + ACF2));
 		HHH(d, a, b, c, x4, S32, 0x4bdecfa9);
 		HH2(c, d, a, b, S33, 0xf6bb4b60);
 		HHH2(b, c, d, a, S34, 0xbebfbc70);
 		HH2(a, b, c, d, S31, 0x289b7ec6);
-		HHH(d, a, b, c, x0, S32, 0xeaa127fa);
-		HH(c, d, a, b, x3, S33, 0xd4ef3085);
+		HHH(d, a, b, c, x0, S32, (0xeaa127fa + ACF1));
+		HH(c, d, a, b, x3, S33, (0xd4ef3085 + ACF4));
 		HHH(b, c, d, a, 0x80, S34, 0x4881d05);
 		HH2(a, b, c, d, S31, 0xd9d4d039);
 		HHH2(d, a, b, c, S32, 0xe6db99e5);
 		HH2(c, d, a, b, S33, 0x1fa27cf8);
-		HHH(b, c, d, a, x2, S34, 0xc4ac5665);
+		HHH(b, c, d, a, x2, S34, (0xc4ac5665 + ACF3));
 
-		II(a, b, c, d, x0, S41, 0xf4292244);
+		II(a, b, c, d, x0, S41, (0xf4292244 + ACF1));
 		II2(d, a, b, c, S42, 0x432aff97);
 		II(c, d, a, b, x14, S43, 0xab9423a7);
 		II(b, c, d, a, x5, S44, 0xfc93a039);
 		II2(a, b, c, d, S41, 0x655b59c3);
-		II(d, a, b, c, x3, S42, 0x8f0ccc92);
+		II(d, a, b, c, x3, S42, (0x8f0ccc92 + ACF4));
 		II2(c, d, a, b, S43, 0xffeff47d);
-		II(b, c, d, a, x1, S44, 0x85845dd1);
+		II(b, c, d, a, x1, S44, (0x85845dd1 + ACF2));
 		II2(a, b, c, d, S41, 0x6fa87e4f);
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II(c, d, a, b, 0x80, S43, 0xa3014314);
 		II2(b, c, d, a, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II2(d, a, b, c, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, 0x2ad7d2bb);
-		II2(b, c, d, a, S44, 0xeb86d391);
-
-		x0 = a + 0x67452301;
-		x1 = b + 0xefcdab89;
-		x2 = c + 0x98badcfe;
-		x3 = d + 0x10325476;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
 	else if (maxlen < 12)
 	do {
-		b = 0xefcdab89;
-		c = 0x98badcfe;
+		b = ACF2;
 
-		a = AC1 + x0;
+		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + AC2pCd;
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
-		c = F(d, a, b) + x2 + AC3pCc;
+		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
 		c = ROTATE_LEFT(c, S13);
 		c += d;                 /* 3 */
-		b = F(c, d, a) + x3 + AC4pCb;
+		b = F(c, d, a) + x3 + (AC4pCb + ACF4);
 		b = ROTATE_LEFT(b, S14);
 		b += c;
 		FF(a, b, c, d, x4, S11, 0xf57c0faf);
@@ -672,20 +664,20 @@ __kernel void phpass (__global const phpass_password *data,
 		FF(c, d, a, b, x14, S13, 0xa679438e);
 		FF2(b, c, d, a, S14, 0x49b40821);
 
-		GG(a, b, c, d, x1, S21, 0xf61e2562);
+		GG(a, b, c, d, x1, S21, (0xf61e2562 + ACF2));
 		GG(d, a, b, c, x6, S22, 0xc040b340);
 		GG2(c, d, a, b, S23, 0x265e5a51);
-		GG(b, c, d, a, x0, S24, 0xe9b6c7aa);
+		GG(b, c, d, a, x0, S24, (0xe9b6c7aa + ACF1));
 		GG(a, b, c, d, x5, S21, 0xd62f105d);
 		GG2(d, a, b, c, S22, 0x2441453);
 		GG2(c, d, a, b, S23, 0xd8a1e681);
 		GG(b, c, d, a, x4, S24, 0xe7d3fbc8);
 		GG2(a, b, c, d, S21, 0x21e1cde6);
 		GG(d, a, b, c, x14, S22, 0xc33707d6);
-		GG(c, d, a, b, x3, S23, 0xf4d50d87);
+		GG(c, d, a, b, x3, S23, (0xf4d50d87 + ACF4));
 		GG2(b, c, d, a, S24, 0x455a14ed);
 		GG2(a, b, c, d, S21, 0xa9e3e905);
-		GG(d, a, b, c, x2, S22, 0xfcefa3f8);
+		GG(d, a, b, c, x2, S22, (0xfcefa3f8 + ACF3));
 		GG2(c, d, a, b, S23, 0x676f02d9);
 		GG2(b, c, d, a, S24, 0x8d2a4c8a);
 
@@ -693,56 +685,50 @@ __kernel void phpass (__global const phpass_password *data,
 		HHH2(d, a, b, c, S32, 0x8771f681);
 		HH2(c, d, a, b, S33, 0x6d9d6122);
 		HHH(b, c, d, a, x14, S34, 0xfde5380c);
-		HH(a, b, c, d, x1, S31, 0xa4beea44);
+		HH(a, b, c, d, x1, S31, (0xa4beea44 + ACF2));
 		HHH(d, a, b, c, x4, S32, 0x4bdecfa9);
 		HH2(c, d, a, b, S33, 0xf6bb4b60);
 		HHH2(b, c, d, a, S34, 0xbebfbc70);
 		HH2(a, b, c, d, S31, 0x289b7ec6);
-		HHH(d, a, b, c, x0, S32, 0xeaa127fa);
-		HH(c, d, a, b, x3, S33, 0xd4ef3085);
+		HHH(d, a, b, c, x0, S32, (0xeaa127fa + ACF1));
+		HH(c, d, a, b, x3, S33, (0xd4ef3085 + ACF4));
 		HHH(b, c, d, a, x6, S34, 0x4881d05);
 		HH2(a, b, c, d, S31, 0xd9d4d039);
 		HHH2(d, a, b, c, S32, 0xe6db99e5);
 		HH2(c, d, a, b, S33, 0x1fa27cf8);
-		HHH(b, c, d, a, x2, S34, 0xc4ac5665);
+		HHH(b, c, d, a, x2, S34, (0xc4ac5665 + ACF3));
 
-		II(a, b, c, d, x0, S41, 0xf4292244);
+		II(a, b, c, d, x0, S41, (0xf4292244 + ACF1));
 		II2(d, a, b, c, S42, 0x432aff97);
 		II(c, d, a, b, x14, S43, 0xab9423a7);
 		II(b, c, d, a, x5, S44, 0xfc93a039);
 		II2(a, b, c, d, S41, 0x655b59c3);
-		II(d, a, b, c, x3, S42, 0x8f0ccc92);
+		II(d, a, b, c, x3, S42, (0x8f0ccc92 + ACF4));
 		II2(c, d, a, b, S43, 0xffeff47d);
-		II(b, c, d, a, x1, S44, 0x85845dd1);
+		II(b, c, d, a, x1, S44, (0x85845dd1 + ACF2));
 		II2(a, b, c, d, S41, 0x6fa87e4f);
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II(c, d, a, b, x6, S43, 0xa3014314);
 		II2(b, c, d, a, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II2(d, a, b, c, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, 0x2ad7d2bb);
-		II2(b, c, d, a, S44, 0xeb86d391);
-
-		x0 = a + 0x67452301;
-		x1 = b + 0xefcdab89;
-		x2 = c + 0x98badcfe;
-		x3 = d + 0x10325476;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
 	else if (unilen == 12)
 	do {
-		b = 0xefcdab89;
-		c = 0x98badcfe;
+		b = ACF2;
 
-		a = AC1 + x0;
+		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + AC2pCd;
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
-		c = F(d, a, b) + x2 + AC3pCc;
+		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
 		c = ROTATE_LEFT(c, S13);
 		c += d;                 /* 3 */
-		b = F(c, d, a) + x3 + AC4pCb;
+		b = F(c, d, a) + x3 + (AC4pCb + ACF4);
 		b = ROTATE_LEFT(b, S14);
 		b += c;
 		FF(a, b, c, d, x4, S11, 0xf57c0faf);
@@ -758,20 +744,20 @@ __kernel void phpass (__global const phpass_password *data,
 		FF(c, d, a, b, x14, S13, 0xa679438e);
 		FF2(b, c, d, a, S14, 0x49b40821);
 
-		GG(a, b, c, d, x1, S21, 0xf61e2562);
+		GG(a, b, c, d, x1, S21, (0xf61e2562 + ACF2));
 		GG(d, a, b, c, x6, S22, 0xc040b340);
 		GG2(c, d, a, b, S23, 0x265e5a51);
-		GG(b, c, d, a, x0, S24, 0xe9b6c7aa);
+		GG(b, c, d, a, x0, S24, (0xe9b6c7aa + ACF1));
 		GG(a, b, c, d, x5, S21, 0xd62f105d);
 		GG2(d, a, b, c, S22, 0x2441453);
 		GG2(c, d, a, b, S23, 0xd8a1e681);
 		GG(b, c, d, a, x4, S24, 0xe7d3fbc8);
 		GG2(a, b, c, d, S21, 0x21e1cde6);
 		GG(d, a, b, c, x14, S22, 0xc33707d6);
-		GG(c, d, a, b, x3, S23, 0xf4d50d87);
+		GG(c, d, a, b, x3, S23, (0xf4d50d87 + ACF4));
 		GG2(b, c, d, a, S24, 0x455a14ed);
 		GG2(a, b, c, d, S21, 0xa9e3e905);
-		GG(d, a, b, c, x2, S22, 0xfcefa3f8);
+		GG(d, a, b, c, x2, S22, (0xfcefa3f8 + ACF3));
 		GG(c, d, a, b, 0x80, S23, 0x676f02d9);
 		GG2(b, c, d, a, S24, 0x8d2a4c8a);
 
@@ -779,56 +765,50 @@ __kernel void phpass (__global const phpass_password *data,
 		HHH2(d, a, b, c, S32, 0x8771f681);
 		HH2(c, d, a, b, S33, 0x6d9d6122);
 		HHH(b, c, d, a, x14, S34, 0xfde5380c);
-		HH(a, b, c, d, x1, S31, 0xa4beea44);
+		HH(a, b, c, d, x1, S31, (0xa4beea44 + ACF2));
 		HHH(d, a, b, c, x4, S32, 0x4bdecfa9);
 		HH(c, d, a, b, 0x80, S33, 0xf6bb4b60);
 		HHH2(b, c, d, a, S34, 0xbebfbc70);
 		HH2(a, b, c, d, S31, 0x289b7ec6);
-		HHH(d, a, b, c, x0, S32, 0xeaa127fa);
-		HH(c, d, a, b, x3, S33, 0xd4ef3085);
+		HHH(d, a, b, c, x0, S32, (0xeaa127fa + ACF1));
+		HH(c, d, a, b, x3, S33, (0xd4ef3085 + ACF4));
 		HHH(b, c, d, a, x6, S34, 0x4881d05);
 		HH2(a, b, c, d, S31, 0xd9d4d039);
 		HHH2(d, a, b, c, S32, 0xe6db99e5);
 		HH2(c, d, a, b, S33, 0x1fa27cf8);
-		HHH(b, c, d, a, x2, S34, 0xc4ac5665);
+		HHH(b, c, d, a, x2, S34, (0xc4ac5665 + ACF3));
 
-		II(a, b, c, d, x0, S41, 0xf4292244);
+		II(a, b, c, d, x0, S41, (0xf4292244 + ACF1));
 		II(d, a, b, c, 0x80, S42, 0x432aff97);
 		II(c, d, a, b, x14, S43, 0xab9423a7);
 		II(b, c, d, a, x5, S44, 0xfc93a039);
 		II2(a, b, c, d, S41, 0x655b59c3);
-		II(d, a, b, c, x3, S42, 0x8f0ccc92);
+		II(d, a, b, c, x3, S42, (0x8f0ccc92 + ACF4));
 		II2(c, d, a, b, S43, 0xffeff47d);
-		II(b, c, d, a, x1, S44, 0x85845dd1);
+		II(b, c, d, a, x1, S44, (0x85845dd1 + ACF2));
 		II2(a, b, c, d, S41, 0x6fa87e4f);
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II(c, d, a, b, x6, S43, 0xa3014314);
 		II2(b, c, d, a, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II2(d, a, b, c, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, 0x2ad7d2bb);
-		II2(b, c, d, a, S44, 0xeb86d391);
-
-		x0 = a + 0x67452301;
-		x1 = b + 0xefcdab89;
-		x2 = c + 0x98badcfe;
-		x3 = d + 0x10325476;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
 	else if (maxlen < 16)
 	do {
-		b = 0xefcdab89;
-		c = 0x98badcfe;
+		b = ACF2;
 
-		a = AC1 + x0;
+		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + AC2pCd;
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
-		c = F(d, a, b) + x2 + AC3pCc;
+		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
 		c = ROTATE_LEFT(c, S13);
 		c += d;                 /* 3 */
-		b = F(c, d, a) + x3 + AC4pCb;
+		b = F(c, d, a) + x3 + (AC4pCb + ACF4);
 		b = ROTATE_LEFT(b, S14);
 		b += c;
 		FF(a, b, c, d, x4, S11, 0xf57c0faf);
@@ -844,20 +824,20 @@ __kernel void phpass (__global const phpass_password *data,
 		FF(c, d, a, b, x14, S13, 0xa679438e);
 		FF2(b, c, d, a, S14, 0x49b40821);
 
-		GG(a, b, c, d, x1, S21, 0xf61e2562);
+		GG(a, b, c, d, x1, S21, (0xf61e2562 + ACF2));
 		GG(d, a, b, c, x6, S22, 0xc040b340);
 		GG2(c, d, a, b, S23, 0x265e5a51);
-		GG(b, c, d, a, x0, S24, 0xe9b6c7aa);
+		GG(b, c, d, a, x0, S24, (0xe9b6c7aa + ACF1));
 		GG(a, b, c, d, x5, S21, 0xd62f105d);
 		GG2(d, a, b, c, S22, 0x2441453);
 		GG2(c, d, a, b, S23, 0xd8a1e681);
 		GG(b, c, d, a, x4, S24, 0xe7d3fbc8);
 		GG2(a, b, c, d, S21, 0x21e1cde6);
 		GG(d, a, b, c, x14, S22, 0xc33707d6);
-		GG(c, d, a, b, x3, S23, 0xf4d50d87);
+		GG(c, d, a, b, x3, S23, (0xf4d50d87 + ACF4));
 		GG2(b, c, d, a, S24, 0x455a14ed);
 		GG2(a, b, c, d, S21, 0xa9e3e905);
-		GG(d, a, b, c, x2, S22, 0xfcefa3f8);
+		GG(d, a, b, c, x2, S22, (0xfcefa3f8 + ACF3));
 		GG(c, d, a, b, x7, S23, 0x676f02d9);
 		GG2(b, c, d, a, S24, 0x8d2a4c8a);
 
@@ -865,57 +845,51 @@ __kernel void phpass (__global const phpass_password *data,
 		HHH2(d, a, b, c, S32, 0x8771f681);
 		HH2(c, d, a, b, S33, 0x6d9d6122);
 		HHH(b, c, d, a, x14, S34, 0xfde5380c);
-		HH(a, b, c, d, x1, S31, 0xa4beea44);
+		HH(a, b, c, d, x1, S31, (0xa4beea44 + ACF2));
 		HHH(d, a, b, c, x4, S32, 0x4bdecfa9);
 		HH(c, d, a, b, x7, S33, 0xf6bb4b60);
 		HHH2(b, c, d, a, S34, 0xbebfbc70);
 		HH2(a, b, c, d, S31, 0x289b7ec6);
-		HHH(d, a, b, c, x0, S32, 0xeaa127fa);
-		HH(c, d, a, b, x3, S33, 0xd4ef3085);
+		HHH(d, a, b, c, x0, S32, (0xeaa127fa + ACF1));
+		HH(c, d, a, b, x3, S33, (0xd4ef3085 + ACF4));
 		HHH(b, c, d, a, x6, S34, 0x4881d05);
 		HH2(a, b, c, d, S31, 0xd9d4d039);
 		HHH2(d, a, b, c, S32, 0xe6db99e5);
 		HH2(c, d, a, b, S33, 0x1fa27cf8);
-		HHH(b, c, d, a, x2, S34, 0xc4ac5665);
+		HHH(b, c, d, a, x2, S34, (0xc4ac5665 + ACF3));
 
-		II(a, b, c, d, x0, S41, 0xf4292244);
+		II(a, b, c, d, x0, S41, (0xf4292244 + ACF1));
 		II(d, a, b, c, x7, S42, 0x432aff97);
 		II(c, d, a, b, x14, S43, 0xab9423a7);
 		II(b, c, d, a, x5, S44, 0xfc93a039);
 		II2(a, b, c, d, S41, 0x655b59c3);
-		II(d, a, b, c, x3, S42, 0x8f0ccc92);
+		II(d, a, b, c, x3, S42, (0x8f0ccc92 + ACF4));
 		II2(c, d, a, b, S43, 0xffeff47d);
-		II(b, c, d, a, x1, S44, 0x85845dd1);
+		II(b, c, d, a, x1, S44, (0x85845dd1 + ACF2));
 		II2(a, b, c, d, S41, 0x6fa87e4f);
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II(c, d, a, b, x6, S43, 0xa3014314);
 		II2(b, c, d, a, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II2(d, a, b, c, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, 0x2ad7d2bb);
-		II2(b, c, d, a, S44, 0xeb86d391);
-
-		x0 = a + 0x67452301;
-		x1 = b + 0xefcdab89;
-		x2 = c + 0x98badcfe;
-		x3 = d + 0x10325476;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
 	else
 #endif
 	do {
-		b = 0xefcdab89;
-		c = 0x98badcfe;
+		b = ACF2;
 
-		a = AC1 + x0;
+		a = (AC1 + ACF1) + x0;
 		a = ROTATE_LEFT(a, S11);
 		a += b;                 /* 1 */
-		d = (c ^ (a & MASK1)) + x1 + AC2pCd;
+		d = (ACF3 ^ (a & MASK1)) + x1 + (AC2pCd + ACF2);
 		d = ROTATE_LEFT(d, S12);
 		d += a;                 /* 2 */
-		c = F(d, a, b) + x2 + AC3pCc;
+		c = F(d, a, b) + x2 + (AC3pCc + ACF3);
 		c = ROTATE_LEFT(c, S13);
 		c += d;                 /* 3 */
-		b = F(c, d, a) + x3 + AC4pCb;
+		b = F(c, d, a) + x3 + (AC4pCb + ACF4);
 		b = ROTATE_LEFT(b, S14);
 		b += c;
 		FF(a, b, c, d, x4, S11, 0xf57c0faf);
@@ -931,20 +905,20 @@ __kernel void phpass (__global const phpass_password *data,
 		FF(c, d, a, b, x14, S13, 0xa679438e);
 		FF2(b, c, d, a, S14, 0x49b40821);
 
-		GG(a, b, c, d, x1, S21, 0xf61e2562);
+		GG(a, b, c, d, x1, S21, (0xf61e2562 + ACF2));
 		GG(d, a, b, c, x6, S22, 0xc040b340);
 		GG(c, d, a, b, x11, S23, 0x265e5a51);
-		GG(b, c, d, a, x0, S24, 0xe9b6c7aa);
+		GG(b, c, d, a, x0, S24, (0xe9b6c7aa + ACF1));
 		GG(a, b, c, d, x5, S21, 0xd62f105d);
 		GG(d, a, b, c, x10, S22, 0x2441453);
 		GG2(c, d, a, b, S23, 0xd8a1e681);
 		GG(b, c, d, a, x4, S24, 0xe7d3fbc8);
 		GG(a, b, c, d, x9, S21, 0x21e1cde6);
 		GG(d, a, b, c, x14, S22, 0xc33707d6);
-		GG(c, d, a, b, x3, S23, 0xf4d50d87);
+		GG(c, d, a, b, x3, S23, (0xf4d50d87 + ACF4));
 		GG(b, c, d, a, x8, S24, 0x455a14ed);
 		GG(a, b, c, d, x13, S21, 0xa9e3e905);
-		GG(d, a, b, c, x2, S22, 0xfcefa3f8);
+		GG(d, a, b, c, x2, S22, (0xfcefa3f8 + ACF3));
 		GG(c, d, a, b, x7, S23, 0x676f02d9);
 		GG(b, c, d, a, x12, S24, 0x8d2a4c8a);
 
@@ -952,41 +926,41 @@ __kernel void phpass (__global const phpass_password *data,
 		HHH(d, a, b, c, x8, S32, 0x8771f681);
 		HH(c, d, a, b, x11, S33, 0x6d9d6122);
 		HHH(b, c, d, a, x14, S34, 0xfde5380c);
-		HH(a, b, c, d, x1, S31, 0xa4beea44);
+		HH(a, b, c, d, x1, S31, (0xa4beea44 + ACF2));
 		HHH(d, a, b, c, x4, S32, 0x4bdecfa9);
 		HH(c, d, a, b, x7, S33, 0xf6bb4b60);
 		HHH(b, c, d, a, x10, S34, 0xbebfbc70);
 		HH(a, b, c, d, x13, S31, 0x289b7ec6);
-		HHH(d, a, b, c, x0, S32, 0xeaa127fa);
-		HH(c, d, a, b, x3, S33, 0xd4ef3085);
+		HHH(d, a, b, c, x0, S32, (0xeaa127fa + ACF1));
+		HH(c, d, a, b, x3, S33, (0xd4ef3085 + ACF4));
 		HHH(b, c, d, a, x6, S34, 0x4881d05);
 		HH(a, b, c, d, x9, S31, 0xd9d4d039);
 		HHH(d, a, b, c, x12, S32, 0xe6db99e5);
 		HH2(c, d, a, b, S33, 0x1fa27cf8);
-		HHH(b, c, d, a, x2, S34, 0xc4ac5665);
+		HHH(b, c, d, a, x2, S34, (0xc4ac5665 + ACF3));
 
-		II(a, b, c, d, x0, S41, 0xf4292244);
+		II(a, b, c, d, x0, S41, (0xf4292244 + ACF1));
 		II(d, a, b, c, x7, S42, 0x432aff97);
 		II(c, d, a, b, x14, S43, 0xab9423a7);
 		II(b, c, d, a, x5, S44, 0xfc93a039);
 		II(a, b, c, d, x12, S41, 0x655b59c3);
-		II(d, a, b, c, x3, S42, 0x8f0ccc92);
+		II(d, a, b, c, x3, S42, (0x8f0ccc92 + ACF4));
 		II(c, d, a, b, x10, S43, 0xffeff47d);
-		II(b, c, d, a, x1, S44, 0x85845dd1);
+		II(b, c, d, a, x1, S44, (0x85845dd1 + ACF2));
 		II(a, b, c, d, x8, S41, 0x6fa87e4f);
 		II2(d, a, b, c, S42, 0xfe2ce6e0);
 		II(c, d, a, b, x6, S43, 0xa3014314);
 		II(b, c, d, a, x13, S44, 0x4e0811a1);
-		II(a, b, c, d, x4, S41, 0xf7537e82);
-		II(d, a, b, c, x11, S42, 0xbd3af235);
-		II(c, d, a, b, x2, S43, 0x2ad7d2bb);
-		II(b, c, d, a, x9, S44, 0xeb86d391);
-
-		x0 = a + 0x67452301;
-		x1 = b + 0xefcdab89;
-		x2 = c + 0x98badcfe;
-		x3 = d + 0x10325476;
+		x0 = ROTATE_LEFT(a + x4 + 0xf7537e82 + I(b, c, d), S41) + b;
+		x3 = ROTATE_LEFT(d + x11 + 0xbd3af235 + I(x0, b, c), S42) + x0;
+		x2 = ROTATE_LEFT(c + x2 + (0x2ad7d2bb + ACF3) + I(x3, x0, b), S43) + x3;
+		x1 = ROTATE_LEFT(b + x9 + 0xeb86d391 + I(x2, x3, x0), S44) + x2;
 	} while (--count);
+
+	x0 += ACF1;
+	x1 += ACF2;
+	x2 += ACF3;
+	x3 += ACF4;
 
 #ifdef SCALAR
 	data_out[idx].v[0] = x0;

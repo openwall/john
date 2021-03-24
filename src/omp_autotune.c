@@ -19,8 +19,8 @@
 #define CONF_SECTION SECTION_OPTIONS, ":CPUtune"
 
 static int use_preset, max_no_progress;
-static double sample_time, req_gain, max_tune_time;
-
+static double req_gain, max_tune_time;
+static uint64_t sample_time;
 static struct fmt_main *fmt;
 static int omp_autotune_running;
 static int mkpc;
@@ -42,7 +42,7 @@ void omp_autotune_init(void)
 #endif
 	if ((ci = cfg_get_int(CONF_SECTION, "AutoTuneSampleTime")) < 0)
 		ci = 10;
-	sample_time = (double)ci / 1000.0;
+	sample_time = ci * 1000000ULL;
 	if ((ci = cfg_get_int(CONF_SECTION, "AutoTuneReqGain")) < 0)
 		ci = 5;
 	req_gain = (double)ci / 100.0 + 1.0;
@@ -108,7 +108,7 @@ void omp_autotune_run(struct db_main *db)
 	int tune_cost;
 	void *salt;
 	char key[PLAINTEXT_BUFFER_SIZE] = "tUne0000";
-	sTimer timer;
+	uint64_t start, end;
 	double duration;
 
 	if (!fmt || omp_scale == 1 || tune_preset)
@@ -143,7 +143,6 @@ void omp_autotune_run(struct db_main *db)
 		printf("\n");
 	}
 
-	sTimer_Init(&timer);
 	do {
 		int i;
 		int min_kpc = fmt->params.min_keys_per_crypt;
@@ -180,28 +179,29 @@ void omp_autotune_run(struct db_main *db)
 		// Tell format this is a speed test
 		benchmark_running++;
 
-		sTimer_Start(&timer, 1);
+		start = john_get_nano();
 		do {
 			int count = this_kpc;
 
 			fmt->methods.crypt_all(&count, NULL);
 			crypts += count;
-		} while (crypts < min_crypts || sTimer_GetSecs(&timer) < sample_time);
-		sTimer_Stop(&timer);
+			end = john_get_nano();
+		} while (crypts < min_crypts || (end - start) < sample_time);
 
 		benchmark_running--;
 
-		duration = sTimer_GetSecs(&timer);
+		duration = (end - start) / 1E9;
 		cps = crypts / duration;
 
 		if (john_main_process && options.verbosity >= VERB_MAX) {
 			if (threads > 1)
-				printf("OMP scale %d: %d crypts (%dx%d) in %f seconds, %d c/s",
-				       scale, crypts, crypts / this_kpc, this_kpc, duration, cps);
+				printf("OMP scale %d: %d crypts (%dx%d) in %ss, %s",
+				       scale, crypts, crypts / this_kpc, this_kpc, human_prefix_small(duration),
+				       human_speed(cps));
 			else
-				printf("MKPC %d: %d crypts (%dx%d) in %f seconds, %d c/s",
-				       this_kpc, crypts, crypts / this_kpc, this_kpc,
-				       duration, cps);
+				printf("MKPC %d: %d crypts (%dx%d) in %ss, %s",
+				       this_kpc, crypts, crypts / this_kpc, this_kpc, human_prefix_small(duration),
+				       human_speed(cps));
 		}
 
 		if (cps >= (best_cps * req_gain)) {

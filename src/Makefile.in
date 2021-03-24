@@ -39,7 +39,7 @@ PEFLAGS = peflags --dynamicbase=true --nxcompat=true
 SHELL = /bin/sh
 VPATH = @srcdir@
 
-subdirs = aes secp256k1 ed25519-donna @ZTEX_SUBDIRS@
+subdirs = aes secp256k1 ed25519-donna poly1305-donna @ZTEX_SUBDIRS@
 top_srcdir = @top_srcdir@
 srcdir = @srcdir@
 prefix = @prefix@
@@ -370,7 +370,7 @@ bitlocker2john.o:	bitlocker2john.c autoconfig.h arch.h missing_getopt.h jumbo.h 
 
 list.o:	list.c memory.h arch.h list.h os.h os-autoconf.h autoconfig.h jumbo.h
 
-listconf.o:	listconf.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h params.h path.h formats.h misc.h options.h list.h loader.h getopt.h unicode.h dynamic.h dynamic_types.h config.h regex.h john_build_rule.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) version.h listconf.h
+listconf.o:	listconf.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h params.h path.h formats.h misc.h options.h list.h loader.h getopt.h unicode.h dynamic.h dynamic_types.h config.h regex.h john_build_rule.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) version.h listconf.h timer.h
 
 LM_fmt.o:	LM_fmt.c arch.h misc.h jumbo.h autoconfig.h memory.h DES_bs.h common.h loader.h params.h list.h formats.h os.h os-autoconf.h
 
@@ -554,7 +554,7 @@ find_version:
 	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
 	diff >/dev/null 2>/dev/null version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
 
-SUBDIRS = aes secp256k1 ed25519-donna @ZTEX_SUBDIRS@
+SUBDIRS = aes secp256k1 ed25519-donna poly1305-donna @ZTEX_SUBDIRS@
 
 .PHONY: subdirs $(SUBDIRS) find_version
 
@@ -579,6 +579,10 @@ secp256k1/secp256k1.a:
 ed25519-donna/ed25519-donna.a:
 	$(MAKE) -C ed25519-donna all
 
+poly1305-donna/poly1305-donna.a:
+	$(MAKE) -C poly1305-donna all
+
+
 ###############################################################################
 #  Process targets.  Note, these are *nix targets, but also work fine under
 #  cygwin.  The only problem with cygwin, is that the ln -s will NOT generate
@@ -590,8 +594,8 @@ ed25519-donna/ed25519-donna.a:
 
 # PTHREAD_CFLAGS and OPENMP_CFLAGS may actually contain linker options,
 # like -fopenmp
-../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a @ZTEX_SUBDIRS@
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @RT_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a -o $@
+../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a poly1305-donna/poly1305-donna.a @ZTEX_SUBDIRS@
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @RT_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a poly1305-donna/poly1305-donna.a -o $@
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow

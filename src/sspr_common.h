@@ -10,8 +10,11 @@
 #define FORMAT_TAG              "$sspr$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define BINARY_SIZE             64
+#define BINARY_ALIGN            sizeof(uint32_t)
 #define BINARY_SIZE_MIN         16
 #define MAX_SALT_LEN            1500
+#define SALT_SIZE               sizeof(struct custom_salt)
+#define SALT_ALIGN              sizeof(uint32_t)
 
 struct custom_salt {
 	uint32_t iterations;

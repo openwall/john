@@ -163,6 +163,11 @@ assumes that to be the significant password length and truncates
 longer words (like a few formats, eg. DEScrypt, do). If you instead
 say --max-length=LENGTH, longer candidates will instead be rejected.
 
+Please note that session save/resume is inherently unreliable when
+using --stdout piped to some external program:  Buffering by OS and/
+or by the receiving program may cause a resume too far into the
+keyspace. It's supported, but only as a "best-effort" functionality.
+
 --restore[=NAME]		restore an interrupted session
 
 Continues an interrupted cracking session, reading state information
@@ -397,8 +402,14 @@ with similar per-core performance, you could run an OpenMP-enabled build
 on both of them and use "--node=1/9" (without "--fork") on the first
 machine (8 threads in 1 process) and "--fork=8 --node=2-9/9" on the
 64-core machine (8 threads in 8 processes, for 64 threads total on this
-machine).  With the current implementation, the node numbers range
-assigned to each John invocation must match the "--fork" process count.
+machine).  The node numbers range assigned to each John invocation must
+be a multiple of the "--fork" process count.  You'd usually have the
+number of nodes in the range exactly match the "--fork" process count,
+but you can use other multiples to compensate for major differences in
+per-process performance between different machines.  For example, on a
+machine where each process is twice faster than on another, you'd
+reasonably allocate two virtual node numbers per each "--fork" process,
+e.g. with "--fork=8 --node=9-24/24".
 
 When running with "--fork", multiple ".rec" files are created, which are
 then read back by "--status" and "--restore" if you use those options.
@@ -517,14 +528,6 @@ this has special parsing (write it, literally, as --field-separator-char=tab).
 Other non-printable characters can be written in hex \xHH notation (the TAB
 character can also be specified with --field-separator-char=\x09).  Note that
 a side effect is that the pot file will get this field separator too.
-
---fix-state-delay=N		only determine the wordlist offset every N times
-
-This is an optimization for wordlist mode which helps on some systems.  This
-just limits the number of times that the ftell() call is performed.  The one
-side effect is that if John is aborted and later restarted it may redo more
-tests.  Thus, the use of this option is only sensible desirable for very fast
-hash types.
 
 --no-log			disable log file
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # v0.3 now uses the login names
 # v0.2 comments added, find PBA vectors for every users
 

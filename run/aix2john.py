@@ -1,18 +1,30 @@
 #!/usr/bin/env python
 
+# This script extracts hashes from AIX /etc/security/passwd
+# cat /etc/security/passwd
+# root:
+#         password = mrXXXXXXXXXX
+#         lastupdate = 1343960660
+#         flags =
+#
+# admin:
+#         password = oiXXXXXXXXXX
+#         lastupdate = 1339748349
+#         flags =
+# ...
+
+# Note: Some of this functionality is also covered by the unshadow program.
+
+
+import argparse
 import binascii
 import sys
 import re
 
-try:
-	 import argparse
-except ImportError:
-    sys.stderr.write("Stop living in the past. Upgrade your python!\n")
-
 
 def process_file(filename, is_standard):
     try:
-        fd = open(filename, "rb")
+        fd = open(filename, "r")
     except IOError:
         e = sys.exc_info()[1]
         sys.stderr.write("%s\n" % str(e))
@@ -51,28 +63,25 @@ def process_file(filename, is_standard):
 if __name__ == "__main__":
 
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s [-s] -f <AIX passwd file "
-            "(/etc/security/passwd)>\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s [-s] -f <AIX passwd file (/etc/security/passwd)>\n" % sys.argv[0])
         sys.exit(-1)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', action="store_true",
     						default=False,
     						dest="is_standard",
-    						help='Use this option if "lpa_options '
-    								'= std_hash=true" is activated'
+    						help='Use this option if "lpa_options = std_hash=true" is activated'
     						)
-    
+
     parser.add_argument('-f', dest="filename",
     						default=False,
     						help='Specify the AIX shadow file filename to read (usually /etc/security/passwd)'
     						)
-    
+
     args = parser.parse_args()
-    
+
     if args.filename:
         process_file(args.filename, args.is_standard)
-    else:   
-        print "Please specify a filename (-f)"
+    else:
+        print("Please specify a filename (-f)")
         sys.exit(-1)
-

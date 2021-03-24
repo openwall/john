@@ -54,6 +54,7 @@
 #include "md5.h"
 #include "misc.h"
 #include "john_mpi.h"
+#include "timer.h"
 
 /* Set this to eg. 3 for some added debug and retry stuff */
 #define RACE_CONDITION_DEBUG 0
@@ -390,39 +391,12 @@ static char *opencl_driver_info(int sequential_id)
 
 static char *ns2string(cl_ulong nanosec)
 {
-	char *buf = mem_alloc_tiny(16, MEM_ALIGN_NONE);
-	int s, ms, us, ns;
-
-	ns = nanosec % 1000;
-	nanosec /= 1000;
-	us = nanosec % 1000;
-	nanosec /= 1000;
-	ms = nanosec % 1000;
-	s = nanosec / 1000;
-
-	if (s) {
-		if (ms)
-			snprintf(buf, 16, "%d.%03ds", s, ms);
-		else
-			snprintf(buf, 16, "%ds", s);
-	} else if (ms) {
-		if (us)
-			snprintf(buf, 16, "%d.%03dms", ms, us);
-		else
-			snprintf(buf, 16, "%dms", ms);
-	} else if (us) {
-		if (ns)
-			snprintf(buf, 16, "%d.%03dus", us, ns);
-		else
-			snprintf(buf, 16, "%dus", us);
-	} else
-		snprintf(buf, 16, "%dns", ns);
-	return buf;
+	return human_prefix_small(nanosec / 1E9);
 }
 
 static char *ms2string(int millisec)
 {
-	return ns2string(millisec * 1000000ULL);
+	return human_prefix_small(millisec / 1E3);
 }
 
 static int get_if_device_is_in_use(int sequential_id)
@@ -616,7 +590,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "%u: Error creating context for device %d "
 			        "(%d:%d): %s, %s\n",
-			        NODE, sequential_id,
+			        NODE, sequential_id + 1,
 			        get_platform_id(sequential_id),
 			        get_device_id(sequential_id), get_error_name(ret_code),
 			        retry < RACE_CONDITION_DEBUG ? "retrying" : "giving up");
@@ -634,7 +608,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "%u: Error creating command queue for "
 			        "device %d (%d:%d): %s, %s\n", NODE,
-			        sequential_id, get_platform_id(sequential_id),
+			        sequential_id + 1, get_platform_id(sequential_id),
 			        get_device_id(sequential_id), get_error_name(ret_code),
 			        retry < RACE_CONDITION_DEBUG ? "retrying" : "giving up");
 			if (++retry > RACE_CONDITION_DEBUG)
@@ -644,7 +618,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 	} while (ret_code != CL_SUCCESS);
 
 #ifdef OCL_DEBUG
-	fprintf(stderr, "  Device %d: %s\n", sequential_id, opencl_data);
+	fprintf(stderr, "  Device %d: %s\n", sequential_id + 1, opencl_data);
 #endif
 
 	// Success.
@@ -1510,13 +1484,12 @@ static void* fill_opencl_device(size_t gws, void **binary)
 // (or return zero for error or limits exceeded)
 static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 {
-	cl_ulong startTime, endTime, runtime = 0, looptime = 0;
+	cl_ulong submitTime, startTime, endTime, runtime = 0, looptime = 0;
 	int i, count, total = 0;
 	size_t kpc = gws * ocl_v_width;
 	cl_event benchEvent[MAX_EVENTS];
 	int result, number_of_events = 0;
 	void *salt, *binary;
-	int amd_bug;
 
 	for (i = 0; i < MAX_EVENTS; i++)
 		benchEvent[i] = NULL;
@@ -1569,10 +1542,15 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 	for (i = 0; i < number_of_events; i++) {
 		char mult[32] = "";
 
-		amd_bug = 0;
+		int prof_bug = 0;
 
 		HANDLE_CLERROR(clWaitForEvents(1, multi_profilingEvent[i]),
 		               "clWaitForEvents");
+		HANDLE_CLERROR(clGetEventProfilingInfo(*multi_profilingEvent[i],
+		                                       CL_PROFILING_COMMAND_SUBMIT,
+		                                       sizeof(cl_ulong), &submitTime,
+		                                       NULL),
+		               "clGetEventProfilingInfo submit");
 		HANDLE_CLERROR(clGetEventProfilingInfo(*multi_profilingEvent[i],
 		                                       CL_PROFILING_COMMAND_START,
 		                                       sizeof(cl_ulong), &startTime,
@@ -1584,16 +1562,14 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 		                                       NULL),
 		               "clGetEventProfilingInfo end");
 
-		/* Work around AMD bug. It randomly claims that a kernel
-		   run took less than a microsecond, fooling our auto tune */
-		if (endTime - startTime < 1000) {
-			amd_bug = 1;
+		/*
+		 * Work around driver bugs. Problems seen with old AMD and Apple M1.
+		 * If startTime looks b0rken we use submitTime instead
+		 */
+		if (i == main_opencl_event && (endTime - submitTime) > 10 * (endTime - startTime)) {
+			prof_bug = 1;
 
-			HANDLE_CLERROR(clGetEventProfilingInfo(*multi_profilingEvent[i],
-			                                       CL_PROFILING_COMMAND_SUBMIT,
-			                                       sizeof(cl_ulong), &startTime,
-			                                       NULL),
-			               "clGetEventProfilingInfo submit");
+			startTime = submitTime;
 		}
 
 		/* Work around OSX bug with HD4000 driver */
@@ -1611,8 +1587,8 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			runtime += (endTime - startTime);
 
 		if (options.verbosity >= VERB_MAX)
-			fprintf(stderr, "%s%s%s%s", warnings[i], mult,
-			        ns2string(endTime - startTime), (amd_bug) ? "*" : "");
+			fprintf(stderr, "%s%s%ss%s", warnings[i], mult,
+			        ns2string(endTime - startTime), (prof_bug) ? "*" : "");
 
 		/* Single-invocation duration limit */
 		if (duration_time &&
@@ -1620,7 +1596,7 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			runtime = looptime = 0;
 
 			if (options.verbosity >= VERB_MAX)
-				fprintf(stderr, " (exceeds %s)", ms2string(duration_time));
+				fprintf(stderr, " (exceeds %ss)", ms2string(duration_time));
 			break;
 		}
 	}
@@ -1680,8 +1656,8 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 	cl_int ret_code;
 	int i, j, numloops, count, result;
 	size_t my_work_group, optimal_work_group;
-	size_t max_group_size, wg_multiple, sumStartTime, sumEndTime;
-	cl_ulong startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
+	size_t max_group_size, wg_multiple, sumRunTime;
+	cl_ulong submitTime, startTime, endTime, kernelExecTimeNs = CL_ULONG_MAX;
 	cl_event benchEvent[MAX_EVENTS];
 	void *salt, *binary;
 
@@ -1749,23 +1725,49 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 	// Timing run
 	count = global_work_size * ocl_v_width;
+	uint64_t wc_start = john_get_nano();
 	result = self->methods.crypt_all(&count, autotune_salts);
 	if (result > 0)
 		self->methods.cmp_all(binary, result);
+	uint64_t wc_end = john_get_nano();
 
 	HANDLE_CLERROR(clWaitForEvents(1, &benchEvent[main_opencl_event]),
 	               "clWaitForEvents");
 	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish");
 	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
+	                                       CL_PROFILING_COMMAND_SUBMIT,
+	                                       sizeof(cl_ulong), &submitTime, NULL),
+	               "clGetEventProfilingInfo submit");
+	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 	                                       CL_PROFILING_COMMAND_START,
-	                                       sizeof(cl_ulong),
-	                                       &startTime, NULL),
+	                                       sizeof(cl_ulong), &startTime, NULL),
 	               "clGetEventProfilingInfo start");
-
 	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
 	                                       CL_PROFILING_COMMAND_END,
 	                                       sizeof(cl_ulong), &endTime, NULL),
 	               "clGetEventProfilingInfo end");
+
+	/*
+	 * Work around driver bugs. Problems seen with old AMD and Apple M1.
+	 * If startTime looks b0rken we use submitTime instead
+	 */
+	if ((endTime - submitTime) > 10 * (endTime - startTime)) {
+		if (options.verbosity > VERB_LEGACY)
+			fprintf(stderr, "Note: Profiling timers seem buggy\n");
+		startTime = submitTime;
+	}
+	/*
+	 * For numloops enumeration, we even double-check with wall clock time
+	 * and if it drastically differs from the profile timer, use the former
+	 * so we don't end up with a huge numloops where inappropriate.
+	 */
+	if ((wc_end - wc_start) > 10 * (endTime - startTime)) {
+		if (options.verbosity > VERB_LEGACY)
+			fprintf(stderr, "Note: Profiling timers seem to be way off\n");
+		startTime = wc_start;
+		endTime = wc_end;
+	}
+
 	cl_ulong roundup = endTime - startTime - 1;
 	numloops = (int)(size_t)((200000000ULL + roundup) / (endTime - startTime));
 
@@ -1791,8 +1793,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 			fprintf(stderr, "Testing LWS=" Zu " GWS=" Zu " ...", my_work_group,
 			        global_work_size);
 
-		sumStartTime = 0;
-		sumEndTime = 0;
+		sumRunTime = 0;
 
 		for (i = 0; i < numloops; i++) {
 			advance_cursor();
@@ -1818,6 +1819,10 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 			               "clWaitForEvents");
 			HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish");
 			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent
+				[main_opencl_event], CL_PROFILING_COMMAND_SUBMIT,
+				sizeof(cl_ulong), &submitTime, NULL),
+			               "clGetEventProfilingInfo submit");
+			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent
 				[main_opencl_event], CL_PROFILING_COMMAND_START,
 				sizeof(cl_ulong), &startTime, NULL),
 			               "clGetEventProfilingInfo start");
@@ -1826,10 +1831,15 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 				sizeof(cl_ulong), &endTime, NULL),
 			               "clGetEventProfilingInfo end");
 
-			sumStartTime += startTime;
-			sumEndTime += endTime;
+			/*
+			 * Work around driver bugs. Problems seen with old AMD and Apple M1.
+			 * If startTime looks b0rken we use submitTime instead
+			 */
+			if ((endTime - submitTime) > 10 * (endTime - startTime))
+				startTime = submitTime;
 
 			clear_profiling_events();
+			sumRunTime += endTime - startTime;
 		}
 
 		/* Erase the 'spinning wheel' cursor */
@@ -1839,11 +1849,11 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		if (!endTime)
 			break;
 		if (options.verbosity > VERB_LEGACY)
-			fprintf(stderr, " %s%s\n", ns2string(sumEndTime - sumStartTime),
-			    ((double)(sumEndTime - sumStartTime) / kernelExecTimeNs < 0.997)
+			fprintf(stderr, " %ss%s\n", ns2string(sumRunTime),
+			    ((double)(sumRunTime) / kernelExecTimeNs < 0.997)
 			        ? "+" : "");
-		if ((double)(sumEndTime - sumStartTime) / kernelExecTimeNs < 0.997) {
-			kernelExecTimeNs = sumEndTime - sumStartTime;
+		if ((double)(sumRunTime) / kernelExecTimeNs < 0.997) {
+			kernelExecTimeNs = sumRunTime;
 			optimal_work_group = my_work_group;
 		} else {
 			if (my_work_group >= 256 ||
@@ -1874,35 +1884,6 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 
 	if (!self->methods.tunable_cost_value[0] || !ocl_autotune_db->real)
 		dyna_salt_remove(salt);
-}
-
-static char *human_speed(unsigned long long int speed)
-{
-	static char out[32];
-	char p = '\0';
-
-	if (speed > 1000000) {
-		speed /= 1000;
-		p = 'K';
-	}
-	if (speed > 1000000) {
-		speed /= 1000;
-		p = 'M';
-	}
-	if (speed > 1000000) {
-		speed /= 1000;
-		p = 'G';
-	}
-	if (speed > 1000000) {
-		speed /= 1000;
-		p = 'T'; /* you wish */
-	}
-	if (p)
-		snprintf(out, sizeof(out), "%llu%cc/s", speed, p);
-	else
-		snprintf(out, sizeof(out), "%lluc/s", speed);
-
-	return out;
 }
 
 uint32_t get_bitmap_size_bits(uint32_t num_elements, int sequential_id)
@@ -1985,7 +1966,7 @@ void opencl_find_best_gws(int step, int max_duration,
 	}
 	if (options.verbosity > VERB_LEGACY) {
 		fprintf(stderr, "Calculating best GWS for LWS="Zu"; "
-		        "max. %s single kernel invocation.\n",
+		        "max. %ss single kernel invocation.\n",
 		        local_work_size, ms2string(duration_time));
 	}
 
@@ -2028,8 +2009,7 @@ void opencl_find_best_gws(int step, int max_duration,
 		speed = rounds * raw_speed;
 
 		if (options.verbosity > VERB_LEGACY)
-			fprintf(stderr, "gws: %9zu\t%10s%12llu "
-			        "rounds/s%10s per crypt_all()",
+			fprintf(stderr, "gws: %9zu%13s%12llu rounds/s%11ss per crypt_all()",
 			        num, human_speed(raw_speed), speed, ns2string(run_time));
 
 		/*
@@ -2064,8 +2044,7 @@ void opencl_find_best_gws(int step, int max_duration,
 		speed = rounds * raw_speed;
 
 		if (options.verbosity > VERB_LEGACY)
-			fprintf(stderr, "gws: %9zu\t%10s%12llu "
-			        "rounds/s%10s per crypt_all()",
+			fprintf(stderr, "gws: %9zu%13s%12llu rounds/s%11ss per crypt_all()",
 			        num, human_speed(raw_speed), speed, ns2string(run_time));
 
 		if (speed < best_speed) {

@@ -1395,7 +1395,7 @@ Optional Features:
                           Enable OpenMP for fast formats (usually a bad idea -
                           use fork instead)
   --enable-mpi            Use OpenMPI
-  --enable-rexgen         Enable use of rexgen library (experimental)
+  --enable-rexgen         Enable use of rexgen library (unreliable!)
   --disable-pcap          Do not build helpers depending on PCAP
   --disable-native-tests  Do not test build system for target features.
   --enable-native-march   Use things like -march=native if valid compiler
@@ -9326,9 +9326,46 @@ rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
   conftest.$ac_objext conftest.beam conftest.$ac_ext
 fi
 
+  CC="$CC_BACKUP -march=armv8-a+simd"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ASIMD" >&5
+$as_echo_n "checking for ASIMD... " >&6; }
+  if test "$cross_compiling" = yes; then :
+  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+as_fn_error $? "cannot run test program while cross compiling
+See \`config.log' for more details" "$LINENO" 5; }
+else
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <arm_neon.h>
+  #include <stdio.h>
+  extern void exit(int);
+  int main(){uint32x4_t t;*((long*)&t)=1;t=veorq_u32(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_run "$LINENO"; then :
+  CPU_BEST_FLAGS="-march=armv8-a+simd"
+     SIMD_NAME="ASIMD"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+     ARCH_LINK=arm64le.h
+
+else
+  CPU_NOTFOUND="1"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core *.core core.conftest.* gmon.out bb.out conftest$ac_exeext \
+  conftest.$ac_objext conftest.beam conftest.$ac_ext
+fi
+
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for NEON" >&5
 $as_echo_n "checking for NEON... " >&6; }
+  CC="$CC_BACKUP -mfpu=neon"
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
@@ -9342,6 +9379,34 @@ _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
   CPU_BEST_FLAGS="-mfpu=neon"
      SIMD_NAME="NEON"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+else
+  CPU_NOTFOUND="1"
+     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for ASIMD" >&5
+$as_echo_n "checking for ASIMD... " >&6; }
+  CC="$CC_BACKUP -march=armv8-a+simd"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+    #include <arm_neon.h>
+  #include <stdio.h>
+  extern void exit(int);
+  int main(){uint32x4_t t;*((long*)&t)=1;t=veorq_u32(t,t);if((*(unsigned*)&t)==88)printf(".");exit(0);}
+
+
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  CPU_BEST_FLAGS="-march=armv8-a+simd"
+     SIMD_NAME="ASIMD"
+     ARCH_LINK=arm64le.h
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -12998,7 +13063,7 @@ See \`config.log' for more details" "$LINENO" 5; }
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-int main() { return ! (rexgen_version_int() >= 0x020006); }
+int main() { return ! (rexgen_version_int() >= 0x020009); }
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: usable" >&5
@@ -16508,7 +16573,7 @@ echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${host_cpu} $
 
 HOST_OS="$host_os"
 
-ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile secp256k1/Makefile ed25519-donna/Makefile"
+ac_config_files="$ac_config_files Makefile aes/Makefile aes/aesni/Makefile aes/openssl/Makefile secp256k1/Makefile ed25519-donna/Makefile poly1305-donna/Makefile"
 
 
 CFLAGS_EXTRA_BACKUP=$CFLAGS_EXTRA
@@ -17225,6 +17290,7 @@ do
     "aes/openssl/Makefile") CONFIG_FILES="$CONFIG_FILES aes/openssl/Makefile" ;;
     "secp256k1/Makefile") CONFIG_FILES="$CONFIG_FILES secp256k1/Makefile" ;;
     "ed25519-donna/Makefile") CONFIG_FILES="$CONFIG_FILES ed25519-donna/Makefile" ;;
+    "poly1305-donna/Makefile") CONFIG_FILES="$CONFIG_FILES poly1305-donna/Makefile" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;

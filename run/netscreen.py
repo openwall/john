@@ -103,10 +103,10 @@ if __name__ == '__main__':
              if re.search(':',line):
                data=data.split(':',1) # line contains :
              else:
-                 print ("\n\n\n")
-                 print ("Error in input file.")
-                 print ("The input file must have either a \",\" or \":\" separator on each line.")
-                 print ("Also it should not contain any blank lines. Please correct the input file.")
+                 print("\n\n\n")
+                 print("Error in input file.")
+                 print("The input file must have either a \",\" or \":\" separator on each line.")
+                 print("Also it should not contain any blank lines. Please correct the input file.")
                  break
           username = data[0]
           password = data[1]

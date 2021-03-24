@@ -336,12 +336,12 @@ static void john_log_format2(void)
 	/* Messages require extra info not available in john_log_format().
 		These are delayed until mask_init(), fmt_reset() */
 	chunk = min_chunk = database.format->params.max_keys_per_crypt;
-	if (options.flags & (FLG_SINGLE_CHK | FLG_BATCH_CHK) &&
-	    chunk < SINGLE_HASH_MIN)
-			chunk = SINGLE_HASH_MIN;
+	if (options.force_maxkeys && options.force_maxkeys < chunk)
+		chunk = min_chunk = options.force_maxkeys;
+	if ((options.flags & (FLG_SINGLE_CHK | FLG_BATCH_CHK)) && chunk < SINGLE_HASH_MIN)
+		chunk = SINGLE_HASH_MIN;
 	if (chunk > 1)
-		log_event("- Candidate passwords %s be buffered and "
-			"tried in chunks of %d",
+		log_event("- Candidate passwords %s be buffered and tried in chunks of %d",
 			min_chunk > 1 ? "will" : "may",
 			chunk);
 }
@@ -501,6 +501,13 @@ static void john_omp_show_info(void)
 }
 #endif
 
+static void john_set_tristates(void)
+{
+	/* Config CrackStatus may be overridden by --crack-status tri-state */
+	if (options.crack_status == -1)
+		options.crack_status = cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0);
+}
+
 #if OS_FORK
 static void john_fork(void)
 {
@@ -529,6 +536,9 @@ static void john_fork(void)
 	pids = mem_alloc_tiny((options.fork - 1) * sizeof(*pids),
 	    sizeof(*pids));
 
+	unsigned int range = options.node_max - options.node_min + 1;
+	unsigned int npf = range / options.fork;
+
 	for (i = 1; i < options.fork; i++) {
 		switch ((pid = fork())) {
 		case -1:
@@ -536,8 +546,6 @@ static void john_fork(void)
 
 		case 0:
 			sig_preinit();
-			options.node_min += i;
-			options.node_max = options.node_min;
 #if HAVE_OPENCL
 			/* Poor man's multi-device support */
 			if (options.acc_devices->count &&
@@ -556,15 +564,23 @@ static void john_fork(void)
 			}
 #endif
 			if (rec_restoring_now) {
-				unsigned int node_id = options.node_min;
+				unsigned int save_min = options.node_min;
+				unsigned int save_max = options.node_max;
+				unsigned int save_count = options.node_count;
+				unsigned int save_fork = options.fork;
+				options.node_min += i * npf;
+				options.node_max = options.node_min + npf - 1;
 				rec_done(-2);
 				rec_restore_args(1);
-				if (node_id != options.node_min + i)
-					fprintf(stderr,
-					    "Inconsistent crash recovery file:"
-					    " %s\n", rec_name);
-				options.node_min = options.node_max = node_id;
+				john_set_tristates();
+				if (options.node_min != save_min ||
+				    options.node_max != save_max ||
+				    options.node_count != save_count ||
+				    options.fork != save_fork)
+					error_msg("Inconsistent crash recovery file: %s\n", rec_name);
 			}
+			options.node_min += i * npf;
+			options.node_max = options.node_min + npf - 1;
 			sig_init_child();
 			return;
 
@@ -572,6 +588,8 @@ static void john_fork(void)
 			pids[i - 1] = pid;
 		}
 	}
+
+	options.node_max = options.node_min + npf - 1;
 
 #if HAVE_OPENCL
 	/* Poor man's multi-device support */
@@ -591,8 +609,6 @@ static void john_fork(void)
 	john_main_process = 1;
 	john_child_pids = pids;
 	john_child_count = options.fork - 1;
-
-	options.node_max = options.node_min;
 }
 
 /*
@@ -602,23 +618,32 @@ static void john_fork(void)
 #if HAVE_MPI
 static void john_set_mpi(void)
 {
-	options.node_min += mpi_id;
-	options.node_max = options.node_min;
+	unsigned int range = options.node_max - options.node_min + 1;
+	unsigned int npf = range / mpi_p;
 
 	if (mpi_p > 1) {
 		if (!john_main_process) {
 			if (rec_restoring_now) {
-				unsigned int node_id = options.node_min;
+				unsigned int save_min = options.node_min;
+				unsigned int save_max = options.node_max;
+				unsigned int save_count = options.node_count;
+				unsigned int save_fork = options.fork;
+				options.node_min += mpi_id * npf;
+				options.node_max = options.node_min + npf - 1;
 				rec_done(-2);
 				rec_restore_args(1);
-				if (node_id != options.node_min + mpi_id)
-					fprintf(stderr,
-					    "Inconsistent crash recovery file:"
-					    " %s\n", rec_name);
-				options.node_min = options.node_max = node_id;
+				john_set_tristates();
+				if (options.node_min != save_min ||
+				    options.node_max != save_max ||
+				    options.node_count != save_count ||
+				    options.fork != save_fork)
+					error_msg("Inconsistent crash recovery file: %s\n", rec_name);
 			}
 		}
 	}
+	options.node_min += mpi_id * npf;
+	options.node_max = options.node_min + npf - 1;
+
 	fflush(stdout);
 	fflush(stderr);
 }
@@ -807,10 +832,6 @@ static void john_load_conf(void)
 		cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtSave", 1);
 	options.abort_file = cfg_get_param(SECTION_OPTIONS, NULL, "AbortFile");
 	options.pause_file = cfg_get_param(SECTION_OPTIONS, NULL, "PauseFile");
-
-	/* Config CrackStatus may be overridden by --crack-status tri-state */
-	if (options.crack_status == -1)
-		options.crack_status = cfg_get_bool(SECTION_OPTIONS, NULL, "CrackStatus", 0);
 
 #if HAVE_OPENCL
 	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "ForceScalar", 0))
@@ -1512,6 +1533,9 @@ static void john_init(char *name, int argc, char **argv)
 #endif
 	/* Process configuration options that depend on cfg_init() */
 	john_load_conf();
+
+	/* Stuff that need to be reset again after rec_restore_args */
+	john_set_tristates();
 
 #ifdef _OPENMP
 	john_omp_maybe_adjust_or_fallback(argv);

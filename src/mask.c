@@ -2130,6 +2130,12 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	    !strcasecmp(mask_fmt->params.label, "lm-opencl"))
 		format_cannot_reset = 1;
 
+	/* Using "--mask" alone will use default mask and iterate over length */
+	if (!(options.flags & FLG_MASK_STACKED) && (options.flags & FLG_CRACKING_CHK) && !unprocessed_mask &&
+	    options.req_minlength < 0 && !options.req_maxlength)
+		mask_increments_len = 1;
+
+	/* Specified length range given */
 	if ((options.req_minlength >= 0 || options.req_maxlength) &&
 	    (options.eff_minlength != options.eff_maxlength) &&
 	    !(options.flags & FLG_MASK_STACKED))
@@ -2259,12 +2265,12 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask = expand_cplhdr(mask, conv_err);
 
 	/*
-	 * UTF-8 is not supported in mask mode unless -internal-codepage is used
-	 * except for UTF-16 formats (eg. NT).
+	 * UTF-8 is not supported in mask mode unless -internal-codepage is used.
 	 */
 	if (options.internal_cp == UTF_8 && valid_utf8((UTF8*)mask) > 1) {
 		if (john_main_process)
-			fprintf(stderr, "Error: Mask contains UTF-8 characters; --internal-codepage is required!\n");
+			fprintf(stderr, "Error: Mask contains UTF-8 characters; You need to set a legacy codepage\n"
+			        "       with --internal-codepage (UTF-8 is not a codepage).\n");
 		error();
 	}
 

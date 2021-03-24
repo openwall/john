@@ -1079,28 +1079,26 @@ next:
 #endif
 	} while ((format = format->next) && !event_abort);
 
-	if (failed && total > 1 && !event_abort)
-		printf("%u out of %u tests have FAILED\n", failed, total);
-	else if (total > 1 && !event_abort)
-		if (john_main_process) {
-#ifndef BENCH_BUILD
-			if (options.flags & FLG_MASK_CHK)
-				printf("%u formats benchmarked.\n", total);
-			else
-#endif
-
 #ifdef HAVE_OPENCL
 /*
  * Allow OpenCL build's "--test" to run on no-OpenCL systems.
  * Print a message about no OpenCL at the end of the run.
  */
-				if (opencl_unavailable)
-					opencl_was_skipped = " (OpenCL formats skipped)";
+	if (opencl_unavailable)
+		opencl_was_skipped = " (OpenCL formats skipped)";
 #endif
 
-				printf("All %u formats passed self-tests!%s\n",
-				       total, opencl_was_skipped);
-		}
+	if (failed && total > 1 && !event_abort)
+		printf("%u out of %u tests have FAILED%s\n", failed, total, opencl_was_skipped);
+	else if (total > 1 && !event_abort && john_main_process) {
+#ifndef BENCH_BUILD
+		if (benchmark_time)
+			printf("%u formats benchmarked%s.\n", total, opencl_was_skipped);
+		else
+#endif
+			printf("All %u formats passed self-tests%s!\n", total, opencl_was_skipped);
+	}
+
 #ifndef BENCH_BUILD
 	if (options.flags & FLG_LOOPTEST_CHK) {
 		loop_total++;

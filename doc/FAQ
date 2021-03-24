@@ -306,5 +306,3 @@ Although the meaning of some of the numbers that get into .rec files is
 trivial to explain, it is not possible to reasonably describe some
 others without going into great detail on John internals.  If you really
 need to know, read the source code.
-
-$Owl$

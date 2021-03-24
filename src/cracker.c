@@ -72,7 +72,6 @@
 #undef index
 #endif
 
-static fix_state_fp fp_fix_state;
 static int crk_process_key_max_keys;
 static struct db_main *crk_db;
 static struct fmt_params *crk_params;
@@ -90,6 +89,7 @@ static struct db_keys *crk_guesses;
 static uint64_t *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
 static int kpc_warn, kpc_warn_limit, single_running;
+static fix_state_fp hybrid_fix_state;
 
 int crk_stacked_rule_count = 1;
 rule_stack crk_rule_stack;
@@ -105,7 +105,7 @@ static int process_key_stack_rules(char *key);
 /* Expose max_keys_per_crypt to the world (needed in recovery.c) */
 int crk_max_keys_per_crypt(void)
 {
-	return  crk_params->max_keys_per_crypt;
+	return options.force_maxkeys ? options.force_maxkeys : crk_params->max_keys_per_crypt;
 }
 
 static void crk_dummy_set_salt(void *salt)
@@ -240,12 +240,11 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 		kpc_warn_limit = CRK_KPC_WARN;
 
 	if (!(options.flags & FLG_SINGLE_CHK))
-		crk_stacked_rule_count =
-			rules_init_stack(options.rule_stack, &crk_rule_stack, db);
+		rules_stacked_after = !!(crk_stacked_rule_count = rules_init_stack(options.rule_stack, &crk_rule_stack, db));
 	else
 		crk_stacked_rule_count = 0;
 
-	if (!(rules_stacked_after = (crk_stacked_rule_count > 0)))
+	if (crk_stacked_rule_count == 0)
 		crk_stacked_rule_count = 1;
 
 	if (rules_stacked_after)
@@ -796,9 +795,13 @@ static int crk_process_event(void)
 
 void crk_set_hybrid_fix_state_func_ptr(fix_state_fp fp)
 {
-	fp_fix_state = fp;
+	hybrid_fix_state = fp;
 }
 
+/*
+ * Called from crk_salt_loop for every salt or, when in Single mode, from
+ * crk_process_salt with just a specific salt.
+ */
 static int crk_password_loop(struct db_salt *salt)
 {
 	int count;
@@ -816,8 +819,14 @@ static int crk_password_loop(struct db_salt *salt)
 	if (event_pending && crk_process_event())
 		return -1;
 
-	if (fp_fix_state)
-		fp_fix_state();
+	/*
+	 * magnum, December 2020:
+	 * I can't fathom how/why this would be the correct place for this, but
+	 * it seems to work and just moving it to the others does break resume
+	 * for hybrid external so here it stays, until further research.
+	 */
+	if (hybrid_fix_state)
+		hybrid_fix_state();
 
 	if (kpc_warn_limit && crk_key_index < kpc_warn) {
 		static int last_warn_kpc, initial_value;
@@ -997,6 +1006,10 @@ static int crk_password_loop(struct db_salt *salt)
 	return 0;
 }
 
+/*
+ * When crk_process_key() has a complete batch, it calls this function
+ * to run the batch with all salts.
+ */
 static int crk_salt_loop(void)
 {
 	int sc = crk_db->salt_count;
@@ -1061,10 +1074,14 @@ static int crk_salt_loop(void)
 	crk_process_key_max_keys = 0; /* use slow path next time */
 	crk_key_index = 0;
 	crk_last_salt = NULL;
-	if (options.flags & FLG_MASK_STACKED)
-		mask_fix_state();
-	else
-	crk_fix_state();
+
+	if (event_fix_state) {
+		if (options.flags & FLG_MASK_STACKED)
+			mask_fix_state();
+		else
+			crk_fix_state();
+		event_fix_state = 0;
+	}
 
 	if (ext_abort)
 		event_abort = 1;
@@ -1078,6 +1095,10 @@ static int crk_salt_loop(void)
 	return ext_abort;
 }
 
+/*
+ * Process an incomplete batch; This is used by mask mode before
+ * resetting the format with a changed internal mask.
+ */
 int crk_process_buffer(void)
 {
 	if (crk_db->loaded && crk_key_index)
@@ -1098,6 +1119,10 @@ int crk_process_buffer(void)
 	return ext_abort;
 }
 
+/*
+ * All modes but Single call this function (as crk_process_key)
+ * for each candidate.
+ */
 static int process_key(char *key)
 {
 	if (crk_key_index < crk_process_key_max_keys) {
@@ -1150,10 +1175,13 @@ static int process_key(char *key)
 			event_abort = event_pending = 1;
 	}
 
-	if (options.flags & FLG_MASK_STACKED)
-		mask_fix_state();
-	else
-	crk_fix_state();
+	if (event_fix_state) {
+		if (options.flags & FLG_MASK_STACKED)
+			mask_fix_state();
+		else
+			crk_fix_state();
+		event_fix_state = 0;
+	}
 
 	if (ext_abort)
 		event_abort = 1;

@@ -213,7 +213,7 @@ static int process_file(char *name)
 				int skip = 0;
 
 				while (len--) {
-					if (*p < 0x20 || *p == 0x7f) {
+					if ((*p < 0x20 && *p != '\t') || *p == 0x7f) {
 						if (options.verbosity > VERB_DEFAULT)
 							fprintf(stderr, "%s" TERM_RESET " skipped (unprintables)\n", convin);
 						skip = 1;

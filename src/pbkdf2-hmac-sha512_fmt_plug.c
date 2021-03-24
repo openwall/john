@@ -52,6 +52,8 @@ john_register_one(&fmt_pbkdf2_hmac_sha512);
 #endif
 
 #define SALT_SIZE               sizeof(struct custom_salt)
+#define SALT_ALIGN              sizeof(uint32_t)
+
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
 #define MAX_KEYS_PER_CRYPT	SSE_GROUP_SZ_SHA512
@@ -69,9 +71,9 @@ john_register_one(&fmt_pbkdf2_hmac_sha512);
 #define PLAINTEXT_LENGTH        125
 
 static struct custom_salt {
+	uint32_t rounds;
 	uint8_t length;
 	uint8_t salt[PBKDF2_64_MAX_SALT_SIZE];
-	uint32_t rounds;
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -204,9 +206,9 @@ struct fmt_main fmt_pbkdf2_hmac_sha512 = {
 		0,
 		PLAINTEXT_LENGTH,
 		PBKDF2_SHA512_BINARY_SIZE,
-		sizeof(uint32_t),
+		PBKDF2_SHA512_BINARY_ALIGN,
 		SALT_SIZE,
-		sizeof(ARCH_WORD),
+		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE,

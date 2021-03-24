@@ -1,155 +1,119 @@
 /*
- * This file is
- * Copyright (c) 2009 by Jim Fougeron jfoug AT cox dot net
- * Copyright (c) 2019 by magnum
+ * This file is Copyright (c) 2021 by magnum
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
- *
- * Portable hi-res timer.  Was a nice C++ class. Downgraded to C for john.
  */
 
-#include <stdio.h>
 #include <stdint.h>
 
 #include "timer.h"
+#include "misc.h"
 
-#if __MACH__
-static uint64_t sm_timebase;
-#endif
-static int sm_fGotHRTicksPerSec = 0;   // Set if we have got the above
+#if defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__)
 
-uint64_t sm_HRTicksPerSec;  // HR ticks per second (claimed)
-uint64_t sm_hrPrecision;    // HR ticks per second (observed, guess)
-uint64_t sm_cPrecision;     // clocks (ticks) per second (observed, guess)
+#undef MEM_FREE
+#include <windows.h>
+#undef MEM_FREE
+const char *john_nano_clock = "QueryPerformanceCounter()";
 
-void sTimer_Init(sTimer *t)
+/*
+ * QueryPerformanceCounter(LARGE_INTEGER*) gives "counts" (ticks)
+ * QueryPerformanceFrequency(LARGE_INTEGER*) gives ticks/s
+ */
+uint64_t john_get_nano(void)
 {
-	t->m_fRunning = 0;
-	t->m_cStartTime = 0;
-	t->m_cEndTime = 0;
-	t->m_dAccumSeconds = 0;
-	HRZERO(t->m_hrStartTime);
-	HRZERO(t->m_hrEndTime);
-	if (!sm_fGotHRTicksPerSec) {
-		// What's the lowest digit set non-zero in a clock() call
-		// That's a fair indication what the precision is likely to be.
-		// Note - this isn't actually used
-		int i;
+	static uint64_t ticks_per_sec;
+	LARGE_INTEGER t;
 
-		sm_fGotHRTicksPerSec = 1;
-		sm_cPrecision = 0;
-		for (i = 0; i < 10; ++i) {
-			clock_t heuristicTimeTest = clock();
-
-			if (heuristicTimeTest % 10) {
-				sm_cPrecision = CLOCKS_PER_SEC;
-				break;
-			}
-			else if (heuristicTimeTest % 100) {
-				if (!sm_cPrecision || sm_cPrecision < CLOCKS_PER_SEC / 10)
-					sm_cPrecision = CLOCKS_PER_SEC / 10;
-			}
-			else if (heuristicTimeTest % 1000) {
-				if (!sm_cPrecision || sm_cPrecision < CLOCKS_PER_SEC / 100)
-					sm_cPrecision = CLOCKS_PER_SEC / 100;
-			}
-			else if (heuristicTimeTest % 10000) {
-				if (!sm_cPrecision || sm_cPrecision > CLOCKS_PER_SEC / 1000)
-					sm_cPrecision = CLOCKS_PER_SEC / 1000;
-			}
-			else {
-				if (!sm_cPrecision || sm_cPrecision > CLOCKS_PER_SEC / 10000)
-					sm_cPrecision = CLOCKS_PER_SEC / 10000;
-			}
-		}
-
-		// Find the claimed resolution of the high res timer
-		// Then find the most likely real rate by waiting for it to change.
-		// Note - I've frequently seen missed beats, and therefore a
-		// 0.000001 reality gets reported as a 0.000002.
-		// Note - this also isn't actually used, all that matters is
-		// whether HRTicksPerSec has a non-zero value or not.
-		HRGETTICKS_PER_SEC(sm_HRTicksPerSec);
-
-		if (sm_HRTicksPerSec) {
-			hr_timer start, end;
-
-			HRSETCURRENT(start);
-			do {
-				HRSETCURRENT(end);
-			} while (HRGETTICKS(end) == HRGETTICKS(start));
-
-			sm_hrPrecision = sm_HRTicksPerSec / (HRGETTICKS(end) -
-			                  HRGETTICKS(start));
-		}
-	}
-}
-
-
-void sTimer_Stop(sTimer *t)
-{
-	if (t->m_fRunning) {
-		if (sm_HRTicksPerSec)
-			HRSETCURRENT(t->m_hrEndTime);
-		else
-			t->m_cEndTime = clock();
-	} else
-		HRZERO(t->m_hrEndTime);
-
-	t->m_fRunning = 0;
-}
-
-void sTimer_Start(sTimer *t, int bClear)
-{
-	if (bClear)
-		sTimer_ClearTime(t);
-
-	if (sm_HRTicksPerSec)
-		HRSETCURRENT(t->m_hrStartTime);
-	else
-		t->m_cStartTime = clock();
-
-	t->m_fRunning = 1;
-}
-
-void sTimer_ClearTime(sTimer *t)
-{
-	t->m_dAccumSeconds = 0;
-	HRZERO(t->m_hrStartTime);
-	HRZERO(t->m_hrEndTime);
-
-	t->m_fRunning = 0;
-}
-
-double sTimer_GetSecs(sTimer *t)
-{
-	double retval;
-
-	if (t->m_fRunning) {
-		if (sm_HRTicksPerSec)
-			HRSETCURRENT(t->m_hrEndTime);
-		else
-			t->m_cEndTime = clock();
-	}
-	if (!sm_HRTicksPerSec) {
-		// This is process time
-		double d = (t->m_cEndTime - t->m_cStartTime);
-
-		if (d > 0)
-			retval = d / CLOCKS_PER_SEC;
-		else
-			retval = 0;
-	}
-	else {
-		// This is wall-clock time
-		double d = (HRGETTICKS(t->m_hrEndTime) - HRGETTICKS(t->m_hrStartTime));
-
-		if (d > 0)
-			retval = d / sm_HRTicksPerSec;
-		else
-			retval = 0;
+	if (!ticks_per_sec) {
+		QueryPerformanceFrequency(&t);
+		ticks_per_sec = t.QuadPart;
 	}
 
-	return retval + t->m_dAccumSeconds;
+	QueryPerformanceCounter(&t);
+
+	return t.QuadPart * 1000000000ULL / ticks_per_sec;
+}
+
+#elif __MACH__
+
+#include <mach/mach_time.h>
+const char *john_nano_clock = "mach_absolute_time()";
+
+/*
+ * mach_absolute_time() gives ticks
+ * mach_timebase_info() gives numer/denom to convert ticks to nanoseconds
+ */
+uint64_t john_get_nano(void)
+{
+	static mach_timebase_info_data_t timebase;
+
+	if (!timebase.denom)
+		if (mach_timebase_info(&timebase) != KERN_SUCCESS)
+			pexit("mach_timebase_info()");
+
+	return mach_absolute_time() * timebase.numer / timebase.denom;
+}
+
+#else /* Linux, POSIX */
+
+#include <unistd.h>
+
+#if _POSIX_TIMERS && defined(_POSIX_MONOTONIC_CLOCK)
+
+#include <time.h>
+const char *john_nano_clock = "clock_gettime()";
+
+/*
+ * clock_gettime gives s + ns
+ */
+uint64_t john_get_nano(void)
+{
+	struct timespec t;
+
+	if (clock_gettime(CLOCK_MONOTONIC, &t) == -1)
+		pexit("%s", john_nano_clock);
+
+	return (uint64_t)t.tv_sec * 1000000000ULL + (uint64_t)t.tv_nsec;
+}
+
+#else /* Fallback to microsecond non-monotonic clock that should always be available */
+
+#include <sys/time.h>
+const char *john_nano_clock = "gettimeofday()";
+
+/*
+ * gettimeofday gives s + us
+ */
+uint64_t john_get_nano(void)
+{
+	struct timeval t;
+
+	if (gettimeofday(&t, NULL) == -1)
+		pexit("%s", john_nano_clock);
+
+	return (uint64_t)t.tv_sec * 1000000000ULL + (uint64_t)t.tv_usec * 1000;
+}
+
+#endif /* _POSIX_TIMERS && defined(_POSIX_MONOTONIC_CLOCK) */
+#endif /* defined (_MSC_VER) || defined (__MINGW32__) || defined (__CYGWIN32__) */
+
+uint64_t john_timer_stats(int *latency)
+{
+	int num = 0;
+	uint64_t start, end;
+
+	john_get_nano();	/* Warm up */
+
+	start = john_get_nano();
+	do {
+		end = john_get_nano();
+		num++;
+	} while (end == start);
+
+	if (latency)
+		*latency = (num == 1);
+
+	return end - start;
 }

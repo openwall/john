@@ -424,8 +424,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 		int t = omp_get_thread_num();
 		if (t >= max_threads) {
-#pragma omp atomic
-			failed |= 2;
+			failed = -1;
 			continue;
 		}
 #else
@@ -440,11 +439,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		    (uint8_t *)buffer[index].out,
 		    sizeof(buffer[index].out));
 		if (!hash) {
-#ifdef _OPENMP
-#pragma omp atomic
-			failed |= 1;
-#else
-			failed = 1;
+			failed = errno ? errno : EINVAL;
+#ifndef _OPENMP
 			break;
 #endif
 		}
@@ -452,12 +448,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	if (failed) {
 #ifdef _OPENMP
-		if (failed & 2) {
+		if (failed < 0) {
 			fprintf(stderr, "OpenMP thread number out of range\n");
 			error();
 		}
 #endif
-		fprintf(stderr, "scrypt failed: %s\n", strerror(errno));
+		fprintf(stderr, "scrypt failed: %s\n", strerror(failed));
 		error();
 	}
 
