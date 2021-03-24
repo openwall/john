@@ -296,13 +296,12 @@ PRINCE_USAGE \
 JOHN_USAGE_REGEX \
 "--subsets[=CHARSET]        \"Subsets\" mode (see doc/SUBSETS)\n" \
 "--subsets-required=N       The N first characters of \"subsets\" charset are\n" \
+"--rain[=CHARSET]           \"rain\" mode\n" \
+"--tacking[=CHARSET]        \"tacking\" mode\n" \
 "                           the \"required set\"\n" \
 "--subsets-min-diff=N       Minimum unique characters in subset\n" \
 "--subsets-max-diff=[-]N    Maximum unique characters in subset (negative N is\n" \
 "                           relative to word length)\n" \
-<<<<<<< HEAD
-"--rain[=CHARSET]           \"rain\" mode\n" \
-"--tacking[=CHARSET]        \"tacking\" mode\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
 "--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--session=NAME             give a new session the NAME\n" \
@@ -313,7 +312,6 @@ JOHN_USAGE_REGEX \
 "--show=formats             show information about hashes in a file (JSON)\n" \
 "--show=invalid             show lines that are not valid for selected format(s)\n" \
 "--test[=TIME]              run tests and benchmarks for TIME seconds each\n" \
-=======
 "--subsets-prefer-short     Prefer shorter candidates over smaller subsets\n" \
 "--subsets-prefer-small     Prefer smaller subsets over shorter candidates\n" \
 "--make-charset=FILE        Make a charset, FILE will be overwritten\n" \
@@ -327,7 +325,6 @@ JOHN_USAGE_REGEX \
 "--show=formats             Show information about hashes in a file (JSON)\n" \
 "--show=invalid             Show lines that are not valid for selected format(s)\n" \
 "--test[=TIME]              Run tests and benchmarks for TIME seconds each\n" \
->>>>>>> 55255e4a8e1bf62e9ddb8bc009f22affd1d0fbf9
 "                           (if TIME is explicitly 0, test w/o benchmark)\n" \
 "--stress-test[=TIME]       Loop self tests forever\n" \
 "--test-full=LEVEL          Run more thorough self-tests\n" \
