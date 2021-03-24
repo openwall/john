@@ -48,8 +48,8 @@ static int state_restored;
 static uint64_t total;
 static uint64_t subtotal;
 
-static int loop2;
-static int rec_loop2;
+static int loop;
+static int rec_loop;
 
 static int C;
 static int rec_C;
@@ -86,7 +86,7 @@ static void fix_state(void)
 	}
 	rec_cur_len = rain_cur_len;
 	rec_counter = x;
-	rec_loop2 = l;
+	rec_loop = l;
 	rec_C = c;
 }
 
@@ -159,7 +159,7 @@ static void save_state(FILE *file)
 	fprintf(file, "%d\n", rec_cur_len);
 	big2str(rec_counter, str);
 	fprintf(file, "%s\n", str);
-	fprintf(file, "%d\n", rec_loop2);
+	fprintf(file, "%d\n", rec_loop);
 	fprintf(file, "%d\n", rec_C);
 }
 static int restore_state(FILE *file)
@@ -186,7 +186,7 @@ static int restore_state(FILE *file)
 	else return 1;
 	
 	if(fscanf(file, "%d\n", &d) == 1)
-		loop2 = d;
+		loop = d;
 	else return 1;
 	
 	if(fscanf(file, "%d\n", &d) == 1)
@@ -261,7 +261,7 @@ static void parse_unicode(char *string)
 	*d = 0;
 }
 
-static int submit(UTF32 *word, int loop)
+static int submit(UTF32 *word, int loop2)
 {
 	UTF8 out[4 * MAX_CAND_LENGTH];
 	int i;
@@ -269,16 +269,16 @@ static int submit(UTF32 *word, int loop)
 	/* Set current word */
 	if (quick_conversion) {
 		/* Quick conversion (only ASCII or ISO-8859-1) */
-		for (i = 0; i < minlength + loop; i++)
+		for (i = 0; i < minlength + loop2; i++)
 			out[i] = word[i];
 		out[i] = 0;
 	} else if (options.target_enc == UTF_8) {
 		/* Nearly as quick conversion, from UTF-8-32[tm] to UTF-8 */
-		word[minlength + loop] = 0;
+		word[minlength + loop2] = 0;
 		utf8_32_to_utf8(out, word);
 	} else {
 		/* Slowest conversion, from real UTF-32 to sone legacy codepage */
-		word[minlength + loop] = 0;
+		word[minlength + loop2] = 0;
 		utf32_to_enc(out, sizeof(out), word);
 	}
 	if (options.flags & FLG_MASK_CHK)
@@ -391,7 +391,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if(!state_restored) {
 		rain_cur_len = minlength;
 		srand(time(NULL));
-		loop2 = 0;
+		loop = 0;
 		counter = 0;
 		C = 1;
 		for(i = 0; i <= maxlength - minlength; i++) {
@@ -399,10 +399,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				charset_idx[i][j] = 0;
 		}
 	}
-	
+	int mod = 2 - charcount % 2;
 	crk_init(db, fix_state, NULL);
 	
-	for(l=loop2; l <= maxlength-minlength; ++l) {
+	for(l=loop; l <= maxlength-minlength; ++l) {
         if(event_abort) 
 	        break;
 	    uint_big total = powi(charcount, minlength+l);
@@ -412,8 +412,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
         for(x = counter; x < total-subtotal; ++x) {		         
             if(event_abort)
                 break;
-            int loop;
-            for(loop = l; loop <= maxlength-minlength; ++loop) {	
+            int loop2;
+            for(loop2 = l; loop2 <= maxlength-minlength; ++loop2) {	
                 if(event_abort)
                     break;
 
@@ -429,24 +429,22 @@ int do_rain_crack(struct db_main *db, char *req_charset)
                     skip = for_node < options.node_min ||
 	                    for_node > options.node_max;
                 }
-                int mpl = minlength + loop;
+                int mpl = minlength + loop2;
                 if(!skip) {
                     quick_conversion = 1;
                     for(i=0; i<mpl; ++i) {
-             			if((word[i] = charset_utf32[(charset_idx[loop][i]+C)%charcount]) > cp_max)
+             			if((word[i] = charset_utf32[(charset_idx[loop2][i]+C)%charcount]) > cp_max)
 	                        quick_conversion = 0;
                     }
+                    submit(word, loop2);
                 }
                 for(i=0; i<mpl; ++i) {
-                    if(++charset_idx[loop][i] >= charcount) {
-                        charset_idx[loop][i] = 0;
+                    if(++charset_idx[loop2][i] >= charcount) {
+                        charset_idx[loop2][i] = 0;
                         break;
                     }
-                }  
-                if(!skip)
-                    //if(out)
-                        submit(word, loop);
-                C+=2;
+                }
+                C+=mod;
                 if(C > charcount) C = 1;
             }
         }
