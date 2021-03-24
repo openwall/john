@@ -435,6 +435,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
                     for(i=0; i<mpl; ++i) {
              			if((word[i] = charset_utf32[(charset_idx[loop2][i]+C)%charcount]) > cp_max)
 	                        quick_conversion = 0;
+	                    C+=mod;
+                        if(C > charcount) C = 1;
                     }
                     submit(word, loop2);
                 }
@@ -444,8 +446,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
                         break;
                     }
                 }
-                C+=mod;
-                if(C > charcount) C = 1;
             }
         }
 	}
