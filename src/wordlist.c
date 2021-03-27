@@ -451,7 +451,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 	IPC_Item *pIPC=NULL;
 #endif
 	char msg_buf[128];
-	int forceLoad = 0;
+	int forceLoad = 0, default_wordlist = 0;
 	int dupeCheck = (options.flags & FLG_DUPESUPP) ? 1 : 0;
 	int loopBack = (options.flags & FLG_LOOPBACK_CHK) ? 1 : 0;
 	int do_lmloop = loopBack && db->plaintexts->head;
@@ -495,12 +495,16 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 
 	/* If we did not give a name for wordlist mode,
 	   we use the "batch mode" one from john.conf */
-	if (!name && !(options.flags & (FLG_STDIN_CHK | FLG_PIPE_CHK)))
-	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
-	if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
-		name = options.wordlist = WORDLIST_NAME;
+	if (!name && !(options.flags & (FLG_STDIN_CHK | FLG_PIPE_CHK))) {
+		/* Print what file --wordlist mode uses when it runs using the
+		   pre-configured wordlist (optional parameter not informed) */
+		default_wordlist = 1;
+		if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
+		if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
+			name = options.wordlist = WORDLIST_NAME;
+	}
 
-	if ((options.flags & FLG_BATCH_CHK || rec_restored) && john_main_process) {
+	if (((options.flags & FLG_BATCH_CHK) || rec_restored || default_wordlist) && john_main_process) {
 		fprintf(stderr, "Proceeding with wordlist:%s",
 		        loopBack ? "loopback" :
 		        name ? path_expand(name) : "stdin");
