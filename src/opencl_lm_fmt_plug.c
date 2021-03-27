@@ -65,7 +65,7 @@ static void init(struct fmt_main *pFmt)
 
 static char *prepare(char *fields[10], struct fmt_main *self)
 {
-	if (fields[2] && strlen(fields[2]) == 32)
+	if (fields[1][0] != '$' && fields[2] && strlen(fields[2]) == 32)
 		return fields[2];
 	return fields[1];
 }

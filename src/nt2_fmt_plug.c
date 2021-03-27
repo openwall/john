@@ -265,7 +265,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	static char out[33 + TAG_LENGTH + 1];
 
-	if (!valid(split_fields[1], self)) {
+	if (!valid(split_fields[1], self) && split_fields[1][0] != '$') {
 		if (split_fields[3] && strlen(split_fields[3]) == 32) {
 			sprintf(out, "%s%s", FORMAT_TAG, split_fields[3]);
 			if (valid(out, self))
