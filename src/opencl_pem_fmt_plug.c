@@ -16,10 +16,6 @@
 #if HAVE_OPENCL && (HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO)
 
 #include "arch.h"
-#if !AC_BUILT
-#define HAVE_LIBZ 1 /* legacy build has -lz in LDFLAGS */
-#endif
-#if HAVE_LIBZ
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_opencl_pem;
@@ -391,7 +387,5 @@ struct fmt_main fmt_opencl_pem = {
 };
 
 #endif /* plugin stanza */
-
-#endif /* HAVE_LIBZ */
 
 #endif /* HAVE_OPENCL */
