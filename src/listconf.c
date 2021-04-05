@@ -229,7 +229,7 @@ static void listconf_list_build_info(void)
 #if HAVE_OPENCL
 	printf("OpenCL headers version: %s\n",get_opencl_header_version());
 #endif
-#if HAVE_LIBSSL
+#if HAVE_LIBCRYPTO
 	printf("Crypto library: OpenSSL\n");
 #endif
 #if HAVE_COMMONCRYPTO
