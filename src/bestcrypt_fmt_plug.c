@@ -29,7 +29,7 @@ john_register_one(&fmt_bestcrypt);
 
 #define OMP_SCALE               1 // this is a slow format
 
-#include "sha.h"
+#include "sha2.h"
 #include "loader.h"
 #include "pkcs12.h"
 #include "aes.h"

@@ -41,16 +41,21 @@
  * NOTE, we need to add split() to canonize this format (remove LPad 0's)
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if !AC_BUILT && !__MIC__
+#define HAVE_LIBGMP 1 /* legacy build uses libgmp by default, except for MIC */
+#endif
+
+#if HAVE_LIBGMP || HAVE_LIBCRYPTO /* we need one of these for bignum */
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_blizzard;
 #elif FMT_REGISTERS_H
 john_register_one(&fmt_blizzard);
 #else
-
-#if AC_BUILT
-/* we need to know if HAVE_LIBGMP is defined */
-#include "autoconfig.h"
-#endif
 
 #include <string.h>
 #ifdef HAVE_LIBGMP
@@ -566,3 +571,4 @@ struct fmt_main fmt_blizzard = {
 };
 
 #endif /* plugin stanza */
+#endif /* HAVE_LIBGMP || HAVE_LIBCRYPTO */

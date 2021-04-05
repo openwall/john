@@ -1,5 +1,6 @@
 #include "md5.h"
 #include "sha.h"
+#include "sha2.h"
 #include "openssl_code.h"
 
 void BytesToKey(int key_sz, hash_type h, const unsigned char *salt,

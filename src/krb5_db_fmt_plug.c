@@ -28,6 +28,8 @@
 #include "autoconfig.h"
 #endif
 
+#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_krb5_18;
 extern struct fmt_main fmt_krb5_17;
@@ -506,3 +508,4 @@ struct fmt_main fmt_krb5_3 = {
 
 
 #endif /* plugin stanza */
+#endif /* OpenSSL */

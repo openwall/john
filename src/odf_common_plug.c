@@ -2,6 +2,12 @@
  * Common code for the ODF/StarOffice/LibreOffice format.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+
 #include <openssl/blowfish.h>
 
 #include "arch.h"
@@ -9,7 +15,7 @@
 #include "common.h"
 #include "odf_common.h"
 #include "johnswap.h"
-#include "sha.h"
+#include "sha2.h"
 #include "aes.h"
 #define OPENCL_FORMAT
 #include "pbkdf2_hmac_sha1.h"
@@ -488,3 +494,5 @@ void SHA1_odf_buggy(unsigned char *data, int len, uint32_t results[5]) {
 	SHA1Update_buggy(&ctx, data, len);
 	SHA1Final_buggy((unsigned char*)results, &ctx);
 }
+
+#endif /* OpenSSL */

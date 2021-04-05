@@ -43,7 +43,9 @@
 #include <errno.h>
 
 #if !AC_BUILT
-#define HAVE_LIBZ 1
+ #if !__MIC__
+ #define HAVE_LIBZ 1
+ #endif
  #include <string.h>
  #ifndef _MSC_VER
   #include <strings.h>

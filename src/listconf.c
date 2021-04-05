@@ -42,8 +42,10 @@
  #endif
 #endif
 
+#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
+#endif
 
 #if HAVE_LIBDL
 #include <dlfcn.h>
@@ -53,7 +55,7 @@
 #define HAVE_LIBDL 1
 #endif
 
-#if HAVE_LIBGMP
+#if HAVE_LIBGMP && !__MIC__
 #if HAVE_GMP_GMP_H
 #include <gmp/gmp.h>
 #else

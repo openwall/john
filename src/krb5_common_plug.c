@@ -1,3 +1,9 @@
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+
 #include <openssl/des.h>
 
 #include "krb5_common.h"
@@ -330,3 +336,5 @@ int des_string_to_key_shishi(char *string, size_t stringlen,
 
 	return 0;
 }
+
+#endif /* OpenSSL */

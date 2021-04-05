@@ -30,6 +30,8 @@
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
  */
 
+#if !(HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO)
+
 #include <stddef.h>
 #include <string.h>
 
@@ -357,9 +359,12 @@ void
 sph_sha1_close(void *cc, void *dst)
 {
 	sha1_close(cc, dst, 5);
+#if 0 /* JtR hack: our PBKDF2 code relies on hash value staying after Final */
 	sph_sha1_init(cc);
+#endif
 }
 
+#if 0 /* JtR hack: this would be dead code */
 /* see sph_sha1.h */
 void
 sph_sha1_addbits_and_close(void *cc, unsigned ub, unsigned n, void *dst)
@@ -376,3 +381,6 @@ sph_sha1_comp(const sph_u32 msg[16], sph_u32 val[5])
 	SHA1_ROUND_BODY(SHA1_IN, val);
 #undef SHA1_IN
 }
+#endif /* dead code */
+
+#endif /* OpenSSL */

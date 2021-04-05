@@ -11,6 +11,12 @@
  * making this work possible.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_telegram;
 #elif FMT_REGISTERS_H
@@ -271,3 +277,4 @@ struct fmt_main fmt_telegram = {
 };
 
 #endif /* plugin stanza */
+#endif /* OpenSSL */

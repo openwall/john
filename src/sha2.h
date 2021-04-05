@@ -34,7 +34,11 @@
 #include <stdint.h>
 #include "arch.h"
 #include "aligned.h"
+#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
 #include <openssl/opensslv.h>
+#elif !defined(FORCE_GENERIC_SHA2)
+#define FORCE_GENERIC_SHA2 1
+#endif
 #include "openssl_local_overrides.h"
 
 #if (AC_BUILT && HAVE_SHA256 && !FORCE_GENERIC_SHA2) ||	  \
@@ -60,7 +64,9 @@
 
 #else	// OPENSSL_VERSION_NUMBER ! >= 0x00908000
 
+#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
 #include <openssl/sha.h>
+#endif
 #include "jtr_sha2.h"
 
 #define SHA2_LIB
@@ -75,6 +81,22 @@
  * - It must be available for a SIMD or non-SIMD build.
  */
 void sha512_reverse(uint64_t *hash);
+#endif
+
+#ifndef SHA224_DIGEST_LENGTH
+#define SHA224_DIGEST_LENGTH 28
+#endif
+
+#ifndef SHA256_DIGEST_LENGTH
+#define SHA256_DIGEST_LENGTH 32
+#endif
+
+#ifndef SHA384_DIGEST_LENGTH
+#define SHA384_DIGEST_LENGTH 48
+#endif
+
+#ifndef SHA512_DIGEST_LENGTH
+#define SHA512_DIGEST_LENGTH 64
 #endif
 
 #endif /* _JOHN_SHA2_h */

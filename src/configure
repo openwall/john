@@ -1416,7 +1416,8 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
-  --without-openssl       Do not use Openssl (CommonCrypto must be enabled)
+  --without-openssl       Do not use OpenSSL (can use CommonCrypto instead or
+                          exclude much functionality)
   --with-commoncrypto     Use CommonCrypto
   --with-endian=little|big
                           Set endianness for target if it doesn't detect
@@ -12124,13 +12125,6 @@ See \`config.log' for more details" "$LINENO" 5; }
 fi
 
 
-if test "x$with_commoncrypto" != xyes && test "x$with_openssl" = xno; then :
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error 1 "At least one of OpenSSL and CommonCrypto must be used
-See \`config.log' for more details" "$LINENO" 5; }
-
-fi
 
 if test "x$with_commoncrypto" = xyes; then :
   ac_fn_c_check_header_mongrel "$LINENO" "CommonCrypto/CommonDigest.h" "ac_cv_header_CommonCrypto_CommonDigest_h" "$ac_includes_default"

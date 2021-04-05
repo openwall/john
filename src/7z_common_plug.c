@@ -9,7 +9,7 @@
 #include <string.h>
 
 #include "arch.h"
-#if !AC_BUILT
+#if !AC_BUILT && !__MIC__
 #define HAVE_LIBZ 1 /* legacy build has -lz in LDFLAGS */
 #endif
 #if HAVE_LIBZ

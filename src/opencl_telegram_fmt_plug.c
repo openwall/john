@@ -9,7 +9,11 @@
  * The OpenCL boilerplate code is borrowed from other OpenCL formats.
  */
 
-#ifdef HAVE_OPENCL
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_OPENCL && (HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO)
 
 #include "arch.h"
 

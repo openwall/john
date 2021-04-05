@@ -37,11 +37,11 @@ john_register_one(&fmt_wpapsk);
 #include "unicode.h"
 
 #define FORMAT_LABEL		"wpapsk"
-#if AC_BUILT && !HAVE_OPENSSL_CMAC_H
+#if !HAVE_OPENSSL_CMAC_H
 #ifdef _MSC_VER
-#pragma message("Notice: WPAPSK (CPU) format built without support for 802.11w. Upgrade your OpenSSL.")
+#pragma message("Notice: WPAPSK (CPU) format built without support for 802.11w (this needs recent OpenSSL)")
 #else
-#warning Notice: WPAPSK (CPU) format built without support for 802.11w. Upgrade your OpenSSL.
+#warning Notice: WPAPSK (CPU) format built without support for 802.11w (this needs recent OpenSSL)
 #endif
 #define FORMAT_NAME		"WPA/WPA2/PMKID PSK"
 #else

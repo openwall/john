@@ -424,17 +424,17 @@ static void pbkdf2_sse2(int t)
 
 		// we memcopy from flat into SIMD_COEF_32 output buffer's (our 'temp' ctx buffer).
 		// This data will NOT need to be BE swapped (it already IS BE swapped).
-		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))]               = ctx1.h0;
-		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32]      = ctx1.h1;
-		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)] = ctx1.h2;
-		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32*3]    = ctx1.h3;
-		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)] = ctx1.h4;
+		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))]               = ctx1.SHA_H0;
+		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32]      = ctx1.SHA_H1;
+		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)] = ctx1.SHA_H2;
+		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32*3]    = ctx1.SHA_H3;
+		i1[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)] = ctx1.SHA_H4;
 
-		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))]               = ctx2.h0;
-		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32]      = ctx2.h1;
-		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)] = ctx2.h2;
-		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32*3]    = ctx2.h3;
-		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)] = ctx2.h4;
+		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))]               = ctx2.SHA_H0;
+		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32]      = ctx2.SHA_H1;
+		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)] = ctx2.SHA_H2;
+		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+SIMD_COEF_32*3]    = ctx2.SHA_H3;
+		i2[(k/SIMD_COEF_32)*SIMD_COEF_32*5+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)] = ctx2.SHA_H4;
 
 		SHA1_Update(&ctx1,salt_buffer,salt_len);
 		SHA1_Update(&ctx1,"\x0\x0\x0\x1",4);
@@ -446,11 +446,11 @@ static void pbkdf2_sse2(int t)
 		// now convert this from flat into SIMD_COEF_32 buffers.
 		// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 		// so we will need to 'undo' that in the end.
-		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))]                = t_crypt[k*4+0] = ctx2.h0;
-		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+SIMD_COEF_32]       = t_crypt[k*4+1] = ctx2.h1;
-		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)]  = t_crypt[k*4+2] = ctx2.h2;
-		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+SIMD_COEF_32*3]     = t_crypt[k*4+3] = ctx2.h3;
-		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)]                   = ctx2.h4;
+		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))]                = t_crypt[k*4+0] = ctx2.SHA_H0;
+		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+SIMD_COEF_32]       = t_crypt[k*4+1] = ctx2.SHA_H1;
+		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<1)]  = t_crypt[k*4+2] = ctx2.SHA_H2;
+		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+SIMD_COEF_32*3]     = t_crypt[k*4+3] = ctx2.SHA_H3;
+		o1[(k/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(k&(SIMD_COEF_32-1))+(SIMD_COEF_32<<2)]                   = ctx2.SHA_H4;
 	}
 
 	for (i = 1; i < iteration_cnt; i++)
