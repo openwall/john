@@ -18,7 +18,6 @@ john_register_one(&fmt_itunes);
 #else
 
 #include <string.h>
-#include <openssl/des.h>
 
 #ifdef _OPENMP
 #include <omp.h>

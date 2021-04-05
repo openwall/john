@@ -30,6 +30,7 @@ john_register_one(&fmt_rsvp);
 #include "arch.h"
 #include "md5.h"
 #include "sha.h"
+#include "sha2.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"

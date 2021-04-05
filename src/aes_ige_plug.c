@@ -49,6 +49,12 @@
  *
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+
 #include <string.h>
 
 #include <openssl/aes.h>
@@ -192,3 +198,5 @@ void JtR_AES_ige_encrypt(const unsigned char *in, unsigned char *out,
         }
     }
 }
+
+#endif /* OpenSSL */

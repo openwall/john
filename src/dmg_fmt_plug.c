@@ -41,6 +41,12 @@
  */
 //#define DMG_DEBUG		2
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_dmg;
 #elif FMT_REGISTERS_H
@@ -742,3 +748,4 @@ struct fmt_main fmt_dmg = {
 };
 
 #endif /* plugin stanza */
+#endif /* OpenSSL */

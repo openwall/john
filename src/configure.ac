@@ -54,7 +54,7 @@ AC_ARG_VAR([LD], [full pathname of linker to use])
 
 dnl Define Packages.
 dnl Use OpenSSL (default: yes).
-AC_ARG_WITH(openssl, [AS_HELP_STRING([--without-openssl],[Do not use Openssl (CommonCrypto must be enabled)])],,[with_openssl=yes])
+AC_ARG_WITH(openssl, [AS_HELP_STRING([--without-openssl],[Do not use OpenSSL (can use CommonCrypto instead or exclude much functionality)])],,[with_openssl=yes])
 dnl Use CommonCrypto (default: no)
 AC_ARG_WITH(commoncrypto, [AS_HELP_STRING([--with-commoncrypto],[Use CommonCrypto])],,[with_commoncrypto=no])
 dnl Cludge for endian (if not auto detected)
@@ -581,9 +581,9 @@ dnl is specified, the -llibname will NOT get appended to LIBS. So it has to be
 dnl done by 'hand'.
 dnl ======================================================================
 
-AS_IF([test "x$with_commoncrypto" != xyes && test "x$with_openssl" = xno],
-   [AC_MSG_FAILURE([At least one of OpenSSL and CommonCrypto must be used],1)]
-)
+dnl AS_IF([test "x$with_commoncrypto" != xyes && test "x$with_openssl" = xno],
+dnl    [AC_MSG_FAILURE([At least one of OpenSSL and CommonCrypto must be used],1)]
+dnl )
 
 AS_IF([test "x$with_commoncrypto" = xyes],
   [AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],

@@ -14,7 +14,6 @@ extern struct fmt_main fmt_oracle12c;
 john_register_one(&fmt_oracle12c);
 #else
 
-#include <openssl/sha.h>
 #include <string.h>
 
 #ifdef _OPENMP

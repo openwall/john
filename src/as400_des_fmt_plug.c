@@ -17,6 +17,12 @@
  * Hash format => userid:$as400des$*userid*hash
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_as400des;
 #elif FMT_REGISTERS_H
@@ -392,3 +398,4 @@ struct fmt_main fmt_as400des = {
 };
 
 #endif /* plugin stanza */
+#endif /* OpenSSL */

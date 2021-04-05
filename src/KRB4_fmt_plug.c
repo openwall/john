@@ -32,6 +32,12 @@
   ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_KRB4;
 #elif FMT_REGISTERS_H
@@ -309,3 +315,4 @@ struct fmt_main fmt_KRB4 = {
 };
 
 #endif /* plugin stanza */
+#endif /* OpenSSL */

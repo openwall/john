@@ -2,6 +2,12 @@
  * Common code for the Apple Keychain format.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_OPENCL || HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -75,3 +81,5 @@ void *keychain_get_salt(char *ciphertext)
 	MEM_FREE(keeptr);
 	return (void *)&cs;
 }
+
+#endif /* HAVE_OPENCL || HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO */

@@ -3,7 +3,6 @@
  */
 
 #include <string.h>
-#include <openssl/cast.h>
 
 #include "formats.h"
 #include "sha.h"

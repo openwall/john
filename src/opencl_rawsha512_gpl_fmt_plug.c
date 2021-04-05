@@ -25,7 +25,6 @@ john_register_one(&fmt_opencl_xsha512_gpl);
 
 #include <string.h>
 
-#include "sha.h"
 #include "sha2.h"
 #include "johnswap.h"
 #include "opencl_common.h"

@@ -45,7 +45,7 @@
 
 
 /* cpu */
-#if defined(__amd64__) || defined(__amd64) || defined(__x86_64__ ) || defined(_M_X64)
+#if (defined(__amd64__) || defined(__amd64) || defined(__x86_64__ ) || defined(_M_X64)) && !defined(__k1om__)
 	#define CPU_X86_64
 #elif defined(__i586__) || defined(__i686__) || (defined(_M_IX86) && (_M_IX86 >= 500))
 	#define CPU_X86 500

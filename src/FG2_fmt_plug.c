@@ -43,7 +43,7 @@ john_register_one(&fmt_FG2);
 #include "common.h"
 #include "formats.h"
 #include "misc.h"
-#include "sha.h"
+#include "sha2.h"
 #include "base64_convert.h"
 
 #define FORMAT_LABEL            "Fortigate256"

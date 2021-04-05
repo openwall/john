@@ -63,6 +63,7 @@ OMPFLAGS =
 # paths does not exist, because find will return false even though finding a
 # file. If these hacks do not work, comment them out and see next sections.
 ifndef RELEASE_BLD
+# Comment this out when cross-compiling, such as with the linux-mic target
 HAVE_LIBGMP = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "gmp.h" && echo -DHAVE_LIBGMP`
 GMP_LDFLAGS = `find 2>&1 /usr/include /usr/local/include -name "gmp.h" | grep -q "gmp.h" && echo -lgmp`
 REXGEN_FLAGS = `find 2>&1 /usr/include/librexgen/c /usr/local/include/librexgen/c -name "librexgen.h" | grep -q "librexgen.h" && echo -DHAVE_LIBREXGEN=1`
@@ -74,6 +75,10 @@ endif
 # in case the auto-detection does not work.
 #HAVE_LIBGMP = -DHAVE_LIBGMP
 #GMP_LDFLAGS = -lgmp
+
+# Comment these out to build without OpenSSL
+CFLAGS_OPENSSL = -DHAVE_LIBSSL -DHAVE_LIBCRYPTO
+LDFLAGS_OPENSSL = -L/usr/local/ssl/lib -lssl -lcrypto
 
 ifdef NVIDIA_CUDA
 OCLROOT = $(NVIDIA_CUDA)
@@ -89,15 +94,16 @@ AMDAPP = -DAMDAPPSDK
 OCLROOT = $(ATISTREAMSDKROOT)
 endif
 
-CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include -DHAVE_LIBSSL $(REXGEN_FLAGS) $(HAVE_LIBGMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
+CFLAGS = -c -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(CFLAGS_OPENSSL) $(REXGEN_FLAGS) $(HAVE_LIBGMP) $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) $(RELEASE_BLD)
 # -DHAVE_SKEY
 # CFLAGS for use on the main john.c file only
 CFLAGS_MAIN = $(CFLAGS)
 ASFLAGS = -c $(OMPFLAGS) $(JOHN_ASFLAGS)
-LDFLAGS = -s -L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lrt \
+LDFLAGS = -s -L/usr/local/lib $(LDFLAGS_OPENSSL) -lm -lz -lrt \
 	$(OMPFLAGS) $(GMP_LDFLAGS) $(JOHN_LDFLAGS) $(REXGEN_LDFLAGS)
 # -lskey
-LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz -lcrypto -lssl
+LDFLAGS_MIC = -s -L/usr/local/lib $(LDFLAGS_OPENSSL) -lm -lrt $(OMPFLAGS) $(JOHN_LDFLAGS)
+LDFLAGS_SOLARIS = -lrt -lnsl -lsocket -lm -lz $(LDFLAGS_OPENSSL)
 LDFLAGS_MKV = -s -lm $(OMPFLAGS)
 OPT_NORMAL = -funroll-loops
 # Remove the "-Os" if you're using an ancient version of gcc
@@ -127,7 +133,7 @@ JOHN_OBJS = \
 	rc4.o \
 	hmacmd5.o \
 	base64_convert.o \
-	md4.o sha2.o \
+	md4.o sha1.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	dynamic_compiler.o dynamic_compiler_lib.o \
 	ripemd.o tiger.o \
@@ -337,7 +343,8 @@ unit-tests:
 
 linux-x86-64-avx512:
 	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ) \
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
 		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX512F -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -mavx512f -DHAVE_CRYPT" \
@@ -346,7 +353,8 @@ linux-x86-64-avx512:
 
 linux-x86-64-avx2:
 	$(LN) x86-64.h arch.h
-	$(MAKE) $(PROJ) \
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o" \
 		CFLAGS_MAIN="$(CFLAGS) -DJOHN_AVX2 -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -mavx2 -DHAVE_CRYPT" \
@@ -465,13 +473,13 @@ linux-x86-64-clang-debug:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o simd-intrinsics.o" \
 		CFLAGS="-Wall -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
+		LDFLAGS="-L/usr/local/lib $(LDFLAGS_OPENSSL) -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
 		AESNI_ARCH=64 YASM_FORMAT="elf64"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) \
 		CFLAGS="-Wall -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
+		LDFLAGS="-L/usr/local/lib $(LDFLAGS_OPENSSL) -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "All done"
 
@@ -481,12 +489,12 @@ linux-x86-64-newgcc-debug:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o simd-intrinsics.o" \
 		CFLAGS="-Wall -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
+		LDFLAGS="-L/usr/local/lib $(LDFLAGS_OPENSSL) -lm -lz -lcrypt -ldl -fsanitize=address $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
 		AESNI_ARCH=64 YASM_FORMAT="elf64"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) \
 		CFLAGS="-Wall -c -g -O1 -fsanitize=address -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -fsanitize=address $(GMP_LDFLAGS) $(JOHN_LDFLAGS)"
+		LDFLAGS="-L/usr/local/lib $(LDFLAGS_OPENSSL) -lm -lz -lcrypt -ldl -fsanitize=address $(GMP_LDFLAGS) $(JOHN_LDFLAGS)"
 	@echo "All done"
 
 linux-x86-64-icc:
@@ -496,7 +504,7 @@ linux-x86-64-icc:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o simd-intrinsics.o" \
 		CFLAGS="-c -fast -O2 -I/usr/include -static-intel -DHAVE_CRYPT -DHAVE_LIBDL $(ICCOMPFLAGS) $(HAVE_LIBGMP) $(JOHN_CFLAGS)" \
 		ASFLAGS="-c -xHost $(JOHN_ASFLAGS)" \
-		LDFLAGS="-lm -lssl -lcrypto -ipo -static-intel -lcrypt -ldl -lz $(ICCOMPFLAGS) -s $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
+		LDFLAGS="-lm $(LDFLAGS_OPENSSL) -ipo -static-intel -lcrypt -ldl -lz $(ICCOMPFLAGS) -s $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="icc" CC="icc" AS="icc" LD="icc" \
 		AESNI_ARCH=64 YASM_FORMAT="elf64"
 	@echo "Failing after this point just means some helper tools did not build:"
@@ -570,7 +578,8 @@ linux-x86-64-32-any:
 
 linux-x86-avx512:
 	$(LN) x86-sse.h arch.h
-	$(MAKE) $(PROJ) \
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX512F -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -m32 -mavx512f -DHAVE_CRYPT" \
@@ -579,7 +588,8 @@ linux-x86-avx512:
 
 linux-x86-avx2:
 	$(LN) x86-sse.h arch.h
-	$(MAKE) $(PROJ) \
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o" \
 		CFLAGS_MAIN="$(CFLAGS) -m32 -DJOHN_AVX2 -DHAVE_CRYPT" \
 		CFLAGS="$(CFLAGS) -m32 -mavx2 -DHAVE_CRYPT" \
@@ -697,29 +707,31 @@ linux-x86-clang-debug:
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86.o x86-sse.o simd-intrinsics.o" \
 		CFLAGS="-Wall -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL -D_LARGEFILE64_SOURCE $(HAVE_LIBGMP) $(OMPFLAGS) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
+		LDFLAGS="-L/usr/local/lib $(LDFLAGS_OPENSSL) -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) \
 		CFLAGS="-Wall -c -g -O1 -faddress-sanitizer -I/usr/include -msse2 -DDEBUG -DHAVE_CRYPT -DHAVE_LIBDL $(HAVE_LIBGMP) $(OMPFLAGS) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
+		LDFLAGS="-L/usr/local/lib $(LDFLAGS_OPENSSL) -lm -lz -lcrypt -ldl -faddress-sanitizer $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "All done"
 
 linux-mic:
 	$(LN) mic.h arch.h
-	$(MAKE) $(PROJ) \
-		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE_ORIG) $(PROJ) \
+		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o simd-intrinsics.o" \
 		CC=icc \
 		CFLAGS="$(CFLAGS) -no-opt-prefetch -mmic -openmp -DHAVE_CRYPT" \
-		LDFLAGS="$(LDFLAGS) -mmic -openmp -lcrypt" \
+		LDFLAGS="$(LDFLAGS_MIC) -mmic -openmp -lcrypt" \
 		OPT_INLINE="$(OPT_NORMAL) -finline-functions"
 	@echo "You'll likely need to scp Intel's OpenMP runtime library such as /opt/intel/*/compiler/lib/mic/libiomp?.so over to the target MIC cards and set LD_LIBRARY_PATH in order to run the produced john binary"
 
 linux-arm64le:
 	$(LN) arm64le.h arch.h
-	$(MAKE) $(PROJ) \
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
 		LDFLAGS="$(LDFLAGS) -lcrypt" \
@@ -736,7 +748,7 @@ linux-arm32le-neon:
 
 linux-arm32le:
 	$(LN) arm32le.h arch.h
-	echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
+	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o" \
 		CFLAGS="$(CFLAGS) -DHAVE_CRYPT" \
@@ -854,7 +866,7 @@ freebsd-x86-64:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o simd-intrinsics.o" \
-		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE
+		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
 	@echo "All done"
@@ -876,7 +888,7 @@ freebsd-x86-mmx:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-mmx.o" \
-		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE \
+		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
@@ -887,7 +899,7 @@ freebsd-x86-any:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
-		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE \
+		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE" \
 		ASFLAGS="$(ASFLAGS) -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
@@ -898,7 +910,7 @@ freebsd-x86-any-a.out:
 	@echo "#define JOHN_BLD" '"'$@'"' > john_build_rule.h
 	$(MAKE_ORIG) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o" \
-		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE \
+		CFLAGS="$(CFLAGS) -D__BSD_VISIBLE" \
 		ASFLAGS="$(ASFLAGS) -DUNDERSCORES -DALIGN_LOG -DBSD"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP)
@@ -1288,13 +1300,13 @@ macosx-x86-64-clang-debug:
 		JOHN_OBJS="$(JOHN_OBJS) c3_fmt.o x86-64.o simd-intrinsics.o" \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="-Wall -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_LIBGMP) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
+		LDFLAGS="-L/usr/local/lib $(LDFLAGS_OPENSSL) -lm -lz $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "Failing after this point just means some helper tools did not build:"
 	$(MAKE_ORIG) $(PROJ_PCAP) \
 		ASFLAGS="$(ASFLAGS) -m64 -DUNDERSCORES -DBSD -DALIGN_LOG" \
 		CFLAGS="-Wall -c -g -O1 -I/usr/include -I/usr/local/include -Wno-deprecated-declarations -DDEBUG -DHAVE_CRYPT -DBSD $(HAVE_LIBGMP) $(JOHN_CFLAGS)" \
-		LDFLAGS="-L/usr/local/lib -L/usr/local/ssl/lib -lssl -lcrypto -lm -lz $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
+		LDFLAGS="-L/usr/local/lib $(LDFLAGS_OPENSSL) -lm -lz $(GMP_LDFLAGS) $(JOHN_LDFLAGS)" \
 		CPP="clang" CC="clang" AS="clang" LD="clang" CXX="clang++"
 	@echo "All done"
 
@@ -1548,7 +1560,7 @@ win64-mingw-x86-64:
 	$(MAKE_ORIG) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86-64.o simd-intrinsics.o" \
 		CFLAGS="-c -static -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -mpreferred-stack-boundary=4" \
-		LDFLAGS="-static -lssl -lcrypto -lwsock32 -lws2_32 -lgdi32 -lm -lpthread -lz $(OMPFLAGS)" \
+		LDFLAGS="-static $(LDFLAGS_OPENSSL) -lwsock32 -lws2_32 -lgdi32 -lm -lpthread -lz $(OMPFLAGS)" \
 		ASFLAGS="$(ASFLAGS)" \
 		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "Failing after this point just means some helper tools did not build:"
@@ -1646,7 +1658,7 @@ win32-mingw-x86-sse2:
 	$(MAKE_ORIG) $(PROJ_WIN32_MINGW) \
 		JOHN_OBJS="$(JOHN_OBJS) x86.o x86-sse.o simd-intrinsics.o" \
 		CFLAGS="-c -static -Wall -O2 -fomit-frame-pointer -I/usr/local/include $(OMPFLAGS) $(AMDAPP) $(JOHN_CFLAGS) -Wall -mpreferred-stack-boundary=4 -msse2 -m32" \
-		LDFLAGS="-static -lssl -lcrypto -lwsock32 -lwst -lws2_32 -lgdi32 -lm -lpthread.dll -lz.dll $(OMPFLAGS)" \
+		LDFLAGS="-static $(LDFLAGS_OPENSSL) -lwsock32 -lwst -lws2_32 -lgdi32 -lm -lpthread.dll -lz.dll $(OMPFLAGS)" \
 		ASFLAGS="$(ASFLAGS) -msse2 -m32 -DUNDERSCORES" \
 		CPP=$(GCC) CC=$(GCC) LD=$(GCC) CXX=$(CXX)
 	@echo "Failing after this point just means some helper tools did not build:"

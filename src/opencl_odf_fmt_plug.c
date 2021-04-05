@@ -9,7 +9,11 @@
  * modification, are permitted.
  */
 
-#ifdef HAVE_OPENCL
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_OPENCL && (HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO)
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_opencl_odf_aes;

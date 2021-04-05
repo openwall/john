@@ -50,10 +50,10 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <openssl/sha.h>
 
 #include "misc.h"	// error()
 #include "md5.h"
+#include "sha.h"
 #include "memory.h"
 /* Defines */
 
@@ -515,8 +515,11 @@ inline static void compute_hash(const psk_entry * psk_params,
 		unsigned char nortel_psk[SHA1_HASH_LEN];
 		unsigned char nortel_pwd_hash[SHA1_HASH_LEN];
 
-		SHA1((unsigned char *) password, password_len,
-		    nortel_pwd_hash);
+		SHA_CTX ctx;
+		SHA1_Init(&ctx);
+		SHA1_Update(&ctx, password, password_len);
+		SHA1_Final(nortel_pwd_hash, &ctx);
+
 		hmac_sha1((unsigned char *) psk_params->nortel_user,
 		    strlen(psk_params->nortel_user), nortel_pwd_hash,
 		    SHA1_HASH_LEN, nortel_psk);
