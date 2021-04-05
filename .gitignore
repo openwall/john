@@ -19,6 +19,7 @@
 *.exe
 *.dSYM
 .DS_Store
+*.pyc
 
 Makefile
 john-local.conf
