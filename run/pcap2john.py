@@ -1227,12 +1227,12 @@ def pcap_parser_ah(fname):
                 # zero mutable fields (tos, flags, chksum)
                 salt[1] = 0  # tos
                 salt[6] = 0  # flags
-                salt[10:12] = "\x00\x00"  # checksum
+                salt[10:12] = b"\x00\x00"  # checksum
                 icv_offset = iphdr_len + icv_length
                 h = salt[icv_offset:icv_offset+icv_length]
                 # zero ah icv
-                salt[icv_offset:icv_offset+icv_length] = "\x00" * icv_length
-                sys.stdout.write("$net-ah$0$%s$%s\n" % (hexlify(salt), hexlify(h)))
+                salt[icv_offset:icv_offset+icv_length] = b"\x00" * icv_length
+                sys.stdout.write("$net-ah$0$%s$%s\n" % (hexlify(salt).decode('ascii'), hexlify(h).decode('ascii')))
 
     f.close()
 
