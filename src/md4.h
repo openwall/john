@@ -8,9 +8,9 @@
  * See md4.c for more information.
  */
 
-#include "arch.h"
+#include "arch.h" /* also includes autoconfig.h for HAVE_LIBCRYPTO */
 
-#ifdef HAVE_LIBSSL
+#if HAVE_LIBCRYPTO
 #include <openssl/md4.h>
 #elif !defined(_MD4_H)
 #define _MD4_H
@@ -35,4 +35,4 @@ extern void MD4_Init(MD4_CTX *ctx);
 extern void MD4_Update(MD4_CTX *ctx, const void *data, unsigned long size);
 extern void MD4_Final(unsigned char *result, MD4_CTX *ctx);
 
-#endif
+#endif /* _MD4_H */
