@@ -49,15 +49,9 @@
  *
  */
 
-#if AC_BUILT
-#include "autoconfig.h"
-#endif
-
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
-
 #include <string.h>
 
-#include <openssl/aes.h>
+#include "aes.h"
 
 #define N_WORDS (AES_BLOCK_SIZE / sizeof(unsigned long))
 typedef struct {
@@ -198,5 +192,3 @@ void JtR_AES_ige_encrypt(const unsigned char *in, unsigned char *out,
         }
     }
 }
-
-#endif /* OpenSSL */
