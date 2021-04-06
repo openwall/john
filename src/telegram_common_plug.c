@@ -5,12 +5,6 @@
  * and the GPU formats, and places it into one common location.
  */
 
-#if AC_BUILT
-#include "autoconfig.h"
-#endif
-
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
-
 #include "arch.h"
 /* We undefine these locally, for scalar PBKDF2 functions used in check_unset_password() */
 #undef SIMD_COEF_32
@@ -203,5 +197,3 @@ unsigned int telegram_iteration_count(void *salt)
 
 	return cs->iterations;
 }
-
-#endif /* OpenSSL */

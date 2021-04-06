@@ -13,7 +13,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_OPENCL && (HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO)
+#if HAVE_OPENCL
 
 #include "arch.h"
 

@@ -52,9 +52,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <openssl/aes.h>
 
-// #include "aes.h"
+#include "aes.h"
 
 /* NB: the IV is _two_ blocks long */
 void JtR_AES_ige_encrypt(const unsigned char *in, unsigned char *out,
