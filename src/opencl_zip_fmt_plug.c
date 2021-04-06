@@ -19,7 +19,6 @@ john_register_one(&fmt_opencl_zip);
 
 #include <string.h>
 #include <stdint.h>
-#include <openssl/des.h>
 
 #include "arch.h"
 #include "formats.h"
