@@ -17,9 +17,7 @@
 #define ENCRYPTED_BLOB_LEN      512
 
 struct custom_salt {
-#ifndef OPENCL_FORMAT
 	uint32_t version;
-#endif
 	uint32_t iterations;
 	unsigned char salt[SALTLEN];
 	uint32_t salt_length;
