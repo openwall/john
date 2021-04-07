@@ -6,7 +6,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_LIBCRYPTO
 
 #include <openssl/blowfish.h>
 
@@ -495,4 +495,4 @@ void SHA1_odf_buggy(unsigned char *data, int len, uint32_t results[5]) {
 	SHA1Final_buggy((unsigned char*)results, &ctx);
 }
 
-#endif /* OpenSSL */
+#endif /* HAVE_LIBCRYPTO */

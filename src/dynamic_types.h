@@ -245,10 +245,7 @@ typedef struct private_subformat_data
 #define ALGORITHM_NAME_S2_256		BITS " " SIMD_TYPE " " SHA256_N_STR
 #define ALGORITHM_NAME_S2_512		BITS " " SIMD_TYPE " " SHA512_N_STR
 
-#if defined (COMMON_DIGEST_FOR_OPENSSL)
-#define ALGORITHM_NAME_X86_S2_256	"32/"ARCH_BITS_STR " CommonCrypto"
-#define ALGORITHM_NAME_X86_S2_512	ARCH_BITS_STR"/64 CommonCrypto"
-#elif defined (GENERIC_SHA2)
+#if defined (GENERIC_SHA2)
 #define ALGORITHM_NAME_X86_S2_256	"32/"ARCH_BITS_STR
 #define ALGORITHM_NAME_X86_S2_512	ARCH_BITS_STR"/64"
 #else

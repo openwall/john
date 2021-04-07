@@ -6,7 +6,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_OPENCL || HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_OPENCL || HAVE_LIBCRYPTO
 
 #include "arch.h"
 #include "misc.h"
@@ -82,4 +82,4 @@ void *keychain_get_salt(char *ciphertext)
 	return (void *)&cs;
 }
 
-#endif /* HAVE_OPENCL || HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO */
+#endif /* HAVE_OPENCL || HAVE_LIBCRYPTO */

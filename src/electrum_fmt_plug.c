@@ -14,7 +14,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_LIBCRYPTO
 
 #include "arch.h"
 #if !AC_BUILT
@@ -519,4 +519,4 @@ struct fmt_main fmt_electrum = {
 #endif
 
 #endif /* HAVE_LIBZ */
-#endif /* OpenSSL */
+#endif /* HAVE_LIBCRYPTO */

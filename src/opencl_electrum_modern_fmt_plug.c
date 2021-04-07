@@ -18,7 +18,7 @@
 #endif
 #if HAVE_LIBZ
 
-#if HAVE_OPENCL && (HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO)
+#if HAVE_OPENCL && HAVE_LIBCRYPTO
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_opencl_electrum_modern;
@@ -572,6 +572,6 @@ struct fmt_main fmt_opencl_electrum_modern = {
 
 #endif /* plugin stanza */
 
-#endif /* HAVE_OPENCL */
+#endif /* HAVE_OPENCL && HAVE_LIBCRYPTO */
 
 #endif /* HAVE_LIBZ */

@@ -5,28 +5,9 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_LIBCRYPTO
 #include <openssl/opensslv.h>
-
-#include "arch.h"
-#if HAVE_COMMONCRYPTO || (!AC_BUILT &&	  \
-	!defined(SIMD_COEF_32) && defined(__APPLE__) && defined(__MACH__) && \
-	 defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
-	 __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070)
-/* Mitigate CommonCrypto name clashes */
-#include "md4.h"
-#include "md5.h"
-#define COMMON_DIGEST_FOR_OPENSSL 1
-#include <CommonCrypto/CommonDigest.h>
-#ifndef SHA_CBLOCK
-#define SHA_CBLOCK CC_SHA1_BLOCK_BYTES
-#endif
-#ifndef SHA_LBLOCK
-#define SHA_LBLOCK CC_SHA1_BLOCK_LONG
-#endif
-#else
 #include <openssl/sha.h>
-#endif
 
 /* For the abuse in pbkdf2_hmac_sha1.h and mscash2_fmt_plug.c */
 #define SHA_H0 h0
@@ -35,7 +16,8 @@
 #define SHA_H3 h3
 #define SHA_H4 h4
 
-#else /* !(HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO) */
+#else /* ! HAVE_LIBCRYPTO */
+
 #include "sph_sha1.h"
 #define SHA_CTX sph_sha1_context
 #define SHA1_Init sph_sha1_init

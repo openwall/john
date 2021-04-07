@@ -13,7 +13,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_OPENCL && (HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO)
+#if HAVE_OPENCL && HAVE_LIBCRYPTO
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_opencl_odf_aes;
@@ -332,4 +332,4 @@ struct fmt_main fmt_opencl_odf_aes = {
 
 #endif /* plugin stanza */
 
-#endif /* HAVE_OPENCL */
+#endif /* HAVE_OPENCL && HAVE_LIBCRYPTO */

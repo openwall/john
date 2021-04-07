@@ -60,7 +60,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_LIBCRYPTO
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -186,4 +186,4 @@ int JtR_MDC2_Final(unsigned char *md, JtR_MDC2_CTX *c)
 	return 1;
 }
 
-#endif /* OpenSSL */
+#endif /* HAVE_LIBCRYPTO */

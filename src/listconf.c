@@ -42,7 +42,7 @@
  #endif
 #endif
 
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_LIBCRYPTO
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
 #endif
@@ -231,9 +231,8 @@ static void listconf_list_build_info(void)
 #endif
 #if HAVE_LIBCRYPTO
 	printf("Crypto library: OpenSSL\n");
-#endif
-#if HAVE_COMMONCRYPTO
-	printf("Crypto library: CommonCrypto\n");
+#else
+	printf("Crypto library: None\n");
 #endif
 
 #if HAVE_LIBDL && defined(RTLD_DEFAULT)

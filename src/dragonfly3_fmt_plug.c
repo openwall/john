@@ -35,7 +35,7 @@ john_register_one(&fmt_dragonfly3_64);
 #define FORMAT_LABEL_64			"dragonfly3-64"
 #define FORMAT_NAME_32			"DragonFly BSD $3$ w/ bug, 32-bit"
 #define FORMAT_NAME_64			"DragonFly BSD $3$ w/ bug, 64-bit"
-#define ALGORITHM_NAME			"SHA256 32/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME			"SHA256 32/" ARCH_BITS_STR
 #define FORMAT_TAG				"$3$"
 #define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG)-1)
 
