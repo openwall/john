@@ -72,7 +72,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_LIBCRYPTO
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_MSCHAPv2_new;
@@ -1490,4 +1490,4 @@ struct fmt_main fmt_NETNTLM_new = {
 };
 
 #endif /* plugin stanza */
-#endif /* OpenSSL */
+#endif /* HAVE_LIBCRYPTO */

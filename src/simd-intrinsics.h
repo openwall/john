@@ -127,11 +127,11 @@ void sha384_unreverse(uint64_t *hash);
 #endif
 
 #else
-#define SHA256_ALGORITHM_NAME                 "32/" ARCH_BITS_STR SHA2_LIB
+#define SHA256_ALGORITHM_NAME                 "32/" ARCH_BITS_STR
 #if ARCH_BITS >= 64
-#define SHA512_ALGORITHM_NAME                 "64/" ARCH_BITS_STR SHA2_LIB
+#define SHA512_ALGORITHM_NAME                 "64/" ARCH_BITS_STR
 #else
-#define SHA512_ALGORITHM_NAME                 "32/" ARCH_BITS_STR SHA2_LIB
+#define SHA512_ALGORITHM_NAME                 "32/" ARCH_BITS_STR
 #endif
 
 #endif

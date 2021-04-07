@@ -39,7 +39,7 @@ john_register_one(&fmt_bitwarden);
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES " SHA256_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME          "PBKDF2-SHA256 AES 32/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME          "PBKDF2-SHA256 AES 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107

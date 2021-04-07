@@ -17,7 +17,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_LIBCRYPTO
 
 #ifdef KRB4_USE_SYSTEM_CRYPT
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
@@ -138,4 +138,4 @@ afs_string_to_key(char *str, char *cell, DES_cblock *key)
         afs_cmu_StringToKey (str, realm, key);
 }
 
-#endif /* OpenSSL */
+#endif /* HAVE_LIBCRYPTO */

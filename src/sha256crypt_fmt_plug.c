@@ -133,7 +133,7 @@ john_register_one(&fmt_cryptsha256);
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          SHA256_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME          "32/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME          "32/" ARCH_BITS_STR
 #endif
 
 // 35 character input is MAX password that fits into 2 SHA256 blocks
@@ -207,7 +207,7 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 /* these 2 values are used in setup of the cryptloopstruct, AND to do our SHA256_Init() calls, in the inner loop */
 static const unsigned char padding[128] = { 0x80, 0 /* 0,0,0,0.... */ };
-#if !defined(JTR_INC_COMMON_CRYPTO_SHA2) && !defined (SIMD_COEF_32)
+#if !defined (SIMD_COEF_32)
 static const uint32_t ctx_init[8] =
 	{0x6A09E667,0xBB67AE85,0x3C6EF372,0xA54FF53A,0x510E527F,0x9B05688C,0x1F83D9AB,0x5BE0CD19};
 #endif
@@ -267,7 +267,7 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	unsigned len_pc, len_ppsc, len_ppc, len_psc; // length of 'data'
 	unsigned tot_pc, tot_ppsc, tot_ppc, tot_psc; // length of entire block to crypt (64 or 128)
 	unsigned off_pc, off_pspc, off_ppc, off_psc; // offset to the crypt ptr for these 4 'types'.
-	unsigned dlen_pc, dlen_ppsc, dlen_ppc, dlen_psc; // is this 1 or 2 block (or actual len for CommonCrypto, since it uses SHA256_Final()
+	unsigned dlen_pc, dlen_ppsc, dlen_ppc, dlen_psc; // is this 1 or 2 block
 	unsigned plen=saved_len[index];
 	unsigned char *cp = crypt_struct->buf;
 	cryptloopstruct *pstr = crypt_struct;
@@ -283,21 +283,11 @@ static void LoadCryptStruct(cryptloopstruct *crypt_struct, int index, int idx, c
 	len_ppc  = (plen<<1) + BINARY_SIZE;
 	len_psc  = plen + cur_salt->len + BINARY_SIZE;
 
-#ifdef JTR_INC_COMMON_CRYPTO_SHA2
-	if (len_pc  <=55) tot_pc  =64; else tot_pc  =128;
-	if (len_ppsc<=55) tot_ppsc=64; else tot_ppsc=128;
-	if (len_ppc <=55) tot_ppc =64; else tot_ppc =128;
-	if (len_psc <=55) tot_psc =64; else tot_psc =128;
-	dlen_pc  =len_pc;
-	dlen_ppsc=len_ppsc;
-	dlen_ppc =len_ppc;
-	dlen_psc =len_psc;
-#else
 	if (len_pc  <=55) {tot_pc  =64; dlen_pc  =64;}else{tot_pc  =128; dlen_pc  =128; }
 	if (len_ppsc<=55) {tot_ppsc=64; dlen_ppsc=64;}else{tot_ppsc=128; dlen_ppsc=128; }
 	if (len_ppc <=55) {tot_ppc =64; dlen_ppc =64;}else{tot_ppc =128; dlen_ppc =128; }
 	if (len_psc <=55) {tot_psc =64; dlen_psc =64;}else{tot_psc =128; dlen_psc =128; }
-#endif
+
 	off_pc   = len_pc   - BINARY_SIZE;
 	off_pspc = len_ppsc - BINARY_SIZE;
 	off_ppc  = len_ppc  - BINARY_SIZE;
@@ -781,9 +771,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA256_Update(&ctx, crypt_struct->bufs[0][idx], crypt_struct->datlen[idx]);
 			if (cnt == cur_salt->rounds)
 				break;
-#ifdef JTR_INC_COMMON_CRYPTO_SHA2
-			SHA256_Final(crypt_struct->cptr[0][idx], &ctx);
-#else // !defined JTR_INC_COMMON_CRYPTO_SHA2, so it is oSSL, or generic
 #if ARCH_LITTLE_ENDIAN
 			{
 				int j;
@@ -794,20 +781,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 			memcpy(crypt_struct->cptr[0][idx], ctx.h, BINARY_SIZE);
 #endif
-#endif
 			if (++idx == 42)
 				idx = 0;
 
-#ifdef JTR_INC_COMMON_CRYPTO_SHA2
-			SHA256_Init(&ctx);
-#else
 			// this memcpy is 'good enough', used instead of SHA256_Init()
 			memcpy(ctx.h, ctx_init, sizeof(ctx_init));
-#endif
 		}
-#ifdef JTR_INC_COMMON_CRYPTO_SHA2
-		SHA256_Final((unsigned char*)crypt_out[MixOrder[index]], &ctx);
-#else
 #if ARCH_LITTLE_ENDIAN
 		{
 			int j;
@@ -817,7 +796,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 #else
 		memcpy(crypt_out[MixOrder[index]], ctx.h, BINARY_SIZE);
-#endif
 #endif
 
 #endif

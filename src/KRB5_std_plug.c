@@ -24,7 +24,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_LIBCRYPTO
 
 #include <stdlib.h>
 #include <string.h>
@@ -282,4 +282,4 @@ void str2key(char *user, char *realm, char *passwd, krb5_key *krb5key) {
 }
 // }}}
 
-#endif /* OpenSSL */
+#endif /* HAVE_LIBCRYPTO */

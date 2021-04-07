@@ -15,7 +15,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_LIBCRYPTO
 
 #include <stdio.h>
 #include <string.h>
@@ -1701,4 +1701,4 @@ unsigned int gpg_common_gpg_cipher_algorithm(void *salt)
 	return (unsigned int) my_salt->cipher_algorithm;
 }
 
-#endif /* OpenSSL */
+#endif /* HAVE_LIBCRYPTO */

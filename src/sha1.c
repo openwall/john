@@ -30,7 +30,7 @@
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
  */
 
-#if !(HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO)
+#if !HAVE_LIBCRYPTO
 
 #include <stddef.h>
 #include <string.h>
@@ -383,4 +383,4 @@ sph_sha1_comp(const sph_u32 msg[16], sph_u32 val[5])
 }
 #endif /* dead code */
 
-#endif /* OpenSSL */
+#endif /* HAVE_LIBCRYPTO */

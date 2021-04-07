@@ -44,7 +44,7 @@ john_register_one(&fmt_rawSHA384);
 #ifdef SIMD_COEF_64
 #define ALGORITHM_NAME          SHA512_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME          "32/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME          "32/" ARCH_BITS_STR
 #endif
 
 #define BENCHMARK_COMMENT		""

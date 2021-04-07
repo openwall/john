@@ -9,7 +9,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_LIBCRYPTO
 
 #include <openssl/des.h>
 
@@ -264,4 +264,4 @@ unsigned int pem_cipher(void *salt)
 	return cs->cid;
 }
 
-#endif /* OpenSSL */
+#endif /* HAVE_LIBCRYPTO */

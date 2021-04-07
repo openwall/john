@@ -13,7 +13,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_OPENCL && (HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO)
+#if HAVE_OPENCL && HAVE_LIBCRYPTO
 
 #include "arch.h"
 
@@ -388,4 +388,4 @@ struct fmt_main fmt_opencl_pem = {
 
 #endif /* plugin stanza */
 
-#endif /* HAVE_OPENCL */
+#endif /* HAVE_OPENCL && HAVE_LIBCRYPTO */

@@ -54,9 +54,7 @@ AC_ARG_VAR([LD], [full pathname of linker to use])
 
 dnl Define Packages.
 dnl Use OpenSSL (default: yes).
-AC_ARG_WITH(openssl, [AS_HELP_STRING([--without-openssl],[Do not use OpenSSL (can use CommonCrypto instead or exclude much functionality)])],,[with_openssl=yes])
-dnl Use CommonCrypto (default: no)
-AC_ARG_WITH(commoncrypto, [AS_HELP_STRING([--with-commoncrypto],[Use CommonCrypto])],,[with_commoncrypto=no])
+AC_ARG_WITH(openssl, [AS_HELP_STRING([--without-openssl],[Do not use OpenSSL (exclude much functionality)])],,[with_openssl=yes])
 dnl Cludge for endian (if not auto detected)
 AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target if it doesn't detect properly])],,[endian=unknown])
 dnl -DJOHN_SYSTEMWIDE
@@ -581,22 +579,12 @@ dnl is specified, the -llibname will NOT get appended to LIBS. So it has to be
 dnl done by 'hand'.
 dnl ======================================================================
 
-dnl AS_IF([test "x$with_commoncrypto" != xyes && test "x$with_openssl" = xno],
-dnl    [AC_MSG_FAILURE([At least one of OpenSSL and CommonCrypto must be used],1)]
-dnl )
-
-AS_IF([test "x$with_commoncrypto" = xyes],
-  [AC_CHECK_HEADER([CommonCrypto/CommonDigest.h],
-    [AC_CHECK_LIB([System], [CCKeyDerivationPBKDF],
-      [AC_CHECK_LIB([System], [CCCryptorCreate], [JTR_LIST_ADD(CFLAGS,"-DCOMMON_DIGEST_FOR_OPENSSL")] [AC_SUBST(COMMONCRYPTO_LIBS, [-lSystem])] [AC_DEFINE(HAVE_COMMONCRYPTO,1,[Define to 1 if you have the CommonCrypto library.])], [AC_MSG_FAILURE([No CommonCrypto found],1)] )] )] )] )
-
 AS_IF([test "x$with_openssl" != xno],
    [if test "x$enable_native_tests" != xno -a "x$PKG_CONFIG" != xno; then
    PKG_CHECK_MODULES([OPENSSL], [openssl],
       AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])
          AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).]),
-         AC_MSG_FAILURE([JtR requires OpenSSL and OpenSSL-devel being installed. Install if not installed.
-Try using --disable-pkg-config and possibly helping configure find oSSL by providing hints in CFLAGS and LDFLAGS],1))
+         AC_MSG_FAILURE([OpenSSL and/or its development libraries not found. Try using --disable-pkg-config and possibly helping configure find them by providing hints in CPPFLAGS and LDFLAGS (or use --without-openssl option)],1))
 else
    AS_IF([test "x${OPENSSL_CFLAGS}${OPENSSL_LIBS}" != "x" -o "x$cross_compiling" = "xyes" -o "x$enable_native_tests" = xno -o "x$PKG_CONFIG" = xno],
       [AC_MSG_CHECKING([supplied paths for OpenSSL])]
@@ -616,11 +604,11 @@ else
          [AC_DEFINE(HAVE_LIBSSL,1,[Define to 1 if you have the `ssl' library (-lssl).])]
          [AC_DEFINE(HAVE_LIBCRYPTO,1,[Define to 1 if you have the `crypto' library (-lcrypto).])]
          [OPENSSL_LIBS="${OPENSSL_LIBS} -lssl -lcrypto"],
-         [AC_MSG_FAILURE(JtR requires libssl/libcrypto being installed,1)])],
-         [AC_MSG_FAILURE(JtR requires libssl being installed,1)]
+         [AC_MSG_FAILURE([libssl/libcrypto not found, install them or use --without-openssl option],1)])],
+         [AC_MSG_FAILURE([libssl not found, install it or use --without-openssl option],1)]
       )
     LIBS="$LIBS_ORIG"],
-    [AC_MSG_FAILURE(JtR requires OpenSSL headers being installed,1)]
+    [AC_MSG_FAILURE([OpenSSL headers not found, install them or use --without-openssl option],1)]
    )]
   )
   fi]
@@ -708,9 +696,8 @@ ACX_HEADER_STRING
 dnl Check missing stuff in OpenSSL (too old, or disabled features)
 LIBS_ORIG="$LIBS"
 CFLAGS_ORIG="$CFLAGS"
-LIBS="$OPENSSL_LIBS $COMMONCRYPTO_LIBS $LIBS"
+LIBS="$OPENSSL_LIBS $LIBS"
 CFLAGS="$OPENSSL_CFLAGS $CFLAGS"
-AS_IF([test "$with_commoncrypto" = yes], [AC_DEFINE([HAVE_SHA256],1,[Define to 1 if you have the `SHA256' function.])])
 AC_CHECK_FUNCS([SHA256 WHIRLPOOL RIPEMD160 AES_encrypt DSA_get0_pqg])
 LIBS="$LIBS_ORIG"
 CFLAGS="$CFLAGS_ORIG"
@@ -960,7 +947,7 @@ fi
 
 if test "x$aesni_options" != xDISABLED -a "x$ac_path_YASM_found" != xfalse; then
    using_aesni="run-time detection"
-elif test "$cpu_family" = intel; then
+elif test "$with_openssl" = "yes" -a "$cpu_family" = intel; then
    using_aesni="depends on OpenSSL"
 else
    using_aesni=no
@@ -1268,6 +1255,7 @@ Fork support ............................... ${ac_cv_func_fork_works}
 OpenMP support ............................. ${using_omp}
 OpenCL support ............................. ${using_cl}
 Generic crypt(3) format .................... ${using_crypt}
+OpenSSL (many additional formats) .......... ${with_openssl}
 libgmp (PRINCE mode and faster SRP formats)  ${ac_cv_lib_gmp___gmpz_init}
 128-bit integer (faster PRINCE mode) ....... ${have_int128}
 libz (pkzip and some other formats) ........ ${using_zlib}

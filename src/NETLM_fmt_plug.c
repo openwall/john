@@ -36,7 +36,7 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_LIBCRYPTO || HAVE_COMMONCRYPTO
+#if HAVE_LIBCRYPTO
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_NETLM;
@@ -385,4 +385,4 @@ struct fmt_main fmt_NETLM = {
 };
 
 #endif /* plugin stanza */
-#endif /* OpenSSL */
+#endif /* HAVE_LIBCRYPTO */
