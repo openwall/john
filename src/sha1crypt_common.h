@@ -11,7 +11,7 @@
 #include "formats.h"
 
 #define BENCHMARK_COMMENT           ""
-#define BENCHMARK_LENGTH            0x107
+#define BENCHMARK_LENGTH            0x507
 
 #define SHA1_MAGIC "$sha1$"
 #define SHA1_MAGIC_LEN (sizeof(SHA1_MAGIC)-1)
