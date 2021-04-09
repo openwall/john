@@ -73,6 +73,7 @@
 #define SIMD_PARA_SHA256	1
 #endif
 #ifndef SIMD_PARA_SHA512
+/* 2 is faster at least for Bitcoin, but makes sha512crypt fail self-test */
 #define SIMD_PARA_SHA512	1
 #endif
 
