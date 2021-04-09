@@ -96,7 +96,7 @@ john_register_one(&fmt_cryptsha512);
 // them in groups that all 'fit' together, and do so until we exhaust all from a given length
 // range, then do all in the next range.  Thus, until we get to the last set within a length
 // range, we are doing a fully packed SSE run, and having a LOT less wasted space. This will
-// get even more interesting, when we start doing OMP, but it should just be the same principal,
+// get even more interesting, when we start doing OMP, but it should just be the same principle,
 // preload more passwords, and group them, then run the OMP threads over a single length, then
 // go to the next length, until done, trying to keep each thread running, and keeping each block
 // of SSE data full, until the last in a range.  We probably can simply build all the rearrangments,
@@ -186,7 +186,7 @@ typedef struct cryptloopstruct_t {
 								// NOTE, datlen could be changed to a number, and then we could do > 2 block crypts. Would take a little
 								// more memory (and longer PW's certainly DO take more time), but it should work fine. It may be an issue
 								// especially when doing OMP, that the memory footprint of this 'hot' inner loop simply gets too big, and
-								// things slow down. For now, we are limiting ourselves to 35 byte password, which fits into 2 SHA512 buffers
+								// things slow down. For now, we are limiting ourselves to 79 byte password, which fits into 2 SHA512 buffers
 } cryptloopstruct;
 
 static int (*saved_len);
@@ -717,7 +717,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			if (cnt == cur_salt->rounds)
 				break;
 			{
-				int j, k;
+				unsigned int j, k;
 				for (k = 0; k < MIN_KEYS_PER_CRYPT; ++k) {
 					uint64_t *o = (uint64_t *)crypt_struct->cptr[k][idx];
 #if !ARCH_ALLOWS_UNALIGNED
@@ -739,7 +739,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				idx = 0;
 		}
 		{
-			int j, k;
+			unsigned int j, k;
 			for (k = 0; k < MIN_KEYS_PER_CRYPT; ++k) {
 				uint64_t *o = (uint64_t *)crypt_out[MixOrder[index+k]];
 				for (j = 0; j < 8; ++j)
@@ -849,7 +849,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static unsigned int sha512crypt_iterations(void *salt)
+static unsigned int iteration_count(void *salt)
 {
 	struct saltstruct *sha512crypt_salt;
 
@@ -902,7 +902,7 @@ struct fmt_main fmt_cryptsha512 = {
 		get_binary,
 		get_salt,
 		{
-			sha512crypt_iterations,
+			iteration_count,
 		},
 		fmt_default_source,
 		{
