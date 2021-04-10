@@ -10,6 +10,12 @@
  * Special thanks goes to Christopher Gurnee for making this work possible.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
+
 #include "arch.h"
 #if !AC_BUILT
 #define HAVE_LIBZ 1
@@ -513,3 +519,4 @@ struct fmt_main fmt_electrum = {
 #endif
 
 #endif /* HAVE_LIBZ */
+#endif /* HAVE_LIBCRYPTO */

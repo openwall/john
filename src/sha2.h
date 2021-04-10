@@ -34,36 +34,27 @@
 #include <stdint.h>
 #include "arch.h"
 #include "aligned.h"
+#if HAVE_LIBCRYPTO
 #include <openssl/opensslv.h>
+#elif !defined(FORCE_GENERIC_SHA2)
+#define FORCE_GENERIC_SHA2 1
+#endif
 #include "openssl_local_overrides.h"
 
 #if (AC_BUILT && HAVE_SHA256 && !FORCE_GENERIC_SHA2) ||	  \
     (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x00908000 && !FORCE_GENERIC_SHA2)
 
-#if HAVE_COMMONCRYPTO || (!AC_BUILT &&	  \
-	!defined(SIMD_COEF_32) && defined(__APPLE__) && defined(__MACH__) && \
-	 defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && \
-	 __MAC_OS_X_VERSION_MIN_REQUIRED >= 1070)
-/* Mitigate CommonCrypto name clashes */
-#include "md4.h"
-#include "md5.h"
-#define COMMON_DIGEST_FOR_OPENSSL 1
-#define SHA2_LIB " CommonCrypto"
-#include <CommonCrypto/CommonDigest.h>
-#define JTR_INC_COMMON_CRYPTO_SHA2
-#else
-#define SHA2_LIB
 #include <openssl/sha.h>
-#endif
 
 #undef GENERIC_SHA2
 
 #else	// OPENSSL_VERSION_NUMBER ! >= 0x00908000
 
+#if HAVE_LIBCRYPTO
 #include <openssl/sha.h>
+#endif
 #include "jtr_sha2.h"
 
-#define SHA2_LIB
 #define GENERIC_SHA2
 
 
@@ -75,6 +66,22 @@
  * - It must be available for a SIMD or non-SIMD build.
  */
 void sha512_reverse(uint64_t *hash);
+#endif
+
+#ifndef SHA224_DIGEST_LENGTH
+#define SHA224_DIGEST_LENGTH 28
+#endif
+
+#ifndef SHA256_DIGEST_LENGTH
+#define SHA256_DIGEST_LENGTH 32
+#endif
+
+#ifndef SHA384_DIGEST_LENGTH
+#define SHA384_DIGEST_LENGTH 48
+#endif
+
+#ifndef SHA512_DIGEST_LENGTH
+#define SHA512_DIGEST_LENGTH 64
 #endif
 
 #endif /* _JOHN_SHA2_h */

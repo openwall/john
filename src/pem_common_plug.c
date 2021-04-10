@@ -5,6 +5,12 @@
  * and the GPU formats, and places it into one common location.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
+
 #include <openssl/des.h>
 
 #include "arch.h"
@@ -257,3 +263,5 @@ unsigned int pem_cipher(void *salt)
 
 	return cs->cid;
 }
+
+#endif /* HAVE_LIBCRYPTO */

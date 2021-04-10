@@ -42,8 +42,10 @@
  #endif
 #endif
 
+#if HAVE_LIBCRYPTO
 #include <openssl/opensslv.h>
 #include <openssl/crypto.h>
+#endif
 
 #if HAVE_LIBDL
 #include <dlfcn.h>
@@ -53,7 +55,7 @@
 #define HAVE_LIBDL 1
 #endif
 
-#if HAVE_LIBGMP
+#if HAVE_LIBGMP && !__MIC__
 #if HAVE_GMP_GMP_H
 #include <gmp/gmp.h>
 #else
@@ -227,11 +229,10 @@ static void listconf_list_build_info(void)
 #if HAVE_OPENCL
 	printf("OpenCL headers version: %s\n",get_opencl_header_version());
 #endif
-#if HAVE_LIBSSL
+#if HAVE_LIBCRYPTO
 	printf("Crypto library: OpenSSL\n");
-#endif
-#if HAVE_COMMONCRYPTO
-	printf("Crypto library: CommonCrypto\n");
+#else
+	printf("Crypto library: None\n");
 #endif
 
 #if HAVE_LIBDL && defined(RTLD_DEFAULT)

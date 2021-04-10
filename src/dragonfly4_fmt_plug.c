@@ -36,9 +36,9 @@ john_register_one(&fmt_dragonfly4_64);
 #define FORMAT_TAG				"$4$"
 #define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG)-1)
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME			"SHA512 64/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME			"SHA512 64/" ARCH_BITS_STR
 #else
-#define ALGORITHM_NAME			"SHA512 32/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME			"SHA512 32/" ARCH_BITS_STR
 #endif
 
 #define BENCHMARK_COMMENT		""

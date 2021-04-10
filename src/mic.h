@@ -57,32 +57,6 @@
 #define BF_X2				1
 #endif
 
-#if !defined(JOHN_NO_SIMD) && (__AVX512F__ || JOHN_AVX512F)
-#undef CPU_DETECT
-#define CPU_DETECT			1
-#define CPU_REQ				1
-#define CPU_REQ_AVX512F			1
-#undef CPU_NAME
-#define CPU_NAME			"AVX512F"
-#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
-#define CPU_FALLBACK_BINARY		"john-non-avx512f"
-#define CPU_FALLBACK_BINARY_DEFAULT
-#endif
-#endif
-
-#if !defined(JOHN_NO_SIMD) && (__AVX512BW__ || JOHN_AVX512BW)
-#undef CPU_DETECT
-#define CPU_DETECT			1
-#define CPU_REQ				1
-#define CPU_REQ_AVX512BW		1
-#undef CPU_NAME
-#define CPU_NAME			"AVX512BW"
-#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
-#define CPU_FALLBACK_BINARY		"john-non-avx512bw"
-#define CPU_FALLBACK_BINARY_DEFAULT
-#endif
-#endif
-
 #define SIMD_COEF_32		16
 #define SIMD_COEF_64		8
 
@@ -99,6 +73,7 @@
 #define SIMD_PARA_SHA256	1
 #endif
 #ifndef SIMD_PARA_SHA512
+/* 2 is faster at least for Bitcoin, but makes sha512crypt fail self-test */
 #define SIMD_PARA_SHA512	1
 #endif
 

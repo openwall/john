@@ -38,6 +38,7 @@ john_register_one(&fmt_solarwinds);
 #include "params.h"
 #include "options.h"
 #include "sha.h"
+#include "sha2.h"
 #include "jumbo.h"
 #include "johnswap.h"
 #include "solarwinds_common.h"

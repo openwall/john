@@ -9,7 +9,11 @@
  * The OpenCL boilerplate code is borrowed from other OpenCL formats.
  */
 
-#ifdef HAVE_OPENCL
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_OPENCL
 
 #include "arch.h"
 
@@ -24,7 +28,6 @@ john_register_one(&fmt_opencl_telegram);
 
 #include "formats.h"
 #include "common.h"
-#define OPENCL_FORMAT
 #include "telegram_common.h"
 #include "options.h"
 #include "jumbo.h"
@@ -245,7 +248,7 @@ static void *get_salt(char *ciphertext)
 	memset(&cs, 0, sizeof(struct custom_salt));
 	ctcopy += TAG_LENGTH;
 	p = strtokm(ctcopy, "*");
-	/* cs.version = atoi(p); */
+	cs.version = atoi(p); /* must be 1 for now; 2 is rejected in valid() */
 	p = strtokm(NULL, "*");
 	cs.iterations = atoi(p);
 	p = strtokm(NULL, "*");

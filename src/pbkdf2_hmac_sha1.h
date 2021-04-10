@@ -215,18 +215,18 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 	_pbkdf2_sha1_sse_load_hmac(K, KL, ipad, opad);
 	for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 		ptmp = &i1[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA_DIGEST_LENGTH/sizeof(uint32_t))+(j&(SIMD_COEF_32-1))];
-		ptmp[0]          = ipad[j].h0;
-		ptmp[SIMD_COEF_32]   = ipad[j].h1;
-		ptmp[SIMD_COEF_32*2] = ipad[j].h2;
-		ptmp[SIMD_COEF_32*3] = ipad[j].h3;
-		ptmp[SIMD_COEF_32*4] = ipad[j].h4;
+		ptmp[0]          = ipad[j].SHA_H0;
+		ptmp[SIMD_COEF_32]   = ipad[j].SHA_H1;
+		ptmp[SIMD_COEF_32*2] = ipad[j].SHA_H2;
+		ptmp[SIMD_COEF_32*3] = ipad[j].SHA_H3;
+		ptmp[SIMD_COEF_32*4] = ipad[j].SHA_H4;
 
 		ptmp = &i2[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA_DIGEST_LENGTH/sizeof(uint32_t))+(j&(SIMD_COEF_32-1))];
-		ptmp[0]          = opad[j].h0;
-		ptmp[SIMD_COEF_32]   = opad[j].h1;
-		ptmp[SIMD_COEF_32*2] = opad[j].h2;
-		ptmp[SIMD_COEF_32*3] = opad[j].h3;
-		ptmp[SIMD_COEF_32*4] = opad[j].h4;
+		ptmp[0]          = opad[j].SHA_H0;
+		ptmp[SIMD_COEF_32]   = opad[j].SHA_H1;
+		ptmp[SIMD_COEF_32*2] = opad[j].SHA_H2;
+		ptmp[SIMD_COEF_32*3] = opad[j].SHA_H3;
+		ptmp[SIMD_COEF_32*4] = opad[j].SHA_H4;
 	}
 
 	loops = (skip_bytes + outlen + (SHA_DIGEST_LENGTH-1)) / SHA_DIGEST_LENGTH;
@@ -256,11 +256,11 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 			// Also, perform the 'first' ^= into the crypt buffer.  NOTE, we are doing that in BE format
 			// so we will need to 'undo' that in the end.
 			ptmp = &o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))];
-			ptmp[0]           = dgst[j][0] = ctx.h0;
-			ptmp[SIMD_COEF_32]    = dgst[j][1] = ctx.h1;
-			ptmp[SIMD_COEF_32*2]  = dgst[j][2] = ctx.h2;
-			ptmp[SIMD_COEF_32*3]  = dgst[j][3] = ctx.h3;
-			ptmp[SIMD_COEF_32*4]  = dgst[j][4] = ctx.h4;
+			ptmp[0]           = dgst[j][0] = ctx.SHA_H0;
+			ptmp[SIMD_COEF_32]    = dgst[j][1] = ctx.SHA_H1;
+			ptmp[SIMD_COEF_32*2]  = dgst[j][2] = ctx.SHA_H2;
+			ptmp[SIMD_COEF_32*3]  = dgst[j][3] = ctx.SHA_H3;
+			ptmp[SIMD_COEF_32*4]  = dgst[j][4] = ctx.SHA_H4;
 		}
 
 		// Here is the inner loop.  We loop from 1 to count.  iteration 0 was done in the ipad/opad computation.

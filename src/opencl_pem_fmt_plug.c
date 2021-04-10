@@ -9,13 +9,13 @@
  * The OpenCL boilerplate code is borrowed from other OpenCL formats.
  */
 
-#ifdef HAVE_OPENCL
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_OPENCL && HAVE_LIBCRYPTO
 
 #include "arch.h"
-#if !AC_BUILT
-#define HAVE_LIBZ 1 /* legacy build has -lz in LDFLAGS */
-#endif
-#if HAVE_LIBZ
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_opencl_pem;
@@ -388,6 +388,4 @@ struct fmt_main fmt_opencl_pem = {
 
 #endif /* plugin stanza */
 
-#endif /* HAVE_LIBZ */
-
-#endif /* HAVE_OPENCL */
+#endif /* HAVE_OPENCL && HAVE_LIBCRYPTO */

@@ -14,6 +14,12 @@
  * modification, are permitted.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_mozilla;
 #elif FMT_REGISTERS_H
@@ -452,3 +458,4 @@ struct fmt_main fmt_mozilla = {
 };
 
 #endif
+#endif /* HAVE_LIBCRYPTO */

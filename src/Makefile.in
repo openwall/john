@@ -89,7 +89,7 @@ JOHN_OBJS = \
 	rc4.o \
 	hmacmd5.o \
 	base64_convert.o \
-	md4.o sha2.o \
+	md4.o sha1.o sha2.o \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	dynamic_compiler.o dynamic_compiler_lib.o \
 	ripemd.o tiger.o \
@@ -364,7 +364,7 @@ KeccakHash.o:	KeccakHash.c KeccakHash.h KeccakSponge.h KeccakF-1600-interface.h 
 
 KeccakSponge.o:	KeccakSponge.c KeccakSponge.h KeccakF-1600-interface.h os.h os-autoconf.h autoconfig.h jumbo.h arch.h memory.h
 
-keepass2john.o:	keepass2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h os.h os-autoconf.h base64.h
+keepass2john.o:	keepass2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h os.h os-autoconf.h base64.h sha2.h
 
 bitlocker2john.o:	bitlocker2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h os.h os-autoconf.h
 
@@ -464,6 +464,8 @@ sboxes-s.o:	sboxes-s.c
 scrypt_fmt.o:	scrypt_fmt.c yescrypt/yescrypt.h arch.h misc.h jumbo.h autoconfig.h common.h memory.h formats.h params.h base64_convert.h os.h os-autoconf.h
 
 showformats.o:	showformats.c showformats.h loader.h options.h config.h dynamic.h
+
+sha1.o: sha1.c sph_sha1.h
 
 sha2.o:	sha2.c arch.h sha2.h aligned.h openssl_local_overrides.h md4.h md5.h jtr_sha2.h johnswap.h common.h memory.h stdbool.h params.h os.h os-autoconf.h autoconfig.h jumbo.h
 
@@ -595,7 +597,7 @@ poly1305-donna/poly1305-donna.a:
 # PTHREAD_CFLAGS and OPENMP_CFLAGS may actually contain linker options,
 # like -fopenmp
 ../run/john@EXE_EXT@: $(JOHN_OBJS) aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a poly1305-donna/poly1305-donna.a @ZTEX_SUBDIRS@
-	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @RT_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a poly1305-donna/poly1305-donna.a -o $@
+	$(LD) $(JOHN_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @OPENMP_CFLAGS@ @GMP_LIBS@ @SKEY_LIBS@ @REXGEN_LIBS@ @CL_LIBS@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ @M_LIBS@ @RT_LIBS@ @Z_LIBS@ @DL_LIBS@ @CRYPT_LIBS@ @BZ2_LIBS@ @ZTEX_LIBS@ aes/aes.a secp256k1/secp256k1.a ed25519-donna/ed25519-donna.a poly1305-donna/poly1305-donna.a -o $@
 
 ../run/unshadow: ../run/john
 	$(RM) ../run/unshadow
@@ -697,8 +699,8 @@ poly1305-donna/poly1305-donna.a:
 ../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @OPENMP_CFLAGS@ -o $@
 
-../run/keepass2john@EXE_EXT@: keepass2john.c jumbo.c base64_convert.c misc.c common.c memory.c
-	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@ @OPENSSL_CFLAGS@ @CFLAGS_EXTRA@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ keepass2john.c jumbo.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c  $(LDFLAGS) @OPENMP_CFLAGS@ @OPENSSL_LIBS@ -o $@
+../run/keepass2john@EXE_EXT@: keepass2john.c jumbo.c base64_convert.c misc.c common.c memory.c sha2.o
+	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@ @OPENSSL_CFLAGS@ @CFLAGS_EXTRA@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ keepass2john.c jumbo.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c sha2.o $(LDFLAGS) @OPENMP_CFLAGS@ @OPENSSL_LIBS@ -o $@
 
 ../run/dmg2john@EXE_EXT@: dmg2john.o jumbo.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ dmg2john.o jumbo.o @OPENMP_CFLAGS@ -o $@
@@ -720,8 +722,8 @@ poly1305-donna/poly1305-donna.a:
 	$(LD) $(LDFLAGS) wpapcap2john.o jumbo.o @OPENMP_CFLAGS@ -o $@
 
 # Note, this one is NOT build by default. To get it, do a make ../run/dynacomptest (or ../run/dynacomptest.exe for cygwin/mingw builds)
-../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o
-	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha2.o $(LDFLAGS)  @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@  -o $@
+../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha1.o sha2.o
+	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@  @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha1.o sha2.o $(LDFLAGS)  @OPENSSL_LIBS@ -o $@
 
 ../run/cprepair@EXE_EXT@: cprepair.c autoconfig.h unicode.c unicode.h options.h misc.h misc.c
 	$(CC) -DAC_BUILT -Wall -O3 @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ -DNOT_JOHN -D_JOHN_MISC_NO_LOG $(CPPFLAGS) cprepair.c unicode.c misc.c memory.c -o $@
@@ -812,7 +814,7 @@ tests/memory.o:	memory.c arch.h misc.h jumbo.h autoconfig.h memory.h common.h jo
 unit-tests:	../run/unit-tests@EXE_EXT@
 
 ../run/unit-tests@EXE_EXT@:	$(UNIT_TEST_OBJS)
-	$(LD) $(UNIT_TEST_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ @COMMONCRYPTO_LIBS@ -o $@
+	$(LD) $(UNIT_TEST_OBJS) $(LDFLAGS) @OPENSSL_LIBS@ -o $@
 	@ echo "Now Running the Unit Tests"
 	@ ${POSSIBLE_WINE_MSG}
 	@ ${POSSIBLE_WINE_ENV}

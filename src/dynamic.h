@@ -28,7 +28,14 @@
 #ifndef DYNAMIC_DISABLED
 
 #include "simd-intrinsics.h"
+
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
 #include <openssl/opensslv.h>
+#endif
 
 #ifdef _OPENMP
 #define DYNA_OMP_PARAMS unsigned int first, unsigned int last, unsigned int tid

@@ -18,6 +18,12 @@
  * Also look at "odfencrypt.groovy" for OpenDocument encryption details.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_odf;
 #elif FMT_REGISTERS_H
@@ -47,7 +53,7 @@ john_register_one(&fmt_odf);
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME          "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " BF/AES"
 #else
-#define ALGORITHM_NAME          "PBKDF2-SHA1 BF/AES 32/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME          "PBKDF2-SHA1 BF/AES 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
@@ -288,3 +294,4 @@ struct fmt_main fmt_odf = {
 };
 
 #endif /* plugin stanza */
+#endif /* HAVE_LIBCRYPTO */

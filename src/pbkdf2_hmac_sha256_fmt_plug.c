@@ -47,7 +47,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME		"PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME          "PBKDF2-SHA256 32/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME          "PBKDF2-SHA256 32/" ARCH_BITS_STR
 #endif
 
 #define MAX_CIPHERTEXT_LENGTH   1024 /* Bump this and code will adopt */

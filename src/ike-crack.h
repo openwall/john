@@ -50,10 +50,10 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdint.h>
-#include <openssl/sha.h>
 
 #include "misc.h"	// error()
 #include "md5.h"
+#include "sha.h"
 #include "memory.h"
 /* Defines */
 
@@ -174,8 +174,8 @@ static unsigned char *hex2data(const char *string, size_t * data_len)
  *	This function is based on the code from the RFC 2104 appendix.
  *
  *	We use #ifdef to select either the OpenSSL MD5 functions or the
- *	built-in MD5 functions depending on whether HAVE_LIBSSL is defined.
- *	This is faster that calling OpenSSL "HMAC" directly.
+ *	built-in MD5 functions depending on whether HAVE_LIBCRYPTO is defined.
+ *	This is faster than calling OpenSSL "HMAC" directly.
  */
 inline static unsigned char *hmac_md5(unsigned char *text,
     size_t text_len, unsigned char *key, size_t key_len, unsigned char *md)
@@ -256,8 +256,8 @@ inline static unsigned char *hmac_md5(unsigned char *text,
  *	This function is based on the code from the RFC 2104 appendix.
  *
  *	We use #ifdef to select either the OpenSSL SHA1 functions or the
- *	built-in SHA1 functions depending on whether HAVE_LIBSSL is defined.
- *	This is faster that calling OpenSSL "HMAC" directly.
+ *	built-in SHA1 functions depending on whether HAVE_LIBCRYPTO is defined.
+ *	This is faster than calling OpenSSL "HMAC" directly.
  */
 inline static unsigned char *hmac_sha1(const unsigned char *text,
     size_t text_len, const unsigned char *key, size_t key_len,
@@ -515,8 +515,11 @@ inline static void compute_hash(const psk_entry * psk_params,
 		unsigned char nortel_psk[SHA1_HASH_LEN];
 		unsigned char nortel_pwd_hash[SHA1_HASH_LEN];
 
-		SHA1((unsigned char *) password, password_len,
-		    nortel_pwd_hash);
+		SHA_CTX ctx;
+		SHA1_Init(&ctx);
+		SHA1_Update(&ctx, password, password_len);
+		SHA1_Final(nortel_pwd_hash, &ctx);
+
 		hmac_sha1((unsigned char *) psk_params->nortel_user,
 		    strlen(psk_params->nortel_user), nortel_pwd_hash,
 		    SHA1_HASH_LEN, nortel_psk);

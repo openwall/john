@@ -81,18 +81,6 @@ enum {
 #define MD5_DIGEST_LENGTH 16
 #endif
 
-#ifndef SHA_DIGEST_LENGTH
-#define SHA_DIGEST_LENGTH 20
-#endif
-
-#ifndef SHA256_DIGEST_LENGTH
-#define SHA256_DIGEST_LENGTH 32
-#endif
-
-#ifndef SHA512_DIGEST_LENGTH
-#define SHA512_DIGEST_LENGTH 64
-#endif
-
 struct gpg_common_custom_salt {
 	dyna_salt dsalt;
 	int datalen;

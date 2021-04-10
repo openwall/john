@@ -20,6 +20,11 @@
  *
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
 
 #include <stdlib.h>
 #include <string.h>
@@ -276,3 +281,5 @@ void str2key(char *user, char *realm, char *passwd, krb5_key *krb5key) {
     MEM_FREE(text);
 }
 // }}}
+
+#endif /* HAVE_LIBCRYPTO */

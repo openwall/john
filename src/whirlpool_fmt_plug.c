@@ -33,7 +33,12 @@ john_register_one(&fmt_whirlpool);
 #include "options.h"
 #include "sph_whirlpool.h"
 #include "openssl_local_overrides.h"
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+#if HAVE_LIBCRYPTO
 #include <openssl/opensslv.h>
+#endif
 #if (AC_BUILT && HAVE_WHIRLPOOL) ||	\
    (!AC_BUILT && OPENSSL_VERSION_NUMBER >= 0x10000000 && !HAVE_NO_SSL_WHIRLPOOL)
 #include <openssl/whrlpool.h>

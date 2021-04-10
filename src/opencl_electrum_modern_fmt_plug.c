@@ -8,12 +8,17 @@
  * Based on opencl_pbkdf2_hmac_sha512_fmt_plug.c file.
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
 #include "arch.h"
 #if !AC_BUILT
 #define HAVE_LIBZ 1
 #endif
 #if HAVE_LIBZ
-#ifdef HAVE_OPENCL
+
+#if HAVE_OPENCL && HAVE_LIBCRYPTO
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_opencl_electrum_modern;
@@ -567,6 +572,6 @@ struct fmt_main fmt_opencl_electrum_modern = {
 
 #endif /* plugin stanza */
 
-#endif /* HAVE_OPENCL */
+#endif /* HAVE_OPENCL && HAVE_LIBCRYPTO */
 
 #endif /* HAVE_LIBZ */

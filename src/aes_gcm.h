@@ -9,7 +9,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
 #include <openssl/aes.h>
+#endif
 
 // #include "aes.h"
 

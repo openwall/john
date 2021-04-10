@@ -52,9 +52,9 @@ john_register_one(&fmt_bitcoin);
 #define ALGORITHM_NAME          "SHA512 AES " SHA512_ALGORITHM_NAME
 #else
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME          "SHA512 AES 64/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME          "SHA512 AES 64/" ARCH_BITS_STR
 #else
-#define ALGORITHM_NAME          "SHA512 AES 32/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME          "SHA512 AES 32/" ARCH_BITS_STR
 #endif
 #endif
 
@@ -283,11 +283,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			// Now copy and convert hash1 from flat into SIMD_COEF_64 buffers.
 			for (i = 0; i < SHA512_DIGEST_LENGTH/sizeof(uint64_t); ++i) {
-#if COMMON_DIGEST_FOR_OPENSSL
-				key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = sha_ctx.hash[i];  // this is in BE format
-#else
 				key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = sha_ctx.h[i];
-#endif
 			}
 
 			// We need to set ONE time, the upper half of the data buffer.  We put the 0x80 byte (in BE format), at offset

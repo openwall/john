@@ -45,9 +45,9 @@ john_register_one(&fmt_pbkdf2_hmac_sha512);
 #define ALGORITHM_NAME		"PBKDF2-SHA512 " SHA512_ALGORITHM_NAME
 #else
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME          "PBKDF2-SHA512 64/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME          "PBKDF2-SHA512 64/" ARCH_BITS_STR
 #else
-#define ALGORITHM_NAME          "PBKDF2-SHA512 32/" ARCH_BITS_STR SHA2_LIB
+#define ALGORITHM_NAME          "PBKDF2-SHA512 32/" ARCH_BITS_STR
 #endif
 #endif
 

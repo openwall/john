@@ -87,7 +87,6 @@ static void _pbkdf2_sha256(const unsigned char *S, int SL, int R, uint32_t *out,
 	memcpy(out, tmp_hash, SHA256_DIGEST_LENGTH);
 
 	for (i = 1; i < R; i++) {
-#if !defined(COMMON_DIGEST_FOR_OPENSSL)
 		memcpy(ctx.h, pIpad->h, 40);
 #if defined(__JTR_SHA2___H_)
 		ctx.total = pIpad->total;
@@ -96,13 +95,9 @@ static void _pbkdf2_sha256(const unsigned char *S, int SL, int R, uint32_t *out,
 		ctx.num = pIpad->num;
 		ctx.md_len = pIpad->md_len;
 #endif
-#else
-		memcpy(&ctx, pIpad, sizeof(SHA256_CTX));
-#endif
 		SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
 		SHA256_Final(tmp_hash, &ctx);
 
-#if !defined(COMMON_DIGEST_FOR_OPENSSL)
 		memcpy(ctx.h, pOpad->h, 40);
 #if defined(__JTR_SHA2___H_)
 		ctx.total = pOpad->total;
@@ -110,9 +105,6 @@ static void _pbkdf2_sha256(const unsigned char *S, int SL, int R, uint32_t *out,
 #else
 		ctx.num = pOpad->num;
 		ctx.md_len = pOpad->md_len;
-#endif
-#else
-		memcpy(&ctx, pOpad, sizeof(SHA256_CTX));
 #endif
 		SHA256_Update(&ctx, tmp_hash, SHA256_DIGEST_LENGTH);
 		SHA256_Final(tmp_hash, &ctx);
@@ -149,8 +141,7 @@ static void pbkdf2_sha256(const unsigned char *K, int KL, unsigned char *S, int 
 #if defined (SIMD_COEF_32) && !defined(OPENCL_FORMAT)
 
 #ifndef __JTR_SHA2___H_
-// we MUST call our sha2.c functions, to know the layout.  Since it is possible that apple's CommonCrypto lib could
-// be used, vs just jts's sha2.c or oSSL, and CommonCrypt is NOT binary compatible, then we MUST use jtr's code here.
+// we MUST call our sha2.c functions, to know the layout.
 // To do that, I have the struture defined here (if the header was not included), and the 'real' functions declared here also.
 typedef struct
 {
@@ -242,20 +233,12 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SSE_GROUP_SZ_SHA256], int K
 	for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 		ptmp = &i1[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA256_DIGEST_LENGTH/sizeof(uint32_t))+(j&(SIMD_COEF_32-1))];
 		for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(uint32_t)); ++i) {
-#if COMMON_DIGEST_FOR_OPENSSL
-			*ptmp = ipad[j].hash[i];
-#else
 			*ptmp = ipad[j].h[i];
-#endif
 			ptmp += SIMD_COEF_32;
 		}
 		ptmp = &i2[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA256_DIGEST_LENGTH/sizeof(uint32_t))+(j&(SIMD_COEF_32-1))];
 		for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(uint32_t)); ++i) {
-#if COMMON_DIGEST_FOR_OPENSSL
-			*ptmp = opad[j].hash[i];
-#else
 			*ptmp = opad[j].h[i];
-#endif
 			ptmp += SIMD_COEF_32;
 		}
 	}
@@ -285,11 +268,7 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SSE_GROUP_SZ_SHA256], int K
 			// so we will need to 'undo' that in the end.
 			ptmp = &o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))];
 			for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(uint32_t)); ++i) {
-#if COMMON_DIGEST_FOR_OPENSSL
-				*ptmp = dgst[j][i] = ctx.hash[i];
-#else
 				*ptmp = dgst[j][i] = ctx.h[i];
-#endif
 				ptmp += SIMD_COEF_32;
 			}
 		}
@@ -365,20 +344,12 @@ static void pbkdf2_sha256_sse_varying_salt(const unsigned char *K[SSE_GROUP_SZ_S
 	for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 		ptmp = &i1[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA256_DIGEST_LENGTH/sizeof(uint32_t))+(j&(SIMD_COEF_32-1))];
 		for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(uint32_t)); ++i) {
-#if COMMON_DIGEST_FOR_OPENSSL
-			*ptmp = ipad[j].hash[i];
-#else
 			*ptmp = ipad[j].h[i];
-#endif
 			ptmp += SIMD_COEF_32;
 		}
 		ptmp = &i2[(j/SIMD_COEF_32)*SIMD_COEF_32*(SHA256_DIGEST_LENGTH/sizeof(uint32_t))+(j&(SIMD_COEF_32-1))];
 		for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(uint32_t)); ++i) {
-#if COMMON_DIGEST_FOR_OPENSSL
-			*ptmp = opad[j].hash[i];
-#else
 			*ptmp = opad[j].h[i];
-#endif
 			ptmp += SIMD_COEF_32;
 		}
 	}
@@ -408,11 +379,7 @@ static void pbkdf2_sha256_sse_varying_salt(const unsigned char *K[SSE_GROUP_SZ_S
 			// so we will need to 'undo' that in the end.
 			ptmp = &o1[(j/SIMD_COEF_32)*SIMD_COEF_32*SHA_BUF_SIZ+(j&(SIMD_COEF_32-1))];
 			for (i = 0; i < (SHA256_DIGEST_LENGTH/sizeof(uint32_t)); ++i) {
-#if COMMON_DIGEST_FOR_OPENSSL
-				*ptmp = dgst[j][i] = ctx.hash[i];
-#else
 				*ptmp = dgst[j][i] = ctx.h[i];
-#endif
 				ptmp += SIMD_COEF_32;
 			}
 		}

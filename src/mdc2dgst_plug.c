@@ -56,6 +56,12 @@
  * [including the GNU Public Licence.]
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -179,3 +185,5 @@ int JtR_MDC2_Final(unsigned char *md, JtR_MDC2_CTX *c)
 	memcpy(&(md[JtR_MDC2_BLOCK]),(char *)c->hh,JtR_MDC2_BLOCK);
 	return 1;
 }
+
+#endif /* HAVE_LIBCRYPTO */

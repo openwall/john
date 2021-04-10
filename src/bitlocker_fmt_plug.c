@@ -37,7 +37,7 @@ john_register_one(&fmt_bitlocker);
 #include "johnswap.h"
 #include "aes.h"
 #include "aes_ccm.h"
-#include "sha.h"
+#include "sha2.h"
 #include "jumbo.h"
 #include "bitlocker_common.h"
 #define CPU_FORMAT              1

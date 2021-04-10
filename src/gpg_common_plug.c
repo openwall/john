@@ -11,6 +11,12 @@
  *  (CPU, OpenCL)
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
+
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
@@ -25,6 +31,7 @@
 
 #include "twofish.h"
 #include "idea-JtR.h"
+#include "sha.h"
 #include "sha2.h"
 #include "md5.h"
 #include "formats.h"
@@ -1693,3 +1700,5 @@ unsigned int gpg_common_gpg_cipher_algorithm(void *salt)
 	my_salt = *(struct gpg_common_custom_salt **)salt;
 	return (unsigned int) my_salt->cipher_algorithm;
 }
+
+#endif /* HAVE_LIBCRYPTO */

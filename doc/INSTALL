@@ -14,23 +14,32 @@ Jumbo/autoconf-specific README-DISTROS.)
 You may have obtained the source code or a "binary" (pre-compiled)
 distribution of John the Ripper.  On Unix-like systems, it is typical
 to get the source code and compile it into "binary" executables right
-on the system you intend to run John on.  On DOS and Windows, however,
-it is typical to get a binary distribution which is ready for use.
+on the system you intend to run John on.  On Windows, however, it is
+typical to get a binary distribution which is ready for use.
 
 The following instructions apply to the source code distribution of
 John only.  If you have a binary distribution, then there's nothing
 for you to compile and you can start using John right away.
 
+Also, the instructions here are mostly generic (not very OS specific).
+Please refer to INSTALL-FEDORA, INSTALL-UBUNTU, or INSTALL-WINDOWS for
+instructions specific to those systems.
 
-	Requirements
 
-The Jumbo versions requires OpenSSL 0.9.7 or later. To get all functionality
-you need 1.0.1. For building, not only the run-time libs are needed but also
-"devel" stuff like header files. This is often a separate package, so, e.g.,
-for Ubuntu you need "libssl-dev" as well as "libssl".
+	Requirements.
 
-Some helper tools are written in Python. A couple helper tools (vncpcap2john
-and SIPdump) need libpcap. A couple of formats need extra libraries in order
+Much functionality of JtR jumbo requires OpenSSL.  To get all of the related
+functionality, you need OpenSSL 1.0.1 or later.  With slightly older OpenSSL,
+you'll receive partial functionality.  You can also build without OpenSSL at
+all by passing the "--without-openssl" option to "./configure" (see below),
+but the functionality of such build will be greatly reduced.
+
+For building with OpenSSL, not only the runtime libraries are needed but also
+"development" stuff like header files.  This is often a separate package, so,
+e.g., for Ubuntu you need "libssl-dev" as well as "libssl".
+
+Some helper tools are written in Python.  A couple helper tools (vncpcap2john
+and SIPdump) need libpcap.  A couple of formats need extra libraries in order
 to get included:
 
 	mozilla		libnss
@@ -39,6 +48,9 @@ to get included:
 
 Again, you also need e.g. libnss-dev, libkrb5-dev and libgmp-dev in order to
 build.
+
+Some formats also need libz and libbz2 (and their "development" components) for
+full functionality.
 
 
 	Compiling the sources on a Unix-like system.
@@ -116,7 +128,7 @@ targets other than "generic" and since they typically use gcc, they are
 usually not affected by this potential problem.
 
 
-	OMP fallback build
+	OMP fallback build.
 
 Even a non-distro "native" build can gain from having OMP fallback. This
 means you will have a "john" binary that has OpenMP support, but that it
@@ -132,7 +144,7 @@ too. Here's how to do it for your "home build":
 Then you just run "./john" (from run directory) as usual.
 
 
-	Optimal interleaving factors (intrinsics builds)
+	Optimal interleaving factors (intrinsics builds).
 
 There is a script "testparas.pl" in the src directory, that can be used
 to test for optimal performance. Run it on an idle system. It will finish
@@ -140,7 +152,7 @@ with printing a full "./configure" command line to use. For most people,
 it's actually overkill. Spend the time learning tricks instead!
 
 
-	Optimal build on OS X
+	Optimal build on OS X.
 
 Using OS X, you can install Xcode (free in App Store) and then its "command
 line tools" and after that a normal build should work fine.  However, using

@@ -32,6 +32,12 @@
  *
  */
 
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_NETLM;
 #elif FMT_REGISTERS_H
@@ -379,3 +385,4 @@ struct fmt_main fmt_NETLM = {
 };
 
 #endif /* plugin stanza */
+#endif /* HAVE_LIBCRYPTO */

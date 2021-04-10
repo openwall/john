@@ -508,13 +508,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// does get 5% gain, but 400% is so much better, lol. I put the other
 		// code in to be able to dump data out easier, getting dump_stuff()
 		// data in flat, to be able to help get the SIMD code working.
-#ifdef COMMON_DIGEST_FOR_OPENSSL
-		pwsafe_sha256_iterate(ctx.hash, cur_salt->iterations);
-		memcpy(crypt_out[index], ctx.hash, 32);
-#else
 		pwsafe_sha256_iterate(ctx.h, cur_salt->iterations);
 		memcpy(crypt_out[index], ctx.h, 32);
-#endif
 #else
 		{ int i;
 		for (i = 0; i <= cur_salt->iterations; ++i) {

@@ -12,7 +12,6 @@ extern struct fmt_main fmt_mongodb_scram;
 john_register_one(&fmt_mongodb_scram);
 #else
 
-#include <openssl/sha.h>
 #include <string.h>
 
 #ifdef _OPENMP
