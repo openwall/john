@@ -37,7 +37,7 @@ import logging
 l = logging.getLogger("scapy.runtime")
 l.setLevel(49)
 try:
-    from scapy.all import TCP, IP, UDP, rdpcap
+    from scapy.all import TCP, IP, UDP, AH, rdpcap
 except ImportError:
     sys.stderr.write("Please install 'scapy' package for Python, running 'pip install --user scapy' should work\n")
     sys.exit(1)
@@ -1207,34 +1207,20 @@ def pcap_parser_ah(fname):
     schemes which are possible in the Authentication Header (AH).
     """
 
-    f = open(fname, "rb")
-    pcap = dpkt.pcap.Reader(f)
+    pcap = rdpcap(fname)
 
-    for _, buf in pcap:
-        eth = dpkt.ethernet.Ethernet(buf)
-        if eth.type == dpkt.ethernet.ETH_TYPE_IP:
-            ip = eth.data
-
-            if ip.p != dip.IP_PROTO_AH:  # Authentication Header
-                continue
-
-            if ip.v == 4:
-                salt = bytearray(ip.pack())
-                iphdr_len = 20
-                # https://tools.ietf.org/html/rfc4302#section-2.2 (Payload Length)
-                ah_length = (salt[iphdr_len + 1] + 2) * 4
-                icv_length = ah_length - 12
-                # zero mutable fields (tos, flags, chksum)
-                salt[1] = 0  # tos
-                salt[6] = 0  # flags
-                salt[10:12] = b"\x00\x00"  # checksum
-                icv_offset = iphdr_len + icv_length
-                h = salt[icv_offset:icv_offset+icv_length]
-                # zero ah icv
-                salt[icv_offset:icv_offset+icv_length] = b"\x00" * icv_length
-                sys.stdout.write("$net-ah$0$%s$%s\n" % (hexlify(salt).decode('ascii'), hexlify(h).decode('ascii')))
-
-    f.close()
+    for pkt in pcap:
+        if pkt.haslayer(AH) and pkt.haslayer(IP) and pkt['IP'].version == 4:
+            pkt = pkt['IP']
+            # zero mutable fields
+            pkt.tos = 0
+            pkt.flags = 0
+            pkt.chksum = 0
+            # store icv; zero icv in original packet
+            icv = pkt['AH'].icv
+            pkt['AH'].icv = bytearray(len(icv))
+            # print net-ah hash
+            print("$net-ah$0$%s$%s" % (hexlify(bytes(pkt)).decode('ascii'), hexlify(icv).decode('ascii')))
 
 
 def pcap_parser_rndc(fname):
