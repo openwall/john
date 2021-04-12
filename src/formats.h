@@ -95,8 +95,9 @@ struct db_salt;
  */
 #define FMT_DYNA_SALT			0x00000200
 /*
- * This format supports huge ciphertexts (larger than LINE_BUFFER_SIZE)
- * and may/will consequently truncate its pot lines with $SOURCE_HASH$
+ * This format supports huge ciphertexts (longer than MAX_CIPHERTEXT_SIZE,
+ * currently 896 bytes) and will consequently truncate its pot lines with
+ * $SOURCE_HASH$ to end up fitting within LINE_BUFFER_SIZE.
  */
 #define FMT_HUGE_INPUT			0x00000400
 /* Uses a bitslice implementation */
