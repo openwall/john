@@ -23,7 +23,7 @@ l = logging.getLogger("scapy.runtime")
 l.setLevel(49)
 
 try:
-    from scapy.all import TCP, IP, UDP, AH, rdpcap
+    from scapy.all import *
 except ImportError:
     sys.stderr.write("Please install 'scapy' package for Python, running 'pip install --user scapy' should work\n")
     sys.exit(1)
@@ -180,42 +180,24 @@ def pcap_parser_vtp(fname):
 
 def pcap_parser_vrrp(fname):
 
-    f = open(fname, "rb")
-    pcap = dpkt.pcap.Reader(f)
-    index = 0
+    pcap = rdpcap(fname)
 
-    for _, buf in pcap:
-        index = index + 1
-        eth = dpkt.ethernet.Ethernet(buf)
-        if eth.type == dpkt.ethernet.ETH_TYPE_IP or eth.type == dpkt.ethernet.ETH_TYPE_IP6:
-            ip = eth.data
-
-            if eth.type == dpkt.ethernet.ETH_TYPE_IP and ip.p != dpkt.ip.IP_PROTO_VRRP:
+    for index, pkt in enumerate(pcap, start=1):
+        if pkt.haslayer(VRRP):
+            pkt = pkt['VRRP']
+            # check for Version 2, Packet type 1 (Advertisement)
+            if pkt.version != 2 or pkt.type != 1:
+                sys.stderr.write("Unsupported VRRP packet version %d or type %d, packet # %d\n" % (pkt.version, pkt.type, index))
                 continue
-            if eth.type == dpkt.ethernet.ETH_TYPE_IP6 and ip.nxt != dpkt.ip.IP_PROTO_VRRP:
-                continue
-
-            data = ip.data  # VRRP object
-            data = data.pack()  # raw data
-
-            if ord(data[0]) != 0x21:  # Version 2, Packet type 1 (Advertisement)
-                sys.stderr.write("Unsupported VRRP packet type %d, packet # %d\n" % (ord(data[0]), index))
-                continue
-
-            if len(data) < 40:  # rough estimate ;)
-                continue
-
-            # hash is at the end of the packet
-            h = data[len(data) - 16:].encode("hex")
-
-            # salt extends from offset 0 to 20
-            # zero-ize checksum (of length 2) at offset 6
-            salt = data[0:6] + "\x00\x00" + data[8:20]
-
-            # use the existing "hsrp" format to crack VRRP hashes ;)
-            print("%s:$hsrp$%s$%s" % (index, salt.encode("hex"), h))
-
-    f.close()
+            # check for packets that are actually authenticated
+            if pkt.authtype != 0:
+                # hash is at the end of the packet
+                h = bytes(pkt['Raw'])[-16:]
+                # zero-ize checksum (of length 2)
+                pkt.chksum = 0
+                # salt extends from offset 0 to 20
+                salt = bytes(pkt)
+                print("%s:$hsrp$%s$%s" % (index, hexlify(salt).decode('ascii'), hexlify(h).decode('ascii')))
 
 
 def pcap_parser_tcpmd5(fname):
@@ -1203,7 +1185,7 @@ def pcap_parser_ah(fname):
     pcap = rdpcap(fname)
 
     for pkt in pcap:
-        if pkt.haslayer(AH) and pkt.haslayer(IP) and pkt['IP'].version == 4:
+        if pkt.haslayer(AH) and pkt.haslayer(IP):
             pkt = pkt['IP']
             # zero mutable fields
             pkt.tos = 0
