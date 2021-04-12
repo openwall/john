@@ -38,9 +38,6 @@ except ImportError:
     sys.exit(1)
 
 
-sys.stderr.write("Note: This program does not have the functionality of wpapcap2john, SIPdump, eapmd5tojohn, and vncpcap2john programs which are included with JtR Jumbo.\n\n")
-
-
 def pcap_parser_bfd(fname):
 
     f = open(fname, "rb")
@@ -73,12 +70,12 @@ def pcap_parser_bfd(fname):
                 h = data[-16:].encode("hex")  # MD5 hash
                 # password needs to be padded to length 16 (password + ''.join(['\x00' * (16 - len(password))])),
                 # "netmd5" format automagically handles this ;)
-                sys.stdout.write("$netmd5$%s$%s\n" % (salt, h))
+                print("$netmd5$%s$%s" % (salt, h))
             elif authentication_type == 4 or authentication_type == 5:  # Keyed SHA1, Meticulous Keyed SHA1
                 # http://tools.ietf.org/html/rfc5880
                 # password needs to be padded to length 20 (password + ''.join(['\x00' * (20 - len(password))])),
                 h = data[-20:].encode("hex")  # SHA1 hash
-                sys.stdout.write("$netsha1$%s$%s\n" % (salt, h))
+                print("$netsha1$%s$%s" % (salt, h))
             else:
                 assert 0
 
@@ -174,7 +171,7 @@ def pcap_parser_vtp(fname):
             vlans_data_length = len(vlans_data)
 
             if vlans_data_length != -1:
-                sys.stdout.write("%s:$vtp$%d$%s$%s$%s$%s$%s\n" % (index, ord(salt[0]), vlans_data_length,
+                print("%s:$vtp$%d$%s$%s$%s$%s$%s" % (index, ord(salt[0]), vlans_data_length,
                                                                   vlans_data.encode("hex"), len(salt),
                                                                   salt.encode("hex"), h))
 
@@ -216,7 +213,7 @@ def pcap_parser_vrrp(fname):
             salt = data[0:6] + "\x00\x00" + data[8:20]
 
             # use the existing "hsrp" format to crack VRRP hashes ;)
-            sys.stdout.write("%s:$hsrp$%s$%s\n" % (index, salt.encode("hex"), h))
+            print("%s:$hsrp$%s$%s" % (index, salt.encode("hex"), h))
 
     f.close()
 
@@ -291,7 +288,7 @@ def pcap_parser_tcpmd5(fname):
                 salt = salt + raw_tcp_data[header_length:header_length + data_length]
                 # print len(salt)
 
-                sys.stdout.write("$tcpmd5$%s$%s\n" % (salt.encode("hex"),
+                print("$tcpmd5$%s$%s" % (salt.encode("hex"),
                                                       opt_data.encode("hex")))
 
     f.close()
@@ -333,7 +330,7 @@ def pcap_parser_s7(cfg_pcap_file):
     outcome = 0  # XXX we don't know this currently!
     for c, r in result.items():
         found_something = True  # overkill ;(
-        sys.stdout.write("%s:$siemens-s7$%s$%s$%s\n" % (os.path.basename(cfg_pcap_file),
+        print("%s:$siemens-s7$%s$%s$%s" % (os.path.basename(cfg_pcap_file),
                                                         outcome, c, r))
 
     # s7-1200_brute_offline.py stuff below
@@ -396,7 +393,7 @@ def pcap_parser_s7(cfg_pcap_file):
         return
     if raw_challenge[46:52] == '100214' and raw_challenge[92:94] == '00':
         challenge = raw_challenge[52:92]
-        # sys.stdout.write("found challenge: %s\n" % challenge)
+        # print("found challenge: %s" % challenge)
     else:
         sys.stderr.write("[-] cannot find challenge for %s. exiting...\n"
                          % os.path.basename(cfg_pcap_file))
@@ -405,7 +402,7 @@ def pcap_parser_s7(cfg_pcap_file):
     raw_response = hexlify(r[pckt_141].load)
     if raw_response[64:70] == '100214' and raw_response[110:112] == '00':
         response = raw_response[70:110]
-        # sys.stdout.write("found  response: %s\n" % response)
+        # print("found  response: %s" % response)
     else:
         sys.stderr.write("[-] cannot find response for %s. exiting...\n"
                          % os.path.basename(cfg_pcap_file))
@@ -415,7 +412,7 @@ def pcap_parser_s7(cfg_pcap_file):
         outcome = 1
     else:
         outcome = 0
-    sys.stdout.write("%s:$siemens-s7$%s$%s$%s\n" % (os.path.basename(cfg_pcap_file),
+    print("%s:$siemens-s7$%s$%s$%s" % (os.path.basename(cfg_pcap_file),
                                                     outcome, challenge, response))
 
 
@@ -460,7 +457,7 @@ def pcap_parser_rsvp(fname):
 
             # zero-out the hash during hash calculation
             salt = data.replace(h, "\x00" * len(h))
-            sys.stdout.write("%s:$rsvp$%d$%s$%s\n" % (index, algo_type, salt.encode("hex"), h.encode("hex")))
+            print("%s:$rsvp$%d$%s$%s" % (index, algo_type, salt.encode("hex"), h.encode("hex")))
 
     f.close()
 
@@ -503,17 +500,17 @@ def pcap_parser_ntp(fname):
             h = data
 
             if length == 16:  # md5($p.$s)
-                sys.stdout.write("%s:$dynamic_2001$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                print("%s:$dynamic_2001$%s$HEX$%s" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 20:  # sha1($p.$s)
-                sys.stdout.write("%s:$dynamic_24$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                print("%s:$dynamic_24$%s$HEX$%s" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 28:  # sha224($p.$s)
-                sys.stdout.write("%s:$dynamic_52$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                print("%s:$dynamic_52$%s$HEX$%s" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 32:  # sha256($p.$s)
-                sys.stdout.write("%s:$dynamic_62$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                print("%s:$dynamic_62$%s$HEX$%s" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 48:
-                sys.stdout.write("%s:$dynamic_72$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                print("%s:$dynamic_72$%s$HEX$%s" % (index, h.encode("hex"), salt.encode("hex")))
             elif length == 64:
-                sys.stdout.write("%s:$dynamic_82$%s$HEX$%s\n" % (index, h.encode("hex"), salt.encode("hex")))
+                print("%s:$dynamic_82$%s$HEX$%s" % (index, h.encode("hex"), salt.encode("hex")))
             else:
                 print("Unsupported hash of length %s found!" % len(data))
 
@@ -566,7 +563,7 @@ def pcap_parser_isis(fname):
                     h = isis_data[offset+3:offset+3+hash_length]
                     # http://tools.ietf.org/html/rfc1195
                     salt = data.replace(h, "\x00" * hash_length)  # zero out the hash
-                    sys.stdout.write("%s:$rsvp$1$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    print("%s:$rsvp$1$%s$%s" % (index, salt.encode("hex"), h.encode("hex")))
                     break
             # https://tools.ietf.org/html/rfc5310
             if tlv_type == 0x0a and tlv_length == 23 and authentication_type == 0x3:  # hmac-sha1
@@ -574,31 +571,31 @@ def pcap_parser_isis(fname):
                     h = isis_data[offset+3+2:offset+3+2+hash_length]  # +2 is required to skip over "Key ID"
                     # ospf format supports such hashes!
                     salt = data.replace(h, "")  # remove the hash
-                    sys.stdout.write("%s:$ospf$1$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    print("%s:$ospf$1$%s$%s" % (index, salt.encode("hex"), h.encode("hex")))
                     break
             if tlv_type == 0x0a and tlv_length == 31 and authentication_type == 0x3:  # hmac-sha224
                     hash_length = 28
                     h = isis_data[offset+3+2:offset+3+2+hash_length]
                     salt = data.replace(h, "")  # remove the hash
-                    sys.stdout.write("%s:$ospf$5$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))  # yes, 5 is out-of-order
+                    print("%s:$ospf$5$%s$%s" % (index, salt.encode("hex"), h.encode("hex")))  # yes, 5 is out-of-order
                     break
             if tlv_type == 0x0a and tlv_length == 35 and authentication_type == 0x3:  # hmac-sha256
                     hash_length = 32
                     h = isis_data[offset+3+2:offset+3+2+hash_length]
                     salt = data.replace(h, "")  # remove the hash
-                    sys.stdout.write("%s:$ospf$2$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    print("%s:$ospf$2$%s$%s" % (index, salt.encode("hex"), h.encode("hex")))
                     break
             if tlv_type == 0x0a and tlv_length == 51 and authentication_type == 0x3:  # hmac-sha384
                     hash_length = 48
                     h = isis_data[offset+3+2:offset+3+2+hash_length]
                     salt = data.replace(h, "")  # remove the hash
-                    sys.stdout.write("%s:$ospf$3$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    print("%s:$ospf$3$%s$%s" % (index, salt.encode("hex"), h.encode("hex")))
                     break
             if tlv_type == 0x0a and tlv_length == 67 and authentication_type == 0x3:  # hmac-sha512
                     hash_length = 64
                     h = isis_data[offset+3+2:offset+3+2+hash_length]
                     salt = data.replace(h, "")  # remove the hash
-                    sys.stdout.write("%s:$ospf$4$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                    print("%s:$ospf$4$%s$%s" % (index, salt.encode("hex"), h.encode("hex")))
                     break
 
     f.close()
@@ -680,7 +677,7 @@ def pcap_parser_hsrp(fname):
             h = hsrp[-16:].encode("hex")  # MD5 hash
             # 20 bytes (HSRP) + 14 (till "keyid") + zero padding (double-check this) to make 50 bytes!
             salt = hsrp.encode("hex")[:68] + ("\x00" * (50 - 20 - 14)).encode("hex")
-            sys.stdout.write("$hsrp$%s$%s\n" % (salt, h))
+            print("$hsrp$%s$%s" % (salt, h))
 
     f.close()
 
@@ -728,7 +725,7 @@ def pcap_parser_hsrp_v2(fname):
                     break
 
             if uses_authentication:
-                sys.stdout.write("%d:$hsrp$%s$%s\n" % (index, salt.encode("hex"), h.encode("hex")))
+                print("%d:$hsrp$%s$%s" % (index, salt.encode("hex"), h.encode("hex")))
 
     f.close()
 
@@ -812,7 +809,7 @@ def pcap_parser_glbp(fname):
                 except:
                     break
 
-            sys.stdout.write("%s:$hsrp$%s$%s\n" % (index, salt.encode("hex"), h))
+            print("%s:$hsrp$%s$%s" % (index, salt.encode("hex"), h))
 
     f.close()
 
@@ -873,7 +870,7 @@ def pcap_parser_tacacs_plus(fname):
             ciphertext = data[12:]
             predata = struct.pack("!I", session_id)
             postdata = struct.pack("!BB", TACACS_PLUS_VERSION_MAJOR << 4 + version_minor, seq_no)
-            sys.stdout.write("%s:$tacacs-plus$0$%s$%s$%s\n" % (index,
+            print("%s:$tacacs-plus$0$%s$%s$%s" % (index,
                                                                predata.encode("hex"),
                                                                ciphertext.encode("hex"),
                                                                postdata.encode("hex")))
@@ -1141,7 +1138,7 @@ def pcap_parser_eigrp(fname):
                 salt = data[0:2] + "\x00\x00\x00\x00" + data[6:]  # zero-ize checksum
                 salt = salt.replace(h.decode("hex"), "\x00" * hash_length)  # zero-ize the digest
 
-            sys.stdout.write("%s:$eigrp$%d$%s$%d$%s$1$%s$%s\n" % (index, algo_type, salt.encode("hex"), have_extra_salt,
+            print("%s:$eigrp$%d$%s$%d$%s$1$%s$%s" % (index, algo_type, salt.encode("hex"), have_extra_salt,
                                                                   extra_salt, destination, h))
 
     f.close()
@@ -1189,7 +1186,7 @@ def pcap_parser_tgsrep(fname):
                     print('Too much data received! Source: %s Dest: %s DPort %i' % (p[IP].src, p[IP].dst, p[TCP].dport))
 
     for p in kploads:
-        sys.stdout.write("%s:$tgsrep$%s\n" % (index, p.encode("hex")))
+        print("%s:$tgsrep$%s" % (index, p.encode("hex")))
 
 
 def pcap_parser_ah(fname):
@@ -1288,7 +1285,7 @@ def pcap_parser_rndc(fname):
                 elif hash_type == 165:  # SHA-512
                     kind = 6
 
-            sys.stdout.write("%s:$rsvp$%s$%s$%s\n" % (index, kind, salt.encode("hex"), h.encode("hex")))
+            print("%s:$rsvp$%s$%s$%s" % (index, kind, salt.encode("hex"), h.encode("hex")))
 
 
     f.close()
@@ -1403,6 +1400,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # advertise what is not handled
+    sys.stderr.write("Note: This program does not have the functionality of wpapcap2john, SIPdump, eapmd5tojohn, and vncpcap2john programs which are included with JtR Jumbo.\n\n")
     time.sleep(1)
 
     for i in range(1, len(sys.argv)):
