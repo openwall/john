@@ -915,7 +915,7 @@ void opencl_load_environment(void)
 
 #ifdef HAVE_MPI
 		// Poor man's multi-device support.
-		if (mpi_p > 1 && mpi_p_local > 1) {
+		if (mpi_p > 1 && mpi_p_local != 1) {
 			// Pick device to use for this node
 			gpu_id = engaged_devices[mpi_id % get_number_of_devices_in_use()];
 
