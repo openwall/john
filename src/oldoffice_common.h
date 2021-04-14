@@ -69,10 +69,11 @@ typedef struct {
 typedef struct {
 	unsigned char verifier[16]; /* or encryptedVerifier */
 	unsigned char verifierHash[20];  /* or encryptedVerifierHash */
-	unsigned int has_mitm;
-	unsigned char mitm[5]; /* Meet-in-the-middle hint, if we have one */
 	unsigned int has_extra;
 	unsigned char extra[32]; /* Optional extra data for avoiding FP w/ type 3 */
+	unsigned int has_mitm;
+	unsigned int mitm_reported;
+	unsigned char mitm[5]; /* Meet-in-the-middle hint, if we have one */
 } binary_blob;
 
 extern int *oo_cracked;
