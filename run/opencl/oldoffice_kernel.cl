@@ -30,6 +30,7 @@ typedef struct {
 	uint has_extra;
 	uint extra[32/4];
 	volatile uint has_mitm;
+	uint mitm_reported;
 	uint mitm[8/4]; /* Meet-in-the-middle hint, if we have one */
 } salt_t;
 

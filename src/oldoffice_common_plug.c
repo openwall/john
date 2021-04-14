@@ -11,6 +11,8 @@
 
 #define OO_COMMON
 #include "oldoffice_common.h"
+#include "logger.h"
+#include "john.h"
 
 int *oo_cracked;
 custom_salt *oo_cur_salt;
@@ -121,7 +123,7 @@ char *oldoffice_prepare(char *split_fields[10], struct fmt_main *self)
 
 char *oldoffice_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[CIPHERTEXT_LENGTH];
+	static char out[CIPHERTEXT_LENGTH + 1];
 	char *p;
 	int extra;
 
@@ -179,6 +181,11 @@ void *oldoffice_get_binary(char *ciphertext)
 		for (i = 0; i < 5; i++)
 			blob->mitm[i] = atoi16[ARCH_INDEX(mitm_catcher.mitm[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(mitm_catcher.mitm[i * 2 + 1])];
+		if (!ldr_in_pot && !bench_or_test_running && john_main_process) {
+			log_event("- Using MITM key %02x%02x%02x%02x%02x for %s",
+			          blob->mitm[0], blob->mitm[1], blob->mitm[2], blob->mitm[3], blob->mitm[4], ciphertext);
+			blob->mitm_reported = 1;
+		}
 	}
 
 	MEM_FREE(keeptr);
@@ -211,7 +218,7 @@ int oldoffice_cmp_one(void *binary, int index)
 {
 	binary_blob *cur_binary = ((fmt_data*)binary)->blob;
 
-	if (oo_cracked[index] && oo_cur_salt->type < 4 &&
+	if (!cur_binary->mitm_reported && oo_cracked[index] && oo_cur_salt->type < 4 &&
 	    !cur_binary->has_extra && !bench_or_test_running) {
 		unsigned char *cp, out[11];
 		int i;
@@ -223,7 +230,8 @@ int oldoffice_cmp_one(void *binary, int index)
 			cp++;
 		}
 		out[10] = 0;
-		fprintf(stderr, "MITM key: %s\n", out);
+		log_event("MITM key: %s", out);
+		cur_binary->mitm_reported = 1;
 	}
 	return oo_cracked[index];
 }
