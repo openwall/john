@@ -26,7 +26,7 @@
  */
 inline void
 s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
+   vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
 	vtype xAA55AA5500550055 = lut3(a1, a4, a6, 0xC1);
 	vtype xA55AA55AF0F5F0F5 = lut3(a3, a6, xAA55AA5500550055, 0x9E);
@@ -62,7 +62,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
+   vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
 	vtype xEEEEEEEE99999999 = lut3(a1, a2, a6, 0x97);
 	vtype xFFFFEEEE66666666 = lut3(a5, a6, xEEEEEEEE99999999, 0x67);
@@ -97,7 +97,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
+   vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
 	vtype xA50FA50FA50FA50F = lut3(a1, a3, a4, 0xC9);
 	vtype xF0F00F0FF0F0F0F0 = lut3(a3, a5, a6, 0x4B);
@@ -135,7 +135,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Roman Rusakov’s s4 */
 inline void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
+   vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
 	vtype x55AAFF00=lut3(a1, a4, a5, 0x36);
 	vtype x00F00F00=lut3(a3, a4, a5, 0x24);
@@ -168,7 +168,7 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* DeepLearningJohnDoe's s4 */
 inline void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
+   vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
 	vtype x55F055F055F055F0 = lut3(a1, a3, a4, 0x72);
 	vtype xA500F5F0A500F5F0 = lut3(a3, a5, x55F055F055F055F0, 0xAD);
@@ -198,7 +198,7 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
+   vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
 	vtype xA0A0A0A0FFFFFFFF = lut3(a1, a3, a6, 0xAB);
 	vtype xFFFF00005555FFFF = lut3(a1, a5, a6, 0xB9);
@@ -234,7 +234,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
+   vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
 	vtype x5050F5F55050F5F5 = lut3(a1, a3, a5, 0xB2);
 	vtype x6363C6C66363C6C6 = lut3(a1, a2, x5050F5F55050F5F5, 0x66);
@@ -269,7 +269,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
+   vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
 	vtype x88AA88AA88AA88AA = lut3(a1, a2, a4, 0x0B);
 	vtype xAAAAFF00AAAAFF00 = lut3(a1, a4, a5, 0x27);
@@ -304,7 +304,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline void
 s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
+   vtype *out, vtype c1, vtype c2, vtype c3, vtype c4)
 {
 	vtype xEEEE3333EEEE3333 = lut3(a1, a2, a5, 0x9D);
 	vtype xBBBBBBBBBBBBBBBB = lut3(a1, a1, a2, 0x83);

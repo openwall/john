@@ -6,7 +6,7 @@
  */
 
 #include "pbkdf2_hmac_sha256_kernel.cl"
-#define HMAC_KEY_TYPE __global
+#define HMAC_KEY_TYPE __global const
 #define HMAC_MSG_TYPE MAYBE_CONSTANT
 #define HMAC_OUT_TYPE __global
 #if __OS_X__ && gpu_amd(DEVICE_INFO)

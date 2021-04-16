@@ -212,7 +212,7 @@ void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 inline
 void cmp_final(uint gid,
                uint iter,
-               __private uint *hash,
+               uint *hash,
                __global uint *offset_table,
                __global uint *hash_table,
                MAYBE_CONSTANT uint *salt,
@@ -260,7 +260,7 @@ void cmp_final(uint gid,
 inline
 void cmp(uint gid,
          uint iter,
-         __private uint *hash,
+         uint *hash,
          __global uint *bitmaps,
          uint bitmap_sz_bits,
          __global uint *offset_table,

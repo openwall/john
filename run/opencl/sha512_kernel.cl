@@ -21,7 +21,7 @@ typedef struct {
 inline void sha512(__global const char *password, uint8_t pass_len,
 	__global uint64_t *hash, uint32_t offset)
 {
-	__private sha512_ctx ctx;
+	sha512_ctx ctx;
 	uint32_t *b32 = ctx.buffer;
 
 	//set password to buffer
@@ -58,7 +58,7 @@ inline void sha512(__global const char *password, uint8_t pass_len,
 	uint64_t g = 0x1f83d9abfb41bd6bUL;
 	uint64_t h = 0x5be0cd19137e2179UL;
 
-	__private uint64_t w[16];
+	uint64_t w[16];
 
 	uint64_t *data = (uint64_t *) ctx.buffer;
 

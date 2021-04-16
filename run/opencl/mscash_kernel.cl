@@ -20,7 +20,7 @@
 #define SQRT_2			0x5a827999
 #define SQRT_3			0x6ed9eba1
 
-inline void md4_crypt_a(__private uint *hash, __private uint *nt_buffer)
+inline void md4_crypt_a(uint *hash, uint *nt_buffer)
 {
 	unsigned int a = INIT_A;
 	unsigned int b = INIT_B;
@@ -144,7 +144,7 @@ inline void md4_crypt_a(__private uint *hash, __private uint *nt_buffer)
 	hash[3] = d + INIT_D;
 }
 
-inline void md4_crypt_b(__private uint *hash, constant uint *salt)
+inline void md4_crypt_b(uint *hash, constant uint *salt)
 {
 	unsigned int a = INIT_A;
 	unsigned int b = INIT_B;
@@ -367,7 +367,7 @@ inline void prepare_key(__global uint *key, uint length, uint *nt_buffer)
 
 inline void cmp_final(uint gid,
 		uint iter,
-		__private uint *hash,
+		uint *hash,
 		__global uint *offset_table,
 		__global uint *hash_table,
 		constant uint *salt,
@@ -414,7 +414,7 @@ inline void cmp_final(uint gid,
 
 inline void cmp(uint gid,
 		uint iter,
-		__private uint *hash,
+		uint *hash,
 		__global uint *bitmaps,
 		uint bitmap_sz_bits,
 		__global uint *offset_table,

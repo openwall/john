@@ -61,8 +61,7 @@ inline int apple_des3_ede_unwrap_key1(MAYBE_CONSTANT uchar *wrapped_key,
 		temp2[i] = temp1[outlen - i - 1];
 
 	outlen -= 8;
-	des3_crypt_cbc(&ks, DES_DECRYPT, outlen, temp2,
-	               __private const, temp2 + 8, temp1);
+	des3_crypt_cbc(&ks, DES_DECRYPT, outlen, temp2, const, temp2 + 8, temp1);
 
 	return (check_pkcs_pad(temp1, outlen, 8) >= 0);
 }

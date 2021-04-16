@@ -66,7 +66,7 @@ typedef unsigned WORD vtype;
 #endif
 
 #define vst_private(dst, ofs, src) 			\
-	*((__private vtype *)((__private lm_vector *)&(dst) + (ofs))) = (src)
+	*((vtype *)((lm_vector *)&(dst) + (ofs))) = (src)
 
 #define lm_clear_block_8(j) 			\
 	vst_private(B[j] , 0, zero); 			\
@@ -102,8 +102,8 @@ typedef unsigned WORD vtype;
 	for (bit = bits; bit < k; bit++)		\
 		hash |= ((((uint)B[32 + bit]) >> x) & 1) << bit;
 
-inline void cmp_final(__private unsigned lm_vector *B,
-		      __private unsigned int *binary,
+inline void cmp_final(unsigned lm_vector *B,
+		      unsigned int *binary,
 		      __global unsigned int *offset_table,
 		      __global unsigned int *hash_table,
 		     volatile __global uint *output,
@@ -138,7 +138,7 @@ inline void cmp_final(__private unsigned lm_vector *B,
 	}
 }
 
-inline void cmp( __private unsigned lm_vector *B,
+inline void cmp( unsigned lm_vector *B,
 		 __global unsigned int *offset_table,
 		 __global unsigned int *hash_table,
 		  __global unsigned int *bitmaps,

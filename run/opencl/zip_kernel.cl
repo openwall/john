@@ -7,7 +7,7 @@
 
 #include "pbkdf2_hmac_sha1_unsplit_kernel.cl"
 #include "opencl_sha1_ctx.h"
-#define HMAC_KEY_TYPE __global
+#define HMAC_KEY_TYPE __global const
 #define HMAC_MSG_TYPE __global const
 #define HMAC_OUT_TYPE __global
 #include "opencl_hmac_sha1.h"

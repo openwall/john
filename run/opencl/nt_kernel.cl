@@ -40,7 +40,7 @@
 #error BITMAP_SIZE_BITS_LESS_ONE too large
 #endif
 
-inline void nt_crypt(__private uint *hash, __private uint *nt_buffer, uint md4_size) {
+inline void nt_crypt(uint *hash, uint *nt_buffer, uint md4_size) {
 	uint tmp;
 
 	/* Round 1 */
@@ -208,7 +208,7 @@ inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
 
 inline void cmp_final(uint gid,
 		uint iter,
-		__private uint *hash,
+		uint *hash,
 		__global uint *offset_table,
 		__global uint *hash_table,
 		__global uint *return_hashes,
@@ -254,7 +254,7 @@ inline void cmp_final(uint gid,
 
 inline void cmp(uint gid,
 		uint iter,
-		__private uint *hash,
+		uint *hash,
 #if USE_LOCAL_BITMAPS
 		__local
 #else

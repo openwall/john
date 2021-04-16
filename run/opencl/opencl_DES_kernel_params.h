@@ -66,7 +66,7 @@ typedef unsigned WORD vtype;
 #endif
 
 #define vst_private(dst, ofs, src) 			\
-	*((__private vtype *)((__private DES_bs_vector *)&(dst) + (ofs))) = (src)
+	*((vtype *)((DES_bs_vector *)&(dst) + (ofs))) = (src)
 
 #define DES_bs_clear_block_8(j) 			\
 	vst_private(B[j] , 0, zero); 			\
@@ -88,7 +88,7 @@ typedef unsigned WORD vtype;
 	DES_bs_clear_block_8(48); 			\
 	DES_bs_clear_block_8(56);
 
-inline void cmp(__private unsigned DES_bs_vector *B,
+inline void cmp(unsigned DES_bs_vector *B,
 	  __global int *uncracked_hashes,
 	  int num_uncracked_hashes,
 	  volatile __global uint *hash_ids,

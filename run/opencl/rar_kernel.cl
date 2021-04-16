@@ -21,8 +21,8 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 #include "opencl_sha1.h"
-#define AES_SRC_TYPE __global
-#define AES_KEY_TYPE __global
+#define AES_SRC_TYPE __global const
+#define AES_KEY_TYPE __global const
 #include "opencl_aes.h"
 #include "opencl_crc32.h"
 
