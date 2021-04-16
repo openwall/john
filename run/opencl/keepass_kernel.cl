@@ -5,8 +5,10 @@
  * modification, are permitted.
  */
 #include "opencl_misc.h"
+#define AES_SRC_TYPE volatile const
 #include "opencl_aes.h"
 #include "opencl_sha2_ctx.h"
+#define CHACHA_SRC_TYPE volatile const
 #include "opencl_chacha.h"
 #include "opencl_twofish.h"
 

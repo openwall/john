@@ -19,7 +19,7 @@
  */
 
 #include "pbkdf2_hmac_sha1_unsplit_kernel.cl"
-#define AES_KEY_TYPE __global
+#define AES_KEY_TYPE __global const
 #define AES_SRC_TYPE __constant
 #include "opencl_aes.h"
 

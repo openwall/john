@@ -432,7 +432,7 @@ __constant uint rs_poly_const[] = { 0, 0x14d };
 __constant uint rs_poly_div_const[] = { 0, 0xa6 };
 
 inline
-void Twofish_prepare_key(__private Byte key[], int key_len, Twofish_key *xkey)
+void Twofish_prepare_key(Byte *key, int key_len, Twofish_key *xkey)
 {
 	Byte K[32 + 32 + 4] = { 0 };
 

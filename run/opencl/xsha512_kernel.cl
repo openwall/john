@@ -21,7 +21,7 @@ typedef struct {
 inline void xsha512(__global const char *password, uint8_t pass_len,
 	__global uint64_t *hash, uint32_t offset, __constant uint32_t *salt)
 {
-	__private xsha512_ctx ctx;
+	xsha512_ctx ctx;
 	uint32_t *b32 = ctx.buffer;
 
 	//set salt to buffer
@@ -61,7 +61,7 @@ inline void xsha512(__global const char *password, uint8_t pass_len,
 	uint64_t g = 0x1f83d9abfb41bd6bUL;
 	uint64_t h = 0x5be0cd19137e2179UL;
 
-	__private uint64_t w[16];
+	uint64_t w[16];
 
 	uint64_t *data = (uint64_t *) ctx.buffer;
 

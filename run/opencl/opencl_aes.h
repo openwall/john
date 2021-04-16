@@ -13,10 +13,10 @@
 #include "opencl_misc.h"
 
 /*
- * These all default to __private but can be e.g. __global or __constant
+ * These all default to private (generic) but can be e.g. __global or __constant
  */
 #ifndef AES_KEY_TYPE
-#define AES_KEY_TYPE __private const
+#define AES_KEY_TYPE const
 #endif
 
 #if defined(AES_SRC_TYPE) || defined(AES_DST_TYPE)
@@ -24,19 +24,19 @@
 #endif
 
 #ifndef AES_SRC_TYPE
-#define AES_SRC_TYPE __private const
+#define AES_SRC_TYPE const
 #endif
 
 #ifndef AES_DST_TYPE
-#define AES_DST_TYPE __private
+#define AES_DST_TYPE
 #endif
 
 #ifndef AES_CTS_SRC_TYPE
-#define AES_CTS_SRC_TYPE __private const
+#define AES_CTS_SRC_TYPE const
 #endif
 
 #ifndef AES_CTS_DST_TYPE
-#define AES_CTS_DST_TYPE __private
+#define AES_CTS_DST_TYPE
 #endif
 
 #define AES_BLOCK_SIZE 16

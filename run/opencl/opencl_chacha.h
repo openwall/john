@@ -12,6 +12,25 @@
 
 #include "opencl_misc.h"
 
+/*
+ * These all default to private (generic) but can be e.g. __global or __constant
+ */
+#ifndef CHACHA_KEY_TYPE
+#define CHACHA_KEY_TYPE const
+#endif
+
+#ifndef CHACHA_IV_TYPE
+#define CHACHA_IV_TYPE const
+#endif
+
+#ifndef CHACHA_SRC_TYPE
+#define CHACHA_SRC_TYPE const
+#endif
+
+#ifndef CHACHA_DST_TYPE
+#define CHACHA_DST_TYPE
+#endif
+
 typedef struct chacha_ctx_s {
 	uint input[16];
 } chacha_ctx;
@@ -59,7 +78,7 @@ __constant char sigma[16] = "expand 32-byte k";
 __constant char tau[16] = "expand 16-byte k";
 
 inline
-void chacha_keysetup(chacha_ctx *x, const uchar *k, uint kbits)
+void chacha_keysetup(chacha_ctx *x, CHACHA_KEY_TYPE uchar *k, uint kbits)
 {
 	__constant char *constants;
 
@@ -84,8 +103,7 @@ void chacha_keysetup(chacha_ctx *x, const uchar *k, uint kbits)
 }
 
 inline
-void chacha_ivsetup(chacha_ctx *x, const uchar *iv, const uchar *counter,
-                    uint length)
+void chacha_ivsetup(chacha_ctx *x, CHACHA_IV_TYPE uchar *iv, const uchar *counter, uint length)
 {
 	if (length == 0 || length == 8) {
 		x->input[12] = !counter ? 0 : U8TO32_LITTLE(counter + 0);
@@ -101,7 +119,7 @@ void chacha_ivsetup(chacha_ctx *x, const uchar *iv, const uchar *counter,
 }
 
 inline
-void chacha_encrypt_bytes(chacha_ctx *x, const uchar *m, uchar *c, uint bytes)
+void chacha_encrypt_bytes(chacha_ctx *x, CHACHA_SRC_TYPE uchar *m, CHACHA_DST_TYPE uchar *c, uint bytes)
 {
 	uint x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15;
 	uint j0, j1, j2, j3, j4, j5, j6, j7, j8, j9, j10, j11, j12, j13, j14, j15;
@@ -236,8 +254,7 @@ void chacha_encrypt_bytes(chacha_ctx *x, const uchar *m, uchar *c, uint bytes)
 }
 
 inline
-void chacha_decrypt_bytes(chacha_ctx *x, const uchar *c, uchar *m,
-                          uint bytes)
+void chacha_decrypt_bytes(chacha_ctx *x, CHACHA_SRC_TYPE uchar *c, CHACHA_DST_TYPE uchar *m, uint bytes)
 {
 	chacha_encrypt_bytes(x, c, m, bytes);
 }
