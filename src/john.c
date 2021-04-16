@@ -140,6 +140,7 @@ static int john_omp_threads_new;
 #endif
 #endif
 #include "omp_autotune.h"
+#include "color.h"
 
 extern int dynamic_Register_formats(struct fmt_main **ptr);
 
@@ -1566,6 +1567,7 @@ static void john_init(char *name, int argc, char **argv)
 			cfg_init(CFG_FULL_NAME, 0);
 		}
 	}
+	color_init();
 
 #if HAVE_OPENCL
 	gpu_id = NO_GPU;

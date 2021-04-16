@@ -122,7 +122,8 @@ JOHN_OBJS = \
 	c3_fmt.o \
 	lzma/LzmaDec.o lzma/Lzma2Dec.o lzma/Bra.o lzma/Bra86.o lzma/BraIA64.o lzma/CpuArch.o lzma/Delta.o \
 	unique.o gpg2john.o \
-	showformats.o
+	showformats.o \
+	color.o
 
 OCL_OBJS = opencl_common.o opencl_dynamic_loader.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 

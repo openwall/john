@@ -57,6 +57,7 @@
 #ifndef BENCH_BUILD
 #include "options.h"
 #include "status.h"
+#include "color.h"
 #else
 /*
  * This code was copied from loader.c.  It has been stripped to bare bones
@@ -447,7 +448,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 				dbsalt->hash = NULL;
 			}
 		} else {
-			puts("Warning: Could not find salt in db");
+			puts_color(color_warning, "Warning: Could not find salt in db");
 			two_salts_db[index] = test_db->salts;
 		}
 #endif
@@ -704,7 +705,7 @@ int benchmark_all(void)
 #ifndef BENCH_BUILD
 #if defined(WITH_ASAN) || defined(WITH_UBSAN) || defined(DEBUG)
 	if (benchmark_time)
-		puts("NOTE: This is a debug build, speed will be lower than normal");
+		puts_color(color_notice, "NOTE: This is a debug build, speed will be lower than normal");
 #endif
 
 	if ((options.flags & FLG_LOOPTEST_CHK) && system("which nvidia-smi >/dev/null") == 0) {
@@ -880,7 +881,7 @@ AGAIN:
 
 #ifndef BENCH_BUILD
 		if ((result = fmt_self_test(format, test_db))) {
-			printf("FAILED (%s)\n", result);
+			printf_color(color_error, "FAILED (%s)\n", result);
 			failed++;
 			goto next;
 		}
@@ -909,7 +910,7 @@ AGAIN:
 				unsigned int cost;
 
 				if (format->methods.tunable_cost_value[i] == NULL) {
-					printf("FAILED (cost %d not defined for format)\n\n", i);
+					printf_color(color_error, "FAILED (cost %d not defined for format)\n", i);
 					failed++;
 					goto next;
 				}
@@ -932,7 +933,7 @@ AGAIN:
 		}
 
 		if (pruned && !format->params.tests->ciphertext) {
-			printf("FAILED (--cost pruned all %d test vectors)\n\n", pruned);
+			printf_color(color_error, "FAILED (--cost pruned all %d test vectors)\n", pruned);
 			failed++;
 			goto next;
 		}

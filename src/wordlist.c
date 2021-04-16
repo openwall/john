@@ -75,6 +75,7 @@
 #include "mask.h"
 #include "pseudo_intrinsics.h"
 #include "mgetl.h"
+#include "color.h"
 
 static int dist_rules;
 
@@ -110,7 +111,7 @@ static int restore_rule_number(void)
 	if (rule_ctx)
 	for (rule_number = 0; rule_number < rec_rule; rule_number++)
 	if (!rpp_next(rule_ctx)) {
-		fprintf(stderr, "Restored rule number is out of range - "
+		fprintf_color(color_error, stderr, "Restored rule number is out of range - "
 		    "has the configuration file changed?\n");
 		return 1;
 	}
@@ -148,7 +149,7 @@ static void restore_line_number(void)
 	if (skip_lines(rec_pos, line)) {
 		if (ferror(word_file))
 			pexit("fgets");
-		fprintf(stderr, "fgets: Unexpected EOF\n");
+		fprintf_color(color_error, stderr, "fgets: Unexpected EOF\n");
 		error();
 	}
 }
@@ -323,14 +324,14 @@ static MAYBE_INLINE void check_bom(char *line)
 		if (options.input_enc == UTF_8)
 			memmove(line, line + 3, strlen(line) - 2);
 		else if (!warned++)
-			fprintf(stderr, "Warning: UTF-8 BOM seen in wordlist. You probably want --input-encoding=UTF8\n");
+			fprintf_color(color_warning, stderr, "Warning: UTF-8 BOM seen in wordlist. You probably want --input-encoding=UTF8\n");
 	}
 
 	if (options.input_enc == UTF_8  && (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2))) {
 		static int warned;
 
 		if (!warned++)
-			fprintf(stderr,
+			fprintf_color(color_warning, stderr,
 			        "Warning: UTF-16 BOM seen in wordlist. File may not be read properly unless you re-encode it\n");
 	}
 }
@@ -622,7 +623,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 #if OS_FORK
 		if (options.fork && file_is_fifo) {
 			if (john_main_process)
-				fprintf(stderr, "Error, cannot use --fork with FIFO as wordlist file.\n");
+				fprintf_color(color_error, stderr, "Error, cannot use --fork with FIFO as wordlist file.\n");
 			error();
 		}
 #endif
@@ -643,7 +644,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 		jtr_fseek64(word_file, 0, SEEK_SET);
 		if (file_len == 0 && !loopBack) {
 			if (john_main_process)
-				fprintf(stderr, "Error, wordlist file is empty\n");
+				fprintf_color(color_error, stderr, "Error, wordlist file is empty\n");
 			error();
 		}
 
@@ -720,7 +721,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 						word_file_str[i++] = '\n';
 					}
 					if (i > my_size) {
-						fprintf(stderr,
+						fprintf_color(color_error, stderr,
 						        "Error: wordlist grew "
 						        "as we read it - "
 						        "aborting\n");
@@ -728,7 +729,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 					}
 				}
 				if (nWordFileLines != myWordFileLines)
-					fprintf(stderr, "Warning: wordlist changed as"
+					fprintf_color(color_warning, stderr, "Warning: wordlist changed as"
 					        " we read it\n");
 				log_event("- Loaded this node's share of "
 				          "wordlist %s into memory "
@@ -764,7 +765,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 				          word_file) != file_len) {
 					if (ferror(word_file))
 						pexit("fread");
-					fprintf(stderr,
+					fprintf_color(color_error, stderr,
 					        "fread: Unexpected EOF\n");
 					error();
 				}
@@ -772,7 +773,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 					static int warned;
 
 					if (!warned++)
-						fprintf(stderr, "Warning: Wordlist contains NUL bytes, lines may be truncated.\n");
+						fprintf_color(color_warning, stderr, "Warning: Wordlist contains NUL bytes, lines may be truncated.\n");
 				}
 			}
 			aep = word_file_str + file_len;
@@ -826,7 +827,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			{
 				char *ep, ec;
 				if (i > nWordFileLines) {
-					fprintf(stderr, "Warning: wordlist "
+					fprintf_color(color_warning, stderr, "Warning: wordlist "
 					        "contains inconsequent "
 					        "newlines, some words may be "
 					        "skipped\n");
@@ -1033,7 +1034,7 @@ REDO_AFTER_LMLOOP:
 			if (john_main_process) {
 				log_event("! No \"%s\" mode rules found",
 				          options.activewordlistrules);
-				fprintf(stderr, "No \"%s\" mode rules found in %s\n",
+				fprintf_color(color_error, stderr, "No \"%s\" mode rules found in %s\n",
 				        options.activewordlistrules, cfg_name);
 			}
 			error();
