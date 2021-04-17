@@ -15,7 +15,12 @@
 #include "../run/opencl/opencl_DES_hst_dev_shared.h"
 #include "mask_ext.h"
 
-#define CONFIG_FILE 	"$JOHN/opencl/DES_bs_kernel_b_%s.config"
+#if JOHN_SYSTEMWIDE
+#define CONFIG_FILE	JOHN_PRIVATE_HOME "/opencl/DES_bs_kernel_b_%s.config"
+#else
+#define CONFIG_FILE	"$JOHN/opencl/DES_bs_kernel_b_%s.config"
+#endif
+
 #define PADDING 	2048
 
 static cl_kernel **kernels;
