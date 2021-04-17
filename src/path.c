@@ -78,6 +78,13 @@ void path_init(char **argv)
 		if (errno != EEXIST) pexit("mkdir: %s", private);
 	} else
 		fprintf(stderr, "Created directory: %s\n", private);
+#if HAVE_OPENCL
+	private = path_expand(JOHN_PRIVATE_HOME "/opencl");
+	if (mkdir(private, S_IRUSR | S_IWUSR | S_IXUSR)) {
+		if (errno != EEXIST) pexit("mkdir: %s", private);
+	} else
+		fprintf(stderr, "Created directory: %s\n", private);
+#endif
 #endif
 #else
 	if (argv[0]) {
