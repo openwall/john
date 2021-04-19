@@ -1544,8 +1544,12 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 
 		int prof_bug = 0;
 
-		HANDLE_CLERROR(clWaitForEvents(1, multi_profilingEvent[i]),
-		               "clWaitForEvents");
+		if (clWaitForEvents(1, multi_profilingEvent[i]) != CL_SUCCESS) {
+			if (options.verbosity > VERB_LEGACY)
+				fprintf(stderr, "Profiling errors; Skipping results\n");
+			return 0;
+		}
+
 		HANDLE_CLERROR(clGetEventProfilingInfo(*multi_profilingEvent[i],
 		                                       CL_PROFILING_COMMAND_SUBMIT,
 		                                       sizeof(cl_ulong), &submitTime,
@@ -1731,41 +1735,47 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		self->methods.cmp_all(binary, result);
 	uint64_t wc_end = john_get_nano();
 
-	HANDLE_CLERROR(clWaitForEvents(1, &benchEvent[main_opencl_event]),
-	               "clWaitForEvents");
-	HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish");
-	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
-	                                       CL_PROFILING_COMMAND_SUBMIT,
-	                                       sizeof(cl_ulong), &submitTime, NULL),
-	               "clGetEventProfilingInfo submit");
-	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
-	                                       CL_PROFILING_COMMAND_START,
-	                                       sizeof(cl_ulong), &startTime, NULL),
-	               "clGetEventProfilingInfo start");
-	HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
-	                                       CL_PROFILING_COMMAND_END,
-	                                       sizeof(cl_ulong), &endTime, NULL),
-	               "clGetEventProfilingInfo end");
-
-	/*
-	 * Work around driver bugs. Problems seen with old AMD and Apple M1.
-	 * If startTime looks b0rken we use submitTime instead
-	 */
-	if ((endTime - submitTime) > 10 * (endTime - startTime)) {
+	if ((clWaitForEvents(1, &benchEvent[main_opencl_event]) != CL_SUCCESS) ||
+	    (clFinish(queue[sequential_id]) != CL_SUCCESS)) {
 		if (options.verbosity > VERB_LEGACY)
-			fprintf(stderr, "Note: Profiling timers seem buggy\n");
-		startTime = submitTime;
-	}
-	/*
-	 * For numloops enumeration, we even double-check with wall clock time
-	 * and if it drastically differs from the profile timer, use the former
-	 * so we don't end up with a huge numloops where inappropriate.
-	 */
-	if ((wc_end - wc_start) > 10 * (endTime - startTime)) {
-		if (options.verbosity > VERB_LEGACY)
-			fprintf(stderr, "Note: Profiling timers seem to be way off\n");
+			fprintf(stderr, "Profiling errors; Using wall-clock time instead\n");
 		startTime = wc_start;
 		endTime = wc_end;
+	} else {
+		HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
+		                                       CL_PROFILING_COMMAND_SUBMIT,
+		                                       sizeof(cl_ulong), &submitTime, NULL),
+		               "clGetEventProfilingInfo submit");
+		HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
+		                                       CL_PROFILING_COMMAND_START,
+		                                       sizeof(cl_ulong), &startTime, NULL),
+		               "clGetEventProfilingInfo start");
+		HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent[main_opencl_event],
+		                                       CL_PROFILING_COMMAND_END,
+		                                       sizeof(cl_ulong), &endTime, NULL),
+		               "clGetEventProfilingInfo end");
+
+		/*
+		 * Work around driver bugs. Problems seen with old AMD and Apple M1.
+		 * If startTime looks b0rken we use submitTime instead
+		 */
+		if ((endTime - submitTime) > 10 * (endTime - startTime)) {
+			if (options.verbosity > VERB_LEGACY)
+				fprintf(stderr, "Note: Profiling timers seem buggy\n");
+			startTime = submitTime;
+		}
+
+		/*
+		 * For numloops enumeration, we even double-check with wall clock time
+		 * and if it drastically differs from the profile timer, use the former
+		 * so we don't end up with a huge numloops where inappropriate.
+		 */
+		if ((wc_end - wc_start) > 10 * (endTime - startTime)) {
+			if (options.verbosity > VERB_LEGACY)
+				fprintf(stderr, "Note: Profiling timers seem to be way off\n");
+			startTime = wc_start;
+			endTime = wc_end;
+		}
 	}
 
 	cl_ulong roundup = endTime - startTime - 1;
@@ -1815,9 +1825,14 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 				break;
 			}
 
-			HANDLE_CLERROR(clWaitForEvents(1, &benchEvent[main_opencl_event]),
-			               "clWaitForEvents");
-			HANDLE_CLERROR(clFinish(queue[sequential_id]), "clFinish");
+			if ((clWaitForEvents(1, &benchEvent[main_opencl_event]) != CL_SUCCESS) ||
+			    (clFinish(queue[sequential_id]) != CL_SUCCESS)) {
+				if (options.verbosity > VERB_LEGACY)
+					fprintf(stderr, "Profiling errors; Skipping results\n");
+				startTime = endTime = 0;
+				break;
+			}
+
 			HANDLE_CLERROR(clGetEventProfilingInfo(benchEvent
 				[main_opencl_event], CL_PROFILING_COMMAND_SUBMIT,
 				sizeof(cl_ulong), &submitTime, NULL),
