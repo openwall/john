@@ -497,6 +497,9 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 		else if (cs->type != 3 || !cs->has_extra)
 			*result = 1;
 		else {
+#if __OS_X__
+			uint W[64/4]; /* Driver bug workaround for Apple w/ Vega */
+#endif
 			for (i = 0; i < 5; i++)
 				W[i] = key2[i];
 			W[5] = 0x01000000;
