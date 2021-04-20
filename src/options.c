@@ -116,8 +116,6 @@ static struct opt_entry opt_list[] = {
 	{"subsets-max-diff", FLG_ONCE, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM, "%u", &options.subset_max_diff},
 	{"rain", FLG_RAIN_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC, &options.rain_full},
-	{"tacking", FLG_TACKING_SET, FLG_CRACKING_CHK,
-		0, 0, OPT_FMT_STR_ALLOC, &options.tacking_full},
 	{"subsets-prefer-short", FLG_SUBSETS_SHORT, FLG_SUBSETS_SHORT, FLG_SUBSETS_CHK, FLG_SUBSETS_SMALL},
 	{"subsets-prefer-small", FLG_SUBSETS_SMALL, FLG_SUBSETS_SMALL, FLG_SUBSETS_CHK, FLG_SUBSETS_SHORT},
 	{"no-mask", FLG_NO_MASK_BENCH, FLG_NO_MASK_BENCH, FLG_TEST_CHK, FLG_MASK_CHK},
@@ -297,8 +295,6 @@ JOHN_USAGE_REGEX \
 "--subsets[=CHARSET]        \"Subsets\" mode (see doc/SUBSETS)\n" \
 "--subsets-required=N       The N first characters of \"subsets\" charset are\n" \
 "--rain[=CHARSET]           \"rain\" mode\n" \
-"--tacking[=CHARSET]        \"tacking\" mode\n" \
-"                           the \"required set\"\n" \
 "--subsets-min-diff=N       Minimum unique characters in subset\n" \
 "--subsets-max-diff=[-]N    Maximum unique characters in subset (negative N is\n" \
 "                           relative to word length)\n" \

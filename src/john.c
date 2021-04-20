@@ -1806,9 +1806,6 @@ static void john_run(void)
 		if (options.flags & FLG_RAIN_CHK)
 			do_rain_crack(&database, options.rain_full);
 		else
-		if (options.flags & FLG_TACKING_CHK)
-			do_tacking_crack(&database, options.tacking_full);
-		else
 #if HAVE_REXGEN
 		if ((options.flags & FLG_REGEX_CHK) &&
 		    !(options.flags & FLG_REGEX_STACKED))

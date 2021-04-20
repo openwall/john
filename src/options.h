@@ -191,9 +191,6 @@
 #define FLG_RAIN_CHK			0x8000000000000000ULL
 #define FLG_RAIN_SET			(FLG_RAIN_CHK | FLG_CRACKING_SET)
 
-#define FLG_TACKING_CHK			0x0000000000000010ULL//flags seems to be free
-#define FLG_TACKING_SET			(FLG_TACKING_CHK | FLG_CRACKING_SET) 
-
 /*
  * Macro for getting correct node number regardless of if MPI or not
  */
@@ -456,9 +453,8 @@ struct options_main {
 	int log_stderr;
 /* Emit a status line for every password cracked */
 	int crack_status;
-/* Rain and Tacking full charsets */
+/* Rain full charsets */
 	char *rain_full;
-	char *tacking_full;
 };
 
 extern struct options_main options;
