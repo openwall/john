@@ -544,23 +544,6 @@ static void john_fork(void)
 
 		case 0:
 			sig_preinit();
-#if HAVE_OPENCL
-			/* Poor man's multi-device support */
-			if (options.acc_devices->count &&
-			    strstr(database.format->params.label, "-opencl")) {
-				/* Postponed format init in forked process */
-				fmt_init(database.format);
-			}
-#endif
-#if HAVE_ZTEX
-			if (strstr(database.format->params.label, "-ztex")) {
-				list_init(&ztex_use_list);
-				list_extract_list(ztex_use_list, ztex_detected_list,
-					i * ztex_devices_per_fork, ztex_devices_per_fork);
-				ztex_fork_num = i;
-				usleep(i * 100000);
-			}
-#endif
 			if (rec_restoring_now) {
 				unsigned int save_min = options.node_min;
 				unsigned int save_max = options.node_max;
@@ -579,6 +562,23 @@ static void john_fork(void)
 			}
 			options.node_min += i * npf;
 			options.node_max = options.node_min + npf - 1;
+#if HAVE_OPENCL
+			/* Poor man's multi-device support */
+			if (options.acc_devices->count &&
+			    strstr(database.format->params.label, "-opencl")) {
+				/* Postponed format init in forked process */
+				fmt_init(database.format);
+			}
+#endif
+#if HAVE_ZTEX
+			if (strstr(database.format->params.label, "-ztex")) {
+				list_init(&ztex_use_list);
+				list_extract_list(ztex_use_list, ztex_detected_list,
+					i * ztex_devices_per_fork, ztex_devices_per_fork);
+				ztex_fork_num = i;
+				usleep(i * 100000);
+			}
+#endif
 			sig_init_child();
 			return;
 
