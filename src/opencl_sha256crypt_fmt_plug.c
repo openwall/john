@@ -543,7 +543,7 @@ static int cmp_exact(char *source, int count)
 static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	int count = *pcount;
-	int i, index;
+	int index;
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
@@ -587,9 +587,10 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		                                     NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]),
 		              "failed in clEnqueueNDRangeKernel II");
 
-		for (i = 0;
-		        i < (ocl_autotune_running ? 3 : (salt->rounds / HASH_LOOPS));
-		        i++) {
+		unsigned int i, iterations;
+		iterations = ocl_autotune_running ? 3 : (salt->rounds / HASH_LOOPS);
+
+		for (i = 0; i < iterations; i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 			                                     &gws, lws, 0, NULL, (ocl_autotune_running ?
 			                                             multi_profilingEvent[split_events[i]] : NULL)),  //1, 5, 6
