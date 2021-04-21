@@ -79,6 +79,8 @@ john_register_one(&fmt_opencl_bitcoin);
 #define SZ                      128
 
 static struct fmt_tests bitcoin_tests[] = {
+	/* retroactively added hashcat's test vector for benchmark compatibility */
+	{"$bitcoin$96$c265931309b4a59307921cf054b4ec6b6e4554369be79802e94e16477645777d948ae1d375191831efc78e5acd1f0443$16$8017214013543185$200460$96$480008005625057442352316337722323437108374245623701184230273883222762730232857701607167815448714$66$014754433300175043011633205413774877455616682000536368706315333388", "hashcat"},
 	/* bitcoin wallet hashes */
 	{"$bitcoin$96$169ce74743c260678fbbba92e926198702fd84e46ba555190f6f3d82f6852e4adeaa340d2ac065288e8605f13d1d7c86$16$26049c64dda292d5$177864$96$62aee49c1967b5635b663fc3b047d8bc562f7000921453ab15b98e5a5f2d2adc74393e789fe15c5a3fbc4625536be98a$66$020027f255fbfa6d4c010a1a5984e487443c68e1b32869ccfde92e92005814fd27", "openwall"},
 	{"$bitcoin$96$bd97a08e00e38910550e76848949285b9702fe64460f70d464feb2b63f83e1194c745e58fa4a0f09ac35e5777c507839$16$26049c64dda292d5$258507$96$62aee49c1967b5635b663fc3b047d8bc562f7000921453ab15b98e5a5f2d2adc74393e789fe15c5a3fbc4625536be98a$66$020027f255fbfa6d4c010a1a5984e487443c68e1b32869ccfde92e92005814fd27", "password"},
@@ -210,7 +212,7 @@ static void reset(struct db_main *db)
 	                       sizeof(hash512_t), 0, db);
 
 	// Auto tune execution from shared/included code, 200ms crypt_all() max.
-	autotune_run(self, 177864 /* first test vector's iteration count */, 0, 200);
+	autotune_run(self, 200460 /* first test vector's iteration count */, 0, 200);
 }
 
 static void done(void)
