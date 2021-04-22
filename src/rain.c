@@ -51,13 +51,10 @@ static uint64_t subtotal;
 static int loop;
 static int rec_loop;
 
-static int C;
-static int rec_C;
-
 static uint_big counter;//linear counter
 static uint_big rec_counter;
 static uint_big x;
-static int l, c;
+static int l;
 
 static int quick_conversion;
 static int set, rec_set;
@@ -78,16 +75,14 @@ static double get_progress(void)
 static void fix_state(void)
 {
 	int i, j;
-	
 	rec_set = set;
-	for (i = 0; i <= maxlength - minlength; ++i) {
+	for (i = 0; i <= maxlength - 1; ++i) {
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
 	rec_cur_len = rain_cur_len;
 	rec_counter = x;
 	rec_loop = l;
-	rec_C = c;
 }
 
 static uint_big powi(uint32_t b, uint32_t p)
@@ -118,7 +113,6 @@ static void big2str(uint_big orig, char *str) {
 		total += (b % 10) * powi(10, c);
 		b /= 10;
 		++c;
-		
 	} while(total < orig);
 	
 	char tmp[c/2];
@@ -152,7 +146,7 @@ static void save_state(FILE *file)
 	char str[40];
 	memset(str, 0, 40);
 	fprintf(file, "%d\n", rec_set);
-	for (i = 0; i <= maxlength - minlength; ++i) {
+	for (i = 0; i <= maxlength - 1; ++i) {
 		for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
@@ -160,7 +154,6 @@ static void save_state(FILE *file)
 	big2str(rec_counter, str);
 	fprintf(file, "%s\n", str);
 	fprintf(file, "%d\n", rec_loop);
-	fprintf(file, "%d\n", rec_C);
 }
 static int restore_state(FILE *file)
 {
@@ -187,10 +180,6 @@ static int restore_state(FILE *file)
 	
 	if(fscanf(file, "%d\n", &d) == 1)
 		loop = d;
-	else return 1;
-	
-	if(fscanf(file, "%d\n", &d) == 1)
-		C = d;
 	else return 1;
 	
 	state_restored = 1;
@@ -289,7 +278,7 @@ static int submit(UTF32 *word, int loop2)
 
 int do_rain_crack(struct db_main *db, char *req_charset)
 {
-	int i, j;
+	int i;
 	int cp_max = 255;
 
 	unsigned int charcount;
@@ -390,65 +379,52 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	}
 	if(!state_restored) {
 		rain_cur_len = minlength;
-		srand(time(NULL));
-		loop = 0;
-		counter = 0;
-		C = 1;
-		for(i = 0; i <= maxlength - minlength; i++) {
-			for (j = 0; j < maxlength; j++)
-				charset_idx[i][j] = 0;
-		}
+  		//srand(time(NULL));
 	}
+
 	int mod = 2 - charcount % 2;
 	crk_init(db, fix_state, NULL);
-    int C;
     int rain = mod;
-    for(C = 1; C <= charcount; C++) { 
-	    for(l=loop; l <= maxlength-minlength; ++l) {
-	        if(event_abort) break;
-		    uint_big total = powi(C, minlength+l);
-            subtotal = 0;
-            if(l > 0)
-            	subtotal = powi(C, minlength+l-1);
-            for(x = counter; x < total-subtotal; ++x) {		         
-        		if(event_abort) break;
-            	int loop2;
-            	for(loop2 = l; loop2 <= maxlength-minlength; ++loop2) {	
-                	if(event_abort) break;
+    for(l=loop; l <= maxlength-minlength; ++l) {
+        if(event_abort) break;
+        uint_big total = powi(charcount, minlength+l);
+        subtotal = 0;
+        if(l > 0)
+        	subtotal = powi(charcount, minlength+l-1);
+    
+        for(x = counter; x < total-subtotal; ++x) {		         
+    		if(event_abort) break;
+        	int loop2;
+        	for(loop2 = l; loop2 <= maxlength-minlength; ++loop2) {	
+            	if(event_abort) break;
+           		int skip = 0;
+                if (state_restored)
+	                state_restored = 0;
+                else
+                	set++;
 
-               		int skip = 0;
-
-                    if (state_restored)
-			            state_restored = 0;
-                    else
-                    	set++;
-
-                    if (options.node_count) {
-                    	int for_node = set % options.node_count + 1;
-                    	skip = for_node < options.node_min || for_node > options.node_max;
-                    }
-                    int mpl = minlength + loop2;
-                    int done = 0;
-                    
-                    if(!skip) {
-                    	quick_conversion = 1;
-                    	for(i=0; i<mpl; ++i) {
-                 			if((word[i] = charset_utf32[charset_idx[loop2][i]]) > cp_max)
-                            	quick_conversion = 0;
-                    	}
-                    }
+                if (options.node_count) {
+                	int for_node = set % options.node_count + 1;
+                	skip = for_node < options.node_min || for_node > options.node_max;
+                }
+                int mpl = minlength + loop2;
+                if(!skip) {
+                	quick_conversion = 1;
                 	for(i=0; i<mpl; ++i) {
-            			if(++charset_idx[loop2][i] >= C) {
-                			charset_idx[loop2][i] = 0;
-                			done = 1;
-                			break;
-                        }
+             			if((word[i] = charset_utf32[(charset_idx[loop2][i])]) > cp_max)
+                        	quick_conversion = 0;
+                	}
+                }
+                for(i=0; i<mpl; ++i) {
+        			if(++charset_idx[loop2][i] >= charcount) {
+            			charset_idx[loop2][i] = 0;
+            			break;
                     }
-                    if(done)
-                        submit(word, loop2);
-	            }
+                }
+                submit(word, loop2);
             }
-    	}
+            rain_cur_len++;
+        }
     }
 	crk_done();
 	rec_done(event_abort);

@@ -1,4 +1,5 @@
 #rain module by owein, yvain29@gmail.com
 Use with -rain=charset and a mask for performances.
 Use in last resort for long and complex passwords.
-Position of the characters in the set impacts their frequency.
+
+In fact don't use it at all, restore doesn't work and I got no support from devs.
