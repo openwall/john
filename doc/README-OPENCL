@@ -17,8 +17,9 @@ distribution, only the vendor-supplied drivers support OpenCL.  Either
 install fglrx (for old AMD cards) or nvidia dkms package or go directly
 with the ones provided by nvidia and ATI.
 
-Notice: Beignet, Mesa, and POCL are not officially supported, but may
-be usable in some OpenCL formats.
+Notice: Beignet and Mesa are not officially supported, but may be usable
+with some OpenCL formats.  POCL on the other hand has now been seen passing
+all self-tests (tested on Ubuntu 20.04 with bleeding-jumbo as of 2021/04/22).
 
 You can also use OpenCL with CPU, mostly useful if you have several
 (or loads of) cores.  This sometimes outperforms the CPU-only formats
