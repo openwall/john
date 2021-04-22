@@ -46,7 +46,7 @@ typedef struct {
 // Slower on CPU
 // 40% faster on Intel HD4000
 // Bugs out on nvidia
-#if !__CPU__ && !gpu_nvidia(DEVICE_INFO)
+#if __POCL__ || (!__CPU__ && !gpu_nvidia(DEVICE_INFO))
 #define LEAN
 #endif
 

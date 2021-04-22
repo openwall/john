@@ -11,10 +11,10 @@ typedef unsigned WORD vtype;
  * Nvidia can build either kernel but GTX980 is significantly faster with the
  * "safe goto" version (7% faster for one salt, 16% for many salts).
  *
- * OSX' Intel HD4000 driver [1.2(Sep25 2014 22:26:04)] fails building the
- * "fast goto" version.
+ * macOS in general has problems building the "fast goto" version, and the
+ * same goes for MESA and POCL.
  */
-#if nvidia_sm_5x(DEVICE_INFO) || gpu_intel(DEVICE_INFO) || __MESA__ ||  \
+#if nvidia_sm_5x(DEVICE_INFO) || __OS_X__ || __MESA__ || __POCL__ || \
 	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1573 && !defined(__Tahiti__)) || \
 	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1702)
 //#warning Using 'safe goto' kernel
