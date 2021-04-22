@@ -638,22 +638,22 @@ inline void sha512_crypt_full(
 #elif (UNROLL_LOOP & (1 << 19))
     #pragma unroll 2
 #endif
-    for (uint i = 0U; i < HASH_LOOPS; i++) {
+    for (uint i = 0U, z = 0U; i < HASH_LOOPS; i++) {
 
         if (i & 1) {
 	    #pragma unroll
 	    for (uint32_t j = 8U; j < 16U; j++)
 		w[j] = 0;
 
-            w[0] = work_memory[OFFSET(loop_index[i], 0)];
-            w[1] = work_memory[OFFSET(loop_index[i], 1)];
-            w[2] = work_memory[OFFSET(loop_index[i], 2)];
-            w[3] = work_memory[OFFSET(loop_index[i], 3)];
-            w[4] = work_memory[OFFSET(loop_index[i], 4)];
-            w[5] = work_memory[OFFSET(loop_index[i], 5)];
-            w[6] = work_memory[OFFSET(loop_index[i], 6)];
-            w[7] = work_memory[OFFSET(loop_index[i], 7)];
-            total = work_memory[OFFSET(loop_index[i], 8)];
+            w[0] = work_memory[OFFSET(loop_index[z], 0)];
+            w[1] = work_memory[OFFSET(loop_index[z], 1)];
+            w[2] = work_memory[OFFSET(loop_index[z], 2)];
+            w[3] = work_memory[OFFSET(loop_index[z], 3)];
+            w[4] = work_memory[OFFSET(loop_index[z], 4)];
+            w[5] = work_memory[OFFSET(loop_index[z], 5)];
+            w[6] = work_memory[OFFSET(loop_index[z], 6)];
+            w[7] = work_memory[OFFSET(loop_index[z], 7)];
+            total = work_memory[OFFSET(loop_index[z], 8)];
 
 	    {
 		uint32_t tmp, pos;
@@ -680,15 +680,15 @@ inline void sha512_crypt_full(
             w[5] = H[5];
             w[6] = H[6];
             w[7] = H[7];
-	    w[8] = work_memory[OFFSET(loop_index[i], 0)];
-	    w[9] = work_memory[OFFSET(loop_index[i], 1)];
-	    w[10] = work_memory[OFFSET(loop_index[i], 2)];
-	    w[11] = work_memory[OFFSET(loop_index[i], 3)];
-	    w[12] = work_memory[OFFSET(loop_index[i], 4)];
-	    w[13] = work_memory[OFFSET(loop_index[i], 5)];
-	    w[14] = work_memory[OFFSET(loop_index[i], 6)];
-	    w[15] = work_memory[OFFSET(loop_index[i], 7)];
-            total = 64U + work_memory[OFFSET(loop_index[i], 8)];
+	    w[8] = work_memory[OFFSET(loop_index[z], 0)];
+	    w[9] = work_memory[OFFSET(loop_index[z], 1)];
+	    w[10] = work_memory[OFFSET(loop_index[z], 2)];
+	    w[11] = work_memory[OFFSET(loop_index[z], 3)];
+	    w[12] = work_memory[OFFSET(loop_index[z], 4)];
+	    w[13] = work_memory[OFFSET(loop_index[z], 5)];
+	    w[14] = work_memory[OFFSET(loop_index[z], 6)];
+	    w[15] = work_memory[OFFSET(loop_index[z], 7)];
+            total = 64U + work_memory[OFFSET(loop_index[z], 8)];
         }
         //Initialize CTX.
 	H[0] = H0;
@@ -715,6 +715,9 @@ inline void sha512_crypt_full(
 	    w[15] = (total * 8UL);
 	}
 	sha512_block_be(w, H);
+
+    if (++z == LOOP_SIZE)
+        z = 0;
     }
     //Push results back to global memory.
     #pragma unroll
@@ -744,22 +747,22 @@ inline void sha512_crypt_fast(
 #elif (UNROLL_LOOP & (1 << 19))
     #pragma unroll 2
 #endif
-    for (uint i = 0U; i < HASH_LOOPS; i++) {
+    for (uint i = 0U, z = 0U; i < HASH_LOOPS; i++) {
 
         if (i & 1) {
 	    #pragma unroll
 	    for (uint32_t j = 8U; j < 16U; j++)
 		w[j] = 0;
 
-            w[0] = work_memory[OFFSET(loop_index[i], 0)];
-            w[1] = work_memory[OFFSET(loop_index[i], 1)];
-            w[2] = work_memory[OFFSET(loop_index[i], 2)];
-            w[3] = work_memory[OFFSET(loop_index[i], 3)];
-            w[4] = work_memory[OFFSET(loop_index[i], 4)];
-            w[5] = work_memory[OFFSET(loop_index[i], 5)];
-            w[6] = work_memory[OFFSET(loop_index[i], 6)];
-            w[7] = work_memory[OFFSET(loop_index[i], 7)];
-            total = work_memory[OFFSET(loop_index[i], 8)];
+            w[0] = work_memory[OFFSET(loop_index[z], 0)];
+            w[1] = work_memory[OFFSET(loop_index[z], 1)];
+            w[2] = work_memory[OFFSET(loop_index[z], 2)];
+            w[3] = work_memory[OFFSET(loop_index[z], 3)];
+            w[4] = work_memory[OFFSET(loop_index[z], 4)];
+            w[5] = work_memory[OFFSET(loop_index[z], 5)];
+            w[6] = work_memory[OFFSET(loop_index[z], 6)];
+            w[7] = work_memory[OFFSET(loop_index[z], 7)];
+            total = work_memory[OFFSET(loop_index[z], 8)];
 
 	    {
 		uint32_t tmp, pos;
@@ -786,15 +789,15 @@ inline void sha512_crypt_fast(
             w[5] = H[5];
             w[6] = H[6];
             w[7] = H[7];
-	    w[8] = work_memory[OFFSET(loop_index[i], 0)];
-	    w[9] = work_memory[OFFSET(loop_index[i], 1)];
-	    w[10] = work_memory[OFFSET(loop_index[i], 2)];
-	    w[11] = work_memory[OFFSET(loop_index[i], 3)];
-	    w[12] = work_memory[OFFSET(loop_index[i], 4)];
-	    w[13] = work_memory[OFFSET(loop_index[i], 5)];
-	    w[14] = work_memory[OFFSET(loop_index[i], 6)];
-	    w[15] = work_memory[OFFSET(loop_index[i], 7)];
-            total = 64U + work_memory[OFFSET(loop_index[i], 8)];
+	    w[8] = work_memory[OFFSET(loop_index[z], 0)];
+	    w[9] = work_memory[OFFSET(loop_index[z], 1)];
+	    w[10] = work_memory[OFFSET(loop_index[z], 2)];
+	    w[11] = work_memory[OFFSET(loop_index[z], 3)];
+	    w[12] = work_memory[OFFSET(loop_index[z], 4)];
+	    w[13] = work_memory[OFFSET(loop_index[z], 5)];
+	    w[14] = work_memory[OFFSET(loop_index[z], 6)];
+	    w[15] = work_memory[OFFSET(loop_index[z], 7)];
+            total = 64U + work_memory[OFFSET(loop_index[z], 8)];
         }
         //Initialize CTX.
 	H[0] = H0;
@@ -811,6 +814,9 @@ inline void sha512_crypt_fast(
         w[15] = (total * 8UL);
 
 	sha512_block_be(w, H);
+
+    if (++z == LOOP_SIZE)
+        z = 0;
     }
     //Push results back to global memory.
     #pragma unroll
@@ -834,22 +840,22 @@ inline void sha512_crypt_f(
         H[i] = alt_result[i].mem_64[0];
 
     /* Repeatedly run the collected hash value through SHA512 to burn cycles. */
-    for (uint i = 0U; i < rounds; i++) {
+    for (uint i = 0U, z = 0U; i < rounds; i++) {
 
         if (i & 1) {
 	    #pragma unroll
 	    for (uint32_t j = 8U; j < 16U; j++)
 		w[j] = 0;
 
-            w[0] = work_memory[OFFSET(loop_index[i], 0)];
-            w[1] = work_memory[OFFSET(loop_index[i], 1)];
-            w[2] = work_memory[OFFSET(loop_index[i], 2)];
-            w[3] = work_memory[OFFSET(loop_index[i], 3)];
-            w[4] = work_memory[OFFSET(loop_index[i], 4)];
-            w[5] = work_memory[OFFSET(loop_index[i], 5)];
-            w[6] = work_memory[OFFSET(loop_index[i], 6)];
-            w[7] = work_memory[OFFSET(loop_index[i], 7)];
-            total = work_memory[OFFSET(loop_index[i], 8)];
+            w[0] = work_memory[OFFSET(loop_index[z], 0)];
+            w[1] = work_memory[OFFSET(loop_index[z], 1)];
+            w[2] = work_memory[OFFSET(loop_index[z], 2)];
+            w[3] = work_memory[OFFSET(loop_index[z], 3)];
+            w[4] = work_memory[OFFSET(loop_index[z], 4)];
+            w[5] = work_memory[OFFSET(loop_index[z], 5)];
+            w[6] = work_memory[OFFSET(loop_index[z], 6)];
+            w[7] = work_memory[OFFSET(loop_index[z], 7)];
+            total = work_memory[OFFSET(loop_index[z], 8)];
 
 	    {
 		uint32_t tmp, pos;
@@ -876,15 +882,15 @@ inline void sha512_crypt_f(
             w[5] = H[5];
             w[6] = H[6];
             w[7] = H[7];
-	    w[8] = work_memory[OFFSET(loop_index[i], 0)];
-	    w[9] = work_memory[OFFSET(loop_index[i], 1)];
-	    w[10] = work_memory[OFFSET(loop_index[i], 2)];
-	    w[11] = work_memory[OFFSET(loop_index[i], 3)];
-	    w[12] = work_memory[OFFSET(loop_index[i], 4)];
-	    w[13] = work_memory[OFFSET(loop_index[i], 5)];
-	    w[14] = work_memory[OFFSET(loop_index[i], 6)];
-	    w[15] = work_memory[OFFSET(loop_index[i], 7)];
-            total = 64U + work_memory[OFFSET(loop_index[i], 8)];
+	    w[8] = work_memory[OFFSET(loop_index[z], 0)];
+	    w[9] = work_memory[OFFSET(loop_index[z], 1)];
+	    w[10] = work_memory[OFFSET(loop_index[z], 2)];
+	    w[11] = work_memory[OFFSET(loop_index[z], 3)];
+	    w[12] = work_memory[OFFSET(loop_index[z], 4)];
+	    w[13] = work_memory[OFFSET(loop_index[z], 5)];
+	    w[14] = work_memory[OFFSET(loop_index[z], 6)];
+	    w[15] = work_memory[OFFSET(loop_index[z], 7)];
+            total = 64U + work_memory[OFFSET(loop_index[z], 8)];
         }
         //Initialize CTX.
 	H[0] = H0;
@@ -911,6 +917,9 @@ inline void sha512_crypt_f(
 	    w[15] = (total * 8UL);
 	}
 	sha512_block_be(w, H);
+
+    if (++z == LOOP_SIZE)
+        z = 0;
     }
     //Push results back to global memory.
     #pragma unroll
