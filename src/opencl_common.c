@@ -1867,6 +1867,8 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 			fprintf(stderr, " %ss%s\n", ns2string(sumRunTime),
 			    ((double)(sumRunTime) / kernelExecTimeNs < 0.997)
 			        ? "+" : "");
+		if (sumRunTime > 2 * kernelExecTimeNs)
+			break;
 		if ((double)(sumRunTime) / kernelExecTimeNs < 0.997) {
 			kernelExecTimeNs = sumRunTime;
 			optimal_work_group = my_work_group;
