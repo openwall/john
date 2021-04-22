@@ -42,7 +42,7 @@
 #define SEED                    1024
 #define STEP                    0
 
-#define HASH_LOOPS              (7*3*2)
+#define HASH_LOOPS              (7*3*2 * 25)
 
 #define KEYS_PER_CORE_CPU       128
 #define KEYS_PER_CORE_GPU       1
