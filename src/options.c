@@ -63,7 +63,8 @@ static char *costs_str;
 
 /* Common req_clr for --test, --test-full and --stress-test */
 #define TEST_REQ_CLR (~FLG_TEST_SET & ~FLG_FORMAT & ~FLG_SAVEMEM & ~FLG_MASK_CHK & ~FLG_NO_MASK_BENCH & \
-                      ~FLG_VERBOSITY & ~FLG_INPUT_ENC & ~FLG_SECOND_ENC & ~GETOPT_FLAGS & ~FLG_NOTESTS)
+                      ~FLG_VERBOSITY & ~FLG_INPUT_ENC & ~FLG_SECOND_ENC & ~GETOPT_FLAGS & ~FLG_NOTESTS & \
+                      ~FLG_SCALAR & ~FLG_VECTOR)
 
 static struct opt_entry opt_list[] = {
 	{"", FLG_PASSWD, 0, 0, 0, OPT_FMT_ADD_LIST, &options.passwd},
