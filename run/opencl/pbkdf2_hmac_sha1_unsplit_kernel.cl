@@ -27,8 +27,6 @@
 #define hmac_sha1 u_hmac_sha1
 #define big_hmac_sha1 u_big_hmac_sha1
 
-#define SHA1_DIGEST_LENGTH 20
-
 typedef struct {
 	uint  length;
 	uchar v[KEYLEN];

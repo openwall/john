@@ -31,8 +31,6 @@ typedef struct {
 	uint bin[(512 - 64) / 4];
 } tc_salt;
 
-#define RIPEMD160_DIGEST_LENGTH 20
-
 inline void preproc(__global const uchar *key, uint keylen, uint *state,
                     uint padding)
 {

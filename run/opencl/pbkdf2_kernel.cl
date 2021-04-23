@@ -8,7 +8,9 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 
+#ifndef SHA1_DIGEST_LENGTH
 #define SHA1_DIGEST_LENGTH          20
+#endif
 
 #define INIT_SHA1_A                 0x67452301
 #define INIT_SHA1_B                 0xEFCDAB89

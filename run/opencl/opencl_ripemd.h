@@ -5,6 +5,10 @@
  * forms, with or without modification, are permitted.
  */
 
+#ifndef RIPEMD160_DIGEST_LENGTH
+#define RIPEMD160_DIGEST_LENGTH 20
+#endif
+
 #undef RIPEMD_LUT3 /* No good for this format, just here for reference */
 
 #if RIPEMD_LUT3

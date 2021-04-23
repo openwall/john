@@ -29,18 +29,6 @@
 #define BINARY_SIZE_MIN         16
 #endif
 
-#ifndef SHA_DIGEST_LENGTH
-#define SHA_DIGEST_LENGTH 20
-#endif
-
-#ifndef SHA256_DIGEST_LENGTH
-#define SHA256_DIGEST_LENGTH 32
-#endif
-
-#ifndef SHA512_DIGEST_LENGTH
-#define SHA512_DIGEST_LENGTH 64
-#endif
-
 typedef union out_u {
 	uchar b[BINARY_SIZE_MIN];
 	uint w[BINARY_SIZE_MIN / sizeof(uint)];

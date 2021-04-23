@@ -15,10 +15,6 @@
 
 #include "opencl_sha2_ctx.h"
 
-#ifndef SHA512_DIGEST_LENGTH
-#define SHA512_DIGEST_LENGTH 64
-#endif
-
 typedef union hash512_u {
 	uchar b[SHA512_DIGEST_LENGTH];
 	uint w[SHA512_DIGEST_LENGTH / sizeof(uint)];
