@@ -133,7 +133,7 @@ static void adxcrypt(char *input, unsigned char *output, int16_t length)
 
 	union {
 		char b[8];
-		int32_t w[2];
+		uint32_t w[2];
 	} buffer;
 
 	// setup work buffer
