@@ -22,6 +22,7 @@
  * OpenCL format (dirty hack of the CPU format):
  *
  * Copyright (c) 2021 Solar Designer
+ * Copyright (c) 2021 magnum
  * Same cut-down BSD license as above
  */
 
@@ -35,10 +36,6 @@ john_register_one(&fmt_opencl_bitcoin);
 
 #include <stdint.h>
 #include <string.h>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include "arch.h"
 #include "misc.h"
@@ -56,11 +53,7 @@ john_register_one(&fmt_opencl_bitcoin);
 #define FORMAT_TAG              "$bitcoin$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 
-#if ARCH_BITS >= 64
-#define ALGORITHM_NAME          "SHA512 OpenCL AES 64/" ARCH_BITS_STR
-#else
-#define ALGORITHM_NAME          "SHA512 OpenCL AES 32/" ARCH_BITS_STR
-#endif
+#define ALGORITHM_NAME          "SHA512 AES OpenCL"
 
 #if !defined (SHA512_DIGEST_LENGTH)
 #define SHA512_DIGEST_LENGTH    64
@@ -106,18 +99,21 @@ static struct fmt_tests bitcoin_tests[] = {
 	{NULL}
 };
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int any_cracked, *cracked;
-static size_t cracked_size;
+static int *cracked;
 
-static struct custom_salt {
+typedef struct {
+	int len;
+	char c[PLAINTEXT_LENGTH + 1];
+} password_t;
+
+typedef struct custom_salt {
 	unsigned char cry_master[SZ];
 	int cry_master_length;
 	unsigned char cry_salt[SZ];
 	int cry_salt_length;
 	int cry_rounds;
 	int final_block_fill;
-} *cur_salt;
+} salt_t;
 
 typedef union {
 	uint8_t  b[SHA512_DIGEST_LENGTH];
@@ -125,12 +121,15 @@ typedef union {
 	uint64_t W[SHA512_DIGEST_LENGTH / sizeof(uint64_t)];
 } hash512_t;
 
+static int new_keys;
+static password_t *saved_key;
+static salt_t *cur_salt;
 static cl_int cl_error;
-static hash512_t *inoutbuffer;
-static cl_mem mem_inout;
+static cl_mem mem_in, mem_salt, mem_state, mem_cracked;
 static struct fmt_main *self;
+static cl_kernel init_kernel, final_kernel;
 
-static size_t inoutsize;
+static size_t in_size, salt_size, state_size, cracked_size;
 
 #define STEP			0
 #define SEED			256
@@ -144,16 +143,20 @@ static size_t inoutsize;
  */
 #define HASH_LOOPS		2000
 
-static int split_events[] = { 1, -1, -1 };
+static int split_events[] = { 2, -1, -1 };
 
 static const char *warn[] = {
-	"xfer: ",  ", loop: ", ", xfer: "
+	"xfer: ",  ", init: ",  ", loop: ",  ", final: ", ", xfer: "
 };
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	size_t s = autotune_get_task_max_work_group_size(FALSE, 0, init_kernel);
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, final_kernel));
+
+	return s;
 }
 
 static void release_clobj(void);
@@ -162,33 +165,48 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	release_clobj();
 
-	inoutsize = sizeof(hash512_t) * gws;
-	inoutbuffer = mem_calloc(1, inoutsize);
+	in_size = sizeof(password_t) * gws;
+	salt_size = sizeof(salt_t);
+	state_size = sizeof(hash512_t) * gws;
+	cracked_size = sizeof(*cracked) * gws;
 
 	// Allocate memory
-	mem_inout =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, inoutsize,
-	    NULL, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem inout");
+	mem_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, in_size, NULL, &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem in");
+	saved_key = mem_calloc_align(sizeof(password_t), gws, MEM_ALIGN_WORD);
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_inout),
-		&mem_inout), "Error setting kernel argument 0");
+	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, salt_size, NULL, &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
 
-	saved_key = mem_calloc_align(sizeof(*saved_key), gws, MEM_ALIGN_WORD);
-	any_cracked = 0;
-	cracked_size = sizeof(*cracked) * gws;
+	mem_state = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, state_size, NULL, &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem out");
+
+	mem_cracked = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, cracked_size, NULL, &cl_error);
+	HANDLE_CLERROR(cl_error, "Error allocating mem cracked");
 	cracked = mem_calloc_align(sizeof(*cracked), gws, MEM_ALIGN_WORD);
+
+	HANDLE_CLERROR(clSetKernelArg(init_kernel, 0, sizeof(mem_in), &mem_in), "Error setting kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(init_kernel, 1, sizeof(mem_salt), &mem_salt), "Error setting kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(init_kernel, 2, sizeof(mem_state), &mem_state), "Error setting kernel argument");
+
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_state), &mem_state), "Error setting kernel argument");
+
+	HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(mem_salt), &mem_salt), "Error setting kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(mem_state), &mem_state), "Error setting kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(mem_cracked), &mem_cracked), "Error setting kernel argument");
 }
 
 static void release_clobj(void)
 {
-	if (inoutbuffer) {
-		HANDLE_CLERROR(clReleaseMemObject(mem_inout), "Release mem inout");
-		MEM_FREE(inoutbuffer);
-	}
+	if (saved_key) {
+		HANDLE_CLERROR(clReleaseMemObject(mem_cracked), "Release mem cracked");
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
+		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 
-	MEM_FREE(cracked);
-	MEM_FREE(saved_key);
+		MEM_FREE(cracked);
+		MEM_FREE(saved_key);
+	}
 }
 
 static void init(struct fmt_main *_self)
@@ -200,14 +218,22 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!program[gpu_id]) {
-		opencl_init("$JOHN/opencl/bitcoin_kernel.cl", gpu_id, "");
+		char build_opts[64];
 
+		snprintf(build_opts, sizeof(build_opts), "-DSZ=%u -DPLAINTEXT_LENGTH=%u", SZ, PLAINTEXT_LENGTH);
+
+		opencl_init("$JOHN/opencl/bitcoin_kernel.cl", gpu_id, build_opts);
+
+		init_kernel = clCreateKernel(program[gpu_id], "bitcoin_init", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating init kernel");
 		crypt_kernel = clCreateKernel(program[gpu_id], "loop_sha512", &cl_error);
-		HANDLE_CLERROR(cl_error, "Error creating kernel");
+		HANDLE_CLERROR(cl_error, "Error creating loop kernel");
+		final_kernel = clCreateKernel(program[gpu_id], "bitcoin_final", &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating final kernel");
 	}
 
 	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn, 1, self,
+	opencl_init_auto_setup(SEED, HASH_LOOPS, split_events, warn, 2, self,
 	                       create_clobj, release_clobj,
 	                       sizeof(hash512_t), 0, db);
 
@@ -220,7 +246,9 @@ static void done(void)
 	if (program[gpu_id]) {
 		release_clobj();
 
+		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(init_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		program[gpu_id] = NULL;
@@ -336,43 +364,37 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
+
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0,
+		salt_size, cur_salt, 0, NULL, multi_profilingEvent[0]),
+		"Copy salt to gpu");
+	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int index = 0;
 
-	if (any_cracked) {
-		memset(cracked, 0, cracked_size);
-		any_cracked = 0;
-	}
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++) {
-		unsigned char *key_iv = inoutbuffer[index].b;
-		SHA512_CTX sha_ctx;
-		SHA512_Init(&sha_ctx);
-		SHA512_Update(&sha_ctx, saved_key[index], strlen(saved_key[index]));
-		SHA512_Update(&sha_ctx, cur_salt->cry_salt, cur_salt->cry_salt_length);
-		SHA512_Final(key_iv, &sha_ctx);
-
-		unsigned int i;
-		for (i = 0; i < 8; i++)
-			inoutbuffer[index].W[i] = JOHNSWAP64(inoutbuffer[index].W[i]);
-	}
-
-#if 1
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
-	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_inout, CL_FALSE, 0,
-		inoutsize, inoutbuffer, 0, NULL, multi_profilingEvent[0]),
-		"Copy data to gpu");
+	in_size = sizeof(password_t) * global_work_size;
+	cracked_size = sizeof(*cracked) * global_work_size;
+
+	if (new_keys) {
+		// Copy data to gpu
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			in_size, saved_key, 0, NULL, multi_profilingEvent[0]),
+			"Copy data to gpu");
+
+		new_keys = 0;
+	}
+
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+		init_kernel, 1, NULL,
+		&global_work_size, lws, 0, NULL,
+		multi_profilingEvent[1]), "Run init kernel");
 
 	// Run loop kernel
 	cl_uint left = cur_salt->cry_rounds - 1;
@@ -388,68 +410,33 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 			crypt_kernel, 1, NULL,
 			&global_work_size, lws, 0, NULL,
-			multi_profilingEvent[1]), "Run loop kernel");
+			multi_profilingEvent[2]), "Run loop kernel");
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
 		left -= batch;
 	} while (left && !ocl_autotune_running);
 
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+		final_kernel, 1, NULL,
+		&global_work_size, lws, 0, NULL,
+		multi_profilingEvent[3]), "Run final kernel");
+
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_inout, CL_TRUE, 0,
-		inoutsize, inoutbuffer, 0, NULL, multi_profilingEvent[2]),
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_cracked, CL_TRUE, 0,
+		cracked_size, cracked, 0, NULL, multi_profilingEvent[4]),
 		"Copy result back");
-#else
-/*
- * Compute everything on host (for testing of the surrounding host code only).
- * This piece assumes the uses of JOHNSWAP64() above and below it are removed.
- */
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++) {
-		unsigned char *key_iv = inoutbuffer[index].b;
-		SHA512_CTX sha_ctx;
-		int i;
-		for (i = 1; i < cur_salt->cry_rounds; i++) {  // start at 1; the first iteration is already done
-			SHA512_Init(&sha_ctx);
-			SHA512_Update(&sha_ctx, key_iv, SHA512_DIGEST_LENGTH);
-			SHA512_Final(key_iv, &sha_ctx);
-		}
-	}
-#endif
-
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
-	for (index = 0; index < count; index++) {
-		unsigned char iv[16];  // updated IV for the final block
-		memcpy(iv, cur_salt->cry_master + cur_salt->cry_master_length - 32, 16);
-
-		unsigned int i;
-		for (i = 0; i < 8; i++)
-			inoutbuffer[index].W[i] = JOHNSWAP64(inoutbuffer[index].W[i]);
-
-		unsigned char *key_iv = inoutbuffer[index].b;
-		unsigned char output[16];
-		AES_KEY aes_key;
-		AES_set_decrypt_key(key_iv, 256, &aes_key);
-		AES_cbc_encrypt(cur_salt->cry_master + cur_salt->cry_master_length - 16, output, 16, &aes_key, iv, AES_DECRYPT);
-
-		if (check_pkcs_pad(output, 16, 16) == cur_salt->final_block_fill) {
-			cracked[index] = 1;
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-			any_cracked |= 1;
-		}
-	}
 
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (cracked[i])
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
@@ -459,17 +446,19 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	return cracked[index];
+	return 1;
 }
 
-static void bitcoin_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
-	strnzcpy(saved_key[index], key, sizeof(*saved_key));
+	saved_key[index].len = strnzcpyn(saved_key[index].c, key, sizeof(saved_key[index].c));
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)
 {
-	return saved_key[index];
+	return saved_key[index].c;
 }
 
 static unsigned int iteration_count(void *salt)
@@ -495,7 +484,7 @@ struct fmt_main fmt_opencl_bitcoin = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP,
+		FMT_CASE | FMT_8_BIT,
 		{
 			"iteration count",
 		},
@@ -520,7 +509,7 @@ struct fmt_main fmt_opencl_bitcoin = {
 		fmt_default_salt_hash,
 		NULL,
 		set_salt,
-		bitcoin_set_key,
+		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
