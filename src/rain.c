@@ -50,11 +50,12 @@ static uint64_t subtotal;
 
 static int loop;
 static int rec_loop;
+static int l;
 
 static uint_big counter;//linear counter
 static uint_big rec_counter;
 static uint_big x;
-static int l;
+
 
 static int quick_conversion;
 static int set, rec_set;
@@ -76,7 +77,7 @@ static void fix_state(void)
 {
 	int i, j;
 	rec_set = set;
-	for (i = 0; i <= maxlength - 1; ++i) {
+	for (i = 0; i <= maxlength - minlength; ++i) {
 		for(j = 0; j < maxlength; ++j)
 			rec_charset_idx[i][j] = charset_idx[i][j];
 	}
@@ -103,7 +104,7 @@ static uint_big powi(uint32_t b, uint32_t p)
 	return res;
 }
 
-static void big2str(uint_big orig, char *str) {
+void big2str(uint_big orig, char *str) {
 	uint_big b = orig, total = 0;
 	int c = 0;
 	int x;
@@ -129,7 +130,7 @@ static void big2str(uint_big orig, char *str) {
 	str[c] = '\0';	
 }
 
-static uint_big str2big(char *str) {
+uint_big str2big(char *str) {
 	int x;
 	static uint_big num = 0;
 	int c = 0;
@@ -146,8 +147,8 @@ static void save_state(FILE *file)
 	char str[40];
 	memset(str, 0, 40);
 	fprintf(file, "%d\n", rec_set);
-	for (i = 0; i <= maxlength - 1; ++i) {
-		for(j = 0; j < maxlength; ++j)
+	for (i = 0; i <= maxlength - minlength; i++) {
+		for(j = 0; j < maxlength; j++)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
 	}
 	fprintf(file, "%d\n", rec_cur_len);
@@ -346,12 +347,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		utf32_to_utf8_32(charset_utf32);
 
 	charcount = strlen32(charset_utf32);
-	
-	counter = 0;
-	subtotal = 0;
-	
+
+	rain_cur_len = minlength; 
+
 	status_init(get_progress, 0);
-	
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 	
@@ -377,11 +376,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			fprintf(stderr, "\n");
 		}
 	}
-	if(!state_restored) {
-		rain_cur_len = minlength;
-  		//srand(time(NULL));
-	}
-
 	int mod = 2 - charcount % 2;
 	crk_init(db, fix_state, NULL);
     int rain = mod;
@@ -423,8 +417,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
                 }
                 submit(word, loop2);
             }
-            rain_cur_len++;
         }
+        rain_cur_len++;
     }
 	crk_done();
 	rec_done(event_abort);
