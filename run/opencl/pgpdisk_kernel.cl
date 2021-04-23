@@ -18,10 +18,6 @@
 #error PLAINTEXT_LENGTH must be defined
 #endif
 
-#ifndef SHA1_DIGEST_LENGTH
-#define SHA1_DIGEST_LENGTH 20
-#endif
-
 typedef struct {
 	uint length;
 	uchar v[PLAINTEXT_LENGTH];

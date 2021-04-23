@@ -16,6 +16,10 @@
 
 #include "opencl_misc.h"
 
+#ifndef SHA_DIGEST_LENGTH
+#define SHA_DIGEST_LENGTH 20
+#endif
+
 #define SHA1_LUT3 HAVE_LUT3
 
 #define INIT_A			0x67452301

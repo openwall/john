@@ -12,6 +12,14 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 
+#ifndef SHA256_DIGEST_LENGTH
+#define SHA256_DIGEST_LENGTH 32
+#endif
+
+#ifndef SHA512_DIGEST_LENGTH
+#define SHA512_DIGEST_LENGTH 64
+#endif
+
 #define SHA256_LUT3 HAVE_LUT3
 #define SHA512_LUT3 HAVE_LUT3_64
 
