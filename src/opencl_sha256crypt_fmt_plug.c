@@ -44,9 +44,6 @@ static sha256_password *plain_sorted;   // sorted list (by plaintext len)
 static sha256_hash *calculated_hash;    // calculated hashes
 static sha256_hash *computed_hash;  // calculated hashes (from plain_sorted)
 
-static int
-*indices;            // relationship between sorted and unsorted plaintext list
-
 static cl_mem salt_buffer;      //Salt information.
 static cl_mem pass_buffer;      //Plaintext buffer.
 static cl_mem hash_buffer;      //Hash keys (output).
@@ -56,7 +53,7 @@ static struct fmt_main *self;
 
 static cl_kernel prepare_kernel, preproc_kernel, final_kernel;
 
-static int new_keys, source_in_use;
+static int new_keys, first_len, lens_differ, source_in_use;
 static int split_events[3] = { 1, 6, 7 };
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
@@ -287,6 +284,11 @@ static void set_key(char *key, int index)
 	//Put the tranfered key on password buffer.
 	memcpy(plaintext[index].pass, key, len);
 	plaintext[index].length = len;
+
+	if (new_keys)
+		lens_differ |= len ^ first_len;
+	else
+		first_len = len;
 	new_keys = 1;
 }
 
@@ -513,7 +515,6 @@ static void done(void)
 	if (program[gpu_id]) {
 		release_clobj();
 		release_kernel();
-		MEM_FREE(indices);
 	}
 }
 
@@ -544,36 +545,43 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	int count = *pcount;
 	int index;
+	int *indices = NULL;  // relationship between sorted and unsorted plaintext list
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	sha256_password *input_candidates;
+	sha256_hash *output_hashes;
 
 	gws = GET_NEXT_MULTIPLE(count, local_work_size);
+
+	input_candidates = plaintext;
+	output_hashes = calculated_hash;
 
 	if (new_keys) {
 		// sort passwords by length
 		int tot_todo = 0, len;
 
-		MEM_FREE(indices);
+		if (lens_differ) {
+			indices = mem_alloc(gws * sizeof(int));
 
-		indices = mem_alloc(gws * sizeof(int));
-
-		for (len = 0; len <= PLAINTEXT_LENGTH; len++) {
-			for (index = 0; index < count; index++) {
-				if (plaintext[index].length == len)
-					indices[tot_todo++] = index;
+			for (len = 0; len <= PLAINTEXT_LENGTH; len++) {
+				for (index = 0; index < count; index++) {
+					if (plaintext[index].length == len)
+						indices[tot_todo++] = index;
+				}
 			}
-		}
 
-		//Create a sorted candidates list.
-		for (index = 0; index < count; index++) {
-			memcpy(plain_sorted[index].pass, plaintext[indices[index]].pass,
-			       PLAINTEXT_LENGTH);
-			plain_sorted[index].length = plaintext[indices[index]].length;
+			//Create a sorted by length candidates list.
+			for (index = 0; index < count; index++) {
+				memcpy(plain_sorted[index].pass, plaintext[indices[index]].pass,
+					PLAINTEXT_LENGTH);
+				plain_sorted[index].length = plaintext[indices[index]].length;
+			}
+			input_candidates = plain_sorted;
+			output_hashes = computed_hash;
 		}
-
 		//Transfer plaintext buffer to device.
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer,
-		                                   CL_FALSE, 0, sizeof(sha256_password) * gws, plain_sorted, 0,
+		                                   CL_FALSE, 0, sizeof(sha256_password) * gws, input_candidates, 0,
 		                                   NULL, multi_profilingEvent[0]),
 		              "failed in clEnqueueWriteBuffer pass_buffer");
 	}
@@ -610,17 +618,21 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 	//Read back hashes
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
-	                                  sizeof(sha256_hash) * gws, computed_hash, 0, NULL,
+	                                  sizeof(sha256_hash) * gws, output_hashes, 0, NULL,
 	                                  multi_profilingEvent[2]), "failed in reading data back");
 
 	//Do the work
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
-	new_keys = 0;
 
-	//Build calculated hash list according to original plaintext list order.
-	for (index = 0; index < count; index++)
-		memcpy(calculated_hash[indices[index]].v, computed_hash[index].v,
-		       BINARY_SIZE);
+	if (lens_differ)
+		//Build calculated hash list according to original plaintext list order.
+		for (index = 0; index < count; index++)
+			memcpy(calculated_hash[indices[index]].v, computed_hash[index].v,
+			    BINARY_SIZE);
+
+	new_keys = 0;
+	lens_differ = 0;
+	MEM_FREE(indices);
 
 	return count;
 }
