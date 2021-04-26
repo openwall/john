@@ -602,7 +602,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		if (bitmap_of_lens & (bitmap_of_lens - 1)) {
 			if (gws > indices_size) {
 				MEM_FREE(indices);
-				indices = mem_alloc(gws * sizeof(*indices));
+				indices = mem_calloc(gws, sizeof(*indices));
 				indices_size = gws;
 			}
 
