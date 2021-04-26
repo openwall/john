@@ -44,6 +44,11 @@ static sha256_password *plain_sorted;   // sorted list (by plaintext len)
 static sha256_hash *calculated_hash;    // calculated hashes
 static sha256_hash *computed_hash;  // calculated hashes (from plain_sorted)
 
+//To connect the sorted and unsorted plaintext lists
+static unsigned int *indices;
+static size_t indices_size;
+static uint32_t bitmap_of_lens; // what plaintext sizes do we have?
+
 static cl_mem salt_buffer;      //Salt information.
 static cl_mem pass_buffer;      //Plaintext buffer.
 static cl_mem hash_buffer;      //Hash keys (output).
@@ -53,13 +58,17 @@ static struct fmt_main *self;
 
 static cl_kernel prepare_kernel, preproc_kernel, final_kernel;
 
-static int new_keys, first_len, lens_differ, source_in_use;
+static int new_keys, source_in_use;
 static int split_events[3] = { 1, 6, 7 };
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
 #include "opencl_autotune.h"
 
 static void release_kernel();
+
+#if (PLAINTEXT_LENGTH > 31) //Can't use sizeof(uint32_t)
+#error "Review bitmap_of_lens size"
+#endif
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
@@ -272,6 +281,14 @@ static int salt_hash(void *salt)
 }
 
 /* ------- Key functions ------- */
+static void clear_keys(void)
+{
+	/* When a new group of keys begins to be sent to the OpenCL device
+	 * clear the information about previously sent keys data.
+	 */
+	bitmap_of_lens = 0;
+}
+
 static void set_key(char *key, int index)
 {
 	int len;
@@ -285,11 +302,8 @@ static void set_key(char *key, int index)
 	memcpy(plaintext[index].pass, key, len);
 	plaintext[index].length = len;
 
-	if (new_keys)
-		lens_differ |= len ^ first_len;
-	else
-		first_len = len;
 	new_keys = 1;
+	bitmap_of_lens |= (1 << len);
 }
 
 static char *get_key(int index)
@@ -468,6 +482,9 @@ static void reset(struct db_main *db)
 	int major, minor;
 	unsigned long long int max_run_time;
 
+	new_keys = 0;
+	bitmap_of_lens = 0;
+
 	source_in_use = device_info[gpu_id];
 
 	//Initialize openCL tuning (library) for this format.
@@ -515,6 +532,8 @@ static void done(void)
 	if (program[gpu_id]) {
 		release_clobj();
 		release_kernel();
+		MEM_FREE(indices);
+		indices_size = 0;
 	}
 }
 
@@ -545,7 +564,6 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	int count = *pcount;
 	int index;
-	int *indices = NULL;  // relationship between sorted and unsorted plaintext list
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	sha256_password *input_candidates;
@@ -553,31 +571,40 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 	gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
-	input_candidates = plaintext;
-	output_hashes = calculated_hash;
+	if (bitmap_of_lens & (bitmap_of_lens - 1)) {
+		input_candidates = plain_sorted;
+		output_hashes = computed_hash;
+	} else {
+		input_candidates = plaintext;
+		output_hashes = calculated_hash;
+	}
 
 	if (new_keys) {
 		// sort passwords by length
 		int tot_todo = 0, len;
 
-		if (lens_differ) {
-			indices = mem_alloc(gws * sizeof(int));
+		if (bitmap_of_lens & (bitmap_of_lens - 1)) {
+			if (gws > indices_size) {
+				MEM_FREE(indices);
+				indices = mem_alloc(gws * sizeof(*indices));
+				indices_size = gws;
+			}
 
 			for (len = 0; len <= PLAINTEXT_LENGTH; len++) {
-				for (index = 0; index < count; index++) {
-					if (plaintext[index].length == len)
-						indices[tot_todo++] = index;
-				}
+				if (!(bitmap_of_lens >> len))
+					break;
+				if ((bitmap_of_lens >> len) & 1)
+					for (index = 0; index < count; index++)
+						if (plaintext[index].length == len)
+							indices[tot_todo++] = index;
 			}
 
 			//Create a sorted by length candidates list.
 			for (index = 0; index < count; index++) {
 				memcpy(plain_sorted[index].pass, plaintext[indices[index]].pass,
-					PLAINTEXT_LENGTH);
+					plaintext[indices[index]].length + 1);
 				plain_sorted[index].length = plaintext[indices[index]].length;
 			}
-			input_candidates = plain_sorted;
-			output_hashes = computed_hash;
 		}
 		//Transfer plaintext buffer to device.
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer,
@@ -624,15 +651,13 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	//Do the work
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
 
-	if (lens_differ)
+	if (bitmap_of_lens & (bitmap_of_lens - 1))
 		//Build calculated hash list according to original plaintext list order.
 		for (index = 0; index < count; index++)
 			memcpy(calculated_hash[indices[index]].v, computed_hash[index].v,
 			    BINARY_SIZE);
 
 	new_keys = 0;
-	lens_differ = 0;
-	MEM_FREE(indices);
 
 	return count;
 }
@@ -730,7 +755,7 @@ struct fmt_main fmt_opencl_cryptsha256 = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			get_hash_0,
