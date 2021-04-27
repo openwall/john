@@ -104,7 +104,6 @@ static int john_omp_threads_new;
 #include "mask.h"
 #include "mkv.h"
 #include "subsets.h"
-#include "rain.h"
 #include "tacking.h"
 #include "external.h"
 #include "batch.h"
@@ -1803,8 +1802,8 @@ static void john_run(void)
 		if (options.flags & FLG_SUBSETS_CHK)
 			do_subsets_crack(&database, options.subset_full);
 		else
-		if (options.flags & FLG_RAIN_CHK)
-			do_rain_crack(&database, options.rain_full);
+		if (options.flags & FLG_TACKING_CHK)
+			do_tacking_crack(&database, options.tacking_full);
 		else
 #if HAVE_REXGEN
 		if ((options.flags & FLG_REGEX_CHK) &&

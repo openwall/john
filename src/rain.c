@@ -376,49 +376,57 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			fprintf(stderr, "\n");
 		}
 	}
-	int mod = 2 - charcount % 2;
-	crk_init(db, fix_state, NULL);
-    int rain = mod;
-    for(l=loop; l <= maxlength-minlength; ++l) {
-        if(event_abort) break;
-        uint_big total = powi(charcount, minlength+l);
-        subtotal = 0;
-        if(l > 0)
-        	subtotal = powi(charcount, minlength+l-1);
-    
-        for(x = counter; x < total-subtotal; ++x) {		         
-    		if(event_abort) break;
-        	int loop2;
-        	for(loop2 = l; loop2 <= maxlength-minlength; ++loop2) {	
-            	if(event_abort) break;
-           		int skip = 0;
-                if (state_restored)
-	                state_restored = 0;
-                else
-                	set++;
 
-                if (options.node_count) {
-                	int for_node = set % options.node_count + 1;
-                	skip = for_node < options.node_min || for_node > options.node_max;
-                }
-                int mpl = minlength + loop2;
-                if(!skip) {
-                	quick_conversion = 1;
-                	for(i=0; i<mpl; ++i) {
-             			if((word[i] = charset_utf32[(charset_idx[loop2][i])]) > cp_max)
-                        	quick_conversion = 0;
-                	}
-                }
-                for(i=0; i<mpl; ++i) {
-        			if(++charset_idx[loop2][i] >= charcount) {
-            			charset_idx[loop2][i] = 0;
-            			break;
+	crk_init(db, fix_state, NULL);
+    int rain = 0;
+    int c;
+    //for(c = 1; c <= charcount; ++c) 
+    {
+        for(l=loop; l <= maxlength-minlength; ++l) {
+            if(event_abort) break;
+            uint_big total = powi(charcount, minlength+l);
+            subtotal = 0;
+            if(l > 0)
+            	subtotal = powi(charcount, minlength+l-1);
+            int C = 1;
+            for(x = counter; x < total-subtotal; ++x) {		         
+        		if(event_abort) break;
+            	int loop2;
+            	for(loop2 = l; loop2 <= maxlength-minlength; ++loop2) {	
+                	if(event_abort) break;
+               		int skip = 0;
+                    if (state_restored)
+	                    state_restored = 0;
+                    else
+                    	set++;
+
+                    if (options.node_count) {
+                    	int for_node = set % options.node_count + 1;
+                    	skip = for_node < options.node_min || for_node > options.node_max;
                     }
+                    int mpl = minlength + loop2;
+                    if(!skip) {
+                    	quick_conversion = 1;
+                    	for(i=0; i<mpl; ++i) {
+                 			if((word[i] = charset_utf32[charset_idx[loop2][i]]) > cp_max)
+                            	quick_conversion = 0;
+                     	}
+                	    submit(word, loop2);
+                    }
+                    int pos;
+                    
+                    for(pos = 0; pos < mpl; ++pos) {
+                        charset_idx[loop2][pos]++;
+                        if(charset_idx[loop2][pos] >= charcount) {
+                            charset_idx[loop2][pos] = rain;
+                            break;
+                    	}
+                    }
+                    if(++rain >= charcount) rain = 0;
                 }
-                submit(word, loop2);
             }
         }
-        rain_cur_len++;
+        //rain_cur_len++;
     }
 	crk_done();
 	rec_done(event_abort);

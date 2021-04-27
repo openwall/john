@@ -482,24 +482,23 @@ int do_tacking_crack(struct db_main *db, char *req_charset)
 					submit(word, loop2);
 				}
 				if(tacking[loop2] % 2 || mpl < 4) {
-					int pos;
-					for(pos = 0; pos < mpl; pos++)
-					    if(++charset_idx[loop2][pos] >= charcount) {
-						    charset_idx[loop2][pos] = 0;
-						    break;
-						}
+					int pos = 0;
+					while(pos < mpl && ++charset_idx[loop2][pos] >= charcount) {
+						charset_idx[loop2][pos] = 0;
+						pos++;
+					}
 				}
 				else {
-					int pos;
-					for(pos = mpl-1; pos > mpl/2+2; pos--)
-					    if(++charset_idx[loop2][pos] >= charcount) {
-						    charset_idx[loop2][pos] = 0;
-						    break;
-						}
+					int pos = mpl-1;
+					while(pos > mpl/2 && ++charset_idx[loop2][pos] >= charcount) {
+					    charset_idx[loop2][pos] = 0;
+						pos--;
+					}
 				}
 				tacking[loop2]++;
 			}
 		}
+	    tacking_cur_len++;	
 	}
 	crk_done();
 	rec_done(event_abort);
