@@ -1236,7 +1236,8 @@ void save_lws_config(const char* config_file, int id_gpu, size_t lws, unsigned i
 		fclose(file);
 		return;
 	}
-	file = fopen(config_file_name, "w");
+	if (!(file = fopen(config_file_name, "w")))
+		pexit("%s", config_file_name);
 
 	jtr_lock(fileno(file), F_SETLKW, F_WRLCK, config_file_name);
 

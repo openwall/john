@@ -45,7 +45,7 @@ john_register_one(&FORMAT_STRUCT);
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
 
-#define CIPHERTEXT_LENGTH	(TAG_LEN + 120 + 1 + 64)
+#define CIPHERTEXT_LENGTH	(TAG_LEN + 1 + 1 + 32 + 1 + 32 + 1 + 40 + 1 + 64)
 #define FORMAT_TAG		"$oldoffice$"
 #define TAG_LEN			(sizeof(FORMAT_TAG) - 1)
 
@@ -89,6 +89,7 @@ typedef struct {
 	unsigned int has_extra;
 	unsigned char extra[32];
 	unsigned int has_mitm;
+	unsigned int mitm_reported;
 	unsigned char mitm[8]; /* Meet-in-the-middle hint, if we have one */
 } custom_salt;
 
@@ -101,7 +102,6 @@ static custom_salt cs;
 static custom_salt *cur_salt = &cs;
 
 static char *saved_key;
-static int any_cracked;
 static int new_keys;
 
 static int max_len = PLAINTEXT_LENGTH;
@@ -231,7 +231,7 @@ static void init(struct fmt_main *_self)
 
 	opencl_prepare_dev(gpu_id);
 
-	mask_int_cand_target = 95;
+	mask_int_cand_target = opencl_speed_index(gpu_id) / 3000;
 
 	if (options.target_enc == UTF_8)
 		max_len = self->params.plaintext_length =
@@ -410,7 +410,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[CIPHERTEXT_LENGTH];
+	static char out[CIPHERTEXT_LENGTH + 1];
 	char *p;
 	int extra;
 
@@ -464,6 +464,11 @@ static void *get_salt(char *ciphertext)
 		for (i = 0; i < 5; i++)
 			cs.mitm[i] = atoi16[ARCH_INDEX(mitm_catcher.mitm[i * 2])] * 16
 				+ atoi16[ARCH_INDEX(mitm_catcher.mitm[i * 2 + 1])];
+		if (!ldr_in_pot && !bench_or_test_running && john_main_process) {
+			log_event("- Using MITM key %02x%02x%02x%02x%02x for %s",
+			          cs.mitm[0], cs.mitm[1], cs.mitm[2], cs.mitm[3], cs.mitm[4], ciphertext);
+			cur_salt->mitm_reported = 1;
+		}
 	}
 
 	MEM_FREE(keeptr);
@@ -531,7 +536,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, sizeof(cs), cur_salt, 0, NULL, multi_profilingEvent[3]), "Failed transferring salt");
 
-	if ((any_cracked = cur_salt->cracked)) {
+	if (cur_salt->cracked) {
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * *pcount, cracked, 0, NULL, NULL), "failed reading results back");
 		return *pcount;
 	}
@@ -541,7 +546,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	return any_cracked;
+	return cur_salt->cracked;
 }
 
 static int cmp_one(void *binary, int index)
@@ -551,8 +556,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	if (cracked[index] && cur_salt->type < 4 &&
-	    !cur_salt->has_extra && !bench_or_test_running) {
+	if (!cur_salt->mitm_reported && cur_salt->type < 4 && !cur_salt->has_extra && !bench_or_test_running) {
 		unsigned char *cp, out[11];
 		int i;
 
@@ -564,6 +568,7 @@ static int cmp_exact(char *source, int index)
 		}
 		out[10] = 0;
 		log_event("MITM key: %s for %s", out, source);
+		cur_salt->mitm_reported = 1;
 	}
 	return 1;
 }

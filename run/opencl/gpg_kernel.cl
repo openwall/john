@@ -23,10 +23,6 @@
 #error SALT_LENGTH must be defined
 #endif
 
-#ifndef SHA_DIGEST_LENGTH
-#define SHA_DIGEST_LENGTH 20
-#endif
-
 typedef struct {
 	uint length;
 	uchar v[PLAINTEXT_LENGTH];
@@ -46,7 +42,7 @@ typedef struct {
 // Slower on CPU
 // 40% faster on Intel HD4000
 // Bugs out on nvidia
-#if !__CPU__ && !gpu_nvidia(DEVICE_INFO)
+#if __POCL__ || (!__CPU__ && !gpu_nvidia(DEVICE_INFO))
 #define LEAN
 #endif
 
@@ -165,10 +161,6 @@ __kernel void gpg(__global const gpg_password *inbuffer,
 
 /* SHA-256 based S2K */
 
-#ifndef SHA256_DIGEST_LENGTH
-#define SHA256_DIGEST_LENGTH 32
-#endif
-
 inline void S2KItSaltedSHA256Generator(__global const uchar *ipassword,
                                        uint password_length,
                                        __constant uchar *isalt,
@@ -234,10 +226,6 @@ __kernel void gpg_sha256(__global const gpg_password *inbuffer,
 }
 
 /* SHA-512 based S2K */
-
-#ifndef SHA512_DIGEST_LENGTH
-#define SHA512_DIGEST_LENGTH 64
-#endif
 
 inline void S2KItSaltedSHA512Generator(__global const uchar *ipassword,
                                        uint password_length,

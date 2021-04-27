@@ -134,7 +134,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Currently used for MMX/SSE2 and x86-64 SSE2 */
 inline  void
 s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x55005500, x5A0F5A0F, x3333FFFF, x66666666, x22226666, x2D2D6969, x25202160;
@@ -369,7 +369,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
@@ -447,7 +447,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
@@ -524,7 +524,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
@@ -602,7 +602,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
@@ -978,7 +978,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x44444444, x0F0FF0F0, x4F4FF4F4, x00FFFF00, x00AAAA00, x4FE55EF4;
@@ -1054,7 +1054,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x44444444, x0F0FF0F0, x4F4FF4F4, x00FFFF00, x00AAAA00, x4FE55EF4;
@@ -1130,7 +1130,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s4, 33 gates, 11/12 regs, 9 andn, 2/21/53/86/119 stalls, 52 biop */
 inline  void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x5A5A5A5A, x0F0FF0F0;
@@ -1267,7 +1267,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x77777777, x77770000, x22225555, x11116666, x1F1F6F6F;
@@ -1346,7 +1346,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x77777777, x77770000, x22225555, x11116666, x1F1F6F6F;
@@ -1428,7 +1428,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
@@ -1507,7 +1507,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
@@ -1585,7 +1585,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
@@ -1663,7 +1663,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x33CC33CC;
@@ -2261,7 +2261,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
@@ -2337,7 +2337,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
@@ -2413,7 +2413,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
@@ -2563,7 +2563,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
@@ -2715,7 +2715,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0FF00FF0, x3CC33CC3, x00003CC3, x0F000F00, x5A555A55, x00001841;
@@ -2995,7 +2995,7 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* Currently used for x86-64 SSE2 */
 inline  void
 s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0C0C0C0C, x0000F0F0, x00FFF00F, x00555005, x00515001;

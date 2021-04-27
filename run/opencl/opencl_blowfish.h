@@ -29,17 +29,17 @@
 
 #include "opencl_misc.h"
 
-/* These default to __private but can be e.g. __global or __constant */
+/* These default to private (generic) but can be e.g. __global or __constant */
 #ifndef BF_KEY_TYPE
-#define BF_KEY_TYPE __private const
+#define BF_KEY_TYPE const
 #endif
 
 #ifndef BF_SRC_TYPE
-#define BF_SRC_TYPE __private const
+#define BF_SRC_TYPE const
 #endif
 
 #ifndef BF_DST_TYPE
-#define BF_DST_TYPE __private
+#define BF_DST_TYPE
 #endif
 
 #define BF_DECRYPT     0
@@ -451,7 +451,7 @@ inline void blowfish_setkey(blowfish_context *ctx,
 }
 
 /*
- * Blowfish-ECB, using __private memory
+ * Blowfish-ECB, using private (generic) memory
  */
 inline void blowfish_crypt(blowfish_context *ctx,
                            int mode,

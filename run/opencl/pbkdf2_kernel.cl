@@ -8,7 +8,9 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 
+#ifndef SHA1_DIGEST_LENGTH
 #define SHA1_DIGEST_LENGTH          20
+#endif
 
 #define INIT_SHA1_A                 0x67452301
 #define INIT_SHA1_B                 0xEFCDAB89
@@ -349,7 +351,7 @@ typedef struct {
 	P(C, D, E, A, B, R6);				 \
 	P(B, C, D, E, A, R7);
 
-inline void SHA1(__private uint *A, __private uint *W) {
+inline void SHA1(uint *A, uint *W) {
 #if HAVE_LUT3
 #define F(x, y, z) lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
@@ -397,7 +399,7 @@ inline void SHA1(__private uint *A, __private uint *W) {
 #undef F
 }
 
-inline void SHA1_digest(__private uint *A, __private uint *W) {
+inline void SHA1_digest(uint *A, uint *W) {
 #if HAVE_LUT3
 #define F(x, y, z) lut3(x, y, z, 0xca)
 #elif USE_BITSELECT
@@ -445,7 +447,7 @@ inline void SHA1_digest(__private uint *A, __private uint *W) {
 #undef F
 }
 
-inline void sha1_pad(__private uint *pad, __private uint *state) {
+inline void sha1_pad(uint *pad, uint *state) {
 	uint 		A[5], W[16] ;
 
 	GET_WORD_32_BE(W[0], pad, 0) ;
@@ -486,7 +488,7 @@ inline void sha1_pad(__private uint *pad, __private uint *state) {
 	state[4] = A[4] ;
 }
 
-inline void hmac_sha1(__private uint *istate, __private uint *ostate, __private uint *buf)
+inline void hmac_sha1(uint *istate, uint *ostate, uint *buf)
 {
 	uint	 A[5], W[16] ;
 

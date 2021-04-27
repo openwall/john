@@ -21,8 +21,14 @@
 #include "john.h"
 
 #define PADDING 	2048
-#define CONFIG_FILE 	"$JOHN/opencl/DES_bs_kernel_f_%s.config"
+
+#if JOHN_SYSTEMWIDE
+#define CONFIG_FILE	JOHN_PRIVATE_HOME "/opencl/DES_bs_kernel_f_%s.config"
+#define BINARY_FILE	JOHN_PRIVATE_HOME "/opencl/DES_bs_kernel_f_"Zu"_%s_%d.bin"
+#else
+#define CONFIG_FILE	"$JOHN/opencl/DES_bs_kernel_f_%s.config"
 #define BINARY_FILE	"$JOHN/opencl/DES_bs_kernel_f_"Zu"_%s_%d.bin"
+#endif
 
 static cl_kernel **kernels;
 static cl_mem buffer_bs_keys, buffer_unchecked_hashes;

@@ -44,7 +44,7 @@
 
 inline  void
 s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0F0F3333, x3C3C3C3C, x55FF55FF, x69C369C3, x0903B73F, x09FCB7C0,
@@ -112,7 +112,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0F0F3333, x3C3C3C3C, x55FF55FF, x69C369C3, x0903B73F, x09FCB7C0,
@@ -182,7 +182,7 @@ s1(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x55553333, x0055FF33, x33270F03, x66725A56, x00FFFF00, x668DA556;
@@ -246,7 +246,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x55553333, x0055FF33, x33270F03, x66725A56, x00FFFF00, x668DA556;
@@ -310,7 +310,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x55553333, x0055FF33, x33270F03, x66725A56, x00FFFF00, x668DA556;
@@ -376,7 +376,7 @@ s2(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0F330F33, x0F33F0CC, x5A66A599;
@@ -439,7 +439,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s3-000004, 33 gates, 17 regs, 3/13/41/77/113 stall cycles */
 inline  void
 s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0F330F33, x0F33F0CC, x5A66A599;
@@ -504,7 +504,7 @@ s3(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline  void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0505AFAF, x0555AF55, x0A5AA05A, x46566456, x0A0A5F5F, x0AF55FA0,
@@ -558,7 +558,7 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0505AFAF, x0555AF55, x0A5AA05A, x46566456, x0A0A5F5F, x0AF55FA0,
@@ -614,7 +614,7 @@ s4(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x550F550F, xAAF0AAF0, xA5F5A5F5, x96C696C6, x00FFFF00, x963969C6;
@@ -680,7 +680,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x550F550F, xAAF0AAF0, xA5F5A5F5, x96C696C6, x00FFFF00, x963969C6;
@@ -746,7 +746,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x550F550F, xAAF0AAF0, xA5F5A5F5, x96C696C6, x00FFFF00, x963969C6;
@@ -812,7 +812,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x550F550F, xAAF0AAF0, xA5F5A5F5, x96C696C6, x00FFFF00, x963969C6;
@@ -878,7 +878,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x550F550F, xAAF0AAF0, xA5F5A5F5, x96C696C6, x00FFFF00, x963969C6;
@@ -946,7 +946,7 @@ s5(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x555500FF, x666633CC, x606F30CF, x353A659A, x353A9A65, xCAC5659A;
@@ -1011,7 +1011,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x555500FF, x666633CC, x606F30CF, x353A659A, x353A9A65, xCAC5659A;
@@ -1076,7 +1076,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x555500FF, x666633CC, x606F30CF, x353A659A, x353A9A65, xCAC5659A;
@@ -1141,7 +1141,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x555500FF, x666633CC, x606F30CF, x353A659A, x353A9A65, xCAC5659A;
@@ -1207,7 +1207,7 @@ s6(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x44447777, x4B4B7878, x22772277, x0505F5F5, x220522F5, x694E5A8D;
@@ -1271,7 +1271,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s7-000019, 34 gates, 17 regs, 5/28/57/88/119 stall cycles */
 inline  void
 s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x44447777, x4B4B7878, x22772277, x0505F5F5, x220522F5, x694E5A8D;
@@ -1337,7 +1337,7 @@ s7(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /*
 inline  void
 s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0505F5F5, x05FAF50A, x0F0F00FF, x22227777, x07DA807F, x34E9B34C;
@@ -1398,7 +1398,7 @@ s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
 /* s8-000037, 32 gates, 15 regs, 3/17/49/81/113 stall cycles */
 inline  void
 s8(vtype a1, vtype a2, vtype a3, vtype a4, vtype a5, vtype a6,
-   __private  vtype * out,
+    vtype * out,
    vtype c1, vtype c2 ,vtype c3 , vtype c4)
 {
 	vtype x0505F5F5, x05FAF50A, x0F0F00FF, x22227777, x07DA807F, x34E9B34C;

@@ -26,7 +26,7 @@
 
 inline void cmp_final(uint gid,
 		uint iter,
-		__private uint *hash,
+		uint *hash,
 		__global uint *offset_table,
 		__global uint *hash_table,
 		__global uint *return_hashes,
@@ -75,7 +75,7 @@ inline void cmp_final(uint gid,
 
 inline void cmp(uint gid,
 		uint iter,
-		__private uint *hash,
+		uint *hash,
 #if USE_LOCAL_BITMAPS
 		__local
 #else

@@ -124,8 +124,8 @@ typedef struct {
 #define ACF4				0x10325476
 
 inline void md5(MAYBE_VECTOR_UINT len,
-                __private MAYBE_VECTOR_UINT *internal_ret,
-                __private MAYBE_VECTOR_UINT *x)
+                MAYBE_VECTOR_UINT *internal_ret,
+                MAYBE_VECTOR_UINT *x)
 {
 	MAYBE_VECTOR_UINT x14 = len << 3;
 

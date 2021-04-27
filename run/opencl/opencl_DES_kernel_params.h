@@ -11,10 +11,10 @@ typedef unsigned WORD vtype;
  * Nvidia can build either kernel but GTX980 is significantly faster with the
  * "safe goto" version (7% faster for one salt, 16% for many salts).
  *
- * OSX' Intel HD4000 driver [1.2(Sep25 2014 22:26:04)] fails building the
- * "fast goto" version.
+ * macOS in general has problems building the "fast goto" version, and the
+ * same goes for MESA and POCL.
  */
-#if nvidia_sm_5x(DEVICE_INFO) || gpu_intel(DEVICE_INFO) || __MESA__ ||  \
+#if nvidia_sm_5x(DEVICE_INFO) || __OS_X__ || __MESA__ || __POCL__ || \
 	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1573 && !defined(__Tahiti__)) || \
 	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1702)
 //#warning Using 'safe goto' kernel
@@ -66,7 +66,7 @@ typedef unsigned WORD vtype;
 #endif
 
 #define vst_private(dst, ofs, src) 			\
-	*((__private vtype *)((__private DES_bs_vector *)&(dst) + (ofs))) = (src)
+	*((vtype *)((DES_bs_vector *)&(dst) + (ofs))) = (src)
 
 #define DES_bs_clear_block_8(j) 			\
 	vst_private(B[j] , 0, zero); 			\
@@ -88,7 +88,7 @@ typedef unsigned WORD vtype;
 	DES_bs_clear_block_8(48); 			\
 	DES_bs_clear_block_8(56);
 
-inline void cmp(__private unsigned DES_bs_vector *B,
+inline void cmp(unsigned DES_bs_vector *B,
 	  __global int *uncracked_hashes,
 	  int num_uncracked_hashes,
 	  volatile __global uint *hash_ids,

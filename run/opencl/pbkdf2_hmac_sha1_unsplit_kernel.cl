@@ -27,8 +27,6 @@
 #define hmac_sha1 u_hmac_sha1
 #define big_hmac_sha1 u_big_hmac_sha1
 
-#define SHA1_DIGEST_LENGTH 20
-
 typedef struct {
 	uint  length;
 	uchar v[KEYLEN];
@@ -47,7 +45,7 @@ typedef struct {
 } pbkdf2_salt;
 
 inline void preproc(__global const uchar *key, uint keylen,
-    __private uint *state, uint padding)
+    uint *state, uint padding)
 {
 	uint i;
 	uint W[16];
@@ -74,9 +72,9 @@ inline void preproc(__global const uchar *key, uint keylen,
 	state[4] = E + INIT_E;
 }
 
-inline void hmac_sha1(__private uint *output,
-    __private uint *ipad_state,
-    __private uint *opad_state,
+inline void hmac_sha1(uint *output,
+    uint *ipad_state,
+    uint *opad_state,
     __constant uchar *salt, int saltlen, uchar add)
 {
 	int i;
@@ -135,9 +133,9 @@ inline void hmac_sha1(__private uint *output,
 	output[4] = E;
 }
 
-inline void big_hmac_sha1(__private uint *input, uint inputlen,
-    __private uint *ipad_state,
-    __private uint *opad_state, __private uint *tmp_out, uint iterations)
+inline void big_hmac_sha1(uint *input, uint inputlen,
+    uint *ipad_state,
+    uint *opad_state, uint *tmp_out, uint iterations)
 {
 	uint i;
 	uint W[16];

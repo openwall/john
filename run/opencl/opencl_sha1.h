@@ -16,6 +16,18 @@
 
 #include "opencl_misc.h"
 
+/*
+ * OpenSSL only declares SHA_DIGEST_LENGTH but some code
+ * (on host side as well) use SHA1_DIGEST_LENGTH so we
+ * declare that as well
+ */
+#ifndef SHA_DIGEST_LENGTH
+#define SHA_DIGEST_LENGTH 20
+#endif
+#ifndef SHA1_DIGEST_LENGTH
+#define SHA1_DIGEST_LENGTH 20
+#endif
+
 #define SHA1_LUT3 HAVE_LUT3
 
 #define INIT_A			0x67452301

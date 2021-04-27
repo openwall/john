@@ -9,8 +9,6 @@ echo 'gpg-opencl = Y' >> ../run/john-local.conf
 echo 'KeePass-opencl = Y' >> ../run/john-local.conf
 
 # These formats fail OpenCL CPU runtime
-echo 'lotus5-opencl = Y' >> ../run/john-local.conf
-echo 'pgpdisk-opencl = Y' >> ../run/john-local.conf
 echo 'RAR-opencl = Y' >> ../run/john-local.conf
 
 # These formats run very slowly inside CI

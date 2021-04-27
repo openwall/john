@@ -59,7 +59,7 @@
 /*undefined, cause error.*/
 #endif
 
-inline void md4_encrypt(__private uint *hash, __private uint *W, uint len)
+inline void md4_encrypt(uint *hash, uint *W, uint len)
 {
 	hash[0] = 0x67452301;
 	hash[1] = 0xefcdab89;
@@ -123,7 +123,7 @@ inline void md4_encrypt(__private uint *hash, __private uint *W, uint len)
 
 inline void cmp_final(uint gid,
 		uint iter,
-		__private uint *hash,
+		uint *hash,
 		__global uint *offset_table,
 		__global uint *hash_table,
 		__global uint *return_hashes,
@@ -169,7 +169,7 @@ inline void cmp_final(uint gid,
 
 inline void cmp(uint gid,
 		uint iter,
-		__private uint *hash,
+		uint *hash,
 #if USE_LOCAL_BITMAPS
 		__local
 #else

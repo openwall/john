@@ -496,20 +496,6 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	if (john_main_process)
 		log_event("Proceeding with \"incremental\" mode: %.100s", mode);
 
-	if ((options.flags & FLG_BATCH_CHK || rec_restored) && john_main_process) {
-		fprintf(stderr, "Proceeding with incremental:%s", mode);
-		if (options.flags & FLG_MASK_CHK)
-			fprintf(stderr, ", hybrid mask:%s", options.mask ?
-			        options.mask : options.eff_mask);
-		if (options.rule_stack)
-			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
-		if (options.req_minlength >= 0 || options.req_maxlength)
-			fprintf(stderr, ", lengths: %d-%d",
-			        options.eff_minlength + mask_add_len,
-			        options.eff_maxlength + mask_add_len);
-		fprintf(stderr, "\n");
-	}
-
 	if (!(charset = cfg_get_param(SECTION_INC, mode, "File"))) {
 		if (cfg_get_section(SECTION_INC, mode) == NULL) {
 			log_event("! Unknown incremental mode: %s", mode);
@@ -541,7 +527,6 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 			    max_length, our_fmt_len);
 		max_length = our_fmt_len;
 	}
-
 
 	max_count = options.charcount ?
 		options.charcount : cfg_get_int(SECTION_INC, mode, "CharCount");
@@ -576,6 +561,20 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	    min_length > max_length &&
 	    options.eff_minlength <= CHARSET_LENGTH) {
 		max_length = min_length;
+	}
+
+	if (((options.flags & FLG_BATCH_CHK) || rec_restored) && john_main_process) {
+		fprintf(stderr, "Proceeding with incremental:%s", mode);
+		if (options.flags & FLG_MASK_CHK)
+			fprintf(stderr, ", hybrid mask:%s", options.mask ?
+			        options.mask : options.eff_mask);
+		if (options.rule_stack)
+			fprintf(stderr, ", rules-stack:%s", options.rule_stack);
+		if (min_length > 0 || options.req_maxlength)
+			fprintf(stderr, ", lengths: %d-%d",
+			        min_length + mask_add_len,
+			        max_length + mask_add_len);
+		fprintf(stderr, "\n");
 	}
 
 	if (min_length > max_length) {

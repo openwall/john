@@ -446,7 +446,7 @@
 #define vzero 0
 #define vones (~(vtype)0)
 
-inline void lm_loop(__private vtype *B,
+inline void lm_loop(vtype *B,
 #if WORK_GROUP_SIZE
 		__local lm_vector *lm_keys,
 #else

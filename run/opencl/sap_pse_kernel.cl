@@ -86,7 +86,7 @@ inline int sappse_crypt(__global const uint *password, uint32_t password_length,
 	uchar temp1[16];
 	des3_context ks;
 	des3_set3key_enc(&ks, key.bytes);
-	des3_crypt_cbc(&ks, DES_ENCRYPT, 8, iv.bytes, __private, pass.bytes, temp1);
+	des3_crypt_cbc(&ks, DES_ENCRYPT, 8, iv.bytes, const, pass.bytes, temp1);
 
 	for (i = 0; i < 8; i++) {
 		if (temp1[i] != salt->encrypted_pin[i]) {

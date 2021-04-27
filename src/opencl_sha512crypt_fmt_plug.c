@@ -44,8 +44,10 @@ static sha512_password *plain_sorted;   // sorted list (by plaintext len)
 static sha512_hash *calculated_hash;    // calculated hashes
 static sha512_hash *computed_hash;  // calculated hashes (from plain_sorted)
 
-static int
-*indices;            // relationship between sorted and unsorted plaintext list
+//To connect the sorted and unsorted plaintext lists
+static unsigned int *indices;
+static size_t indices_size;
+static uint32_t bitmap_of_lens; // what plaintext sizes do we have?
 
 static cl_mem salt_buffer;      //Salt information.
 static cl_mem pass_buffer;      //Plaintext buffer.
@@ -64,6 +66,10 @@ static int split_events[3] = { 1, 6, 7 };
 #include "opencl_autotune.h"
 
 static void release_kernel();
+
+#if (PLAINTEXT_LENGTH > 31) //Can't use sizeof(uint32_t)
+#error "Review bitmap_of_lens size"
+#endif
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
@@ -290,6 +296,11 @@ static int salt_hash(void *salt)
 static void clear_keys(void)
 {
 	crypt_kernel = crypt_fast_kernel;
+
+	/* When a new group of keys begins to be sent to the OpenCL device
+	 * clear the information about previously sent keys data.
+	 */
+	bitmap_of_lens = 0;
 }
 
 static void set_key(char *key, int index)
@@ -304,7 +315,9 @@ static void set_key(char *key, int index)
 	//Put the tranfered key on password buffer.
 	memcpy(plaintext[index].pass, key, len);
 	plaintext[index].length = len;
+
 	new_keys = 1;
+	bitmap_of_lens |= (1 << len);
 
 	if (len > 15)
 		crypt_kernel = crypt_full_kernel;
@@ -490,6 +503,9 @@ static void reset(struct db_main *db)
 
 	int major, minor;
 
+	new_keys = 0;
+	bitmap_of_lens = 0;
+
 	source_in_use = device_info[gpu_id];
 
 	//Initialize openCL tuning (library) for this format.
@@ -533,6 +549,7 @@ static void done(void)
 		release_clobj();
 		release_kernel();
 		MEM_FREE(indices);
+		indices_size = 0;
 	}
 }
 
@@ -562,37 +579,52 @@ static int cmp_exact(char *source, int count)
 static int crypt_all(int *pcount, struct db_salt *_salt)
 {
 	int count = *pcount;
-	int i, index;
+	int index;
 	size_t gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	sha512_password *input_candidates;
+	sha512_hash *output_hashes;
 
 	gws = GET_NEXT_MULTIPLE(count, local_work_size);
+
+	if (bitmap_of_lens & (bitmap_of_lens - 1)) {
+		input_candidates = plain_sorted;
+		output_hashes = computed_hash;
+	} else {
+		input_candidates = plaintext;
+		output_hashes = calculated_hash;
+	}
 
 	if (new_keys) {
 		// sort passwords by length
 		int tot_todo = 0, len;
 
-		MEM_FREE(indices);
+		if (bitmap_of_lens & (bitmap_of_lens - 1)) {
+			if (gws > indices_size) {
+				MEM_FREE(indices);
+				indices = mem_alloc(gws * sizeof(*indices));
+				indices_size = gws;
+			}
 
-		indices = mem_alloc(gws * sizeof(int));
+			for (len = 0; len <= PLAINTEXT_LENGTH; len++) {
+				if (!(bitmap_of_lens >> len))
+					break;
+				if ((bitmap_of_lens >> len) & 1)
+					for (index = 0; index < count; index++)
+						if (plaintext[index].length == len)
+							indices[tot_todo++] = index;
+			}
 
-		for (len = 0; len <= PLAINTEXT_LENGTH; len++) {
+			//Create a sorted by length candidates list.
 			for (index = 0; index < count; index++) {
-				if (plaintext[index].length == len)
-					indices[tot_todo++] = index;
+				memcpy(plain_sorted[index].pass, plaintext[indices[index]].pass,
+					plaintext[indices[index]].length + 1);
+				plain_sorted[index].length = plaintext[indices[index]].length;
 			}
 		}
-
-		//Create a sorted candidates list.
-		for (index = 0; index < count; index++) {
-			memcpy(plain_sorted[index].pass, plaintext[indices[index]].pass,
-			       PLAINTEXT_LENGTH);
-			plain_sorted[index].length = plaintext[indices[index]].length;
-		}
-
 		//Transfer plaintext buffer to device.
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer,
-		                                   CL_FALSE, 0, sizeof(sha512_password) * gws, plain_sorted, 0,
+		                                   CL_FALSE, 0, sizeof(sha512_password) * gws, input_candidates, 0,
 		                                   NULL, multi_profilingEvent[0]),
 		              "failed in clEnqueueWriteBuffer pass_buffer");
 	}
@@ -606,9 +638,10 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		                                     NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]),
 		              "failed in clEnqueueNDRangeKernel II");
 
-		for (i = 0;
-		        i < (ocl_autotune_running ? 3 : (salt->rounds / HASH_LOOPS));
-		        i++) {
+		unsigned int i, iterations;
+		iterations = ocl_autotune_running ? 3 : (salt->rounds / HASH_LOOPS);
+
+		for (i = 0; i < iterations; i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 			                                     &gws, lws, 0, NULL, (ocl_autotune_running ?
 			                                             multi_profilingEvent[split_events[i]] : NULL)),  //1, 5, 6
@@ -628,17 +661,19 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 	//Read back hashes
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
-	                                  sizeof(sha512_hash) * gws, computed_hash, 0, NULL,
+	                                  sizeof(sha512_hash) * gws, output_hashes, 0, NULL,
 	                                  multi_profilingEvent[2]), "failed in reading data back");
 
 	//Do the work
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
-	new_keys = 0;
 
-	//Build calculated hash list according to original plaintext list order.
-	for (index = 0; index < count; index++)
-		memcpy(calculated_hash[indices[index]].v, computed_hash[index].v,
-		       BINARY_SIZE);
+	if (bitmap_of_lens & (bitmap_of_lens - 1))
+		//Build calculated hash list according to original plaintext list order.
+		for (index = 0; index < count; index++)
+			memcpy(calculated_hash[indices[index]].v, computed_hash[index].v,
+			    BINARY_SIZE);
+
+	new_keys = 0;
 
 	return count;
 }
