@@ -62,7 +62,7 @@ john_register_one(&fmt_ocl_cryptsha1);
 #define STEP			0
 #define SEED			128
 
-#define ITERATIONS		(64000*2+2)
+#define ITERATIONS		(20000*2+2)
 
 /* This handles all widths */
 #define GETPOS(i, index)	(((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
