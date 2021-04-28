@@ -75,7 +75,7 @@ int oldoffice_valid(char *ciphertext, struct fmt_main *self)
 	if (!(ptr = strtokm(ctcopy, "*"))) /* type */
 		goto error;
 	type = atoi(ptr);
-	if (type < 0 || type > 4)
+	if (type < 0 || type > 5)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
@@ -208,6 +208,15 @@ void *oldoffice_get_salt(char *ciphertext)
 	for (i = 0; i < 16; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+
+	if (cs.type == 5 && !ldr_in_pot) {
+		static int warned;
+
+		if (john_main_process && !warned++) {
+			fprintf(stderr, "Note: The support for OldOffice type 5 is experimental and may be incorrect.\n");
+			fprintf(stderr, "      For latest news see https://github.com/openwall/john/issues/4705\n");
+		}
+	}
 
 	MEM_FREE(keeptr);
 
