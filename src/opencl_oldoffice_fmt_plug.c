@@ -363,7 +363,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!(ptr = strtokm(ctcopy, "*"))) /* type */
 		goto error;
 	type = atoi(ptr);
-	if (type < 0 || type > 4)
+	if (type < 0 || type > 5)
 		goto error;
 	if (!(ptr = strtokm(NULL, "*"))) /* salt */
 		goto error;
@@ -468,6 +468,15 @@ static void *get_salt(char *ciphertext)
 			log_event("- Using MITM key %02x%02x%02x%02x%02x for %s",
 			          cs.mitm[0], cs.mitm[1], cs.mitm[2], cs.mitm[3], cs.mitm[4], ciphertext);
 			cur_salt->mitm_reported = 1;
+		}
+	}
+
+	if (cs.type == 5 && !ldr_in_pot) {
+		static int warned;
+
+		if (john_main_process && !warned++) {
+			fprintf(stderr, "Note: The support for OldOffice type 5 is experimental and may be incorrect.\n");
+			fprintf(stderr, "      For latest news see https://github.com/openwall/john/issues/4705\n");
 		}
 	}
 
@@ -683,7 +692,7 @@ struct fmt_main FORMAT_STRUCT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_SPLIT_UNIFIES_CASE | FMT_DYNA_SALT | FMT_MASK,
 		{
-			"hash type",
+			"hash type [0-1:MD5+RC4-40 3:SHA1+RC4-40 4:SHA1+RC4-128 5:SHA1+RC4-56]",
 		},
 		{ FORMAT_TAG },
 		oo_tests

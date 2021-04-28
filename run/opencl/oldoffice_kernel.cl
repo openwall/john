@@ -460,8 +460,12 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 			atomic_xchg(&cs->cracked, 1);
 	} else {
 		key[0] = sha1[0];
-		if (cs->type == 3) {
+		if (cs->type == 3) {	/* Truncate to 40 bits */
 			key[1] = sha1[1] & 0xff;
+			key[2] = 0;
+			key[3] = 0;
+		} else if (cs->type == 5) {	/* Truncate to 56 bits */
+			key[1] = sha1[1] & 0xffffff;
 			key[2] = 0;
 			key[3] = 0;
 		} else {
