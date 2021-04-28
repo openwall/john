@@ -314,9 +314,13 @@ void opencl_process_event(void);
 #define jtrReleaseKernel(kernel) ({ cl_kernel _k = (kernel); (kernel) = NULL; clReleaseKernel(_k); })
 #define jtrReleaseProgram(program) ({ cl_program _p = (program); (program) = NULL; clReleaseProgram(_p); })
 
-/* Macro for get a multiple of a given value */
+/* Macro for getting a multiple of a given value */
 #define GET_NEXT_MULTIPLE(dividend, divisor)	  \
-	(divisor) ? ((dividend + (ocl_v_width * divisor - 1)) / (ocl_v_width * divisor)) * divisor : (dividend) / ocl_v_width;
+	(divisor) ? (((dividend) + ((divisor) - 1)) / (divisor)) * (divisor) : (dividend);
+
+/* Macro for translating 'count' (kpc) to GWS, taking vector width into account */
+#define GET_KPC_MULTIPLE(count, lws)	  \
+	(lws) ? (((count) + (ocl_v_width * (lws) - 1)) / (ocl_v_width * (lws))) * (lws) : ((count) + ocl_v_width - 1) / ocl_v_width;
 
 #define GET_MULTIPLE_OR_ZERO(dividend, divisor)	  \
 	((divisor) ? ((dividend / divisor) * divisor) : (dividend))

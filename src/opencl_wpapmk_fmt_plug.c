@@ -283,7 +283,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
+	global_work_size = GET_KPC_MULTIPLE(count, local_work_size);
 	scalar_gws = global_work_size * ocl_v_width;
 
 	// Copy data to gpu
