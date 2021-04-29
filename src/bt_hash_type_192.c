@@ -124,12 +124,12 @@ int test_tables_192(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *offset_ta
 			hash_table_collisions[hash_table_idx]++;
 
 			if (error && (hash_table_192[hash_table_idx] != (unsigned int)(hash.LO & 0xffffffff) ||
-				hash_table_192[hash_table_idx + hash_table_size] != (unsigned int)(hash.LO >> 32) ||
-				hash_table_192[hash_table_idx + 2 * hash_table_size] != (unsigned int)(hash.MI & 0xffffffff) ||
-				hash_table_192[hash_table_idx + 3 * hash_table_size] != (unsigned int)(hash.MI >> 32) ||
-				hash_table_192[hash_table_idx + 4 * hash_table_size] != (unsigned int)(hash.HI & 0xffffffff) ||
-				hash_table_192[hash_table_idx + 5 * hash_table_size] != (unsigned int)(hash.HI >> 32) ||
-				hash_table_collisions[hash_table_idx] > 1)) {
+			              hash_table_192[hash_table_idx + hash_table_size] != (unsigned int)(hash.LO >> 32) ||
+			              hash_table_192[hash_table_idx + 2 * hash_table_size] != (unsigned int)(hash.MI & 0xffffffff) ||
+			              hash_table_192[hash_table_idx + 3 * hash_table_size] != (unsigned int)(hash.MI >> 32) ||
+			              hash_table_192[hash_table_idx + 4 * hash_table_size] != (unsigned int)(hash.HI & 0xffffffff) ||
+			              hash_table_192[hash_table_idx + 5 * hash_table_size] != (unsigned int)(hash.HI >> 32) ||
+			              hash_table_collisions[hash_table_idx] > 1)) {
 				fprintf(stderr, "Error building tables: Loaded hash idx:%u, No. of collisions:%u\n", i, hash_table_collisions[hash_table_idx]);
 				error = 0;
 			}
@@ -201,9 +201,9 @@ static void remove_duplicates_final(unsigned int num_loaded_hashes, unsigned int
 
 	counter = 0;
 	for (i = 0; i < hash_table_size; i++) {
-		 hash_table[i].collisions = collisions[i];
-		 hash_table[i].iter = 0;
-		 hash_table[i].store_loc1 = hash_table[i].store_loc2 =
+		hash_table[i].collisions = collisions[i];
+		hash_table[i].iter = 0;
+		hash_table[i].store_loc1 = hash_table[i].store_loc2 =
 			hash_table[i].idx_hash_loc_list = 0xffffffff;
 		if (hash_table[i].collisions > 3)
 			hash_table[i].idx_hash_loc_list = counter++;
@@ -214,11 +214,11 @@ static void remove_duplicates_final(unsigned int num_loaded_hashes, unsigned int
 
 	counter = 0;
 	for (i = 0; i < hash_table_size; i++)
-	      if (collisions[i] > 3) {
+		if (collisions[i] > 3) {
 			if (bt_malloc((void **)&hash_location_list[counter], (collisions[i] - 1) * sizeof(unsigned int)))
 				bt_error("Failed to allocate memory: hash_location_list[counter].");
 			counter++;
-	      }
+		}
 
 	for (i = 0; i < num_loaded_hashes; i++) {
 		unsigned int k = rehash_list[i];
@@ -245,7 +245,7 @@ static void remove_duplicates_final(unsigned int num_loaded_hashes, unsigned int
 					hash_table[idx].store_loc2 = k;
 			}
 			else if (check_equal(hash_table[idx].store_loc1, k) ||
-				 check_equal(hash_table[idx].store_loc2, k))
+			         check_equal(hash_table[idx].store_loc2, k))
 				set_zero(k);
 		}
 
@@ -305,126 +305,126 @@ unsigned int remove_duplicates_192(unsigned int num_loaded_hashes, unsigned int 
 #if _OPENMP
 #pragma omp parallel private(i)
 #endif
-{
+	{
 #if _OPENMP
 #pragma omp for
 #endif
-	for (i = 0; i < num_loaded_hashes; i++) {
-		unsigned int idx = loaded_hashes_192[i].LO & (hash_table_size - 1);
+		for (i = 0; i < num_loaded_hashes; i++) {
+			unsigned int idx = loaded_hashes_192[i].LO & (hash_table_size - 1);
 #if _OPENMP
 #pragma omp atomic
 #endif
-		collisions[idx]++;
-	}
+			collisions[idx]++;
+		}
 
-	counter = 0;
+		counter = 0;
 #if _OPENMP
 #pragma omp barrier
 
 #pragma omp for
 #endif
-	for (i = 0; i < hash_table_size; i++) {
-		  hash_table[i].iter = 0;
-		 if (collisions[i] > 4)
+		for (i = 0; i < hash_table_size; i++) {
+			hash_table[i].iter = 0;
+			if (collisions[i] > 4)
 #if _OPENMP
 #pragma omp atomic
 #endif
-			 counter += (collisions[i] - 3);
-	}
+				counter += (collisions[i] - 3);
+		}
 #if _OPENMP
 #pragma omp barrier
 
 #pragma omp sections
 #endif
-{
+		{
 #if _OPENMP
 #pragma omp section
 #endif
-{
-	for (i = 0; i < num_loaded_hashes; i++) {
-		unsigned int idx = loaded_hashes_192[i].LO & (hash_table_size - 1);
+			{
+				for (i = 0; i < num_loaded_hashes; i++) {
+					unsigned int idx = loaded_hashes_192[i].LO & (hash_table_size - 1);
 
-		if (collisions[idx] == 2) {
-			if (!hash_table[idx].iter) {
-				hash_table[idx].iter++;
-				hash_table[idx].store_loc1 = i;
+					if (collisions[idx] == 2) {
+						if (!hash_table[idx].iter) {
+							hash_table[idx].iter++;
+							hash_table[idx].store_loc1 = i;
+						}
+						else if (check_equal(hash_table[idx].store_loc1, i))
+							set_zero(i);
+					}
+				}
 			}
-			else if (check_equal(hash_table[idx].store_loc1, i))
-				set_zero(i);
-		}
-	}
-}
 
 #if _OPENMP
 #pragma omp section
 #endif
-{
-	if (bt_malloc((void **)&rehash_list, counter * sizeof(unsigned int)))
-		bt_error("Failed to allocate memory: rehash_list.");
-	counter = 0;
-	for (i = 0; i < num_loaded_hashes; i++) {
-		unsigned int idx = loaded_hashes_192[i].LO & (hash_table_size - 1);
+			{
+				if (bt_malloc((void **)&rehash_list, counter * sizeof(unsigned int)))
+					bt_error("Failed to allocate memory: rehash_list.");
+				counter = 0;
+				for (i = 0; i < num_loaded_hashes; i++) {
+					unsigned int idx = loaded_hashes_192[i].LO & (hash_table_size - 1);
 
-		if (collisions[idx] == 3) {
-			if (!hash_table[idx].iter) {
-				hash_table[idx].iter++;
-				hash_table[idx].store_loc1 = i;
-			}
-			else if (hash_table[idx].iter == 1) {
-				if (check_equal(hash_table[idx].store_loc1, i))
-					set_zero(i);
-				else {
-					hash_table[idx].iter++;
-					hash_table[idx].store_loc2 = i;
-				}
-			}
-			else if (check_equal(hash_table[idx].store_loc1, i) ||
-				 check_equal(hash_table[idx].store_loc2, i))
-				set_zero(i);
-		}
+					if (collisions[idx] == 3) {
+						if (!hash_table[idx].iter) {
+							hash_table[idx].iter++;
+							hash_table[idx].store_loc1 = i;
+						}
+						else if (hash_table[idx].iter == 1) {
+							if (check_equal(hash_table[idx].store_loc1, i))
+								set_zero(i);
+							else {
+								hash_table[idx].iter++;
+								hash_table[idx].store_loc2 = i;
+							}
+						}
+						else if (check_equal(hash_table[idx].store_loc1, i) ||
+						         check_equal(hash_table[idx].store_loc2, i))
+							set_zero(i);
+					}
 
-		else if (collisions[idx] >= 4) {
-			if (!hash_table[idx].iter) {
-				hash_table[idx].iter++;
-				hash_table[idx].store_loc1 = i;
-			}
-			else if (hash_table[idx].iter == 1) {
-				if (check_equal(hash_table[idx].store_loc1, i))
-					set_zero(i);
-				else {
-					hash_table[idx].iter++;
-					hash_table[idx].store_loc2 = i;
+					else if (collisions[idx] >= 4) {
+						if (!hash_table[idx].iter) {
+							hash_table[idx].iter++;
+							hash_table[idx].store_loc1 = i;
+						}
+						else if (hash_table[idx].iter == 1) {
+							if (check_equal(hash_table[idx].store_loc1, i))
+								set_zero(i);
+							else {
+								hash_table[idx].iter++;
+								hash_table[idx].store_loc2 = i;
+							}
+
+						}
+						else if (hash_table[idx].iter == 2) {
+							if (check_equal(hash_table[idx].store_loc1, i) ||
+							    check_equal(hash_table[idx].store_loc2, i))
+								set_zero(i);
+							else {
+								hash_table[idx].iter++;
+								hash_table[idx].store_loc3 = i;
+							}
+						}
+						else if (hash_table[idx].iter >= 3) {
+							if (check_equal(hash_table[idx].store_loc1, i) ||
+							    check_equal(hash_table[idx].store_loc2, i) ||
+							    check_equal(hash_table[idx].store_loc3, i))
+								set_zero(i);
+							else {
+								if (collisions[idx] > 4)
+									rehash_list[counter++] = i;
+							}
+						}
+					}
 				}
 
-			}
-			else if (hash_table[idx].iter == 2) {
-				if (check_equal(hash_table[idx].store_loc1, i) ||
-				    check_equal(hash_table[idx].store_loc2, i))
-					set_zero(i);
-				else {
-					hash_table[idx].iter++;
-					hash_table[idx].store_loc3 = i;
-				}
-			}
-			else if (hash_table[idx].iter >= 3) {
-				if (check_equal(hash_table[idx].store_loc1, i) ||
-				    check_equal(hash_table[idx].store_loc2, i) ||
-				    check_equal(hash_table[idx].store_loc3, i))
-					set_zero(i);
-				else {
-					if (collisions[idx] > 4)
-						rehash_list[counter++] = i;
-				}
+				if (counter)
+					remove_duplicates_final(counter, counter + (counter >> 1), rehash_list);
+				bt_free((void **)&rehash_list);
 			}
 		}
 	}
-
-	if (counter)
-		remove_duplicates_final(counter, counter + (counter >> 1), rehash_list);
-	bt_free((void **)&rehash_list);
-}
-}
-}
 
 #if 0
 	{	unsigned int col1 = 0, col2 = 0, col3 = 0, col4 = 0, col5a = 0;
@@ -444,8 +444,8 @@ unsigned int remove_duplicates_192(unsigned int num_loaded_hashes, unsigned int 
 		col3 *= 3;
 		col4 *= 4;
 		fprintf(stderr, "Statistics:%Lf %Lf %Lf %Lf %Lf\n", (long double)col1 / (long double)num_loaded_hashes,
-		  (long double)col2 / (long double)num_loaded_hashes, (long double)col3 / (long double)num_loaded_hashes,
-			(long double)col4 / (long double)num_loaded_hashes, (long double)col5a / (long double)num_loaded_hashes);
+		        (long double)col2 / (long double)num_loaded_hashes, (long double)col3 / (long double)num_loaded_hashes,
+		        (long double)col4 / (long double)num_loaded_hashes, (long double)col5a / (long double)num_loaded_hashes);
 
 	}
 #endif
