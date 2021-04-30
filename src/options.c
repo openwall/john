@@ -359,8 +359,8 @@ FUZZ_USAGE \
 "--subformat=FORMAT         Pick a benchmark format for --format=crypt\n" \
 "--format=[NAME|CLASS][,..] Force hash of type NAME. The supported formats can\n" \
 "                           be seen with --list=formats and --list=subformats.\n" \
-"                           Valid classes: dynamic, cpu, opencl, ztex, mask, omp,\n" \
-"                           all, enabled, disabled.\n"
+"                           See also doc/OPTIONS for more advanced selection of\n" \
+"                           format(s), including using classes and wildcards.\n"
 
 #if defined(HAVE_OPENCL)
 #define JOHN_USAGE_GPU \

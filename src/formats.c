@@ -63,6 +63,30 @@ static void test_fmt_case(struct fmt_main *format, void *binary,
 #endif
 
 /*
+ * List of format classes valid for this build (actually all are valid
+ * to ask for but we don't list those that can't match).
+ *
+ * This list is used in listconf.c and john.c
+ */
+char fmt_class_list[] = "all, enabled, disabled"
+#if _OPENMP
+	", omp"
+#endif
+#if HAVE_OPENCL || HAVE_ZTEX
+	", mask"
+#endif
+#if HAVE_ZTEX
+	", ztex"
+#endif
+#if HAVE_OPENCL
+	", opencl"
+#endif
+#ifndef DYNAMIC_DISABLED
+	", dynamic"
+#endif
+	", cpu";
+
+/*
  * Does req_format match format?
  *
  * req_format can be an exact full match or a wildc*rd, for format label,
