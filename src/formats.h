@@ -426,6 +426,11 @@ struct fmt_main {
  */
 extern char fmt_null_key[PLAINTEXT_BUFFER_SIZE];
 
+/*
+ * List of valid format classes for this build
+ */
+extern char fmt_class_list[];
+
 /* Self-test is running */
 extern int self_test_running;
 

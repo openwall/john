@@ -107,14 +107,12 @@ extern char CPU_req_name[];
  */
 static void listconf_list_options()
 {
-	puts("help[:WHAT], subformats, inc-modes, rules, externals, ext-modes");
-	puts("ext-hybrids, ext-filters, ext-filters-only, build-info, encodings");
-	puts("formats, format-details, format-all-details, format-methods[:WHICH],");
-	// With "opencl-devices, <conf section name>" added,
-	// the resulting line will get too long
-	puts("format-tests, sections, parameters:SECTION, list-data:SECTION,");
+	puts("help[:WHAT], subformats, inc-modes, rules, externals, ext-modes, ext-hybrids,");
+	puts("ext-filters, ext-filters-only, build-info, encodings, formats, format-classes,");
+	puts("format-details, format-all-details, format-methods[:WHICH], format-tests,");
+	printf("sections, parameters:SECTION, list-data:SECTION, ");
 #if HAVE_OPENCL
-	printf("opencl-devices, ");
+	puts("opencl-devices,");
 #endif
 	/* NOTE: The following must end the list. Anything listed after
 	   <conf section name> will be ignored by current
@@ -419,6 +417,11 @@ void listconf_parse_early(void)
 			error_msg("--format not allowed with \"--list=%s\"\n", options.listconf);
 
 		listEncodings(stdout);
+		exit(EXIT_SUCCESS);
+	}
+	if (!strcasecmp(options.listconf, "format-classes"))
+	{
+		puts(fmt_class_list);
 		exit(EXIT_SUCCESS);
 	}
 }
