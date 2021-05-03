@@ -447,11 +447,11 @@ format label such as "--format=crypt-md5".
 
 Mainly for test and list purposes (see --list=WHAT), you can use a single
 wildcard, as in "--format=mysql-*", "--format=raw*ng" or "--format=*office",
-or group aliases such as "dynamic", "cpu", "omp", "opencl", "ztex" as a
+or format classes such as "dynamic", "cpu", "omp", "opencl", "ztex" as a
 well as the special "all" that will include even formats listed as disabled
 in john.conf (so "./john -test=0 -format=all" will ensure you actually test
 all formats regardless of config).  While on the subject of disabled formats,
-aliases "enabled" or "disabled" can also be used, eg. for listing which of
+classes "enabled" or "disabled" can also be used, eg. for listing which of
 them are.
 
 There's also a special way to match any substring within the "algorithm
@@ -478,7 +478,7 @@ this can be used for merely changing format precedence while otherwise
 keeping auto-detection.  This means eg. "--format=ztex,opencl,cpu" for a
 crack session will end up in auto-detection among all formats, just like no
 format option was used, except it will prefer ztex over opencl and only use
-a CPU format unless a ZTEX or OpenCL format was available.
+a CPU format if neither a ZTEX or OpenCL format was available.
 
 The ad-hoc dynamic, or "dynamic compiler" format can not be used in a format
 list or with wildcards, only on it's own.  This is because the expression
