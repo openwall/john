@@ -104,9 +104,10 @@ static MAYBE_INLINE uint32_t string_hash(char *s)
 		goto out;
 
 	while (*p) {
-		hash <<= 3; extra <<= 2;
+		hash <<= 5;
 		hash += (unsigned char)p[0];
 		if (!p[1]) break;
+		extra *= hash | 1812433253;
 		extra += (unsigned char)p[1];
 		p += 2;
 		if (hash & 0xe0000000) {
