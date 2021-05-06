@@ -806,8 +806,10 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 		    count >= CHARSET_SIZE)
 			inc_format_error(charset);
 
-		if (entry != rec_entry)
+		if (entry != rec_entry) {
 			memset(numbers, 0, sizeof(numbers));
+			status.resume_salt = 0; /* safety for manual edits */
+		}
 
 		if (count >= real_count || (fixed && !count))
 			continue;
