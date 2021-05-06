@@ -782,6 +782,7 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 		}
 	}
 
+	length = rec_length; /* should also match *ptr */
 	memcpy(numbers, rec_numbers, sizeof(numbers));
 
 	crk_init(db, fix_state, NULL);
