@@ -293,7 +293,7 @@ struct fmt_main fmt_opencl_odf_aes = {
 		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{
 			"iteration count",
-			"crypto [0=Blowfish, 1=AES]",
+			"crypto [0=Blowfish 1=AES]",
 		},
 		{ FORMAT_TAG },
 		odf_tests
