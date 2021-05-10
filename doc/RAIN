@@ -1,3 +1,6 @@
 #rain module by owein, yvain29@gmail.com
 Use with -rain=charset and a mask for performances.
 Use in last resort for long and complex passwords.
+Deep and unpredicatble mangling due to the iteration on
+the whole word plus break when overpassing the character count.
+

@@ -105,7 +105,7 @@ JOHN_OBJS = \
 	memory.o misc.o options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
 	tty.o  wordlist.o \
 	mkv.o mkvlib.o \
-	subsets.o tacking.o unicode_range.o \
+	subsets.o rain.o unicode_range.o \
 	listconf.o \
 	fake_salts.o \
 	win32_memmap.o mmap-windows.o \
@@ -408,7 +408,7 @@ mkv.o:	mkv.c arch.h misc.h jumbo.h autoconfig.h params.h path.h memory.h os.h os
 
 subsets.o: subsets.c subsets.h unicode_range.h loader.h cracker.h options.h logger.h status.h recovery.h
 
-tacking.o: tacking.c tacking.h unicode_range.h loader.h cracker.h options.h logger.h status.h recovery.h
+rain.o: rain.c rain.h unicode_range.h loader.h cracker.h options.h logger.h status.h recovery.h
 
 unicode_range.o: unicode_range.c unicode_range.h
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -O0 unicode_range.c
