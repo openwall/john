@@ -2,7 +2,7 @@ version: 2
 jobs:
   common_linux: &common_linux
     docker:
-      - image: claudioandre/john:fedora.32
+      - image: ghcr.io/openwall/john-ci:fedora.32
     steps:
       - checkout
       - run:
@@ -15,7 +15,7 @@ jobs:
   wine-32bits:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:fedora.30
+      - image: ghcr.io/openwall/john-ci:fedora.30
         environment:
           TARGET_ARCH: "i686"
           WINE: "wine"
@@ -24,7 +24,7 @@ jobs:
   wine-64bits:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:fedora.32
+      - image: ghcr.io/openwall/john-ci:fedora.32
         environment:
           TARGET_ARCH: "x86_64"
           WINE: "wine"
@@ -43,7 +43,7 @@ jobs:
   encoding-cpu:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:fedora.32
+      - image: ghcr.io/openwall/john-ci:fedora.32
         environment:
           OMP_NUM_THREADS: 2
           ENCODING_TEST: "cpu"
@@ -59,7 +59,7 @@ jobs:
   asan:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:fedora.32
+      - image: ghcr.io/openwall/john-ci:fedora.32
         environment:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
@@ -68,7 +68,7 @@ jobs:
   test-full:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:fedora.32
+      - image: ghcr.io/openwall/john-ci:fedora.32
         environment:
           OMP_NUM_THREADS: 1
           ASAN_TEST: "yes"
@@ -78,7 +78,7 @@ jobs:
   fast-formats-omp:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:fedora.32
+      - image: ghcr.io/openwall/john-ci:fedora.32
         environment:
           OMP_NUM_THREADS: 1
           ASAN_TEST: "yes"
@@ -88,7 +88,7 @@ jobs:
   non-SIMD:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:fedora.32
+      - image: ghcr.io/openwall/john-ci:fedora.32
         environment:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
@@ -98,7 +98,7 @@ jobs:
   fast-formats-omp-x-non-SIMD:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:fedora.32
+      - image: ghcr.io/openwall/john-ci:fedora.32
         environment:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
