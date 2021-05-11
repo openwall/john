@@ -2165,10 +2165,36 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 	char *ciphertext, *pos;
 	int hash;
 	struct db_cracked *current, *last;
+	static struct fmt_main *last_fmt;
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 
 	if (line) {
+/*
+ * Jumbo-specific; split() needed for legacy pot entries so we need to
+ * enumerate formats to know which to call.
+ * This also takes care of the situation where specific format(s) was
+ * requested for --make-charset.
+ */
+		struct fmt_main *format = fmt_list;
+
+		if (last_fmt && (ldr_trunc_valid(ciphertext, last_fmt) == 1))
+			format = last_fmt;
+		else
+		if (!(db->options->flags & DB_PLAINTEXTS) || (options.flags & FLG_FORMAT)) {
+			do {
+				if (format != last_fmt && ldr_trunc_valid(ciphertext, format) == 1)
+					break;
+			} while ((format = format->next));
+
+			if (format)
+				last_fmt = format;
+		}
+
+/* If format(s) was forced on the command line, insist on it (them) */
+		if (!format && (options.flags & FLG_FORMAT))
+			return;
+
 		pos = line;
 		do {
 			if (*pos == '\r' || *pos == '\n') *pos = 0;
@@ -2178,25 +2204,10 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 			list_add(db->plaintexts, line);
 			return;
 		}
-/*
- * Jumbo-specific; split() needed for legacy pot entries so we need to
- * enumerate formats and call valid(). This also takes care of the situation
- * where a specific format was requested.
- */
-		if (!(options.flags & FLG_MAKECHR_CHK)) {
-			struct fmt_main *format = fmt_list;
 
-			do {
-				if (ldr_trunc_valid(ciphertext, format) == 1)
-					break;
-			} while((format = format->next));
+		if (format)
+			ciphertext = format->methods.split(ciphertext, 0, format);
 
-			if (!format)
-				return;
-
-			ciphertext =
-				format->methods.split(ciphertext, 0, format);
-		}
 		hash = ldr_cracked_hash(ciphertext);
 
 		last = db->cracked_hash[hash];
