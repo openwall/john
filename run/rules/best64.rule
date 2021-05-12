@@ -1,102 +1,107 @@
+# we're in hashcat mode, so can't use rule reject flags nor the preprocessor
+
 ## nothing, reverse, case... base stuff
 :
-r
-u
-T0
+r Q
+u Q
+T0 Q
 
 ## simple number append
-$0
-$1
-$2
-$3
-$4
-$5
-$6
-$7
-$8
-$9
+<* $0
+<* $1
+<* $2
+<* $3
+<* $4
+<* $5
+<* $6
+<* $7
+<* $8
+<* $9
 
 ## special number append
-$0 $0
-$0 $1
-$0 $2
-$1 $1
-$1 $2
-$1 $3
-$2 $1
-$2 $2
-$2 $3
-$6 $9
-$7 $7
-$8 $8
-$9 $9
-$1 $2 $3
+<- $0 $0
+<- $0 $1
+<- $0 $2
+<- $1 $1
+<- $1 $2
+<- $1 $3
+<- $2 $1
+<- $2 $2
+<- $2 $3
+<- $6 $9
+<- $7 $7
+<- $8 $8
+<- $9 $9
+$1 <- $2 $3
 
 ## high frequency append
-$e
-$s
+<* $e
+<* $s
 
 ## high frequency overwrite at end
-] $a
+oma Q
 ] ] $s
 ] ] $a
-] ] $e $r
-] ] $i $e
+] ] $e $r Q
+] ] $i $e Q
 ] ] ] $o
 ] ] ] $y
-] ] ] $1 $2 $3
-] ] ] $m $a $n
-] ] ] $d $o $g
+] ] ] $1 $2 $3 Q
+] ] ] $m $a $n Q
+] ] ] $d $o $g Q
 
 ## high frequency prepend
 ^1
 ^e ^h ^t
 
 ## high frequency overwrite at start
-o0d
-o0m o1a
+o0d Q
+o0m o1a Q
 
 ## leetify
-so0
-si1
-se3
+so0 Q
+si1 Q
+se3 Q
 
 ## simple extracts
-D2
-D2 D2
-D3
-D4
+>3 D2
+# for length 5 the same as "} ] ] {" below
+>5 O22
+>4 D3
+>5 D4
 
 ## undouble word
-'5 D3
-'5 $1
+>5 '5 D3
+>5 '5 $1
 
 ## removes suffixes from 'strongified' passwords in dict
-]
-] ]
-] ] ]
-] ] ] d
-] ] D1 ]
+>1 ]
+>2 ] ]
+>3 ] ] ]
+>3 ] ] ] d
+>3 ] ] D1 ]
 
 ## rotates
-+5 ] } } } } '4
-O02 { { { { { {
-} ] ] {
+>1 +5 ] } } } } '4
+>2 O02 { { { { { {
+# for length 3 the same as above
+>3 } ] ] {
 } } -0 O12
-} } }
-} } } } '4
-} } } } } '5
+# for length 1 or 3 a no-op, for length 2 the same as "} } } } } '5" below
+>3 } } }
+>2 } } } } '4
+>1 } } } } } '5
 } } } } } } Y4 '4 d
 
 ## unknown
 *04 +0 '4
-*05 O03 d '3 p1
+*05 O03 d '3 d
 +0 +0 +0 +0 +0 +0 +0 +0
 +0 +0 +0 O12
 Z4 '8 O42
-Z5 '6 O31 ] p1
+Z5 '6 O31 ] d
 Z5 *75 '5 { O02
 d O28 Y4 '4 d
 f *A5 '8 O14
-p2 '7 p1 O58
+p2 '7 d O58
 O14 d p2 '6
