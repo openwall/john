@@ -55,6 +55,7 @@ AC_ARG_VAR([LD], [full pathname of linker to use])
 dnl Define Packages.
 dnl Use OpenSSL (default: yes).
 AC_ARG_WITH(openssl, [AS_HELP_STRING([--without-openssl],[Do not use OpenSSL (exclude much functionality)])],,[with_openssl=yes])
+AC_ARG_WITH(unrar, [AS_HELP_STRING([--without-unrar],[Omit non-free unrar code (rendering RAR v3 support incomplete)])],,[with_unrar=yes])
 dnl Cludge for endian (if not auto detected)
 AC_ARG_WITH(endian, [AS_HELP_STRING([--with-endian=little|big],[Set endianness for target if it doesn't detect properly])],,[endian=unknown])
 dnl -DJOHN_SYSTEMWIDE
@@ -614,6 +615,26 @@ else
   fi]
 )
 
+AC_MSG_CHECKING([for (non-free) ClamAV unrar code])
+if test $with_unrar = yes; then
+  for sf in unrar.c unrarcmd.c unrarfilter.c unrarhlp.c unrarppm.c unrarvm.c unrar.h unrarcmd.h unrarfilter.h unrarhlp.h unrarppm.h unrarvm.h; do
+    if test ! -s $sf; then
+      unrar_files="no (files missing)"
+      AC_MSG_RESULT([no])
+      break
+    fi
+  done
+  if test -z "$unrar_files"; then
+    unrar_files="yes"
+    AC_MSG_RESULT([yes])
+    AC_DEFINE(HAVE_UNRAR, 1, [Define to 1 if you have the ClamAV unrar files.])
+    AC_SUBST([UNRAR_OBJS], "unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o")
+  fi
+else
+  unrar_files="no (disabled)"
+  AC_MSG_RESULT([disabled])
+fi
+
 AC_CHECK_LIB([m],[sqrt],[AC_DEFINE(HAVE_LIBM,1,[Define to 1 if you have the `m' library (-lm).])] [AC_SUBST(M_LIBS, [-lm])],[AC_MSG_FAILURE(JtR requires libm being installed,1)])
 AC_CHECK_LIB([rt],[clock_gettime],[AC_DEFINE(HAVE_LIBRT,1,[Define to 1 if you have clock_gettime in the `rt' library (-lrt).])] [AC_SUBST(RT_LIBS, [-lrt])])
 AC_CHECK_LIB([z],[deflate],[AC_DEFINE(HAVE_LIBZ,1,[Define to 1 if you have the `z' library (-lz).])] [AC_SUBST(Z_LIBS, [-lz])])
@@ -1065,7 +1086,6 @@ if test x$using_cl = xyes ; then
 else
   AC_MSG_NOTICE([creating *_plug.c rules])
 fi
-
 if test "`echo *_plug.c`" != "*_plug.c"; then
    AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/opencl[[A-Za-z0-9_\-]]*\.c //g;s/\.c/.o/g'`])
    AC_SUBST([OPENCL_PLUGFORMATS_OBJS],[`echo opencl*_plug.c | sed 's/\.c/.o/g'`])
@@ -1261,6 +1281,7 @@ libgmp (PRINCE mode and faster SRP formats)  ${ac_cv_lib_gmp___gmpz_init}
 libz (pkzip and some other formats) ........ ${using_zlib}
 libbz2 (gpg2john extra decompression logic)  ${using_bz2}
 libpcap (vncpcap2john and SIPdump) ......... ${using_pcap}
+Non-free unrar code (complete RAR support) . ${unrar_files}
 OpenMPI support (default disabled) ......... ${using_mpi}
 ZTEX USB-FPGA module 1.15y support ......... ${ztex}
 

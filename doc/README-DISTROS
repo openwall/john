@@ -1,3 +1,10 @@
+Our source tree includes ClamAV unrar code which is non-free.  Distros can build
+without it using --without-unrar option to configure (crippling the RAR v3
+formats a little).  Simply deleting src/unrar*.[ch] before running configure
+will infer that option as well.
+
+--
+
 Here's how to build a CPU-fallback chain (with OpenMP fallback too) for
 distros. See params.h for some background detail. The only actually tricky
 part is escaping the quotes enough to survive just long enough.
