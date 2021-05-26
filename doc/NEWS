@@ -187,7 +187,12 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   [magnum; 2021]
 
 - Improved Monero support: Now supports legacy wallets from before 2016 that are
-  not using JSON format yet. [patrickd, magnumripper, solardiz; 2021]
+  not using JSON format yet.  [patrickd; 2021]
+
+- Add --without-unrar option to configure, for building without the non-free
+  ClamAV unrar code (crippling the RAR v3 formats a little).  Simply deleting
+  src/unrar*.[ch] will infer that option as well.  [magnum; 2021]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
