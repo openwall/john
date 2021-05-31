@@ -23,7 +23,7 @@ inline void _md5_process(MD5_CTX *ctx, const uchar data[64])
 {
 	uint W[16], A, B, C, D;
 
-#if gpu_nvidia(DEVICE_INFO)
+#if ALLOW_ALIASING_VIOLATIONS
 	if (!((size_t)data & 0x03)) {
 		GET_UINT32_ALIGNED(W[ 0], data,  0);
 		GET_UINT32_ALIGNED(W[ 1], data,  4);
@@ -146,7 +146,7 @@ inline void MD5_Final(uchar output[20], MD5_CTX *ctx)
 	MD5_Update(ctx, md5_padding, padn);
 	MD5_Update(ctx, msglen, 8);
 
-#if gpu_nvidia(DEVICE_INFO)
+#if ALLOW_ALIASING_VIOLATIONS
 	if (!((size_t)output & 0x03)) {
 		PUT_UINT32_ALIGNED(ctx->state[0], output,  0);
 		PUT_UINT32_ALIGNED(ctx->state[1], output,  4);

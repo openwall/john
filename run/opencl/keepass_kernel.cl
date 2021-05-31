@@ -1,14 +1,26 @@
 /*
- * This software is Copyright (c) 2018 magnum,
+ * This software is Copyright (c) 2018-2021 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
+
+#if MAX_CONT_SIZE >= 0xff00
+#define MAYBE_CONSTANT __global const
+#endif
+
 #include "opencl_misc.h"
+#if gpu_nvidia(DEVICE_INFO)
+/*
+ * 'volatile' as a bug workaround for nvidia runtime/driver ver. 435.21 while
+ * [some] earlier versions worked fine without it.  No negative side-effects
+ * (such as performance impact) seen.  Bug still in 465.19.01
+ */
 #define AES_SRC_TYPE volatile const
+#define CHACHA_SRC_TYPE volatile const
+#endif
 #include "opencl_aes.h"
 #include "opencl_sha2_ctx.h"
-#define CHACHA_SRC_TYPE volatile const
 #include "opencl_chacha.h"
 #include "opencl_twofish.h"
 
@@ -44,44 +56,6 @@ typedef struct {
 	uchar hash[32];
 	AES_KEY akey;
 } keepass_state;
-
-#if MAX_CONT_SIZE >= 0xff00
-#undef MAYBE_CONSTANT
-#define MAYBE_CONSTANT __global const
-#endif
-
-inline int _memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
-{
-	union {
-		const uint *w;
-		const uchar *c;
-	} a;
-	union {
-		MAYBE_CONSTANT uint *w;
-		MAYBE_CONSTANT uchar *c;
-	} b;
-
-	a.c = s1;
-	b.c = s2;
-
-	if (((size_t)s1 & 0x03) == ((size_t)s2 & 0x03)) {
-		while (((size_t)a.c) & 0x03 && size--)
-			if (*b.c++ != *a.c++)
-				return 1;
-
-		while (size >= 4) {
-			if (*b.w++ != *a.w++)
-				return 1;
-			size -= 4;
-		}
-	}
-
-	while (size--)
-		if (*b.c++ != *a.c++)
-			return 1;
-
-	return 0;
-}
 
 __kernel void keepass_init(__global const keepass_password *masterkey,
                            MAYBE_CONSTANT keepass_salt_t *salt,
@@ -228,15 +202,13 @@ __kernel void keepass_final(__global keepass_state *state,
 		}
 
 		SHA256_Final(hash, &ctx);
-		result[gid].cracked = !_memcmp_pmc(hash, salt->contents_hash, 32);
+		result[gid].cracked = !memcmp_pmc(hash, salt->contents_hash, 32);
 	}
 	else if (salt->version == 2) {
-		/*
-		 * 'volatile' as a bug workaround for nvidia runtime/driver ver. 435.21 while
-		 * [some] earlier versions worked fine without it.  No negative side-effects
-		 * (such as performance impact) seen.
-		 */
-		volatile uchar content[32];
+#if gpu_nvidia(DEVICE_INFO)
+		volatile /* See comment near top */
+#endif
+			uchar content[32];
 
 		memcpy_macro(content, salt->contents, 32);
 
@@ -250,8 +222,6 @@ __kernel void keepass_final(__global keepass_state *state,
 			chacha_ivsetup(&ckey, iv, 0, 12);
 			chacha_decrypt_bytes(&ckey, content, hash, 32);
 		}
-		result[gid].cracked = !_memcmp_pmc(hash, salt->expected_bytes, 32);
+		result[gid].cracked = !memcmp_pmc(hash, salt->expected_bytes, 32);
 	}
-	else
-		result[gid].cracked = 0; // We should never end up here
 }

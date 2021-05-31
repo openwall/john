@@ -72,9 +72,13 @@ inline uint64_t _checksum_64(MAYBE_CONSTANT encfs_salt *salt, uchar *key,
 	uchar DataIV[128 + 8]; // max data len is 128
 	uchar md[20];
 	uint i;
-	uchar h[8] = { 0 };
+	union {
+		uint64_t l;
+		uchar c[8];
+	} h;
 	uint64_t value;
 
+	h.l = 0;
 	memcpy_pp(DataIV, data, dataLen);
 
 	if (chainedIV) {
@@ -91,10 +95,13 @@ inline uint64_t _checksum_64(MAYBE_CONSTANT encfs_salt *salt, uchar *key,
 
 	// chop this down to a 64bit value..
 	for (i = 0; i < 19; ++i)
-		h[i % 8] ^= (uchar)(md[i]);
-	value = (uint64_t)h[0];
-	for (i = 1; i < 8; ++i)
-		value = (value << 8) | (uint64_t)h[i];
+		h.c[i % 8] ^= md[i];
+
+#if __ENDIAN_LITTLE__
+	value = SWAP64(h.l);
+#else
+	value = h.l;
+#endif
 
 	return value;
 }
@@ -114,7 +121,7 @@ inline uint64_t MAC_64(MAYBE_CONSTANT encfs_salt *salt,
 inline uint encfs_common_MAC_32(MAYBE_CONSTANT encfs_salt *salt, uchar *src,
                                 uint len, uchar *key)
 {
-	uint64_t *chainedIV = (void*)0;
+	uint64_t *chainedIV = NULL;
 	uint64_t mac64 = MAC_64(salt, src, len, key, chainedIV );
 	uint mac32 = ((mac64 >> 32) & 0xffffffff) ^ (mac64 & 0xffffffff);
 
@@ -155,7 +162,7 @@ void encfs_final(MAYBE_CONSTANT encfs_salt *salt,
 
 	// First N bytes are checksum bytes.
 	for (i = 0; i < KEY_CHECKSUM_BYTES; ++i)
-		checksum = (checksum << 8) | (uint)salt->data[i];
+		checksum = (checksum << 8) | salt->data[i];
 
 	memcpy_mcp(tmpBuf, salt->data + KEY_CHECKSUM_BYTES, salt->keySize + salt->ivLength);
 	encfs_common_streamDecode(salt, tmpBuf, salt->keySize + salt->ivLength ,checksum, master);

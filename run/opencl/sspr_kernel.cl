@@ -283,7 +283,7 @@ __kernel void loop_sha512(__global sspr_hash *outbuffer,
 
 		for (j = 0; j < 8; j++)
 			W[j] = buf.W[j];
-		W[8] = 0x8000000000000000;
+		W[8] = 0x8000000000000000ULL;
 		W[15] = 64 << 3;
 		sha512_single_zeros(W, buf.W);
 	}
