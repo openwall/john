@@ -58,10 +58,10 @@ sub parse
 	my $ok = 0;
 	if (defined($name)) {
 		($kind, $real, $reals, $virtual, $virtuals) =
-		    /^\t?([\w ]+):\s+([\d.]+)([KM]?) c\/s real, ([\d.]+)([KM]?) c\/s virtual$/;
+		    /^\t?([\w ]+):\s+([\d.]+)([KM]?) c\/s real, ([\d.]+)([KM]?) c\/s virtual/;
 		if (!defined($virtual)) {
 			($kind, $real, $reals) =
-			    /^\t?([\w ]+):\s+([\d.]+)([KM]?) c\/s$/;
+			    /^\t?([\w ]+):\s+([\d.]+)([KM]?) c\/s/;
 			$virtual = $real; $virtuals = $reals;
 			print "Warning: some benchmark results are missing virtual (CPU) time data\n" unless ($warned);
 			$warned = 1;
