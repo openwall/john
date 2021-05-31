@@ -46,7 +46,7 @@ __kernel void bitwarden_decrypt(MAYBE_CONSTANT bitwarden_salt_t *salt,
 
 	// Check padding
 	for (i = 0; i < 4; i++) {
-		if (0x10101010 != plaintext.w[4 + i]) {
+		if (plaintext.w[4 + i] != 0x10101010) {
 			success = 0;
 			break;
 		}

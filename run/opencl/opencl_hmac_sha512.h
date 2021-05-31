@@ -54,14 +54,14 @@ inline void hmac_sha512(HMAC_KEY_TYPE void *_key, uint key_len,
 		SHA512_Update(&ctx, key, key_len);
 #endif
 		SHA512_Final(buf, &ctx);
-		pW[0] ^= 0x3636363636363636;
-		pW[1] ^= 0x3636363636363636;
-		pW[2] ^= 0x3636363636363636;
-		pW[3] ^= 0x3636363636363636;
-		pW[4] ^= 0x3636363636363636;
-		pW[5] ^= 0x3636363636363636;
-		pW[6] ^= 0x3636363636363636;
-		pW[7] ^= 0x3636363636363636;
+		pW[0] ^= 0x3636363636363636ULL;
+		pW[1] ^= 0x3636363636363636ULL;
+		pW[2] ^= 0x3636363636363636ULL;
+		pW[3] ^= 0x3636363636363636ULL;
+		pW[4] ^= 0x3636363636363636ULL;
+		pW[5] ^= 0x3636363636363636ULL;
+		pW[6] ^= 0x3636363636363636ULL;
+		pW[7] ^= 0x3636363636363636ULL;
 		memset_p(&buf[64], 0x36, 128 - 64);
 	} else
 #endif
@@ -69,7 +69,7 @@ inline void hmac_sha512(HMAC_KEY_TYPE void *_key, uint key_len,
 		memcpy_macro(buf, key, key_len);
 		memset_p(&buf[key_len], 0, 128 - key_len);
 		for (i = 0; i < 16; i++)
-			pW[i] ^= 0x3636363636363636;
+			pW[i] ^= 0x3636363636363636ULL;
 	}
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, buf, 128);
@@ -88,7 +88,7 @@ inline void hmac_sha512(HMAC_KEY_TYPE void *_key, uint key_len,
 #endif
 	SHA512_Final(local_digest, &ctx);
 	for (i = 0; i < 16; i++)
-		pW[i] ^= (0x3636363636363636 ^ 0x5c5c5c5c5c5c5c5c);
+		pW[i] ^= (0x3636363636363636ULL ^ 0x5c5c5c5c5c5c5c5cULL);
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, buf, 128);
 	SHA512_Update(&ctx, local_digest, 64);

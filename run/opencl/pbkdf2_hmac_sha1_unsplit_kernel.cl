@@ -80,18 +80,18 @@ inline void hmac_sha1(uint *output,
 	int i;
 	uint W[16];
 	uint A, B, C, D, E, temp, r[16];
-	uchar buf[64];
-	uint *src = (uint *) buf;
-	i = 64 / 4;
-	while (i--)
-		*src++ = 0;
-	//_memcpy(buf, salt, saltlen);
-	for (i = 0; i < saltlen; i++)
-		buf[i] = salt[i];
+	union {
+		uchar c[64];
+		uint w[64/4];
+	} buf;
 
-	buf[saltlen + 4] = 0x80;
-	buf[saltlen + 3] = add;
-	PUT_UINT32BE((64 + saltlen + 4) << 3, buf, 60);
+	for (i = 0; i < 16; i++)
+		buf.w[i] = 0;
+	memcpy_cp(buf.c, salt, saltlen);
+
+	buf.c[saltlen + 4] = 0x80;
+	buf.c[saltlen + 3] = add;
+	PUT_UINT32BE((64 + saltlen + 4) << 3, buf.c, 60);
 
 	A = ipad_state[0];
 	B = ipad_state[1];
@@ -100,7 +100,7 @@ inline void hmac_sha1(uint *output,
 	E = ipad_state[4];
 
 	for (i = 0; i < 16; i++)
-		GET_UINT32BE(W[i], buf, i * 4);
+		W[i] = SWAP32(buf.w[i]);
 
 	SHA1(A, B, C, D, E, W);
 

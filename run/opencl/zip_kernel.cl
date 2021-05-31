@@ -34,8 +34,7 @@ __kernel void zip(__global const pbkdf2_password *inbuffer,
 	       salt->salt, salt->length, salt->iterations,
 	       outbuffer[idx].v, 2, 2 * salt->key_len);
 
-	if (*(__global ushort*)outbuffer[idx].v ==
-	    *(__constant ushort*)salt->passverify) {
+	if (!memcmp_gc(outbuffer[idx].v, salt->passverify, 2)) {
 
 		pbkdf2(inbuffer[idx].v, inbuffer[idx].length,
 		       salt->salt, salt->length, salt->iterations,

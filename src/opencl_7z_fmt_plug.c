@@ -97,7 +97,7 @@ static cl_kernel sevenzip_init, sevenzip_final, sevenzip_aes;
 
 static struct fmt_main *self;
 
-#define HASH_LOOPS	0x4000
+#define HASH_LOOPS	0x4000 // Must be multiple of 32
 #define LOOP_COUNT	((1 << currentsalt.iterations) / HASH_LOOPS)
 #define STEP		0
 #define SEED		16
