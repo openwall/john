@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, magnum
+ * Copyright (c) 2020-2021, magnum
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -11,131 +11,100 @@
 #define _STR_VALUE(arg)         #arg
 #define STR_MACRO(n)            _STR_VALUE(n)
 
-#if defined(SIMD_COEF_32)
-#define VSCANSZ                 (SIMD_COEF_32 * 4)
+#if defined(vcmpeq_epi8_mask) && !defined(_MSC_VER) && !VLOADU_EMULATED
+#define MGETL_HAS_SIMD          1
+#define VSCANSZ                 sizeof(vtype)
 #else
 #define VSCANSZ                 0
 #endif
 
-static char *mem_map, *map_pos, *map_end, *map_scan_end;
+typedef union {
+	char     c[1];
+	uint32_t w[1];
+	uint64_t l[1];
+#if MGETL_HAS_SIMD
+	vtype    v[1];
+#endif
+} any_type;
 
-#define GET_LINE(line, file)	(mem_map ? mgetl(line) : fgetl(line, LINE_BUFFER_SIZE, file))
+static any_type *mem_map, *map_pos, *map_end, *map_scan_end;
 
-/* Like fgetl() but for the memory-mapped file. */
-static MAYBE_INLINE char *mgetl(char *res)
+#define GET_LINE(line, file)	(mem_map ? mgetl(line) : fgetl(line->c, LINE_BUFFER_SIZE, file))
+
+/* Like fgetl() but for a memory-mapped file. */
+static MAYBE_INLINE char *mgetl(any_type *line)
 {
-	char *pos = res;
-
-#if defined(vcmpeq_epi8_mask) && !defined(_MSC_VER) && \
-	!VLOADU_EMULATED && !VSTOREU_EMULATED
-
-	/* 16/32/64 chars at a time with known remainder. */
-	const vtype vnl = vset1_epi8('\n');
+	any_type *pos = line;
 
 	if (map_pos >= map_end)
 		return NULL;
 
-	while (map_pos < map_scan_end &&
-	       pos < res + LINE_BUFFER_SIZE - (VSCANSZ + 1)) {
-		vtype x = vloadu((vtype const *)map_pos);
+#if MGETL_HAS_SIMD
+
+	const vtype vnl = vset1_epi8('\n');
+
+	/* 16/32/64 chars at a time with known remainder! */
+	while (map_pos < map_scan_end && pos < (any_type*)&line->c[LINE_BUFFER_SIZE - (VSCANSZ + 1)]) {
+		vtype x = vloadu(map_pos->v);
 		uint64_t v = vcmpeq_epi8_mask(vnl, x);
 
-		vstoreu((vtype*)pos, x);
+		vstore(pos->v, x);
 		if (v) {
 #if __GNUC__ >= 4 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
 			unsigned int r = __builtin_ctzl(v);
 #else
 			unsigned int r = ffs(v) - 1;
 #endif
-			map_pos += r;
-			pos += r;
+			map_pos = (any_type*)&map_pos->c[r];
+			pos = (any_type*)&pos->c[r];
 			break;
 		}
-		map_pos += VSCANSZ;
-		pos += VSCANSZ;
+		map_pos = (any_type*)&map_pos->v[1];
+		pos = (any_type*)&pos->v[1];
 	}
 
-	if (*map_pos != '\n')
-	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
-	       *map_pos != '\n')
-		*pos++ = *map_pos++;
+#else
 
-	map_pos++;
-
-#elif ARCH_SIZE >= 8 && ARCH_ALLOWS_UNALIGNED /* Eight chars at a time */
-
-	uint64_t *ss = (uint64_t*)map_pos;
-	uint64_t *dd = (uint64_t*)pos;
-	unsigned int *s = (unsigned int*)map_pos;
-	unsigned int *d = (unsigned int*)pos;
-
-	if (map_pos >= map_end)
-		return NULL;
-
-	while ((char*)ss < map_scan_end &&
-	       (char*)dd < res + LINE_BUFFER_SIZE - 9 &&
-	       !((((*ss ^ 0x0a0a0a0a0a0a0a0a) - 0x0101010101010101) &
-	          ~(*ss ^ 0x0a0a0a0a0a0a0a0a)) & 0x8080808080808080))
-		*dd++ = *ss++;
-
-	s = (unsigned int*)ss;
-	d = (unsigned int*)dd;
-	if ((char*)s < map_scan_end &&
-	    (char*)d < res + LINE_BUFFER_SIZE - 5 &&
-	    !((((*s ^ 0x0a0a0a0a) - 0x01010101) &
-	       ~(*s ^ 0x0a0a0a0a)) & 0x80808080))
-		*d++ = *s++;
-
-	map_pos = (char*)s;
-	pos = (char*)d;
-
-	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
-	       *map_pos != '\n')
-		*pos++ = *map_pos++;
-	map_pos++;
-
-#elif ARCH_ALLOWS_UNALIGNED /* Four chars at a time */
-
-	unsigned int *s = (unsigned int*)map_pos;
-	unsigned int *d = (unsigned int*)pos;
-
-	if (map_pos >= map_end)
-		return NULL;
-
-	while ((char*)s < map_scan_end &&
-	       (char*)d < res + LINE_BUFFER_SIZE - 5 &&
-	       !((((*s ^ 0x0a0a0a0a) - 0x01010101) &
-	          ~(*s ^ 0x0a0a0a0a)) & 0x80808080))
-		*d++ = *s++;
-
-	map_pos = (char*)s;
-	pos = (char*)d;
-	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
-	       *map_pos != '\n')
-		*pos++ = *map_pos++;
-	map_pos++;
-
-#else /* One char at a time */
-
-	if (map_pos >= map_end)
-		return NULL;
-
-	while (map_pos < map_end && pos < res + LINE_BUFFER_SIZE - 1 &&
-	       *map_pos != '\n')
-		*pos++ = *map_pos++;
-	map_pos++;
-
+#if ARCH_ALLOWS_UNALIGNED && ARCH_SIZE >= 8
+	/* Eight chars at a time */
+	while (map_pos < map_scan_end && pos < (any_type*)&line->c[LINE_BUFFER_SIZE - 9] &&
+	       !((((*map_pos->l ^ 0x0a0a0a0a0a0a0a0a) - 0x0101010101010101) &
+	          ~(*map_pos->l ^ 0x0a0a0a0a0a0a0a0a)) & 0x8080808080808080)) {
+		*pos->l = *map_pos->l;
+		map_pos = (any_type*)&map_pos->l[1];
+		pos = (any_type*)&pos->l[1];
+	}
 #endif
 
+#if ARCH_ALLOWS_UNALIGNED
+	/* Four chars at a time */
+	while (map_pos < map_scan_end && pos < (any_type*)&line->c[LINE_BUFFER_SIZE - 5] &&
+	       !((((*map_pos->w ^ 0x0a0a0a0a) - 0x01010101) & ~(*map_pos->w ^ 0x0a0a0a0a)) & 0x80808080)) {
+		*pos->w = *map_pos->w;
+		map_pos = (any_type*)&map_pos->w[1];
+		pos = (any_type*)&pos->w[1];
+	}
+#endif
+
+#endif /* MGETL_HAS_SIMD (else) */
+
+	/* One char at a time */
+	while (*map_pos->c != '\n' && map_pos < map_end && pos < (any_type*)&line->c[LINE_BUFFER_SIZE - 1]) {
+		*pos->c = *map_pos->c;
+		map_pos = (any_type*)&map_pos->c[1];
+		pos = (any_type*)&pos->c[1];
+	}
+
+	map_pos = (any_type*)&map_pos->c[1];
+
 	/* Replace LF with NULL */
-	*pos = 0;
+	*pos->c = 0;
 
 	/* Handle CRLF too */
-	if (pos > res)
-	if (*--pos == '\r')
-		*pos = 0;
+	if (pos > line && pos->c[-1] == '\r')
+		pos->c[-1] = 0;
 
-	return res;
+	return line->c;
 }
 
 #endif /* _MGETL_H */

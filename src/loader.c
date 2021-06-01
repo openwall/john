@@ -1895,7 +1895,15 @@ static void ldr_fill_user_words(struct db_main *db)
 	int last_count = 0;
 	FILE *file;
 	const char *name = path_expand(options.seed_per_user);
-	char line[LINE_BUFFER_SIZE];
+	union {
+		char buffer[LINE_BUFFER_SIZE];
+#if MGETL_HAS_SIMD
+		vtype dummy;
+#else
+		ARCH_WORD dummy;
+#endif
+	} aligned;
+	any_type *line = (any_type*)&aligned.buffer;
 	size_t file_len;
 	int tot_num = 0;
 	int seeds_sorted = MAYBE | SORTED;
@@ -1925,8 +1933,8 @@ static void ldr_fill_user_words(struct db_main *db)
 		log_event("- memory mapping failed (%s) - but we'll do fine without it.", strerror(errno));
 	} else {
 		map_pos = mem_map;
-		map_end = mem_map + file_len;
-		map_scan_end = map_end - VSCANSZ;
+		map_end = (any_type*)&mem_map->c[file_len];
+		map_scan_end = (any_type*)&map_end->c[-(VSCANSZ)];
 	}
 #endif /* HAVE_MMAP */
 
@@ -1941,9 +1949,9 @@ static void ldr_fill_user_words(struct db_main *db)
 		if ((passwd = salt->list))
 		do {
 			struct list_main *words = passwd->words;
-			char *ret, *login;
+			char *user, *login;
 #if HAVE_MMAP
-			char *reset_pos = map_pos;
+			any_type *reset_pos = map_pos;
 #else
 			long reset_pos = ftell(file);
 #endif
@@ -1963,11 +1971,10 @@ static void ldr_fill_user_words(struct db_main *db)
 			last_words = words;
 			last_count = 0;
 
-			while ((ret = GET_LINE(line, file))) {
-				char *user = line;
+			while ((user = GET_LINE(line, file))) {
 				char *pw;
 
-				if (!*line || !(pw = strchr(line, ':'))) {
+				if (!*line->c || !(pw = strchr(line->c, ':'))) {
 #if HAVE_MMAP
 					reset_pos = map_pos;
 #else
@@ -1979,11 +1986,11 @@ static void ldr_fill_user_words(struct db_main *db)
 
 #if HAVE_MMAP
 				if ((seeds_sorted == (MAYBE | SORTED | ASCII)) &&
-				    (unsigned char)*line < 128 && (unsigned char)*reset_pos < 128 &&
-				    strncmp(line, reset_pos, strlen(line)) < 0) {
+				    (unsigned char)*line->c < 128 && (unsigned char)*reset_pos->c < 128 &&
+				    strncmp(line->c, reset_pos->c, strlen(line->c)) < 0) {
 					fprintf(stderr, "User-seed file isn't sorted, slow load.\n");
 					seeds_sorted = NO;
-				} else if (seeds_sorted == (MAYBE | SORTED) && strncmp(line, reset_pos, strlen(line)) < 0)
+				} else if (seeds_sorted == (MAYBE | SORTED) && strncmp(line->c, reset_pos->c, strlen(line->c)) < 0)
 					seeds_sorted |= ASCII;
 #endif
 				if (!*pw) {
@@ -2024,7 +2031,7 @@ static void ldr_fill_user_words(struct db_main *db)
 				list_add_global_unique(words, single_seed, ldr_conv(pw));
 				ldr_split_string(words, ldr_conv(pw));
 			}
-			if (!ret) {
+			if (!user) {
 #if HAVE_MMAP
 				map_pos = mem_map;
 #else

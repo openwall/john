@@ -374,7 +374,7 @@ listconf.o:	listconf.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h simd-intri
 
 LM_fmt.o:	LM_fmt.c arch.h misc.h jumbo.h autoconfig.h memory.h DES_bs.h common.h loader.h params.h list.h formats.h os.h os-autoconf.h
 
-loader.o:	loader.c autoconfig.h jumbo.h arch.h os.h os-autoconf.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h getopt.h common.h config.h unicode.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h fake_salts.h john.h cracker.h logger.h base64_convert.h showformats.h
+loader.o:	loader.c mgetl.h autoconfig.h jumbo.h arch.h os.h os-autoconf.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h getopt.h common.h config.h unicode.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h fake_salts.h john.h cracker.h logger.h base64_convert.h showformats.h
 
 logger.o:	logger.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h params.h path.h memory.h status.h options.h list.h loader.h formats.h getopt.h common.h config.h recovery.h unicode.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h john_mpi.h cracker.h signals.h
 
@@ -523,7 +523,7 @@ whirlpool.o:	whirlpool.c sph_whirlpool.h sph_types.h autoconfig.h arch.h os.h os
 
 win32_memmap.o:	win32_memmap.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h win32_memmap.h misc.h memory.h
 
-wordlist.o:	wordlist.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h mem_map.h win32_memmap.h mmap-windows.c memory.h misc.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h rpp.h config.h rules.h external.h compiler.h cracker.h john.h unicode.h regex.h mask.h pseudo_intrinsics.h aligned.h
+wordlist.o:	wordlist.c mgetl.h autoconfig.h os.h os-autoconf.h jumbo.h arch.h mem_map.h win32_memmap.h mmap-windows.c memory.h misc.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h rpp.h config.h rules.h external.h compiler.h cracker.h john.h unicode.h regex.h mask.h pseudo_intrinsics.h aligned.h
 
 wpapcap2john.o:	wpapcap2john.c wpapcap2john.h arch.h johnswap.h common.h memory.h jumbo.h os.h os-autoconf.h autoconfig.h
 

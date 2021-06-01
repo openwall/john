@@ -112,7 +112,7 @@ static int restore_rule_number(void)
 	return 0;
 }
 
-static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
+static MAYBE_INLINE int skip_lines(unsigned long n, any_type *line)
 {
 	if (n) {
 		line_number += n;
@@ -129,7 +129,16 @@ static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
 
 static void restore_line_number(void)
 {
-	char line[LINE_BUFFER_SIZE];
+	union {
+		char buffer[LINE_BUFFER_SIZE];
+#if MGETL_HAS_SIMD
+		vtype dummy;
+#else
+		ARCH_WORD dummy;
+#endif
+	} aligned;
+	any_type *line = (any_type*)&aligned.buffer;
+
 	if (skip_lines((unsigned long)rec_pos, line)) {
 		if (ferror(word_file))
 			pexit("fgets");
@@ -163,7 +172,16 @@ static int restore_state(FILE *file)
 	} else
 	if (!nWordFileLines) {
 		if (mem_map) {
-			char line[LINE_BUFFER_SIZE];
+			union {
+				char buffer[LINE_BUFFER_SIZE];
+#if MGETL_HAS_SIMD
+				vtype dummy;
+#else
+				ARCH_WORD dummy;
+#endif
+			} aligned;
+			any_type *line = (any_type*)&aligned.buffer;
+
 			skip_lines(rec_line, line);
 			rec_pos = 0;
 		} else if (rec_line && !rec_pos) {
@@ -255,8 +273,8 @@ static double get_progress(void)
 		pos = line_number;
 		size = nWordFileLines;
 	} else if (mem_map) {
-		pos = map_pos - mem_map;
-		size = map_end - mem_map;
+		pos = map_pos->c - mem_map->c;
+		size = map_end->c - mem_map->c;
 	} else {
 		if (fstat(fileno(word_file), &file_stat))
 			pexit("fstat");
@@ -436,9 +454,13 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 {
 	union {
 		char buffer[2][LINE_BUFFER_SIZE + CACHE_BANK_SHIFT];
+#if MGETL_HAS_SIMD
+		vtype dummy;
+#else
 		ARCH_WORD dummy;
+#endif
 	} aligned;
-	char *line = aligned.buffer[0];
+	any_type *line = (any_type*)&aligned.buffer[0];
 	char *last = aligned.buffer[1];
 	struct rpp_context ctx;
 	char *prerule="", *rule="", *word="";
@@ -582,8 +604,8 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 				          strerror(errno));
 			} else {
 				map_pos = mem_map;
-				map_end = mem_map + file_len;
-				map_scan_end = map_end - VSCANSZ;
+				map_end = (any_type*)&mem_map->c[file_len];
+				map_scan_end = (any_type*)&map_end->c[-(VSCANSZ)];
 			}
 		}
 #endif
@@ -618,10 +640,10 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 
 					if (!mgetl(line))
 						break;
-					check_bom(line);
-					if (!strncmp(line, "#!comment", 9))
+					check_bom(line->c);
+					if (!strncmp(line->c, "#!comment", 9))
 						continue;
-					lp = convert(line);
+					lp = convert(line->c);
 					if (!rules)
 						lp[length] = 0;
 					if (!skip)
@@ -645,10 +667,10 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 
 					if (!mgetl(line))
 						break;
-					check_bom(line);
-					if (!strncmp(line, "#!comment", 9))
+					check_bom(line->c);
+					if (!strncmp(line->c, "#!comment", 9))
 						continue;
-					lp = convert(line);
+					lp = convert(line->c);
 					if (!rules)
 						lp[length] = 0;
 					if (!skip) {
@@ -1180,13 +1202,13 @@ REDO_AFTER_LMLOOP:
 				}
 			}
 #if ARCH_ALLOWS_UNALIGNED
-			line = words[line_number];
+			line = (any_type*)words[line_number];
 #else
-			strcpy(line, words[line_number]);
+			strcpy(line->c, words[line_number]);
 #endif
 			line_number++;
 
-			if ((word = apply(line, rule, -1, last))) {
+			if ((word = apply(line->c, rule, -1, last))) {
 				last = word;
 #if HAVE_REXGEN
 				if (regex) {
@@ -1234,19 +1256,19 @@ REDO_AFTER_LMLOOP:
 		while (GET_LINE(line, word_file)) {
 
 			line_number++;
-			check_bom(line);
+			check_bom(line->c);
 
-			if (line[0] != '#') {
+			if (line->c[0] != '#') {
 process_word:
 				if (options.input_enc != options.target_enc
 				    || loopBack) {
-					char *conv = convert(line);
+					char *conv = convert(line->c);
 					int len = strlen(conv);
-					memmove(line, conv, len + 1);
+					memmove(line->c, conv, len + 1);
 				}
 				if (!rules) {
 					if (min_length || skip_length) {
-						int len = strlen(line);
+						int len = strlen(line->c);
 						if (min_length && len < min_length)
 							goto next_word;
 						/*
@@ -1256,13 +1278,13 @@ process_word:
 						if (skip_length && len > skip_length)
 							goto next_word;
 					}
-					line[length] = 0;
+					line->c[length] = 0;
 
-					if (!strcmp(line, last))
+					if (!strcmp(line->c, last))
 						goto next_word;
 				}
 
-				if ((word = apply(line, rule, -1, last))) {
+				if ((word = apply(line->c, rule, -1, last))) {
 					if (rules)
 						last = word;
 					else
@@ -1315,7 +1337,7 @@ next_word:
 				continue;
 			}
 
-			if (strncmp(line, "#!comment", 9))
+			if (strncmp(line->c, "#!comment", 9))
 				goto process_word;
 			goto next_word;
 		}
