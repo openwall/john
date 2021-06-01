@@ -75,6 +75,14 @@ For MASKS, such conversion is required: If no internal codepage was selected,
 or if the selected one can't hold all of the characters, you'll get an error
 describing the problem.
 
+If you want to create an incremental charset for a certain codepage, such as
+for use with the LM format, you need to use the --target-encoding option with
+--make-charset.  The fact that we default to storing all passwords to the pot
+file in UTF-8 means this will work fine regardless of what formats it contains.
+So for example, "--make-charset=custom.chr --target-encoding=cp850" will use
+every password in the pot file that can be encoded in CP850, and build the
+charset from that.
+
 Caveats:
 Beware of UTF-8 BOM's. They will cripple the first word in your wordlist or
 the first entry in your hashfile. Try to avoid using Windows tools that add

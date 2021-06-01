@@ -2201,6 +2201,21 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 		} while (*pos++);
 
 		if (db->options->flags & DB_PLAINTEXTS) {
+			if (options.flags & FLG_MAKECHR_CHK) {
+				if (options.target_enc > ASCII && options.target_enc < UTF_8) {
+					char *plain = ldr_conv(line);
+
+					/* Only load words that fit our selected codepage */
+					if (plain != line && strlen(plain) != strlen8((UTF8*)line))
+						return;
+					else
+						line = plain;
+				} else if (options.target_enc == UTF_8) {
+					/* Only load words that are valid UTF-8 */
+					if (!valid_utf8((UTF8*)line))
+						return;
+				}
+			}
 			list_add(db->plaintexts, line);
 			return;
 		}
