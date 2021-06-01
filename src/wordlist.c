@@ -129,7 +129,16 @@ static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
 
 static void restore_line_number(void)
 {
-	char line[LINE_BUFFER_SIZE];
+	union {
+		char buffer[LINE_BUFFER_SIZE];
+#if MGETL_HAS_SIMD
+		vtype dummy;
+#else
+		ARCH_WORD dummy;
+#endif
+	} aligned;
+	char *line = aligned.buffer;
+
 	if (skip_lines((unsigned long)rec_pos, line)) {
 		if (ferror(word_file))
 			pexit("fgets");
@@ -163,7 +172,16 @@ static int restore_state(FILE *file)
 	} else
 	if (!nWordFileLines) {
 		if (mem_map) {
-			char line[LINE_BUFFER_SIZE];
+			union {
+				char buffer[LINE_BUFFER_SIZE];
+#if MGETL_HAS_SIMD
+				vtype dummy;
+#else
+				ARCH_WORD dummy;
+#endif
+			} aligned;
+			char *line = aligned.buffer;
+
 			skip_lines(rec_line, line);
 			rec_pos = 0;
 		} else if (rec_line && !rec_pos) {
@@ -436,7 +454,11 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 {
 	union {
 		char buffer[2][LINE_BUFFER_SIZE + CACHE_BANK_SHIFT];
+#if MGETL_HAS_SIMD
+		vtype dummy;
+#else
 		ARCH_WORD dummy;
+#endif
 	} aligned;
 	char *line = aligned.buffer[0];
 	char *last = aligned.buffer[1];

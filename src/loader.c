@@ -1895,7 +1895,15 @@ static void ldr_fill_user_words(struct db_main *db)
 	int last_count = 0;
 	FILE *file;
 	const char *name = path_expand(options.seed_per_user);
-	char line[LINE_BUFFER_SIZE];
+	union {
+		char buffer[LINE_BUFFER_SIZE];
+#if MGETL_HAS_SIMD
+		vtype dummy;
+#else
+		ARCH_WORD dummy;
+#endif
+	} aligned;
+	char *line = aligned.buffer;
 	size_t file_len;
 	int tot_num = 0;
 	int seeds_sorted = MAYBE | SORTED;
