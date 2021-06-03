@@ -428,18 +428,18 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	if (options.regen_lost_salts && (crk_params->flags & FMT_DYNAMIC) == FMT_DYNAMIC)
 		crk_guess_fixup_salt(pw->source, *(char**)(salt->salt));
 
+	if (options.max_run_time < 0) {
+#if OS_TIMER
+		timer_abort = 0 - options.max_run_time;
+#else
+		timer_abort = status_get_time() - options.max_run_time;
+#endif
+	}
+
 	/* If we got this crack from a pot sync, don't report or count */
 	if (index >= 0) {
 		const char *ct;
 		char buffer[LINE_BUFFER_SIZE + 1];
-
-		if (options.max_run_time < 0) {
-#if OS_TIMER
-			timer_abort = 0 - options.max_run_time;
-#else
-			timer_abort = status_get_time() - options.max_run_time;
-#endif
-		}
 
 		if (options.max_cands < 0)
 			john_max_cands = status.cands - options.max_cands +
