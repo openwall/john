@@ -72,6 +72,8 @@
 #undef index
 #endif
 
+extern long clk_tck;
+
 static int crk_process_key_max_keys;
 static struct db_main *crk_db;
 static struct fmt_params *crk_params;
@@ -714,8 +716,7 @@ static void crk_poll_files(void)
 		log_event("Abort file seen");
 		event_pending = event_abort = 1;
 	}
-	else if (options.pause_file &&
-	         stat(path_expand(options.pause_file), &trigger_stat) == 0) {
+	else if (options.pause_file && stat(path_expand(options.pause_file), &trigger_stat) == 0) {
 #if !HAVE_SYS_TIMES_H
 		clock_t end, start = clock();
 #else
@@ -725,8 +726,7 @@ static void crk_poll_files(void)
 
 		status_print();
 		if (john_main_process)
-			fprintf(stderr, "Pause file seen, going to sleep "
-			        "(session saved)\n");
+			fprintf(stderr, "Pause file seen, going to sleep (session saved)\n");
 		log_event("Pause file seen, going to sleep");
 
 		/* Better save stuff before going to sleep */
@@ -739,12 +739,7 @@ static void crk_poll_files(void)
 				s = sleep(s);
 			} while (s);
 
-		} while (stat(path_expand(options.pause_file),
-		              &trigger_stat) == 0);
-
-		if (john_main_process)
-			fprintf(stderr, "Pause file removed, continuing\n");
-		log_event("Pause file removed, continuing");
+		} while (stat(path_expand(options.pause_file), &trigger_stat) == 0);
 
 		/* Disregard pause time for stats */
 #if !HAVE_SYS_TIMES_H
@@ -752,7 +747,12 @@ static void crk_poll_files(void)
 #else
 		end = times(&buf);
 #endif
-		status.start_time -= (start - end);
+		status.start_time += (end - start);
+
+		int pause_time = (end - start) / clk_tck;
+		log_event("Pause file removed after %d seconds, continuing", pause_time);
+		if (john_main_process)
+			fprintf(stderr, "Pause file removed after %d seconds, continuing\n", pause_time);
 	}
 }
 
