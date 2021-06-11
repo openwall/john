@@ -498,11 +498,18 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 
 	if (!(charset = cfg_get_param(SECTION_INC, mode, "File"))) {
 		if (cfg_get_section(SECTION_INC, mode) == NULL) {
-			log_event("! Unknown incremental mode: %s", mode);
-			if (john_main_process)
-				fprintf(stderr, "Unknown incremental mode: %s\n",
-				    mode);
-			error();
+			if (strlen(mode) > 4 && !strcmp(mode + strlen(mode) - 4, ".chr")) {
+				log_event("! Using charset file supplied as option: %s", mode);
+				if (john_main_process)
+					fprintf(stderr, "Using charset file supplied as option: %s\n", mode);
+				charset = mode;
+			} else {
+				log_event("! Unknown incremental mode: %s", mode);
+				if (john_main_process)
+					fprintf(stderr, "Unknown incremental mode: %s\n",
+					        mode);
+				error();
+			}
 		}
 		else {
 			log_event("! No charset defined");

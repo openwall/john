@@ -147,6 +147,9 @@ rulesets that are made to work together.
 Enables the "incremental" mode, using the specified configuration file
 definition (section [Incremental:MODE]).  If MODE is omitted, the
 default is "ASCII" for most hash types and "LM_ASCII" for LM hashes.
+If no definition is found for MODE but it ends with ".chr", it will be
+taken as a charset file name, eg. for temporary use.
+
 
 --external=MODE			external mode or word filter
 
