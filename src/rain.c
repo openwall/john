@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <ctype.h>
 #include <math.h>
+#include <time.h>
 
 #include "arch.h"
 #include "int128.h"
@@ -40,8 +41,8 @@ static int rec_cur_len;
 static char *charset;           
 
 static UTF32 word[MAX_CAND_LENGTH+1];
-static int charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];//the first value should be req_maxlen-req_minlen
-static int rec_charset_idx[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
+int **charset_idx;
+int **rec_charset_idx;
 static int maxlength;
 static int minlength;
 static int state_restored;
@@ -77,10 +78,9 @@ static void fix_state(void)
 {
 	int i, j;
 	rec_set = set;
-	for (i = 0; i <= maxlength - minlength; ++i) {
-		for(j = 0; j < maxlength; ++j)
-			rec_charset_idx[i][j] = charset_idx[i][j];
-	}
+    for(i = 0; i <= maxlength - minlength; ++i)
+	    for(j = 0; j < maxlength; ++j)
+	    	rec_charset_idx[i][j] = charset_idx[i][j];
 	rec_cur_len = rain_cur_len;
 	rec_counter = x;
 	rec_loop = l;
@@ -147,10 +147,9 @@ static void save_state(FILE *file)
 	char str[40];
 	memset(str, 0, 40);
 	fprintf(file, "%d\n", rec_set);
-	for (i = 0; i <= maxlength - minlength; i++) {
-		for(j = 0; j < maxlength; j++)
+	for(i = 0; i <= maxlength - minlength; ++i)
+    	for(j = 0; j < maxlength; ++j)
 			fprintf(file, "%d\n", rec_charset_idx[i][j]);
-	}
 	fprintf(file, "%d\n", rec_cur_len);
 	big2str(rec_counter, str);
 	fprintf(file, "%s\n", str);
@@ -165,12 +164,11 @@ static int restore_state(FILE *file)
 		set = d;
 	else return 1;
 
-	for (i = 0; i <= maxlength - minlength; ++i) {
-		for(j = 0; j < maxlength; ++j)
-			if(fscanf(file, "%d\n", &d) == 1)
-				charset_idx[i][j] = d;
-			else return 1;
-	}
+    for(i = 0; i <= maxlength - minlength; ++i)
+	    for(j = 0; j < maxlength; ++j)
+		    if(fscanf(file, "%d\n", &d) == 1)
+			    charset_idx[i][j] = d;
+		    else return 1;
 	if(fscanf(file, "%d\n", &d) == 1)
 		rain_cur_len = d;
 	else return 1;
@@ -279,10 +277,10 @@ static int submit(UTF32 *word, int loop2)
 
 int do_rain_crack(struct db_main *db, char *req_charset)
 {
-	int i;
+    srand(time(NULL));
+	static int i, j, x, y, z;
 	int cp_max = 255;
-
-	unsigned int charcount;
+    unsigned int charcount;
 	int fmt_case = (db->format->params.flags & FMT_CASE);
 	char *default_set;
 
@@ -290,7 +288,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
 	minlength = MAX(options.eff_minlength, 1);
-	
+
 	if (!options.req_maxlength)
 		maxlength = MIN(maxlength, DEFAULT_MAX_LEN);
 	if (!options.req_minlength)
@@ -346,14 +344,155 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	if (options.target_enc == UTF_8)
 		utf32_to_utf8_32(charset_utf32);
 
-	charcount = strlen32(charset_utf32);
+	charcount = 26;//strlen32(charset_utf32);
+    char **freq = (char **) mem_alloc(maxlength * sizeof(char *));
+    for(i=0; i<maxlength; i++) {
+        freq[i] = mem_alloc(charcount);
+        switch(i) {
+        case 0:
+            strcpy(freq[i], "taoiswcbpfmhdrenlguvykxjqz");
+            break;
+        case 1:
+            strcpy(freq[i], "hoeanirfutslpcmdybvwgxkjqz");
+            break;
+        case 2:
+            strcpy(freq[i], "ertadsonilmcupvgwyfbhkxjqz");
+            break;
+        case 3:
+            strcpy(freq[i], "etirnlsaodhcmupgywkvfbxjqz");
+            break;
+        case 4:
+            strcpy(freq[i], "eritsnloaudchgmypvkbfwxjqz");
+            break;
+        case 5:
+            strcpy(freq[i], "enrsitadlcogmyhuvpwfbkxjqz");
+            break;
+        case 6:
+            strcpy(freq[i], "etsinarldogycmuhpfbvwkxjqz");
+            break;
+        
+        case 7:
+            strcpy(freq[i], "etirnlsaodhcmupgywkvfbxjqz");
+            break;
+        }
+    }
+    int div = sqrt(charcount);
+    char ***chrsts = (char ***) mem_alloc(maxlength * sizeof(char **));
+    //init the character sets
+    for(x=0; x<maxlength; x++) {
+        chrsts[x] = (char **) mem_alloc(div * sizeof(char *));
+        for(y=0; y<div; y++)
+            chrsts[x][y] = (char *) mem_alloc(charcount + 1);
+    }
+    for(x=0; x<maxlength; x++) {
+        for(y=0; y<div; y++) {
+            for(z=0; z<charcount; z++) {
+                //if(z == y) 
+                {
+                    chrsts[x][y][z] = freq[x][rand()%(z+1)/div*(y+1)];
+                    chrsts[x][y][z+1] = '\0';
+                }
+            }
+        }
+        
+        for(y=0; y<div; y++) {
+            int a = 0;
+            //remove dups
+            for(j = 0; j < charcount; j++) {
+                int chop = 0;
+                for(z = 0; z < charcount; z++) {
+                    for(i=0; i<=y; i++){
+                        int A = a;
+                        if(i == y && z < a) break; 
+                        else if(z < a) A = 0;
+                        if((chrsts[x][y][j-a] == chrsts[x][i][z-A]) && (j != z || y != i)) {
+                            chop = 1;
+                            break;
+                        }
+                    }
+                }
+                if(chop == 1) {
+                    if(j == charcount-a-1)
+                        chrsts[x][y][j] = '\0';
+                    else {
+                        char chunk1[j-a+1];
+                        char chunk2[charcount-(j-a)-1];
+                        strncpy(chunk1, chrsts[x][y], j-a);
+                        strncpy(chunk2, &chrsts[x][y][j-a+1], charcount-(j-a)-1);
 
+                        char final[charcount-a-1];
+
+                        strncpy(final, chunk1, j-a);
+                        strncpy(&final[j-a], chunk2, charcount-(j-a)-1);
+
+                        memset(chrsts[x][y], '\0', 27);
+                        strncpy(chrsts[x][y], final, charcount-a-1);
+                    }
+                    a++;
+                }
+            }
+        }
+        //put the non used chars in the next set
+        for(y=0; y<div-1; y++) {
+            int a = 0;
+            for(i=0; i<charcount; i++) {
+                int add = 1;
+                for(z=0; z<charcount; z++) {
+                    for(j=0; j<=y; j++){
+                        if(chrsts[x][j][z] == freq[x][i]) {
+                            add = 0;
+                            break;
+                        }
+                    }
+                }
+                if(add) {
+                    chrsts[x][y+1][a] = freq[x][i];
+                    a++;
+                    chrsts[x][y+1][a] = '\0';
+                    if(a > div &&(y != div-2)) break;
+                }
+            }
+        }
+        /*for(y=0; y<div; y++)
+            printf("%s\n", chrsts[x][y]);
+        */
+    }
+    //printf("\n");
+    //set the placeholders
+    /*
+    for(x=0; x<maxlength; x++) {
+        int l = 0, o;
+        for(j = div; j < powi(div, maxlength); j++) {
+            for(o = 1; o <= powi(div, x+1); o++) { 
+                if(j < powi(div, maxlength)/powi(div, x+1)*o) {
+                    l = (o-1) % div;
+                    break;
+                }
+            }
+            strcpy(chrsts[x][j], chrsts[x][l]);
+            chrsts[x][j][strlen(chrsts[x][j])] = '\0';
+        }
+        if(x != maxlength-1) {
+            for(j=0; j<div; j++) {
+                strcpy(chrsts[x][j], chrsts[x][0]);
+                chrsts[x][j][strlen(chrsts[x][j])] = '\0';
+            }   
+        }
+    }
+    */
+    charset_idx = (int **) mem_alloc((maxlength-minlength+1) * sizeof(int *));
+    rec_charset_idx = (int **) mem_alloc((maxlength-minlength+1) * sizeof(int *));
+	for(x = 0; x <= maxlength-minlength; x++) {
+	    charset_idx[x] = (int *) mem_alloc(maxlength * sizeof(int));
+	    rec_charset_idx[x] = (int *) mem_alloc(maxlength * sizeof(int));
+	    for(y = 0; y < maxlength; y++)
+	        charset_idx[x][y] = 0;
+	}
 	rain_cur_len = minlength; 
-
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
-	
+
 	if(john_main_process) {
 		log_event("Proceeding with \"rain\" mode");
 		log_event("- Charset: %s size %d", req_charset ? req_charset : charset,
@@ -362,21 +501,29 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		          MAX(options.eff_minlength, 1), maxlength);
 		if(rec_restored) {
 			fprintf(stderr, "Proceeding with \"rain\"%s%s",
-			        req_charset ? ": " : "",
+	                req_charset ? ": " : "",
 			        req_charset ? req_charset : "");
 			if (options.flags & FLG_MASK_CHK)
 				fprintf(stderr, ", hybrid mask:%s", options.mask ?
-				        options.mask : options.eff_mask);
+		                options.mask : options.eff_mask);
 			if (options.rule_stack)
 				fprintf(stderr, ", rules-stack:%s", options.rule_stack);
 			if (options.req_minlength >= 0 || options.req_maxlength)
 				fprintf(stderr, ", lengths: %d-%d",
-				        options.eff_minlength + mask_add_len,
-				        options.eff_maxlength + mask_add_len);
+		                options.eff_minlength + mask_add_len,
+		                options.eff_maxlength + mask_add_len);
 			fprintf(stderr, "\n");
 		}
 	}
 	crk_init(db, fix_state, NULL);
+	int *o = (int *) mem_alloc(maxlength * sizeof(int));
+    //int *f = (int *) mem_alloc(maxlength * sizeof(int));
+    for(x=0; x<maxlength; x++) {
+        o[x] = 1;
+    //    f[x] = 0;   
+    }
+    int c;
+    uint_big X = 1;
     for(l=loop; l <= maxlength-minlength; ++l) {
         if(event_abort) break;
         uint_big total = powi(charcount, minlength+l);
@@ -401,19 +548,27 @@ int do_rain_crack(struct db_main *db, char *req_charset)
                 int mpl = minlength + loop2;
                 if(!skip) {
                 	quick_conversion = 1;
-                	for(i=0; i<mpl; ++i) {
-             			if((word[i] = charset_utf32[charset_idx[loop2][i]]) > cp_max)
+                	for(i=0; i<mpl; ++i) { 
+                	    for(; o[i] <= powi(div, i+1); o[i]++) { 
+                            if(x < powi(div, mpl)/powi(div, i+1)*o[i]) {
+                                c = (o[i]-1) % div;
+                                break;
+                            }
+                            if(o[i] == powi(div, i+1)) {
+                                o[i] = 1;
+                                //f[i] += powi(div, i+1);
+                                break;
+                            }
+                        }
+                	    if((word[i] = chrsts[i][c][charset_idx[loop2][i]]) > cp_max)
                         	quick_conversion = 0;
-
                     }
             	    submit(word, loop2);
                 }
-                int l;
-                for(l=0; l<mpl; ++l) {
-                   if(++charset_idx[loop2][l] >= charcount) {
-                        charset_idx[loop2][l] = 0;
-                        break;
-                    }
+                int l = mpl - 1;
+                while(l>=0 && ++charset_idx[loop2][l] >= strlen(chrsts[l][c])) {
+                    charset_idx[loop2][l] = 0;
+                    l--;
                 }
             }
         }
@@ -422,6 +577,15 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	crk_done();
 	rec_done(event_abort);
 	MEM_FREE(charset_utf32);
+	for(i=0; i<=maxlength-minlength; ++i)
+	     MEM_FREE(charset_idx[i]);
+	MEM_FREE(charset_idx);
+	for(i=0; i<maxlength; i++) {
+	    for(j=0; j<div; j++)
+	        MEM_FREE(chrsts[i][j]);
+	    MEM_FREE(chrsts[i]);
+	}
+	MEM_FREE(chrsts);
 	return 0;
 }
 
