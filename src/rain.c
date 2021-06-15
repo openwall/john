@@ -423,20 +423,15 @@ int do_rain_crack(struct db_main *db, char *req_charset)
         }
     }
 
-    char ***chrsts = (char ***) mem_alloc(maxlength * sizeof(char **));
+    char **chrsts = (char **) mem_alloc(maxlength * sizeof(char *));
     for(i=0; i<maxlength; i++) {
-        chrsts[i] = (char **) mem_alloc(charcount * sizeof(char *));
+        chrsts[i] = (char *) mem_alloc((charcount + 1)* sizeof(char));
         for(j=0; j<charcount; j++) {
-            chrsts[i][j] = (char *) mem_alloc(2);
-            int x;
-            for(x=0; x<charcount; x++) {
-                if(x == j) {   
-                    chrsts[i][j][0] = freq[i][x];
-                    chrsts[i][j][1] = '\0';
-                }
-            }
+            chrsts[i][j] = freq[i][j];
+            chrsts[i][j+1] = '\0';
         }
     }
+
     status_init(get_progress, 0);
     rec_restore_mode(restore_state);
     rec_init(db, save_state);
@@ -499,15 +494,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
                                 break;
                             }
                         }
-                	    if((word[pos] = chrsts[pos][cs[loop2]][charset_idx[loop2][pos]]) > cp_max)
+                	    if((word[pos] = chrsts[pos][cs[loop2]]) > cp_max)
                         	quick_conversion = 0;
                     }
             	    submit(word, loop2);
-                }
-                int pos = mpl - 1;
-                while(pos>=0 && ++charset_idx[loop2][pos] == strlen(chrsts[pos][cs[loop2]])) {
-                    charset_idx[loop2][pos] = 0;
-                    pos--;
                 }
                 counter[loop2]++;
             }
@@ -519,15 +509,18 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 
     //MEM_FREE(c);
 	//MEM_FREE(charset_utf32);	
-	for(i=0; i<=maxlength-minlength; i++)
+	for(i=0; i<=maxlength-minlength; i++) {
         MEM_FREE(charset_idx[i]);
+        MEM_FREE(rec_charset_idx[i]);
+        MEM_FREE(step[i]);
+        MEM_FREE(rec_step[i]);
+    }
 	MEM_FREE(charset_idx);
-	
-	for(i=0; i<maxlength; i++) {
-	    for(j=0; j<charcount; j++)
-	        MEM_FREE(chrsts[i][j]);
+	MEM_FREE(step);
+	MEM_FREE(cs);
+	MEM_FREE(counter);
+	for(i=0; i<maxlength; i++)
 	    MEM_FREE(chrsts[i]);
-	}
 	MEM_FREE(chrsts);
 	
 	return 0;
