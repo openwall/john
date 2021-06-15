@@ -188,8 +188,8 @@
 /* Turn off logging */
 #define FLG_NOLOG				0x4000000000000000ULL
 
-#define FLG_RAIN_CHK			0x8000000000000000ULL
-#define FLG_RAIN_SET			(FLG_RAIN_CHK | FLG_CRACKING_SET)
+#define FLG_POSFREQ_CHK			0x8000000000000000ULL
+#define FLG_POSFREQ_SET			(FLG_POSFREQ_CHK | FLG_CRACKING_SET)
 
 /*
  * Macro for getting correct node number regardless of if MPI or not
@@ -458,13 +458,10 @@ struct options_main {
 	int log_stderr;
 /* Emit a status line for every password cracked */
 	int crack_status;
-<<<<<<< HEAD
 /* Rain full charsets */
-	char *rain_full;
-=======
+	char *posfreq_full;
 /* --catch-up=oldsession */
 	char *catchup;
->>>>>>> 43c7f8850736d4ec68bf0a022ae9fb34c274a01d
 };
 
 extern struct options_main options;
