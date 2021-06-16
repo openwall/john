@@ -395,9 +395,9 @@ inline int check_pkcs_pad(const uchar *data, int len, int blocksize)
  * If src and dst are different size types, you will get what you asked for...
  */
 #define memcpy_macro(dst, src, count) do {	  \
-		uint c = count; \
-		for (uint _i = 0; _i < c; _i++) \
-			(dst)[_i] = (src)[_i]; \
+		uint _memcpy_c = count; \
+		for (uint _memcpy_i = 0; _memcpy_i < _memcpy_c; _memcpy_i++) \
+			(dst)[_memcpy_i] = (src)[_memcpy_i]; \
 	} while (0)
 
 /*
