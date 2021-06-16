@@ -109,7 +109,7 @@ inline int axcrypt_decrypt(__global const axcrypt_password *inbuffer, uint gid, 
 		lsb.w[1] = cipher.w[3];
 	}
 
-	return (cipher.l[0] == 0xa6a6a6a6a6a6a6a6ULL);
+	return (cipher.l[0] == 0xa6a6a6a6a6a6a6a6UL);
 }
 
 __kernel

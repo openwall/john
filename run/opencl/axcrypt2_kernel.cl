@@ -90,5 +90,5 @@ __kernel void axcrypt2_final(__global crack_t *pbkdf2,
 		}
 	}
 
-	out[gid].cracked = (wrapped.l[0] == 0xa6a6a6a6a6a6a6a6ULL);
+	out[gid].cracked = (wrapped.l[0] == 0xa6a6a6a6a6a6a6a6UL);
 }
