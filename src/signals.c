@@ -61,7 +61,7 @@ volatile int event_pending = 0, event_reload = 0;
 volatile int event_abort = 0, event_save = 0, event_status = 0, event_delayed_status = 0;
 volatile int event_ticksafety = 0;
 volatile int event_mpiprobe = 0, event_poll_files = 0;
-volatile int event_fix_state = 0;
+volatile int event_fix_state = 0, event_refresh_salt = 0;
 
 volatile int timer_abort = 0, timer_status = 0;
 static int timer_save_interval;
@@ -394,6 +394,7 @@ static void sig_handle_timer(int signum)
 #endif /* OS_TIMER */
 
 	event_fix_state = 1;
+	event_refresh_salt++;
 
 #endif /* !BENCH_BUILD */
 

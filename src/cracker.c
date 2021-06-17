@@ -112,6 +112,11 @@ int crk_max_keys_per_crypt(void)
 
 static void crk_dummy_set_salt(void *salt)
 {
+	/* Refresh salt every 30 seconds in case it was thrashed */
+	if (event_refresh_salt > 30) {
+		crk_db->format->methods.set_salt(salt);
+		event_refresh_salt = 0;
+	}
 }
 
 static void crk_dummy_fix_state(void)
