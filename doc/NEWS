@@ -199,6 +199,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Incremental: Allow supplying a charset file name as "mode", with no config
   entry required.  [magnum; 2021]
 
+- Cracker: Re-transfer salt every 30 seconds even if only one salt is loaded.
+  This minimizes impact if a device-side salt gets thrashed.  [magnum; 2021]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
