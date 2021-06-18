@@ -442,15 +442,13 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 		timer_abort = status_get_time() - options.max_run_time;
 #endif
 	}
+	if (options.max_cands < 0)
+		john_max_cands = status.cands - options.max_cands + crk_params->max_keys_per_crypt;
 
 	/* If we got this crack from a pot sync, don't report or count */
 	if (index >= 0) {
 		const char *ct;
 		char buffer[LINE_BUFFER_SIZE + 1];
-
-		if (options.max_cands < 0)
-			john_max_cands = status.cands - options.max_cands +
-				crk_params->max_keys_per_crypt;
 
 		if (dupe && !(crk_params->flags & FMT_BLOB))
 			ct = NULL;
