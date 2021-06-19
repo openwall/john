@@ -44,17 +44,19 @@ static uint64_t total;
 static uint64_t subtotal;
 
 int posfreq_cur_len;
-static int rec_cur_len;
-static uint_big **step;
-static uint_big **rec_step;
-static int *cs;
-static int *rec_cs;
 static int set;
 static int rec_set;
-static int loop;
-static int rec_loop;
+static int rec_cur_len;
 static uint_big *counter;
 static uint_big *rec_counter;
+static int **state;
+static int **rec_state;
+static int **c;
+static int **rec_c;
+static int loop;
+static int rec_loop;
+static char ***chrsts;
+static int divi;
 
 static double get_progress(void)
 {
@@ -75,10 +77,10 @@ static void fix_state(void)
 	rec_set = set;
 	for(i=0; i<=maxlength-minlength; i++) {
         for(j=0; j<minlength+i; j++) {
-    	    rec_step[i][j] = step[i][j];
+    	    rec_state[i][j] = state[i][j];    
+    	    rec_c[i][j] = c[i][j];
         }
         rec_counter[i] = counter[i];
-	    rec_cs[i] = cs[i];
     }
 	rec_cur_len = posfreq_cur_len;
 	rec_loop = loop;
@@ -147,16 +149,14 @@ static void save_state(FILE *file)
     fprintf(file, "%d\n", rec_set);
 	for(i=0; i<=maxlength-minlength; i++) {
 	    for(j=0; j<minlength+i; j++) {
-		    big2str(rec_step[i][j], str);
-	        fprintf(file, "%s\n", str);
-            memset(str, 0, 41);
-        }
+		    fprintf(file, "%d\n", rec_state[i][j]);
+            fprintf(file, "%d\n", rec_c[i][j]);
+	    }
         big2str(rec_counter[i], str);
         fprintf(file, "%s\n", str);
         memset(str, 0, 41);
-        fprintf(file, "%d\n", rec_cs[i]);
     }
-	fprintf(file, "%d\n", rec_cur_len);
+    fprintf(file, "%d\n", rec_cur_len);
 	fprintf(file, "%d\n", rec_loop);
 }
 
@@ -171,18 +171,18 @@ static int restore_state(FILE *file)
 
     for(i=0; i<=maxlength-minlength; i++) {
         for(j=0; j<minlength+i; j++) {
-            if(fscanf(file, "%s\n", str) == 1)
-                step[i][j] = str2big(str);
+            if(fscanf(file, "%d\n", &d) == 1)
+                state[i][j] = d;
             else return 1;
-            memset(str, 0, 41);    
+
+            if(fscanf(file, "%d\n", &d) == 1)
+                rec_c[i][j] = d;
+            else return 1;
         }
         if(fscanf(file, "%s\n", str) == 1)
             counter[i] = str2big(str);
         else return 1;
         memset(str, 0, 41);
-        if(fscanf(file, "%d\n", &d) == 1)
-            cs[i] = d;
-        else return 1;
     }
 	if(fscanf(file, "%d\n", &d) == 1)
 		posfreq_cur_len = d;
@@ -217,7 +217,7 @@ int do_posfreq_crack(struct db_main *db)
 {
     static int i, j;
 	unsigned int charcount;
-	
+	srand(time(NULL));
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
 	minlength = MAX(options.eff_minlength, 1);
 
@@ -226,87 +226,157 @@ int do_posfreq_crack(struct db_main *db)
 	if (!options.req_minlength)
 		minlength = 1;
 
-	charcount = 26;
+	charcount = 62;
     char **freq = (char **) mem_alloc(maxlength * sizeof(char *));
     for(i=0; i<maxlength; i++) {
-        freq[i] = mem_alloc(charcount);
+        freq[i] = mem_alloc(charcount+1);
         switch(i) {
         case 0:
-            strcpy(freq[i], "taoiswcbpfmhdrenlguvykxjqz");
+            strcpy(freq[i], "TtAa4Oo0Ii1Ss5WwCcBbPpFfMmHhDdRrEe3NnLlGgUuVvYyKkXxJjQqZz26789\0");
             break;
         case 1:
-            strcpy(freq[i], "hoeanirfutslpcmdybvwgxkjqz");
+            strcpy(freq[i], "ho0e3a4ni1rfuts5lpcmdybvwgxkjqzHOEANIRFUTSLPCMDYBVWGXKJQZ26789\0");
             break;
         case 2:
-            strcpy(freq[i], "ertadsonilmcupvgwyfbhkxjqz");
+            strcpy(freq[i], "e3rta4ds5o0ni1lmcupvgwyfbhkxjqzERTADSONILMCUPVGWYFBHKXJQZ26789\0");
             break;
         case 3:
-            strcpy(freq[i], "etirnlsaodhcmupgywkvfbxjqz");
+            strcpy(freq[i], "e3ti1rnls5a4o0dhcmupgywkvfbxjqzETIRNLSAODHCMUPGYWKVFBXJQZ26789\0");
             break;
         case 4:
-            strcpy(freq[i], "eritsnloaudchgmypvkbfwxjqz");
+            strcpy(freq[i], "e3ri1ts5nlo0a4udchgmypvkbfwxjqzERITSNLOAUDCHGMYPVKBFWXJQZ26789\0");
             break;
         case 5:
-            strcpy(freq[i], "enrsitadlcogmyhuvpwfbkxjqz");
+            strcpy(freq[i], "e3nrs5i1ta4dlco0gmyhuvpwfbkxjqzENRSITADLCOGMYHUVPWFBKXJQZ26789\0");
             break;
         case 6:
-            strcpy(freq[i], "etsinarldogycmuhpfbvwkxjqz");
+            strcpy(freq[i], "e3ts5i1na4rldo0gycmuhpfbvwkxjqzETSINARLDOGYCMUHPFBVWKXJQZ26789\0");
             break;
         }
         if(i > 6) {
             switch(maxlength - i) {
+            case 7:
+                strcpy(freq[i], "e3ra4ci1o0s5tpnlmuhfdgbwvxqzjkyERACIOSTPNLMUHFDGBWVXQZJKY26789\0");
+                break;
             case 6:
-                strcpy(freq[i], "eraciostpnlmuhfdgbwvxqzjky");
+                strcpy(freq[i], "e3rs5a4i1o0tclnpumfhgbdvwyxkjqzERSAIOTCLNPUMFHGBDVWYXKJQZ26789\0");
                 break;
             case 5:
-                strcpy(freq[i], "ersaiotclncpumfhgbdvwyxkjqz");
+                strcpy(freq[i], "e3ta4ri1o0s5cnluwpmhgdfbvykxjqzETARIOSCNLUWPMHGDFBVYKXJQZ26789\0");
                 break;
             case 4:
-                strcpy(freq[i], "etarioscnluwpmhgdfbvykxjqz");
+                strcpy(freq[i], "ti1a4rho0e3s5lwnmcufdbpgvykxjqzTIARHOESLWNMCUFDBPGVYKXJQZ26789\0");
                 break;
             case 3:
-                strcpy(freq[i], "tiarhoeslwnmcufdbpgvykxjqz");
+                strcpy(freq[i], "i1ta4e3o0hnrnuls5wcdfbmvgpkxjqzITAEOHNRMULSWCDFBMVGPKXJQZ26789\0");
                 break;
             case 2:
-                strcpy(freq[i], "itaeohnrnulswcdfbfvgpkxjqz");
+                strcpy(freq[i], "e3no0ha4i1trls5cumgdbwvkxpfyjqzENOHAITRLSCUMGFBWVKXPFYJQZ26789\0");
                 break;
             case 1:
-                strcpy(freq[i], "enohaitrlscumgdbwvkxpfyjqz");
-                break;
-            case 0:
-                strcpy(freq[i], "esdntyrfolgahmwcpibkuvxjqz");
+                strcpy(freq[i], "e3s5dntyrfo0lga4hmwcpi1bkuvxjqzESDNTYRFOLGAHMWCPIBKUVXJQZ26789\0");
                 break;
             default:
-                strcpy(freq[i], "etaoinsrhldcumfpgwxbvkxjqz");
+                strcpy(freq[i], "e3ta4o0i1ns5rhldcumfpgwxbvkxjqzETAOINSRHLDCUMFPGWXBVKXJQZ26789\0");
                 break;
             }
         }
     }
 	posfreq_cur_len = minlength;
-    
-    step = (uint_big **) mem_alloc((maxlength-minlength+1) * sizeof(uint_big *));
-    rec_step = (uint_big **) mem_alloc((maxlength-minlength+1) * sizeof(uint_big *));
+    divi = sqrt(charcount);
     counter = (uint_big *) mem_alloc((maxlength-minlength+1) * sizeof(uint_big));
     rec_counter = (uint_big *) mem_alloc((maxlength-minlength+1) * sizeof(uint_big));
-	cs = (int *) mem_alloc((maxlength-minlength+1) * sizeof(int));
-    rec_cs = (int *) mem_alloc((maxlength-minlength+1) * sizeof(int));
-    
-    for(i = 0; i <= maxlength-minlength; i++) {
-        step[i] = (uint_big *) mem_alloc((minlength+i) * sizeof(uint_big));
-        rec_step[i] = (uint_big *) mem_alloc((minlength+i) * sizeof(uint_big));
-        counter[i] = 0;
-        cs[i] = 0;
-        for(j = 0; j < minlength+i; j++)
-            step[i][j] = 1;
-    }
+	state = (int **) mem_alloc((maxlength-minlength+1) * sizeof(int *));
+    rec_state = (int **) mem_alloc((maxlength-minlength+1) * sizeof(int *));
+    c = (int **) mem_alloc((maxlength-minlength+1) * sizeof(int *));
+	rec_c = (int **) mem_alloc((maxlength-minlength+1) * sizeof(int *));
 
-    char **chrsts = (char **) mem_alloc(maxlength * sizeof(char *));
-    for(i=0; i<maxlength; i++) {
-        chrsts[i] = (char *) mem_alloc((charcount + 1)* sizeof(char));
-        for(j=0; j<charcount; j++) {
-            chrsts[i][j] = freq[i][j];
-            chrsts[i][j+1] = '\0';
+    for(i = 0; i <= maxlength-minlength; i++) {    
+        counter[i] = 0;
+        state[i] = (int *) mem_alloc((minlength+i) * sizeof(int));
+        rec_state[i] = (int *) mem_alloc((minlength+i) * sizeof(int));
+        c[i] = (int *) mem_alloc((minlength+i) * sizeof(int));
+        rec_c[i] = (int *) mem_alloc((minlength+i) * sizeof(int));
+        for(j = 0; j < minlength+i; j++) {
+            state[i][j] = 0;
+            c[i][j] = 0;
         }
+    }
+    int x,y,z;
+    chrsts = (char ***) mem_alloc(maxlength * sizeof(char **));
+    for(x=0; x<maxlength; x++) {
+        chrsts[x] = (char **) mem_alloc(divi * sizeof(char *));
+        for(y=0; y<divi; y++) {
+            chrsts[x][y] = (char *) mem_alloc((charcount+1) * sizeof(char));
+            for(z=0; z<charcount; z++) {
+                chrsts[x][y][z] = freq[x][rand()%charcount/(divi-y)];
+                chrsts[x][y][z+1] = '\0';
+            }
+        }
+    }
+    for(x=0; x<maxlength; x++) {
+        for(y=0; y<divi; y++) {
+            int a = 0;
+            //remove dups
+            for(j = 0; j < charcount; j++) {
+                int chop = 0;
+                for(z = 0; z < charcount; z++) {
+                    for(i=0; i<=y; i++){
+                        int A = a;
+                        if(i == y && z < a) break; 
+                        else if(z < a) A = 0;
+                        if((chrsts[x][y][j-a] == chrsts[x][i][z-A]) && (j != z || y != i)) {
+                            chop = 1;
+                            break;
+                        }
+                    }
+                }
+                if(chop == 1) {
+                    if(j == charcount-a-1)
+                        chrsts[x][y][j] = '\0';
+                    else {
+                        char chunk1[j-a+1];
+                        char chunk2[charcount-(j-a)-1];
+                        strncpy(chunk1, chrsts[x][y], j-a);
+                        strncpy(chunk2, &chrsts[x][y][j-a+1], charcount-(j-a)-1);
+
+                        char final[charcount-a-1];
+
+                        strncpy(final, chunk1, j-a);
+                        strncpy(&final[j-a], chunk2, charcount-(j-a)-1);
+
+                        memset(chrsts[x][y], '\0', 27);
+                        strncpy(chrsts[x][y], final, charcount-a-1);
+                    }
+                    a++;
+                }
+            }
+        }
+        //put the non used chars in the next set
+        for(y=0; y<divi-1; y++) {
+            int a = 0;
+            for(i=0; i<charcount; i++) {
+                int add = 1;
+                for(z=0; z<charcount; z++) {
+                    for(j=0; j<=y; j++){
+                        if(chrsts[x][j][z] == freq[x][i]) {
+                            add = 0;
+                            break;
+                        }
+                    }
+                }
+                if(add) {
+                    chrsts[x][y+1][a] = freq[x][i];
+                    a++;
+                    chrsts[x][y+1][a] = '\0';
+                    if(a > divi && (y != divi-2)) break;
+                }
+            }
+        }
+        /*
+        for(y=0; y<divi; y++)
+            printf("%s\n", chrsts[x][y]);   
+        */
     }
 
     status_init(get_progress, 0);
@@ -330,19 +400,18 @@ int do_posfreq_crack(struct db_main *db)
 		                options.eff_maxlength + mask_add_len);
 			fprintf(stderr, "\n");
 		}
-	}	
+	}
 
     crk_init(db, fix_state, NULL);
     for(; loop <= maxlength-minlength; loop++) {
         if(event_abort) break;
         uint_big total = powi(charcount, minlength+loop);
-        for(; counter[loop] < total; ) {		         
+        for(; counter[loop] < total; ) {
     		if(event_abort) break;
     		int loop2;
     		for(loop2 = loop; loop2 <= maxlength-minlength; loop2++) {
                 if(event_abort) break;
                 int mpl = minlength + loop2;
-        
            		int skip = 0;
                 if (state_restored)
                     state_restored = 0;
@@ -353,22 +422,24 @@ int do_posfreq_crack(struct db_main *db)
                 	int for_node = set % options.node_count + 1;
                 	skip = for_node < options.node_min || for_node > options.node_max;
                 }
-                if(!skip) {
-                	int pos;
-                	for(pos=0; pos<mpl; ++pos) { 
-                	    for(; step[loop2][pos] <= powi(charcount, pos+1); step[loop2][pos]++) { 
-                            if(counter[loop2] < powi(charcount, mpl)/powi(charcount, pos+1) * step[loop2][pos]) {
-                                cs[loop2] = (counter[loop2]*2-step[loop2][pos]+1) % charcount;
-                                break;
-                            }
-                            if(step[loop2][pos] == powi(charcount, pos+1)) {
-                                step[loop2][pos] = 1;
-                                break;
-                            }
-                        }
-                	    word[pos] = chrsts[pos][cs[loop2]];
-                    }
+                int pos;
+            	if(!skip) {
+                	for(pos=0; pos<mpl; ++pos)
+                	    word[pos] = chrsts[pos][c[loop2][pos]][state[loop2][pos]];
+
             	    submit(word, loop2);
+                }
+                pos = mpl-1;
+                while(pos >= 0 && ++state[loop2][pos] >= strlen(chrsts[pos][c[loop2][pos]])) {
+                    state[loop2][pos] = 0;  
+                    pos--;
+                }
+                if(pos < 0) {
+                    pos = mpl-1;
+                    while(pos >= 0 && ++c[loop2][pos] >= divi) {
+                        c[loop2][pos] = 0;
+                        pos--;
+                    }
                 }
                 counter[loop2]++;
             }
@@ -378,18 +449,25 @@ int do_posfreq_crack(struct db_main *db)
     crk_done();
 	rec_done(event_abort);
 
-	for(i=0; i<=maxlength-minlength; i++) {
-        MEM_FREE(step[i]);
-        MEM_FREE(rec_step[i]);
-    }
-	MEM_FREE(step);
-    MEM_FREE(rec_step);
 	MEM_FREE(counter);
 	MEM_FREE(rec_counter);
-	MEM_FREE(cs);
-	MEM_FREE(rec_cs);
-	for(i=0; i<maxlength; i++)
+
+	for(i=0; i<=maxlength-minlength; i++) {
+        MEM_FREE(state[i]);
+        MEM_FREE(rec_state[i]);
+        MEM_FREE(c[i]);
+        MEM_FREE(rec_c[i]);
+    }
+	MEM_FREE(state);
+    MEM_FREE(rec_state);
+    MEM_FREE(c);
+    MEM_FREE(rec_c);
+
+	for(i=0; i<maxlength; i++) {
+        for(j=0; j<divi; j++)
+	        MEM_FREE(chrsts[i][j]);
 	    MEM_FREE(chrsts[i]);
+	}
 	MEM_FREE(chrsts);
 	
 	return 0;
