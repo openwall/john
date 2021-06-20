@@ -273,8 +273,8 @@ int do_posfreq_crack(struct db_main *db)
             strcpy(freq[i], "etsinarldogycmuhpfbvwkxjqz\0");
             break;
         }
-        if(i > 6) {
-            switch(maxlength - i) {
+        if(maxlength > 7 && i > 6) {
+            switch(maxlength-i) {
             case 7:
                 //strcpy(freq[i], "e3ra4ci1o0s5tpnlmuhfdgbwvxqzjkyERACIOSTPNLMUHFDGBWVXQZJKY26789\0");
                 strcpy(freq[i], "eraciostpnlmuhfdgbwvxqzjky\0");
@@ -293,7 +293,7 @@ int do_posfreq_crack(struct db_main *db)
                 break;
             case 3:
                 //strcpy(freq[i], "i1ta4e3o0hnrnuls5wcdfbmvgpkxjqzITAEOHNRMULSWCDFBMVGPKXJQZ26789\0");
-                strcpy(freq[i], "itaeohnrnulswcdfbmvgpkxjqz\0");
+                strcpy(freq[i], "itaeohnrulswcdfbmvgpykxjqz\0");
                 break;
             case 2:
                 //strcpy(freq[i], "e3no0ha4i1trls5cumgdbwvkxpfyjqzENOHAITRLSCUMGFBWVKXPFYJQZ26789\0");
