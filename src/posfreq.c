@@ -272,8 +272,10 @@ int do_posfreq_crack(struct db_main *db)
             //strcpy(freq[i], "e3ts5i1na4rldo0gycmuhpfbvwkxjqzETSINARLDOGYCMUHPFBVWKXJQZ26789\0");
             strcpy(freq[i], "etsinarldogycmuhpfbvwkxjqz\0");
             break;
+        default:
+            break;
         }
-        if(maxlength > 7 && i > 6) {
+        if(i > 6) {
             switch(maxlength-i) {
             case 7:
                 //strcpy(freq[i], "e3ra4ci1o0s5tpnlmuhfdgbwvxqzjkyERACIOSTPNLMUHFDGBWVXQZJKY26789\0");
@@ -292,7 +294,7 @@ int do_posfreq_crack(struct db_main *db)
                 strcpy(freq[i], "tiarhoeslwnmcufdbpgvykxjqz\0");
                 break;
             case 3:
-                //strcpy(freq[i], "i1ta4e3o0hnrnuls5wcdfbmvgpkxjqzITAEOHNRMULSWCDFBMVGPKXJQZ26789\0");
+                //strcpy(freq[i], "i1ta4e3o0hnruls5wcdfbmvgpykxjqzITAEOHNRMULSWCDFBMVGPKXJQZ26789\0");
                 strcpy(freq[i], "itaeohnrulswcdfbmvgpykxjqz\0");
                 break;
             case 2:
@@ -304,8 +306,8 @@ int do_posfreq_crack(struct db_main *db)
                 strcpy(freq[i], "esdntyrfolgahmwcpibkuvxjqz\0");
                 break;
             default:
-                //strcpy(freq[i], "e3ta4o0i1ns5rhldcumfpgwxbvkxjqzETAOINSRHLDCUMFPGWXBVKXJQZ26789\0");
-                strcpy(freq[i], "etaoinsrhldcumfpgwxbvkxjqz\0");
+                //strcpy(freq[i], "e3ta4o0i1ns5rhldcumfpgwybvkxjqzETAOINSRHLDCUMFPGWXBVKXJQZ26789\0");
+                strcpy(freq[i], "etaoinsrhldcumfpgwybvkxjqz\0");
                 break;
             }
         }
@@ -380,11 +382,9 @@ int do_posfreq_crack(struct db_main *db)
     rec_restore_mode(restore_state);
     rec_init(db, save_state);
 
-    /*
-    for(x=0; x<maxlength; x++)
-        for(y=0; y<divi; y++)
-            printf("%s\n", chrsts[x][y]);
-    */
+   for(x=0; x<maxlength; x++)
+        word[x] = chrsts[x][0][0];
+    
     if(john_main_process) {
 		log_event("Proceeding with \"posfreq\" mode");
 		log_event("- Lengths: %d-%d, max",
@@ -408,7 +408,7 @@ int do_posfreq_crack(struct db_main *db)
     for(; loop <= maxlength-minlength; loop++) {
         if(event_abort) break;
         uint_big total = powi(charcount, minlength+loop);
-        int pos = minlength+loop-1;
+        //int start = 0;
         for(; counter[loop] < total; ) {
     		if(event_abort) break;
     		int loop2;
@@ -431,7 +431,7 @@ int do_posfreq_crack(struct db_main *db)
 
             	    submit(word, loop2);
                 }
-                pos = mpl - 1;
+                int pos = mpl - 1;
                 while(pos >= 0 && ++state[loop2][pos] >= strlen(chrsts[pos][cs[loop2][pos]])) {
                     state[loop2][pos] = 0;  
                     pos--;
@@ -442,7 +442,6 @@ int do_posfreq_crack(struct db_main *db)
                         cs[loop2][pos2] = 0;
                         pos2--;
                     }
-                    pos = pos2;
                 }
                 counter[loop2]++;
             }
