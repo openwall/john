@@ -39,7 +39,7 @@ def process_file(filename):
         sys.std.write("Error: salt read failed.\n")
         return
 
-    iterations = struct.unpack(">I", f.read(4))[0]
+    iterations = struct.unpack("<I", f.read(4))[0]
 
     sys.stdout.write("%s:$pwsafe$*3*" %
                      os.path.basename(filename).rstrip(".psafe3"))
