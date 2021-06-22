@@ -312,6 +312,7 @@ int do_posfreq_crack(struct db_main *db)
             }
         }
     }
+
 	posfreq_cur_len = minlength;
  
     counter = (uint_big *) mem_alloc((maxlength-minlength+1) * sizeof(uint_big));
@@ -334,11 +335,10 @@ int do_posfreq_crack(struct db_main *db)
     }
     int x,y,z;
     chrsts = (char ***) mem_alloc(maxlength * sizeof(char **));
-    
     divi = charcount/4;
     if(charcount % 4)
         divi++;
-
+    
     for(x=0; x<maxlength; x++) {
         chrsts[x] = (char **) mem_alloc(divi * sizeof(char *));
         for(y=0; y<divi; y++) {
@@ -348,13 +348,17 @@ int do_posfreq_crack(struct db_main *db)
         }
     }
     for(x=0; x<maxlength; x++) {
+        int chain = 0, chain1 = 0, chain2 = 0, chain3 = 0;
+        int chain4 = 0, chain5 = 0, chain6 = 0, chain7 = 0;
         for(y=0; y<divi; y++) {
             int Z = 4;
             if(y == divi-1)
                 Z = charcount % 4;
             for(z=0; z<Z; z++) {
-                chrsts[x][y][z] = freq[x][rand()%((y+1)*4)];
+                char c = freq[x][rand()%((y+1)*4)];
+                chrsts[x][y][z] = c;
                 int again = 0;
+                check:
                 for(i=0; i<=y; i++) {
                     int Z2 = 4;
                     if((j == i) == divi-1)
@@ -374,7 +378,68 @@ int do_posfreq_crack(struct db_main *db)
                     continue;
                 }
                 chrsts[x][y][z+1] = '\0';
+
+                if(x > 0) {
+                    if(chrsts[x-1][y][z-chain] == 't') {
+                        if(chain < 4) {
+                            chrsts[x][y][z] = "hieo"[chain];
+                            chain++;
+        
+                            goto check;
+                        }
+                    }
+                    if(chrsts[x-1][y][z-chain1] == 'h') { 
+                        if(chain1 < 2) {
+                            chrsts[x][y][z] = "ei"[chain1];
+                            chain1++;
+                            goto check;
+                        }
+                    }
+                    if(chrsts[x-1][y][z-chain2] == 'i') {
+                        if(chain2 < 5) {
+                            chrsts[x][y][z] = "nstoc"[chain2];
+                            chain2++;
+                            goto check;
+                        }
+                    }
+                    if(chrsts[x-1][y][z-chain3] == 'e') {
+                        if(chain3 < 5) {
+                            chrsts[x][y][z] = "rnsda"[chain3];
+                            chain3++;
+                            goto check;
+                        }
+                    }
+                    if(chrsts[x-1][y][z-chain4] == 'a') {
+                        if(chain4 < 5) {
+                            chrsts[x][y][z] = "ntlrs"[chain4];
+                            chain4++;
+                            goto check;
+                        }
+                    }
+                    if(chrsts[x-1][y][z-chain5] == 'r') {
+                        if(chain5 < 3) {
+                            chrsts[x][y][z] = "eia"[chain5];
+                            chain5++;
+                            goto check;
+                        }
+                    }
+                    if(chrsts[x-1][y][z-chain6] == 'o') {
+                        if(chain6 < 5) {
+                            chrsts[x][y][z] = "nrfum"[chain6];
+                            chain6++;
+                            goto check;
+                        }
+                    }
+                    if(chrsts[x-1][y][z-chain7] == 'n') {
+                        if(chain7 < 4) {
+                            chrsts[x][y][z] = "dtge"[chain7];
+                            chain7++;
+                            goto check;
+                        }
+                    }
+                }
             }
+            //printf("%s\n", chrsts[x][y]);
         }
     }
 
