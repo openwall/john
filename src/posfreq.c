@@ -45,15 +45,15 @@ int posfreq_cur_len;
 static int set;
 static int rec_set;
 static int rec_cur_len;
-static uint_big *counter;
-static uint_big *rec_counter;
-static int **state;
-static int **rec_state;
-static int **cs;
-static int **rec_cs;
+static uint_big counter[MAX_CAND_LENGTH-1];
+static uint_big rec_counter[MAX_CAND_LENGTH-1];
+static int state[MAX_CAND_LENGTH-1][26/4+1][MAX_CAND_LENGTH];
+static int rec_state[MAX_CAND_LENGTH-1][26/4+1][MAX_CAND_LENGTH];
+static int cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
+static int rec_cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
 static int loop;
 static int rec_loop;
-static char ***chrsts;
+static char chrsts[MAX_CAND_LENGTH-1][26/4+1][MAX_CAND_LENGTH];
 static int divi;
 
 static double get_progress(void)
@@ -75,7 +75,7 @@ static void fix_state(void)
 	rec_set = set;
 	for(i=0; i<=maxlength-minlength; i++) {
         for(j=0; j<minlength+i; j++) {
-    	    rec_state[i][j] = state[i][j];    
+    	    //rec_state[i][j] = state[i][j];    
     	    rec_cs[i][j] = cs[i][j];
         }
         rec_counter[i] = counter[i];
@@ -147,7 +147,7 @@ static void save_state(FILE *file)
     fprintf(file, "%d\n", rec_set);
 	for(i=0; i<=maxlength-minlength; i++) {
 	    for(j=0; j<minlength+i; j++) {
-		    fprintf(file, "%d\n", rec_state[i][j]);
+		    //fprintf(file, "%d\n", rec_state[i][j]);
             fprintf(file, "%d\n", rec_cs[i][j]);
 	    }
         big2str(rec_counter[i], str);
@@ -173,10 +173,11 @@ static int restore_state(FILE *file)
 
     for(i=0; i<=maxlength-minlength; i++) {
         for(j=0; j<minlength+i; j++) {
+            /*
             if(fscanf(file, "%d\n", &d) == 1)
                 state[i][j] = d;
             else return 1;
-
+            */
             if(fscanf(file, "%d\n", &d) == 1)
                 cs[i][j] = d;
             else return 1;
@@ -212,7 +213,7 @@ static int restore_state(FILE *file)
 
 static int submit(char *word, int loop2)
 {
-	char out[4 * MAX_CAND_LENGTH];
+	char out[MAX_CAND_LENGTH+1];
 	int i;
 
 	/* Set current word */
@@ -294,11 +295,11 @@ int do_posfreq_crack(struct db_main *db)
                 strcpy(freq[i], "tiarhoeslwnmcufdbpgvykxjqz\0");
                 break;
             case 3:
-                //strcpy(freq[i], "i1ta4e3o0hnruls5wcdfbmvgpykxjqzITAEOHNRMULSWCDFBMVGPKXJQZ26789\0");
+                //strcpy(freq[i], "i1ta4e3o0hnruls5wcdfbmvgpykxjqzITAEOHNRULSWCDFBMVGPYKXJQZ26789\0");
                 strcpy(freq[i], "itaeohnrulswcdfbmvgpykxjqz\0");
                 break;
             case 2:
-                //strcpy(freq[i], "e3no0ha4i1trls5cumgdbwvkxpfyjqzENOHAITRLSCUMGFBWVKXPFYJQZ26789\0");
+                //strcpy(freq[i], "e3no0ha4i1trls5cumgdbwvkxpfyjqzENOHAITRLSCUMGDBWVKXPFYJQZ26789\0");
                 strcpy(freq[i], "enohaitrlscumgdbwvkxpfyjqz\0");
                 break;
             case 1:
@@ -306,7 +307,7 @@ int do_posfreq_crack(struct db_main *db)
                 strcpy(freq[i], "esdntyrfolgahmwcpibkuvxjqz\0");
                 break;
             default:
-                //strcpy(freq[i], "e3ta4o0i1ns5rhldcumfpgwybvkxjqzETAOINSRHLDCUMFPGWXBVKXJQZ26789\0");
+                //strcpy(freq[i], "e3ta4o0i1ns5rhldcumfpgwybvkxjqzETAOINSRHLDCUMFPGWYBVKXJQZ26789\0");
                 strcpy(freq[i], "etaoinsrhldcumfpgwybvkxjqz\0");
                 break;
             }
@@ -314,142 +315,16 @@ int do_posfreq_crack(struct db_main *db)
     }
 
 	posfreq_cur_len = minlength;
- 
-    counter = (uint_big *) mem_alloc((maxlength-minlength+1) * sizeof(uint_big));
-    rec_counter = (uint_big *) mem_alloc((maxlength-minlength+1) * sizeof(uint_big));
-	state = (int **) mem_alloc((maxlength-minlength+1) * sizeof(int *));
-    rec_state = (int **) mem_alloc((maxlength-minlength+1) * sizeof(int *));
-    cs = (int **) mem_alloc((maxlength-minlength+1) * sizeof(int *));
-	rec_cs = (int **) mem_alloc((maxlength-minlength+1) * sizeof(int *));
 
-    for(i = 0; i <= maxlength-minlength; i++) {    
-        counter[i] = 0;
-        state[i] = (int *) mem_alloc((minlength+i) * sizeof(int));
-        rec_state[i] = (int *) mem_alloc((minlength+i) * sizeof(int));
-        cs[i] = (int *) mem_alloc((minlength+i) * sizeof(int));
-        rec_cs[i] = (int *) mem_alloc((minlength+i) * sizeof(int));
-        for(j = 0; j < minlength+i; j++) {
-            state[i][j] = 0;
-            cs[i][j] = 0;
-        }
-    }
     int x,y,z;
-    chrsts = (char ***) mem_alloc(maxlength * sizeof(char **));
     divi = charcount/4;
     if(charcount % 4)
         divi++;
-    
-    for(x=0; x<maxlength; x++) {
-        chrsts[x] = (char **) mem_alloc(divi * sizeof(char *));
-        for(y=0; y<divi; y++) {
-            chrsts[x][y] = (char *) mem_alloc(5 * sizeof(char));
-            for(z=0; z<4; z++)
-                chrsts[x][y][z] = 0;
-        }
-    }
-    for(x=0; x<maxlength; x++) {
-        int chain = 0, chain1 = 0, chain2 = 0, chain3 = 0;
-        int chain4 = 0, chain5 = 0, chain6 = 0, chain7 = 0;
-        for(y=0; y<divi; y++) {
-            int Z = 4;
-            if(y == divi-1)
-                Z = charcount % 4;
-            for(z=0; z<Z; z++) {
-                char c = freq[x][rand()%((y+1)*4)];
-                chrsts[x][y][z] = c;
-                int again = 0;
-                check:
-                for(i=0; i<=y; i++) {
-                    int Z2 = 4;
-                    if((j == i) == divi-1)
-                        Z2 = charcount % 4;
-                    for(j=0; j<Z2; j++) {
-                        if(z == j && i == y) continue;
-                        if(chrsts[x][y][z] == chrsts[x][i][j]) {
-                            again = 1;
-                            break;
-                        }
-                    }
-                    if(again)
-                        break;
-                }
-                if(again) {
-                    z--;
-                    continue;
-                }
-                chrsts[x][y][z+1] = '\0';
-
-                if(x > 0) {
-                    if(chrsts[x-1][y][z-chain] == 't') {
-                        if(chain < 4) {
-                            chrsts[x][y][z] = "hieo"[chain];
-                            chain++;
-        
-                            goto check;
-                        }
-                    }
-                    if(chrsts[x-1][y][z-chain1] == 'h') { 
-                        if(chain1 < 2) {
-                            chrsts[x][y][z] = "ei"[chain1];
-                            chain1++;
-                            goto check;
-                        }
-                    }
-                    if(chrsts[x-1][y][z-chain2] == 'i') {
-                        if(chain2 < 5) {
-                            chrsts[x][y][z] = "nstoc"[chain2];
-                            chain2++;
-                            goto check;
-                        }
-                    }
-                    if(chrsts[x-1][y][z-chain3] == 'e') {
-                        if(chain3 < 5) {
-                            chrsts[x][y][z] = "rnsda"[chain3];
-                            chain3++;
-                            goto check;
-                        }
-                    }
-                    if(chrsts[x-1][y][z-chain4] == 'a') {
-                        if(chain4 < 5) {
-                            chrsts[x][y][z] = "ntlrs"[chain4];
-                            chain4++;
-                            goto check;
-                        }
-                    }
-                    if(chrsts[x-1][y][z-chain5] == 'r') {
-                        if(chain5 < 3) {
-                            chrsts[x][y][z] = "eia"[chain5];
-                            chain5++;
-                            goto check;
-                        }
-                    }
-                    if(chrsts[x-1][y][z-chain6] == 'o') {
-                        if(chain6 < 5) {
-                            chrsts[x][y][z] = "nrfum"[chain6];
-                            chain6++;
-                            goto check;
-                        }
-                    }
-                    if(chrsts[x-1][y][z-chain7] == 'n') {
-                        if(chain7 < 4) {
-                            chrsts[x][y][z] = "dtge"[chain7];
-                            chain7++;
-                            goto check;
-                        }
-                    }
-                }
-            }
-            //printf("%s\n", chrsts[x][y]);
-        }
-    }
 
     status_init(get_progress, 0);
     rec_restore_mode(restore_state);
     rec_init(db, save_state);
 
-   for(x=0; x<maxlength; x++)
-        word[x] = chrsts[x][0][0];
-    
     if(john_main_process) {
 		log_event("Proceeding with \"posfreq\" mode");
 		log_event("- Lengths: %d-%d, max",
@@ -470,6 +345,113 @@ int do_posfreq_crack(struct db_main *db)
 	}
 
     crk_init(db, fix_state, NULL);
+    if(!state_restored) {
+        for(x=0; x<maxlength; x++) {
+            int chain = 0, chain1 = 0, chain2 = 0, chain3 = 0;
+            int chain4 = 0, chain5 = 0, chain6 = 0, chain7 = 0;
+            for(y=0; y<divi; y++) {
+                int Z = 4;
+                if(y == divi-1)
+                    Z = charcount % 4;
+                for(z=0; z<Z; z++) {
+                    char c = freq[x][rand()%((y+1)*4)];
+                    int again = 0;
+                    check:
+                    for(i=0; i<=y; i++) {
+                        int Z2 = 4;
+                        if((j == i) == divi-1)
+                            Z2 = charcount % 4;
+                        for(j=0; j<Z2; j++) {
+                            if(z == j && i == y) continue;
+                            if(c == chrsts[x][i][j]) {
+                                again = 1;
+                                break;
+                            }
+                        }
+                        if(again)
+                            break;
+                    }
+                    if(again) {
+                        z--;
+                        continue;
+                    }
+                    chrsts[x][y][z] = c;
+                    chrsts[x][y][z+1] = '\0';
+
+                    /*
+                    if(x > 0) {
+                        if(chrsts[x-1][y][z-chain] == 't') {
+                            if(chain < 4) {
+                                chrsts[x][y][z] = "hieo"[chain];
+                                chain++;
+                                goto check;
+                            }
+                        }
+                        if(chrsts[x-1][y][z-chain1] == 'h') { 
+                            if(chain1 < 2) {
+                                chrsts[x][y][z] = "ei"[chain1];
+                                chain1++;
+                                goto check;
+                            }
+                        }
+                        if(chrsts[x-1][y][z-chain2] == 'i') {
+                            if(chain2 < 5) {
+                                chrsts[x][y][z] = "nstoc"[chain2];
+                                chain2++;
+                                goto check;
+                            }
+                        }
+                        if(chrsts[x-1][y][z-chain3] == 'e') {
+                            if(chain3 < 5) {
+                                chrsts[x][y][z] = "rnsda"[chain3];
+                                chain3++;
+                                goto check;
+                            }
+                        }
+                        if(chrsts[x-1][y][z-chain4] == 'a') {
+                            if(chain4 < 5) {
+                                chrsts[x][y][z] = "ntlrs"[chain4];
+                                chain4++;
+                                goto check;
+                            }
+                        }
+                        if(chrsts[x-1][y][z-chain5] == 'r') {
+                            if(chain5 < 3) {
+                                chrsts[x][y][z] = "eia"[chain5];
+                                chain5++;
+                                goto check;
+                            }
+                        }
+                        if(chrsts[x-1][y][z-chain6] == 'o') {
+                            if(chain6 < 5) {
+                                chrsts[x][y][z] = "nrfum"[chain6];
+                                chain6++;
+                                goto check;
+                            }
+                        }
+                        if(chrsts[x-1][y][z-chain7] == 'n') {
+                            if(chain7 < 4) {
+                                chrsts[x][y][z] = "dtge"[chain7];
+                                chain7++;
+                                goto check;
+                            }
+                        }
+                    }*/
+                }
+                printf("%s\n", chrsts[x][y]);
+            }
+        }
+        for(i = 0; i <= maxlength-minlength; i++) {    
+            counter[i] = 0;
+            for(j = 0; j<divi; j++) {
+                int k;
+                for(k=0; k<minlength+i; k++)
+                    state[i][j][k] = 0;
+            }
+            for(j = 0; j < minlength+i; j++)
+                cs[i][j] = 0;
+        }
+    }
     for(; loop <= maxlength-minlength; loop++) {
         if(event_abort) break;
         uint_big total = powi(charcount, minlength+loop);
@@ -479,6 +461,7 @@ int do_posfreq_crack(struct db_main *db)
     		int loop2;
     		for(loop2 = loop; loop2 <= maxlength-minlength; loop2++) {
                 if(event_abort) break;
+
                 int mpl = minlength + loop2;
            		int skip = 0;
                 if (state_restored)
@@ -492,13 +475,12 @@ int do_posfreq_crack(struct db_main *db)
                 }
             	if(!skip) {
                 	for(i=0; i<mpl; i++)
-                	    word[i] = chrsts[i][cs[loop2][i]][state[loop2][i]];
-
-            	    submit(word, loop2);
+                	    word[i] = chrsts[i][cs[loop2][i]][state[loop2][cs[loop2][i]][i]];
+                    submit(word, loop2);
                 }
                 int pos = mpl - 1;
-                while(pos >= 0 && ++state[loop2][pos] >= strlen(chrsts[pos][cs[loop2][pos]])) {
-                    state[loop2][pos] = 0;  
+                while(pos >= 0 && ++state[loop2][cs[loop2][pos]][pos] >= strlen(chrsts[pos][cs[loop2][pos]])) {
+                    state[loop2][cs[loop2][pos]][pos] = 0;
                     pos--;
                 }
                 if(pos < 0) {
@@ -513,31 +495,8 @@ int do_posfreq_crack(struct db_main *db)
         }
         posfreq_cur_len++;
     }
-
     crk_done();
 	rec_done(event_abort);
-
-	MEM_FREE(counter);
-	MEM_FREE(rec_counter);
-
-	for(i=0; i<=maxlength-minlength; i++) {
-        MEM_FREE(state[i]);
-        MEM_FREE(rec_state[i]);
-        MEM_FREE(cs[i]);
-        MEM_FREE(rec_cs[i]);
-    }
-	MEM_FREE(state);
-    MEM_FREE(rec_state);
-    MEM_FREE(cs);
-    MEM_FREE(rec_cs);
-
-	for(i=0; i<maxlength; i++) {
-        for(j=0; j<divi; j++)
-	        MEM_FREE(chrsts[i][j]);
-	    MEM_FREE(chrsts[i]);
-	}
-	MEM_FREE(chrsts);
-
 	return 0;
 }
 
