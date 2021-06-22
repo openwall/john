@@ -74,10 +74,13 @@ static void fix_state(void)
 	int i, j;
 	rec_set = set;
 	for(i=0; i<=maxlength-minlength; i++) {
-        for(j=0; j<minlength+i; j++) {
-    	    //rec_state[i][j] = state[i][j];    
+        for(j=0; j<minlength+i; j++)
     	    rec_cs[i][j] = cs[i][j];
-        }
+    	for(j=0; j<divi; j++) {
+    	    int k;
+    	    for(k=0; k<minlength+i; k++)
+    	        rec_state[i][j][k] = state[i][j][k];
+    	}
         rec_counter[i] = counter[i];
     }
 	rec_cur_len = posfreq_cur_len;
@@ -146,10 +149,13 @@ static void save_state(FILE *file)
 	memset(str, 0, 41);
     fprintf(file, "%d\n", rec_set);
 	for(i=0; i<=maxlength-minlength; i++) {
-	    for(j=0; j<minlength+i; j++) {
-		    //fprintf(file, "%d\n", rec_state[i][j]);
-            fprintf(file, "%d\n", rec_cs[i][j]);
-	    }
+	    for(j=0; j<minlength+i; j++)
+		    fprintf(file, "%d\n", rec_cs[i][j]);
+		for(j=0; j<divi; j++) {
+		    int k;
+		    for(k=0; k<minlength+i; k++)
+		        fprintf(file, "%d\n", rec_state[i][j][k]);
+		}
         big2str(rec_counter[i], str);
         fprintf(file, "%s\n", str);
         memset(str, 0, 41);
@@ -173,14 +179,16 @@ static int restore_state(FILE *file)
 
     for(i=0; i<=maxlength-minlength; i++) {
         for(j=0; j<minlength+i; j++) {
-            /*
-            if(fscanf(file, "%d\n", &d) == 1)
-                state[i][j] = d;
-            else return 1;
-            */
             if(fscanf(file, "%d\n", &d) == 1)
                 cs[i][j] = d;
             else return 1;
+        }
+        for(j=0; j<divi; j++) {
+            int k;
+            for(k=0; k<minlength+i; k++)
+                if(fscanf(file, "%d\n", &d) == 1)
+                    state[i][j][k] = d;
+                else return 1;
         }
         if(fscanf(file, "%s\n", str) == 1) {
             counter[i] = str2big(str);
@@ -378,7 +386,7 @@ int do_posfreq_crack(struct db_main *db)
                     chrsts[x][y][z] = c;
                     chrsts[x][y][z+1] = '\0';
 
-                    /*
+                    
                     if(x > 0) {
                         if(chrsts[x-1][y][z-chain] == 't') {
                             if(chain < 4) {
@@ -436,31 +444,33 @@ int do_posfreq_crack(struct db_main *db)
                                 goto check;
                             }
                         }
-                    }*/
+                    }
                 }
                 printf("%s\n", chrsts[x][y]);
             }
         }
         for(i = 0; i <= maxlength-minlength; i++) {    
             counter[i] = 0;
+            for(j = 0; j < minlength+i; j++)
+                cs[i][j] = 0;
             for(j = 0; j<divi; j++) {
                 int k;
                 for(k=0; k<minlength+i; k++)
                     state[i][j][k] = 0;
             }
-            for(j = 0; j < minlength+i; j++)
-                cs[i][j] = 0;
         }
     }
     for(; loop <= maxlength-minlength; loop++) {
-        if(event_abort) break;
+        if(event_abort)
+            break;
         uint_big total = powi(charcount, minlength+loop);
-        //int start = 0;
         for(; counter[loop] < total; ) {
-    		if(event_abort) break;
+    		if(event_abort)
+    		    break;
     		int loop2;
     		for(loop2 = loop; loop2 <= maxlength-minlength; loop2++) {
-                if(event_abort) break;
+                if(event_abort)
+                    break;
 
                 int mpl = minlength + loop2;
            		int skip = 0;
@@ -469,7 +479,7 @@ int do_posfreq_crack(struct db_main *db)
                 else
                 	set++;
 
-                if (options.node_count) {
+                if(options.node_count) {
                 	int for_node = set % options.node_count + 1;
                 	skip = for_node < options.node_min || for_node > options.node_max;
                 }
