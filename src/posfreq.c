@@ -369,20 +369,24 @@ int do_posfreq_crack(struct db_main *db)
                 int min = 0;
                 for(z=0; z<Z; z++) {
                     int again;
-                    check:
                     if(y == divi[x]-1) {
                         if(X) {
-                            if(X < charcount % 4)
+                            if(X < charcount % 4) {
                                 Z = X;
-                            else
+                                min = charcount % 4 - Z;
+                            }
+                            else {
                                 Z = charcount % 4 + 4 - X;
+                                min = 4 - Z;
+                            }
                         }
-                        else
+                        else {
                             Z = charcount % 4;
-                        min = Z;
+                            min = Z;
+                        }
                     }
                     chrsts[x][y][z] = freq[x][rand()%((y+1)*4-min)];
-                    
+                    check:
                     again = 0;
                     for(i=0; i<=y; i++) {
                         int Z2 = 4;
@@ -432,12 +436,12 @@ int do_posfreq_crack(struct db_main *db)
                                             strcpy(chrsts[x][l], save[l]);
                                     }
                                     extend++;
-                                printf("%s\n", chrsts[x][y]);
-                                y++;
                                 }
                                 chrsts[x][y][z] = 0;
                                 X = z;
                                 z = 0;
+                                printf("%s\n", chrsts[x][y]);
+                                y++;
                             }
                             if(chain < 4) {
                                 chrsts[x][y][z] = "hieo"[chain];
