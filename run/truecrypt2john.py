@@ -44,7 +44,7 @@ def process_file(filename, keyfiles, options):
 
     for tag in tags:
         sys.stdout.write("%s:%s$" % (basename(filename), tag))
-        sys.stdout.write(binascii.hexlify(header))
+        sys.stdout.write(binascii.hexlify(header).decode('ascii'))
         if keyfiles:
             nkeyfiles = len(keyfiles)
             sys.stdout.write("$%d" % (nkeyfiles))
@@ -64,7 +64,7 @@ def process_file(filename, keyfiles, options):
 
     for tag in ["truecrypt_RIPEMD_160", "truecrypt_SHA_512", "truecrypt_WHIRLPOOL"]:
         sys.stdout.write("%s:%s$" % (basename(filename), tag))
-        sys.stdout.write(binascii.hexlify(header))
+        sys.stdout.write(binascii.hexlify(header).decode('ascii'))
         if keyfiles:
             nkeyfiles = len(keyfiles)
             sys.stdout.write("$%d" % (nkeyfiles))
