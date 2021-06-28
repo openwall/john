@@ -440,7 +440,7 @@ int do_posfreq_crack(struct db_main *db)
                                 chrsts[x][y][z] = 0;
                                 X = z;
                                 z = 0;
-                                printf("%s\n", chrsts[x][y]);
+                                //printf("%s\n", chrsts[x][y]);
                                 y++;
                             }
                             if(chain < 4) {
@@ -449,61 +449,227 @@ int do_posfreq_crack(struct db_main *db)
                                 goto check;
                             }
                         }
-                    }
-                }
-                printf("%s\n", chrsts[x][y]);
-            }
-                        /*
-                        if(chrsts[x-1][y][z-chain1] == 'h') { 
+                        if(chrsts[x-1][y-extend][z-chain1] == 'h') {
+                            if(chain1 == 0 && z != 0) {
+                                char save[divi[x]][5];
+                                if(z < charcount % 4) {
+                                    int l;
+                                    for(l=0; l<divi[x]; l++)
+                                        strcpy(save[l], chrsts[x][l]);
+
+                                    divi[x]++;
+
+                                    chrsts[x] = (char **) mem_realloc(chrsts[x], divi[x] * sizeof(char *));
+                                    chrsts[x][divi[x]-1] = (char *) mem_alloc(5);
+
+                                    for(l=0; l<divi[x]; l++) { 
+                                        if(l < divi[x]-1)
+                                            strcpy(chrsts[x][l], save[l]);
+                                    }
+                                    extend++;
+                                }
+                                chrsts[x][y][z] = 0;
+                                X = z;
+                                z = 0;
+                                //printf("%s\n", chrsts[x][y]);
+                                y++;
+                            }
                             if(chain1 < 2) {
                                 chrsts[x][y][z] = "ei"[chain1];
                                 chain1++;
                                 goto check;
                             }
                         }
-                        if(chrsts[x-1][y][z-chain2] == 'i') {
+                        if(chrsts[x-1][y-extend][z-chain2] == 'i') {
+                            if(chain2 == 0 && z != 0) {
+                                char save[divi[x]][5];
+                                if(z < charcount % 4) {
+                                    int l;
+                                    for(l=0; l<divi[x]; l++)
+                                        strcpy(save[l], chrsts[x][l]);
+
+                                    divi[x]++;
+
+                                    chrsts[x] = (char **) mem_realloc(chrsts[x], divi[x] * sizeof(char *));
+                                    chrsts[x][divi[x]-1] = (char *) mem_alloc(5);
+
+                                    for(l=0; l<divi[x]; l++) { 
+                                        if(l < divi[x]-1)
+                                            strcpy(chrsts[x][l], save[l]);
+                                    }
+                                    extend++;
+                                }
+                                chrsts[x][y][z] = 0;
+                                X = z;
+                                z = 0;
+                                //printf("%s\n", chrsts[x][y]);
+                                y++;
+                            }
                             if(chain2 < 5) {
                                 chrsts[x][y][z] = "nstoc"[chain2];
                                 chain2++;
                                 goto check;
                             }
                         }
-                        if(chrsts[x-1][y][z-chain3] == 'e') {
+                        if(chrsts[x-1][y-extend][z-chain3] == 'e') {
+                            if(chain3 == 0 && z != 0) {
+                                char save[divi[x]][5];
+                                if(z < charcount % 4) {
+                                    int l;
+                                    for(l=0; l<divi[x]; l++)
+                                        strcpy(save[l], chrsts[x][l]);
+
+                                    divi[x]++;
+
+                                    chrsts[x] = (char **) mem_realloc(chrsts[x], divi[x] * sizeof(char *));
+                                    chrsts[x][divi[x]-1] = (char *) mem_alloc(5);
+
+                                    for(l=0; l<divi[x]; l++) { 
+                                        if(l < divi[x]-1)
+                                            strcpy(chrsts[x][l], save[l]);
+                                    }
+                                    extend++;
+                                }
+                                chrsts[x][y][z] = 0;
+                                X = z;
+                                z = 0;
+                                //printf("%s\n", chrsts[x][y]);
+                                y++;
+                            }
                             if(chain3 < 5) {
                                 chrsts[x][y][z] = "rnsda"[chain3];
                                 chain3++;
                                 goto check;
                             }
                         }
-                        if(chrsts[x-1][y][z-chain4] == 'a') {
+                        if(chrsts[x-1][y-extend][z-chain4] == 'a') {
+                            if(chain4 == 0 && z != 0) {
+                                char save[divi[x]][5];
+                                if(z < charcount % 4) {
+                                    int l;
+                                    for(l=0; l<divi[x]; l++)
+                                        strcpy(save[l], chrsts[x][l]);
+
+                                    divi[x]++;
+
+                                    chrsts[x] = (char **) mem_realloc(chrsts[x], divi[x] * sizeof(char *));
+                                    chrsts[x][divi[x]-1] = (char *) mem_alloc(5);
+
+                                    for(l=0; l<divi[x]; l++) { 
+                                        if(l < divi[x]-1)
+                                            strcpy(chrsts[x][l], save[l]);
+                                    }
+                                    extend++;
+                                }
+                                chrsts[x][y][z] = 0;
+                                X = z;
+                                z = 0;
+                                //printf("%s\n", chrsts[x][y]);
+                                y++;
+                            }
                             if(chain4 < 5) {
                                 chrsts[x][y][z] = "ntlrs"[chain4];
                                 chain4++;
                                 goto check;
                             }
                         }
-                        if(chrsts[x-1][y][z-chain5] == 'r') {
+                        if(chrsts[x-1][y-extend][z-chain5] == 'r') {
+                            if(chain5 == 0 && z != 0) {
+                                char save[divi[x]][5];
+                                if(z < charcount % 4) {
+                                    int l;
+                                    for(l=0; l<divi[x]; l++)
+                                        strcpy(save[l], chrsts[x][l]);
+
+                                    divi[x]++;
+
+                                    chrsts[x] = (char **) mem_realloc(chrsts[x], divi[x] * sizeof(char *));
+                                    chrsts[x][divi[x]-1] = (char *) mem_alloc(5);
+
+                                    for(l=0; l<divi[x]; l++) { 
+                                        if(l < divi[x]-1)
+                                            strcpy(chrsts[x][l], save[l]);
+                                    }
+                                    extend++;
+                                }
+                                chrsts[x][y][z] = 0;
+                                X = z;
+                                z = 0;
+                                //printf("%s\n", chrsts[x][y]);
+                                y++;
+                            }
                             if(chain5 < 3) {
                                 chrsts[x][y][z] = "eia"[chain5];
                                 chain5++;
                                 goto check;
                             }
                         }
-                        if(chrsts[x-1][y][z-chain6] == 'o') {
+                        if(chrsts[x-1][y-extend][z-chain6] == 'o') {
+                            if(chain6 == 0 && z != 0) {
+                                char save[divi[x]][5];
+                                if(z < charcount % 4) {
+                                    int l;
+                                    for(l=0; l<divi[x]; l++)
+                                        strcpy(save[l], chrsts[x][l]);
+
+                                    divi[x]++;
+
+                                    chrsts[x] = (char **) mem_realloc(chrsts[x], divi[x] * sizeof(char *));
+                                    chrsts[x][divi[x]-1] = (char *) mem_alloc(5);
+
+                                    for(l=0; l<divi[x]; l++) { 
+                                        if(l < divi[x]-1)
+                                            strcpy(chrsts[x][l], save[l]);
+                                    }
+                                    extend++;
+                                }
+                                chrsts[x][y][z] = 0;
+                                X = z;
+                                z = 0;
+                                //printf("%s\n", chrsts[x][y]);
+                                y++;
+                            }
                             if(chain6 < 5) {
                                 chrsts[x][y][z] = "nrfum"[chain6];
                                 chain6++;
                                 goto check;
-                            }
+                            }    
                         }
-                        if(chrsts[x-1][y][z-chain7] == 'n') {
+                        if(chrsts[x-1][y-extend][z-chain7] == 'n') {
+                            if(chain7 == 0 && z != 0) {
+                                char save[divi[x]][5];
+                                if(z < charcount % 4) {
+                                    int l;
+                                    for(l=0; l<divi[x]; l++)
+                                        strcpy(save[l], chrsts[x][l]);
+
+                                    divi[x]++;
+
+                                    chrsts[x] = (char **) mem_realloc(chrsts[x], divi[x] * sizeof(char *));
+                                    chrsts[x][divi[x]-1] = (char *) mem_alloc(5);
+
+                                    for(l=0; l<divi[x]; l++) { 
+                                        if(l < divi[x]-1)
+                                            strcpy(chrsts[x][l], save[l]);
+                                    }
+                                    extend++;
+                                }
+                                chrsts[x][y][z] = 0;
+                                X = z;
+                                z = 0;
+                                //printf("%s\n", chrsts[x][y]);
+                                y++;
+                            }
                             if(chain7 < 4) {
                                 chrsts[x][y][z] = "dtge"[chain7];
                                 chain7++;
                                 goto check;
                             }
                         }
-                    }*/
+                    }
+                }
+                //printf("%s\n", chrsts[x][y]);
+            }
         }
         for(i = 0; i <= maxlength-minlength; i++) {    
             counter[i] = 0;
