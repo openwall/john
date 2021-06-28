@@ -53,8 +53,8 @@ static int cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
 static int rec_cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
 static int loop;
 static int rec_loop;
-static char chrsts[MAX_CAND_LENGTH-1][26/4+1][MAX_CAND_LENGTH];
-static int divi;
+static char ***chrsts;
+static int divi[MAX_CAND_LENGTH];
 
 static double get_progress(void)
 {
@@ -67,24 +67,6 @@ static double get_progress(void)
 		return 100;
 	
 	return (100.0 * counter[maxlength-posfreq_cur_len]) / total;
-}
-
-static void fix_state(void)
-{
-	int i, j;
-	rec_set = set;
-	for(i=0; i<=maxlength-minlength; i++) {
-        for(j=0; j<minlength+i; j++)
-    	    rec_cs[i][j] = cs[i][j];
-    	for(j=0; j<divi; j++) {
-    	    int k;
-    	    for(k=0; k<minlength+i; k++)
-    	        rec_state[i][j][k] = state[i][j][k];
-    	}
-        rec_counter[i] = counter[i];
-    }
-	rec_cur_len = posfreq_cur_len;
-	rec_loop = loop;
 }
 
 static uint_big powi(uint32_t b, uint32_t p)
@@ -118,7 +100,7 @@ static void big2str(uint_big orig, char *str) {
 	} while(total < orig);
 	
 	char tmp[c/2];
-	
+	//revert the characters
 	for(x=0; x<c; ++x) {
 		if(x<c/2+c%2) {
 			tmp[x] = str[x];
@@ -142,6 +124,23 @@ static uint_big str2big(char *str) {
 	return num;
 }
 
+static void fix_state(void)
+{
+	int i, j;
+	rec_set = set;
+	for(i=0; i<=maxlength-minlength; i++) {
+        for(j=0; j<minlength+i; j++) {
+    	    rec_cs[i][j] = cs[i][j];
+    	    int k;
+    	    for(k=0; k<divi[j]; k++)
+    	        rec_state[i][k][j] = state[i][k][j];
+    	}
+        rec_counter[i] = counter[i];
+    }
+	rec_cur_len = posfreq_cur_len;
+	rec_loop = loop;
+}
+
 static void save_state(FILE *file)
 {
 	int i, j;
@@ -149,19 +148,18 @@ static void save_state(FILE *file)
 	memset(str, 0, 41);
     fprintf(file, "%d\n", rec_set);
 	for(i=0; i<=maxlength-minlength; i++) {
-	    for(j=0; j<minlength+i; j++)
+	    for(j=0; j<minlength+i; j++) {
 		    fprintf(file, "%d\n", rec_cs[i][j]);
-		for(j=0; j<divi; j++) {
 		    int k;
-		    for(k=0; k<minlength+i; k++)
-		        fprintf(file, "%d\n", rec_state[i][j][k]);
+		    for(k=0; k<divi[j]; k++)
+		        fprintf(file, "%d\n", rec_state[i][k][j]);
 		}
         big2str(rec_counter[i], str);
         fprintf(file, "%s\n", str);
         memset(str, 0, 41);
     }
     for(i=0; i<maxlength; i++) {
-        for(j=0; j<divi; j++)
+        for(j=0; j<divi[i]; j++)
             fprintf(file, "%s\n", chrsts[i][j]);
     }
     fprintf(file, "%d\n", rec_cur_len);
@@ -182,12 +180,10 @@ static int restore_state(FILE *file)
             if(fscanf(file, "%d\n", &d) == 1)
                 cs[i][j] = d;
             else return 1;
-        }
-        for(j=0; j<divi; j++) {
             int k;
-            for(k=0; k<minlength+i; k++)
+            for(k=0; k<divi[j]; k++)
                 if(fscanf(file, "%d\n", &d) == 1)
-                    state[i][j][k] = d;
+                    state[i][k][j] = d;
                 else return 1;
         }
         if(fscanf(file, "%s\n", str) == 1) {
@@ -197,7 +193,7 @@ static int restore_state(FILE *file)
         else return 1;
     }
     for(i=0; i<maxlength; i++) {
-        for(j=0; j<divi; j++) {
+        for(j=0; j<divi[i]; j++) {
 	        if(fscanf(file, "%s\n", str) == 1) {
                 memset(chrsts[i][j], 0, strlen(chrsts[i][j]));
                 strcpy(chrsts[i][j], str);
@@ -325,9 +321,17 @@ int do_posfreq_crack(struct db_main *db)
 	posfreq_cur_len = minlength;
 
     int x,y,z;
-    divi = charcount/4;
-    if(charcount % 4)
-        divi++;
+    for(i=0; i<maxlength; i++) {
+        divi[i] = charcount/4;
+        if(charcount % 4)
+            divi[i]++;
+    }
+    chrsts = (char ***) mem_alloc(sizeof(char **) * maxlength);
+    for(i=0; i<maxlength; i++) {
+        chrsts[i] = (char **) mem_alloc(sizeof(char *) * divi[i]);
+        for(j=0; j<divi[i]; j++)
+            chrsts[i][j] = (char *) mem_alloc(5);
+    }
 
     status_init(get_progress, 0);
     rec_restore_mode(restore_state);
@@ -355,23 +359,47 @@ int do_posfreq_crack(struct db_main *db)
     crk_init(db, fix_state, NULL);
     if(!state_restored) {
         for(x=0; x<maxlength; x++) {
-            int chain = 0, chain1 = 0, chain2 = 0, chain3 = 0;
-            int chain4 = 0, chain5 = 0, chain6 = 0, chain7 = 0;
-            for(y=0; y<divi; y++) {
+            int extend = 0;
+            int chain, chain1, chain2, chain3;
+            int chain4, chain5, chain6, chain7;
+            chain = chain1 = chain2 = chain3 = chain4 = chain5 = chain6 = chain7 = 0;
+            int X = 0;
+            for(y=0; y<divi[x]; y++) {
                 int Z = 4;
-                if(y == divi-1)
-                    Z = charcount % 4;
+                int min = 0;
                 for(z=0; z<Z; z++) {
-                    char c = freq[x][rand()%((y+1)*4)];
-                    int again = 0;
+                    int again;
                     check:
+                    if(y == divi[x]-1) {
+                        if(X) {
+                            if(X < charcount % 4)
+                                Z = X;
+                            else
+                                Z = charcount % 4 + 4 - X;
+                        }
+                        else
+                            Z = charcount % 4;
+                        min = Z;
+                    }
+                    chrsts[x][y][z] = freq[x][rand()%((y+1)*4-min)];
+                    
+                    again = 0;
                     for(i=0; i<=y; i++) {
                         int Z2 = 4;
-                        if((j == i) == divi-1)
-                            Z2 = charcount % 4;
+                        if(i == divi[x]-1) {
+                            if(X) {
+                                if(X < charcount % 4)
+                                    Z2 = X;
+                                else
+                                    Z2 = charcount % 4 + 4 - X;
+                            }
+                            else
+                                Z2 = charcount % 4;
+                        }
                         for(j=0; j<Z2; j++) {
-                            if(z == j && i == y) continue;
-                            if(c == chrsts[x][i][j]) {
+                            if(z == j && i == y)
+                                continue;
+                            if(chrsts[x][y][z] == chrsts[x][i][j]) {
                                 again = 1;
                                 break;
                             }
@@ -383,18 +411,45 @@ int do_posfreq_crack(struct db_main *db)
                         z--;
                         continue;
                     }
-                    chrsts[x][y][z] = c;
                     chrsts[x][y][z+1] = '\0';
-
                     
                     if(x > 0) {
-                        if(chrsts[x-1][y][z-chain] == 't') {
+                        if(chrsts[x-1][y-extend][z-chain] == 't') {
+                            if(chain == 0 && z != 0) {
+                                char save[divi[x]][5];
+                                if(z < charcount % 4) {
+                                    int l;
+                                    for(l=0; l<divi[x]; l++)
+                                        strcpy(save[l], chrsts[x][l]);
+
+                                    divi[x]++;
+
+                                    chrsts[x] = (char **) mem_realloc(chrsts[x], divi[x] * sizeof(char *));
+                                    chrsts[x][divi[x]-1] = (char *) mem_alloc(5);
+
+                                    for(l=0; l<divi[x]; l++) { 
+                                        if(l < divi[x]-1)
+                                            strcpy(chrsts[x][l], save[l]);
+                                    }
+                                    extend++;
+                                printf("%s\n", chrsts[x][y]);
+                                y++;
+                                }
+                                chrsts[x][y][z] = 0;
+                                X = z;
+                                z = 0;
+                            }
                             if(chain < 4) {
                                 chrsts[x][y][z] = "hieo"[chain];
                                 chain++;
                                 goto check;
                             }
                         }
+                    }
+                }
+                printf("%s\n", chrsts[x][y]);
+            }
+                        /*
                         if(chrsts[x-1][y][z-chain1] == 'h') { 
                             if(chain1 < 2) {
                                 chrsts[x][y][z] = "ei"[chain1];
@@ -444,19 +499,15 @@ int do_posfreq_crack(struct db_main *db)
                                 goto check;
                             }
                         }
-                    }
-                }
-                printf("%s\n", chrsts[x][y]);
-            }
+                    }*/
         }
         for(i = 0; i <= maxlength-minlength; i++) {    
             counter[i] = 0;
-            for(j = 0; j < minlength+i; j++)
+            for(j = 0; j < minlength+i; j++) {
                 cs[i][j] = 0;
-            for(j = 0; j<divi; j++) {
                 int k;
-                for(k=0; k<minlength+i; k++)
-                    state[i][j][k] = 0;
+                for(k=0; k<divi[j]; k++)
+                    state[i][k][j] = 0;
             }
         }
     }
@@ -495,7 +546,7 @@ int do_posfreq_crack(struct db_main *db)
                 }
                 if(pos < 0) {
                     int pos2 = mpl - 1;
-                    while(pos2 >= 0 && ++cs[loop2][pos2] >= divi) {
+                    while(pos2 >= 0 && ++cs[loop2][pos2] >= divi[pos2]) {
                         cs[loop2][pos2] = 0;
                         pos2--;
                     }
