@@ -207,6 +207,9 @@ void rec_init(struct db_main *db, void (*save_mode)(FILE *file))
 
 	rec_db = db;
 	rec_save_mode = save_mode;
+
+	if (options.catchup)
+		john_max_cands = rec_read_cands(options.catchup);
 }
 
 static void save_salt_state()
@@ -683,4 +686,64 @@ void rec_restore_mode(int (*restore_mode)(FILE *file))
 	rec_file = NULL;
 
 	rec_restoring_now = 0;
+}
+
+uint64_t rec_read_cands(char *session)
+{
+	char line[LINE_BUFFER_SIZE];
+	char *other_name;
+	FILE *other_file = NULL;
+	int index, argc;
+
+	if (!john_main_process && options.node_min) {
+		char suffix[1 + 20 + sizeof(RECOVERY_SUFFIX)];
+
+		sprintf(suffix, ".%u%s", options.node_min, RECOVERY_SUFFIX);
+		other_name = path_session(session, suffix);
+	} else {
+		other_name = path_session(session, RECOVERY_SUFFIX);
+	}
+
+	if (!strcmp(other_name, rec_name))
+		error_msg("New session name can't be same as catch-up session\n");
+
+	if (!(other_file = fopen(other_name, "r")))
+		pexit("fopen catch-up file: '%s'", other_name);
+
+#if !(__MINGW32__ || _MSC_VER)
+	int other_fd = fileno(other_file);
+
+	if (jtr_lock(other_fd, F_SETLK, F_RDLCK, other_name))
+		error_msg("Catch-Up session file '%s' is locked\n", other_name);
+#endif
+
+	if (!fgetl(line, sizeof(line), other_file))
+		error_msg("fgets (%s)", other_name);
+	if (strcmp(line, RECOVERY_V))
+		error_msg("Catch-Up session file '%s' version mismatch\n", other_name);
+	if (fscanf(other_file, "%d\n", &argc) != 1 || argc < 2)
+		error_msg("Catch-Up session file '%s' corrupt\n", other_name);
+
+	int other_fork = 0;
+
+	for (index = 1; index < argc; index++) {
+		if (!fgetl(line, sizeof(line), other_file))
+			error_msg("Catch-Up session file '%s' corrupt\n", other_name);
+		if (!strncmp(line, "--fork=", 6))
+			other_fork = atoi(&line[7]);
+	}
+	if (options.fork != other_fork)
+		error_msg("Catch-Up session file '%s' fork/MPI count mismatch (our %d, other %d)\n",
+		          other_name, options.fork ? options.fork : 1, other_fork ? other_fork : 1);
+
+	unsigned int cands_lo, cands_hi;
+	if (fscanf(other_file, "%*u\n%*u\n%*x\n%*x\n%*x\n%*x\n%*x\n%x\n%x\n%*d\n", &cands_lo, &cands_hi) != 2)
+		error_msg("Catch-Up session file '%s' corrupt\n", other_name);
+
+	uint64_t ret = ((uint64_t)cands_hi << 32) | cands_lo;
+
+	if (ret == 0)
+		error_msg("Error: Catch-up session file '%s' had zero cands count\n", other_name);
+
+	return ret;
 }

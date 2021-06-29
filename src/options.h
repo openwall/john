@@ -387,7 +387,10 @@ struct options_main {
  */
 	int max_run_time;
 
-/* Graceful exit after this many candidates tried. */
+/*
+ * Graceful exit after this many candidates tried. If the number is
+ * negative, we reset the count on any successful crack.
+ */
 	long long max_cands;
 
 /* Emit a status line every N seconds */
@@ -450,6 +453,8 @@ struct options_main {
 	int log_stderr;
 /* Emit a status line for every password cracked */
 	int crack_status;
+/* --catch-up=oldsession */
+	char *catchup;
 };
 
 extern struct options_main options;

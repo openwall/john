@@ -184,7 +184,7 @@ int *john_child_pids = NULL;
 #endif
 char *john_terminal_locale = "C";
 
-unsigned long long john_max_cands;
+uint64_t john_max_cands;
 
 static int children_ok = 1;
 
@@ -1881,6 +1881,12 @@ static void john_done(void)
 				        "Warning: incremental mask started at length %d"
 				        " - try the CPU format for shorter lengths.\n",
 				        mask_iter_warn);
+		}
+		if (event_abort && options.catchup && john_max_cands && status.cands >= john_max_cands) {
+			event_abort = 0;
+			log_event("Done catching up with '%s'", options.catchup);
+			if (john_main_process)
+				fprintf(stderr, "Done catching up with '%s'\n", options.catchup);
 		}
 		if (event_abort) {
 			char *abort_msg = (aborted_by_timer) ?

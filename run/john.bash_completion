@@ -418,7 +418,7 @@ _john()
 			COMPREPLY[${#COMPREPLY[@]}]="${prev}"
 			return 0
 			;;
-		--restore=*|--status=*)
+		--restore=*|--status=*|--catch-up=*)
 			cur=${cur#*[=:]}
 			# .rec files are stored in the current directory (or a
 			# subdirectory if the session name contains a slash)

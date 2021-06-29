@@ -137,6 +137,7 @@ static struct opt_entry opt_list[] = {
 	{"stdout", FLG_STDOUT, FLG_STDOUT, FLG_CRACKING_SUP, FLG_SINGLE_CHK | FLG_BATCH_CHK, "%u", &options.length},
 	{"restore", FLG_RESTORE_SET, FLG_RESTORE_CHK, 0, ~FLG_RESTORE_SET & ~GETOPT_FLAGS, OPT_FMT_STR_ALLOC, &options.session},
 	{"session", FLG_SESSION, FLG_SESSION, FLG_CRACKING_SUP, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.session},
+	{"catch-up", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.catchup},
 	{"status", FLG_STATUS_SET, FLG_STATUS_CHK, 0, ~FLG_STATUS_SET & ~GETOPT_FLAGS, OPT_FMT_STR_ALLOC, &options.session},
 	{"make-charset", FLG_MAKECHR_SET, FLG_MAKECHR_CHK, 0, FLG_CRACKING_CHK | FLG_SESSION | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.charset},
 	{"show", FLG_SHOW_SET, FLG_SHOW_CHK, 0, FLG_CRACKING_SUP | FLG_MAKECHR_CHK, OPT_FMT_STR_ALLOC, &show_uncracked_str},
@@ -329,6 +330,7 @@ JOHN_USAGE_FORK \
 "--verbosity=N              Change verbosity (1-%u or %u for debug, default %u)\n" \
 "--no-log                   Disables creation and writing to john.log file\n"  \
 "--bare-always-valid=Y      Treat bare hashes as valid (Y/N)\n" \
+"--catch-up=NAME            Catch up with existing (paused) session NAME\n" \
 "--config=FILE              Use FILE instead of john.conf or john.ini\n" \
 "--encoding=NAME            Input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
 "                           doc/ENCODINGS.\n" \
@@ -607,6 +609,9 @@ void opt_init(char *name, int argc, char **argv)
 #endif
 		return;
 	}
+
+	if (options.catchup && options.max_cands)
+		error_msg("Can't combine --max-candidates and --catch-up options\n");
 
 	if (options.flags & FLG_STATUS_CHK) {
 #if OS_FORK

@@ -41,7 +41,7 @@ extern int *john_child_pids;
 extern char *john_terminal_locale;
 
 /* Current target for options.max_cands */
-extern unsigned long long john_max_cands;
+extern uint64_t john_max_cands;
 
 /* Print loaded/remaining counts */
 extern char *john_loaded_counts(struct db_main *db, char *prelude);
