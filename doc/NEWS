@@ -208,6 +208,10 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Python3 compatibility improvements in various *2john.py scripts
   [exploide; 2019-2021]
 
+- Add new option --catch-up=NAME, for running a new session only until it
+  reaches the candidates tried count of a different, existing and paused
+  session, then exit.  [magnum; 2021]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 

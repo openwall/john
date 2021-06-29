@@ -193,6 +193,15 @@ Unix-like system, you can get a detached running session to update its
 session file by sending a SIGHUP to the appropriate "john" process;
 then use this option to read in and display the status.
 
+--catch-up=NAME			catch up with paused session
+
+Limit the session to running only until it reaches the candidates tried
+count of a different, existing and paused session NAME.  This can be
+used for adding more hashes to an existing job:  After the new session
+finishes, just concatenate the new hashes to the older session's hash
+file and resume the old session.  This will end up more or less as if
+both sets of hashes were in the original session to start with.
+
 --make-charset=FILE		make a charset, overwriting FILE
 
 Generates a charset file based on character frequencies from
