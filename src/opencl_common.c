@@ -1146,7 +1146,7 @@ static char *get_build_opts(int sequential_id, const char *opts)
 			global_opts = OPENCLBUILDOPTIONS;
 
 	snprintf(build_opts, LINE_BUFFER_SIZE,
-	         "-I opencl %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
+	         "%s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
 	        global_opts,
 	        get_platform_vendor_id(get_platform_id(sequential_id)) ==
 	         PLATFORM_MESA ? "-D__MESA__ " :
@@ -1228,12 +1228,9 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 #endif /* HAVE_MPI */
 
 /*
- * Build kernels having temporarily chdir'ed to John's home directory.
- *
- * This lets us use simply "-I opencl" instead of having to resolve a pathname,
- * which might contain spaces (which we'd have to quote) and was problematic on
- * Cygwin when run from Windows PowerShell (apparently, with Cygwin resolving
- * pathnames differently than the OpenCL backend would for the includes).
+ * Build kernels having temporarily chdir'ed to John's opencl directory, for
+ * ensuring kernels' #include directives find their stuff without resorting
+ * to -I with a path that may have problematic components.
  *
  * Saving and restoring of the current directory here is incompatible with
  * concurrent kernel builds by multiple threads, like we'd do with the
@@ -1247,18 +1244,18 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	int old_cwd_fd = -1;
 	char old_cwd[PATH_BUFFER_SIZE];
 	old_cwd[0] = 0;
-	char *john_home = (char *)path_expand_safe("$JOHN/");
-	if (john_home[0] && strcmp(john_home, "./")) {
+	char *john_opencl = (char *)path_expand_safe("$JOHN/opencl");
+	if (john_opencl[0] && strcmp(john_opencl, "./opencl")) {
 		old_cwd_fd = open(".", O_RDONLY);
 		if (!getcwd(old_cwd, sizeof(old_cwd))) {
 			old_cwd[0] = 0;
 			if (old_cwd_fd < 0)
 				fprintf(stderr, "Warning: Cannot save current directory: %s\n", strerror(errno));
 		}
-		if (chdir(john_home))
-			pexit("chdir: %s", john_home);
+		if (chdir(john_opencl))
+			pexit("chdir: %s", john_opencl);
 	}
-	MEM_FREE(john_home);
+	MEM_FREE(john_opencl);
 	build_code = clBuildProgram(*program, 0, NULL, build_opts, NULL, NULL);
 	if ((old_cwd_fd >= 0 || old_cwd[0]) && /* We'll only have errno when we attempt a *chdir() here */
 	    (old_cwd_fd < 0 || fchdir(old_cwd_fd)) && (!old_cwd[0] || chdir(old_cwd)))
