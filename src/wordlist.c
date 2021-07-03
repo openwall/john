@@ -112,7 +112,7 @@ static int restore_rule_number(void)
 	return 0;
 }
 
-static MAYBE_INLINE int skip_lines(unsigned long n, char *line)
+static MAYBE_INLINE int skip_lines(int64_t n, char *line)
 {
 	if (n) {
 		line_number += n;
@@ -139,7 +139,7 @@ static void restore_line_number(void)
 	} aligned;
 	char *line = aligned.buffer;
 
-	if (skip_lines((unsigned long)rec_pos, line)) {
+	if (skip_lines(rec_pos, line)) {
 		if (ferror(word_file))
 			pexit("fgets");
 		fprintf(stderr, "fgets: Unexpected EOF\n");
@@ -466,9 +466,9 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 	char *prerule="", *rule="", *word="";
 	char *(*apply)(char *word, char *rule, int split, char *last) = NULL;
 	int dist_switch=0;
-	unsigned long my_words=0, their_words=0, my_words_left=0;
-	int64_t file_len = 0;
-	int i, pipe_input = 0, max_pipe_words = 0, rules_keep = 0;
+	uint64_t my_words=0, their_words=0, my_words_left=0;
+	int64_t i, file_len = 0;
+	int pipe_input = 0, max_pipe_words = 0, rules_keep = 0;
 	int init_once = 1;
 #if HAVE_WINDOWS_H
 	IPC_Item *pIPC=NULL;
@@ -478,8 +478,8 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 	int dupeCheck = (options.flags & FLG_DUPESUPP) ? 1 : 0;
 	int loopBack = (options.flags & FLG_LOOPBACK_CHK) ? 1 : 0;
 	int do_lmloop = loopBack && db->plaintexts->head;
-	long my_size = 0;
-	unsigned int myWordFileLines = 0;
+	uint64_t my_size = 0;
+	uint64_t myWordFileLines = 0;
 	int skip_length = options.force_maxlength;
 	int min_length = options.eff_minlength;
 #if HAVE_REXGEN
@@ -691,14 +691,14 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 					        " we read it\n");
 				log_event("- loaded this node's share of "
 				          "wordfile %s into memory "
-				          "(%lu bytes of %"PRId64", max_size="Zu
+				          "(%"PRIu64" bytes of %"PRId64", max_size="Zu
 				          " avg/node)", name, my_size,
 				          (int64_t)file_len,
 				          options.max_wordfile_memory);
 				if (john_main_process)
 				fprintf(stderr,"Each node loaded 1/%d "
 				        "of wordfile to memory (about "
-				        "%lu %s/node)\n",
+				        "%"PRIu64" %s/node)\n",
 				        options.node_count,
 				        my_size > 1<<23 ?
 				        my_size >> 20 : my_size >> 10,
