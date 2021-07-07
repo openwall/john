@@ -724,7 +724,7 @@ uint64_t rec_read_cands(char *session)
 	if (fscanf(other_file, "%d\n", &argc) != 1 || argc < 2)
 		error_msg("Catch-Up session file '%s' corrupt\n", other_name);
 
-	int other_fork = 0;
+	int other_fork = 1;
 
 	for (index = 1; index < argc; index++) {
 		if (!fgetl(line, sizeof(line), other_file))
@@ -732,9 +732,10 @@ uint64_t rec_read_cands(char *session)
 		if (!strncmp(line, "--fork=", 6))
 			other_fork = atoi(&line[7]);
 	}
-	if (options.fork != other_fork)
+
+	if (NODES != other_fork)
 		error_msg("Catch-Up session file '%s' fork/MPI count mismatch (our %d, other %d)\n",
-		          other_name, options.fork ? options.fork : 1, other_fork ? other_fork : 1);
+		          other_name, NODES, other_fork);
 
 	unsigned int cands_lo, cands_hi;
 	if (fscanf(other_file, "%*u\n%*u\n%*x\n%*x\n%*x\n%*x\n%*x\n%x\n%x\n%*d\n", &cands_lo, &cands_hi) != 2)

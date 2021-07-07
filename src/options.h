@@ -198,6 +198,15 @@
 #endif
 
 /*
+ * Macro for getting correct total processes regardless of if MPI or fork
+ */
+#if HAVE_MPI
+#define NODES (mpi_p > 1 ? mpi_p : options.fork ? options.fork : 1)
+#else
+#define NODES (options.fork ? options.fork : 1)
+#endif
+
+/*
  * Structure with option flags and all the parameters.
  */
 struct options_main {
