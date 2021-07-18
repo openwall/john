@@ -121,7 +121,7 @@ Loaded 1 password hash (dynamic=md5($u.$c1.$p) [256/256 AVX2 8x3])
 test             (user)
 ```
 
-JBoss hashes can be created by using the "add-user.sh" utility included with JBoss.
+JBoss hashes can be created by using the "add-user.sh" utility included with JBoss. This is an example in case of Kali Linux.
 
 ```
 user@kali:~/jboss-as-7.1.1.Final/bin$ ./add-user.sh
