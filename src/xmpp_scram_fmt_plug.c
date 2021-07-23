@@ -43,7 +43,7 @@ john_register_one(&fmt_xmpp_scram);
 
 #define FORMAT_LABEL            "xmpp-scram"
 #define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "XMPP SCRAM PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "XMPP SCRAM PBKDF2-SHA1" SHA1_ALGORITHM_NAME
 #define PLAINTEXT_LENGTH        125
 #define HASH_LENGTH             28
 #define SALT_SIZE               sizeof(struct custom_salt)
