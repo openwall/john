@@ -475,6 +475,7 @@ static char *get_key(int index)
 		bits -= n; \
 	}
 
+#if HAVE_UNRAR
 /*
  * This function is loosely based on JimF's check_inflate_CODE2() from
  * pkzip_fmt. Together with the other bit-checks, we are rejecting over 96%
@@ -549,6 +550,7 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 	}
 	return 1; /* Passed this check! */
 }
+#endif
 
 inline static void check_rar(rar_file *cur_file, int index, unsigned char *key, const unsigned char *_iv)
 {
