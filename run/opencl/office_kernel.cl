@@ -1,7 +1,7 @@
 /*
  * Office 2007, 2010 and 2013 formats
  *
- * Copyright 2012-2017, magnum
+ * Copyright 2012-2021, magnum
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
@@ -122,6 +122,7 @@ void HashLoop0710(__global ms_office_state *state)
 __kernel
 void Final2007(__global ms_office_state *state,
                __global ms_office_out *out,
+               __constant ms_office_salt *salt,
                __constant ms_office_blob *blob)
 {
 	uint i;
@@ -130,6 +131,10 @@ void Final2007(__global ms_office_state *state,
 		uchar c[20];
 		uint  w[20/4];
 	} output;
+	union {
+		uchar c[40];
+		uint  w[40/4];
+	} X3;
 	uint gid = get_global_id(0);
 	union {
 		unsigned char c[16];
@@ -178,19 +183,39 @@ void Final2007(__global ms_office_state *state,
 		W[i] = output.w[i] ^ 0x36363636;
 	for (i = 5; i < 16; i++)
 		W[i] = 0x36363636;
-	sha1_single(uint, W, output.w);
+	sha1_single(uint, W, X3.w);
 	/* sha1_final (last block was 64 bytes) */
 	W[0] = 0x80000000;
 	for (i = 1; i < 6; i++)
 		W[i] = 0;
 	W[15] = 64 << 3;
-	sha1_block_160Z(uint, W, output.w);
+	sha1_block_160Z(uint, W, X3.w);
 
-	/* Endian-swap to output (we only use 16 bytes) */
-	for (i = 0; i < 4; i++)
-		output.w[i] = SWAP32(output.w[i]);
+	/* Endian-swap to output */
+	for (i = 0; i < 5; i++)
+		X3.w[i] = SWAP32(X3.w[i]); /* This is X1 in MS-OFFCRYPTO */
 
-	AES_set_decrypt_key(output.c, 128, &akey);
+	if (salt->verifierHashSize < salt->keySize / 8) {
+		uint *X2 = &X3.w[5];
+
+		for (i = 0; i < 5; i++)
+			W[i] = output.w[i] ^ 0x5c5c5c5c;
+		for (i = 5; i < 16; i++)
+			W[i] = 0x5c5c5c5c;
+		sha1_single(uint, W, X2);
+		/* sha1_final (last block was 64 bytes) */
+		W[0] = 0x80000000;
+		for (i = 1; i < 6; i++)
+			W[i] = 0;
+		W[15] = 64 << 3;
+		sha1_block_160Z(uint, W, X2);
+
+		/* Endian-swap to output */
+		for (i = 0; i < 5; i++)
+			X2[i] = SWAP32(X2[i]);
+	}
+
+	AES_set_decrypt_key(X3.c, salt->keySize, &akey);
 	AES_ecb_decrypt(blob->encryptedVerifier, decryptedVerifier.c, 16, &akey);
 	AES_ecb_decrypt(blob->encryptedVerifierHash, decryptedVerifierHash.c, 16, &akey);
 
