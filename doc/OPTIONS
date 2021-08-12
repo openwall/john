@@ -393,7 +393,15 @@ mostly OK for saltless hash types or when there's just one salt (since
 the same number of hash computations is to be made anyway - namely, only
 one per candidate password tested), but it is a serious drawback when
 many different salts are present and their number could potentially be
-decreasing as some hashes get cracked.
+decreasing as some hashes get cracked.  In case you actually share the
+pot file (such as when different sessions run on one same physical
+machine, or when the working directory is on NFS), a feature called
+"pot sync" will mitigate this: Each process will detect when some other
+process wrote to the pot file, and read/process that data.  This syncing
+is delayed by buffering but mitigates any need for interrupting/
+restoring.  The feature is always active as long as you run with the
+same pot file: Sessions using neither node nor fork but working with the
+same set of hashes will still benefit from it.
 
 --fork=N			fork N processes
 
@@ -437,14 +445,8 @@ especially for fast to compute hash types (such as LM hashes), where
 OpenMP overhead is often unacceptable.
 
 Similarly to "--node", there's almost no communication between the
-processes with "--fork".  Hashes successfully cracked by one process
-continue being cracked by other processes.  Just like with "--node",
-this is mostly OK for saltless hash types or when there's just one salt,
-but it is a serious drawback when many different salts are present and
-their number could potentially be decreasing as some hashes get cracked.
-To have the cracked hashes (and possibly salts) removed from all
-processes, you may interrupt and restore the session once in a while.
-
+processes with "--fork", but the "pot sync" feature (described under that
+option) will promptly exclude hashes cracked by other processes.
 
 --format=NAME[,NAME...]		force hash type NAME
 
