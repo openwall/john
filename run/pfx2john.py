@@ -91,4 +91,4 @@ if __name__ == "__main__":
         sys.stderr.write("Usage: %s <.pfx file(s)>\n" % sys.argv[0])
 
     for i in range(1, len(sys.argv)):
-        parse_pkcs12(sys.argv[1])
+        parse_pkcs12(sys.argv[i])
