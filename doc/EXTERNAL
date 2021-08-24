@@ -31,7 +31,7 @@ The functions, if defined, should do the following with "word":
 * generate() should set "word" to the next word to be tried, or zero out
 "word[0]" when cracking is complete (this will cause John to terminate);
 
-* restore() should set global variables to continue from the "word". If
+* restore() should set global variables to continue from the "word".  If
 there are no global variables needing restoring, an empty stub function
 should be provided, or John will refuse to resume a session.
 
@@ -49,57 +49,55 @@ filtered out.
 
 	Pre-defined variables.
 
-Besides the "word" variable documented above, John the Ripper 1.7.9 and
-newer pre-defines two additional variables: "abort" and "status", both
-of type "int".  When set to 1 by an external mode, these cause the
+Besides the "word" variable documented above, there are numerous more
+variables, all of type "int":
+
+"abort" and "status":  When set to 1 by an external mode, these cause the
 current cracking session to be aborted or the status line to be
 displayed (just like on a keypress), respectively.  These actions are
 taken after having tested at least all of the candidate passwords that
 were in external mode's "word" so far.  In other words, the actions may
 be delayed in order to process any buffered candidate passwords.
 
-From 1.7.9.5-jumbo-7 on, a third variable is defined: "cipher_limit".
-This variable is of type "int".  It contains the maximum password length
-in bytes, either from the format definition or from --stdout[=LENGTH].
-This variable should not be changed by the external mode.
-Instead, it can be used to stop generating new candidates should the
-password length get larger than "cipher_limit".
+"cipher_limit" contains the maximum password length in bytes, either from
+the format definition or from --stdout[=LENGTH].  This variable should
+not be changed by the external mode.  Instead, it can be used to stop
+generating new candidates should the password length get larger than
+"cipher_limit".
 
-From 1.7.9-Jumbo-8 on, two new variables "req_minlen" (requested min.
-length), "req_maxlen" (requested max. length) were added, reflecting
-the --min-length=N and --max-length=N options.
-Also, a variable "session_start_time" was added that is equivalent of
-time(NULL) at start, ie. the current time expressed in seconds after
-Jan 1 1970.  This variable is initialized once, not updated.
-Note: On a resume you will end up using a new value than was
-originally used.
+"req_minlen" (requested min. length) and "req_maxlen" (requested max.
+length), reflects the --min-length=N and --max-length=N options if used,
+and are otherwise 0.
 
-From 1.9.0-jumbo-1, two new variables "utf32" and "target_utf8" were
-introduced.  The "utf32" (int) can be set from an external mode and indicates
-that the word may contain UTF-32 characters.  It will be encoded to whatever
-target encoding is in use.  The "target_utf8" (int) can be read by an external
-mode and indicates whether the target encoding is UTF-8 or not (some modes
-may take that into account when considering output length).  See eg.
-Repeats32 external mode (run/repeats32.conf) for examples.
+"session_start_time" is equivalent of time(NULL) at start, ie. the current
+time expressed in seconds after Jan 1 1970.  This variable is initialized
+once, not updated.  On a session resume you will end up getting a new value
+though.
 
-From 1.9.0-jumbo-1, 2 new variables were added for usage by the hybrid
-scripts (which use the new() and next() functions).  These variables are
-"hybrid_total" and "hybrid_resume".  If it is easy for the script to
-compute total words which will be produced for a base-word, and to adjust
-itself at restore() call to get back to where things were left off, then
-these variables should be used.  Within new() the total count should be
-assigned to 'hybrid_total' before the function returns.  Within restore(),
-hybrid_total should be set, AND hybrid_resume is the number of iterations
-which were done in the prior run.  restore() should use this to change whatever
-is required within the script's global state, so that the next call to next()
-will produce the correct next word.  If the script can not easily know how
-many candidate a word produces, or adjust its global state to start from
-some random location, then within new() the script should NOT set 'hybrid_total'
-and within restore() the script should also not set 'hybrid_total'.  In this
-case,  the cracker will call new() with the word, and then call next()
-hybrid_resume times (throwing away those words), and then start processing.
-The code was written this way, so that the entire code of new() and next()
-did not have to be put into restore() in this type of script.
+"utf32" can be set from an external mode, indicating that the word is made
+of UTF-32 characters.  It will then be re-encoded to whatever target encoding
+is in use.
+
+"target_utf8" can be read by an external mode and indicates whether the
+target encoding is UTF-8 or not (some modes may take that into account when
+considering output length).  For examples of use of this and the "utf32"
+variable, see eg. Repeats32 external mode in run/repeats32.conf.
+
+"hybrid_total" and "hybrid_resume" are for hybrid external modes:  If it is
+easy for the script to compute total words which will be produced for a
+base-word, and to adjust itself at restore() call to get back to where things
+were left off, then these variables should be used.  Within new() the total
+count should be assigned to "hybrid_total" before the function returns.
+Within restore(), hybrid_total should be set, AND hybrid_resume is the number
+of iterations which were done in the prior run.  restore() should use this to
+change whatever is required within the script's global state, so that the next
+call to next() will produce the correct next word.  If the script can not
+easily know how many candidate a word produces, or adjust its global state to
+start from some random location, then the script should NOT set "hybrid_total"
+or "hybrid_total".  In this case,  the cracker will call new() with the word,
+and then call next() hybrid_resume times (throwing away those words), and then
+start processing.  The code was written this way, so that the entire code of
+new() and next() did not have to be put into restore() in this type of script.
 
 
 	The language.
@@ -150,12 +148,11 @@ is exactly 32 bits).  Also, being a signed integer type, its behavior on
 overflow is undefined (but in practice will usually be two's complement
 wraparound).
 
-Starting with version 1.8.0, literal character constants (given in
-single quotes, such as 'a') are treated as "unsigned char" cast to
-"int", thus producing values in the range 0 to 255.  We intend to
-preserve this behavior in future versions.  However, in pre-1.8.0
-versions, literal character constants with the 8th bit set could appear
-as negative "int" values.
+Literal character constants (given in single quotes, such as 'a') are
+treated as "unsigned char" cast to "int", thus producing values in the
+range 0 to 255.  We intend to preserve this behavior in future versions.
+However, in pre-1.8.0 versions, literal character constants with the 8th
+bit set could appear as negative "int" values.
 
 While the current implementation and all older versions of John so far
 consistently lack short-circuit evaluation, treat local variables as
