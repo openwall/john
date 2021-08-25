@@ -39,7 +39,7 @@
 #include "signals.h"
 #include "mask.h"
 #include "subsets.h"
-#include "posfreq.h"
+#include "inc2.h"
 #include "john.h"
 #include "john_mpi.h"
 #include "gpu_common.h"
@@ -215,8 +215,8 @@ static char *status_get_ETA(double percent, unsigned int secs_done)
 	if (subsets_cur_len)
 		sprintf(s_ETA, " (%d)", subsets_cur_len);
 	else
-	if (posfreq_cur_len)
-		sprintf(s_ETA, " (%d)", posfreq_cur_len);
+	if (inc2_cur_len)
+		sprintf(s_ETA, " (%d)", inc2_cur_len);
 	else
 		s_ETA[0] = 0;
 

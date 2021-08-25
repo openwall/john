@@ -115,7 +115,7 @@ static struct opt_entry opt_list[] = {
 	{"subsets-required", FLG_ONCE, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM, "%u", &options.subset_must},
 	{"subsets-min-diff", FLG_ONCE, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM, "%u", &options.subset_min_diff},
 	{"subsets-max-diff", FLG_ONCE, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM, "%u", &options.subset_max_diff},
-	{"posfreq", FLG_POSFREQ_SET, FLG_CRACKING_CHK,
+	{"inc2", FLG_INC2_SET, FLG_CRACKING_CHK,
 		0, 0, OPT_FMT_STR_ALLOC},
 	{"subsets-prefer-short", FLG_SUBSETS_SHORT, FLG_SUBSETS_SHORT, FLG_SUBSETS_CHK, FLG_SUBSETS_SMALL},
 	{"subsets-prefer-small", FLG_SUBSETS_SMALL, FLG_SUBSETS_SMALL, FLG_SUBSETS_CHK, FLG_SUBSETS_SHORT},
@@ -299,7 +299,7 @@ JOHN_USAGE_REGEX \
 "--subsets-min-diff=N       Minimum unique characters in subset\n" \
 "--subsets-max-diff=[-]N    Maximum unique characters in subset (negative N is\n" \
 "                           relative to word length)\n" \
-"--posfreq                  \"posfreq\" generation mode\n" \
+"--inc2						\"inc2\" generation mode\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
 "--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--session=NAME             give a new session the NAME\n" \
