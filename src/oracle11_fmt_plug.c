@@ -67,6 +67,7 @@ john_register_one(&fmt_oracle11);
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "unicode.h"
 #include "sha.h"
 #include "johnswap.h"
 #include <ctype.h>
@@ -121,6 +122,7 @@ static struct fmt_tests tests[] = {
 
 	/* with FORMAT_TAG */
 	{"$oracle11$7233E3B91B45F6B813BCFFB5D8669167CB4F498D0642558A8A3BB39948C0", "testpwd"},
+	{"$oracle11$f013fe236e70f5b47e933d84eac5ef2b1ab6e8b2b90bd9536750cad2998c", "TOTO1234#"},
 
 	{NULL}
 };
@@ -191,7 +193,7 @@ char *prepare(char *fields[10], struct fmt_main *self)
 		return fields[1];
 	else {
 		char *cp;
-		cp = mem_alloc(FORMAT_TAG_LENGTH + strlen(fields[1]));
+		cp = mem_alloc(FORMAT_TAG_LENGTH + strlen(fields[1]) + 1);
 		sprintf(cp, "%s%s", FORMAT_TAG, fields[1]);
 		if (valid(cp, self)) {
 			return cp;
@@ -200,6 +202,15 @@ char *prepare(char *fields[10], struct fmt_main *self)
 	}
 
 	return fields[1];
+}
+
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[FORMAT_TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
+	strnzcpy(out, ciphertext, sizeof(out));
+	enc_strupper(&out[FORMAT_TAG_LENGTH]);
+
+	return out;
 }
 
 static void *get_salt(char *ciphertext)
@@ -427,7 +438,7 @@ struct fmt_main fmt_oracle11 = {
 		fmt_default_reset,
 		prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		get_salt,
 		{ NULL },
