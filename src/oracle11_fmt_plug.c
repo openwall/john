@@ -175,7 +175,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext;
 
-	if (!memcmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		p += FORMAT_TAG_LENGTH;
 
 	if (strlen(p) != CIPHERTEXT_LENGTH)
