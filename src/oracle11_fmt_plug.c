@@ -193,7 +193,7 @@ char *prepare(char *fields[10], struct fmt_main *self)
 		return fields[1];
 	else {
 		char *cp;
-		cp = mem_alloc(FORMAT_TAG_LENGTH + strlen(fields[1]) + 1);
+		cp = mem_alloc_tiny(FORMAT_TAG_LENGTH + strlen(fields[1]) + 1, MEM_ALIGN_NONE);
 		sprintf(cp, "%s%s", FORMAT_TAG, fields[1]);
 		if (valid(cp, self)) {
 			return cp;
