@@ -1232,11 +1232,12 @@ int crk_process_salt(struct db_salt *salt)
 	count_from_guesses = salt->keys->count_from_guesses;
 	index = 0;
 
-	crk_methods.clear_keys();
-
 	while (count--) {
 		strnzcpy(key, ptr, options.eff_maxlength + 1);
 		ptr += options.eff_maxlength;
+
+		if (index == 0)
+			crk_methods.clear_keys();
 
 		crk_methods.set_key(key, index++);
 		if (index >= crk_params->max_keys_per_crypt || !count ||
@@ -1269,7 +1270,6 @@ int crk_process_salt(struct db_salt *salt)
 			if (!salt->list)
 				return 0;
 			index = 0;
-			crk_methods.clear_keys();
 		}
 	}
 
