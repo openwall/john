@@ -32,3 +32,6 @@ Solar Designer's current preference is that new code contributions be licensed u
  */
 ```
 This is a heavily cut-down “BSD license”. You may also include the warranty disclaimer.
+
+## Other sources of information
+For various tips and tricks, see also [GitHub wiki](https://github.com/openwall/john/wiki/Assorted-development-notes) and [Openwall's wiki](https://openwall.info/wiki/john)
