@@ -187,28 +187,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	return 1;
 }
 
-char *prepare(char *fields[10], struct fmt_main *self)
-{
-	if (!strncmp(fields[1], FORMAT_TAG, FORMAT_TAG_LENGTH))
-		return fields[1];
-	else {
-		char *cp;
-		cp = mem_alloc_tiny(FORMAT_TAG_LENGTH + strlen(fields[1]) + 1, MEM_ALIGN_NONE);
-		sprintf(cp, "%s%s", FORMAT_TAG, fields[1]);
-		if (valid(cp, self)) {
-			return cp;
-		}
-		MEM_FREE(cp);
-	}
-
-	return fields[1];
-}
-
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[FORMAT_TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
-	strnzcpy(out, ciphertext, sizeof(out));
-	enc_strupper(&out[FORMAT_TAG_LENGTH]);
+
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
+		snprintf(out, sizeof(out), "%s", ciphertext);
+	else
+		snprintf(out, sizeof(out), "%s%s", FORMAT_TAG, ciphertext);
+
+	strupr(out + FORMAT_TAG_LENGTH);
 
 	return out;
 }
@@ -428,7 +416,7 @@ struct fmt_main fmt_oracle11 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests
@@ -436,7 +424,7 @@ struct fmt_main fmt_oracle11 = {
 		init,
 		done,
 		fmt_default_reset,
-		prepare,
+		fmt_default_prepare,
 		valid,
 		split,
 		get_binary,
