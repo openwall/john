@@ -374,8 +374,7 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 }
 
 /* Negative index is not counted/reported (got it from pot sync) */
-static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
-	int index)
+static int crk_process_guess(struct db_salt *salt, struct db_password *pw, int index)
 {
 	char utf8buf_key[PLAINTEXT_BUFFER_SIZE + 1];
 	char utf8login[PLAINTEXT_BUFFER_SIZE + 1];
@@ -477,6 +476,22 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 
 	if (!(crk_params->flags & FMT_NOT_EXACT))
 		crk_remove_hash(salt, pw);
+
+	if (options.regen_lost_salts) {
+		/*
+		 * salt->list pointer was copied to all salts so if the first
+		 * entry was removed, we need to fixup all other salts.  If OTOH
+		 * the last hash was removed, we need to drop all salts.
+		 */
+		struct db_salt *s = crk_db->salts;
+
+		do {
+			if (!crk_db->password_count)
+				crk_remove_salt(s);
+			else if (s->list && s->list->binary == NULL)
+				s->list = s->list->next;
+		} while ((s = s->next));
+	}
 
 	if (!crk_db->salts)
 		return 1;
@@ -891,8 +906,7 @@ static int crk_password_loop(struct db_salt *salt)
 			if (crk_methods.cmp_all(pw->binary, match))
 			for (index = 0; index < match; index++)
 			if (crk_methods.cmp_one(pw->binary, index))
-			if (crk_methods.cmp_exact(crk_methods.source(
-			    pw->source, pw->binary), index)) {
+			if (crk_methods.cmp_exact(crk_methods.source(pw->source, pw->binary), index)) {
 				if (crk_process_guess(salt, pw, index))
 					return 1;
 				else {
