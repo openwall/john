@@ -731,19 +731,36 @@ char *john_loaded_counts(struct db_main *db, char *prelude)
 	if (db->password_count == 0)
 		return "No remaining hashes";
 
-	if (db->password_count == 1) {
+	if (db->password_count == 1 && !options.regen_lost_salts) {
 		sprintf(buf, "%s 1 password hash", prelude);
 		return buf;
 	}
 
-	int p = sprintf(buf, "%s %d password hashes with %s different salts",
-	                prelude, db->password_count, db->salt_count > 1 ?
-	                jtr_itoa(db->salt_count, nbuf, 24, 10) : "no");
+	int salt_count = db->salt_count;
 
-	int b = (10 * db->password_count + (db->salt_count / 2)) / db->salt_count;
+	/* At the time we say "Loaded xx hashes", the regen code hasn't yet updated the salt_count */
+	if (options.regen_lost_salts && salt_count == 1)
+		salt_count = regen_salts_count;
 
-	if (p >= 0 && db->salt_count > 1 && b > 10)
-		sprintf(buf + p, " (%d.%dx same-salt boost)", b / 10, b % 10);
+	int p = sprintf(buf, "%s %d password hash%s with %s %s salts", prelude, db->password_count,
+	                db->password_count > 1 ? "es" : "",
+	                salt_count > 1 ? jtr_itoa(salt_count, nbuf, 24, 10) : "no",
+	                (salt_count > 1 && options.regen_lost_salts) ? "possible" : "different");
+
+	if (p >= 0) {
+		if (options.regen_lost_salts && db->password_count < salt_count) {
+			int bf_penalty = 10 * salt_count / db->password_count;
+
+			if (bf_penalty > 10)
+				sprintf(buf + p, " (%d.%dx salt BF penalty)", bf_penalty / 10, bf_penalty % 10);
+		} else {
+			int bf_penalty = options.regen_lost_salts ? regen_salts_count : 1;
+			int boost = (10 * bf_penalty * db->password_count + (salt_count / 2)) / salt_count;
+
+			if (salt_count > 1 && boost > 10)
+				sprintf(buf + p, " (%d.%dx same-salt boost)", boost / 10, boost % 10);
+		}
+	}
 
 	return buf;
 }
@@ -1212,6 +1229,9 @@ static void john_load(void)
 
 		ldr_fix_database(&database);
 
+		if (database.password_count && options.regen_lost_salts)
+			build_fake_salts_for_regen_lost(&database);
+
 		if (!database.password_count) {
 			log_discard();
 			if (john_main_process)
@@ -1249,10 +1269,9 @@ static void john_load(void)
 				       database.min_cost[i]);
 			}
 		}
-		if ((options.flags & FLG_PWD_REQ) && !database.salts) exit(0);
 
-		if (options.regen_lost_salts)
-			build_fake_salts_for_regen_lost(database.salts);
+		if ((options.flags & FLG_PWD_REQ) && !database.salts)
+			exit(0);
 	}
 
 /*

@@ -2168,6 +2168,17 @@ out:
 	return hash;
 }
 
+static int drop_regen_salt(char *line)
+{
+	char *sdl;
+
+	if ((sdl= strrchr(line, '$'))) {
+		*sdl = 0;
+		return 1;
+	}
+	return 0;
+}
+
 static void ldr_show_pot_line(struct db_main *db, char *line)
 {
 	char *ciphertext, *pos;
@@ -2226,6 +2237,31 @@ static void ldr_show_pot_line(struct db_main *db, char *line)
 			}
 			list_add(db->plaintexts, line);
 			return;
+		}
+
+		/*
+		 * Bodge for --show to work w/ --regen-lost-salts
+		 *
+		 * This requires you to supply the same --regen-lost-salts parameters with --show
+		 * as what what used during cracking (actually just the total length need to match)
+		 */
+		if (options.regen_lost_salts) {
+			char *p;
+
+			if (!strncmp(ciphertext, "$dynamic_", 9)) {
+				p = ciphertext + 10;
+				if ((p = strchr(p, '$')))
+					p++;
+				if (drop_regen_salt(p))
+					ciphertext = p;
+			} else
+			if (!strncmp(ciphertext, "@dynamic=", 9)) {
+				p = ciphertext + 10;
+				if ((p = strchr(p, '@')))
+					p++;
+				if (drop_regen_salt(p))
+					ciphertext = p;
+			}
 		}
 
 		if (format)

@@ -180,7 +180,7 @@ static struct opt_entry opt_list[] = {
 	{"max-candidates", FLG_ONCE, 0, FLG_CRACKING_CHK, USUAL_REQ_CLR | OPT_REQ_PARAM, "%lld", &options.max_cands},
 	{"max-run-time", FLG_ONCE, 0, FLG_CRACKING_CHK, USUAL_REQ_CLR | OPT_REQ_PARAM, "%d", &options.max_run_time},
 	{"progress-every", FLG_ONCE, 0, FLG_CRACKING_CHK, USUAL_REQ_CLR | OPT_REQ_PARAM, "%u", &options.status_interval},
-	{"regen-lost-salts", FLG_ONCE, 0, FLG_CRACKING_CHK, USUAL_REQ_CLR | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &regen_salts_options},
+	{"regen-lost-salts", FLG_ONCE, 0, FLG_PWD_REQ, USUAL_REQ_CLR | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &regen_salts_options},
 	{"bare-always-valid", FLG_ONCE, 0, FLG_PWD_REQ, OPT_REQ_PARAM, "%c", &options.dynamic_bare_hashes_always_valid},
 	{"reject-printable", FLG_REJECT_PRINTABLE, FLG_REJECT_PRINTABLE},
 	{"verbosity", FLG_VERBOSITY, FLG_VERBOSITY, 0, OPT_REQ_PARAM, "%u", &options.verbosity},
@@ -1009,6 +1009,28 @@ void opt_init(char *name, int argc, char **argv)
 		options.dynamic_bare_hashes_always_valid = 'N';
 
 	options.regen_lost_salts = regen_lost_salt_parse_options();
+
+	/*
+	 * The format should never have been a parameter to --regen-lost-salts but now that we have to live with it:
+	 * If --regen-lost-salts=TYPE:hash_sz:mask and no --format option was given, infer --format=TYPE.
+	 * If on the other hand --format=TYPE *was* given, require that they actually match.
+	 */
+	if (options.regen_lost_salts) {
+		char *s = str_alloc_copy(regen_salts_options);
+		char *e = strchr(s + 1, ':');
+
+		if (e > s + 8) {
+			if (*s == '@') {
+				s++;
+				e--;
+			}
+			*e = 0;
+			if (!options.format)
+				options.format = s;
+			else if (strcmp(options.format, s))
+				error_msg("Error: --regen-lost-salts parameter not matching --format option\n");
+		}
+	}
 
 	if (field_sep_char_str) {
 		// Literal tab or TAB will mean 0x09 tab character
