@@ -30,7 +30,6 @@
 
 import base64
 import binascii
-import codecs
 from struct import unpack
 import sys
 
@@ -107,7 +106,7 @@ def read_private_key(filename):
     # if we trudged to the end of the file, just try to cope.
     try:
         data = ''.join(lines[start:end]).encode()
-        data = codecs.decode(data, 'base64_codec')
+        data = base64.b64decode(data)
     except base64.binascii.Error:
         e = sys.exc_info()[1]
         raise Exception('base64 decoding error: ' + str(e))
