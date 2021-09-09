@@ -181,8 +181,8 @@ extern int enc_to_utf32(UTF32 *dst, unsigned int maxdstlen, const UTF8 *src,
  * we can opt to convert to/from.
  */
 extern char *utf16_to_cp(const UTF16* source);
-extern char *utf8_to_cp_r(char *src, char *dst, int dstlen);
-extern char *cp_to_utf8_r(char *src, char *dst, int dstlen);
+extern char *utf8_to_cp_r(const char *src, char *dst, int dstlen);
+extern char *cp_to_utf8_r(const char *src, char *dst, int dstlen);
 
 /*
  * Return length (in characters) of a UTF-32 string

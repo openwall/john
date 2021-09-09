@@ -675,12 +675,11 @@ char *utf8_to_enc_r(UTF8 *src, char *dst, int dstlen)
 /*
  * Thread-safe conversion from codepage to UTF-8.
  */
-char *cp_to_utf8_r(char *src, char *dst, int dstlen)
+char *cp_to_utf8_r(const char *src, char *dst, int dstlen)
 {
 	UTF16 tmp16[LINE_BUFFER_SIZE + 1];
 
-	cp_to_utf16(tmp16, LINE_BUFFER_SIZE, (unsigned char*)src,
-	             strlen(src));
+	cp_to_utf16(tmp16, LINE_BUFFER_SIZE, (unsigned char*)src, strlen(src));
 	return (char*)utf16_to_utf8_r((UTF8*)dst, dstlen, tmp16);
 }
 
@@ -708,12 +707,11 @@ inline static UTF8 *utf16_to_cp_r(UTF8 *dst, int dst_len, const UTF16 *source)
 /*
  * Thread-safe conversion from UTF-8 to codepage
  */
-char *utf8_to_cp_r(char *src, char *dst, int dstlen)
+char *utf8_to_cp_r(const char *src, char *dst, int dstlen)
 {
 	UTF16 tmp16[LINE_BUFFER_SIZE + 1];
 
-	utf8_to_utf16(tmp16, LINE_BUFFER_SIZE, (UTF8*)src,
-	              strlen(src));
+	utf8_to_utf16(tmp16, LINE_BUFFER_SIZE, (UTF8*)src, strlen(src));
 	utf16_to_cp_r((UTF8*)dst, dstlen, tmp16);
 	return (char*)dst;
 }

@@ -1555,15 +1555,25 @@ static char* generate_template_key(char *mask, const char *key, int key_len,
 }
 
 /* Handle internal encoding. */
-static MAYBE_INLINE char* mask_cp_to_utf8(char *in)
+static MAYBE_INLINE char* mask_cp_to_utf8(const char *in)
 {
 	static char out[PLAINTEXT_BUFFER_SIZE + 1];
 
-	if (mask_has_8bit &&
-	    (options.internal_cp != UTF_8 && options.target_enc == UTF_8))
+	if (mask_has_8bit && options.internal_cp != UTF_8 && options.target_enc == UTF_8)
 		return cp_to_utf8_r(in, out, sizeof(out) - 1);
 
-	return in;
+	return (char*)in;
+}
+
+static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
+{
+	static char out[PLAINTEXT_BUFFER_SIZE + 1];
+
+	if (mask_has_8bit && (options.flags & FLG_MASK_STACKED) && !(options.flags & FLG_RULES_CHK) &&
+	    options.internal_cp != UTF_8 && options.target_enc == UTF_8)
+		return utf8_to_cp_r(in, out, sizeof(out) - 1);
+
+	return (char*)in;
 }
 
 #define ranges(i) cpu_mask_ctx->ranges[i]
@@ -2519,7 +2529,7 @@ void mask_destroy()
 
 int do_mask_crack(const char *extern_key)
 {
-	int extern_key_len = extern_key ? strlen(extern_key) : 0;
+	int extern_key_len = extern_key ? strlen(extern_key = mask_utf8_to_cp(extern_key)) : 0;
 	int i;
 
 #ifdef MASK_DEBUG
