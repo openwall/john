@@ -24,7 +24,7 @@
 #include "unicode.h"
 #include "unicode_range.h"
 
-#include "inc2.h"
+#include "posfreq.h"
 
 #define MAX_CAND_LENGTH PLAINTEXT_BUFFER_SIZE
 #define DEFAULT_MAX_LEN 16
@@ -62,7 +62,10 @@ static int state2[MAX_CAND_LENGTH-1][8];
 static int J[MAX_CAND_LENGTH-1];
 static uint_big counter1[MAX_CAND_LENGTH-1][8];//todo loop2
 static uint_big counter2[MAX_CAND_LENGTH-1][8];//todo loop2
+static int inc[MAX_CAND_LENGTH-1];
 
+const char letters[8] = "thiearon";
+const int chainFreqCount[8] = {4, 2, 5, 5, 5, 3, 5, 4};
 
 static double get_progress(void)
 {
@@ -297,7 +300,7 @@ int do_inc2_crack(struct db_main *db)
 				//strcpy(freq[i], "e3rs5a4i1o0tclnpumfhgbdvwyxkjqzERSAIOTCLNPUMFHGBDVWYXKJQZ26789\0");
 				strcpy(freq[i], "ersaiotclnpumfhgbdvwyxkjqz\0");
 				break;
-		    	case 5:
+	    	case 5:
 				//strcpy(freq[i], "e3ta4ri1o0s5cnluwpmhgdfbvykxjqzETARIOSCNLUWPMHGDFBVYKXJQZ26789\0");
 				strcpy(freq[i], "etarioscnluwpmhgdfbvykxjqz\0");
 				break;
@@ -309,7 +312,7 @@ int do_inc2_crack(struct db_main *db)
 				//strcpy(freq[i], "i1ta4e3o0hnruls5wcdfbmvgpykxjqzITAEOHNRULSWCDFBMVGPYKXJQZ26789\0");
 				strcpy(freq[i], "itaeohnrulswcdfbmvgpykxjqz\0");
 				break;
-		    	case 2:
+	    	case 2:
 				//strcpy(freq[i], "e3no0ha4i1trls5cumgdbwvkxpfyjqzENOHAITRLSCUMGDBWVKXPFYJQZ26789\0");
 				strcpy(freq[i], "enohaitrlscumgdbwvkxpfyjqz\0");
 				break;
@@ -592,7 +595,7 @@ int do_inc2_crack(struct db_main *db)
 				strcpy(counterChainFreq[i-1][6], "esaiotclphgbdvwyxkjqz\0");
 				strcpy(counterChainFreq[i-1][7], "rsaioclnpumfhbvwyxkjqz\0");
 				break;
-		    	case 5:
+	    	case 5:
 				//strcpy(freq[i], "e3ta4ri1o0s5cnluwpmhgdfbvykxjqzETARIOSCNLUWPMHGDFBVYKXJQZ26789\0");
 				strcpy(counterChainFreq[i-1][0], "tarscnluwpmgdfbvykxjqz\0");
 				strcpy(counterChainFreq[i-1][1], "taroscnluwpmhgdfbvykxjqz\0");
@@ -625,7 +628,7 @@ int do_inc2_crack(struct db_main *db)
 				strcpy(counterChainFreq[i-1][6], "itaeohlswcdbvgpykxjqz\0");
 				strcpy(counterChainFreq[i-1][7], "iaohnrulswcfbmvpykxjqz\0");
 				break;
-		    	case 2:
+	    	case 2:
 				//strcpy(freq[i], "e3no0ha4i1trls5cumgdbwvkxpfyjqzENOHAITRLSCUMGDBWVKXPFYJQZ26789\0");
 				strcpy(counterChainFreq[i-1][0], "natrlscumgdbwvkxpfyjqz\0");
 				strcpy(counterChainFreq[i-1][1], "nohatrlscumgdbwvkxpfyjqz\0");
@@ -661,13 +664,11 @@ int do_inc2_crack(struct db_main *db)
 	    	}
 		}
 	}
-
 	inc2_cur_len = minlength;
-
 	for(i=0; i<maxlength; i++) {
 		divi[i] = charcount/4;
         if(charcount % 4)
-		divi[i]++;
+		    divi[i]++;
 	}
 	chrsts = (char ***) mem_alloc(sizeof(char **) * maxlength);
 	for(i=0; i<maxlength; i++) {
@@ -675,13 +676,11 @@ int do_inc2_crack(struct db_main *db)
 		for(j=0; j<divi[i]; j++)
 			chrsts[i][j] = (char *) mem_alloc(5);
 	}
-
 	status_init(get_progress, 0);
 	//rec_restore_mode(restore_state);
 	//rec_init(db, save_state);
-
 	if(john_main_process) {
-		log_event("Proceeding with \"inc2\" mode");
+		log_event("Proceeding with \"posfreq\" mode");
 		log_event("- Lengths: %d-%d, max",
 		          MAX(options.eff_minlength, 1), maxlength);
 		if(rec_restored) {
@@ -698,10 +697,9 @@ int do_inc2_crack(struct db_main *db)
 			fprintf(stderr, "\n");
 		}
 	}
-
+    int x,y,z;
 	crk_init(db, fix_state, NULL);
 	if(!state_restored) {
-		/*
 		for(x=0; x<maxlength; x++) {
 			for(y=0; y<divi[x]; y++) {
 				int Z = 4;
@@ -738,8 +736,7 @@ int do_inc2_crack(struct db_main *db)
 				}
 				printf("%s\n", chrsts[x][y]);
 			}
-		}
-		*/		
+		}	
 		for(i = 0; i <= maxlength-minlength; i++) {    
 			counter[i] = 0;
 			for(j = 0; j < minlength+i; j++) {
@@ -748,9 +745,6 @@ int do_inc2_crack(struct db_main *db)
 			}
 		}
 	}
-	int inc[maxlength-1];
-	for(i=0; i<maxlength-1; i++)
-		inc[i] = 0;
 	for(; loop <= maxlength-minlength; loop++) {
 		if(event_abort)
 			break;
@@ -760,94 +754,105 @@ int do_inc2_crack(struct db_main *db)
 				break;
 			int loop2;
 			for(loop2 = loop; loop2 <= maxlength-minlength; loop2++) {
-				if(event_abort)
-        			break;
-
+				if(event_abort) break;
         		int mpl = minlength + loop2;
 				int skip = 0;
-				if (state_restored)
-	            		state_restored = 0;
-	        	else
-	        		set++;
+				if (state_restored) state_restored = 0;
+	        	else set++;
 		        if(options.node_count) {
 		        	int for_node = set % options.node_count + 1;
 		        	skip = for_node < options.node_min || for_node > options.node_max;
 		        }
-				int c = 1;
-
 		    	if(!skip) {
 					word[0] = freq[0][state[loop2][0]];
 		        	for(i=1; i<mpl; i++) {
-		        		for(j=0; j<8; j++) {
-							if(letters[j] == word[i-1]) {
-								J[i-1] = j;
-								if(++counter1[i-1][j] < powi(strlen(chainFreq[i-1][j]), maxlength-i))
-									inc[i-1] = 1;
-								break;
-							}
-							else {
-								inc[i-1] = 0;
-							}
+		        	    for(j=0; j<8; j++) {
+						    if(letters[j] == word[i-1]) {
+                                inc[i-1] = 1;
+                                J[i-1] = j;
+						        if(state1[i-1][j] >= chainFreqCount[j])
+						            inc[i-1] = 2;
+						        break;
+						    }
+						    //will reach here if no chaining
+						    else inc[i-1] = 0;
 						}
 						switch(inc[i-1]) {
-						case 0:
-							word[i] = freq[i][state[loop2][i]];
-							break;
-						case 1:
-							word[i] = chainFreq[i-1][J[i-1]][state1[i-1][J[i-1]]];
-							break;
-						case 2:
-							word[i] = counterChainFreq[i-1][J[i-1]][state2[i-1][J[i-1]]];		
-							break;		
+						    case 0:
+							    word[i] = freq[i][state[loop2][i]];
+							    break;
+						    case 1:
+							    word[i] = chainFreq[i-1][J[i-1]][state1[i-1][J[i-1]]];
+							    break;
+						    case 2:
+							    word[i] = counterChainFreq[i-1][J[i-1]][state2[i-1][J[i-1]]];		
+							    break;		
 						}
 					}
 					submit(word, loop2);
 				}
 				i = mpl-1;
 				int bail = 0;
-	        	while(i >= 0 && !bail) {
+				while(i >= 0 && !bail) {
+				    int a = 0;
 					if(i > 0) {
-						switch(inc[i-1]) {
-	        			case 0:
-	        				if(++state[loop2][i] >= strlen(freq[i])) {
-								state[loop2][i] = 0;
-								i--;
-							}
-							else bail = 1;
-
-	        				break;
-	        			case 1:
-	        				if(++state1[i-1][J[i-1]] >= strlen(chainFreq[i-1][J[i-1]])) {
-								state1[i-1][J[i-1]] = 0;
-								inc[i-1] = 2;
-								//i--;
-							}
-							else bail = 1;
-							
-							break;
-							
-						case 2:	
-							if(++state2[i-1][J[i-1]] >= strlen(counterChainFreq[i-1][J[i-1]])) {
-								state2[i-1][J[i-1]] = 0;
-								i--;
-							}
-							else bail = 1;
-
-							break;
+					    for(j=0; j<8; j++) {
+						    if(letters[j] == word[i-1]) {
+						        inc[i-1] = 1;
+						        J[i-1] = j;
+						        if(state1[i-1][j] >= chainFreqCount[j])
+						            inc[i-1] = 2;
+						        break;
+						    }
+						    else inc[i-1] = 0;
 						}
+					    switch(inc[i-1]) {
+            			    case 0:
+                				if(++state[loop2][i] >= strlen(freq[i])) {
+						            state[loop2][i] = 0;
+						            i--;
+					            }
+					            else bail = 1;
+
+                				break;
+            			    case 1:
+                	            if(++state1[i-1][J[i-1]] >= chainFreqCount[J[i-1]]) {
+						            inc[i-1] = 2;
+					                a = 1;
+					            }
+					            else bail = 1;
+
+					            if(!a) break;
+
+				            case 2:
+					            if(state2[i-1][J[i-1]] >= charcount - chainFreqCount[J[i-1]]-1) {
+						            state1[i-1][J[i-1]] = 0;
+						            state2[i-1][J[i-1]] = 0;
+						            inc[i-1] = 0;
+						            i--;
+					            }
+					            else bail = 1;
+
+                                if(a) a = 0;
+                                else state2[i-1][J[i-1]]++;
+
+					            break;
+			            }
 					}
 					else {
-						if(++state[loop2][0] > strlen(freq[0])) {
-							state[loop2][0] = 0;
+                        if(++state[loop2][0] >= charcount) {
+                            state[loop2][0] = 0;
 							i--;
-							/*
+                            /*
+						    int pos = mpl - 1;
 							if(pos < 0) {
 								int pos2 = mpl - 1;
 								while(pos2 >= 0 && ++cs[loop2][pos2] >= divi[pos2]) {
 									cs[loop2][pos2] = 0;
 									pos2--;
 								}
-							}*/
+							}
+							*/
 						}
 						else break;
 					}
