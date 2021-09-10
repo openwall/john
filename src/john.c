@@ -104,7 +104,7 @@ static int john_omp_threads_new;
 #include "mask.h"
 #include "mkv.h"
 #include "subsets.h"
-#include "inc2.h"
+#include "posfreq.h"
 #include "external.h"
 #include "batch.h"
 #include "dynamic.h"
