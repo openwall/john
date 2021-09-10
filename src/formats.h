@@ -358,7 +358,8 @@ struct fmt_methods {
 
 /* Allow the previously set keys to be dropped if that would help improve
  * performance and/or reduce the impact of certain hardware faults. After
- * a call to clear_keys() the keys are undefined. */
+ * a call to clear_keys() the keys are undefined.  Jumbo guarantees this
+ * will be called before set_key(0). */
 	void (*clear_keys)(void);
 
 /* Computes the ciphertexts for given salt and plaintexts.
