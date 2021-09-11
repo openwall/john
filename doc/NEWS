@@ -219,6 +219,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   with a message (hence the issue reported) but unfortunately the OpenCL format
   just produced false negatives until now.  [magnum; 2021]
 
+- Added formats for cracking cryptoSafe vaults.  They are loaded as-is: There's
+  no "cryptosafe2john" or such involved.  [magnum; 2021]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
