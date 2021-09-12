@@ -39,7 +39,7 @@
 #include "signals.h"
 #include "mask.h"
 #include "subsets.h"
-#include "posfreq.h"
+#include "inc2.h"
 #include "john.h"
 #include "john_mpi.h"
 #include "gpu_common.h"

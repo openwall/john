@@ -24,7 +24,7 @@
 #include "unicode.h"
 #include "unicode_range.h"
 
-#include "posfreq.h"
+#include "inc2.h"
 
 #define MAX_CAND_LENGTH PLAINTEXT_BUFFER_SIZE
 #define DEFAULT_MAX_LEN 16
@@ -49,7 +49,7 @@ static int rec_set;
 static int rec_cur_len;
 static uint_big counter[MAX_CAND_LENGTH-1];
 static uint_big rec_counter[MAX_CAND_LENGTH-1];
-static int state[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
+static int state[MAX_CAND_LENGTH-1][8][MAX_CAND_LENGTH];
 static int rec_state[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
 static int cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
 static int rec_cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
@@ -213,7 +213,7 @@ static int restore_state(FILE *file)
 	    }
 	}
 	if(fscanf(file, "%d\n", &d) == 1)
-		posfreq_cur_len = d;
+		inc2_cur_len = d;
 	else return 1;
 
 	if(fscanf(file, "%d\n", &d) == 1)
@@ -243,7 +243,7 @@ static int submit(char *word, int loop2)
 
 int do_inc2_crack(struct db_main *db)
 {
-	static int i, j;
+	int i, j, k;
 	unsigned int charcount;
 	srand(time(NULL));
 	maxlength = MIN(MAX_CAND_LENGTH, options.eff_maxlength);
@@ -680,11 +680,11 @@ int do_inc2_crack(struct db_main *db)
 	//rec_restore_mode(restore_state);
 	//rec_init(db, save_state);
 	if(john_main_process) {
-		log_event("Proceeding with \"posfreq\" mode");
+		log_event("Proceeding with \"inc2\" mode");
 		log_event("- Lengths: %d-%d, max",
 		          MAX(options.eff_minlength, 1), maxlength);
 		if(rec_restored) {
-			fprintf(stderr, "Proceeding with \"posfreq\" mode");
+			fprintf(stderr, "Proceeding with \"inc2\" mode");
 			if (options.flags & FLG_MASK_CHK)
 				fprintf(stderr, ", hybrid mask:%s", options.mask ?
 		                options.mask : options.eff_mask);
@@ -741,7 +741,8 @@ int do_inc2_crack(struct db_main *db)
 			counter[i] = 0;
 			for(j = 0; j < minlength+i; j++) {
 				cs[i][j] = 0;
-				state[i][j] = 0;
+			    for(k=0; k<8; k++)
+				    state[i][k][j] = 0;
 			}
 		}
 	}
@@ -764,7 +765,7 @@ int do_inc2_crack(struct db_main *db)
 		        	skip = for_node < options.node_min || for_node > options.node_max;
 		        }
 		    	if(!skip) {
-					word[0] = freq[0][state[loop2][0]];
+					word[0] = chrsts[0][cs[loop2][0]][state[loop2][cs[loop2][0]][0]];
 		        	for(i=1; i<mpl; i++) {
 		        	    for(j=0; j<8; j++) {
 						    if(letters[j] == word[i-1]) {
@@ -779,7 +780,7 @@ int do_inc2_crack(struct db_main *db)
 						}
 						switch(inc[i-1]) {
 						    case 0:
-							    word[i] = freq[i][state[loop2][i]];
+							    word[i] = chrsts[i][cs[loop2][i]][state[loop2][cs[loop2][0]][i]];
 							    break;
 						    case 1:
 							    word[i] = chainFreq[i-1][J[i-1]][state1[i-1][J[i-1]]];
@@ -808,8 +809,8 @@ int do_inc2_crack(struct db_main *db)
 						}
 					    switch(inc[i-1]) {
             			    case 0:
-                				if(++state[loop2][i] >= strlen(freq[i])) {
-						            state[loop2][i] = 0;
+                				if(++state[loop2][cs[loop2][0]][i] >= strlen(chrsts[i][cs[loop2][i]])) {
+						            state[loop2][cs[loop2][i]][i] = 0;
 						            i--;
 					            }
 					            else bail = 1;
@@ -836,19 +837,16 @@ int do_inc2_crack(struct db_main *db)
 			            }
 					}
 					else {
-                        if(++state[loop2][0] >= charcount) {
-                            state[loop2][0] = 0;
+                        if(++state[loop2][cs[loop2][0]][0] >= charcount) {
+                            state[loop2][cs[loop2][0]][0] = 0;
 							i--;
-                            /*
-						    int pos = mpl - 1;
-							if(pos < 0) {
-								int pos2 = mpl - 1;
-								while(pos2 >= 0 && ++cs[loop2][pos2] >= divi[pos2]) {
-									cs[loop2][pos2] = 0;
-									pos2--;
+                            if(i < 0) {
+								int i2 = mpl - 1;
+								while(i2 >= 0 && ++cs[loop2][i2] >= divi[i2]) {
+									cs[loop2][i2] = 0;
+									i2--;
 								}
 							}
-							*/
 						}
 						else break;
 					}
