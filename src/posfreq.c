@@ -813,30 +813,26 @@ int do_inc2_crack(struct db_main *db)
 						            i--;
 					            }
 					            else bail = 1;
-
                 				break;
             			    case 1:
-                	            if(++state1[i-1][J[i-1]] >= chainFreqCount[J[i-1]]) {
-						            inc[i-1] = 2;
-					                a = 1;
+                	            if(++state1[i-1][J[i-1]] > chainFreqCount[J[i-1]]) {
+						            a = 1;
+				                    inc[i-1] = 2;
 					            }
 					            else bail = 1;
-
 					            if(!a) break;
-
 				            case 2:
-					            if(state2[i-1][J[i-1]] >= charcount - chainFreqCount[J[i-1]]-1) {
-						            state1[i-1][J[i-1]] = 0;
-						            state2[i-1][J[i-1]] = 0;
-						            inc[i-1] = 0;
-						            i--;
+				                if(!a) {
+					                if(++state2[i-1][J[i-1]] >= charcount - chainFreqCount[J[i-1]]) {
+						                state1[i-1][J[i-1]] = 0;
+						                state2[i-1][J[i-1]] = 0;
+						                inc[i-1] = 0;
+						                i--;
+					                }
+					                else bail = 1;
 					            }
-					            else bail = 1;
-
-                                if(a) a = 0;
-                                else state2[i-1][J[i-1]]++;
-
-					            break;
+				                else a = 0;
+                                break;
 			            }
 					}
 					else {
