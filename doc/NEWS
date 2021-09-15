@@ -625,3 +625,6 @@ Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
   mostly part of our development process and not the release, although some
   CI-related files do exist in our released tree.
   [Claudio, magnum; 2015-2019]
+  
+- Addition of bestcryptve2john.py for cracking of BestCrypt Full Disk Encryption.
+  [trounce1 / HN; 2021]
