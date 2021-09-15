@@ -1,3 +1,9 @@
+# This software is Copyright (c) 2021, trounce1 / HN
+# and it is hereby released to the general public under the following terms:
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
+
 #!/usr/bin/env python3
 from binascii import hexlify, unhexlify
 import argparse
