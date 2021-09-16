@@ -57,6 +57,18 @@ typedef struct zip_hash_type_t {
 #endif
 } ZIP_HASH;
 
+typedef struct winzip_salt_t {
+	dyna_salt dsalt;
+	uint64_t comp_len;
+	struct {
+		uint16_t type : 4;
+		uint16_t mode : 4;
+	} v;
+	unsigned char passverify[2];
+	unsigned char salt[SALT_LENGTH(3)];
+	unsigned char datablob[1];
+} winzip_salt;
+
 typedef struct zip_salt_t {
 	dyna_salt dsalt;
 	char fname[1024];			// if the zip is too large, we open the file in cmp_exact read the
@@ -84,7 +96,7 @@ typedef union MY_WORD {
 
 /* Here is the 'common' code */
 #define WINZIP_BENCHMARK_COMMENT	""
-#define WINZIP_BENCHMARK_LENGTH	0x107
+#define WINZIP_BENCHMARK_LENGTH	0x507
 #define WINZIP_BINARY_SIZE         10
 #define WINZIP_FORMAT_TAG		"$zip2$"
 #define WINZIP_FORMAT_CLOSE_TAG	"$/zip2$"
@@ -93,6 +105,7 @@ typedef union MY_WORD {
 extern int winzip_common_valid(char *ciphertext, struct fmt_main *self);
 extern char *winzip_common_split(char *ciphertext, int index, struct fmt_main *self);
 extern void *winzip_common_binary(char *ciphertext);
+extern void *winzip_common_get_salt(char *ciphertext);
 
 extern struct fmt_tests winzip_common_tests[];
 
