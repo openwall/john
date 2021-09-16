@@ -214,6 +214,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Add BestCrypt Volume Encryption V4 format.  [Jean-Christophe Delaunay; 2021]
 
+- Addition of bestcryptve2john.py for cracking of BestCrypt Full Disk Encryption.
+  [trounce1 / HN; 2021]
+
 - Added missing code to the Office formats for cracking Office 2007 documents
   with a 256-bit key (apparently very uncommon).  The CPU format would bail
   with a message (hence the issue reported) but unfortunately the OpenCL format
