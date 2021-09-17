@@ -39,7 +39,7 @@ void cryptoSafe(__global const uchar *pwbuf,
                 __global const uint *index,
                 __constant salt_t *salt,
                 __global uint *result,
-                __global uint *crack_count_ret,
+                volatile __global uint *crack_count_ret,
                 __global uint *int_key_loc,
 #if USE_CONST_CACHE
                 __constant
