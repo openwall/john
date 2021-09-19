@@ -1415,6 +1415,8 @@ static void clear_profiling_events()
 // salt, and fills binary pointer.
 static void* fill_opencl_device(size_t gws, void **binary)
 {
+	static int reported;
+	int len = mask_add_len;
 	int i;
 	size_t kpc = gws * ocl_v_width;
 	void *salt;
@@ -1423,7 +1425,6 @@ static void* fill_opencl_device(size_t gws, void **binary)
 	self->methods.clear_keys();
 	{
 		char key[PLAINTEXT_BUFFER_SIZE];
-		int len = mask_add_len;
 
 		if (mask_add_len == 0 ||
 		    options.req_minlength != -1 || options.req_maxlength != 0) {
@@ -1437,9 +1438,6 @@ static void* fill_opencl_device(size_t gws, void **binary)
 		// Obey format's min and max length
 		len = MAX(len, self->params.plaintext_min_length);
 		len = MIN(len, self->params.plaintext_length);
-
-		if (options.verbosity == VERB_DEBUG)
-			fprintf(stderr, "Tuning to length %d\n", len);
 
 		memset(key, 0x41, sizeof(key));
 		key[len] = 0;
@@ -1463,6 +1461,10 @@ static void* fill_opencl_device(size_t gws, void **binary)
 			s = s->next;
 		salt = s->salt;
 		*binary = s->list->binary;
+
+		if (options.verbosity >= VERB_MAX && !reported++)
+			fprintf(stderr, "Tuning for %s of %u and password length %d\n",
+			        db->format->params.tunable_cost_name[0], db->max_cost[0], len);
 	} else {
 		char *ciphertext;
 
@@ -1474,6 +1476,15 @@ static void* fill_opencl_device(size_t gws, void **binary)
 		*binary = self->methods.binary(ciphertext);
 		if (salt)
 			dyna_salt_create(salt);
+
+		if (options.verbosity >= VERB_MAX && !reported++) {
+			if (salt && self->methods.tunable_cost_value[0]) {
+				struct db_main *db = ocl_autotune_db;
+				fprintf(stderr, "Tuning for %s of %u and password length %d\n",
+				        db->format->params.tunable_cost_name[0], self->methods.tunable_cost_value[0](salt), len);
+			} else
+				fprintf(stderr, "Tuning for password length %d\n", len);
+		}
 	}
 	self->methods.set_salt(salt);
 
