@@ -125,9 +125,11 @@ static void pbkdf2_whirlpool(const unsigned char *K, int KL, const unsigned char
 
 	loops = (skip_bytes + outlen + (WHIRLPOOL_DIGEST_LENGTH-1)) / WHIRLPOOL_DIGEST_LENGTH;
 	loop = skip_bytes / WHIRLPOOL_DIGEST_LENGTH + 1;
+	skip_bytes %= WHIRLPOOL_DIGEST_LENGTH;
+
 	while (loop <= loops) {
 		_pbkdf2_whirlpool(S,SL,R,tmp.x32,loop,&ipad,&opad);
-		for (i = skip_bytes%WHIRLPOOL_DIGEST_LENGTH; i < WHIRLPOOL_DIGEST_LENGTH && accum < outlen; i++) {
+		for (i = skip_bytes; i < WHIRLPOOL_DIGEST_LENGTH && accum < outlen; i++) {
 			out[accum++] = ((uint8_t*)tmp.out)[i];
 		}
 		loop++;
