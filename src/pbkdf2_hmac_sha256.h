@@ -126,9 +126,11 @@ static void pbkdf2_sha256(const unsigned char *K, int KL, unsigned char *S, int 
 
 	loops = (skip_bytes + outlen + (SHA256_DIGEST_LENGTH-1)) / SHA256_DIGEST_LENGTH;
 	loop = skip_bytes / SHA256_DIGEST_LENGTH + 1;
+	skip_bytes %= SHA256_DIGEST_LENGTH;
+
 	while (loop <= loops) {
 		_pbkdf2_sha256(S,SL,R,tmp.x32,loop,&ipad,&opad);
-		for (i = skip_bytes%SHA256_DIGEST_LENGTH; i < SHA256_DIGEST_LENGTH && accum < outlen; i++) {
+		for (i = skip_bytes; i < SHA256_DIGEST_LENGTH && accum < outlen; i++) {
 			out[accum++] = ((uint8_t*)tmp.out)[i];
 		}
 		loop++;
@@ -245,6 +247,8 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SSE_GROUP_SZ_SHA256], int K
 
 	loops = (skip_bytes + outlen + (SHA256_DIGEST_LENGTH-1)) / SHA256_DIGEST_LENGTH;
 	loop = skip_bytes / SHA256_DIGEST_LENGTH + 1;
+	skip_bytes %= SHA256_DIGEST_LENGTH;
+
 	while (loop <= loops) {
 		for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 			memcpy(&ctx, &ipad[j], sizeof(ctx));
@@ -289,7 +293,7 @@ static void pbkdf2_sha256_sse(const unsigned char *K[SSE_GROUP_SZ_SHA256], int K
 		// we must fixup final results.  We have been working in BE (NOT switching out of, just to switch back into it at every loop).
 		// for the 'very' end of the crypt, we remove BE logic, so the calling function can view it in native format.
 		alter_endianity(dgst, sizeof(dgst));
-		for (i = skip_bytes%SHA256_DIGEST_LENGTH; i < SHA256_DIGEST_LENGTH && accum < outlen; ++i) {
+		for (i = skip_bytes; i < SHA256_DIGEST_LENGTH && accum < outlen; ++i) {
 			for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 #if ARCH_LITTLE_ENDIAN
 				out[j][accum] = ((unsigned char*)(dgst[j]))[i];
@@ -356,6 +360,8 @@ static void pbkdf2_sha256_sse_varying_salt(const unsigned char *K[SSE_GROUP_SZ_S
 
 	loops = (skip_bytes + outlen + (SHA256_DIGEST_LENGTH-1)) / SHA256_DIGEST_LENGTH;
 	loop = skip_bytes / SHA256_DIGEST_LENGTH + 1;
+	skip_bytes %= SHA256_DIGEST_LENGTH;
+
 	while (loop <= loops) {
 		for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 			memcpy(&ctx, &ipad[j], sizeof(ctx));
@@ -400,7 +406,7 @@ static void pbkdf2_sha256_sse_varying_salt(const unsigned char *K[SSE_GROUP_SZ_S
 		// we must fixup final results.  We have been working in BE (NOT switching out of, just to switch back into it at every loop).
 		// for the 'very' end of the crypt, we remove BE logic, so the calling function can view it in native format.
 		alter_endianity(dgst, sizeof(dgst));
-		for (i = skip_bytes%SHA256_DIGEST_LENGTH; i < SHA256_DIGEST_LENGTH && accum < outlen; ++i) {
+		for (i = skip_bytes; i < SHA256_DIGEST_LENGTH && accum < outlen; ++i) {
 			for (j = 0; j < SSE_GROUP_SZ_SHA256; ++j) {
 #if ARCH_LITTLE_ENDIAN
 				out[j][accum] = ((unsigned char*)(dgst[j]))[i];

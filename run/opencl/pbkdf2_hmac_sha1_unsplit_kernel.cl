@@ -207,6 +207,7 @@ inline void pbkdf2(__global const uchar *pass, uint passlen,
 
 	loops = (skip_bytes + outlen + (SHA1_DIGEST_LENGTH-1)) / SHA1_DIGEST_LENGTH;
 	loop = skip_bytes / SHA1_DIGEST_LENGTH + 1;
+	skip_bytes %= SHA1_DIGEST_LENGTH;
 
 	while (loop <= loops) {
 		uint tmp_out[5];
@@ -218,10 +219,7 @@ inline void pbkdf2(__global const uchar *pass, uint passlen,
 		              ipad_state, opad_state,
 		              tmp_out, iterations);
 
-		for (i = skip_bytes % SHA1_DIGEST_LENGTH;
-		     i < SHA1_DIGEST_LENGTH && accum < (outlen + 3) / 4 * 4;
-		     i++, accum++)
-		{
+		for (i = skip_bytes; i < SHA1_DIGEST_LENGTH && accum < (outlen + 3) / 4 * 4; i++, accum++) {
 			PUTCHAR_BE_G(out, accum, ((uchar*)tmp_out)[i]);
 		}
 
