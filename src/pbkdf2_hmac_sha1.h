@@ -130,9 +130,11 @@ static void pbkdf2_sha1(const unsigned char *K, int KL, const unsigned char *S, 
 
 	loops = (skip_bytes + outlen + (SHA_DIGEST_LENGTH-1)) / SHA_DIGEST_LENGTH;
 	loop = skip_bytes / SHA_DIGEST_LENGTH + 1;
+	skip_bytes %= SHA_DIGEST_LENGTH;
+
 	while (loop <= loops) {
 		_pbkdf2_sha1(S,SL,R,tmp.x32,loop,&ipad,&opad);
-		for (i = skip_bytes%SHA_DIGEST_LENGTH; i < SHA_DIGEST_LENGTH && accum < outlen; i++) {
+		for (i = skip_bytes; i < SHA_DIGEST_LENGTH && accum < outlen; i++) {
 			out[accum++] = ((uint8_t*)tmp.out)[i];
 		}
 		loop++;
@@ -231,6 +233,8 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 
 	loops = (skip_bytes + outlen + (SHA_DIGEST_LENGTH-1)) / SHA_DIGEST_LENGTH;
 	loop = skip_bytes / SHA_DIGEST_LENGTH + 1;
+	skip_bytes %= SHA_DIGEST_LENGTH;
+
 	while (loop <= loops) {
 		unsigned int k;
 		for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
@@ -291,7 +295,7 @@ static void pbkdf2_sha1_sse(const unsigned char *K[SSE_GROUP_SZ_SHA1], int KL[SS
 		// we must fixup final results.  We have been working in BE (NOT switching out of, just to switch back into it at every loop).
 		// for the 'very' end of the crypt, we remove BE logic, so the calling function can view it in native format.
 		alter_endianity(dgst, sizeof(dgst));
-		for (i = skip_bytes%SHA_DIGEST_LENGTH; i < SHA_DIGEST_LENGTH && accum < outlen; ++i) {
+		for (i = skip_bytes; i < SHA_DIGEST_LENGTH && accum < outlen; ++i) {
 			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
 #if ARCH_LITTLE_ENDIAN
 				out[j][accum] = ((unsigned char*)(dgst[j]))[i];

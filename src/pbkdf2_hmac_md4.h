@@ -120,9 +120,11 @@ static void pbkdf2_md4(const unsigned char *K, int KL, const unsigned char *S, i
 
 	loops = (skip_bytes + outlen + (MD4_DIGEST_LENGTH-1)) / MD4_DIGEST_LENGTH;
 	loop = skip_bytes / MD4_DIGEST_LENGTH + 1;
+	skip_bytes %= MD4_DIGEST_LENGTH;
+
 	while (loop <= loops) {
 		_pbkdf2_md4(S,SL,R,tmp.x32,loop,&ipad,&opad);
-		for (i = skip_bytes%MD4_DIGEST_LENGTH; i < MD4_DIGEST_LENGTH && accum < outlen; i++) {
+		for (i = skip_bytes; i < MD4_DIGEST_LENGTH && accum < outlen; i++) {
 			out[accum++] = ((uint8_t*)tmp.out)[i];
 		}
 		loop++;
@@ -220,6 +222,8 @@ static void pbkdf2_md4_sse(const unsigned char *K[SSE_GROUP_SZ_MD4], int KL[SSE_
 
 	loops = (skip_bytes + outlen + (MD4_DIGEST_LENGTH-1)) / MD4_DIGEST_LENGTH;
 	loop = skip_bytes / MD4_DIGEST_LENGTH + 1;
+	skip_bytes %= MD4_DIGEST_LENGTH;
+
 	while (loop <= loops) {
 		unsigned int k;
 		for (j = 0; j < SSE_GROUP_SZ_MD4; ++j) {
@@ -275,7 +279,7 @@ static void pbkdf2_md4_sse(const unsigned char *K[SSE_GROUP_SZ_MD4], int KL[SSE_
 		}
 #endif
 
-		for (i = skip_bytes%MD4_DIGEST_LENGTH; i < MD4_DIGEST_LENGTH && accum < outlen; ++i) {
+		for (i = skip_bytes; i < MD4_DIGEST_LENGTH && accum < outlen; ++i) {
 			for (j = 0; j < SSE_GROUP_SZ_MD4; ++j) {
 #if ARCH_LITTLE_ENDIAN
 				out[j][accum] = ((unsigned char*)(dgst[j]))[i];

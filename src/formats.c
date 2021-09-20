@@ -60,7 +60,32 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 static void test_fmt_case(struct fmt_main *format, void *binary,
 	char *ciphertext, char* plaintext, int *is_case_sensitive,
 	int *plaintext_has_alpha, struct db_salt *dbsalt);
+static char *test_fmt_tunable_costs(struct fmt_main *format);
 #endif
+
+/*
+ * List of format classes valid for this build (actually all are valid
+ * to ask for but we don't list those that can't match).
+ *
+ * This list is used in listconf.c and john.c
+ */
+char fmt_class_list[] = "all, enabled, disabled"
+#if _OPENMP
+	", omp"
+#endif
+#if HAVE_OPENCL || HAVE_ZTEX
+	", mask"
+#endif
+#if HAVE_ZTEX
+	", ztex"
+#endif
+#if HAVE_OPENCL
+	", opencl"
+#endif
+#ifndef DYNAMIC_DISABLED
+	", dynamic"
+#endif
+	", cpu";
 
 /*
  * Does req_format match format?
@@ -710,6 +735,9 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		format->methods.clear_keys();
 		return NULL;
 	}
+	ret = test_fmt_tunable_costs(format);
+	if (ret)
+		return ret;
 #endif
 #if defined(HAVE_OPENCL)
 	if (strcasestr(format->params.label, "-opencl") &&
@@ -1897,6 +1925,28 @@ change_case:
 	else
 		*is_split_unifies_case = 0;
 	return;
+}
+
+static char *test_fmt_tunable_costs( struct fmt_main *format)
+{
+	int i, j;
+	char *name;
+
+	for (i = 0; i < FMT_TUNABLE_COSTS; i++) {
+		if ((name = format->params.tunable_cost_name[i])) {
+			if (!format->methods.tunable_cost_value[i])
+				return "more tunable cost names than methods";
+			for (j = 0; name[j] != '\0'; j++)
+				if (name[j] == ',')
+					return "tunable cost name contains commas";
+			if (j == 0)
+				return "empty tunable cost name";
+
+		}
+		else if (format->methods.tunable_cost_value[i])
+			return "more tunable cost methods than names";
+	}
+	return NULL;
 }
 #endif
 

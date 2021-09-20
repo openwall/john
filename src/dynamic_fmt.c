@@ -1011,15 +1011,15 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 
 	// at this point max length is still < 512.  491 + strlen($dynamic_xxxxx$) is 506
 
-	if (strncmp(cpBuilding, "$dynamic_", 9)) {
-		// ok, here we add the 'generic' regen salt code
-		if (options.regen_lost_salts && !strchr(cpBuilding, '$')) {
-			char *cp = load_regen_lost_salt_Prepare(cpBuilding);
-			if (cp)
-				return cp;
-		}
-		return split_fields[1];
+	// If --regen-lost-salts and salt is missing, add the first possible salt
+	if (options.regen_lost_salts && !strchr(cpBuilding + strlen(pFmt->params.label) + 2, '$')) {
+		char *cp = load_regen_lost_salt_Prepare(cpBuilding);
+		if (cp)
+			return cp;
 	}
+
+	if (strncmp(cpBuilding, "$dynamic_", 9))
+		return split_fields[1];
 
 	if ( (pPriv->pSetup->flags&MGF_SALTED) == 0)
 		return cpBuilding;
@@ -1101,14 +1101,10 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 {
 	static char out[1024];
-	char search_char = '$';
 	private_subformat_data *pPriv = pFmt->private.data;
 
 	if (strnlen(ciphertext, 951) > 950)
 		return ciphertext;
-
-	if (!strncmp(ciphertext, "@dynamic=", 9))
-		search_char = '@';
 
 	// mime. We want to strip off ALL trailing '=' characters to 'normalize' them
 	if (pPriv->dynamic_base64_inout == 3 &&
@@ -1116,7 +1112,9 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	{
 		static char ct[496];
 		unsigned int len;
+		char search_char = (!strncmp(ciphertext, "@dynamic=", 9)) ? '@' : '$';
 		char *cp = strchr(&ciphertext[9], search_char), *cp2;
+
 		if (cp) {
 			++cp;
 			len = base64_valid_length(cp, e_b64_mime, flg_Base64_MIME_TRAIL_EQ_CNT, 0);

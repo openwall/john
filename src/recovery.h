@@ -113,4 +113,9 @@ extern void rec_restore_args(int lock);
  */
 extern void rec_restore_mode(int (*restore_mode)(FILE *file));
 
+/*
+ * Reads status.cands from other session's file and returns it.
+ */
+extern uint64_t rec_read_cands(char *session);
+
 #endif

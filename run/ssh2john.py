@@ -30,7 +30,6 @@
 
 import base64
 import binascii
-import codecs
 from struct import unpack
 import sys
 
@@ -85,7 +84,7 @@ def read_private_key(filename):
         return
 
     start = 0
-    while (start < len(lines)) and ((lines[start].strip() != '-----BEGIN ' + tag + ' PRIVATE KEY-----') and (lines[start].strip() != '-----BEGIN OPENSSH PRIVATE KEY-----')):
+    while (start < len(lines)) and (lines[start].strip() != '-----BEGIN ' + tag + ' PRIVATE KEY-----'):
         start += 1
     if start >= len(lines):
         sys.stderr.write("%s is not a valid private key file\n" % f.name)
@@ -107,37 +106,28 @@ def read_private_key(filename):
     # if we trudged to the end of the file, just try to cope.
     try:
         data = ''.join(lines[start:end]).encode()
-        data = codecs.decode(data, 'base64_codec')
+        data = base64.b64decode(data)
     except base64.binascii.Error:
         e = sys.exc_info()[1]
         raise Exception('base64 decoding error: ' + str(e))
 
-    if 'proc-type' not in headers and ktype != 2:  # unencrypted key file?
-        sys.stderr.write("%s has no password!\n" % f.name)
-        return None
 
-    try:
-        encryption_type, saltstr = headers['dek-info'].split(',')
-    except:
-        if ktype != 2:
+    if ktype != 2:
+        if 'proc-type' not in headers:  # unencrypted key file?
+            sys.stderr.write("%s has no password!\n" % f.name)
+            return
+
+        try:
+            encryption_type, saltstr = headers['dek-info'].split(',')
+        except:
             raise Exception('Can\'t parse DEK-info in private key file')
-        else:
-            if b'aes256-cbc' in data:
-                encryption_type = "AES-256-CBC"
-            elif b'aes256-ctr' in data:
-                encryption_type = "AES-256-CTR"
-            else:
-                raise Exception('Unknown encryption type')
-            saltstr = "fefe"  # dummy value, not used
-    if encryption_type not in CIPHER_TABLE:
-        raise Exception('Unknown private key cipher "%s"' % encryption_type)
 
-    cipher = CIPHER_TABLE[encryption_type]['cipher']
-    keysize = CIPHER_TABLE[encryption_type]['keysize']
-    # mode = CIPHER_TABLE[encryption_type]['mode']
-    salt = binascii.unhexlify(saltstr)
-    AUTH_MAGIC = b"openssh-key-v1"
+        if encryption_type not in CIPHER_TABLE:
+            raise Exception('Unknown private key cipher "%s"' % encryption_type)
+
+
     if ktype == 2:  # bcrypt_pbkdf format, see "sshkey_private_to_blob2" in sshkey.c
+        AUTH_MAGIC = b"openssh-key-v1"
         salt_length = 16  # fixed value in sshkey.c
         # find offset to salt
         offset = 0
@@ -145,9 +135,18 @@ def read_private_key(filename):
             raise Exception('Missing AUTH_MAGIC!')
         offset = offset + len(AUTH_MAGIC) + 1  # sizeof(AUTH_MAGIC)
         length = unpack(">I", data[offset:offset+4])[0]  # ciphername length
-        if length > 32:  # weak sanity check
-            raise Exception('Unknown ciphername!')
-        offset = offset + 4 + length
+        offset = offset + 4
+        cipher_name = data[offset:offset+length].decode('ascii')
+        if cipher_name == 'none':
+            sys.stderr.write("%s has no password!\n" % f.name)
+            return
+        elif cipher_name == 'aes256-cbc':
+            encryption_type = "AES-256-CBC"
+        elif cipher_name == 'aes256-ctr':
+            encryption_type = "AES-256-CTR"
+        else:
+            raise Exception('Unknown encryption type')
+        offset = offset + length
         length = unpack(">I", data[offset:offset+4])[0]  # kdfname length
         offset = offset + 4 + length
         length = unpack(">I", data[offset:offset+4])[0]  # kdf length
@@ -169,6 +168,9 @@ def read_private_key(filename):
         rounds = unpack(">I", rounds)[0]
         if rounds == 0:
             rounds == 16
+
+    keysize = CIPHER_TABLE[encryption_type]['keysize']
+    salt = binascii.unhexlify(saltstr)
 
     data = binascii.hexlify(data).decode("ascii")
     if keysize == 24 and encryption_type == "AES-192-CBC" and (ktype == 0 or ktype == 1):  # RSA, DSA keys using AES-192
@@ -194,7 +196,7 @@ def read_private_key(filename):
             saltstr, len(data) // 2, data, rounds, ciphertext_begin_offset)
     else:
         sys.stderr.write("%s uses unsupported cipher, please file a bug!\n" % f.name)
-        return None
+        return
 
     sys.stdout.write("%s\n" % hashline)
 

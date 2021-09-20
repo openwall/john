@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 # Modified (for JtR) by Dhiru Kholia in December, 2014.
@@ -17,21 +17,26 @@
 #
 # This program is distributed under GPLv3 licence (see LICENCE.txt)
 
-import sys
-import struct
+import argparse
 import array
-import hmac
+import binascii
+from collections import defaultdict
 import hashlib
+import hmac
+import struct
+import sys
 try:
     from Crypto.Cipher import AES
     from Crypto.Cipher import DES
     from Crypto.Cipher import DES3
 except ImportError:
-    sys.stderr.write("For additional functionality, please install PyCrypto package.\n")
-import argparse
-from collections import defaultdict
+    sys.stderr.write("Error: Please install PyCrypto package.\n")
+    sys.exit(1)
 
 debug = False
+
+def hexstr(bytestr):
+    return binascii.hexlify(bytestr).decode('ascii')
 
 
 class Eater(object):
@@ -179,12 +184,12 @@ class DPAPIBlob(DataStruct):
                         "\tdescr        = %(description)s",
                         "\tcipherAlgo   = %(cipherAlgo)r",
                         "\thashAlgo     = %(hashAlgo)r")) % self.__dict__,
-             "\tsalt         = %s" % self.salt.encode('hex'),
-             "\thmac         = %s" % self.hmac.encode('hex'),
-             "\tcipher       = %s" % self.cipherText.encode('hex'),
-             "\tsign         = %s" % self.sign.encode('hex')]
+             "\tsalt         = %s" % hexstr(self.salt),
+             "\thmac         = %s" % hexstr(self.hmac),
+             "\tcipher       = %s" % hexstr(self.cipherText),
+             "\tsign         = %s" % hexstr(self.sign)]
         if self.signComputed is not None:
-            s.append("\tsignComputed = %s" % self.signComputed.encode('hex'))
+            s.append("\tsignComputed = %s" % hexstr(self.signComputed))
         if self.cleartext is not None:
             s.append("\tcleartext    = %r" % self.cleartext)
         return "\n".join(s)
@@ -221,10 +226,10 @@ class CryptoAlgo(object):
 
     name = property(lambda self: self.algo.name)
     module = property(lambda self: self.algo.module)
-    keyLength = property(lambda self: self.algo.keyLength / 8)
-    ivLength = property(lambda self: self.algo.IVLength / 8)
-    blockSize = property(lambda self: self.algo.blockLength / 8)
-    digestLength = property(lambda self: self.algo.digestLength / 8)
+    keyLength = property(lambda self: self.algo.keyLength // 8)
+    ivLength = property(lambda self: self.algo.IVLength // 8)
+    blockSize = property(lambda self: self.algo.blockLength // 8)
+    digestLength = property(lambda self: self.algo.digestLength // 8)
 
     def do_fixup_key(self, key):
         try:
@@ -284,35 +289,35 @@ def pbkdf2_ms(passphrase, salt, keylen, iterations, digest='sha1'):
     Note: This is not real pbkdf2, but instead a slight modification of it.
     Seems like Microsoft tried to implement pbkdf2 but got the xoring wrong.
     """
-    buff = ""
+    buff = b""
     i = 1
     while len(buff) < keylen:
         U = salt + struct.pack("!L", i)
         i += 1
-        derived = hmac.new(passphrase, U, digestmod=lambda: hashlib.new(digest)).digest()
-        for r in xrange(iterations - 1):
-            actual = hmac.new(passphrase, derived, digestmod=lambda: hashlib.new(digest)).digest()
-            derived = ''.join([chr(ord(x) ^ ord(y)) for (x, y) in zip(derived, actual)])
+        derived = bytearray(hmac.new(passphrase, U, digestmod=lambda: hashlib.new(digest)).digest())
+        for r in range(iterations - 1):
+            actual = bytearray(hmac.new(passphrase, derived, digestmod=lambda: hashlib.new(digest)).digest())
+            derived = bytearray([x ^ y for (x, y) in zip(derived, actual)])
         buff += derived
-    return buff[:keylen]
+    return bytes(buff[:keylen])
 
 def pbkdf2(passphrase, salt, keylen, iterations, digest='sha1'):
     """Implementation of PBKDF2 that allows specifying digest algorithm.
 
     Returns the corresponding expanded key which is keylen long.
     """
-    buff = ""
+    buff = b""
     i = 1
     while len(buff) < keylen:
         U = salt + struct.pack("!L", i)
         i += 1
-        derived = hmac.new(passphrase, U, digestmod=lambda: hashlib.new(digest)).digest()
+        derived = bytearray(hmac.new(passphrase, U, digestmod=lambda: hashlib.new(digest)).digest())
         actual = derived
-        for r in xrange(iterations - 1):
-            actual = hmac.new(passphrase, actual, digestmod=lambda: hashlib.new(digest)).digest()
-            derived = ''.join([chr(ord(x) ^ ord(y)) for (x, y) in zip(derived, actual)])
+        for r in range(iterations - 1):
+            actual = bytearray(hmac.new(passphrase, actual, digestmod=lambda: hashlib.new(digest)).digest())
+            derived = bytearray([x ^ y for (x, y) in zip(derived, actual)])
         buff += derived
-    return buff[:keylen]
+    return bytes(buff[:keylen])
 
 def derivePwdHash(pwdhash, userSID, digest='sha1'):
     """Internal use. Computes the encryption key from a user's password hash"""
@@ -349,7 +354,7 @@ def display_masterkey(Preferred):
     GUID = struct.unpack("<LHH", GUID1)
     GUID2 = struct.unpack(">HLH", GUID2)
 
-    print "%s-%s-%s-%s-%s%s" % (format(GUID[0], '08x'), format(GUID[1], '04x'), format(GUID[2], '04x'), format(GUID2[0], '04x'), format(GUID2[1], '08x'), format(GUID2[2], '04x'))
+    print("%s-%s-%s-%s-%s%s" % (format(GUID[0], '08x'), format(GUID[1], '04x'), format(GUID[2], '04x'), format(GUID2[0], '04x'), format(GUID2[1], '08x'), format(GUID2[2], '04x')))
 
 
 class MasterKey(DataStruct):
@@ -393,7 +398,7 @@ class MasterKey(DataStruct):
         self.cipherAlgo = CryptoAlgo(data.eat("L"))
         self.ciphertext = data.remain()
         if self.SID:
-            print self.jhash()
+            print(self.jhash())
 
     def decryptWithHash(self, userSID, pwdhash):
         """Decrypts the masterkey with the given user's hash and SID.
@@ -420,11 +425,9 @@ class MasterKey(DataStruct):
 
         if self.context == "domain":
             context = 2
-            s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, self.iv.encode("hex"),
-                                     len(self.ciphertext.encode("hex")), self.ciphertext.encode("hex"))
+            s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, hexstr(self.iv), len(hexstr(self.ciphertext)), hexstr(self.ciphertext))
             context = 3
-            s += "\n$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds,
-                                     self.iv.encode("hex"), len(self.ciphertext.encode("hex")), self.ciphertext.encode("hex"))
+            s += "\n$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, hexstr(self.iv), len(hexstr(self.ciphertext)), hexstr(self.ciphertext))
         else:
             if self.context == "local":
                 context = 1
@@ -433,8 +436,7 @@ class MasterKey(DataStruct):
             elif self.context == "domain1607+":
                 context = 3
 
-            s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, self.iv.encode("hex"),
-                                         len(self.ciphertext.encode("hex")), self.ciphertext.encode("hex"))
+            s = "$DPAPImk$%d*%d*%s*%s*%s*%d*%s*%d*%s" % (version, context, self.SID, cipher_algo, hmac_algo, self.rounds, hexstr(self.iv), len(hexstr(self.ciphertext)), hexstr(self.ciphertext))
         return s
 
     def setKeyHash(self, h):
@@ -478,19 +480,19 @@ class MasterKey(DataStruct):
         if self.rounds is not None:
             s.append("\trounds       = %i" % self.rounds)
         if self.iv is not None:
-            s.append("\tIV           = %s" % self.iv.encode("hex"))
+            s.append("\tIV           = %s" % hexstr(self.iv))
         if self.key is not None:
-            s.append("\tkey          = %s" % self.key.encode("hex"))
+            s.append("\tkey          = %s" % hexstr(self.key))
         if self.hmacSalt is not None:
-            s.append("\thmacSalt     = %s" % self.hmacSalt.encode("hex"))
+            s.append("\thmacSalt     = %s" % hexstr(self.hmacSalt))
         if self.hmac is not None:
-            s.append("\thmac         = %s" % self.hmac.encode("hex"))
+            s.append("\thmac         = %s" % hexstr(self.hmac))
         if self.hmacComputed is not None:
-            s.append("\thmacComputed = %s" % self.hmacComputed.encode("hex"))
+            s.append("\thmacComputed = %s" % hexstr(self.hmacComputed))
         if self.key_hash is not None:
-            s.append("\tkey hash     = %s" % self.key_hash.encode("hex"))
+            s.append("\tkey hash     = %s" % hexstr(self.key_hash))
         if self.ciphertext is not None:
-            s.append("\tciphertext   = %s" % self.ciphertext.encode("hex"))
+            s.append("\tciphertext   = %s" % hexstr(self.ciphertext))
         return "\n".join(s)
 
 
@@ -513,14 +515,14 @@ class MasterKeyFile(DataStruct):
 
     def parse(self, data):
         self.version = data.eat("L")
-        # print self.version
+        # print(self.version)
         data.eat("2L")
         self.guid = data.eat("72s").decode("UTF-16LE").encode("utf-8")
-        # print "GUID", self.guid
+        # print("GUID", self.guid)
         data.eat("2L")
         self.policy = data.eat("L")
         self.masterkeyLen = data.eat("Q")
-        # print self.masterkeyLen
+        # print(self.masterkeyLen)
         self.backupkeyLen = data.eat("Q")
         self.credhistLen = data.eat("Q")
         self.domainkeyLen = data.eat("Q")
@@ -546,7 +548,7 @@ class MasterKeyFile(DataStruct):
         if context == "domain1607-" or context == "domain":
             self.decryptWithHash(userSID, hashlib.new("md4", pwd.encode('UTF-16LE')).digest())
             if self.decrypted:
-                print "Decrypted succesfully as domain1607-"
+                print("Decrypted succesfully as domain1607-")
                 return
         if context == "domain1607+" or context == "domain":
             SIDenc = userSID.encode("UTF-16LE")
@@ -555,13 +557,13 @@ class MasterKeyFile(DataStruct):
             derived = pbkdf2(derived, SIDenc, 16, 1, digest='sha256')
             self.decryptWithHash(userSID, derived)
             if self.decrypted:
-                print "Decrypted succesfully as domain1607+"
+                print("Decrypted succesfully as domain1607+")
                 return
         if context == "local":
             self.decryptWithHash(userSID, hashlib.new("sha1", pwd.encode('UTF-16LE')).digest())
 
     def __repr__(self):
-        s = ["\n#### MasterKeyFile %s ####" % self.guid]
+        s = ["\n#### MasterKeyFile %s ####" % self.guid.decode('utf-8')]
         if self.version is not None:
             s.append("\tversion   = %#d" % self.version)
         if self.policy is not None:
@@ -654,10 +656,10 @@ if __name__ == "__main__":
     debug = options.debug
 
     if options.preferred and (options.masterkey or options.sid or options.context):
-        print "'Preferred' option cannot be used combined with any other, exiting."
+        print("'Preferred' option cannot be used combined with any other, exiting.")
         sys.exit(1)
     elif not options.preferred and not (options.masterkey and options.sid and options.context):
-        print "masterkey file, SID and context are mandatory in order to extract hash from masterkey file, exiting."
+        print("masterkey file, SID and context are mandatory in order to extract hash from masterkey file, exiting.")
         sys.exit(1)
     elif options.preferred:
         Preferred = open(options.preferred,'rb')
@@ -671,4 +673,4 @@ if __name__ == "__main__":
         masterkeyfile.close()
         mkp.addMasterKey(mkdata, SID=options.sid, context=options.context)
         if options.password:
-            print mkp.try_credential(options.sid, options.password, options.context)
+            print(mkp.try_credential(options.sid, options.password, options.context))

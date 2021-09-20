@@ -663,6 +663,7 @@ CRYPT_LIBS
 Z_LIBS
 RT_LIBS
 M_LIBS
+UNRAR_OBJS
 OPENSSL_LIBS
 OPENSSL_CFLAGS
 JOHN_NO_SIMD
@@ -749,6 +750,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 with_openssl
+with_unrar
 with_endian
 with_systemwide
 enable_asan
@@ -1415,6 +1417,8 @@ Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --without-openssl       Do not use OpenSSL (exclude much functionality)
+  --without-unrar         Omit non-free unrar code (rendering RAR v3 support
+                          incomplete)
   --with-endian=little|big
                           Set endianness for target if it doesn't detect
                           properly
@@ -3408,6 +3412,14 @@ if test "${with_openssl+set}" = set; then :
   withval=$with_openssl;
 else
   with_openssl=yes
+fi
+
+
+# Check whether --with-unrar was given.
+if test "${with_unrar+set}" = set; then :
+  withval=$with_unrar;
+else
+  with_unrar=yes
 fi
 
 
@@ -12403,6 +12415,33 @@ fi
 
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for (non-free) ClamAV unrar code" >&5
+$as_echo_n "checking for (non-free) ClamAV unrar code... " >&6; }
+if test $with_unrar = yes; then
+  for sf in unrar.c unrarcmd.c unrarfilter.c unrarhlp.c unrarppm.c unrarvm.c unrar.h unrarcmd.h unrarfilter.h unrarhlp.h unrarppm.h unrarvm.h; do
+    if test ! -s $sf; then
+      unrar_files="no (files missing)"
+      { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+      break
+    fi
+  done
+  if test -z "$unrar_files"; then
+    unrar_files="yes"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+
+$as_echo "#define HAVE_UNRAR 1" >>confdefs.h
+
+    UNRAR_OBJS="unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o"
+
+  fi
+else
+  unrar_files="no (disabled)"
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: disabled" >&5
+$as_echo "disabled" >&6; }
+fi
+
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for sqrt in -lm" >&5
 $as_echo_n "checking for sqrt in -lm... " >&6; }
 if ${ac_cv_lib_m_sqrt+:} false; then :
@@ -16418,7 +16457,6 @@ else
   { $as_echo "$as_me:${as_lineno-$LINENO}: creating *_plug.c rules" >&5
 $as_echo "$as_me: creating *_plug.c rules" >&6;}
 fi
-
 if test "`echo *_plug.c`" != "*_plug.c"; then
    PLUGFORMATS_OBJS=`echo *_plug.c | sed 's/opencl[A-Za-z0-9_\-]*\.c //g;s/\.c/.o/g'`
 
@@ -17973,6 +18011,7 @@ libgmp (PRINCE mode and faster SRP formats)  ${ac_cv_lib_gmp___gmpz_init}
 libz (pkzip and some other formats) ........ ${using_zlib}
 libbz2 (gpg2john extra decompression logic)  ${using_bz2}
 libpcap (vncpcap2john and SIPdump) ......... ${using_pcap}
+Non-free unrar code (complete RAR support) . ${unrar_files}
 OpenMPI support (default disabled) ......... ${using_mpi}
 ZTEX USB-FPGA module 1.15y support ......... ${ztex}
 

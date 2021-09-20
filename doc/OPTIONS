@@ -147,6 +147,9 @@ rulesets that are made to work together.
 Enables the "incremental" mode, using the specified configuration file
 definition (section [Incremental:MODE]).  If MODE is omitted, the
 default is "ASCII" for most hash types and "LM_ASCII" for LM hashes.
+If no definition is found for MODE but it ends with ".chr", it will be
+taken as a charset file name, eg. for temporary use.
+
 
 --external=MODE			external mode or word filter
 
@@ -189,6 +192,15 @@ Prints status of an interrupted or running session.  Note that on a
 Unix-like system, you can get a detached running session to update its
 session file by sending a SIGHUP to the appropriate "john" process;
 then use this option to read in and display the status.
+
+--catch-up=NAME			catch up with paused session
+
+Limit the session to running only until it reaches the candidates tried
+count of a different, existing and paused session NAME.  This can be
+used for adding more hashes to an existing job:  After the new session
+finishes, just concatenate the new hashes to the older session's hash
+file and resume the old session.  This will end up more or less as if
+both sets of hashes were in the original session to start with.
 
 --make-charset=FILE		make a charset, overwriting FILE
 
@@ -381,7 +393,15 @@ mostly OK for saltless hash types or when there's just one salt (since
 the same number of hash computations is to be made anyway - namely, only
 one per candidate password tested), but it is a serious drawback when
 many different salts are present and their number could potentially be
-decreasing as some hashes get cracked.
+decreasing as some hashes get cracked.  In case you actually share the
+pot file (such as when different sessions run on one same physical
+machine, or when the working directory is on NFS), a feature called
+"pot sync" will mitigate this: Each process will detect when some other
+process wrote to the pot file, and read/process that data.  This syncing
+is delayed by buffering but mitigates any need for interrupting/
+restoring.  The feature is always active as long as you run with the
+same pot file: Sessions using neither node nor fork but working with the
+same set of hashes will still benefit from it.
 
 --fork=N			fork N processes
 
@@ -425,14 +445,8 @@ especially for fast to compute hash types (such as LM hashes), where
 OpenMP overhead is often unacceptable.
 
 Similarly to "--node", there's almost no communication between the
-processes with "--fork".  Hashes successfully cracked by one process
-continue being cracked by other processes.  Just like with "--node",
-this is mostly OK for saltless hash types or when there's just one salt,
-but it is a serious drawback when many different salts are present and
-their number could potentially be decreasing as some hashes get cracked.
-To have the cracked hashes (and possibly salts) removed from all
-processes, you may interrupt and restore the session once in a while.
-
+processes with "--fork", but the "pot sync" feature (described under that
+option) will promptly exclude hashes cracked by other processes.
 
 --format=NAME[,NAME...]		force hash type NAME
 
@@ -447,11 +461,11 @@ format label such as "--format=crypt-md5".
 
 Mainly for test and list purposes (see --list=WHAT), you can use a single
 wildcard, as in "--format=mysql-*", "--format=raw*ng" or "--format=*office",
-or group aliases such as "dynamic", "cpu", "omp", "opencl", "ztex" as a
+or format classes such as "dynamic", "cpu", "omp", "opencl", "ztex" as a
 well as the special "all" that will include even formats listed as disabled
 in john.conf (so "./john -test=0 -format=all" will ensure you actually test
 all formats regardless of config).  While on the subject of disabled formats,
-aliases "enabled" or "disabled" can also be used, eg. for listing which of
+classes "enabled" or "disabled" can also be used, eg. for listing which of
 them are.
 
 There's also a special way to match any substring within the "algorithm
@@ -478,7 +492,7 @@ this can be used for merely changing format precedence while otherwise
 keeping auto-detection.  This means eg. "--format=ztex,opencl,cpu" for a
 crack session will end up in auto-detection among all formats, just like no
 format option was used, except it will prefer ztex over opencl and only use
-a CPU format unless a ZTEX or OpenCL format was available.
+a CPU format if neither a ZTEX or OpenCL format was available.
 
 The ad-hoc dynamic, or "dynamic compiler" format can not be used in a format
 list or with wildcards, only on it's own.  This is because the expression

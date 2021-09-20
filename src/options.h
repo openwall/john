@@ -201,6 +201,15 @@
 #endif
 
 /*
+ * Macro for getting correct total processes regardless of if MPI or fork
+ */
+#if HAVE_MPI
+#define NODES (mpi_p > 1 ? mpi_p : options.fork ? options.fork : 1)
+#else
+#define NODES (options.fork ? options.fork : 1)
+#endif
+
+/*
  * Structure with option flags and all the parameters.
  */
 struct options_main {
@@ -360,14 +369,7 @@ struct options_main {
 /* Stacked rules applied within cracker.c for any mode */
 	char *rule_stack;
 
-/* This is a 'special' flag.  It causes john to add 'extra' code to search for
- * some salted types, when we have only the hashes.  The only type supported is
- * PHPS (at this time.).  So PHPS will set this to a 1. OTherwise it will
- * always be zero.  LIKELY we will add the same type logic for the OSC
- * (mscommerse) type, which has only a 2 byte salt.  That will set this field
- * to be a 2.  If we add other types, then we will have other values which can
- * be assigned to this variable.  This var is set by the undocummented
- * --regen_lost_salts=#   */
+/* Salt brute-force */
 	int regen_lost_salts;
 
 /* Requested max_keys_per_crypt (for testing purposes) */
@@ -390,7 +392,10 @@ struct options_main {
  */
 	int max_run_time;
 
-/* Graceful exit after this many candidates tried. */
+/*
+ * Graceful exit after this many candidates tried. If the number is
+ * negative, we reset the count on any successful crack.
+ */
 	long long max_cands;
 
 /* Emit a status line every N seconds */
@@ -453,8 +458,13 @@ struct options_main {
 	int log_stderr;
 /* Emit a status line for every password cracked */
 	int crack_status;
+<<<<<<< HEAD
 /* Rain full charsets */
 	char *rain_full;
+=======
+/* --catch-up=oldsession */
+	char *catchup;
+>>>>>>> 43c7f8850736d4ec68bf0a022ae9fb34c274a01d
 };
 
 extern struct options_main options;

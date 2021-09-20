@@ -34,6 +34,10 @@ typedef uint64_t host_size_t;
 typedef uint32_t host_size_t;
 #endif
 
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
 /*
  * Some runtimes/drivers breaks on using inline, others breaks on lack of it,
  * yet others require use of static as well.
@@ -300,8 +304,11 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 	}
 
 /*
+ * Allow some strict aliasing violations, for nvidia only.
  * These require (b) to be aligned!
  */
+#if gpu_nvidia(DEVICE_INFO)
+#define ALLOW_ALIASING_VIOLATIONS	1
 #if __ENDIAN_LITTLE__
 #define GET_UINT32_ALIGNED(n, b, i)	(n) = ((uint*)(b))[(i) >> 2]
 #define PUT_UINT32_ALIGNED(n, b, i)	((uint*)(b))[(i) >> 2] = (n)
@@ -318,6 +325,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define PUT_UINT64_ALIGNED(n, b, i)	((ulong*)(b))[(i) >> 3] = SWAP64(n)
 #define GET_UINT64BE_ALIGNED(n, b, i)	(n) = ((ulong*)(b))[(i) >> 3]
 #define PUT_UINT64BE_ALIGNED(n, b, i)	((ulong*)(b))[(i) >> 3] = (n)
+#endif
 #endif
 
 /* Any device can do 8-bit reads BUT these macros are scalar only! */
@@ -387,245 +395,92 @@ inline int check_pkcs_pad(const uchar *data, int len, int blocksize)
  * If src and dst are different size types, you will get what you asked for...
  */
 #define memcpy_macro(dst, src, count) do {	  \
-		uint c = count; \
-		for (uint _i = 0; _i < c; _i++) \
-			(dst)[_i] = (src)[_i]; \
+		uint _memcpy_c = count; \
+		for (uint _memcpy_i = 0; _memcpy_i < _memcpy_c; _memcpy_i++) \
+			(dst)[_memcpy_i] = (src)[_memcpy_i]; \
 	} while (0)
 
 /*
- * Optimized functions. You need to pick the one that corresponds to the
- * source- and destination memory type(s).
- *
- * Note that for very small sizes, the overhead may make these functions
- * slower than naive code. On the other hand, due to inlining we will
- * hopefully have stuff optimized away more often than not!
+ * memcpy functions.  Until we require OpenCL 2.0, you need to pick the one
+ * that corresponds to the source- and destination memory type(s).
  */
 
 /* src and dst are private mem */
-inline void memcpy_pp(void *dst, const void *src, uint count)
+inline void memcpy_pp(void* restrict dst, const void* restrict src, uint count)
 {
-	union {
-		const uint *w;
-		const uchar *c;
-	} s;
-	union {
-		uint *w;
-		uchar *c;
-	} d;
+	const char *s = src;
+	char *d = dst;
 
-	s.c = src;
-	d.c = dst;
-
-	if (((size_t)dst & 0x03) == ((size_t)src & 0x03)) {
-		while (((size_t)s.c) & 0x03 && count--)
-			*d.c++ = *s.c++;
-
-		while (count >= 4) {
-			*d.w++ = *s.w++;
-			count -= 4;
-		}
-	}
-
-	while (count--) {
-		*d.c++ = *s.c++;
-	}
+	while (count--)
+		*d++ = *s++;
 }
 
 /* src is private mem, dst is global mem */
-inline void memcpy_pg(__global void *dst, const void *src, uint count)
+inline void memcpy_pg(__global void* restrict dst, const void* restrict src, uint count)
 {
-	union {
-		const uint *w;
-		const uchar *c;
-	} s;
-	union {
-		__global uint *w;
-		__global uchar *c;
-	} d;
+	const char *s = src;
+	__global char *d = dst;
 
-	s.c = src;
-	d.c = dst;
-
-	if (((size_t)dst & 0x03) == ((size_t)src & 0x03)) {
-		while (((size_t)s.c) & 0x03 && count--)
-			*d.c++ = *s.c++;
-
-		while (count >= 4) {
-			*d.w++ = *s.w++;
-			count -= 4;
-		}
-	}
-
-	while (count--) {
-		*d.c++ = *s.c++;
-	}
+	while (count--)
+		*d++ = *s++;
 }
 
 /* src is global mem, dst is private mem */
-inline void memcpy_gp(void *dst, __global const void *src, uint count)
+inline void memcpy_gp(void* restrict dst, __global const void* restrict src, uint count)
 {
-	union {
-		__global const uint *w;
-		__global const uchar *c;
-	} s;
-	union {
-		uint *w;
-		uchar *c;
-	} d;
+	__global const char *s = src;
+	char *d = dst;
 
-	s.c = src;
-	d.c = dst;
-
-	if (((size_t)dst & 0x03) == ((size_t)src & 0x03)) {
-		while (((size_t)s.c) & 0x03 && count--)
-			*d.c++ = *s.c++;
-
-		while (count >= 4) {
-			*d.w++ = *s.w++;
-			count -= 4;
-		}
-	}
-
-	while (count--) {
-		*d.c++ = *s.c++;
-	}
+	while (count--)
+		*d++ = *s++;
 }
 
 /* src is constant mem, dst is private mem */
-inline void memcpy_cp(void *dst, __constant void *src, uint count)
+inline void memcpy_cp(void* restrict dst, __constant void* restrict src, uint count)
 {
-	union {
-		__constant uint *w;
-		__constant uchar *c;
-	} s;
-	union {
-		uint *w;
-		uchar *c;
-	} d;
+	__constant char *s = src;
+	char *d = dst;
 
-	s.c = src;
-	d.c = dst;
-
-	if (((size_t)dst & 0x03) == ((size_t)src & 0x03)) {
-		while (((size_t)s.c) & 0x03 && count--)
-			*d.c++ = *s.c++;
-
-		while (count >= 4) {
-			*d.w++ = *s.w++;
-			count -= 4;
-		}
-	}
-
-	while (count--) {
-		*d.c++ = *s.c++;
-	}
+	while (count--)
+		*d++ = *s++;
 }
 
 /* src is MAYBE_CONSTANT mem, dst is private mem */
-inline void memcpy_mcp(void *dst, MAYBE_CONSTANT void *src, uint count)
+inline void memcpy_mcp(void* restrict dst, MAYBE_CONSTANT void* restrict src, uint count)
 {
-	union {
-		MAYBE_CONSTANT uint *w;
-		MAYBE_CONSTANT uchar *c;
-	} s;
-	union {
-		uint *w;
-		uchar *c;
-	} d;
+	MAYBE_CONSTANT char *s = src;
+	char *d = dst;
 
-	s.c = src;
-	d.c = dst;
-
-	if (((size_t)dst & 0x03) == ((size_t)src & 0x03)) {
-		while (((size_t)s.c) & 0x03 && count--)
-			*d.c++ = *s.c++;
-
-		while (count >= 4) {
-			*d.w++ = *s.w++;
-			count -= 4;
-		}
-	}
-
-	while (count--) {
-		*d.c++ = *s.c++;
-	}
+	while (count--)
+		*d++ = *s++;
 }
 
 /* dst is private mem */
 inline void memset_p(void *p, uint val, uint count)
 {
-	const uint val4 = val | (val << 8) | (val << 16) | (val << 24);
-	union {
-		uint *w;
-		uchar *c;
-	} d;
-
-	d.c = p;
-
-	while (((size_t)d.c) & 0x03 && count--)
-		*d.c++ = val;
-
-	while (count >= 4) {
-		*d.w++ = val4;
-		count -= 4;
-	}
+	char *d = p;
 
 	while (count--)
-		*d.c++ = val;
+		*d++ = val;
 }
 
 /* dst is global mem */
 inline void memset_g(__global void *p, uint val, uint count)
 {
-	const uint val4 = val | (val << 8) | (val << 16) | (val << 24);
-	union {
-		__global uint *w;
-		__global uchar *c;
-	} d;
-
-	d.c = p;
-
-	while (((size_t)d.c) & 0x03 && count--)
-		*d.c++ = val;
-
-	while (count >= 4) {
-		*d.w++ = val4;
-		count -= 4;
-	}
+	__global char *d = p;
 
 	while (count--)
-		*d.c++ = val;
+		*d++ = val;
 }
 
 /* s1 and s2 are private mem */
 inline int memcmp_pp(const void *s1, const void *s2, uint size)
 {
-	union {
-		const uint *w;
-		const uchar *c;
-	} a;
-	union {
-		const uint *w;
-		const uchar *c;
-	} b;
-
-	a.c = s1;
-	b.c = s2;
-
-	if (((size_t)s1 & 0x03) == ((size_t)s2 & 0x03)) {
-		while (((size_t)a.c) & 0x03 && size--)
-			if (*b.c++ != *a.c++)
-				return 1;
-
-		while (size >= 4) {
-			if (*b.w++ != *a.w++)
-				return 1;
-			size -= 4;
-		}
-	}
+	const uchar *a = s1;
+	const uchar *b = s2;
 
 	while (size--)
-		if (*b.c++ != *a.c++)
+		if (*a++ != *b++)
 			return 1;
 
 	return 0;
@@ -634,32 +489,11 @@ inline int memcmp_pp(const void *s1, const void *s2, uint size)
 /* s1 is private mem, s2 is global mem */
 inline int memcmp_pg(const void *s1, __global const void *s2, uint size)
 {
-	union {
-		const uint *w;
-		const uchar *c;
-	} a;
-	union {
-		__global const uint *w;
-		__global const uchar *c;
-	} b;
-
-	a.c = s1;
-	b.c = s2;
-
-	if (((size_t)s1 & 0x03) == ((size_t)s2 & 0x03)) {
-		while (((size_t)a.c) & 0x03 && size--)
-			if (*b.c++ != *a.c++)
-				return 1;
-
-		while (size >= 4) {
-			if (*b.w++ != *a.w++)
-				return 1;
-			size -= 4;
-		}
-	}
+	const uchar *a = s1;
+	__global const uchar *b = s2;
 
 	while (size--)
-		if (*b.c++ != *a.c++)
+		if (*a++ != *b++)
 			return 1;
 
 	return 0;
@@ -668,32 +502,24 @@ inline int memcmp_pg(const void *s1, __global const void *s2, uint size)
 /* s1 is private mem, s2 is constant mem */
 inline int memcmp_pc(const void *s1, __constant const void *s2, uint size)
 {
-	union {
-		const uint *w;
-		const uchar *c;
-	} a;
-	union {
-		__constant const uint *w;
-		__constant const uchar *c;
-	} b;
-
-	a.c = s1;
-	b.c = s2;
-
-	if (((size_t)s1 & 0x03) == ((size_t)s2 & 0x03)) {
-		while (((size_t)a.c) & 0x03 && size--)
-			if (*b.c++ != *a.c++)
-				return 1;
-
-		while (size >= 4) {
-			if (*b.w++ != *a.w++)
-				return 1;
-			size -= 4;
-		}
-	}
+	const uchar *a = s1;
+	__constant const uchar *b = s2;
 
 	while (size--)
-		if (*b.c++ != *a.c++)
+		if (*a++ != *b++)
+			return 1;
+
+	return 0;
+}
+
+/* s1 is global mem, s2 is constant mem */
+inline int memcmp_gc(__global const void *s1, __constant void *s2, uint size)
+{
+	__global const uchar *a = s1;
+	__constant uchar *b = s2;
+
+	while (size--)
+		if (*a++ != *b++)
 			return 1;
 
 	return 0;
@@ -702,32 +528,11 @@ inline int memcmp_pc(const void *s1, __constant const void *s2, uint size)
 /* s1 is private mem, s2 is MAYBE_CONSTANT mem */
 inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
 {
-	union {
-		const uint *w;
-		const uchar *c;
-	} a;
-	union {
-		MAYBE_CONSTANT uint *w;
-		MAYBE_CONSTANT uchar *c;
-	} b;
-
-	a.c = s1;
-	b.c = s2;
-
-	if (((size_t)s1 & 0x03) == ((size_t)s2 & 0x03)) {
-		while (((size_t)a.c) & 0x03 && size--)
-			if (*b.c++ != *a.c++)
-				return 1;
-
-		while (size >= 4) {
-			if (*b.w++ != *a.w++)
-				return 1;
-			size -= 4;
-		}
-	}
+	const uchar *a = s1;
+	MAYBE_CONSTANT uchar *b = s2;
 
 	while (size--)
-		if (*b.c++ != *a.c++)
+		if (*a++ != *b++)
 			return 1;
 
 	return 0;
@@ -737,11 +542,11 @@ inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
 inline int memmem_pc(const void *haystack, size_t haystack_len,
                      __constant const void *needle, size_t needle_len)
 {
-	char* haystack_ = (char*)haystack;
-	__constant const char* needle_ = (__constant const char*)needle;
+	const char *haystack_ = haystack;
+	__constant const char *needle_ = needle;
 	int hash = 0;
 	int hay_hash = 0;
-	char* last;
+	const char *last;
 	size_t i;
 
 	if (haystack_len < needle_len)
@@ -757,11 +562,9 @@ inline int memmem_pc(const void *haystack, size_t haystack_len,
 
 	haystack_ = (char*)haystack;
 	needle_ = (__constant char*)needle;
-	last = haystack_+(haystack_len - needle_len + 1);
-	for (; haystack_ < last; ++haystack_) {
-		if (hash == hay_hash &&
-		    *haystack_ == *needle_ &&
-		    !memcmp_pc (haystack_, needle_, needle_len))
+
+	for (last = haystack_ + (haystack_len - needle_len + 1); haystack_ < last; ++haystack_) {
+		if (hash == hay_hash && *haystack_ == *needle_ && !memcmp_pc(haystack_, needle_, needle_len))
 			return 1;
 
 		hay_hash -= *haystack_;

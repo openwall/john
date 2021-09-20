@@ -256,7 +256,7 @@ struct fmt_main fmt_odf = {
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
 		{
 			"iteration count",
-			"crypto [0=Blowfish, 1=AES]",
+			"crypto [0=Blowfish 1=AES]",
 		},
 		{ FORMAT_TAG },
 		odf_tests

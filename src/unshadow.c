@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2001,2005,2006,2011 by Solar Designer
+ * Copyright (c) 1996-2001,2005,2006,2011,2021 by Solar Designer
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -49,9 +49,10 @@ static unsigned int login_hash(char *login)
 #endif
 
 	while (*p) {
-		hash <<= 3; extra <<= 2;
+		hash <<= 5;
 		hash += (unsigned char)p[0];
 		if (!p[1]) break;
+		extra *= hash | 1812433253;
 		extra += (unsigned char)p[1];
 		p += 2;
 		if (hash & 0xe0000000) {
@@ -96,17 +97,6 @@ static void read_file(char *name, void (*process_line)(char *line))
 	if (fclose(file)) pexit("fclose");
 }
 
-static int space_or_tab(char c) {
-	if (c == ' ') {
-		return 1;
-	}
-	if (c == '\t') {
-		return 1;
-	}
-
-	return 0;
-}
-
 static void process_shadow_line(char *line)
 {
 	static struct shadow_entry **entry = NULL;
@@ -116,16 +106,13 @@ static void process_shadow_line(char *line)
 	/* AIX "password = " */
 	if (!(passwd = strchr(line, ':'))) {
 		/* skip spaces and tabs */
-		while (space_or_tab(*line))
-			line++;
+		line += strspn(line, " \t");
 		if (!strncmp(line, "password", 8)) {
 			line += 8;
-			while (space_or_tab(*line))
+			line += strspn(line, " \t");
+			if (*line == '=') {
 				line++;
-			if (!strncmp(line, "=", 1)) {
-				line++;
-				while (space_or_tab(*line))
-					line++;
+				line += strspn(line, " \t");
 				if (entry)
 					(*entry)->passwd = str_alloc_copy(line);
 			}

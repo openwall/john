@@ -38,10 +38,10 @@ typedef struct {
 } axcrypt_out;
 
 #define PUT_64BITS_XOR_MSB(cp, value) ( \
-                (cp)[0] ^= (unsigned char)((value)), \
-                (cp)[1] ^= (unsigned char)((value) >> 8), \
-                (cp)[2] ^= (unsigned char)((value) >> 16), \
-                (cp)[3] ^= (unsigned char)((value) >> 24 ) )
+                (cp)[0] ^= (uchar)((value)), \
+                (cp)[1] ^= (uchar)((value) >> 8), \
+                (cp)[2] ^= (uchar)((value) >> 16), \
+                (cp)[3] ^= (uchar)((value) >> 24 ) )
 
 inline int axcrypt_decrypt(__global const axcrypt_password *inbuffer, uint gid, __constant axcrypt_salt *cur_salt, __global axcrypt_out *output)
 {
@@ -49,14 +49,15 @@ inline int axcrypt_decrypt(__global const axcrypt_password *inbuffer, uint gid, 
 	uchar keyfile[4096];
 	int password_length = inbuffer[gid].length;
 	uchar salt[16];
-	unsigned char KEK[20];
+	uchar KEK[20];
         union {
-		unsigned char b[16];
+		uchar b[16];
 		uint32_t w[4];
 	} lsb;
 	union {
-		unsigned char b[16];
+		uchar b[16];
 		uint32_t w[4];
+		uint64_t l[2];
 	} cipher;
 	AES_KEY akey;
 	SHA_CTX ctx;
@@ -108,12 +109,7 @@ inline int axcrypt_decrypt(__global const axcrypt_password *inbuffer, uint gid, 
 		lsb.w[1] = cipher.w[3];
 	}
 
-	for (i = 0; i < 8; i++) {
-		if (cipher.b[i] != 0xa6)
-			return 0;
-	}
-
-	return 1;
+	return (cipher.l[0] == 0xa6a6a6a6a6a6a6a6UL);
 }
 
 __kernel

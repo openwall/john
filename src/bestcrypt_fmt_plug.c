@@ -449,7 +449,7 @@ struct fmt_main fmt_bestcrypt = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_UNICODE | FMT_ENC | FMT_OMP | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{
 /* FIXME: Should also report hash_id as a tunable cost */
 			"iteration count",

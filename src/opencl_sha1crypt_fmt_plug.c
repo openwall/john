@@ -62,7 +62,7 @@ john_register_one(&fmt_ocl_cryptsha1);
 #define STEP			0
 #define SEED			128
 
-#define ITERATIONS		(64000*2+2)
+#define ITERATIONS		(20000*2+2)
 
 /* This handles all widths */
 #define GETPOS(i, index)	(((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
@@ -161,10 +161,6 @@ static void init(struct fmt_main *_self)
 	self = _self;
 
 	opencl_prepare_dev(gpu_id);
-	/* Nvidia Kepler benefits from 2x interleaved code */
-	if (!options.v_width && nvidia_sm_3x(device_info[gpu_id]))
-		ocl_v_width = 2;
-	else
 	/* VLIW5 does better with just 2x vectors due to GPR pressure */
 	if (!options.v_width && amd_vliw5(device_info[gpu_id]))
 		ocl_v_width = 2;
@@ -261,7 +257,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
+	global_work_size = GET_KPC_MULTIPLE(count, local_work_size);
 	scalar_gws = global_work_size * ocl_v_width;
 #if 0
 	fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu"\n", __FUNCTION__,

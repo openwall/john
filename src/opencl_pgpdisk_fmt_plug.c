@@ -330,7 +330,7 @@ struct fmt_main fmt_opencl_pgpdisk = {
 		FMT_CASE | FMT_8_BIT,
 		{
 			"iteration count",
-			"algorithm [3=CAST, 4=TwoFish, 5/6/7=AES]",
+			"algorithm [3=CAST 4=TwoFish 5/6/7=AES]",
 		},
 		{ FORMAT_TAG },
 		pgpdisk_tests,

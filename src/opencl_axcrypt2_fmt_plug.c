@@ -79,7 +79,7 @@ typedef struct {
 	salt_t pbkdf2;
 	uint32_t key_wrapping_rounds;
 	unsigned char salt[64];
-	unsigned char wrappedkey[144];
+	unsigned int wrappedkey[144/4];
 } axcrypt2_salt_t;
 
 typedef struct {
@@ -299,8 +299,8 @@ static void set_salt(void *salt)
 	host_salt->pbkdf2.length = cur_salt->deriv_salt_length;
 	host_salt->pbkdf2.rounds = cur_salt->deriv_iterations;
 
-        memcpy(host_salt->salt, cur_salt->salt, 64);
-        memcpy(host_salt->wrappedkey, cur_salt->wrappedkey, 144);
+	memcpy(host_salt->salt, cur_salt->salt, 64);
+	memcpy(host_salt->wrappedkey, cur_salt->wrappedkey, 144);
 
 	host_salt->key_wrapping_rounds = cur_salt->key_wrapping_rounds;
 

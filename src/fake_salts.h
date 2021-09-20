@@ -52,9 +52,10 @@ From jtr rules.  Using ! instead of ? means 'optional' character.  So ?d?d?d?d- 
  */
 
 extern char *regen_salts_options;
+extern int regen_salts_count;
 
 extern int regen_lost_salt_parse_options();
 extern char *load_regen_lost_salt_Prepare(char *split_fields1);
 extern void crk_guess_fixup_salt(char *source, char *salt);
 extern void ldr_pot_possible_fixup_salt(char *source, char *ciphertext);
-extern void build_fake_salts_for_regen_lost(struct db_salt *);
+extern void build_fake_salts_for_regen_lost(struct db_main *);

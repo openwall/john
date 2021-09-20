@@ -586,16 +586,10 @@ __constant uint S[8][256] = {
 #define _CAST_F2(l, r, i, j) _CAST_f2(l, r, K[i], K[i+j])
 #define _CAST_F3(l, r, i, j) _CAST_f3(l, r, K[i], K[i+j])
 
-#if __ENDIAN_LITTLE__
-#define BE32(x) SWAP32(x)
-#else
-#define BE32(x) (x)
-#endif
-
 inline void Cast5Encrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 {
-	uint l = BE32(((uint *)inBlock)[0]);
-	uint r = BE32(((uint *)inBlock)[1]);
+	uint l; GET_UINT32BE(l, inBlock, 0);
+	uint r; GET_UINT32BE(r, inBlock, 4);
 	uint *K = key->K;
 	uint t;
 
@@ -618,14 +612,14 @@ inline void Cast5Encrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 	_CAST_F1(r, l, 15, 16);
 
 	/* Put l,r into outblock */
-	((uint *)outBlock)[0] = BE32(r);
-	((uint *)outBlock)[1] = BE32(l);
+	PUT_UINT32BE(r, outBlock, 0);
+	PUT_UINT32BE(l, outBlock, 4);
 }
 
 inline void Cast5Decrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 {
-	uint r = BE32(((uint *)inBlock)[0]);
-	uint l = BE32(((uint *)inBlock)[1]);
+	uint l; GET_UINT32BE(l, inBlock, 0);
+	uint r; GET_UINT32BE(r, inBlock, 4);
 	uint *K = key->K;
 	uint t;
 
@@ -647,8 +641,8 @@ inline void Cast5Decrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 	_CAST_F2(r, l,  1, 16);
 	_CAST_F1(l, r,  0, 16);
 	/* Put l,r into outblock */
-	((uint *)outBlock)[0] = BE32(l);
-	((uint *)outBlock)[1] = BE32(r);
+	PUT_UINT32BE(r, outBlock, 0);
+	PUT_UINT32BE(l, outBlock, 4);
 	/* Wipe clean */
 	t = l = r = 0;
 }
@@ -659,10 +653,10 @@ inline void Cast5SetKey(CAST_KEY *key, uint keylength, const uchar *userKey)
 	uint *K = key->K;
 	uint X[4], Z[4];
 
-	X[0] = BE32(((uint *)userKey)[0]);
-	X[1] = BE32(((uint *)userKey)[1]);
-	X[2] = BE32(((uint *)userKey)[2]);
-	X[3] = BE32(((uint *)userKey)[3]);
+	GET_UINT32BE(X[0], userKey, 0);
+	GET_UINT32BE(X[1], userKey, 4);
+	GET_UINT32BE(X[2], userKey, 8);
+	GET_UINT32BE(X[3], userKey, 12);
 
 #define x(i) GETBYTE(X[i/4], 3-i%4)
 #define z(i) GETBYTE(Z[i/4], 3-i%4)

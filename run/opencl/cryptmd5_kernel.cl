@@ -110,12 +110,18 @@
 
 typedef struct {
 	uint saltlen;
-	uchar salt[8];
+	union {
+		uchar c[8];
+		uint w[2];
+	} salt;
 	uchar prefix;	/* 'a' = $apr1$, '1' = $1$, '\0' = {smd5} (no prefix). */
 } crypt_md5_salt;
 
 typedef struct {
-	uchar v[PLAINTEXT_LENGTH];
+	union {
+		uchar c[PLAINTEXT_LENGTH];
+		uint w[(PLAINTEXT_LENGTH + 3) / 4];
+	} v;
 	uchar length;
 } crypt_md5_password;
 
@@ -253,14 +259,24 @@ inline void ctx_update_prefix(md5_ctx *ctx, uchar prefix, uchar *ctx_buflen)
 
 inline void init_ctx(md5_ctx *ctx, uchar *ctx_buflen)
 {
+#if __OS_X__
+
+	/* Bug workaround for intel macbook with AMD Vega. */
+	memset_p(ctx->buffer, 0, sizeof(ctx->buffer));
+
+#else
+
 	uint i;
-	uint *buf = (uint *) ctx->buffer;
+	uint *buf = ctx->buffer;
 
 #ifdef UNROLL_AGGRESSIVE
 #pragma unroll 4
 #endif
 	for (i = 0; i < sizeof(ctx->buffer) / 4; i++)
 		*buf++ = 0;
+
+#endif /* __OS_X__ */
+
 	*ctx_buflen = 0;
 }
 
@@ -644,10 +660,10 @@ __kernel void cryptmd5(__global const crypt_md5_password *inbuffer,
 #pragma unroll 4
 #endif
 	for (i = 0; i < (PLAINTEXT_LENGTH + 3) / 4; i++)
-		pass.w[i] = ((__global uint *) &inbuffer[idx].v)[i];
+		pass.w[i] = inbuffer[idx].v.w[i];
 
-	salt.w[0] = ((__constant uint *) &hsalt->salt)[0];
-	salt.w[1] = ((__constant uint *) &hsalt->salt)[1];
+	salt.w[0] = hsalt->salt.w[0];
+	salt.w[1] = hsalt->salt.w[1];
 
 /* Don't disable the specialization for our magic test vectors */
 	if (salt.w[0] == 0x01010101)

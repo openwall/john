@@ -458,6 +458,9 @@ void status_print(void)
 	if (options.flags & FLG_STATUS_CHK)
 		percent_value = status.progress;
 	else
+	if (options.catchup && john_max_cands) {
+		percent_value = 100.0 * status.cands / john_max_cands;
+	} else
 	if (status_get_progress)
 		percent_value = status_get_progress();
 

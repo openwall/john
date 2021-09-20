@@ -320,7 +320,7 @@ struct fmt_main fmt_ocl_KeePass = {
 		{
 			"iteration count",
 			"version",
-			"algorithm [0=AES, 1=TwoFish, 2=ChaCha]",
+			"algorithm [0=AES 1=TwoFish 2=ChaCha]",
 		},
 		{ FORMAT_TAG },
 		keepass_tests

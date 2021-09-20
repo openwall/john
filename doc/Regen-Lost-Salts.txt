@@ -1,42 +1,43 @@
-***************************************************************************
-* JtR --regen-lost-salts code, written by JimF, 2012-2015, for use
-* within the salted dynamic formats.
-*
-* No copyright is claimed, and the software is hereby
-* placed in the public domain. In case this attempt to disclaim
-* copyright and place the software in the public domain is deemed
-* null and void, then the software is Copyright (c) 2012-2015 JimF
-* and it is hereby released to the general public under the following
-* terms:
-*
-* This software may be modified, redistributed, and used for any
-* purpose, in source and binary forms, with or without modification.
-***************************************************************************
+Salt brute-force feature:  --regen-lost-salts
 
+This option will allow hashes to be cracked even where the salt, normally
+stored together with the hash, was somehow lost.  Normally a cracker would not
+be able to attack such hashes.  Using this feature, only supported for dynamic
+formats (including "dynamic compiler" ones), JtR will load the hashes and
+brute-force all possible salts for each.
 
---regen-lost-salts=type:hash_sz:mask
+Obviously this comes at a price - but not always:  If you attack a single hash
+with 1000 possible salts, it will end up with same same p/s as an attack on
+1000 uniquly salted hashes.  If on the other hand the number of hashes is
+larger than 1000, you'll end up with no penalty (well, until you've cracked so
+many that there are less than 1000 left to crack) and for very short salt
+sizes and/or large number of hashes, normal "same-salt boosts" may even apply.
 
-This option will allow certain types (with short salts), to be found, when
-they are present in a set of raw hashes, but where we have lost the salt value.
-Normally, without the salt, JtR would not be able to do anything with the hash,
-and could not find the password.  In this mode, JtR will load the hashes, giving
-each a 'fake' salt (but all get the same salt).  JtR then builds all of the
-possible salt values for this format, and associates every hash with each one
-of these salts.  So, JtR will now run, and find passwords using all possible
-salts for each of the hashes, thus recreating the salt (and finding the passwords).
+The feature should only be used with bare hashes input, meaning the ciphertext
+should be, for example, raw hex such as d3d9446802a44259755d38e6d163e820 without
+any tag such as the "$dynamic_xx$" prefix and obviously without the "$babe" salt
+suffix.  Other fields such as login/gecos are optionally supported though, just
+like they always are:
 
-This function has recently been re-written.  The prior way of usage is still supported
-(limited), and should be considered depricated.  See the end of this document for
-the *** NOTE section.
+	user:d3d9446802a44259755d38e6d163e820:101:100:Joe Random Luser
+
+All salts should be missing in the input file; Mixing missing-salt hashes with
+correctly salted ones in one same session is not supported.
 
 Usage:
+--regen-lost-salts=<type>:<hash_sz>:<mask>
 
---regen-lost-salts=dynamic_9:32:?d?d?d-   --format=dynamic_9
+Showing cracked hashes:
+Use --show as usual, but also include the full --regen-lost-salts parameters
+used while cracking them.  This is required in order to match the pot file
+entries (which have a format tag and the correct salt appended) to the bare
+hashes input.
 
-Note, regen has been updated to work with dynamic generic expression compiler also.
-Usage for same media-wiki as above is:
 
---regen-lost-salts='@dynamic=md5($s.md5($p))@:32:?d?d?d-'   --format='dynamic=md5($s.md5($p))'
+Detailed example:
+--regen-lost-salts=dynamic_9:32:?d?d?d-
+or, using dynamic compiler mode:
+--regen-lost-salts='@dynamic=md5($s.md5($p))@:32:?d?d?d-'
 
 The above command will run on a set of 32 byte 'raw' hashes, but which are known
 to contain media-wiki hashes.  Media-wiki is of the format md5(salt.-.md5(pass))
@@ -70,16 +71,19 @@ So that 'parts' of the --regen-lost-salts are:
             salt code will NOT work for salts this large.
 
 Here are more details about the mask value:
+- Note that these mask placeholders often differ from what is used by mask mode
+  and other parts of John.  For backward compatibility reasons, we are reluctant
+  to change this.
 - mask can contain static bytes. These will simply always be output. The example
   above did this with the '-' character in the last spot.
 - the mask can use different 'character class' bytes.  These are similar to the
   character types within JtR rules.  To set a 'class' for a specific byte location,
   simply use 2 characters, a question mark, and the class character.
   Here are the classes.
-    ??  - becomes a single ? char (2 question marks mean a literal question mark) 
+    ??  - becomes a single ? char (2 question marks mean a literal question mark)
     ?d  - decimal digits [0-9]  ** very common salt **
     ?l  - lower case letters [a-z]  (only ANSI lower case, does not take encodings
-          into account) 
+          into account)
     ?u  - upper case letters [A-Z]
     ?a  - upper / lower case letters [a-zA-Z]
     ?h  - hex lower case [0-9a-f]  ** common salt **
@@ -111,21 +115,11 @@ now, use this command line for john:
 --regen-lost-salts=dynamic_9:32:?1?d?d-   --format=dynamic_9
 
 This will use the user class-1 for the first byte, then digits for the other 2.
-This means our salt will start from 100- and go to 999- which skips 10% of the
-salts, and speeds things up by 10%.  This is due to the user-class-1 not having
-the '0' byte in it.
 
 
-At this time, only a fixed length salt is handled.  Doing a variable sized salt
-regen, simply adds too much complexity, and does slow things down, just a touch.
-This is different than the older --regen-lost-salts=3    This 'used to do 0- to 9-
-then 00- to 99- then 000- to 999-   The 'depricated' --regen-lost-salts=3 now only
-does 000- to 999- and would require running 2 more regen-salt runs to cover the
-entire salt range.
+An ancient version of the code used a single 'type' digit to specify what format
+to attack.  This still works but is deprecated:
 
-******************************************************************************
-
-*** NOTE, depricated method (still works, but should not be used)
 There are only a few types supported.  To properly run, you MUST use one of the
 proper types in the -format=type command, AND use the -regen-lost-salts=N with
 N being set properly.  The valid N's are:
@@ -147,7 +141,3 @@ find them using 'normal' methods.  This new functionality was added to handle
 leaked hashes where the original salt has been lost.  It is VERY slow to run
 in this manner, due to JtR having to check every possible salt, but it does
 allow these hashes to be cracked 'properly'.
-
-NOTE, the dyna-generic expression compiler is now supported, so dummy dynamic
-formats do not have to be hand coded simply to use the regen-salts logic on
-hashes where the salts were lost.

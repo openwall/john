@@ -109,9 +109,11 @@ static void pbkdf2_ripemd160(const unsigned char *K, int KL, const unsigned char
 
 	loops = (skip_bytes + outlen + (RIPEMD160_DIGEST_LENGTH-1)) / RIPEMD160_DIGEST_LENGTH;
 	loop = skip_bytes / RIPEMD160_DIGEST_LENGTH + 1;
+	skip_bytes %= RIPEMD160_DIGEST_LENGTH;
+
 	while (loop <= loops) {
 		_pbkdf2_ripemd160(S,SL,R,tmp.x32,loop,&ipad,&opad);
-		for (i = skip_bytes%RIPEMD160_DIGEST_LENGTH; i < RIPEMD160_DIGEST_LENGTH && accum < outlen; i++) {
+		for (i = skip_bytes; i < RIPEMD160_DIGEST_LENGTH && accum < outlen; i++) {
 			out[accum++] = ((uint8_t*)tmp.out)[i];
 		}
 		loop++;
