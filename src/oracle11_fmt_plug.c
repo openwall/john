@@ -67,12 +67,15 @@ john_register_one(&fmt_oracle11);
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
+#include "unicode.h"
 #include "sha.h"
 #include "johnswap.h"
 #include <ctype.h>
 
 #define FORMAT_LABEL			"oracle11"
 #define FORMAT_NAME			"Oracle 11g"
+#define FORMAT_TAG			"$oracle11$"
+#define FORMAT_TAG_LENGTH		(sizeof(FORMAT_TAG) - 1)
 
 #define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
 
@@ -116,6 +119,11 @@ static struct fmt_tests tests[] = {
 	{"3437FF72BD69E3FB4D10C750B92B8FB90B155E26227B9AB62D94F54E5951", "oracle"},
 	{"61CE616647A4F7980AFD7C7245261AF25E0AFE9C9763FCF0D54DA667D4E6", "11g"},
 	{"B9E7556F53500C8C78A58F50F24439D79962DE68117654B6700CE7CC71CF", "11g"},
+
+	/* with FORMAT_TAG */
+	{"$oracle11$7233E3B91B45F6B813BCFFB5D8669167CB4F498D0642558A8A3BB39948C0", "testpwd"},
+	{"$oracle11$f013fe236e70f5b47e933d84eac5ef2b1ab6e8b2b90bd9536750cad2998c", "TOTO1234#"},
+
 	{NULL}
 };
 
@@ -165,20 +173,49 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	int extra;
-	return hexlenu(ciphertext, &extra)==CIPHERTEXT_LENGTH && !extra;
+	char *p = ciphertext;
+
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
+		p += FORMAT_TAG_LENGTH;
+
+	if (strlen(p) != CIPHERTEXT_LENGTH)
+		return 0;
+
+	if (!ishex(p))
+		return 0;
+
+	return 1;
+}
+
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[FORMAT_TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
+
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
+		snprintf(out, sizeof(out), "%s", ciphertext);
+	else
+		snprintf(out, sizeof(out), "%s%s", FORMAT_TAG, ciphertext);
+
+	strupr(out + FORMAT_TAG_LENGTH);
+
+	return out;
 }
 
 static void *get_salt(char *ciphertext)
 {
 	static unsigned char *salt;
+	char *p = ciphertext;
 	int i;
 
 	if (!salt) salt = mem_alloc_tiny(SALT_SIZE, MEM_ALIGN_WORD);
 
+	if (!memcmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
+		p += FORMAT_TAG_LENGTH;
+
+	p += 2 * BINARY_SIZE;
 	for (i = 0; i < SALT_SIZE; i++) {
-		salt[i] = atoi16[ARCH_INDEX(ciphertext[BINARY_SIZE*2+i*2+0])]*16 +
-			atoi16[ARCH_INDEX(ciphertext[BINARY_SIZE*2+i*2+1])];
+		salt[i] = atoi16[ARCH_INDEX(p[i*2+0])]*16 +
+			atoi16[ARCH_INDEX(p[i*2+1])];
 	}
 
 	return (void *)salt;
@@ -339,10 +376,15 @@ static void * get_binary(char *ciphertext)
 		long dummy;
 	} realcipher;
 
+	char *p = ciphertext;
 	int i;
+
+	if (!memcmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
+		p += FORMAT_TAG_LENGTH;
+
 	for (i=0;i<BINARY_SIZE;i++)
-		realcipher.c[i] = atoi16[ARCH_INDEX(ciphertext[i*2])]*16 +
-						atoi16[ARCH_INDEX(ciphertext[i*2+1])];
+		realcipher.c[i] = atoi16[ARCH_INDEX(p[i*2])]*16 +
+						atoi16[ARCH_INDEX(p[i*2+1])];
 
 #if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN==1
 	alter_endianity((unsigned char *)realcipher.c, BINARY_SIZE);
@@ -374,9 +416,9 @@ struct fmt_main fmt_oracle11 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ NULL },
+		{ FORMAT_TAG },
 		tests
 	}, {
 		init,
@@ -384,7 +426,7 @@ struct fmt_main fmt_oracle11 = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		get_binary,
 		get_salt,
 		{ NULL },

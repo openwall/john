@@ -282,7 +282,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t scalar_gws;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
+	global_work_size = GET_KPC_MULTIPLE(count, local_work_size);
 	scalar_gws = global_work_size * ocl_v_width;
 
 	// Copy data to gpu
@@ -349,7 +349,7 @@ struct fmt_main fmt_opencl_pem = {
 		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{
 			"iteration count",
-			"cipher [1=3DES, 2/3/4=AES-128/192/256]",
+			"cipher [1=3DES 2/3/4=AES-128/192/256]",
 		},
 		{ FORMAT_TAG },
 		pem_tests

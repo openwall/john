@@ -1,7 +1,7 @@
 /*
  * Office 2007 cracker patch for JtR. This software is
  * Copyright (c) 2012 Dhiru Kholia <dhiru.kholia at gmail.com>.
- * Copyright (c) 2012-2019 magnum
+ * Copyright (c) 2012-2021 magnum
  * and is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -83,6 +83,8 @@ static struct fmt_tests office_tests[] = {
 	{"$office$*2007*20*128*16*fbd4cc5dab9b8e341778ddcde9eca740*46bef371486919d4bffe7280110f913d*b51af42e6696baa097a7109cebc3d0ff7cc8b1d8", "myhovercraftisfullofeels"},
 	/* 2007-Default_myhovercraftisfullofeels_.xltx */
 	{"$office$*2007*20*128*16*fbd4cc5dab9b8e341778ddcde9eca740*1addb6823689aca9ce400be8f9e55fc9*e06bf10aaf3a4049ffa49dd91cf9e7bbf88a1b3b", "myhovercraftisfullofeels"},
+	/* Github issue #4780 (256-bit key length) */
+	{"$office$*2007*20*256*16*3e94c22e93f35e14162402da444dec28*7057eb00b1e0e1cce5c85ba0727e9686*ff4f3a5a9e872c364e6d83f07af904ce518b53e6", "12Qwaszx"},
 	/* 2010-Default_myhovercraftisfullofeels_.docx */
 	{"$office$*2010*100000*128*16*213aefcafd9f9188e78c1936cbb05a44*d5fc7691292ab6daf7903b9a8f8c8441*46bfac7fb87cd43bd0ab54ebc21c120df5fab7e6f11375e79ee044e663641d5e", "myhovercraftisfullofeels"},
 	/* 2010-Default_myhovercraftisfullofeels_.dotx */
@@ -122,7 +124,7 @@ static UTF16 (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
 static int *cracked;
 
-static uint8_t (*encryptionKey)[20];
+static uint8_t (*encryptionKey)[40];
 static uint8_t (*verifierKeys1)[64];
 static uint8_t (*verifierKeys512)[128];
 
@@ -161,15 +163,16 @@ static void done(void)
 	MEM_FREE(verifierKeys512);
 }
 
-static uint8_t *DeriveKey(uint8_t *hashValue, uint8_t *X1)
+static uint8_t *DeriveKey(uint8_t *hashValue, uint8_t *X3)
 {
 	int i;
 	uint8_t derivedKey[64];
 	SHA_CTX ctx;
+	int cbRequiredKeyLength = cur_salt->keySize / 8;
+	uint8_t *X1 = X3;
+	uint8_t *X2 = &X3[20];
 
-	// This is step 4a in 2.3.4.7 of MS_OFFCRYPT version 1.0
-	// and is required even though the notes say it should be
-	// used only when the encryption algorithm key > hash length.
+	// See 2.3.4.7 of MS-OFFCRYPTO
 	for (i = 0; i < 64; i++)
 		derivedKey[i] = (i < 20 ? 0x36 ^ hashValue[i] : 0x36);
 
@@ -177,23 +180,20 @@ static uint8_t *DeriveKey(uint8_t *hashValue, uint8_t *X1)
 	SHA1_Update(&ctx, derivedKey, 64);
 	SHA1_Final(X1, &ctx);
 
-	if (cur_salt->verifierHashSize > cur_salt->keySize / 8)
-		return X1;
+	if (cur_salt->verifierHashSize < cbRequiredKeyLength) {
+		for (i = 0; i < 64; i++)
+			derivedKey[i] = (i < 20 ? 0x5C ^ hashValue[i] : 0x5C);
 
-	/* TODO: finish up this function */
-	//for (i = 0; i < 64; i++)
-	//	derivedKey[i] = (i < 30 ? 0x5C ^ hashValue[i] : 0x5C);
+		SHA1_Init(&ctx);
+		SHA1_Update(&ctx, derivedKey, 64);
+		SHA1_Final(X2, &ctx);
+	}
 
-	fprintf(stderr, "\n\n*** ERROR: DeriveKey() entered Limbo.\n");
-	fprintf(stderr, "Please report to john-dev mailing list.\n");
-	error();
-
-	return NULL;
+	return X3;
 }
 
 #ifdef SIMD_COEF_32
-static void GeneratePasswordHashUsingSHA1(int idx,
-                                          uint8_t final[SHA1_LOOP_CNT][20])
+static void GeneratePasswordHashUsingSHA1(int idx, uint8_t final[SHA1_LOOP_CNT][40])
 {
 	uint8_t hashBuf[20];
 	/*
@@ -201,7 +201,7 @@ static void GeneratePasswordHashUsingSHA1(int idx,
 	 * hashBuf = SHA1Hash(salt, password);
 	 * create input buffer for SHA1 from salt and unicode version of password
 	 */
-	uint8_t X1[20];
+	uint8_t X3[40];
 	SHA_CTX ctx;
 	uint8_t _IBuf[64*SHA1_LOOP_CNT + MEM_ALIGN_CACHE], *keys;
 	uint32_t *keys32;
@@ -270,12 +270,11 @@ static void GeneratePasswordHashUsingSHA1(int idx,
 
 	/* Now convert back into a 'flat' value, which is a flat array. */
 	for (i = 0; i < SHA1_LOOP_CNT; i++)
-		memcpy(final[i], DeriveKey(&keys[20 * i], X1), cur_salt->keySize / 8);
+		memcpy(final[i], DeriveKey(&keys[20 * i], X3), cur_salt->keySize / 8);
 }
 #else
 // for non SIMD, SHA1_LOOP_CNT is 1
-static void GeneratePasswordHashUsingSHA1(int idx,
-                                          uint8_t final[SHA1_LOOP_CNT][20])
+static void GeneratePasswordHashUsingSHA1(int idx, uint8_t final[SHA1_LOOP_CNT][40])
 {
 	uint8_t hashBuf[20], *key;
 	UTF16 *passwordBuf = saved_key[idx];
@@ -286,7 +285,7 @@ static void GeneratePasswordHashUsingSHA1(int idx,
 	 * create input buffer for SHA1 from salt and unicode version of password
 	 */
 	uint32_t inputBuf[(0x14 + 0x04 + 4) / sizeof(int)];
-	uint8_t X1[20];
+	uint8_t X3[40];
 	int i;
 	SHA_CTX ctx;
 
@@ -327,11 +326,10 @@ static void GeneratePasswordHashUsingSHA1(int idx,
 	SHA1_Update(&ctx, &inputBuf[1], 0x14 + 0x04);
 	SHA1_Final(hashBuf, &ctx);
 
-	key = DeriveKey(hashBuf, X1);
+	key = DeriveKey(hashBuf, X3);
 
 	/*
-	 * Should handle the case of longer key lengths as shown in 2.3.4.9
-	 * Grab the key length bytes of the final hash as the encrypytion key
+	 * Grab the key length bytes of the final hash as the encryption key
 	 */
 	memcpy(final[0], key, cur_salt->keySize / 8);
 }
@@ -477,8 +475,7 @@ static void GenerateAgileEncryptionKey(int idx,
 #endif
 
 #ifdef SIMD_COEF_64
-static void GenerateAgileEncryptionKey512(int idx,
-                                          uint8_t hashBuf[SHA512_LOOP_CNT][128])
+static void GenerateAgileEncryptionKey512(int idx, uint8_t hashBuf[SHA512_LOOP_CNT][128])
 {
 	uint8_t tmpBuf[64], *keys;
 	uint32_t i, j, k;
@@ -646,11 +643,11 @@ static int PasswordVerifier(ms_office_binary_blob *blob, uint8_t *key)
 	SHA_CTX ctx;
 	uint8_t checkHash[20];
 
-	AES_set_decrypt_key(key, 128, &akey);
+	AES_set_decrypt_key(key, cur_salt->keySize, &akey);
 	AES_ecb_encrypt(blob->encryptedVerifier, decryptedVerifier,
 	                &akey, AES_DECRYPT);
 
-	AES_set_decrypt_key(key, 128, &akey);
+	AES_set_decrypt_key(key, cur_salt->keySize, &akey);
 	AES_ecb_encrypt(blob->encryptedVerifierHash, decryptedVerifierHash,
 	                &akey, AES_DECRYPT);
 

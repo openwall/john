@@ -188,8 +188,8 @@
 /* Turn off logging */
 #define FLG_NOLOG				0x4000000000000000ULL
 
-#define FLG_RAIN_CHK			0x8000000000000000ULL
-#define FLG_RAIN_SET			(FLG_RAIN_CHK | FLG_CRACKING_SET)
+#define FLG_INC2_CHK			0x8000000000000000ULL
+#define FLG_INC2_SET			(FLG_INC2_CHK | FLG_CRACKING_SET)
 
 /*
  * Macro for getting correct node number regardless of if MPI or not
@@ -198,6 +198,15 @@
 #define NODE (mpi_p > 1 ? mpi_id + 1 : options.node_min)
 #else
 #define NODE options.node_min
+#endif
+
+/*
+ * Macro for getting correct total processes regardless of if MPI or fork
+ */
+#if HAVE_MPI
+#define NODES (mpi_p > 1 ? mpi_p : options.fork ? options.fork : 1)
+#else
+#define NODES (options.fork ? options.fork : 1)
 #endif
 
 /*
@@ -360,14 +369,7 @@ struct options_main {
 /* Stacked rules applied within cracker.c for any mode */
 	char *rule_stack;
 
-/* This is a 'special' flag.  It causes john to add 'extra' code to search for
- * some salted types, when we have only the hashes.  The only type supported is
- * PHPS (at this time.).  So PHPS will set this to a 1. OTherwise it will
- * always be zero.  LIKELY we will add the same type logic for the OSC
- * (mscommerse) type, which has only a 2 byte salt.  That will set this field
- * to be a 2.  If we add other types, then we will have other values which can
- * be assigned to this variable.  This var is set by the undocummented
- * --regen_lost_salts=#   */
+/* Salt brute-force */
 	int regen_lost_salts;
 
 /* Requested max_keys_per_crypt (for testing purposes) */
@@ -390,7 +392,10 @@ struct options_main {
  */
 	int max_run_time;
 
-/* Graceful exit after this many candidates tried. */
+/*
+ * Graceful exit after this many candidates tried. If the number is
+ * negative, we reset the count on any successful crack.
+ */
 	long long max_cands;
 
 /* Emit a status line every N seconds */
@@ -453,8 +458,10 @@ struct options_main {
 	int log_stderr;
 /* Emit a status line for every password cracked */
 	int crack_status;
-/* Rain full charsets */
-	char *rain_full;
+/* Inc2 full charsets */
+	char *posfreq_full;
+/* --catch-up=oldsession */
+	char *catchup;
 };
 
 extern struct options_main options;

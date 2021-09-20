@@ -1895,7 +1895,15 @@ static void ldr_fill_user_words(struct db_main *db)
 	int last_count = 0;
 	FILE *file;
 	const char *name = path_expand(options.seed_per_user);
-	char line[LINE_BUFFER_SIZE];
+	union {
+		char buffer[LINE_BUFFER_SIZE];
+#if MGETL_HAS_SIMD
+		vtype dummy;
+#else
+		ARCH_WORD dummy;
+#endif
+	} aligned;
+	char *line = aligned.buffer;
 	size_t file_len;
 	int tot_num = 0;
 	int seeds_sorted = MAYBE | SORTED;
@@ -2160,43 +2168,105 @@ out:
 	return hash;
 }
 
+static int drop_regen_salt(char *line)
+{
+	char *sdl;
+
+	if ((sdl= strrchr(line, '$'))) {
+		*sdl = 0;
+		return 1;
+	}
+	return 0;
+}
+
 static void ldr_show_pot_line(struct db_main *db, char *line)
 {
 	char *ciphertext, *pos;
 	int hash;
 	struct db_cracked *current, *last;
+	static struct fmt_main *last_fmt;
 
 	ciphertext = ldr_get_field(&line, db->options->field_sep_char);
 
 	if (line) {
+/*
+ * Jumbo-specific; split() needed for legacy pot entries so we need to
+ * enumerate formats to know which to call.
+ * This also takes care of the situation where specific format(s) was
+ * requested for --make-charset.
+ */
+		struct fmt_main *format = fmt_list;
+
+		if (last_fmt && (ldr_trunc_valid(ciphertext, last_fmt) == 1))
+			format = last_fmt;
+		else
+		if (!(db->options->flags & DB_PLAINTEXTS) || (options.flags & FLG_FORMAT)) {
+			do {
+				if (format != last_fmt && ldr_trunc_valid(ciphertext, format) == 1)
+					break;
+			} while ((format = format->next));
+
+			if (format)
+				last_fmt = format;
+		}
+
+/* If format(s) was forced on the command line, insist on it (them) */
+		if (!format && (options.flags & FLG_FORMAT))
+			return;
+
 		pos = line;
 		do {
 			if (*pos == '\r' || *pos == '\n') *pos = 0;
 		} while (*pos++);
 
 		if (db->options->flags & DB_PLAINTEXTS) {
+			if (options.flags & FLG_MAKECHR_CHK) {
+				if (options.target_enc > ASCII && options.target_enc < UTF_8) {
+					char *plain = ldr_conv(line);
+
+					/* Only load words that fit our selected codepage */
+					if (plain != line && strlen(plain) != strlen8((UTF8*)line))
+						return;
+					else
+						line = plain;
+				} else if (options.target_enc == UTF_8) {
+					/* Only load words that are valid UTF-8 */
+					if (!valid_utf8((UTF8*)line))
+						return;
+				}
+			}
 			list_add(db->plaintexts, line);
 			return;
 		}
-/*
- * Jumbo-specific; split() needed for legacy pot entries so we need to
- * enumerate formats and call valid(). This also takes care of the situation
- * where a specific format was requested.
- */
-		if (!(options.flags & FLG_MAKECHR_CHK)) {
-			struct fmt_main *format = fmt_list;
 
-			do {
-				if (ldr_trunc_valid(ciphertext, format) == 1)
-					break;
-			} while((format = format->next));
+		/*
+		 * Bodge for --show to work w/ --regen-lost-salts
+		 *
+		 * This requires you to supply the same --regen-lost-salts parameters with --show
+		 * as what what used during cracking (actually just the total length need to match)
+		 */
+		if (options.regen_lost_salts) {
+			char *p;
 
-			if (!format)
-				return;
-
-			ciphertext =
-				format->methods.split(ciphertext, 0, format);
+			if (!strncmp(ciphertext, "$dynamic_", 9)) {
+				p = ciphertext + 10;
+				if ((p = strchr(p, '$')))
+					p++;
+				if (drop_regen_salt(p))
+					ciphertext = p;
+			} else
+			if (!strncmp(ciphertext, "@dynamic=", 9)) {
+				p = ciphertext + 10;
+				if ((p = strchr(p, '@')))
+					p++;
+				if (drop_regen_salt(p))
+					ciphertext = p;
+			}
 		}
+
+		if (format)
+			ciphertext = format->methods.split(ciphertext, 0, format);
+
 		hash = ldr_cracked_hash(ciphertext);
 
 		last = db->cracked_hash[hash];

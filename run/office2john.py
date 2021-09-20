@@ -2536,8 +2536,10 @@ def find_rc4_passinfo_doc(filename, stream):
             typ = 4
         elif keySize == 40:
             typ = 3
+        elif keySize == 56:
+            typ = 5
         else:
-            sys.stderr.write("%s : invalid keySize\n" % filename)
+            sys.stderr.write("%s : invalid keySize %u\n" % (filename, keySize))
 
         # Encryption verifier
         saltSize = unpack("<I", stream.read(4))[0]
@@ -2818,7 +2820,7 @@ def process_access_2007_older_crypto(filename):
         elif keySize == 0:
             typ = 3
         else:
-            # sys.stderr.write("%s : invalid keySize\n" % filename)
+            # sys.stderr.write("%s : invalid keySize %u\n" % (filename, keySize))
             continue
 
         if not type or (sizeExtra != 0) or (algId != 0x6801) or (algHashId != 0x8004):

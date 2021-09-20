@@ -131,6 +131,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				memcpy(mitm_key[index], key_hash, 5);
 				memset(&mitm_key[index][5], 0, 11); // Truncate to 40 bits
 			} else
+			if (oo_cur_salt->type == 5) {
+				memcpy(mitm_key[index], key_hash, 7);
+				memset(&mitm_key[index][7], 0, 9); // Truncate to 56 bits
+			} else
 				memcpy(mitm_key[index], key_hash, 16);
 
 		}
@@ -271,7 +275,7 @@ struct fmt_main fmt_oldoffice = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_ENC | FMT_SPLIT_UNIFIES_CASE | FMT_BLOB,
 		{
-			"hash type",
+			"hash type [0-1:MD5+RC4-40 3:SHA1+RC4-40 4:SHA1+RC4-128 5:SHA1+RC4-56]",
 		},
 		{ FORMAT_TAG },
 		oldoffice_tests

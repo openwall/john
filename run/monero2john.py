@@ -25,7 +25,7 @@ if not PY3:
 
 def process_file(filename):
     if not filename.endswith(".keys"):
-        sys.stderr.write("WARNING: This program only works for Monero .keys file(s). Only modern Monero JSON wallets are supported!\n")
+        sys.stderr.write("WARNING: This program only works for Monero .keys file(s).\n")
         time.sleep(4)
 
     name = os.path.basename(filename)
@@ -38,7 +38,6 @@ def process_file(filename):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s [Monero .keys file(s)]\n\n" % sys.argv[0])
-        sys.stderr.write("WARNING: Only modern (> January, 2016) Monero JSON wallets are supported!\n")
         sys.exit(-1)
 
     for i in range(1, len(sys.argv)):

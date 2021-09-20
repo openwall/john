@@ -18,7 +18,7 @@ system.
 
     - Install required CygWin packages.
       - C:\cygwin64\setup-x86_64.exe -q -P libssl-devel -P libbz2-devel
-      - C:\cygwin64\setup-x86_64.exe -q -P libgmp-devel -P zlib-devel"
+      - C:\cygwin64\setup-x86_64.exe -q -P libgmp-devel -P zlib-devel
       - C:\cygwin64\setup-x86_64.exe -q -P libOpenCL-devel -P libcrypt-devel
 
     - Open a CygWin terminal. To do that, inside the Command Prompt, type:

@@ -93,7 +93,7 @@ JOHN_OBJS = \
 	dynamic_fmt.o dynamic_parser.o dynamic_preloads.o dynamic_utils.o dynamic_big_crypt.o \
 	dynamic_compiler.o dynamic_compiler_lib.o \
 	ripemd.o tiger.o \
-	unrarcmd.o unrarfilter.o unrarhlp.o unrar.o unrarppm.o unrarvm.o \
+	@UNRAR_OBJS@ \
 	rar2john.o \
 	zip2john.o pkzip.o \
 	$(PLUGFORMATS_OBJS) \
@@ -105,7 +105,7 @@ JOHN_OBJS = \
 	memory.o misc.o options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
 	tty.o  wordlist.o \
 	mkv.o mkvlib.o \
-	subsets.o rain.o unicode_range.o \
+	subsets.o inc2.o unicode_range.o \
 	listconf.o \
 	fake_salts.o \
 	win32_memmap.o mmap-windows.o \
@@ -374,7 +374,7 @@ listconf.o:	listconf.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h simd-intri
 
 LM_fmt.o:	LM_fmt.c arch.h misc.h jumbo.h autoconfig.h memory.h DES_bs.h common.h loader.h params.h list.h formats.h os.h os-autoconf.h
 
-loader.o:	loader.c autoconfig.h jumbo.h arch.h os.h os-autoconf.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h getopt.h common.h config.h unicode.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h fake_salts.h john.h cracker.h logger.h base64_convert.h showformats.h
+loader.o:	loader.c mgetl.h autoconfig.h jumbo.h arch.h os.h os-autoconf.h misc.h params.h path.h memory.h list.h signals.h formats.h dyna_salt.h loader.h options.h getopt.h common.h config.h unicode.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h fake_salts.h john.h cracker.h logger.h base64_convert.h showformats.h
 
 logger.o:	logger.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h params.h path.h memory.h status.h options.h list.h loader.h formats.h getopt.h common.h config.h recovery.h unicode.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h john_mpi.h cracker.h signals.h
 
@@ -408,7 +408,7 @@ mkv.o:	mkv.c arch.h misc.h jumbo.h autoconfig.h params.h path.h memory.h os.h os
 
 subsets.o: subsets.c subsets.h unicode_range.h loader.h cracker.h options.h logger.h status.h recovery.h
 
-rain.o: rain.c rain.h unicode_range.h loader.h cracker.h options.h logger.h status.h recovery.h
+inc2.o: inc2.c inc2.h unicode_range.h loader.h cracker.h options.h logger.h status.h recovery.h
 
 unicode_range.o: unicode_range.c unicode_range.h
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -O0 unicode_range.c
@@ -525,7 +525,7 @@ whirlpool.o:	whirlpool.c sph_whirlpool.h sph_types.h autoconfig.h arch.h os.h os
 
 win32_memmap.o:	win32_memmap.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h win32_memmap.h misc.h memory.h
 
-wordlist.o:	wordlist.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h mem_map.h win32_memmap.h mmap-windows.c memory.h misc.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h rpp.h config.h rules.h external.h compiler.h cracker.h john.h unicode.h regex.h mask.h pseudo_intrinsics.h aligned.h
+wordlist.o:	wordlist.c mgetl.h autoconfig.h os.h os-autoconf.h jumbo.h arch.h mem_map.h win32_memmap.h mmap-windows.c memory.h misc.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h rpp.h config.h rules.h external.h compiler.h cracker.h john.h unicode.h regex.h mask.h pseudo_intrinsics.h aligned.h
 
 wpapcap2john.o:	wpapcap2john.c wpapcap2john.h arch.h johnswap.h common.h memory.h jumbo.h os.h os-autoconf.h autoconfig.h
 
@@ -535,7 +535,7 @@ x86-mmx.o:	x86-mmx.S arch.h
 
 x86-sse.o:	x86-sse.S arch.h
 
-x86.o:	x86.S arch.h
+x86.o:		x86.S arch.h
 
 zip2john.o:	zip2john.c arch.h common.h memory.h jumbo.h formats.h params.h misc.h autoconfig.h pkzip.h dyna_salt.h crc32.h missing_getopt.h os.h os-autoconf.h
 

@@ -1,12 +1,14 @@
+### Checklist ###
+- :1st_place_medal: I've read and understood these instructions;
+  - This is not a support forum, it's a bug tracker. For questions and support, review postings on the [john-users mailing list](https://www.openwall.com/lists/john-users/).
+- :thumbsup: I've tested using latest bleeding version from this repository.
+  - Be clear about your environment and what you are doing. Share a sample hash or file that can be used to reproduce.
+- :confused: I'm confused and I need guidance.
+  - Please, read the instructions at https://www.openwall.com/john/#lists, then join the list before posting.
+
 ### IMPORTANT ###
-This is not a support forum, it's a bug tracker. If you don't understand the difference, please do NOT open an issue. For questions and support, review recent postings on the john-users mailing list at https://www.openwall.com/lists/john-users/ and then subscribe to the list at https://www.openwall.com/john/#lists and post your message to the list by e-mailing `john-users at lists.openwall.com`.
+We expect only reports of issues with the latest revision found in this GitHub repository. We do not expect in here, and have little use for, reports of issues only seen in a release or in a distro package.
 
-We are not interested in bugs in your distro-supplied and/or several years old Jumbo. Please do not open an issue unless you tried the latest version from HERE first.
-
-### Steps to reproduce ###
-Try to be clear about your environment and what you are doing. If possible, share a sample hash or file that can be used to reproduce.
-
-### System configuration ###
-Attach details about your OS and about JtR, including:
-- `$ ./john --list=build-info`.
-- `$ ./john --list=opencl-devices` (if applicable).
+Attach details about your OS and about john, including:
+- The output of `./john --list=build-info`.
+- The command line you are using.

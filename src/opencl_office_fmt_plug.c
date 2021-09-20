@@ -2,7 +2,7 @@
  * MS Office >= 2007 cracker for JtR. OpenCL support by magnum.
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012-2017, magnum
+ * and Copyright (c) 2012-2021, magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -49,6 +49,8 @@ static struct fmt_tests tests[] = {
 	{"$office$*2010*100000*128*16*213aefcafd9f9188e78c1936cbb05a44*d5fc7691292ab6daf7903b9a8f8c8441*46bfac7fb87cd43bd0ab54ebc21c120df5fab7e6f11375e79ee044e663641d5e", "myhovercraftisfullofeels"},
 	/* 2013-openwall.pptx */
 	{"$office$*2013*100000*256*16*9b12805dd6d56f46d07315153f3ecb9c*c5a4a167b51faa6629f6a4caf0b4baa8*87397e0659b2a6fff90291f8e6d6d0018b750b792fefed77001edbafba7769cd", "openwall"},
+	/* Github issue #4780 (256-bit key length) */
+	{"$office$*2007*20*256*16*3e94c22e93f35e14162402da444dec28*7057eb00b1e0e1cce5c85ba0727e9686*ff4f3a5a9e872c364e6d83f07af904ce518b53e6", "12Qwaszx"},
 #if DEBUG
 	/* 2007-Default_myhovercraftisfullofeels_.dotx */
 	{"$office$*2007*20*128*16*56ea65016fbb4eac14a6770b2dbe7e99*8cf82ce1b62f01fd3b2c7666a2313302*21443fe938177e648c482da72212a8848c2e9c80", "myhovercraftisfullofeels"},
@@ -205,7 +207,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	HANDLE_CLERROR(clSetKernelArg(Final2007, 0, sizeof(cl_mem), (void*)&cl_state), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(Final2007, 1, sizeof(cl_mem), (void*)&cl_out), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(Final2007, 2, sizeof(cl_mem), (void*)&cl_blob), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(Final2007, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(Final2007, 3, sizeof(cl_mem), (void*)&cl_blob), "Error setting argument 3");
 
 	HANDLE_CLERROR(clSetKernelArg(Generate2010key, 0, sizeof(cl_mem), (void*)&cl_state), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(Generate2010key, 1, sizeof(cl_mem), (void*)&cl_out), "Error setting argument 1");

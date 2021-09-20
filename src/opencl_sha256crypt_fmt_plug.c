@@ -291,15 +291,9 @@ static void clear_keys(void)
 
 static void set_key(char *key, int index)
 {
-	int len;
+	unsigned int len = strnlen(key, PLAINTEXT_LENGTH);
 
-	//Assure buffer has no "trash data".
-	memset(plaintext[index].pass, '\0', PLAINTEXT_LENGTH);
-	len = strlen(key);
-	len = (len > PLAINTEXT_LENGTH ? PLAINTEXT_LENGTH : len);
-
-	//Put the tranfered key on password buffer.
-	memcpy(plaintext[index].pass, key, len);
+	strncpy((char *)plaintext[index].pass, key, PLAINTEXT_LENGTH); /* NUL padding is required */
 	plaintext[index].length = len;
 
 	new_keys = 1;
@@ -581,37 +575,40 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 	if (new_keys) {
 		// sort passwords by length
-		int tot_todo = 0, len;
-
 		if (bitmap_of_lens & (bitmap_of_lens - 1)) {
-			if (gws > indices_size) {
+			if (count > indices_size) {
 				MEM_FREE(indices);
-				indices = mem_alloc(gws * sizeof(*indices));
-				indices_size = gws;
+				indices = mem_alloc(count * sizeof(*indices));
+				indices_size = count;
 			}
 
-			for (len = 0; len <= PLAINTEXT_LENGTH; len++) {
-				if (!(bitmap_of_lens >> len))
-					break;
+			unsigned int new_index = 0, len;
+			for (len = 0; bitmap_of_lens >> len; len++)
 				if ((bitmap_of_lens >> len) & 1)
 					for (index = 0; index < count; index++)
 						if (plaintext[index].length == len)
-							indices[tot_todo++] = index;
-			}
+							indices[new_index++] = index;
+
+			while (new_index < count) /* at least self-test may have skipped some indices */
+				indices[new_index++] = 0;
 
 			//Create a sorted by length candidates list.
 			for (index = 0; index < count; index++) {
-				memcpy(plain_sorted[index].pass, plaintext[indices[index]].pass,
-					plaintext[indices[index]].length + 1);
+				memcpy(plain_sorted[index].pass, plaintext[indices[index]].pass, PLAINTEXT_LENGTH);
 				plain_sorted[index].length = plaintext[indices[index]].length;
 			}
+
+			while (index < gws) /* in case GWS got rounded up to multiple of LWS */
+				plain_sorted[index++].length = 0;
 		}
+
 		//Transfer plaintext buffer to device.
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], pass_buffer,
 		                                   CL_FALSE, 0, sizeof(sha256_password) * gws, input_candidates, 0,
 		                                   NULL, multi_profilingEvent[0]),
 		              "failed in clEnqueueWriteBuffer pass_buffer");
 	}
+
 	//Enqueue the kernel
 	if (_SPLIT_KERNEL_IN_USE) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1,

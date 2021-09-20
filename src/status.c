@@ -39,7 +39,7 @@
 #include "signals.h"
 #include "mask.h"
 #include "subsets.h"
-#include "rain.h"
+#include "inc2.h"
 #include "john.h"
 #include "john_mpi.h"
 #include "gpu_common.h"
@@ -215,8 +215,10 @@ static char *status_get_ETA(double percent, unsigned int secs_done)
 	if (subsets_cur_len)
 		sprintf(s_ETA, " (%d)", subsets_cur_len);
 	else
-	if (rain_cur_len)
-		sprintf(s_ETA, " (%d)", rain_cur_len);
+	if (inc2_cur_len)
+		sprintf(s_ETA, " (%d)", inc2_cur_len);
+	if (inc2_cur_len)
+		sprintf(s_ETA, " (%d)", inc2_cur_len);
 	else
 		s_ETA[0] = 0;
 
@@ -458,6 +460,9 @@ void status_print(void)
 	if (options.flags & FLG_STATUS_CHK)
 		percent_value = status.progress;
 	else
+	if (options.catchup && john_max_cands) {
+		percent_value = 100.0 * status.cands / john_max_cands;
+	} else
 	if (status_get_progress)
 		percent_value = status_get_progress();
 

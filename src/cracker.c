@@ -72,6 +72,8 @@
 #undef index
 #endif
 
+extern long clk_tck;
+
 static int crk_process_key_max_keys;
 static struct db_main *crk_db;
 static struct fmt_params *crk_params;
@@ -110,6 +112,11 @@ int crk_max_keys_per_crypt(void)
 
 static void crk_dummy_set_salt(void *salt)
 {
+	/* Refresh salt every 30 seconds in case it was thrashed */
+	if (event_refresh_salt > 30) {
+		crk_db->format->methods.set_salt(salt);
+		event_refresh_salt = 0;
+	}
 }
 
 static void crk_dummy_fix_state(void)
@@ -367,8 +374,7 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 }
 
 /* Negative index is not counted/reported (got it from pot sync) */
-static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
-	int index)
+static int crk_process_guess(struct db_salt *salt, struct db_password *pw, int index)
 {
 	char utf8buf_key[PLAINTEXT_BUFFER_SIZE + 1];
 	char utf8login[PLAINTEXT_BUFFER_SIZE + 1];
@@ -428,22 +434,20 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 	if (options.regen_lost_salts && (crk_params->flags & FMT_DYNAMIC) == FMT_DYNAMIC)
 		crk_guess_fixup_salt(pw->source, *(char**)(salt->salt));
 
+	if (options.max_run_time < 0) {
+#if OS_TIMER
+		timer_abort = 0 - options.max_run_time;
+#else
+		timer_abort = status_get_time() - options.max_run_time;
+#endif
+	}
+	if (options.max_cands < 0)
+		john_max_cands = status.cands - options.max_cands + crk_params->max_keys_per_crypt;
+
 	/* If we got this crack from a pot sync, don't report or count */
 	if (index >= 0) {
 		const char *ct;
 		char buffer[LINE_BUFFER_SIZE + 1];
-
-		if (options.max_run_time < 0) {
-#if OS_TIMER
-			timer_abort = 0 - options.max_run_time;
-#else
-			timer_abort = status_get_time() - options.max_run_time;
-#endif
-		}
-
-		if (options.max_cands < 0)
-			john_max_cands = status.cands - options.max_cands +
-				crk_params->max_keys_per_crypt;
 
 		if (dupe && !(crk_params->flags & FMT_BLOB))
 			ct = NULL;
@@ -472,6 +476,22 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw,
 
 	if (!(crk_params->flags & FMT_NOT_EXACT))
 		crk_remove_hash(salt, pw);
+
+	if (options.regen_lost_salts) {
+		/*
+		 * salt->list pointer was copied to all salts so if the first
+		 * entry was removed, we need to fixup all other salts.  If OTOH
+		 * the last hash was removed, we need to drop all salts.
+		 */
+		struct db_salt *s = crk_db->salts;
+
+		do {
+			if (!crk_db->password_count)
+				crk_remove_salt(s);
+			else if (s->list && s->list->binary == NULL)
+				s->list = s->list->next;
+		} while ((s = s->next));
+	}
 
 	if (!crk_db->salts)
 		return 1;
@@ -714,8 +734,7 @@ static void crk_poll_files(void)
 		log_event("Abort file seen");
 		event_pending = event_abort = 1;
 	}
-	else if (options.pause_file &&
-	         stat(path_expand(options.pause_file), &trigger_stat) == 0) {
+	else if (options.pause_file && stat(path_expand(options.pause_file), &trigger_stat) == 0) {
 #if !HAVE_SYS_TIMES_H
 		clock_t end, start = clock();
 #else
@@ -725,8 +744,7 @@ static void crk_poll_files(void)
 
 		status_print();
 		if (john_main_process)
-			fprintf(stderr, "Pause file seen, going to sleep "
-			        "(session saved)\n");
+			fprintf(stderr, "Pause file seen, going to sleep (session saved)\n");
 		log_event("Pause file seen, going to sleep");
 
 		/* Better save stuff before going to sleep */
@@ -739,12 +757,7 @@ static void crk_poll_files(void)
 				s = sleep(s);
 			} while (s);
 
-		} while (stat(path_expand(options.pause_file),
-		              &trigger_stat) == 0);
-
-		if (john_main_process)
-			fprintf(stderr, "Pause file removed, continuing\n");
-		log_event("Pause file removed, continuing");
+		} while (stat(path_expand(options.pause_file), &trigger_stat) == 0);
 
 		/* Disregard pause time for stats */
 #if !HAVE_SYS_TIMES_H
@@ -752,7 +765,12 @@ static void crk_poll_files(void)
 #else
 		end = times(&buf);
 #endif
-		status.start_time -= (start - end);
+		status.start_time += (end - start);
+
+		int pause_time = (end - start) / clk_tck;
+		log_event("Pause file removed after %d seconds, continuing", pause_time);
+		if (john_main_process)
+			fprintf(stderr, "Pause file removed after %d seconds, continuing\n", pause_time);
 	}
 }
 
@@ -888,8 +906,7 @@ static int crk_password_loop(struct db_salt *salt)
 			if (crk_methods.cmp_all(pw->binary, match))
 			for (index = 0; index < match; index++)
 			if (crk_methods.cmp_one(pw->binary, index))
-			if (crk_methods.cmp_exact(crk_methods.source(
-			    pw->source, pw->binary), index)) {
+			if (crk_methods.cmp_exact(crk_methods.source(pw->source, pw->binary), index)) {
 				if (crk_process_guess(salt, pw, index))
 					return 1;
 				else {
@@ -1229,11 +1246,12 @@ int crk_process_salt(struct db_salt *salt)
 	count_from_guesses = salt->keys->count_from_guesses;
 	index = 0;
 
-	crk_methods.clear_keys();
-
 	while (count--) {
 		strnzcpy(key, ptr, options.eff_maxlength + 1);
 		ptr += options.eff_maxlength;
+
+		if (index == 0)
+			crk_methods.clear_keys();
 
 		crk_methods.set_key(key, index++);
 		if (index >= crk_params->max_keys_per_crypt || !count ||
@@ -1266,7 +1284,6 @@ int crk_process_salt(struct db_salt *salt)
 			if (!salt->list)
 				return 0;
 			index = 0;
-			crk_methods.clear_keys();
 		}
 	}
 

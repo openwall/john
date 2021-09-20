@@ -109,25 +109,21 @@ inline uint enc2utf16be(const UTF8 *pwd, uint length, UTF16 *unipwd)
 inline void pkcs12_fill_buffer(uint *data, uint data_len,
                                const uint *filler, uint fill_len)
 {
-	uchar *p = (uchar*)data;
-
 	if ((fill_len & 0x03) == 0) {
 		while (data_len > 0) {
-			uint i;
 			uint use_len = (data_len > fill_len) ? fill_len : data_len;
 
-			for (i = 0; i < (use_len / 4); i++)
-				((uint*)p)[i] = filler[i];
-			p += use_len;
+			memcpy_macro(data, filler, use_len / 4);
+			data += use_len / 4;
 			data_len -= use_len;
 		}
 	} else {
+		uchar *p = (uchar*)data;
+
 		while (data_len > 0) {
-			uint i;
 			uint use_len = (data_len > fill_len) ? fill_len : data_len;
 
-			for (i = 0; i < use_len; i++)
-				p[i] = ((uchar*)filler)[i];
+			memcpy_pp(p, filler, use_len);
 			p += use_len;
 			data_len -= use_len;
 		}
@@ -218,8 +214,8 @@ inline void pkcs12_pbe_derive_key(uint iterations, int id,
 		hash_output[4] = SWAP32(hash_output[4]);
 
 		use_len = (datalen > hlen) ? hlen : datalen;
-		for (j = 0; j < use_len / 4; j++)
-			p[j] = hash_output[j];
+
+		memcpy_macro(p, hash_output, use_len / 4);
 
 		datalen -= use_len;
 
@@ -405,7 +401,10 @@ inline void pkcs12_pbe_derive_key_sha512(uint iterations, int id,
 	uint *pwd_block = &big_block[(128 + 128) / 4];
 #endif
 	uint hash_block[128 / 4];
-	ulong hash_output[64 / 8];
+	union {
+		ulong u64[64 / 8];
+		uint u32[64 / 4];
+	} hash_output;
 	uint *p;
 	uchar c;
 	uint hlen, use_len, v, v2, datalen;
@@ -441,45 +440,44 @@ inline void pkcs12_pbe_derive_key_sha512(uint iterations, int id,
 #else
 		SHA512_Update(&md_ctx, (uchar*)big_block, v + v + v2);
 #endif
-		SHA512_Final((uchar*)hash_output, &md_ctx);
+		SHA512_Final((uchar*)hash_output.u64, &md_ctx);
 
-		hash_output[0] = SWAP64(hash_output[0]);
-		hash_output[1] = SWAP64(hash_output[1]);
-		hash_output[2] = SWAP64(hash_output[2]);
-		hash_output[3] = SWAP64(hash_output[3]);
-		hash_output[4] = SWAP64(hash_output[4]);
-		hash_output[5] = SWAP64(hash_output[5]);
-		hash_output[6] = SWAP64(hash_output[6]);
-		hash_output[7] = SWAP64(hash_output[7]);
+		hash_output.u64[0] = SWAP64(hash_output.u64[0]);
+		hash_output.u64[1] = SWAP64(hash_output.u64[1]);
+		hash_output.u64[2] = SWAP64(hash_output.u64[2]);
+		hash_output.u64[3] = SWAP64(hash_output.u64[3]);
+		hash_output.u64[4] = SWAP64(hash_output.u64[4]);
+		hash_output.u64[5] = SWAP64(hash_output.u64[5]);
+		hash_output.u64[6] = SWAP64(hash_output.u64[6]);
+		hash_output.u64[7] = SWAP64(hash_output.u64[7]);
 
 		// Perform remaining (iterations - 1) recursive hash calculations
 		for (i = 1; i < iterations; i++) {
 			ulong W[16];
 
-			W[0] = hash_output[0];
-			W[1] = hash_output[1];
-			W[2] = hash_output[2];
-			W[3] = hash_output[3];
-			W[4] = hash_output[4];
-			W[5] = hash_output[5];
-			W[6] = hash_output[6];
-			W[7] = hash_output[7];
+			W[0] = hash_output.u64[0];
+			W[1] = hash_output.u64[1];
+			W[2] = hash_output.u64[2];
+			W[3] = hash_output.u64[3];
+			W[4] = hash_output.u64[4];
+			W[5] = hash_output.u64[5];
+			W[6] = hash_output.u64[6];
+			W[7] = hash_output.u64[7];
 			W[8] = 0x8000000000000000UL;
 			W[15] = 64 << 3;
-			sha512_single_zeros(W, hash_output);
+			sha512_single_zeros(W, hash_output.u64);
 		}
-		hash_output[0] = SWAP64(hash_output[0]);
-		hash_output[1] = SWAP64(hash_output[1]);
-		hash_output[2] = SWAP64(hash_output[2]);
-		hash_output[3] = SWAP64(hash_output[3]);
-		hash_output[4] = SWAP64(hash_output[4]);
-		hash_output[5] = SWAP64(hash_output[5]);
-		hash_output[6] = SWAP64(hash_output[6]);
-		hash_output[7] = SWAP64(hash_output[7]);
+		hash_output.u64[0] = SWAP64(hash_output.u64[0]);
+		hash_output.u64[1] = SWAP64(hash_output.u64[1]);
+		hash_output.u64[2] = SWAP64(hash_output.u64[2]);
+		hash_output.u64[3] = SWAP64(hash_output.u64[3]);
+		hash_output.u64[4] = SWAP64(hash_output.u64[4]);
+		hash_output.u64[5] = SWAP64(hash_output.u64[5]);
+		hash_output.u64[6] = SWAP64(hash_output.u64[6]);
+		hash_output.u64[7] = SWAP64(hash_output.u64[7]);
 
 		use_len = (datalen > hlen) ? hlen : datalen;
-		for (i = 0; i < use_len / 4; i++)
-			p[i] = ((uint*)hash_output)[i];
+		memcpy_pp(p, hash_output.u32, use_len);
 
 		datalen -= use_len;
 
@@ -489,7 +487,7 @@ inline void pkcs12_pbe_derive_key_sha512(uint iterations, int id,
 		p += use_len / 4;
 
 		// Concatenating copies of hash_output into hash_block (B)
-		pkcs12_fill_buffer(hash_block, v, (uint*)hash_output, hlen);
+		pkcs12_fill_buffer(hash_block, v, hash_output.u32, hlen);
 
 		// B += 1
 		for (i = v; i > 0; i--)

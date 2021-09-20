@@ -62,12 +62,18 @@ static size_t get_task_max_work_group_size()
 
 typedef struct {
 	unsigned int saltlen;
-	char salt[8];
+	union {
+		unsigned char c[8];
+		unsigned int w[2];
+	} salt;
 	char prefix;		/** 'a' when $apr1$ or '1' when $1$ or '\0' for {smd5} which uses no prefix. **/
 } crypt_md5_salt;
 
 typedef struct {
-	unsigned char v[PLAINTEXT_LENGTH];
+	union {
+		unsigned char c[PLAINTEXT_LENGTH];
+		unsigned int w[(PLAINTEXT_LENGTH + 3) / 4];
+	} v;
 	unsigned char length;
 } crypt_md5_password;
 
@@ -281,7 +287,7 @@ static void set_key(char *key, int index)
 {
 	uint32_t len = strlen(key);
 	inbuffer[index].length = len;
-	memcpy((char *) inbuffer[index].v, key, len);
+	memcpy(inbuffer[index].v.c, key, len);
         new_keys = 1;
 }
 
@@ -292,7 +298,7 @@ static void set_salt(void *salt)
 
 	for (len = 0; len < 8 && s[len]; len++);
 	host_salt.saltlen = len;
-	memcpy(host_salt.salt, s, host_salt.saltlen);
+	memcpy(host_salt.salt.c, s, host_salt.saltlen);
 	host_salt.prefix = s[8];
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, saltsize, &host_salt, 0, NULL, NULL), "Salt transfer");
@@ -328,7 +334,7 @@ static void *get_salt(char *ciphertext)
 static char *get_key(int index)
 {
 	static char ret[PLAINTEXT_LENGTH + 1];
-	memcpy(ret, inbuffer[index].v, PLAINTEXT_LENGTH);
+	memcpy(ret, inbuffer[index].v.c, PLAINTEXT_LENGTH);
 	ret[inbuffer[index].length] = '\0';
 	return ret;
 }

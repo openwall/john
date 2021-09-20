@@ -31,6 +31,15 @@ inline void init_ctx(sha512_ctx * ctx) {
     ctx->buflen = 0;
 }
 
+#if __OS_X__
+
+#define FAST
+#define memcpy_R memcpy_pp
+#define memcpy_C memcpy_cp
+#define memcpy_G memcpy_gp
+
+#else /* These violate strict aliasing rules */
+
 inline void memcpy_R(      uint8_t * dest,
                      const uint8_t * src,
                      const uint32_t srclen) {
@@ -72,6 +81,8 @@ inline void memcpy_G(               uint8_t * dest,
         i += 8;
     }
 }
+
+#endif /* __OS_X__ */
 
 inline void sha512_block(sha512_ctx * ctx) {
     uint64_t a = ctx->H[0];
