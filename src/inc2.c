@@ -52,20 +52,34 @@ static uint_big rec_counter[MAX_CAND_LENGTH-1];
 static int state[MAX_CAND_LENGTH-1][7][MAX_CAND_LENGTH];
 static int rec_state[MAX_CAND_LENGTH-1][7][MAX_CAND_LENGTH];
 static int cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
-static int cs2[MAX_CAND_LENGTH][8];//todo loop2
+static int cs2[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1][8];//todo loop2
 static int rec_cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
+static int rec_cs2[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1][8];//todo loop2
 static int loop;
 static int rec_loop;
 static char ***chrsts;
+static char ***rec_chrsts;
 static char ****chrsts2;
+static char ****rec_chrsts2;
+static char ***chainFreq;
+static char ***rec_chainFreq;
 static int divi[MAX_CAND_LENGTH];
+static int rec_divi[MAX_CAND_LENGTH];
+
 static int divi2[MAX_CAND_LENGTH-1][8];
-static int state1[MAX_CAND_LENGTH-1][8];
-static int state2[7][MAX_CAND_LENGTH-1][8];
+static int rec_divi2[MAX_CAND_LENGTH-1][8];
+
+static int state1[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1][8];
+static int rec_state1[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1][8];
+static int state2[MAX_CAND_LENGTH-1][7][MAX_CAND_LENGTH-1][8];
+static int rec_state2[MAX_CAND_LENGTH-1][7][MAX_CAND_LENGTH-1][8];
+
 static int J[MAX_CAND_LENGTH-1];
-static uint_big counter1[MAX_CAND_LENGTH-1];//todo loop2
-static uint_big counter2[MAX_CAND_LENGTH-1][8];//todo loop2//todo loop2
+static int rec_J[MAX_CAND_LENGTH-1];
+static uint_big counter1[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
+static uint_big rec_counter1[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
 static int inc[MAX_CAND_LENGTH-1];
+static int rec_inc[MAX_CAND_LENGTH-1];
 
 const char letters[8] = "thiearon";
 const int chainFreqCount[8] = {4, 2, 5, 5, 5, 3, 5, 4};
@@ -140,42 +154,82 @@ static uint_big str2big(char *str) {
 
 static void fix_state(void)
 {
-	int i, j, k;
+	int i, j, k, l;
 	rec_set = set;
 	for(i=0; i<=maxlength-minlength; i++) {
-        for(j=0; j<minlength+i; j++) {
-            rec_cs[i][j] = cs[i][j];
-        	for(k=0; k<8; k++) {
-        	    rec_state[i][j][k] = state[i][j][k];
-    	    }
-    	}
         rec_counter[i] = counter[i];
+        for(j=0; j<minlength+i; j++) {
+            if(i == 0) {
+                rec_inc[j] = inc[j];
+                rec_J[j] = inc[j]; 
+                rec_divi[j] = divi[j];
+            }
+            rec_cs[i][j] = cs[i][j];
+            rec_counter1[i][j] = counter1[i][j];
+        	for(k=0; k<7; k++) {
+        	    for(l=0; l<8; l++) {
+        	        if(k == 0) {
+                        rec_cs2[i][j][l] = cs2[i][j][l];
+                        if(i == 0 && j < minlength+i-1) {
+                            rec_divi2[j][l] = divi2[j][l];
+                            strcpy(rec_chrsts2[l][j][k], chrsts2[l][j][k]);
+                            strcpy(rec_chainFreq[j][l], chainFreq[j][l]);  
+                            rec_cs[i][j] = cs[i][j];
+                        }
+                        rec_state1[i][j][l] = state1[i][j][l];            	            
+        	        }
+        	        rec_state2[i][k][j][l] = state2[i][k][j][l];
+        	        
+        	    }
+        	    strcpy(rec_chrsts[j][k], chrsts[j][k]);
+    	        rec_state[i][k][j] = state[i][k][j];
+    	    }
+    	    
+    	}
     }
 	rec_cur_len = inc2_cur_len;
 	rec_loop = loop;
 }
 
-/*
+
 static void save_state(FILE *file)
 {
-	int i, j;
+	int i, j, k, l;
 	char str[41];
-	memset(str, 0, 41);
-    fprintf(file, "%d\n", rec_set);
-	for(i=0; i<=maxlength-minlength; i++) {
-	    for(j=0; j<minlength+i; j++) {
-		    fprintf(file, "%d\n", rec_cs[i][j]);
-		    int k;
-		    for(k=0; k<divi[j]; k++)
-		        fprintf(file, "%d\n", rec_state[i][k][j]);
-		}
+	fprintf(file, "%d\n", rec_set);
+    for(i=0; i<=maxlength-minlength; i++) {
+        memset(str, 0, 41);
         big2str(rec_counter[i], str);
         fprintf(file, "%s\n", str);
-        memset(str, 0, 41);
-    }
-    for(i=0; i<maxlength; i++) {
-        for(j=0; j<divi[i]; j++)
-            fprintf(file, "%s\n", chrsts[i][j]);
+        for(j=0; j<minlength+i; j++) {
+            if(i == 0) {
+                fprintf(file, "%d\n", rec_inc[j]);
+                fprintf(file, "%d\n", rec_J[j]);
+                fprintf(file, "%d\n", rec_divi[j]);
+            }
+            fprintf(file, "%d\n", rec_cs[i][j]);
+            memset(str, 0, 41);
+            big2str(rec_counter1[i][j], str);
+            fprintf(file, "%s\n", str);
+        	for(k=0; k<7; k++) {
+        	    for(l=0; l<8; l++) {
+        	        if(k == 0) {
+            	        fprintf(file, "%d\n", rec_cs2[i][j][l]);
+            	        if(i == 0 && j < minlength+i-1) {
+            	            fprintf(file, "%d\n", rec_divi2[j][l]);
+        	                fprintf(file, "%s\n", rec_chrsts2[l][j][k]);
+        	                fprintf(file, "%s\n", rec_chainFreq[j][l]);
+                            
+                        }
+            	        fprintf(file, "%d\n", rec_state1[i][j][l]);
+            	    }
+        	        fprintf(file, "%d\n", rec_state2[i][k][j][l]);
+        	    }
+        	    fprintf(file, "%s\n", rec_chrsts[j][k]);
+    	        fprintf(file, "%d\n", rec_state[i][k][j]);
+    	    }
+    	    
+    	}
     }
     fprintf(file, "%d\n", rec_cur_len);
 	fprintf(file, "%d\n", rec_loop);
@@ -183,7 +237,7 @@ static void save_state(FILE *file)
 
 static int restore_state(FILE *file)
 {
-	int i, j, d;
+	int i, j, k, l, d;
 	char str[41];
 	memset(str, 0, 41);
 	if(fscanf(file, "%d\n", &d) == 1)
@@ -191,32 +245,70 @@ static int restore_state(FILE *file)
 	else return 1;
 
     for(i=0; i<=maxlength-minlength; i++) {
-        for(j=0; j<minlength+i; j++) {
-            if(fscanf(file, "%d\n", &d) == 1)
-                cs[i][j] = d;
-            else return 1;
-            int k;
-            for(k=0; k<divi[j]; k++)
-                if(fscanf(file, "%d\n", &d) == 1)
-                    state[i][k][j] = d;
-                else return 1;
-        }
         if(fscanf(file, "%s\n", str) == 1) {
             counter[i] = str2big(str);
             memset(str, 0, 41);
-        }   
-        else return 1;
-    }
-    for(i=0; i<maxlength; i++) {
-        for(j=0; j<divi[i]; j++) {
-	        if(fscanf(file, "%s\n", str) == 1) {
-                memset(chrsts[i][j], 0, strlen(chrsts[i][j]));
-                strcpy(chrsts[i][j], str);
-                memset(str, 0, 41);
+        } 
+        for(j=0; j<minlength+i; j++) {
+            if(i == 0) {
+                if(fscanf(file, "%d\n", &d) == 1)
+                    inc[j] = d;
+                else return 1;
+                if(fscanf(file, "%d\n", &d) == 1)
+                    J[j] = d;
+                else return 1;
+                if(fscanf(file, "%d\n", &d) == 1)
+                    divi[j] = d;
+                else return 1;
             }
+            if(fscanf(file, "%d\n", &d) == 1)
+                cs[i][j] = d;
             else return 1;
-	    }
-	}
+            if(fscanf(file, "%s\n", str) == 1)
+                counter1[i][j] = str2big(str);
+            else return 1;
+
+            for(k=0; k<7; k++) {
+                for(l=0; l<8; l++) {
+                    if(k == 0 && j < minlength+i-1) {
+                        if(fscanf(file, "%d\n", &d) == 1)
+                            cs2[i][j][l] = d;
+                        else return 1;
+                        if(fscanf(file, "%s\n", str) == 1) {
+                            strcpy(chrsts2[l][j][k], str);
+                            memset(str, 0, 41);
+                        }
+                        else return 1;
+                        if(fscanf(file, "%s\n", str) == 1) {
+                            strcpy(chainFreq[j][l], str);
+                            memset(str, 0, 41);
+                        }
+                        else return 1;
+                        if(i == 0) {
+                            if(fscanf(file, "%d\n", &d) == 1)
+                                divi2[j][l] = d;
+                            else return 1;
+                        }
+                        if(fscanf(file, "%d\n", &d) == 1)
+                            state1[i][j][l] = d;
+                        else return 1;
+                    }
+                    if(fscanf(file, "%d\n", &d) == 1)
+                        state2[i][j][k][l] = d;
+                    else return 1;
+                }
+                if(fscanf(file, "%d\n", &d) == 1)
+                    state[i][j][k] = d;
+                else return 1;
+
+	            if(fscanf(file, "%s\n", str) == 1) {
+                    strcpy(chrsts[i][j], str);
+                    memset(str, 0, 41);
+                }
+                else return 1;
+            }
+        }
+    }
 	if(fscanf(file, "%d\n", &d) == 1)
 		inc2_cur_len = d;
 	else return 1;
@@ -229,7 +321,7 @@ static int restore_state(FILE *file)
 
 	return 0;
 }
-*/
+
 static int submit(char *word, int loop2)
 {
 	char out[MAX_CAND_LENGTH+1];
@@ -332,11 +424,15 @@ int do_inc2_crack(struct db_main *db)
 	    	}
 		}
 	}
-	char ***chainFreq = (char ***) mem_alloc((maxlength-1) * sizeof(char **));
+	chainFreq = (char ***) mem_alloc((maxlength-1) * sizeof(char **));
+	rec_chainFreq = (char ***) mem_alloc((maxlength-1) * sizeof(char **));
 	for(i=1; i<maxlength; i++) {
 		chainFreq[i-1] = mem_alloc(8 * sizeof(char *));
-		for(j=0; j<8; j++)
+		rec_chainFreq[i-1] = mem_alloc(8 * sizeof(char *));
+		for(j=0; j<8; j++) {
 			chainFreq[i-1][j] = mem_alloc(chainFreqCount[j]+1);
+	    	rec_chainFreq[i-1][j] = mem_alloc(chainFreqCount[j]+1);
+	    }
 		switch(i) {
 		case 1:
 		    //strcpy(freq[i], "ho0e3a4ni1rfuts5lpcmdybvwgxkjqzHOEANIRFUTSLPCMDYBVWGXKJQZ26789\0");
@@ -685,24 +781,33 @@ int do_inc2_crack(struct db_main *db)
 	}
 	chrsts = (char ***) mem_alloc(sizeof(char **) * maxlength);
 	chrsts2 = (char ****) mem_alloc(sizeof(char ***) * 8);
+	rec_chrsts = (char ***) mem_alloc(sizeof(char **) * maxlength);
+	rec_chrsts2 = (char ****) mem_alloc(sizeof(char ***) * 8);
 	for(k=0; k<8; k++) {
 	    chrsts2[k] = (char ***) mem_alloc(sizeof(char **) * maxlength-1);
+	    rec_chrsts2[k] = (char ***) mem_alloc(sizeof(char **) * maxlength-1);
 	    for(i=0; i<maxlength; i++) {
 		    if(k==0) {
 	            chrsts[i] = (char **) mem_alloc(sizeof(char *) * divi[i]);
-		        for(j=0; j<divi[i]; j++)
+		        rec_chrsts[i] = (char **) mem_alloc(sizeof(char *) * divi[i]);
+		        for(j=0; j<divi[i]; j++) {
 			        chrsts[i][j] = (char *) mem_alloc(5);
+			        rec_chrsts[i][j] = (char *) mem_alloc(5);
+			    }
 	        }
 		    if(i<maxlength-1) {
 		        chrsts2[k][i] = (char **) mem_alloc(sizeof(char *) * divi2[i][k]);
-		        for(j=0; j<divi2[i][k]; j++)
+		        rec_chrsts2[k][i] = (char **) mem_alloc(sizeof(char *) * divi2[i][k]);
+		        for(j=0; j<divi2[i][k]; j++) {
 		            chrsts2[k][i][j] = (char *) mem_alloc(5);
+		            rec_chrsts2[k][i][j] = (char *) mem_alloc(5);
+	            }
 	        }
 	    }
 	}
 	status_init(get_progress, 0);
-	//rec_restore_mode(restore_state);
-	//rec_init(db, save_state);
+	rec_restore_mode(restore_state);
+	rec_init(db, save_state);
 	if(john_main_process) {
 		log_event("Proceeding with \"inc2\" mode");
 		log_event("- Lengths: %d-%d, max",
@@ -759,7 +864,7 @@ int do_inc2_crack(struct db_main *db)
 				    }
 				    chrsts[x][y][z+1] = '\0';
 			    }
-//			    printf("%s\n", chrsts[x][y]);
+                //printf("%s\n", chrsts[x][y]);
 			    //printf("%d\n", divi[x]);
 		    }
 		}
@@ -848,12 +953,16 @@ int do_inc2_crack(struct db_main *db)
 		        	for(i=1; i<mpl; i++) {
 		        	    for(j=0; j<8; j++) {
 						    if(letters[j] == word[i-1]) {
-                                inc[i-1] = 1;
                                 J[i-1] = j;
-						        if(state1[i-1][j] >= chainFreqCount[j])
-						            inc[i-1] = 2;
-						        if(counter1[i-1] >= powi(charcount, i-1))
-						            inc[i-1] = 0;
+                                uint_big total2;
+                                total2 = charcount;
+                                for(k = mpl-1; k >= i; k--)
+                                    total2*=charcount;
+                                
+                                if(counter1[loop2][i-1] >= total2)
+                                    inc[i-1] = 0;
+
+                                counter1[loop2][i-1]++;
 						        break;
 						    }
 						    //will reach here if no chaining
@@ -864,10 +973,10 @@ int do_inc2_crack(struct db_main *db)
 							    word[i] = chrsts[i][cs[loop2][i]][state[loop2][cs[loop2][i]][i]];
 							    break;
 						    case 1:
-							    word[i] = chainFreq[i-1][J[i-1]][state1[i-1][J[i-1]]];
+							    word[i] = chainFreq[i-1][J[i-1]][state1[loop2][i-1][J[i-1]]];
 							    break;
 						    case 2:
-							    word[i] = chrsts2[J[i-1]][i-1][cs2[i-1][J[i-1]]][state2[cs2[i-1][J[i-1]]][i-1][J[i-1]]];		
+							    word[i] = chrsts2[J[i-1]][i-1][cs2[loop2][i-1][J[i-1]]][state2[loop2][cs2[loop2][i-1][J[i-1]]][i-1][J[i-1]]];		
 							    break;		
 						}
 					}
@@ -880,14 +989,18 @@ int do_inc2_crack(struct db_main *db)
 					if(i > 0) {
 					    for(j=0; j<8; j++) {
 						    if(letters[j] == word[i-1]) {
-						        inc[i-1] = 1;
-						        J[i-1] = j;
-						        if(state1[i-1][j] >= chainFreqCount[j])
-						            inc[i-1] = 2;
-    					        if(++counter1[i-1] >= powi(charcount, i-1))
-						            inc[i-1] = 0;
-						        break;
-						    }
+                                J[i-1] = j;
+                                uint_big total2;
+                                total2=charcount;
+                                for(k = i; k >= 1; k--)
+                                    total2 *= charcount;
+
+                                if(counter1[loop2][i-1] >= total2)
+                                    inc[i-1] = 0;
+
+                                counter1[loop2][i-1]++;
+                                break;
+                            }
 						    else
 						        inc[i-1] = 0;
 						}
@@ -900,7 +1013,7 @@ int do_inc2_crack(struct db_main *db)
 					            else bail = 1;
                 				break;
             			    case 1:
-                	            if(++state1[i-1][J[i-1]] > chainFreqCount[J[i-1]]) {
+                	            if(++state1[loop2][i-1][J[i-1]] > chainFreqCount[J[i-1]]) {
 						            a = 1;
 				                    inc[i-1] = 2;
 					            }
@@ -908,12 +1021,12 @@ int do_inc2_crack(struct db_main *db)
 					            if(!a) break;
 				            case 2:
 				                if(!a) {
-					                if(++state2[cs2[i-1][J[i-1]]][i-1][J[i-1]] >= strlen(chrsts2[J[i-1]][i-1][cs[i-1][J[i-1]]])) {
-						                state1[i-1][J[i-1]] = 0;
-						                state2[cs2[i-1][J[i-1]]][i-1][J[i-1]] = 0;
-						                i--;
+					                if(++state2[loop2][cs2[loop2][i-1][J[i-1]]][i-1][J[i-1]] >= strlen(chrsts2[J[i-1]][i-1][cs[i-1][J[i-1]]])) {
+						                state1[loop2][i-1][J[i-1]] = 0;
+						                state2[loop2][cs2[loop2][i-1][J[i-1]]][i-1][J[i-1]] = 0;
 						                //inc[i-1] = 0;
-					                }
+						                i--;
+						            }
 					                else bail = 1;
 					            }
 				                else a = 0;
@@ -936,15 +1049,15 @@ int do_inc2_crack(struct db_main *db)
                                             else break;
 					                    }
 					                    else if(inc[i2-1] == 2) { 
-				                            if(++cs2[i2][J[i2-1]] >= divi2[i2][J[i2-1]]) {
-	                                            cs2[i2][J[i2-1]] = 0;
+				                            if(++cs2[loop2][i2-1][J[i2-1]] >= divi2[i2-1][J[i2-1]]) {
+	                                            cs2[loop2][i2-1][J[i2-1]] = 0;
 	                                            i2--;
 	                                        }
                                         }
                                         else
                                             i2--;
 					                }
-					                else { 
+					                else {
 					                    if(++cs[loop2][0] >= divi[0]) {
 					                        cs[loop2][0] = 0;
 					                        i2--;   
