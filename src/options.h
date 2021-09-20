@@ -458,7 +458,7 @@ struct options_main {
 	int log_stderr;
 /* Emit a status line for every password cracked */
 	int crack_status;
-/* Rain full charsets */
+/* Inc2 full charsets */
 	char *posfreq_full;
 /* --catch-up=oldsession */
 	char *catchup;

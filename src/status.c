@@ -217,6 +217,8 @@ static char *status_get_ETA(double percent, unsigned int secs_done)
 	else
 	if (inc2_cur_len)
 		sprintf(s_ETA, " (%d)", inc2_cur_len);
+	if (inc2_cur_len)
+		sprintf(s_ETA, " (%d)", inc2_cur_len);
 	else
 		s_ETA[0] = 0;
 
