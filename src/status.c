@@ -50,7 +50,7 @@ static const char* timeFmt24 = NULL;
 static int showcand, last_count;
 double (*status_get_progress)(void) = NULL;
 
-static clock_t get_time(void)
+clock_t status_get_raw_time(void)
 {
 #if !HAVE_SYS_TIMES_H
 	return clock();
@@ -71,7 +71,7 @@ void status_init(double (*get_progress)(void), int start)
 	if (start) {
 		if (!status_restored_time)
 			memset(&status, 0, sizeof(status));
-		status.start_time = get_time();
+		status.start_time = status_get_raw_time();
 	}
 
 	status_get_progress = get_progress;
@@ -94,7 +94,7 @@ void status_ticks_overflow_safety(void)
 	unsigned int time;
 	clock_t ticks;
 
-	ticks = get_time() - status.start_time;
+	ticks = status_get_raw_time() - status.start_time;
 	if (ticks > ((clock_t)1 << (sizeof(clock_t) * 8 - 2))) {
 		time = ticks / clk_tck;
 		status_restored_time += time;
@@ -125,7 +125,7 @@ void status_update_cands(unsigned int cands)
 unsigned int status_get_time(void)
 {
 	return status_restored_time +
-		(get_time() - status.start_time) / clk_tck;
+		(status_get_raw_time() - status.start_time) / clk_tck;
 }
 
 static char *status_get_cps(char *buffer, uint64_t c, unsigned int c_ehi)
@@ -140,7 +140,7 @@ static char *status_get_cps(char *buffer, uint64_t c, unsigned int c_ehi)
 
 	use_ticks = (c <= 0xffffffffU && !c_ehi && !status_restored_time);
 
-	ticks = get_time() - status.start_time;
+	ticks = status_get_raw_time() - status.start_time;
 	if (use_ticks)
 		time = ticks;
 	else

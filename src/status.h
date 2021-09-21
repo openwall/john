@@ -88,6 +88,11 @@ extern void status_update_cands(unsigned int cands);
 extern unsigned int status_get_time(void);
 
 /*
+ * Returns "now" in ticks.
+ */
+extern clock_t status_get_raw_time(void);
+
+/*
  * Prints current status to stdout.
  */
 extern void status_print(void);
