@@ -1655,7 +1655,6 @@ static void john_init(char *name, int argc, char **argv)
 static void john_run(void)
 {
 	struct stat trigger_stat;
-	int trigger_reset = 0;
 
 	if (options.flags & FLG_TEST_CHK)
 		exit_status = benchmark_all() ? 1 : 0;
@@ -1705,7 +1704,6 @@ static void john_run(void)
 				    where);
 				error();
 			}
-			trigger_reset = 1;
 			log_init(LOG_NAME, options.activepot,
 			         options.session);
 			status_init(NULL, 1);
@@ -1780,8 +1778,14 @@ static void john_run(void)
 
 		omp_autotune_run(&database);
 
-		if (trigger_reset)
-			database.format->methods.reset(&database);
+		clock_t before = status_get_raw_time();
+
+		database.format->methods.reset(&database);
+
+		clock_t after = status_get_raw_time();
+
+		/* Disregard OpenCL build & autotune time, for stable ETA and speed figures */
+		status.start_time += (after - before);
 
 		if (!(options.flags & FLG_STDOUT) && john_main_process) {
 			john_log_format2();
@@ -1791,7 +1795,7 @@ static void john_run(void)
 		if (options.flags & FLG_MASK_CHK)
 			mask_crk_init(&database);
 
-		/* Placed here to disregard load time. */
+		/* Start our timers */
 		sig_init_late();
 
 		/* Start a resumed session by emitting a status line. */
