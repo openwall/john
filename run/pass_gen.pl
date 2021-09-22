@@ -284,7 +284,7 @@ if ($bVectors == 1 && (@ARGV != 1 || $arg_genall != 0)) {
 if (-t STDIN) {
 	print STDERR "\nEnter words to hash, one per line.\n";
 	if (@ARGV != 1) { print STDERR "When all entered ^D starts the processing.\n\n"; }
-	$arg_nocomment = 1;  # we do not output 'comment' line if writing to stdout.
+	$arg_nocomment = 1;  # we do not output further 'comment' lines if reading from stdin.
 }
 
 if ($arg_genall != 0) {
@@ -326,7 +326,7 @@ if (@ARGV == 1) {
 		if ($arg eq lc $_) {
 			$have_something = 1;
 			if (!$arg_nocomment) {
-				print "\n  ** Here are the ";
+				print "\n#!comment: ** Here are the ";
 				print $bVectors ? "test vectors" : "hashes";
 				print " for format $orig_arg **\n";
 			}
@@ -397,7 +397,7 @@ if (@ARGV == 1) {
 		foreach (@funcs) {
 			if ($arg eq lc $_) {
 				$have_something = 1;
-				if (!$arg_nocomment) { print "\n  ** Here are the hashes for format $orig_arg **\n"; }
+				if (!$arg_nocomment) { print "\n#!comment: ** Here are the hashes for format $orig_arg **\n"; }
 				$arg =~ s/-/_/g;
 				foreach (@lines) {
 					next if (/^#!comment/);
