@@ -373,6 +373,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	if (!(current = format->params.tests) || !current->ciphertext)
 		return "FAILED (no data)";
 
+	benchmark_running = 1;
 #ifndef BENCH_BUILD
 	dyna_salt_init(format);
 
@@ -617,6 +618,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 	          (salts_done < (wait ? salts : MIN(salts, 2))) ||
 	          (10 * salts_done > 9 * salts && salts_done < salts)));
 
+	benchmark_running = 0;
+
 	BLOB_FREE(format, binary);
 
 #if defined (__MINGW32__) || defined (_MSC_VER)
@@ -729,8 +732,6 @@ int benchmark_all(void)
 	int ompt_start = omp_get_max_threads();
 #endif
 	const char *opencl_was_skipped = "";
-
-	benchmark_running = 1;
 
 #ifndef BENCH_BUILD
 #if defined(WITH_ASAN) || defined(WITH_UBSAN) || defined(DEBUG)
@@ -1115,8 +1116,6 @@ next:
 		}
 	}
 #endif
-
-	benchmark_running = 0;
 
 	return failed || event_abort;
 }
