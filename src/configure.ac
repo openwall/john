@@ -347,7 +347,7 @@ AS_IF([test -z "$STRIP"], [AC_CHECK_TOOL([STRIP], [strip])])
 dnl Check if we have this at all
 PKG_PROG_PKG_CONFIG
 AC_MSG_CHECKING([if pkg-config will be used])
-if test "x$PKG_CONFIG" = x || test "x$enable_pkg_config" == xno ; then
+if test "x$PKG_CONFIG" = x || test "x$enable_pkg_config" = xno ; then
   JTR_MSG_RESULT_FAILIF_FORCED([xno], [x$enable_pkg_config], [pkg-config is NOT available])
   PKG_CONFIG=no
 else
