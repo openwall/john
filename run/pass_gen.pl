@@ -335,12 +335,20 @@ if (@ARGV == 1) {
 				next if (/^#!comment/);
 				chomp;
 				s/\r$//;  # strip CR for non-Windows
+				my $real_arguser;
 				if ($arg_usertab)
 				{
 					my ($this_user, $this_plain) = split(/\t/, $_, 2);
 					next unless defined($this_plain);
 					$arguser = $this_user;
 					$_ = $this_plain;
+				}
+				elsif ($arguser and $arguser =~ /([0-9]+)?\+\+/)
+				{
+					my $usernum = $1 ? $1 : 0;
+					$usernum += $u;
+					$real_arguser = $arguser;
+					$arguser =~ s/([0-9]+)?\+\+/$usernum/;
 				}
 				#my $line_len = length($_);
 				my $line_len = utf16_len($_);
@@ -356,6 +364,10 @@ if (@ARGV == 1) {
 				if ($u >= $arg_count) {
 					print STDERR "Got $arg_count, not processing more. Use -count to bump limit.\n";
 					last;
+				}
+				if ($real_arguser)
+				{
+					$arguser = $real_arguser;
 				}
 			}
 			last;
