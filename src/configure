@@ -8097,7 +8097,7 @@ $as_echo "no" >&6; }
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking if pkg-config will be used" >&5
 $as_echo_n "checking if pkg-config will be used... " >&6; }
-if test "x$PKG_CONFIG" = x || test "x$enable_pkg_config" == xno ; then
+if test "x$PKG_CONFIG" = x || test "x$enable_pkg_config" = xno ; then
 
   if test "xno" == xyes; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
