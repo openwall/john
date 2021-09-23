@@ -47,7 +47,7 @@ inline void hmac_md5(HMAC_KEY_TYPE void *_key, uint key_len,
 
 			memcpy_macro(pbuf, key, len);
 			MD5_Update(&ctx, pbuf, len);
-			data_len -= len;
+			key_len -= len;
 			key += len;
 		}
 #else

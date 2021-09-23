@@ -47,7 +47,7 @@ inline void hmac_sha1(HMAC_KEY_TYPE void *_key, uint key_len,
 
 			memcpy_macro(pbuf, key, len);
 			SHA1_Update(&ctx, pbuf, len);
-			data_len -= len;
+			key_len -= len;
 			key += len;
 		}
 #else
