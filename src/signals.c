@@ -55,9 +55,6 @@
 #include "status.h"
 #include "signals.h"
 #include "john_mpi.h"
-#ifdef HAVE_MPI
-#include "tty.h" /* For tty_has_keyboard() */
-#endif
 
 volatile int event_pending = 0, event_reload = 0;
 volatile int event_abort = 0, event_help = 0, event_save = 0, event_status = 0, event_delayed_status = 0;
@@ -177,27 +174,36 @@ static void sig_remove_reload(void)
 
 void check_abort(int be_async_signal_safe)
 {
-	char *abort_msg = (aborted_by_timer) ?
-		"Session stopped (max run-time reached)\n" :
-		"Session aborted\n";
-
 	if (!event_abort) return;
 
 	tty_done();
 
+	const char *condition = " aborted", *cause = "\n";
+
+	if (aborted_by_timer) {
+		condition = " stopped";
+		cause = " (max run-time reached)\n";
+	}
+
 #ifndef BENCH_BUILD
-	if (john_max_cands && status.cands >= john_max_cands)
-		abort_msg = "Session stopped (max candidates reached)\n";
+	if (john_max_cands && status.cands >= john_max_cands) {
+		condition = " stopped";
+		cause = " (max candidates reached)\n";
+	}
 #endif
 
 	if (be_async_signal_safe) {
-		if (john_main_process)
-			write_loop(2, abort_msg, strlen(abort_msg));
+		if (john_main_process) {
+			write_loop(2, "Session", 8);
+			write_loop(2, john_session_name, strlen(john_session_name));
+			write_loop(2, condition, strlen(condition));
+			write_loop(2, cause, strlen(cause));
+		}
 		_exit(2);
 	}
 
 	if (john_main_process)
-		fprintf(stderr, "%s", abort_msg);
+		fprintf(stderr, "Session%s%s%s", john_session_name, condition, cause);
 	log_done();
 	exit(2);
 }

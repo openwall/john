@@ -188,6 +188,8 @@ char *john_terminal_locale = "C";
 
 uint64_t john_max_cands;
 
+char *john_session_name = "";
+
 static int children_ok = 1;
 
 static struct db_main database;
@@ -729,8 +731,8 @@ static void john_mpi_wait(void)
 	if (john_main_process) {
 		log_event("Waiting for other node%s to terminate",
 		          mpi_p > 2 ? "s" : "");
-		fprintf(stderr, "Waiting for other node%s to terminate\n",
-		        mpi_p > 2 ? "s" : "");
+		fprintf(stderr, "Waiting for other node%s to terminate session%s\n",
+		        mpi_p > 2 ? "s" : "", john_session_name);
 		mpi_teardown();
 	}
 
@@ -1567,6 +1569,11 @@ static void john_init(char *name, int argc, char **argv)
 		}
 	}
 
+	if (options.session) {
+		john_session_name = mem_alloc_tiny(strlen(options.session) + 4, MEM_ALIGN_NONE);
+		sprintf(john_session_name, " '%s'", options.session);
+	}
+
 #if HAVE_OPENCL
 	gpu_id = NO_GPU;
 	engaged_devices[0] = engaged_devices[1] = DEV_LIST_END;
@@ -1956,14 +1963,11 @@ static void john_done(void)
 		} else if (children_ok) {
 			log_event("Session completed");
 			if (john_main_process) {
-				fprintf(stderr, "Session completed. %s\n", mode_exit_message);
+				fprintf(stderr, "Session%s completed. %s\n", john_session_name, mode_exit_message);
 			}
 		} else {
-			const char *msg =
-			    "Main process session completed, "
-			    "but some child processes failed";
-			log_event("%s", msg);
-			fprintf(stderr, "%s\n", msg);
+			log_event("Main process session completed, but some child processes failed");
+			fprintf(stderr, "Main process session%s completed, but some child processes failed\n", john_session_name);
 			exit_status = 1;
 		}
 		fmt_done(database.format);

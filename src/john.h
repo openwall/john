@@ -43,6 +43,12 @@ extern char *john_terminal_locale;
 /* Current target for options.max_cands */
 extern uint64_t john_max_cands;
 
+/*
+ * Current session name enclosed in single quotes and with a leading space.
+ * If no name was given, this is just the empty string.
+ */
+extern char *john_session_name;
+
 /* Print loaded/remaining counts */
 extern char *john_loaded_counts(struct db_main *db, char *prelude);
 
