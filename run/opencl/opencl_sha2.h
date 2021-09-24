@@ -707,6 +707,28 @@ inline void sha512_single_s(ulong *W, ulong *output)
 }
 #endif
 
+#define sha512_block(pad, ctx)\
+ {	  \
+	ulong A, B, C, D, E, F, G, H, t; \
+	A = (ctx)[0]; \
+	B = (ctx)[1]; \
+	C = (ctx)[2]; \
+	D = (ctx)[3]; \
+	E = (ctx)[4]; \
+	F = (ctx)[5]; \
+	G = (ctx)[6]; \
+	H = (ctx)[7]; \
+	SHA512(A, B, C, D, E, F, G, H, pad); \
+	(ctx)[0] += A; \
+	(ctx)[1] += B; \
+	(ctx)[2] += C; \
+	(ctx)[3] += D; \
+	(ctx)[4] += E; \
+	(ctx)[5] += F; \
+	(ctx)[6] += G; \
+	(ctx)[7] += H; \
+}
+
 /* Raw'n'lean single-block SHA-512, no context[tm] */
 inline void sha512_single(MAYBE_VECTOR_ULONG *W, MAYBE_VECTOR_ULONG *output)
 {

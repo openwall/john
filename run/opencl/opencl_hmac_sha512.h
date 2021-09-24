@@ -74,15 +74,21 @@ inline void hmac_sha512(HMAC_KEY_TYPE void *_key, uint key_len,
 	SHA512_Init(&ctx);
 	SHA512_Update(&ctx, buf, 128);
 #ifdef USE_DATA_BUF
-	while (data_len) {
-		uchar pbuf[128];
-		uint len = MIN(data_len, (uint)sizeof(pbuf));
-
-		memcpy_macro(pbuf, data, len);
-		SHA512_Update(&ctx, pbuf, len);
-		data_len -= len;
-		data += len;
+	HMAC_MSG_TYPE ulong *data32 = (HMAC_MSG_TYPE ulong*)_data;
+	ulong blocks = data_len / 128;
+	data_len -= 128 * blocks;
+	data += 128 * blocks;
+	ctx.total += 128 * blocks;
+	while (blocks--) {
+		ulong W[16];
+		for (i = 0; i < 16; i++)
+			W[i] = SWAP64(data32[i]);
+		sha512_block(W, ctx.state);
+		data32 += 16;
 	}
+	uchar pbuf[64];
+	memcpy_macro(pbuf, data, data_len);
+	SHA512_Update(&ctx, pbuf, data_len);
 #else
 	SHA512_Update(&ctx, data, data_len);
 #endif
