@@ -91,7 +91,7 @@ if __name__ == '__main__':
         sys.stderr.write("md: 0 => md5, 1 => sha1, 2 => sha256\n")
         sys.stderr.write("ascii_pct: minimum ascii percent (1-100) on decrypted output (ignored if plaintext present)\n")
         sys.stderr.write("\nOpenSSL 1.1.0e uses aes-256-cbc with sha256\n")  # See "apps/enc.c" in OpenSSL
-        sys.exit(-1)
+        sys.exit(1)
 
     parser = optparse.OptionParser()
     parser.add_option('-p', action="store", dest="plaintext")

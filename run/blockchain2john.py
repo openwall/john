@@ -23,7 +23,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) < 2:
         parser.print_help()
-        sys.exit(-1)
+        sys.exit(1)
 
     for filename in unknown:
         with open(filename, "rb") as f:

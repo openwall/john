@@ -48,7 +48,7 @@ if __name__ == "__main__":
         sys.stderr.write("Usage: %s <wrapped-passphrase> [.ecryptfsrc]\n" % sys.argv[0])
         sys.stderr.write("\nExample: %s ~/.ecryptfs/wrapped-passphrase" % sys.argv[0])
         sys.stderr.write("\nExample: %s ~/.ecryptfs/wrapped-passphrase ~/.ecryptfsrc\n" % sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     try:
         ecryptfsrc = sys.argv[2]

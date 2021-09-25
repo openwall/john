@@ -63,7 +63,7 @@ for the decryption PIN.\n"""
     if len(sys.argv) < 2:
         sys.stderr.write("%s\n" % DESCRIPTION)
         sys.stderr.write(USAGE % sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     for i in range(1, len(sys.argv)):
         line = parse_pse(sys.argv[i])

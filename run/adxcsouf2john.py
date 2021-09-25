@@ -114,7 +114,7 @@ def process_file(filename):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <ADXCSOUF.DAT / ADXEPW0F.DAT file(s)>\n" % sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     # print a pro-tip
     sys.stderr.write("Tip: Maxmium password length is 8 on IBM/Toshiba 4690 systems\n\n")

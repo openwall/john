@@ -74,7 +74,7 @@ if __name__ == '__main__':
         sys.stderr.write("\nNote: This only works with data from Windows and macOS Desktop version of Dashlane.\n")
         sys.stderr.write("\nThe required .aes files can be found inside %AppData%\Dashlane\profiles directory tree on Windows.\n")
         sys.stderr.write("\nThe required .aes files can be found inside ~/Library/Application\ Support/Dashlane/profiles/ directory tree on macOS.\n")
-        sys.exit(-1)
+        sys.exit(1)
 
     for i in range(1, len(sys.argv)):
         process(sys.argv[i])

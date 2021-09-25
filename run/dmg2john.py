@@ -144,7 +144,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s [DMG files]\n" % sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     for i in range(1, len(sys.argv)):
         process_file(sys.argv[i])

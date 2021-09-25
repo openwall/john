@@ -46,13 +46,13 @@ except ImportError:
         import simplejson as json
     except ImportError:
         sys.stderr.write("Please install json module which is currently not installed.\n")
-        sys.exit(-1)
+        sys.exit(1)
 
 try:
     import plyvel
 except ImportError:
     sys.stderr.write("[WARNING] Please install the plyvel module for full functionality!\n")
-    sys.exit(-1)
+    sys.exit(1)
 
 
 def process_xml_file(filename):
@@ -128,7 +128,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <Bitwarden storage.js / com.x8bit.bitwarden_preferences.xml / Google Chrome's 'nngceckbap...' path>\n" %
                          sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     for j in range(1, len(sys.argv)):
         process_file(sys.argv[j])
