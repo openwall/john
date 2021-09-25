@@ -686,7 +686,7 @@ if __name__ == "__main__":
         print("This program helps in extracting password hashes from OS X / macOS systems (>= Mountain Lion -> 10.8+).\n")
         print("Run this program against .plist file(s) obtained from /var/db/dslocal/nodes/Default/users/<username>.plist location.\n")
         print("Usage: %s <OS X / macOS .plist files>" % sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     for i in range(1, len(sys.argv)):
         process_file(sys.argv[i])

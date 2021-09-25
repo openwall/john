@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s [-s] -f <AIX passwd file (/etc/security/passwd)>\n" % sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', action="store_true",
@@ -84,4 +84,4 @@ if __name__ == "__main__":
         process_file(args.filename, args.is_standard)
     else:
         print("Please specify a filename (-f)")
-        sys.exit(-1)
+        sys.exit(1)

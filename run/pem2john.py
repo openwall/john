@@ -17,8 +17,7 @@ try:
     from asn1crypto.keys import EncryptedPrivateKeyInfo
 except ImportError:
     sys.stderr.write("asn1crypto python package is missing, please install it using 'pip install --user asn1crypto' command.\n")
-    # traceback.print_exc()
-    sys.exit(-1)
+    sys.exit(1)
 
 PY3 = sys.version_info[0] == 3
 

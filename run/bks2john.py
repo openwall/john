@@ -209,7 +209,7 @@ if __name__ == "__main__":
 
     if len(args) < 1:
         parser.print_help()
-        sys.exit(-1)
+        sys.exit(1)
 
     for f in args:
         process_file(f, options.type)

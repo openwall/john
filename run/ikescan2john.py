@@ -9,7 +9,7 @@ import sys
 def usage():
     sys.stderr.write("Usage: %s <psk-parameters-file> [norteluser]\n" % \
                      sys.argv[0])
-    sys.exit(-1)
+    sys.exit(1)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
