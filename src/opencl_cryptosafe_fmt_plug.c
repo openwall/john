@@ -272,10 +272,15 @@ static void set_key(char *key, int index)
 	/* Early partial transfer to GPU */
 	if (index && !(index & (256*1024 - 1))) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
-		key_offset = key_idx;
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * index - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
-		idx_offset = 4 * index;
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (index + 2) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
+
+		if (!mask_gpu_is_static)
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * (index + 1) - idx_offset, saved_int_key_loc + (idx_offset / 4), 0, NULL, NULL), "failed transferring buffer_int_key_loc.");
+
 		HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+
+		key_offset = key_idx;
+		idx_offset = 4 * (index + 1);
 		new_keys = 0;
 	}
 }
@@ -343,8 +348,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
+
 		if (!mask_gpu_is_static)
-			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, 0, 4 * gws, saved_int_key_loc, 0, NULL, NULL), "failed transferring buffer_int_key_loc.");
+			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * gws - idx_offset, saved_int_key_loc + (idx_offset / 4), 0, NULL, NULL), "failed transferring buffer_int_key_loc.");
 
 		new_keys = 0;
 	}
