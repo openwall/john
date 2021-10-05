@@ -27,7 +27,7 @@ one simply creates include sections, like this:
 
 [List.Rules:HC_deadone]
 !! hashcat logic ON
-.include '/code/hashcat//rules/d3ad0ne.rule'
+.include '/code/hashcat/rules/d3ad0ne.rule'
 !! hashcat logic OFF
 
 ... etc.
@@ -102,4 +102,5 @@ Notes:
 4. R and L are keyboard shift R and L if not in hashcat mode.  But in hashcat
    mode, these are bitshift character at location N.  If R or N are followed by
    0 to 9 in non hashcat mode, then they are treated as the hashcat rules.
-5. +N does not work in single mode, unless hashcat logic is used.
+5. +N does not work after single mode word pair command 1 or 2 was used, unless
+   in hashcat mode.
