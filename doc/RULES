@@ -296,7 +296,7 @@ first, the second, or to both words:
 
 1	first word only
 2	second word only
-+	the concatenation of both (should only be used after a "1" or "2")
++	the concatenation of both (can only be used after a "1" or "2")
 
 If you use some of the above commands in a rule, it will only process
 word pairs (e.g., full names from the GECOS field) and reject single

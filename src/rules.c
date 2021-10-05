@@ -1475,13 +1475,14 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case '+':
-			if (hc_logic || split < 0) {
+			if (hc_logic || !which) {
 				/* HC rule: increment character */
 				unsigned char x;
 				POSITION(x)
 				if (x < length)
 					++in[x];
-			} else {
+				break;
+			}
 			switch (which) {
 			case 1:
 				strcat(in, buffer[2][STAGE]);
@@ -1503,7 +1504,6 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			length = strlen(in);
 			which = 0;
-			}
 			break;
 
 /* Rules added in Jumbo */
