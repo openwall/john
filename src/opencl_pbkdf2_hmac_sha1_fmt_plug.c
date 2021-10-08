@@ -227,6 +227,7 @@ static void *get_binary(char *ciphertext)
 #if !ARCH_LITTLE_ENDIAN
 	char *p = strrchr(ciphertext, '$') + 1;
 	int len = strlen(p) / 2;
+	int i;
 	for (i = 0; i < len / sizeof(uint32_t); ++i) {
 		((uint32_t*)out)[i] = JOHNSWAP(((uint32_t*)out)[i]);
 	}
