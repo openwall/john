@@ -1162,6 +1162,7 @@ DO_ALIGN(6)
 .globl DES_bs_crypt_25
 DES_bs_crypt_25:
 	PROLOGUE
+	movl (ARG1),%r8d
 	cmpl $0,DES_bs_all_keys_changed(%rip)
 	jnz DES_bs_finalize_keys_25
 DES_bs_crypt_25_body:
@@ -1213,6 +1214,7 @@ DES_bs_crypt_25_swap:
 	movl $0x108,rounds_and_swapped
 	subl $1,iterations
 	jnz DES_bs_crypt_25_swap
+	xchgq %r8,%rax
 	EPILOGUE
 	ret
 DES_bs_crypt_25_next:
