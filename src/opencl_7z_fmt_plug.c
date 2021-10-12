@@ -58,8 +58,8 @@ typedef struct {
 } sevenzip_hash;
 
 typedef struct {
-	size_t length;
-	size_t unpacksize;
+	size_t aes_length;
+	size_t packed_size;
 	uint32_t iterations;
 	//uint32_t salt_size;
 	//uint8_t salt[16];
@@ -264,11 +264,11 @@ static void set_salt(void *salt)
 	if (currentsalt.iterations != sevenzip_salt->NumCyclesPower)
 		new_keys = 1;
 
-	if (sevenzip_salt->length >= 32)
-		memcpy(currentsalt.data, sevenzip_salt->data + sevenzip_salt->length - 32, 32);
+	if (sevenzip_salt->aes_length >= 32)
+		memcpy(currentsalt.data, sevenzip_salt->data + sevenzip_salt->aes_length - 32, 32);
 
-	currentsalt.length = sevenzip_salt->length;
-	currentsalt.unpacksize = sevenzip_salt->unpacksize;
+	currentsalt.aes_length = sevenzip_salt->aes_length;
+	currentsalt.packed_size = sevenzip_salt->packed_size;
 	currentsalt.iterations = sevenzip_salt->NumCyclesPower;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,

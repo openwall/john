@@ -166,12 +166,12 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!isdecu(p) && !isdec_negok(p))
 		goto err;
-	if ((p = strtokm(NULL, "$")) == NULL) /* data length */
+	if ((p = strtokm(NULL, "$")) == NULL) /* aes_length */
 		goto err;
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
-	if ((p = strtokm(NULL, "$")) == NULL) /* unpacksize */
+	if ((p = strtokm(NULL, "$")) == NULL) /* packed_size */
 		goto err;
 	if (!isdec(p))	/* no way to validate, other than atoi() works for it */
 		goto err;
@@ -240,19 +240,19 @@ void *sevenzip_get_salt(char *ciphertext)
 	else
 		cs.crc = atou(p); /* unsigned function */
 	p = strtokm(NULL, "$");
-	cs.length = atoll(p);
-	psalt = malloc(sizeof(sevenzip_salt_t) + cs.length - 1);
+	cs.aes_length = atoll(p);
+	psalt = malloc(sizeof(sevenzip_salt_t) + cs.aes_length - 1);
 	memcpy(psalt, &cs, sizeof(cs));
 	p = strtokm(NULL, "$");
-	psalt->unpacksize = atoll(p);
+	psalt->packed_size = atoll(p);
 	p = strtokm(NULL, "$"); /* data */
-	for (i = 0; i < psalt->length; i++)
+	for (i = 0; i < psalt->aes_length; i++)
 		psalt->data[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 	if (cs.type && cs.type != 128) {
 		p = strtokm(NULL, "$"); /* CRC length */
 		psalt->crc_len = atoi(p);
-		if ((cs.type & 0xf) != 7) {
+		if ((cs.type & 0xf) != 7 && (cs.type & 0xf) != 6) {
 			p = strtokm(NULL, "$"); /* Coder properties */
 			for (i = 0; p[i * 2] ; i++)
 				psalt->props[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -261,8 +261,8 @@ void *sevenzip_get_salt(char *ciphertext)
 	}
 
 	MEM_FREE(keeptr);
-	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(sevenzip_salt_t, length);
-	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(sevenzip_salt_t, length, data, psalt->length);
+	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(sevenzip_salt_t, aes_length);
+	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(sevenzip_salt_t, aes_length, data, psalt->aes_length);
 	psalt->dsalt.salt_alloc_needs_free = 1;
 
 	memcpy(ptr, &psalt, sizeof(void*));
@@ -303,19 +303,17 @@ int sevenzip_decrypt(unsigned char *derived_key)
 	int nbytes, pad_size;
 	int c_type = sevenzip_salt->type & 0xf;
 	int p_type = (sevenzip_salt->type >> 4) & 0x7;
-	size_t crc_len = sevenzip_salt->unpacksize;
-	size_t aes_len = sevenzip_salt->crc_len ?
-		(sevenzip_salt->crc_len * 11 + 150) / 160 * 16 : crc_len;
+	size_t crc_len = sevenzip_salt->crc_len ? sevenzip_salt->crc_len : sevenzip_salt->packed_size;
 
-	pad_size = nbytes = sevenzip_salt->length - sevenzip_salt->unpacksize;
+	pad_size = nbytes = sevenzip_salt->aes_length - sevenzip_salt->packed_size;
 
 #if DEBUG
-	if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
-		fprintf(stderr, "\nType %02x (%s%s%s) Packed length %zu, Unpacked %zu, pad size %d\n",
+	if (!benchmark_running && options.verbosity >= VERB_DEBUG)
+		fprintf(stderr, "\nType %02x (%s%s%s) AES length %zu, packed len %zu, pad size %d, crc len %zu\n",
 		        sevenzip_salt->type, precomp_type[p_type] ? precomp_type[p_type] : "",
 		        p_type ? "+" : "",
 		        comp_type[c_type] ? comp_type[c_type] : "(unknown)",
-		        sevenzip_salt->unpacksize, sevenzip_salt->crc_len, pad_size);
+		        sevenzip_salt->aes_length, sevenzip_salt->packed_size, pad_size, crc_len);
 #endif
 	/*
 	 * Early rejection (only decrypt last 16 bytes). We had one (1) report that it's
@@ -323,18 +321,18 @@ int sevenzip_decrypt(unsigned char *derived_key)
 	 * Note: OpenCL format will early-reject before even calling this function.
 	 */
 	if ((sevenzip_salt->type == 0x80 || sevenzip_trust_padding) &&
-	    pad_size > 0 && sevenzip_salt->length >= 32) {
+	    pad_size > 0 && sevenzip_salt->aes_length >= 32) {
 		uint8_t buf[16];
 
-		memcpy(iv, sevenzip_salt->data + sevenzip_salt->length - 32, 16);
+		memcpy(iv, sevenzip_salt->data + sevenzip_salt->aes_length - 32, 16);
 		AES_set_decrypt_key(derived_key, 256, &akey);
-		AES_cbc_encrypt(sevenzip_salt->data + sevenzip_salt->length - 16, buf,
+		AES_cbc_encrypt(sevenzip_salt->data + sevenzip_salt->aes_length - 16, buf,
 		                16, &akey, iv, AES_DECRYPT);
 		i = 15;
 		while (nbytes > 0) {
 			if (buf[i] != 0) {
 #if DEBUG
-				if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+				if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 					fprintf(stderr, YEL "Initial padding check failed\n" NRM);
 #endif
 				return 0;
@@ -343,31 +341,30 @@ int sevenzip_decrypt(unsigned char *derived_key)
 			i--;
 		}
 #if DEBUG
-		if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+		if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 			fprintf(stderr, "Initial padding check passed\n");
 #endif
 		if (sevenzip_salt->type == 0x80) /* We only have truncated data */
 			return 1;
 	}
 
-	/* Complete decryption, or partial if possible */
-	aes_len = nbytes ? sevenzip_salt->length : MIN(aes_len, sevenzip_salt->length);
+	/* Complete decryption */
 #if DEBUG
-	if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
-		fprintf(stderr, "AES len %zu, pad size %d\n", aes_len, pad_size);
+	if (!benchmark_running && options.verbosity >= VERB_DEBUG)
+		fprintf(stderr, "AES len %zu, pad size %d\n", sevenzip_salt->aes_length, pad_size);
 #endif
-	out = mem_alloc(aes_len);
+	out = mem_alloc(sevenzip_salt->aes_length);
 	memcpy(iv, sevenzip_salt->iv, 16);
 	AES_set_decrypt_key(derived_key, 256, &akey);
-	AES_cbc_encrypt(sevenzip_salt->data, out, aes_len, &akey, iv, AES_DECRYPT);
+	AES_cbc_encrypt(sevenzip_salt->data, out, sevenzip_salt->aes_length, &akey, iv, AES_DECRYPT);
 
 	/* Padding check unless we already did the quick one */
 	if (sevenzip_trust_padding && nbytes) {
-		i = sevenzip_salt->length - 1;
+		i = sevenzip_salt->aes_length - 1;
 		while (nbytes > 0) {
 			if (out[i] != 0) {
 #if DEBUG
-				if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+				if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 					fprintf(stderr, YEL "Padding check failed\n" NRM);
 #endif
 				goto exit_bad;
@@ -376,7 +373,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 			i--;
 		}
 #if DEBUG
-		if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+		if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 			fprintf(stderr, "Padding check passed\n");
 #endif
 	}
@@ -387,31 +384,30 @@ int sevenzip_decrypt(unsigned char *derived_key)
 	/* Decompression before CRC */
 	if (c_type == 1) {
 		ELzmaStatus status;
-		size_t in_size = aes_len;
+		size_t in_size = sevenzip_salt->packed_size;
 		uint8_t *new_out;
 		SRes rc;
-		size_t out_size = sevenzip_salt->crc_len;
+		size_t out_size = crc_len;
 
 		new_out = mem_alloc(out_size);
 		if ((rc = LzmaDecode(new_out, &out_size, out, &in_size,
 		                     sevenzip_salt->props, LZMA_PROPS_SIZE,
 		                     LZMA_FINISH_ANY, &status,
 		                     &g_Alloc)) == SZ_OK &&
-		    out_size == sevenzip_salt->crc_len) {
+		    out_size == crc_len) {
 #if DEBUG
-			if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 				fprintf(stderr, "LZMA decoding passed, %zu/%zu -> %zu/%zu, props %02x%02x%02x%02x\n",
-				        in_size, aes_len, out_size, sevenzip_salt->crc_len, sevenzip_salt->props[0],
+				        in_size, sevenzip_salt->packed_size, out_size, crc_len, sevenzip_salt->props[0],
 				        sevenzip_salt->props[1], sevenzip_salt->props[2], sevenzip_salt->props[3]);
 #endif
 			MEM_FREE(out);
 			out = new_out;
-			crc_len = sevenzip_salt->crc_len;
 		} else {
 #if DEBUG
-			if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 				fprintf(stderr, YEL "LZMA decoding failed, %zu/%zu -> %zu/%zu, props %02x%02x%02x%02x\n" NRM,
-				        in_size, aes_len, out_size, sevenzip_salt->crc_len, sevenzip_salt->props[0],
+				        in_size, sevenzip_salt->packed_size, out_size, crc_len, sevenzip_salt->props[0],
 				        sevenzip_salt->props[1], sevenzip_salt->props[2], sevenzip_salt->props[3]);
 #endif
 			MEM_FREE(new_out);
@@ -421,29 +417,28 @@ int sevenzip_decrypt(unsigned char *derived_key)
 	else if (c_type == 2) {
 		Byte prop = sevenzip_salt->props[0];
 		ELzmaStatus status;
-		size_t in_size = aes_len;
+		size_t in_size = sevenzip_salt->packed_size;
 		uint8_t *new_out;
 		SRes rc;
-		size_t out_size = sevenzip_salt->crc_len;
+		size_t out_size = crc_len;
 
 		new_out = mem_alloc(out_size);
 		if ((rc = Lzma2Decode((Byte*)new_out, &out_size, out, &in_size,
 		                      prop, LZMA_FINISH_ANY, &status,
 		                      &g_Alloc)) == SZ_OK &&
-		    out_size == sevenzip_salt->crc_len) {
+		    out_size == crc_len) {
 #if DEBUG
-			if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 				fprintf(stderr, "LZMA2 decoding passed, %zu/%zu -> %zu/%zu, props %02x\n",
-				        in_size, aes_len, out_size, sevenzip_salt->crc_len, sevenzip_salt->props[0]);
+				        in_size, sevenzip_salt->packed_size, out_size, crc_len, sevenzip_salt->props[0]);
 #endif
 			MEM_FREE(out);
 			out = new_out;
-			crc_len = sevenzip_salt->crc_len;
 		} else {
 #if DEBUG
-			if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 				fprintf(stderr, YEL "LZMA2 decoding failed, %zu/%zu -> %zu/%zu, props %02x\n" NRM,
-				        in_size, aes_len, out_size, sevenzip_salt->crc_len, sevenzip_salt->props[0]);
+				        in_size, sevenzip_salt->packed_size, out_size, crc_len, sevenzip_salt->props[0]);
 #endif
 			MEM_FREE(new_out);
 			goto exit_bad;
@@ -452,23 +447,36 @@ int sevenzip_decrypt(unsigned char *derived_key)
 #if HAVE_LIBZ
 	else if (c_type == 7) {
 		int ret;
-		uint8_t *new_out = mem_alloc(sevenzip_salt->crc_len);
+		uint8_t *new_out = mem_alloc(crc_len);
 		z_stream inf_stream = { Z_NULL };
 
-		inf_stream.avail_in = aes_len;
+		inf_stream.avail_in = sevenzip_salt->packed_size;
 		inf_stream.next_in = out;
-		inf_stream.avail_out = sevenzip_salt->crc_len;
+		inf_stream.avail_out = crc_len;
 		inf_stream.next_out = new_out;
 
-		inflateInit2(&inf_stream, -MAX_WBITS);
-		ret = inflate(&inf_stream, Z_NO_FLUSH);
+		if (inflateInit2(&inf_stream, -MAX_WBITS) != Z_OK)
+			error_msg("zlib inflate error");
+
+		ret = inflate(&inf_stream, Z_FINISH);
 		inflateEnd(&inf_stream);
 
-		if (ret == Z_OK || ret == Z_STREAM_END) {
+		if (ret == Z_STREAM_END) {
+#if DEBUG
+			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
+				fprintf(stderr, "DEFLATE decoding passed, %zu/%zu -> %zu/%zu\n",
+				        sevenzip_salt->packed_size - inf_stream.avail_in, sevenzip_salt->packed_size,
+				        crc_len - inf_stream.avail_out, crc_len);
+#endif
 			MEM_FREE(out);
 			out = new_out;
-			crc_len = sevenzip_salt->crc_len;
 		} else {
+#if DEBUG
+			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
+				fprintf(stderr, YEL "DEFLATE decoding failed, %zu/%zu -> %zu/%zu\n" NRM,
+				        sevenzip_salt->packed_size - inf_stream.avail_in, sevenzip_salt->packed_size,
+				        crc_len - inf_stream.avail_out, crc_len);
+#endif
 			MEM_FREE(new_out);
 			goto exit_bad;
 		}
@@ -477,7 +485,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 
 	if (p_type) {
 #if DEBUG
-		if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+		if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 			fprintf(stderr, "Decoding %s\n", precomp_type[p_type]);
 #endif
 		if (p_type == 1) {
@@ -487,7 +495,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 			x86_Convert(out, crc_len, 0, &state, 0);
 		}
 		else if (p_type == 2) {
-			if (!bench_or_test_running && options.verbosity >= VERB_DEFAULT) {
+			if (!benchmark_running && options.verbosity >= VERB_DEFAULT) {
 				static int warned;
 
 				if (!warned++)
@@ -509,7 +517,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 
 	/* CRC check */
 #if DEBUG
-	if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+	if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 		fprintf(stderr, "CRC len %zu\n", crc_len);
 #endif
 	CRC32_Init(&crc);
@@ -521,13 +529,13 @@ int sevenzip_decrypt(unsigned char *derived_key)
 #endif
 	if (ccrc == sevenzip_salt->crc) {
 #if DEBUG
-		if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+		if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 			fprintf(stderr, "CRC check passed (%08x)\n", ccrc);
 #endif
 		goto exit_good;
 	}
 #if DEBUG
-	if (!bench_or_test_running && options.verbosity >= VERB_DEBUG)
+	if (!benchmark_running && options.verbosity >= VERB_DEBUG)
 		fprintf(stderr, YEL "CRC failed, %08x vs %08x\n" NRM, ccrc, sevenzip_salt->crc);
 #endif
 
@@ -553,7 +561,7 @@ unsigned int sevenzip_padding_size(void *salt)
 	sevenzip_salt_t *my_salt;
 
 	my_salt = *((sevenzip_salt_t**)salt);
-	return my_salt->length - my_salt->unpacksize;
+	return my_salt->aes_length - my_salt->packed_size;
 }
 
 unsigned int sevenzip_compression_type(void *salt)
