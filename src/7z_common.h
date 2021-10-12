@@ -28,9 +28,9 @@
 
 typedef struct sevenzip_salt_s {
 	dyna_salt dsalt;
-	size_t length;     /* used in decryption */
-	size_t unpacksize; /* used in padding check */
-	size_t crc_len;    /* used in CRC calculation */
+	size_t aes_length;  /* AES length (even blocks) */
+	size_t packed_size; /* Deflated length */
+	size_t crc_len;     /* Inflated length */
 	int NumCyclesPower;
 	int SaltSize;
 	int ivSize;
