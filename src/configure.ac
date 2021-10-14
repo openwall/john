@@ -1278,8 +1278,8 @@ Generic crypt(3) format .................... ${using_crypt}
 OpenSSL (many additional formats) .......... ${with_openssl}
 libgmp (PRINCE mode and faster SRP formats)  ${ac_cv_lib_gmp___gmpz_init}
 128-bit integer (faster PRINCE mode) ....... ${have_int128}
-libz (pkzip and some other formats) ........ ${using_zlib}
-libbz2 (gpg2john extra decompression logic)  ${using_bz2}
+libz (7z, pkzip and some other formats) .... ${using_zlib}
+libbz2 (7z and gpg2john bz2 support) ....... ${using_bz2}
 libpcap (vncpcap2john and SIPdump) ......... ${using_pcap}
 Non-free unrar code (complete RAR support) . ${unrar_files}
 OpenMPI support (default disabled) ......... ${using_mpi}
