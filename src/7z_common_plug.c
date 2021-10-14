@@ -135,7 +135,15 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
-	if (len > 16) /* salt length */
+	if (len > 0 && strstr(self->params.label, "-opencl")) {
+		static int warned;
+
+		if (!warned++)
+			fprintf(stderr, YEL "%s: Warning: Not loading hashes with salt due to optimizations. Please report!\n" NRM,
+			        self->params.label);
+		goto err;
+	}
+	if (len > 16)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* salt */
 		goto err;
