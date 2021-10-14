@@ -644,3 +644,11 @@ unsigned int sevenzip_compression_type(void *salt)
 	my_salt = *((sevenzip_salt_t**)salt);
 	return my_salt->type;
 }
+
+unsigned int sevenzip_data_len(void *salt)
+{
+	sevenzip_salt_t *my_salt;
+
+	my_salt = *((sevenzip_salt_t**)salt);
+	return my_salt->packed_size;
+}
