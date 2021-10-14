@@ -14,6 +14,13 @@
 #endif
 #if HAVE_LIBZ
 #include <zlib.h>
+#else
+#warning "Notice: 7z format will lack DEFLATE support (needs zlib)"
+#endif
+#if HAVE_LIBBZ2
+#include <bzlib.h>
+#else
+#warning "Notice: 7z format will lack BZIP2 support (needs libbz2)"
 #endif
 
 #include "johnswap.h"
@@ -37,10 +44,23 @@ struct fmt_tests sevenzip_tests[] = {
 	{"$7z$1$19$0$1122$8$732b59fd26896e410000000000000000$2955316379$192$183$7544a3a7ec3eb99a33d80e57907e28fb8d0e140ec85123cf90740900429136dcc8ba0692b7e356a4d4e30062da546a66b92ec04c64c0e85b22e3c9a823abef0b57e8d7b8564760611442ecceb2ca723033766d9f7c848e5d234ca6c7863a2683f38d4605322320765938049305655f7fb0ad44d8781fec1bf7a2cb3843f269c6aca757e509577b5592b60b8977577c20aef4f990d2cb665de948004f16da9bf5507bf27b60805f16a9fcc4983208297d3affc4455ca44f9947221216f58c337f$232$5d00000100", "password"},
 	/* CRC checks passes for this hash (no padding) */
 	{"$7z$0$19$0$1122$8$d1f50227759415890000000000000000$1412385885$112$112$5e5b8b734adf52a64c541a5a5369023d7cccb78bd910c0092535dfb013a5df84ac692c5311d2e7bbdc580f5b867f7b5dd43830f7b4f37e41c7277e228fb92a6dd854a31646ad117654182253706dae0c069d3f4ce46121d52b6f20741a0bb39fc61113ce14d22f9184adafd6b5333fb1", "password"},
+#if HAVE_LIBZ
+	/* Deflate */
+	/* 7z a -m0=deflate -pmagnum test.7z autoconfig-stamp-h-in */
+	{"$7z$7$19$0$$8$8a9fc71fabb004c40000000000000000$1263025034$32$29$f84a72524bf817740f312a33e71d32bfa27f3652706d3e9590a118f70aca7757$24$", "magnum"},
+#endif
 	/* This requires LZMA (no padding) */
 	{"$7z$1$19$0$1122$8$5fdbec1569ff58060000000000000000$2465353234$112$112$58ba7606aafc7918e3db7f6e0920f410f61f01e9c1533c40850992fee4c5e5215bc6b4ea145313d0ac065b8ec5b47d9fb895bb7f97609be46107d71e219544cfd24b52c2ecd65477f72c466915dcd71b80782b1ac46678ab7f437fd9f7b8e9d9fad54281d252de2a7ae386a65fc69eda$176$5d00000100", "password"},
-	/* Length checks */
+	/* This requires LZMA2 */
+	/* 7z a -m0=lzma2 -pmagnum test.7z autoconfig-stamp-h-in */
+	{"$7z$2$19$0$$8$055c46385a7995490000000000000000$1263025034$32$28$1abc552f80372f1c1fea1bab9583599b844b25f0b06afacfbf322ef3d396126a$24$00", "magnum"},
+#if HAVE_LIBBZ2
+	/* This requires BZIP2 */
+	/* 7z a -m0=bzip2 -pmagnum test.7z autoconfig-stamp-h-in */
+	{"$7z$6$19$0$$8$a3c40e48c744139d0000000000000000$1263025034$64$63$18a3139f4c62630e603a0eca87e2d7c03dd73b291ccd001abf44698d8952103c7123950a5848705270508606079971b74a58c987abfaf58dc9b43fdb2acd2635$24$", "magnum"},
+#endif
 #if DEBUG
+	/* Length checks */
 	{"$7z$128$19$0$1122$8$94fb9024fdd3e6c40000000000000000$3965424295$112$99$1127828817ff126bc45ff3c5225d9d0c5d00a52094909674e6ed3dc431546d9a672738f2fa07556340d604d2efd2901b9d2ac2c0686c25af9c520c137b16c50c54df8703fd0b0606fa721ad70aafb9c4e3b288ef49864e6034021969b4ce11e3b8e269a92090ccf593c6a0da06262116", ""},
 	{"$7z$128$19$0$1122$8$6fd059d516d5490f0000000000000000$460747259$112$99$af163eb5532c557efca78fbb448aa04f348cd258c94233e6669f4e5025f220274c244d4f2347a7512571d9b6015a1e1a90e281983b743da957437b33092eddb55a5bc76f3ab6c7dbabb001578d1043285f5fa791fd94dd9779b461e44cbfe869f891007335b766774ccee3813ec8cd57", "&"},
 	{"$7z$128$19$0$1122$8$6d4a12af68d83bfe0000000000000000$993697592$112$99$7c308faa36b667599ee4418435ab621884c5c115ee3b70be454fe99236422f4f2d5cd9c8fcfbe6b6b0805ee602ce8488a08f7ea14a4f5c0c060fc685bff187720a402b23a5cfe3c9c5a5ae07f91209031b8f9804ac10459e15a0158031f6c58e507401ec6e1e6de8f64d94201159432b", "&'"},
@@ -108,13 +128,25 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(p) == 0 || type < 0 || type > 128) /* Codec(s) needed for CRC check */
 		goto err;
 	if (c_type > 2
+#if HAVE_LIBBZ2
+		    && c_type != 6
+#endif
 #if HAVE_LIBZ
 		    && c_type != 7
 #endif
 			    && type != 128) {
-		if (john_main_process && !warned[type]++)
+		if (john_main_process && !warned[type]++) {
 			fprintf(stderr, YEL "Warning: Not loading files with unsupported compression type %s (0x%02x)\n" NRM,
 			        comp_type[c_type] ? comp_type[c_type] : "(unknown)", type);
+#if !HAVE_LIBBZ2
+			if (type == 6)
+				fprintf(stderr, YEL "Rebuild with libbz2 to get support for that type.\n" NRM);
+#endif
+#if !HAVE_LIBZ
+			if (type == 7)
+				fprintf(stderr, YEL "Rebuild with libz (zlib) to get support for that type.\n" NRM);
+#endif
+		}
 		goto err;
 	}
 	if (john_main_process && !ldr_in_pot && !self_test_running &&
@@ -186,7 +218,7 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 		if (!isdec(p))
 			goto err;
-		if (c_type < 7) {
+		if (c_type < 6) {
 			if ((p = strtokm(NULL, "$")) == NULL) /* Coder props */
 				goto err;
 			if (!ishexlc(p))
@@ -444,6 +476,47 @@ int sevenzip_decrypt(unsigned char *derived_key)
 			goto exit_bad;
 		}
 	}
+#if HAVE_LIBBZ2
+	else if (c_type == 6) {
+		int ret;
+		uint8_t *new_out = mem_alloc(crc_len);
+		bz_stream inf_stream;
+
+		inf_stream.bzalloc = NULL;
+		inf_stream.bzfree = NULL;
+		inf_stream.opaque = NULL;
+		inf_stream.avail_in = sevenzip_salt->packed_size;
+		inf_stream.next_in = (char*)out;
+		inf_stream.avail_out = crc_len;
+		inf_stream.next_out = (char*)new_out;
+
+		if (BZ2_bzDecompressInit(&inf_stream, 0, 0) != BZ_OK)
+			error_msg("libbz2 error");
+
+		ret = BZ2_bzDecompress(&inf_stream);
+		BZ2_bzDecompressEnd(&inf_stream);
+
+		if (ret == BZ_STREAM_END) {
+#if DEBUG
+			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
+				fprintf(stderr, "BZIP2 decoding passed, %zu/%zu -> %zu/%zu\n",
+				        sevenzip_salt->packed_size - inf_stream.avail_in, sevenzip_salt->packed_size,
+				        crc_len - inf_stream.avail_out, crc_len);
+#endif
+			MEM_FREE(out);
+			out = new_out;
+		} else {
+#if DEBUG
+			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
+				fprintf(stderr, YEL "BZIP2 decoding failed, %zu/%zu -> %zu/%zu\n" NRM,
+				        sevenzip_salt->packed_size - inf_stream.avail_in, sevenzip_salt->packed_size,
+				        crc_len - inf_stream.avail_out, crc_len);
+#endif
+			MEM_FREE(new_out);
+			goto exit_bad;
+		}
+	}
+#endif
 #if HAVE_LIBZ
 	else if (c_type == 7) {
 		int ret;
