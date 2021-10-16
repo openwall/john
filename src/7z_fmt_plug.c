@@ -366,7 +366,7 @@ struct fmt_main fmt_sevenzip = {
 			"iteration count",
 			"padding size",
 			"compression type",
-			"data length"
+			"data size penalty"
 		},
 		{ FORMAT_TAG },
 		sevenzip_tests
@@ -383,7 +383,7 @@ struct fmt_main fmt_sevenzip = {
 			sevenzip_iteration_count,
 			sevenzip_padding_size,
 			sevenzip_compression_type,
-			sevenzip_data_len
+			sevenzip_size_penalty
 		},
 		fmt_default_source,
 		{

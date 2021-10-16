@@ -60,6 +60,6 @@ extern int sevenzip_decrypt(unsigned char *derived_key);
 extern unsigned int sevenzip_iteration_count(void *salt);
 extern unsigned int sevenzip_padding_size(void *salt);
 extern unsigned int sevenzip_compression_type(void *salt);
-extern unsigned int sevenzip_data_len(void *salt);
+extern unsigned int sevenzip_size_penalty(void *salt);
 
 #endif /* _7Z_COMMON_H */

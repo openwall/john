@@ -678,10 +678,21 @@ unsigned int sevenzip_compression_type(void *salt)
 	return my_salt->type;
 }
 
-unsigned int sevenzip_data_len(void *salt)
+unsigned int sevenzip_size_penalty(void *salt)
 {
-	sevenzip_salt_t *my_salt;
+	sevenzip_salt_t *my_salt = *((sevenzip_salt_t**)salt);
+	uint32_t pad_size = sevenzip_padding_size(salt);
+	uint64_t e_size = my_salt->packed_size;
 
-	my_salt = *((sevenzip_salt_t**)salt);
-	return my_salt->packed_size;
+	/* Consider early reject */
+	if (sevenzip_trust_padding) {
+		int shift = pad_size * 8;
+
+		if (shift < 64)
+			e_size >>= shift;
+		else
+			e_size = 0;
+	}
+
+	return (unsigned int)MIN(UINT_MAX, e_size);
 }
