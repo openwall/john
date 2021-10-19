@@ -175,7 +175,7 @@ static void init(struct fmt_main *_self)
 	self = _self;
 	opencl_prepare_dev(gpu_id);
 
-	if (!warned++ && !bench_or_test_running && !options.listconf) {
+	if (!warned++ && !(options.flags & FLG_TEST_CHK) && !options.listconf) {
 		fprintf(stderr, "[ATTENTION] This format (%s) can only crack AES XTS DiskCryptor hashes.\n", FORMAT_LABEL);
 	}
 }
