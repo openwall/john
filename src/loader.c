@@ -1279,6 +1279,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 
 	testdb = mem_alloc(sizeof(struct db_main));
 
+	self_test_running++;
 	fmt_init(format);
 	dyna_salt_init(format);
 	ldr_init_database(testdb, &options.loader);
@@ -1288,7 +1289,6 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 	ldr_init_password_hash(testdb);
 
 	ldr_loading_testdb = 1;
-	self_test_running++;
 	while (current->ciphertext) {
 		char *ex_len_line = NULL;
 		char _line[LINE_BUFFER_SIZE], *line = _line;
