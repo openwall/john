@@ -163,8 +163,6 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	CLKERNELARG(split_kernel, 1, mem_out, "Error while setting mem_out");
 }
 
-extern int bench_running;
-
 static void init(struct fmt_main *_self)
 {
 	static int warned = 0;
@@ -174,7 +172,7 @@ static void init(struct fmt_main *_self)
 
 	Twofish_initialise();
 
-	if (!warned++ && !bench_or_test_running && !options.listconf) {
+	if (!warned++ && !(options.flags & FLG_TEST_CHK) && !options.listconf) {
 		fprintf(stderr, "[ATTENTION] This format (%s) does not support cascaded cipher modes yet.\n", FORMAT_LABEL);
 	}
 }
