@@ -1260,9 +1260,9 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					  memcpy(key2, keydata + 8, 8);
 					  memcpy(key3, keydata + 16, 8);
 					  memcpy(divec, ivec, 8);
-					  DES_set_key((DES_cblock *)key1, &ks1);
-					  DES_set_key((DES_cblock *)key2, &ks2);
-					  DES_set_key((DES_cblock *)key3, &ks3);
+					  DES_set_key_unchecked((DES_cblock *)key1, &ks1);
+					  DES_set_key_unchecked((DES_cblock *)key2, &ks2);
+					  DES_set_key_unchecked((DES_cblock *)key3, &ks3);
 					  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, SALT_LENGTH, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 				    }
 				    break;
@@ -1357,9 +1357,9 @@ int gpg_common_check(unsigned char *keydata, int ks)
 					  memcpy(key2, keydata + 8, 8);
 					  memcpy(key3, keydata + 16, 8);
 					  memcpy(divec, ivec, 8);
-					  DES_set_key((DES_cblock *) key1, &ks1);
-					  DES_set_key((DES_cblock *) key2, &ks2);
-					  DES_set_key((DES_cblock *) key3, &ks3);
+					  DES_set_key_unchecked((DES_cblock *) key1, &ks1);
+					  DES_set_key_unchecked((DES_cblock *) key2, &ks2);
+					  DES_set_key_unchecked((DES_cblock *) key3, &ks3);
 					  if (gpg_common_cur_salt->symmetric_mode && gpg_common_cur_salt->usage == 9) {
 						  DES_ede3_cfb64_encrypt(gpg_common_cur_salt->data, out, block_size + 2, &ks1, &ks2, &ks3, &divec, &num, DES_DECRYPT);
 						  num = 0;

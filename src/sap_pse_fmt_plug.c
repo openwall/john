@@ -147,9 +147,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			DES_key_schedule ks1, ks2, ks3;
 
 			// pin encryption
-			DES_set_key((DES_cblock *) key[i], &ks1);
-			DES_set_key((DES_cblock *) (key[i]+8), &ks2);
-			DES_set_key((DES_cblock *) (key[i]+16), &ks3);
+			DES_set_key_unchecked((DES_cblock *) key[i], &ks1);
+			DES_set_key_unchecked((DES_cblock *) (key[i]+8), &ks2);
+			DES_set_key_unchecked((DES_cblock *) (key[i]+16), &ks3);
 			memcpy(ivec, iv[i], 8);
 			memcpy(input, saved_key[index+i], saved_len[index+i]);
 			padbyte = 8 - (saved_len[index+i] % 8);

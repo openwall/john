@@ -107,9 +107,9 @@ static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data)
 	memcpy(key1, key, 8);
 	memcpy(key2, key + 8, 8);
 	memcpy(key3, key + 16, 8);
-	DES_set_key((DES_cblock *) key1, &ks1);
-	DES_set_key((DES_cblock *) key2, &ks2);
-	DES_set_key((DES_cblock *) key3, &ks3);
+	DES_set_key_unchecked((DES_cblock *) key1, &ks1);
+	DES_set_key_unchecked((DES_cblock *) key2, &ks2);
+	DES_set_key_unchecked((DES_cblock *) key3, &ks3);
 	memcpy(ivec, iv, 8);
 	DES_ede3_cbc_encrypt(data, out, CTLEN, &ks1, &ks2, &ks3, &ivec,  DES_DECRYPT);
 

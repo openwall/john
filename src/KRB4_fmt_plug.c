@@ -232,7 +232,7 @@ static int cmp_all(void *binary, int count)
 {
 	DES_cblock tmp;
 
-	DES_set_key(&saved_key.key, &saved_key.sched);
+	DES_set_key_unchecked(&saved_key.key, &saved_key.sched);
 
 	DES_pcbc_encrypt(saved_salt->tgt, (unsigned char *)&tmp,
 	                 sizeof(tmp), &saved_key.sched,

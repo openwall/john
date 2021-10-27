@@ -216,7 +216,7 @@ static void init(struct fmt_main *self)
 {
 	omp_autotune(self, OMP_SCALE);
 
-	DES_set_key((DES_cblock *)"\x01\x23\x45\x67\x89\xab\xcd\xef", &desschedule_static);
+	DES_set_key_unchecked((DES_cblock *)"\x01\x23\x45\x67\x89\xab\xcd\xef", &desschedule_static);
 	cur_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*cur_key));
 	plain_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -302,7 +302,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		crypt_key[idx][1] = 0;
 
 		DES_ncbc_encrypt(buf2, buf, l, &desschedule_static, (DES_cblock *) crypt_key[idx], DES_ENCRYPT);
-		DES_set_key((DES_cblock *)crypt_key[idx], &sched_local);
+		DES_set_key_unchecked((DES_cblock *)crypt_key[idx], &sched_local);
 		crypt_key[idx][0] = 0;
 		crypt_key[idx][1] = 0;
 		DES_ncbc_encrypt(buf2, buf, l, &sched_local, (DES_cblock *) crypt_key[idx], DES_ENCRYPT);
