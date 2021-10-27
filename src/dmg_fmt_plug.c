@@ -372,9 +372,9 @@ static int apple_des3_ede_unwrap_key1(const unsigned char *wrapped_key, const in
 	unsigned char IV[8] = { 0x4a, 0xdd, 0xa2, 0x2c, 0x79, 0xe8, 0x21, 0x05 };
 	int outlen, i;
 
-	DES_set_key((DES_cblock*)(decryptKey +  0), &ks1);
-	DES_set_key((DES_cblock*)(decryptKey +  8), &ks2);
-	DES_set_key((DES_cblock*)(decryptKey + 16), &ks3);
+	DES_set_key_unchecked((DES_cblock*)(decryptKey +  0), &ks1);
+	DES_set_key_unchecked((DES_cblock*)(decryptKey +  8), &ks2);
+	DES_set_key_unchecked((DES_cblock*)(decryptKey + 16), &ks3);
 	DES_ede3_cbc_encrypt(wrapped_key, TEMP1, wrapped_key_len, &ks1, &ks2, &ks3,
 	                     (DES_cblock*)IV, DES_DECRYPT);
 
@@ -475,9 +475,9 @@ static void hash_plugin_check_hash(int index)
 		derived_key = Derived_key[j];
 #endif
 
-		DES_set_key((DES_cblock*)(derived_key +  0), &ks1);
-		DES_set_key((DES_cblock*)(derived_key +  8), &ks2);
-		DES_set_key((DES_cblock*)(derived_key + 16), &ks3);
+		DES_set_key_unchecked((DES_cblock*)(derived_key +  0), &ks1);
+		DES_set_key_unchecked((DES_cblock*)(derived_key +  8), &ks2);
+		DES_set_key_unchecked((DES_cblock*)(derived_key + 16), &ks3);
 		memcpy(iv, cur_salt->iv, 8);
 		DES_ede3_cbc_encrypt(cur_salt->encrypted_keyblob, TEMP1,
 		                     cur_salt->encrypted_keyblob_size, &ks1, &ks2, &ks3,

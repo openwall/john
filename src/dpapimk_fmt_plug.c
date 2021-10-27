@@ -267,9 +267,9 @@ static int decrypt_v1(unsigned char *key, unsigned char *iv, unsigned char *pwdh
 	DES_key_schedule ks1, ks2, ks3;
 
 	memset(out, 0, sizeof(out));
-	DES_set_key((DES_cblock *) key, &ks1);
-	DES_set_key((DES_cblock *) (key + 8), &ks2);
-	DES_set_key((DES_cblock *) (key + 16), &ks3);
+	DES_set_key_unchecked((DES_cblock *) key, &ks1);
+	DES_set_key_unchecked((DES_cblock *) (key + 8), &ks2);
+	DES_set_key_unchecked((DES_cblock *) (key + 16), &ks3);
 	memcpy(ivec, iv, 8);
 	DES_ede3_cbc_encrypt(data, out, cur_salt->encrypted_len, &ks1, &ks2, &ks3, &ivec,  DES_DECRYPT);
 
