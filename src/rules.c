@@ -654,7 +654,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 		return NULL;
 	}
 
-	if (!*rule && options.flags & FLG_RULE_SKIP_NOP)
+	if ((options.flags & FLG_RULE_SKIP_NOP) && !rule[strspn(rule, ": \t")])
 		return NULL;
 
 	while (RULE)
@@ -662,8 +662,6 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 	case ':':
 	case ' ':
 	case '\t':
-		if (options.flags & FLG_RULE_SKIP_NOP)
-			return NULL;
 		break;
 
 	case '-':
