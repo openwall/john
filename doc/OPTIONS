@@ -120,6 +120,12 @@ So --rules::'$\;$[0-9]' is just one rule, while --rules=:'$\;$[0-9];Az"tst"'
 is two rules, and --rules=:'$;$[0-9]' would 'try' to generate 2 rules, BUT
 the first will be invalid since it is just the $ character.
 
+--rules-skip-nop
+
+Option for --rules that makes it skip any no-op rules.  This is intended for
+when you already ran some attack on some slow format without rules and now
+want to run it with rules.
+
 --rules-stack=(SECTION[,..]|:rule[;..])
 
 Stacked rules. Adds a second pass of rules, applied after normal processing.
