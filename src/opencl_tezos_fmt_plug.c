@@ -272,21 +272,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 		for (index = 0; index < count; index++) {
-			uint64_t u[8];
-			unsigned char seed[64];
-			unsigned char buffer[20];
+			union {
+				uint64_t u64[4];
+				ed25519_secret_key sk;
+			} u;
 			ed25519_public_key pk;
-			ed25519_secret_key sk;
+			unsigned char buffer[20];
 			int j;
 
-			memcpy(u, host_crack[index].hash, 64);
-			for (j = 0; j < 8; j++)
-				u[j] = JOHNSWAP64(u[j]);
-			memcpy(seed, u, 64);
+			// Room for optimization: we use only half of each hash here => can halve transfer size
+			for (j = 0; j < 4; j++)
+				u.u64[j] = JOHNSWAP64(host_crack[index].hash[j]);
 
 			// asymmetric stuff
-			memcpy(sk, seed, 32);
-			ed25519_publickey(sk, pk);
+			ed25519_publickey(u.sk, pk);
 
 			blake2b((uint8_t *)buffer, (unsigned char*)pk, NULL, 20, 32, 0); // pk is pkh (pubkey hash)
 
