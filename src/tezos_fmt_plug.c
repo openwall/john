@@ -114,7 +114,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
-		unsigned char seed[MIN_KEYS_PER_CRYPT][64];
+		union {
+			unsigned char seed[64];
+			ed25519_secret_key sk;
+		} seed[MIN_KEYS_PER_CRYPT];
 		char salt[MIN_KEYS_PER_CRYPT][16 + 256 + PLAINTEXT_LENGTH];
 		int i;
 #ifdef SIMD_COEF_64
@@ -136,7 +139,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			lens[i] = cur_salt->mnemonic_length;
 			pin[i] = (unsigned char*)cur_salt->mnemonic;
 			sin[i] = (unsigned char*)salt[i];
-			pout[i] = seed[i];
+			pout[i] = seed[i].seed;
 			slens[i] = strlen(salt[i]);
 		}
 		pbkdf2_sha512_sse_varying_salt((const unsigned char**)pin, lens, sin, slens, 2048, pout, 64, 0);
@@ -144,16 +147,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
 			pbkdf2_sha512((unsigned char*)cur_salt->mnemonic,
 					cur_salt->mnemonic_length, (unsigned char*)salt[i], strlen(salt[i]), 2048,
-					seed[i], 64, 0);
+					seed[i].seed, 64, 0);
 #endif
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			unsigned char buffer[20];
 			ed25519_public_key pk;
-			ed25519_secret_key sk;
 
 			// asymmetric stuff
-			memcpy(sk, seed[i], 32);
-			ed25519_publickey(sk, pk);
+			ed25519_publickey(seed[i].sk, pk);
 
 			blake2b((uint8_t *)buffer, (unsigned char*)pk, NULL, 20, 32, 0); // pk is pkh (pubkey hash)
 
