@@ -163,25 +163,23 @@ OpenMP support.
 Here's how to make the best possible of your hardware.  There are alternatives
 that probably work fine but these instructions are for "Homebrew":
 
-  1. Install Xcode (free in App Store).
-  2. Install Xcode's command-line tools:
+  1. Install Xcode's command-line tools:
 	xcode-select --install
-     You'll need to re-run that command after any little update of macOS,
-     because the command-line tools silently disappeared and you'll get a silly
-     "error: C compiler cannot create executables" when trying to build John.
-  3. Install Homebrew, by following the instructions given here:
+     You might need to re-run that command after an update of macOS, if
+     you get "error: C compiler cannot create executables" when building.
+  2. Install Homebrew, by following the instructions given here:
 	https://brew.sh
-  4. Install Homebrew's gcc and OpenSSL:
-	brew install gcc openssl
-  5. Consider adding homebrew directories such as /usr/local/bin and/or
+  3. Install Homebrew's gcc and OpenSSL, and some libs:
+	brew install gcc openssl libpcap
+  4. Consider adding homebrew directories such as /usr/local/bin and/or
      /opt/homebrew/bin to your $PATH.
-  6. Configure, possibly adding a CC option for pointing to a specific gcc and
+  5. Configure, possibly adding a CC option for pointing to a specific gcc and
      using whatever LDFLAGS and CPPFLAGS was recommended when you installed
      Homebrew's OpenSSL:
         ./configure CC="/opt/homebrew/bin/gcc-10" \
           LDFLAGS="-L/opt/homebrew/opt/openssl/lib" \
           CPPFLAGS="-I/opt/homebrew/opt/openssl/include"
-  7. Clean old files and make:
+  6. Clean old files and make:
         make -s clean && make -sj4
 
 After the above, you should have a fairly optimal build with AVX/ASIMD or
