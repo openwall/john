@@ -128,6 +128,7 @@ static cl_int cl_error;
 static cl_mem mem_in, mem_salt, mem_state, mem_cracked;
 static struct fmt_main *self;
 static cl_kernel init_kernel, final_kernel;
+static size_t init_kernel_max_lws;
 
 static size_t in_size, salt_size, state_size, cracked_size;
 
@@ -152,8 +153,9 @@ static const char *warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	size_t s = autotune_get_task_max_work_group_size(FALSE, 0, init_kernel);
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
+	init_kernel_max_lws = autotune_get_task_max_work_group_size(FALSE, 0, init_kernel);
+
+	size_t s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, final_kernel));
 
 	return s;
@@ -393,7 +395,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 		init_kernel, 1, NULL,
-		&global_work_size, lws, 0, NULL,
+		&global_work_size, (local_work_size <= init_kernel_max_lws) ? lws : NULL, 0, NULL,
 		multi_profilingEvent[1]), "Run init kernel");
 
 	// Run loop kernel
