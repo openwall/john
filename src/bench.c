@@ -51,6 +51,7 @@
 #include "gpu_common.h"
 #include "opencl_common.h"
 #include "mask.h"
+#include "mask_ext.h"
 #include "aligned.h"
 
 #ifndef BENCH_BUILD
@@ -833,6 +834,13 @@ AGAIN:
 		if ((options.flags & FLG_LOOPTEST_CHK) && john_main_process)
 			printf("#%u ", loop_total);
 #endif
+#if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
+		int using_int_mask = (format->params.flags & FMT_MASK) && (options.flags & FLG_MASK_CHK) &&
+			options.req_int_cand_target != 0 && mask_int_cand_target;
+#else
+		int using_int_mask = 0;
+#endif
+
 		if (john_main_process)
 		printf("%s: %s%s%s%s [%s%s%s%s]... ",
 		    benchmark_time ? "Benchmarking" : "Testing",
@@ -844,8 +852,7 @@ AGAIN:
 #ifndef BENCH_BUILD
 #define ENC_SET (!options.default_enc && options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)
 
-		    (benchmark_time && format->params.flags & FMT_MASK &&
-		     (options.flags & FLG_MASK_CHK)) ? "/mask accel" : "",
+		    (benchmark_time && using_int_mask) ? "/mask accel" : "",
 		    ENC_SET ? ", " : "",
 		    ENC_SET ? cp_id2name(options.target_enc) : "");
 #else
