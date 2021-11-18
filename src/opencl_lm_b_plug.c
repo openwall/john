@@ -1297,7 +1297,7 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 	*pcount *= mask_int_cand.num_int_cand;
 
-	 return hash_ids[0];
+	return hash_ids[0];
 }
 
 int opencl_lm_get_hash_0(int index)
