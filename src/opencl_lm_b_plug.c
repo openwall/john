@@ -1158,7 +1158,7 @@ static char *get_key_mm(int index)
 
 static void reset(struct db_main *db)
 {
-	if (db->real && db == db->real) {
+	if (!self_test_running) {
 		struct db_salt *salt;
 		unsigned int *bitmaps = NULL;
 		OFFSET_TABLE_WORD *offset_table = NULL;
