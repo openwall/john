@@ -457,6 +457,10 @@ struct options_main {
 	int crack_status;
 /* --catch-up=oldsession */
 	char *catchup;
+#if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
+/* --mask-internal-target=N */
+	int req_int_cand_target;
+#endif
 };
 
 extern struct options_main options;

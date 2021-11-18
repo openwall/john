@@ -191,6 +191,7 @@ static struct opt_entry opt_list[] = {
 	{"gws", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, Zu, &options.gws},
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
+	{"mask-internal-target", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, "%d", &options.req_int_cand_target},
 	{"devices", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.acc_devices},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS, 0, USUAL_REQ_CLR | FLG_STDOUT},
@@ -368,6 +369,7 @@ FUZZ_USAGE \
 #define JOHN_USAGE_GPU \
 "\nOpenCL options:\n" \
 "--devices=N[,..]           Set OpenCL device(s) (see --list=opencl-devices)\n" \
+"--mask-internal-target=N   Request a specific internal mask target\n" \
 "--force-scalar             Force scalar mode\n" \
 "--force-vector-width=N     Force vector width N\n" \
 "--lws=N                    Force local worksize N\n" \
@@ -376,7 +378,8 @@ FUZZ_USAGE \
 "                           or set ZTEX device(s) by its(their) serial number(s)\n"
 #elif defined(HAVE_ZTEX)
 #define JOHN_USAGE_ZTEX \
-"--devices=N[,..]           Set ZTEX device(s) by its(their) serial number(s)\n"
+"--devices=N[,..]           Set ZTEX device(s) by its(their) serial number(s)\n" \
+"--mask-internal-target=N   Request a specific internal mask target\n"
 #endif
 
 static void opt_banner(char *name)
@@ -440,6 +443,8 @@ void opt_init(char *name, int argc, char **argv)
 	list_init(&options.loader.shells);
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
 	list_init(&options.acc_devices);
+
+	options.req_int_cand_target = -1;
 #endif
 
 	options.length = -1;

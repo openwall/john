@@ -2400,13 +2400,20 @@ static void finalize_mask(int len)
 			mask_add_len = len;
 	}
 
-	if (options.rule_stack && (mask_fmt->params.flags & FMT_MASK)) {
+	if ((mask_fmt->params.flags & FMT_MASK) && options.rule_stack) {
 		mask_int_cand_target = 0;
 		if (john_main_process) {
 			fprintf(stderr, "Note: Disabling internal mask due to stacked rules\n");
 			log_event("- Disabling internal mask due to stacked rules");
 		}
 	}
+#if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
+	else if ((mask_fmt->params.flags & FMT_MASK) && options.req_int_cand_target >= 0) {
+		log_event("- Overriding format's target internal mask factor of %d with user requested %d",
+		          mask_int_cand_target, options.req_int_cand_target);
+		mask_int_cand_target = options.req_int_cand_target;
+	}
+#endif
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s() qw %d minlen %d maxlen %d max_key_len %d mask_add_len %d mask len %d\n", __FUNCTION__, mask_num_qw, options.eff_minlength, max_keylen, len, mask_add_len, mask_len(mask));
@@ -2468,7 +2475,8 @@ static void finalize_mask(int len)
 	}
 	mask_tot_cand = cand * mask_int_cand.num_int_cand;
 
-	if ((john_main_process || !cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0)) && mask_int_cand_target)
+	if ((john_main_process || !cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0)) &&
+		mask_int_cand.num_int_cand > 1)
 		log_event("- Requested internal mask factor: %d, actual now %d",
 		          mask_int_cand_target, mask_int_cand.num_int_cand);
 }
