@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 """Utility to extract Bitwarden "hashes" from Google Chrome / Firefox / Android local data"""
 

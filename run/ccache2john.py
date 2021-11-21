@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 """
 This script extracts crackable hashes from krb5's credential cache files (e.g.
