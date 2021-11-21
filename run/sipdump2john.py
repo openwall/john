@@ -4,11 +4,13 @@
 into a format suitable for use with JtR."""
 
 import sys
+import re
 
 
 def process_file(filename):
     with open(filename, "r") as f:
         for line in f.readlines():
+            line = re.sub(r'sip\:\*', r'sip:0.0.0.0', line)
             line = line.rstrip().replace('"', '*').replace(':', '*')
             data = line.split('*')
             # Handle the case when the port number is not explicit
