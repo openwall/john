@@ -2562,6 +2562,9 @@ cl_uint get_processors_count(int sequential_id)
 	} else if (gpu_intel(device_info[sequential_id])) {
 		// It seems all current models are x 8
 		core_count *= ocl_device_list[sequential_id].cores_per_MP = 8;
+	} else if (!strcmp(dname, "Apple M1")) {
+		// Each GPU core is split into 16 Execution Units, which each contain eight Arithmetic Logic Units (ALUs)
+		core_count *= ocl_device_list[sequential_id].cores_per_MP = 16 * 8;
 	} else if (gpu_amd(device_info[sequential_id])) {
 		// 16 thread proc * 5 SP
 		core_count *= (ocl_device_list[sequential_id].cores_per_MP = (16 *
