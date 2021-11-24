@@ -2531,7 +2531,7 @@ cl_uint get_processors_count(int sequential_id)
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
 		else if (major == 6)    // 6.x Pascal
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-		else if (major >= 7)    // 7.x Volta, 8.x Turing?
+		else if (major >= 7)    // 7.0 Volta, 7.5 Turing, 8.x Ampere
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
 /*
  * Apple, VCL and some other environments don't expose get_compute_capability()
@@ -2541,8 +2541,9 @@ cl_uint get_processors_count(int sequential_id)
  * This will produce a *guessed* figure
  */
 
-		// Volta or Turing
-		else if (strstr(dname, "TITAN V") || strstr(dname, "RTX 2"))
+		// Volta, Turing, Ampere
+		else if (strstr(dname, "TITAN V") || strstr(dname, "RTX") ||
+		         (dname[0] == 'A' && dname[1] >= '1' && dname[1] <= '9'))
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
 		// Pascal
 		else if (strstr(dname, "GTX 10"))
@@ -3083,9 +3084,8 @@ void opencl_list_devices(void)
 
 			long_entries = get_processors_count(sequence_nr);
 			if (!cpu && ocl_device_list[sequence_nr].cores_per_MP > 1)
-				printf("    %s      "LLu" "
-				       " (%d x %d)\n",
-					gpu_nvidia(device_info[sequence_nr]) ? "CUDA cores:       " : "Stream processors:",
+				printf("    %s      "LLu"  (%d x %d)\n",
+					gpu_nvidia(device_info[sequence_nr]) ? "CUDA INT32 cores: " : "Stream processors:",
 				       (unsigned long long)long_entries,
 				       entries, ocl_device_list[sequence_nr].cores_per_MP);
 			printf("    Speed index:            %u\n",
