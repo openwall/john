@@ -2572,7 +2572,7 @@ cl_uint get_processors_count(int sequential_id)
 		               ((amd_gcn(device_info[sequential_id]) ||
 		                 amd_vliw4(device_info[sequential_id])) ? 4 : 5)));
 	} else {
-		// Nothing else known, we use half native vector width for long
+		// Nothing else known, we use the native vector width for long.
 		cl_uint v_width;
 
 		HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
