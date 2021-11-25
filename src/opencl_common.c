@@ -2153,8 +2153,8 @@ static void load_device_info(int sequential_id)
 		device_info[sequential_id] +=
 		    (major == 3 && minor == 5 ? DEV_NV_C35 : 0);
 		device_info[sequential_id] += (major == 5 ? DEV_NV_MAXWELL : 0);
+		device_info[sequential_id] += (major >= 5 ? DEV_NV_MAXWELL_PLUS : 0);
 		device_info[sequential_id] += (major == 6 ? DEV_NV_PASCAL : 0);
-		device_info[sequential_id] += (major == 7 ? DEV_NV_VOLTA : 0);
 	}
 }
 
