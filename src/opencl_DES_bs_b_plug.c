@@ -575,10 +575,14 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 	if (lws_tune_flag)
 		save_lws_config(CONFIG_FILE, gpu_id, local_work_size, 0);
 
-	if ((!self_test_running && options.verbosity >= VERB_DEFAULT) ||
-	    ocl_always_show_ws)
-		fprintf(stderr, "LWS="Zu" GWS="Zu"%s", local_work_size,
-		        global_work_size, benchmark_running ? " " : "\n");
+	if ((!self_test_running && options.verbosity >= VERB_DEFAULT) || ocl_always_show_ws) {
+		if (mask_int_cand.num_int_cand > 1)
+			fprintf(stderr, "LWS="Zu" GWS="Zu" x%d%s", local_work_size,
+			        global_work_size, mask_int_cand.num_int_cand, (options.flags & FLG_TEST_CHK) ? " " : "\n");
+		else
+			fprintf(stderr, "LWS="Zu" GWS="Zu"%s", local_work_size,
+			        global_work_size, (options.flags & FLG_TEST_CHK) ? " " : "\n");
+	}
 }
 
 static void reset(struct db_main *db)
