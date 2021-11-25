@@ -397,17 +397,14 @@ void fmt_init(struct fmt_main *format)
 			orig_max = format->params.max_keys_per_crypt;
 			orig_len = format->params.plaintext_length;
 		}
-#endif
-		if (john_main_process && !bench_or_test_running &&
-#ifndef BENCH_BUILD
+
+		if (john_main_process && !(options.flags & FLG_TEST_CHK) &&
 		    !options.listconf && options.target_enc != UTF_8 &&
-#endif
 		    format->params.flags & FMT_UTF8)
 			fprintf(stderr, "Warning: %s format should always be "
 			        "UTF-8. Use --target-encoding=utf8\n",
 				format->params.label);
 
-#ifndef BENCH_BUILD
 		if (john_main_process && !(options.flags & FLG_TEST_CHK) && !options.listconf) {
 			if (format->params.flags & FMT_NOT_EXACT) {
 				fprintf(stderr, "Note: This format may emit false positives, ");
