@@ -171,7 +171,7 @@ static struct opt_entry opt_list[] = {
 	{"config", FLG_ONCE, 0, 0, USUAL_REQ_CLR | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.config},
 	{"loader-dupecheck", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_TRISTATE, NULL, &options.loader_dupecheck},
 	{"no-log", FLG_NOLOG, FLG_NOLOG, 0, FLG_TEST_CHK},
-	{"log-stderr", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_TEST_CHK | OPT_BOOL, NULL, &options.log_stderr},
+	{"log-stderr", FLG_ONCE, 0, 0, USUAL_REQ_CLR | OPT_BOOL, NULL, &options.log_stderr},
 	{"crack-status", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_TRISTATE, NULL, &options.crack_status},
 	{"mkpc", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%d", &options.force_maxkeys},
 	{"min-length", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.req_minlength},
