@@ -698,9 +698,9 @@ static void reset(struct db_main *db)
 			salt_list[num_salts++] = (*(WORD *)salt->salt);
 		} while ((salt = salt->next));
 
-		if (num_salts > 1 && john_main_process)
-			fprintf(stderr, "Note: Building per-salt kernels. "
-				"This takes e.g. 2 hours for 4096 salts.\n");
+		if (num_salts > 1 && !(options.flags & FLG_TEST_CHK) && john_main_process)
+			fprintf(stderr, "Note: Building per-salt kernels. This takes e.g. 2 hours for 4096 salts.\n");
+
 #if _OPENMP && PARALLEL_BUILD
 #pragma omp parallel for
 #endif
