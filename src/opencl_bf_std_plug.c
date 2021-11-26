@@ -321,7 +321,7 @@ void exec_bf(cl_uint *salt_api, cl_uint *BF_out, cl_uint rounds, int n) {
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 5, sizeof(cl_uint), &rounds),"Set Kernel Arg FAILED arg5");
 
 	err = clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id], 1, NULL, &N, &M, 0, NULL, &evnt) ;
-	HANDLE_CLERROR(err, "Enque Kernel Failed") ;
+	HANDLE_CLERROR(err, "Enqueue Kernel Failed") ;
 
 	HANDLE_CLERROR(clWaitForEvents(1, &evnt), "Sync :FAILED") ;
 	clReleaseEvent(evnt);
