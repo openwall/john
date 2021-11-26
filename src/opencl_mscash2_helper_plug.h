@@ -35,7 +35,7 @@ extern size_t selectDevice(int jtrUniqDevId, struct fmt_main *self);
 extern void releaseAll(void);
 
 /*
- *  Enque kernels and synchronize multiple devices.
+ *  Enqueue kernels and synchronize multiple devices.
  */
 extern void dcc2Execute(cl_uint *hostDccHashes, cl_uint *hostSha1Hashes, cl_uint *hostSalt, cl_uint saltlen, cl_uint iterCount, cl_uint *hostDcc2Hashes, cl_uint numKeys);
 

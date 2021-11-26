@@ -541,7 +541,7 @@ int extract_info(size_t current_gws, size_t *lws, WORD salt_val)
 		HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id][current_salt], 6, sizeof(cl_mem), &buffer_bitmaps[current_salt]), "Failed setting kernel argument buffer_bitmaps, kernel DES_bs_cmp_high.\n");
 
 	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], cmp_kernel[gpu_id][current_salt], 1, NULL, &current_gws, lws, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_cmp failed.\n");
+	HANDLE_CLERROR(ret_code, "Enqueue kernel DES_bs_cmp failed.\n");
 
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Failed to read buffer buffer_hash_ids.\n");
 
@@ -1205,7 +1205,7 @@ void process_keys(size_t current_gws, size_t *lws)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, current_gws * sizeof(unsigned int), des_int_key_loc, 0, NULL, NULL ), "Failed Copy data to gpu");
 
 		ret_code = clEnqueueNDRangeKernel(queue[gpu_id], keys_kernel, 1, NULL, &current_gws, lws, 0, NULL, NULL);
-		HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_finalize_keys failed.\n");
+		HANDLE_CLERROR(ret_code, "Enqueue kernel DES_bs_finalize_keys failed.\n");
 
 		keys_changed = 0;
 	}
