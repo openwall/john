@@ -1197,7 +1197,7 @@ static void reset(struct db_main *db)
 		release_buffer();
 		create_buffer(num_loaded_hashes, offset_table, offset_table_size, hash_table_size, bitmaps, bitmap_size_bits);
 
-		if (options.flags & FLG_MASK_CHK && mask_int_cand.num_int_cand > 1) {
+		if ((options.flags & FLG_MASK_CHK) && mask_int_cand.num_int_cand > 1) {
 			mask_mode = 1;
 			fmt_opencl_lm.methods.set_key = opencl_lm_set_key_mm;
 			fmt_opencl_lm.methods.get_key = get_key_mm;
