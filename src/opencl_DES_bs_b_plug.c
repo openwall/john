@@ -349,6 +349,9 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 
 	unsigned int des_log_depth = mask_mode ? 0 : DES_LOG_DEPTH;
 
+	unsigned int cc_major = 0, cc_minor = 0;
+	get_compute_capability(gpu_id, &cc_major, &cc_minor);
+
 	if (cpu(device_info[gpu_id])) {
 		if (get_platform_vendor_id(platform_id) == DEV_AMD) {
 			force_global_keys = 0;
@@ -364,7 +367,7 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 		force_global_keys = 0;
 		use_local_mem = 1;
 	}
-	else if (platform_apple(platform_id) && gpu_nvidia(device_info[gpu_id])) {
+	else if (gpu_nvidia(device_info[gpu_id]) && cc_major >= 7) {
 		force_global_keys = 1;
 		use_local_mem = 0;
 	}
