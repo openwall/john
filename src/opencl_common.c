@@ -2154,7 +2154,6 @@ static void load_device_info(int sequential_id)
 		    (major == 3 && minor == 5 ? DEV_NV_C35 : 0);
 		device_info[sequential_id] += (major == 5 ? DEV_NV_MAXWELL : 0);
 		device_info[sequential_id] += (major >= 5 ? DEV_NV_MAXWELL_PLUS : 0);
-		device_info[sequential_id] += (major == 6 ? DEV_NV_PASCAL : 0);
 	}
 }
 
@@ -2501,6 +2500,47 @@ void get_compute_capability(int sequential_id, unsigned int *major,
 	clGetDeviceInfo(devices[sequential_id],
 	                CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
 	                sizeof(cl_uint), minor, NULL);
+
+	if (!major) {
+/*
+ * Apple, VCL and some other environments don't expose CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV
+ * so we need this crap - which is incomplete, best effort matching.
+ * http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
+ */
+		char dname[MAX_OCLINFO_STRING_LEN];
+
+		HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
+		                               CL_DEVICE_NAME,
+		                               sizeof(dname), dname, NULL),
+		               "clGetDeviceInfo for CL_DEVICE_NAME");
+
+		// Ampere 8.0
+		if ((strstr(dname, "RTX 30") ||
+		           (strstr(dname, "RTX A") && (dname[5] >= '1' && dname[5] <= '9')) ||
+		     (dname[0] == 'A' && dname[1] >= '1' && dname[1] <= '9')))
+			*major = 8;
+		// Volta 7.0, Turing 7.5
+		else if (strstr(dname, "TITAN V") || strstr(dname, "RTX 20")) {
+			*major = 7;
+			if (strstr(dname, "RTX 20"))
+				*minor = 5;
+		}
+		// Pascal 6.x
+		else if (strstr(dname, "GT 10") || strstr(dname, "GTX 10") || strcasestr(dname, "TITAN Xp"))
+			*major = 6;
+		// Maxwell 5.x
+		else if (strstr(dname, "GT 9") || strstr(dname, "GTX 9") || strstr(dname, "GTX TITAN X"))
+			*major = 5;
+		// Kepler 3.x
+		else if (strstr(dname, "GT 6") || strstr(dname, "GTX 6") ||
+		         strstr(dname, "GT 7") || strstr(dname, "GTX 7") ||
+		         strstr(dname, "GT 8") || strstr(dname, "GTX 8") ||
+		         strstr(dname, "GTX TITAN"))
+			*major = 3;
+		// Fermi 2.0
+		else if (strstr(dname, "GT 5") || strstr(dname, "GTX 5"))
+			*major = 2;
+	}
 }
 
 cl_uint get_processors_count(int sequential_id)
@@ -2533,33 +2573,6 @@ cl_uint get_processors_count(int sequential_id)
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
 		else if (major >= 7)    // 7.0 Volta, 7.5 Turing, 8.x Ampere
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
-/*
- * Apple, VCL and some other environments don't expose get_compute_capability()
- * so we need this crap - which is incomplete.
- * http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
- *
- * This will produce a *guessed* figure
- */
-
-		// Volta, Turing, Ampere
-		else if (strstr(dname, "TITAN V") || strstr(dname, "RTX") ||
-		         (dname[0] == 'A' && dname[1] >= '1' && dname[1] <= '9'))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
-		// Pascal
-		else if (strstr(dname, "GTX 10"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-		// Maxwell
-		else if (strstr(dname, "GTX 9") || strstr(dname, "GTX TITAN X"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-		// Kepler
-		else if (strstr(dname, "GT 6") || strstr(dname, "GTX 6") ||
-		         strstr(dname, "GT 7") || strstr(dname, "GTX 7") ||
-		         strstr(dname, "GT 8") || strstr(dname, "GTX 8") ||
-		         strstr(dname, "GTX TITAN"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 192);
-		// Fermi
-		else if (strstr(dname, "GT 5") || strstr(dname, "GTX 5"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 48);
 	} else if (gpu_intel(device_info[sequential_id])) {
 		// It seems all current models are x 8
 		core_count *= ocl_device_list[sequential_id].cores_per_MP = 8;
