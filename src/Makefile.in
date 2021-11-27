@@ -840,7 +840,7 @@ zsh-completion:
 shell-completion: bash-completion zsh-completion
 
 kernel-cache-clean:
-	$(RM) -fr ~/.nv/ComputeCache ../run/opencl/*.bin
+	$(RM) -fr ~/.nv/ComputeCache ../run/opencl/*.bin ../run/opencl/*.config
 
 clean:
 	$(RM) $(PROJ)
