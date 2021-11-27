@@ -2039,7 +2039,7 @@ shell-completion: bash-completion zsh-completion
 	@echo "You should have bash and zsh completion now"
 
 kernel-cache-clean:
-	$(RM) -fr ~/.nv/ComputeCache ../run/opencl/*.bin
+	$(RM) -fr ~/.nv/ComputeCache ../run/opencl/*.bin ../run/opencl/*.config
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)
