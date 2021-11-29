@@ -44,6 +44,7 @@ int fmt_raw_len;
 
 int self_test_running;
 int benchmark_running;
+int fmt_matching;
 
 #ifndef BENCH_BUILD
 static int orig_min, orig_max, orig_len;
@@ -80,7 +81,7 @@ char fmt_class_list[] = "all, enabled, disabled"
 	", ztex"
 #endif
 #if HAVE_OPENCL
-	", opencl"
+	", opencl, vector"
 #endif
 #ifndef DYNAMIC_DISABLED
 	", dynamic"
@@ -172,6 +173,22 @@ int fmt_match(const char *req_format, struct fmt_main *format, int override_disa
 
 	if (!strcasecmp(req_format, "mask"))
 		return enabled && (format->params.flags & FMT_MASK);
+
+#if HAVE_OPENCL
+	if (!strcasecmp(req_format, "vector") && strstr(format->params.label, "-opencl")) {
+		int vectorized;
+		const char *orig_algo = format->params.algorithm_name;
+
+		fmt_matching = 1;
+		fmt_init(format);
+		vectorized = (ocl_v_width > 1);
+		fmt_done(format);
+		format->params.algorithm_name = orig_algo;
+		fmt_matching = 0;
+
+		return enabled && vectorized;
+	}
+#endif
 
 	if (!strcasecmp(req_format, "omp"))
 		return enabled && (format->params.flags & FMT_OMP);

@@ -127,6 +127,9 @@ struct db_salt;
 /* Format's length before calling init() */
 extern int fmt_raw_len;
 
+/* We're currently in "format matching" code path */
+extern int fmt_matching;
+
 /*
  * A password to test the methods for correct operation.
  */

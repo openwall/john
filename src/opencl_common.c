@@ -931,15 +931,15 @@ void opencl_load_environment(void)
 	}
 }
 
-/* Get the device preferred vector width */
+/*
+ * Get the device preferred vector width.  The --force-scalar option, or
+ * john.conf ForceScalar boolean, is taken care of in john.c and converted
+ * to "options.v_width = 1".
+ */
 unsigned int opencl_get_vector_width(int sequential_id, int size)
 {
-	/* --force-scalar option, or john.conf ForceScalar boolean */
-	if (options.flags & FLG_SCALAR)
-		options.v_width = 1;
-
 	/* --force-vector-width=N */
-	if (options.v_width) {
+	if (options.v_width && !fmt_matching) {
 		ocl_v_width = options.v_width;
 	} else {
 		cl_uint v_width = 0;
