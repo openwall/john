@@ -238,6 +238,10 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   large portion of a mask should be generated on device-side (or completely
   disabling internal mask).  [magnum; 2021]
 
+- Add a format class "vector" for matching vector capable OpenCL formats.  This
+  doesn't include bitslice formats.  It matches formats that will run SIMD
+  using the default GPU, or per the  --device option.  [magnum; 2021]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
