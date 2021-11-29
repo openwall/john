@@ -454,7 +454,7 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 		lm_kernel = "lm_bs_f";
 		kernel = "$JOHN/opencl/lm_kernel_f.cl";
 	} else if (force_kernel && !strcmp(force_kernel, "bs_b")) {
-		if (!warned++) fprintf(stderr, "Using basic kernel (bs_b)\n");
+		if (!warned++) fprintf(stderr, "Using basic kernel (lm_bs_b)\n");
 		full_unroll = 0;
 		lm_kernel = "lm_bs_b";
 		kernel = "$JOHN/opencl/lm_kernel_b.cl";
@@ -464,7 +464,7 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 		lm_kernel = "lm_bs_f";
 		kernel = "$JOHN/opencl/lm_kernel_f.cl";
 	} else {
-		if (!warned++) log_event("- Using basic kernel (bs_b)");
+		if (!warned++) log_event("- Using basic kernel (lm_bs_b)");
 		lm_kernel = "lm_bs_b";
 		kernel = "$JOHN/opencl/lm_kernel_b.cl";
 	}
