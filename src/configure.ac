@@ -672,7 +672,7 @@ dnl Check for rexgen only if rexgen wanted
 if test "x$enable_rexgen" != xno ; then
   AC_CHECK_HEADER([librexgen/version.h],
     [AC_SEARCH_LIBS([rexgen_version_int],[rexgen librexgen],
-      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([unsigned int rexgen_version_int();int main() { return ! (rexgen_version_int() >= 0x020104); }],
+      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([unsigned int rexgen_version_int();int main() { return ! (rexgen_version_int() >= 0x020105); }],
         AC_MSG_RESULT([usable]) && [using_rexgen=yes],
         AC_MSG_RESULT([TOO old. Rexgen not usable!]))]
     )]
@@ -1267,41 +1267,39 @@ dnl ======================================================================
 
 Configured for building John the Ripper ${PACKAGE_VERSION}:
 
-Target CPU ................................. ${CPU_NAME}, ${CPU_BIT_STR}-bit ${using_endian}${using_x32}
-AES-NI support ............................. ${using_aesni}
-Target OS .................................. ${host_os}
-Cross compiling ............................ ${cross_compiling}
-Legacy arch header ......................... ${ARCH_LINK}
+Target CPU ......................................... ${CPU_NAME}, ${CPU_BIT_STR}-bit ${using_endian}${using_x32}
+AES-NI support ..................................... ${using_aesni}
+Target OS .......................................... ${host_os}
+Cross compiling .................................... ${cross_compiling}
+Legacy arch header ................................. ${ARCH_LINK}
 
 Optional libraries/features found:
-Memory map (share/page large files) ........ ${using_mmap}
-Fork support ............................... ${ac_cv_func_fork_works}
-OpenMP support ............................. ${using_omp}
-OpenCL support ............................. ${using_cl}
-Generic crypt(3) format .................... ${using_crypt}
-OpenSSL (many additional formats) .......... ${with_openssl}
-libgmp (PRINCE mode and faster SRP formats)  ${ac_cv_lib_gmp___gmpz_init}
-128-bit integer (faster PRINCE mode) ....... ${have_int128}
-libz (7z, pkzip and some other formats) .... ${using_zlib}
-libbz2 (7z and gpg2john bz2 support) ....... ${using_bz2}
-libpcap (vncpcap2john and SIPdump) ......... ${using_pcap}
-Non-free unrar code (complete RAR support) . ${unrar_files}
-OpenMPI support (default disabled) ......... ${using_mpi}
-ZTEX USB-FPGA module 1.15y support ......... ${ztex}
+Memory map (share/page large files) ................ ${using_mmap}
+Fork support ....................................... ${ac_cv_func_fork_works}
+OpenMP support ..................................... ${using_omp}
+OpenCL support ..................................... ${using_cl}
+Generic crypt(3) format ............................ ${using_crypt}
+OpenSSL (many additional formats) .................. ${with_openssl}
+libgmp (PRINCE mode and faster SRP formats) ........ ${ac_cv_lib_gmp___gmpz_init}
+128-bit integer (faster PRINCE mode) ............... ${have_int128}
+libz (7z, pkzip and some other formats) ............ ${using_zlib}
+libbz2 (7z and gpg2john bz2 support) ............... ${using_bz2}
+libpcap (vncpcap2john and SIPdump) ................. ${using_pcap}
+Non-free unrar code (complete RAR support) ......... ${unrar_files}
+librexgen (regex mode, see doc/README.librexgen) ... ${using_rexgen}
+OpenMPI support (default disabled) ................. ${using_mpi}
+Experimental code (default disabled) ............... ${experimental}
+ZTEX USB-FPGA module 1.15y support ................. ${ztex}
 
 EOF
-
 dnl === this section is NOT output, unless there is some debugging flag enabled.
 if test "$ubsan" != "disabled" || test "$asan" != "disabled" ||
-   test "$fuzz" != "no" || test "$experimental" != "no" ||
-   test "$using_rexgen" != "no" ; then
+   test "$fuzz" != "no" ; then
 cat <<EOF
 Development options (these may hurt performance when enabled):
-AddressSanitizer ("ASan") .................. ${asan}
-UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
-Fuzzing test ............................... ${fuzz}
-Experimental code .......................... ${experimental}
- - librexgen (regex mode) .................. ${using_rexgen}
+AddressSanitizer ("ASan") .......................... ${asan}
+UndefinedBehaviorSanitizer ("UbSan") ............... ${ubsan}
+Fuzzing test ....................................... ${fuzz}
 
 EOF
 fi

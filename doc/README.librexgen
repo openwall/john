@@ -2,11 +2,10 @@ Rexgen.txt - This document describes how to use the rexgen library, to perform
 regex expression work within JtR.  Rexgen library is copywrite Jan Starke,
 jan.starke@outofbed.org   The regex.c code in JtR by JimF, Spring 2014.
 
-WARNING
-
-Since maintenance for the rexgen library appears to have stopped in
-April, 2019, support for --regex might have to be dropped in future releases!
-
+NOTE this support is experimental and may not build at all until tweaked.
+The rexgen library is notorious for changing its API between versions,
+breaking stuff.  Leave this step out unless you really know that you want
+it and are capable of fixing issues.  Last known good version is 2.1.5.
 
 First off, see the section at the bottom of this document about how to obtain
 build and install librexgen.
@@ -43,7 +42,6 @@ The current options we have are:
 
 
 Currently, rexgen can be used stand alone, OR with wordlist and rules.
-There are plans to also add this to single mode at some time.
 
 The command line switch for stand alone is --regex[=case]=expression
 The expression is a stand alone rexex expression.  If the optional
@@ -82,100 +80,8 @@ then all of the regular expressions will be performed on this word.
 ------------------------------------------------
 --- Obtaining, building, installing rexgen.  ---
 ------------------------------------------------
-First off, you must obtain and install rexgen library. It can be found here:
 
-https://github.com/teeshop/rexgen
+Clone https://github.com/teeshop/rexgen.git and build it according to
+its instructions.
 
-git clone --recursive https://github.com/teeshop/rexgen.git
-
-
-As of this writing there is no known good rexgen version.
-
-The latest commit as of this writing is
-
-    commit 585e86da6a07a63ec7a871320b307457661d557c
-    Author: Jan Starke <teeshop@users.noreply.github.com>
-    Date:   Thu Apr 11 08:38:41 2019 +0200
-
-        Update README.md
-
-The latest known good commit is
-
-commit 5b2f4b159ec948c1f9429eca4389ca2adc9c0b07
-Author: Jan Starke <jan.starke@t-systems.com>
-Date:   Wed Jan 23 14:53:50 2019 +0100
-
-    running with libFuzzer works
-
-
-Checkout this latest known good commit:
-
-cd rexgen
-git checkout 5b2f4b159ec948c1f9429eca4389ca2adc9c0b07
-
-
-Building rexgen requires cmake, flex, and bison.
-To build, see instructions on this page:
-
-https://github.com/teeshop/rexgen/blob/master/README.md
-
-
-
-Instead of just running ./install.sh, you can first run ./build.sh
-as a regular user and then just run ./install.sh as root.
-
-cd rexgen/src
-./build.sh
-sudo ./install.sh
-
-
-If there are no errors (especially from cmake), librexgen should be installed.
-Don't forget to run ldconfig afterwards.
-
-sudo ldconfig
-
-To test:
-rexgen '[0-2]password[A-C]'
-0passwordA
-1passwordA
-2passwordA
-0passwordB
-1passwordB
-2passwordB
-0passwordC
-1passwordC
-2passwordC
-
-
-Once rexgen is installed, JtR ./configure now needs
---enable-rexgen to detect and use the library.
-
-
-KNOWN ISSUES
-
-The rexgen manpage includes this example:
-
-Examples
-       rexgen index.php?id=[1-5]
-              Would create the results
-              index.php?id=1
-              index.php?id=2
-              index.php?id=3
-              index.php?id=4
-              index.php?id=5
-
-However, to produce the desired output, you have to run
-       rexgen 'index\.php\?id=[1-5]'
-
-(Note the single quotes and the need to escape both '.' and '?'.)
-
-
-
-
-Note, JtR help document is NOT here to troubleshoot installation of this
-library.  A simple how to do it (when thing work right), is what was listed.
-If there problems beyond what is addressed in this document, then the lib's
-author is probably the best way to go.  A quick 'help me' post on john-users
-may get the proper answer, AND if we get a quick resolve, we will likely
-update this document listing this issue.  But anything past the basics,
-are really beyond the scope of the JtR developers.
+Then add "--enable-rexgen" to ./configure when building john.
