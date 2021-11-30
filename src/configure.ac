@@ -672,7 +672,7 @@ dnl Check for rexgen only if rexgen wanted
 if test "x$enable_rexgen" != xno ; then
   AC_CHECK_HEADER([librexgen/version.h],
     [AC_SEARCH_LIBS([rexgen_version_int],[rexgen librexgen],
-      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x020009); }],
+      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([unsigned int rexgen_version_int();int main() { return ! (rexgen_version_int() >= 0x020104); }],
         AC_MSG_RESULT([usable]) && [using_rexgen=yes],
         AC_MSG_RESULT([TOO old. Rexgen not usable!]))]
     )]

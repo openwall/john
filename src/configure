@@ -13073,7 +13073,7 @@ See \`config.log' for more details" "$LINENO" 5; }
 else
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
-int main() { return ! (rexgen_version_int() >= 0x020009); }
+unsigned int rexgen_version_int();int main() { return ! (rexgen_version_int() >= 0x020104); }
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: usable" >&5
