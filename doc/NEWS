@@ -242,6 +242,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   doesn't include bitslice formats.  It matches formats that will run SIMD
   using the default GPU, or per the  --device option.  [magnum; 2021]
 
+- Revised regex mode's support for librexgen, to version >= 2.1.5  [Jan Starke,
+  magnum; 2021]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
