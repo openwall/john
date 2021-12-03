@@ -339,7 +339,7 @@ AC_CACHE_SAVE
 AC_PATH_PROG([SORT], [sort])
 AC_PATH_PROG([FIND], [find])
 AC_PATH_PROG([PERL], [perl])
-if test "x$PERL" == x ; then
+if test "x$PERL" = x ; then
   AC_MSG_FAILURE([No perl executable found])
 fi
 AS_IF([test -z "$AS"], [AS="$CC"])
@@ -370,7 +370,7 @@ dnl to succeeed.
 dnl
 if ( test -e ../run/john.pot ) ; then
 AC_MSG_CHECKING([if potcheck.pl succeeds])
-if test "x$PERL" == x ; then
+if test "x$PERL" = x ; then
    AC_MSG_RESULT([no Perl (unable to check)])
 else
    $PERL ../run/potcheck.pl -validate < ../run/john.pot
@@ -677,10 +677,10 @@ if test "x$enable_rexgen" != xno ; then
         AC_MSG_RESULT([TOO old. Rexgen not usable!]))]
     )]
   )
-  if test "x$using_rexgen" == "xyes" ; then
+  if test "x$using_rexgen" = "xyes" ; then
     AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])
   else
-    if test "x$enable_rexgen" == "xyes" ; then
+    if test "x$enable_rexgen" = "xyes" ; then
       AC_MSG_FAILURE([rexgen not installed, or unusable version])
     fi
   fi

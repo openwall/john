@@ -7781,7 +7781,7 @@ $as_echo "no" >&6; }
 fi
 
 
-if test "x$PERL" == x ; then
+if test "x$PERL" = x ; then
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "No perl executable found
@@ -8200,13 +8200,13 @@ fi
 $as_echo_n "checking if pkg-config will be used... " >&6; }
 if test "x$PKG_CONFIG" = x || test "x$enable_pkg_config" = xno ; then
 
-  if test "xno" == xyes; then
+  if test "xno" = xyes; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
   else
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
-    if test "x$enable_pkg_config" == xyes; then
+    if test "x$enable_pkg_config" = xyes; then
       { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "pkg-config is NOT available
@@ -8223,7 +8223,7 @@ fi
 if ( test -e ../run/john.pot ) ; then
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking if potcheck.pl succeeds" >&5
 $as_echo_n "checking if potcheck.pl succeeds... " >&6; }
-if test "x$PERL" == x ; then
+if test "x$PERL" = x ; then
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: no Perl (unable to check)" >&5
 $as_echo "no Perl (unable to check)" >&6; }
 else
@@ -13093,12 +13093,12 @@ fi
 fi
 
 
-  if test "x$using_rexgen" == "xyes" ; then
+  if test "x$using_rexgen" = "xyes" ; then
 
 $as_echo "#define HAVE_LIBREXGEN 1" >>confdefs.h
 
   else
-    if test "x$enable_rexgen" == "xyes" ; then
+    if test "x$enable_rexgen" = "xyes" ; then
       { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "rexgen not installed, or unusable version
