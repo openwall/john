@@ -19,7 +19,7 @@ EXTRA_AS_FLAGS=
 AC_MSG_CHECKING([for extra ASFLAGS])
 CC="$CC_BACKUP"
 CFLAGS="$CFLAGS -O0"
-AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && strings - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out],
+AS_IF([echo "int long_ident;" > conftest.c && ${CC} -c conftest.c && ${STRINGS} - conftest.${OBJEXT} | ${GREP} _long_ident > conftest.out],
       [JTR_LIST_ADD(EXTRA_AS_FLAGS, [-DUNDERSCORES])])
 
 AC_LINK_IFELSE([AC_LANG_SOURCE(
