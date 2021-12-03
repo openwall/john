@@ -14,6 +14,7 @@
 #include "lzma/Lzma2Dec.h"
 #include "lzma/Bra.h"
 #include "lzma/CpuArch.h"
+#include "lzma/Delta.h"
 #include "crc32.h"
 
 #define FORMAT_NAME             "7-Zip archive encryption"
@@ -38,7 +39,8 @@ typedef struct sevenzip_salt_s {
 	unsigned char iv[16];
 	unsigned char salt[16];
 	unsigned int crc;
-	unsigned char props[LZMA_PROPS_SIZE];
+	unsigned char decoder_props[LZMA_PROPS_SIZE];
+	unsigned char preproc_props;
 	unsigned char data[1];
 } sevenzip_salt_t;
 

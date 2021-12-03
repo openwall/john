@@ -160,7 +160,7 @@ JOHN_OBJS = \
 	unafs.o \
 	undrop.o \
 	regex.o pp.o \
-	lzma/LzmaDec.o lzma/Lzma2Dec.o lzma/Bra.o lzma/Bra86.o lzma/BraIA64.o lzma/CpuArch.o \
+	lzma/LzmaDec.o lzma/Lzma2Dec.o lzma/Bra.o lzma/Bra86.o lzma/BraIA64.o lzma/CpuArch.o lzma/Delta.o \
 	unique.o gpg2john.o \
 	showformats.o
 
