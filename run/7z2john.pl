@@ -139,7 +139,7 @@ my $PASSWORD_RECOVERY_TOOL_DATA_LIMIT = 0x80000000;          # hexadecimal outpu
 my $PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK  = 1;      # does the cracker support the AES-CBC padding attack (0 means no, 1 means yes)
 my @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS = (1, 2, 7); # within this list we only need values ranging from 1 to 7
                                                              # i.e. SEVEN_ZIP_LZMA1_COMPRESSED to SEVEN_ZIP_DEFLATE_COMPRESSED
-my @PASSWORD_RECOVERY_TOOL_SUPPORTED_PREPROCESSORS = (1, 2, 3, 4, 5, 6, 7); # BCJ2 can be "supported" by ignoring CRC
+my @PASSWORD_RECOVERY_TOOL_SUPPORTED_PREPROCESSORS = (1, 2, 3, 4, 5, 6, 7, 8); # BCJ2 can be "supported" by ignoring CRC
 
 # 7-zip specific stuff
 
