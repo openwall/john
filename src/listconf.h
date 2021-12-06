@@ -41,6 +41,18 @@
 #define UBSAN_STRING ""
 #endif
 
+#if HAVE_OPENCL
+#define OCL_STRING " OPENCL"
+#else
+#define OCL_STRING ""
+#endif
+
+#if HAVE_ZTEX
+#define ZTEX_STRING " ZTEX"
+#else
+#define ZTEX_STRING ""
+#endif
+
 #define _STR_VALUE(arg)			#arg
 #define STR_MACRO(n)			_STR_VALUE(n)
 
