@@ -233,7 +233,7 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 		size_t program_size;
 		fclose(file);
 		program_size = opencl_read_source(kernel_bin_name, &kernel_source);
-		opencl_build_from_binary(id_gpu, program_ptr, kernel_source, program_size);
+		HANDLE_CLERROR(opencl_build_from_binary(id_gpu, program_ptr, kernel_source, program_size), "kernel build failed");
 
 		if (options.verbosity > VERB_DEFAULT)
 			fprintf(stderr, "Salt compiled from Binary:%d\n", salt_val);
