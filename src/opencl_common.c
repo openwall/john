@@ -1192,9 +1192,8 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 		file_name = name;
 	}
 
-	*program =
-	    clCreateProgramWithSource(context[sequential_id], 1, srcptr,
-	                              NULL, &err_code);
+	uint64_t start = john_get_nano();
+	*program = clCreateProgramWithSource(context[sequential_id], 1, srcptr, NULL, &err_code);
 	HANDLE_CLERROR(err_code, "clCreateProgramWithSource");
 
 	build_opts = get_build_opts(sequential_id, opts);
@@ -1279,6 +1278,9 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	                                     (void *)build_log, NULL),
 	               "clGetProgramBuildInfo II");
 
+	uint64_t end = john_get_nano();
+	log_event("- build time: %ss", ns2string(end - start));
+
 	// Report build errors and warnings
 	if (build_code != CL_SUCCESS) {
 		// Give us info about error and exit (through HANDLE_CLERROR)
@@ -1355,22 +1357,25 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 #endif /* HAVE_MPI */
 }
 
-void opencl_build_from_binary(int sequential_id, cl_program *program, const char *kernel_source, size_t program_size)
+cl_int opencl_build_from_binary(int sequential_id, cl_program *program, const char *kernel_source, size_t program_size)
 {
-	cl_int build_code, err_code;
+	cl_int build_code;
 	char *build_log;
 	const char *srcptr[] = { kernel_source };
 
-	build_log = (char *) mem_calloc(LOG_SIZE, sizeof(char));
-	*program =
-	    clCreateProgramWithBinary(context[sequential_id], 1,
-	                              &devices[sequential_id], &program_size,
-	                              (const unsigned char **)srcptr,
-	                              NULL, &err_code);
-	HANDLE_CLERROR(err_code, "clCreateProgramWithBinary (using cached binary - try clearing the cache)");
+	build_log = mem_calloc(LOG_SIZE, sizeof(char));
 
-	build_code = clBuildProgram(*program, 0,
-	                            NULL, NULL, NULL, NULL);
+	uint64_t start = john_get_nano();
+	*program = clCreateProgramWithBinary(context[sequential_id], 1,
+	                                     &devices[sequential_id], &program_size,
+	                                     (const unsigned char **)srcptr,
+	                                     NULL, &ret_code);
+	if (ret_code != CL_SUCCESS) {
+		MEM_FREE(build_log);
+		return ret_code;
+	}
+
+	build_code = (clBuildProgram(*program, 0, NULL, NULL, NULL, NULL));
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(*program,
 	                                     devices[sequential_id],
@@ -1378,20 +1383,20 @@ void opencl_build_from_binary(int sequential_id, cl_program *program, const char
 	                                     (void *)build_log,
 	                                     NULL), "clGetProgramBuildInfo (using cached binary - try clearing the cache)");
 
-	// Report build errors and warnings
+	uint64_t end = john_get_nano();
+
+	// If it failed, don't show a log - we'll just rebuild without the cache
 	if (build_code != CL_SUCCESS) {
-		// Give us info about error and exit (through HANDLE_CLERROR)
-		if (strlen(build_log) > 1)
-			fprintf(stderr, "Binary build log: %s\n", build_log);
-		fprintf(stderr, "Error %d building kernel using cached binary - try clearing the cache."
-		        " DEVICE_INFO=%d\n", build_code, device_info[sequential_id]);
-		HANDLE_CLERROR(build_code, "clBuildProgram");
+		MEM_FREE(build_log);
+		return build_code;
 	}
 	// Nvidia may return a single '\n' that we ignore
 	else if (options.verbosity >= LOG_VERB && strlen(build_log) > 1)
 		fprintf(stderr, "Binary Build log: %s\n", build_log);
 
+	log_event("- build time: %ss", ns2string(end - start));
 	MEM_FREE(build_log);
+	return CL_SUCCESS;
 }
 
 // Do the proper test using different global work sizes.
@@ -2235,108 +2240,108 @@ void opencl_build_kernel_opt(const char *kernel_filename, int sequential_id,
 void opencl_build_kernel(const char *kernel_filename, int sequential_id, const char *opts,
                          int warn)
 {
+	struct stat source_stat, bin_stat;
+	char dev_name[512], bin_name[512];
+	const char *tmp_name;
+	unsigned char hash[16];
+	char hash_str[33];
+	int i, use_cache;
+	MD5_CTX ctx;
+	char *kernel_source = NULL;
+	const char *global_opts;
+
 #if HAVE_MPI
 	static int once;
 #endif
 
-	/*
-	 * Disable binary caching for:
-	 * - nvidia unless on macOS
-	 * - CPU if on macOS
-	 */
-	if ((gpu_nvidia(device_info[sequential_id]) && !platform_apple(get_platform_id(sequential_id))) ||
-	    (cpu(device_info[sequential_id]) && platform_apple(get_platform_id(sequential_id)))) {
-		if (john_main_process || !cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0))
-			log_event("- Kernel binary caching disabled for this platform/device");
-		opencl_build_kernel_opt(kernel_filename, sequential_id, opts);
-	} else {
-		struct stat source_stat, bin_stat;
-		char dev_name[512], bin_name[512];
-		const char *tmp_name;
-		unsigned char hash[16];
-		char hash_str[33];
-		uint64_t startTime, runtime;
-		int i;
-		MD5_CTX ctx;
-		char *kernel_source = NULL;
-		const char *global_opts;
+	if (!(global_opts = getenv("OPENCLBUILDOPTIONS")) &&
+	    !(global_opts = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "GlobalBuildOpts")))
+		global_opts = OPENCLBUILDOPTIONS;
 
-		if (!(global_opts = getenv("OPENCLBUILDOPTIONS")))
-			if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
-			    SUBSECTION_OPENCL, "GlobalBuildOpts")))
-				global_opts = OPENCLBUILDOPTIONS;
-
-		startTime = (unsigned long)time(NULL);
-
-		// Get device name.
-		HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
-		                               CL_DEVICE_NAME, sizeof(dev_name),
-		                               dev_name, NULL),
-		               "clGetDeviceInfo for DEVICE_NAME");
+	// Get device name.
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
+	                               CL_DEVICE_NAME, sizeof(dev_name),
+	                               dev_name, NULL),
+	               "clGetDeviceInfo for DEVICE_NAME");
 
 /*
  * Create a hash of kernel source and parameters, and use as cache name.
  */
-		MD5_Init(&ctx);
-		md5add(kernel_filename);
-		opencl_read_source(kernel_filename, &kernel_source);
-		md5add(kernel_source);
-		md5add(global_opts);
-		if (opts)
-			md5add(opts);
-		md5add(opencl_driver_ver(sequential_id));
-		md5add(dev_name);
-		MD5_Update(&ctx, (char*)&platform_id, sizeof(platform_id));
-		MD5_Final(hash, &ctx);
+	MD5_Init(&ctx);
+	md5add(kernel_filename);
+	opencl_read_source(kernel_filename, &kernel_source);
+	md5add(kernel_source);
+	md5add(global_opts);
+	if (opts)
+		md5add(opts);
+	md5add(opencl_driver_ver(sequential_id));
+	md5add(dev_name);
+	MD5_Update(&ctx, (char*)&platform_id, sizeof(platform_id));
+	MD5_Final(hash, &ctx);
 
-		for (i = 0; i < 16; i++) {
-			hash_str[2 * i + 0] = itoa16[hash[i] >> 4];
-			hash_str[2 * i + 1] = itoa16[hash[i] & 0xf];
-		}
-		hash_str[32] = 0;
+	for (i = 0; i < 16; i++) {
+		hash_str[2 * i + 0] = itoa16[hash[i] >> 4];
+		hash_str[2 * i + 1] = itoa16[hash[i] & 0xf];
+	}
+	hash_str[32] = 0;
 
 #if JOHN_SYSTEMWIDE
-		tmp_name = replace_str(kernel_filename, "$JOHN", JOHN_PRIVATE_HOME);
+	tmp_name = replace_str(kernel_filename, "$JOHN", JOHN_PRIVATE_HOME);
 #else
-		tmp_name = kernel_filename;
+	tmp_name = kernel_filename;
 #endif
-		snprintf(bin_name, sizeof(bin_name), "%s_%s.bin",
-		         tmp_name, hash_str);
+	snprintf(bin_name, sizeof(bin_name), "%s_%s.bin", tmp_name, hash_str);
 
-		// Select the kernel to run.
-		if (!getenv("DUMP_BINARY") &&
-		    !stat(path_expand(kernel_filename), &source_stat) &&
-		    !stat(path_expand(bin_name), &bin_stat) &&
-			(source_stat.st_mtime < bin_stat.st_mtime)) {
-			size_t program_size = opencl_read_source(bin_name, &kernel_source);
-			log_event("- Building kernel from cached binary");
-			opencl_build_from_binary(sequential_id, &program[sequential_id], kernel_source, program_size);
-		} else {
-			log_event("- Building kernel and caching binary");
-			if (warn && options.verbosity > VERB_DEFAULT) {
-				fprintf(stderr, "Building the kernel, this "
-				        "could take a while\n");
-				fflush(stdout);
-			}
-			opencl_read_source(kernel_filename, &kernel_source);
-			opencl_build(sequential_id, opts, 1, bin_name, &program[sequential_id], kernel_filename, kernel_source);
-		}
-		if (warn && options.verbosity > VERB_DEFAULT) {
-			if ((runtime = (unsigned long)(time(NULL) - startTime))
-			        > 2UL)
-				fprintf(stderr, "Build time: %lu seconds\n",
-				        (unsigned long)runtime);
-			fflush(stdout);
-		}
+#if 1
+	/*
+	 * Disable binary caching for nvidia, they have their own in ~/.nv/ComputeCache
+	 */
+	if (gpu_nvidia(device_info[sequential_id]) && !platform_apple(get_platform_id(sequential_id))) {
+		if (john_main_process || !cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0))
+			log_event("- Kernel binary caching disabled for this platform/device");
+		use_cache = 0;
+	} else
+#endif
+	if (getenv("DUMP_BINARY")) {
+		log_event("- DUMP_BINARY is set, ignoring cached kernel");
+		use_cache = 0;
+	} else {
+		use_cache = !stat(path_expand(bin_name), &bin_stat);
 
-		MEM_FREE(kernel_source);
+		if (use_cache && !stat(path_expand(kernel_filename), &source_stat) &&
+		    source_stat.st_mtime > bin_stat.st_mtime) {
+			use_cache = 0;
+			log_event("- cached kernel may be stale, ignoring");
+		}
 	}
+
+	// Select the kernel to run.
+	if (use_cache) {
+		size_t program_size = opencl_read_source(bin_name, &kernel_source);
+
+		log_event("- Building kernel from cached binary");
+		ret_code = opencl_build_from_binary(sequential_id, &program[sequential_id], kernel_source, program_size);
+		if (ret_code != CL_SUCCESS)
+			log_event("- Build from cached binary failed");
+	}
+
+	if (!use_cache || ret_code != CL_SUCCESS) {
+		log_event("- Building kernel from source and caching binary");
+		if (warn && options.verbosity > VERB_DEFAULT) {
+			fflush(stdout);
+			fprintf(stderr, "Building the kernel, this could take a while\n");
+		}
+		opencl_read_source(kernel_filename, &kernel_source);
+		opencl_build(sequential_id, opts, 1, bin_name, &program[sequential_id], kernel_filename, kernel_source);
+	}
+
+	MEM_FREE(kernel_source);
+
 #if HAVE_MPI
 	if (mpi_p > 1 && !once++) {
 #if RACE_CONDITION_DEBUG || MPI_DEBUG
 		if (options.verbosity == VERB_DEBUG)
-			fprintf(stderr, "Node %d reached %s() MPI build barrier\n",
-			        NODE, __FUNCTION__);
+			fprintf(stderr, "Node %d reached %s() MPI build barrier\n", NODE, __FUNCTION__);
 #endif
 		MPI_Barrier(MPI_COMM_WORLD);
 		if (mpi_id == 0 && options.verbosity >= VERB_DEFAULT)
