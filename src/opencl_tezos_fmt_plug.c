@@ -220,7 +220,7 @@ static void set_salt(void *salt)
 
 	memcpy(host_salt->pbkdf2.salt, cur_salt->email, cur_salt->email_length);
 	host_salt->pbkdf2.length = cur_salt->email_length;
-	host_salt->pbkdf2.rounds = 2048;
+	host_salt->pbkdf2.rounds = ITERATIONS;
 	memcpy(host_salt->mnemonic, cur_salt->mnemonic, cur_salt->mnemonic_length);
 	host_salt->mnemonic_length = cur_salt->mnemonic_length;
 
@@ -234,7 +234,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int i, index;
-	int loops = (host_salt->pbkdf2.rounds + HASH_LOOPS - 1) / HASH_LOOPS;
+	int loops = (ITERATIONS + HASH_LOOPS - 1) / HASH_LOOPS;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
@@ -351,9 +351,7 @@ struct fmt_main fmt_opencl_tezos = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
-		{
-			"iteration count",
-		},
+		{ NULL },
 		{ FORMAT_TAG },
 		tezos_tests
 	}, {
@@ -365,9 +363,7 @@ struct fmt_main fmt_opencl_tezos = {
 		fmt_default_split,
 		fmt_default_binary,
 		tezos_get_salt,
-		{
-			tezos_iteration_count,
-		},
+		{ NULL },
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

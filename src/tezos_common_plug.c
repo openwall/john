@@ -34,7 +34,7 @@ int tezos_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) // iterations
 		goto err;
-	if (!isdec(p))
+	if (strcmp(p, "2048"))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) // mnemonic
 		goto err;
@@ -90,11 +90,4 @@ void *tezos_get_salt(char *ciphertext)
 
 	MEM_FREE(keeptr);
 	return &cs;
-}
-
-unsigned int tezos_iteration_count(void *salt)
-{
-	struct custom_salt *cs = (struct custom_salt*)salt;
-
-	return cs->iterations;
 }

@@ -202,9 +202,7 @@ struct fmt_main fmt_tezos = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
-		{
-			"iteration count",
-		},
+		{ NULL },
 		{ FORMAT_TAG },
 		tezos_tests
 	}, {
@@ -216,9 +214,7 @@ struct fmt_main fmt_tezos = {
 		fmt_default_split,
 		fmt_default_binary,
 		tezos_get_salt,
-		{
-			tezos_iteration_count,
-		},
+		{ NULL },
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
