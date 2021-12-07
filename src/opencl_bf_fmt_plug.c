@@ -22,6 +22,7 @@ john_register_one(&fmt_opencl_bf);
 #include "common.h"
 #include "formats.h"
 #include "config.h"
+#include "loader.h"
 #include "BF_common.h"
 
 #define FORMAT_LABEL			"bcrypt-opencl"
@@ -57,6 +58,14 @@ static void done(void) {
 
 static void init(struct fmt_main *self) {
 	saved_key = mem_calloc(BF_N, sizeof(*saved_key));
+	keys_mode = 'a';
+	sign_extension_bug = 0;
+
+	opencl_prepare_dev(gpu_id);
+}
+
+static void reset(struct db_main *db)
+{
 	global_work_size = 0;
 
 	//Prepare OpenCL environment.
@@ -67,9 +76,8 @@ static void init(struct fmt_main *self) {
 
 	// BF_select_device(platform,device);
 	//platform_id = get_platform_id(gpu_id);
-        BF_select_device(self);
-	keys_mode = 'a';
-	sign_extension_bug = 0;
+	BF_select_device(db->format);
+
 	//fprintf(stderr, "****Please see 'opencl_bf_std.h' for device specific optimizations****\n");
 }
 
@@ -183,7 +191,7 @@ struct fmt_main fmt_opencl_bf = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		BF_common_valid,
 		BF_common_split,
