@@ -130,6 +130,8 @@ extern struct db_main *ocl_autotune_db;
 extern int autotune_real_db;
 extern int opencl_unavailable;
 
+#define ocl_any_test_running	(bench_or_test_running || ocl_autotune_running)
+
 extern cl_device_id devices[MAX_GPU_DEVICES + 1];
 extern cl_context context[MAX_GPU_DEVICES];
 extern cl_program program[MAX_GPU_DEVICES];
