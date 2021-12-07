@@ -273,8 +273,12 @@ static void john_register_all(void)
 		error_msg("Could not parse format list '%s'\n", options.format_list);
 
 	if (!fmt_list) {
-		if (john_main_process)
-		fprintf(stderr, "Unknown ciphertext format name requested\n");
+		if (john_main_process) {
+			if (!options.format_list && fmt_is_class(options.format))
+				fprintf(stderr, "Error: No format matched '%s'\n", options.format);
+			else
+				fprintf(stderr, "Unknown ciphertext format name requested\n");
+		}
 		error();
 	}
 }

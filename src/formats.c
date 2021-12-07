@@ -88,6 +88,27 @@ char fmt_class_list[] = "all, enabled, disabled"
 #endif
 	", cpu";
 
+int fmt_is_class(char *name)
+{
+	return (name && (!strcasecmp(name, "all") || !strcasecmp(name, "enabled") || !strcasecmp(name, "disabled") ||
+#if _OPENMP
+	                 !strcasecmp(name , "omp") ||
+#endif
+#if HAVE_OPENCL || HAVE_ZTEX
+	                 !strcasecmp(name , "mask") ||
+#endif
+#if HAVE_ZTEX
+	                 !strcasecmp(name , "ztex") ||
+#endif
+#if HAVE_OPENCL
+	                 !strcasecmp(name , "opencl") || !strcasecmp(name , "vector") ||
+#endif
+#ifndef DYNAMIC_DISABLED
+	                 !strcasecmp(name , "dynamic") ||
+#endif
+	                 !strcasecmp(name , "cpu")));
+}
+
 /*
  * Does req_format match format?
  *
