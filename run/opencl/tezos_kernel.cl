@@ -1,6 +1,7 @@
 /*
  * This software is Copyright (c) 2018 Dhiru Kholia
- * Copyright (c) 2019 -2020 magnum
+ * Copyright (c) 2019-2020 magnum
+ * Copyright (c) 2021 Solar Designer
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -13,6 +14,10 @@ typedef struct {
 	uint mnemonic_length;
 	uchar mnemonic[128];
 } tezos_salt_t;
+
+typedef struct {
+	uchar pk[32];
+} tezos_pk_t;
 
 inline void _tezos_preproc_(const ulong *key, uint keylen,
                             ulong *state, ulong mask)
@@ -116,9 +121,9 @@ inline void _tezos_hmac_(ulong *output, ulong *ipad_state, ulong *opad_state, ul
 	output[7] = H;
 }
 
-__kernel void pbkdf2_sha512_tezos_kernel(__global const pass_t *inbuffer,
-                                         __constant tezos_salt_t *gsalt,
-                                         __global state_t *state)
+__kernel void pbkdf2_sha512_tezos_init(__global const pass_t *inbuffer,
+                                       __constant tezos_salt_t *gsalt,
+                                       __global state_t *state)
 {
 	ulong ipad_state[8];
 	ulong opad_state[8];
@@ -170,4 +175,22 @@ __kernel void pbkdf2_sha512_tezos_kernel(__global const pass_t *inbuffer,
 		state[idx].hash[i] = tmp_out[i];
 		state[idx].W[i] = tmp_out[i];
 	}
+}
+
+#undef z /* was defined by opencl_sha2.h and used in SHA256_ZEROS, but conflicts with the below */
+#include "ed25519-donna/ed25519-donna.c"
+
+__kernel void pbkdf2_sha512_tezos_final(__global const crack_t *in, __global tezos_pk_t *out)
+{
+	union {
+		uchar uc[32];
+		ulong u64[4];
+	} sk;
+	ed25519_public_key pk;
+	uint idx = get_global_id(0);
+	memcpy_gp(&sk, in[idx].hash, sizeof(sk));
+	for (int i = 0; i < 4; i++)
+		sk.u64[i] = SWAP64(sk.u64[i]);
+	ed25519_publickey(sk.uc, pk);
+	memcpy_pg(out[idx].pk, pk, sizeof(out[idx].pk));
 }
