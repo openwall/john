@@ -455,6 +455,11 @@ extern struct fmt_main *fmt_list;
 extern void fmt_register(struct fmt_main *format);
 
 /*
+ * Returns true if name is a format class such as "opencl" or "dynamic"
+ */
+extern int fmt_is_class(char *name);
+
+/*
  * Match req_format to format, supporting wildcards/groups/classes etc.
  */
 extern int fmt_match(const char *req_format, struct fmt_main *format, int override_disable);
