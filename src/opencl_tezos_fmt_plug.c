@@ -48,7 +48,7 @@ john_register_one(&fmt_opencl_tezos);
 #define KERNEL_NAME             "pbkdf2_sha512_tezos_kernel"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha512_loop"
 
-#define HASH_LOOPS              250
+#define HASH_LOOPS              512
 #define ITERATIONS              2048
 
 static struct custom_salt *cur_salt;
