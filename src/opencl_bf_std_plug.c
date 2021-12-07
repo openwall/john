@@ -32,14 +32,14 @@ static unsigned int 	*BF_current_P ;
 static unsigned int 	*BF_init_key ;
 BF_binary 		*opencl_BF_out ;
 
-typedef struct	{
+typedef struct {
 	cl_mem salt_gpu ;
 	cl_mem P_box_gpu ;
 	cl_mem S_box_gpu ;
 	cl_mem out_gpu ;
 	cl_mem BF_current_S_gpu ;
 	cl_mem BF_current_P_gpu ;
-	} gpu_buffer;
+} gpu_buffer;
 
 static cl_kernel 	krnl[MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM];
 static gpu_buffer 	buffers[MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM];
@@ -85,15 +85,18 @@ static gpu_buffer 	buffers[MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM];
 	R = L ;								\
 	L = u4 ^ ctx_P[pos_P((BF_ROUNDS+1))] ;
 
-static void clean_gpu_buffer(gpu_buffer *pThis) {
+static void clean_gpu_buffer(gpu_buffer *pThis)
+{
 	const char *errMsg = "Release Memory Object FAILED." ;
 
-	HANDLE_CLERROR(clReleaseMemObject(pThis->salt_gpu), errMsg);
-	HANDLE_CLERROR(clReleaseMemObject(pThis-> P_box_gpu), errMsg);
-	HANDLE_CLERROR(clReleaseMemObject(pThis-> S_box_gpu), errMsg);
-	HANDLE_CLERROR(clReleaseMemObject(pThis->out_gpu), errMsg);
-	HANDLE_CLERROR(clReleaseMemObject(pThis->BF_current_S_gpu), errMsg);
-	HANDLE_CLERROR(clReleaseMemObject(pThis->BF_current_P_gpu), errMsg);
+	if (pThis->salt_gpu) {
+		HANDLE_CLERROR(clReleaseMemObject(pThis->salt_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(pThis-> P_box_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(pThis-> S_box_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(pThis->out_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(pThis->BF_current_S_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(pThis->BF_current_P_gpu), errMsg);
+	}
 }
 
 void BF_clear_buffer() {
@@ -102,9 +105,11 @@ void BF_clear_buffer() {
 	MEM_FREE(BF_current_P) ;
 	MEM_FREE(BF_init_key) ;
 	MEM_FREE(opencl_BF_out) ;
-	HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id]), "Error releasing kernel") ;
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
-	               "Error releasing Program");
+
+	if (krnl[gpu_id])
+		HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id]), "Error releasing kernel") ;
+
+	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
 }
 
 static void find_best_gws(struct fmt_main *fmt) {
@@ -182,12 +187,11 @@ void BF_select_device(struct fmt_main *fmt) {
 	    (gpu_intel(device_info[gpu_id]) && platform_apple(platform_id)))
 	{
 	        if (CHANNEL_INTERLEAVE == 1)
-		        opencl_init("$JOHN/opencl/bf_cpu_kernel.cl",
-			             gpu_id, NULL);
+		        opencl_init("$JOHN/opencl/bf_cpu_kernel.cl", gpu_id, NULL);
 	        else {
-			fprintf(stderr, "Please set NUM_CHANNELS and "
-			        "WAVEFRONT_SIZE to 1 in opencl_bf_std.h");
-			error();
+		        fprintf(stderr, "Please set NUM_CHANNELS and "
+		                "WAVEFRONT_SIZE to 1 in opencl_bf_std.h");
+		        error();
 	        }
 	}
 	else {
