@@ -51,7 +51,7 @@
 #include "recovery.h"
 #include "status.h"
 #include "john.h"
-#include "md5.h"
+#include "md4.h"
 #include "misc.h"
 #include "john_mpi.h"
 #include "timer.h"
@@ -2235,7 +2235,7 @@ void opencl_build_kernel_opt(const char *kernel_filename, int sequential_id,
 	MEM_FREE(kernel_source);
 }
 
-#define md5add(string) MD5_Update(&ctx, (string), strlen(string))
+#define md4add(string) MD4_Update(&ctx, (string), strlen(string))
 
 void opencl_build_kernel(const char *kernel_filename, int sequential_id, const char *opts,
                          int warn)
@@ -2246,7 +2246,7 @@ void opencl_build_kernel(const char *kernel_filename, int sequential_id, const c
 	unsigned char hash[16];
 	char hash_str[33];
 	int i, use_cache;
-	MD5_CTX ctx;
+	MD4_CTX ctx;
 	char *kernel_source = NULL;
 	const char *global_opts;
 
@@ -2267,17 +2267,17 @@ void opencl_build_kernel(const char *kernel_filename, int sequential_id, const c
 /*
  * Create a hash of kernel source and parameters, and use as cache name.
  */
-	MD5_Init(&ctx);
-	md5add(kernel_filename);
+	MD4_Init(&ctx);
+	md4add(kernel_filename);
 	opencl_read_source(kernel_filename, &kernel_source);
-	md5add(kernel_source);
-	md5add(global_opts);
+	md4add(kernel_source);
+	md4add(global_opts);
 	if (opts)
-		md5add(opts);
-	md5add(opencl_driver_ver(sequential_id));
-	md5add(dev_name);
-	MD5_Update(&ctx, (char*)&platform_id, sizeof(platform_id));
-	MD5_Final(hash, &ctx);
+		md4add(opts);
+	md4add(opencl_driver_ver(sequential_id));
+	md4add(dev_name);
+	MD4_Update(&ctx, (char*)&platform_id, sizeof(platform_id));
+	MD4_Final(hash, &ctx);
 
 	for (i = 0; i < 16; i++) {
 		hash_str[2 * i + 0] = itoa16[hash[i] >> 4];
