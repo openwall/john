@@ -842,8 +842,13 @@ zsh-completion:
 
 shell-completion: bash-completion zsh-completion
 
-kernel-cache-clean:
-	$(RM) -fr ~/.nv/ComputeCache ../run/opencl/*.bin ../run/opencl/*.config
+kernel-cache-clean-nvidia:
+	$(RM) -fr ~/.nv/ComputeCache
+
+kernel-cache-clean-john:
+	$(RM) -f ../run/opencl/*.bin ../run/opencl/*.config
+
+kernel-cache-clean: kernel-cache-clean-nvidia kernel-cache-clean-john
 
 clean:
 	$(RM) $(PROJ)
