@@ -542,8 +542,8 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 		}
 		else {
 			warp_size = 1;
-			if (!(cpu(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])))
-			fprintf(stderr, "Possible auto_tune fail!!.\n");
+			//if (!(cpu(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])))
+				//fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
 
 		if (lws_tune_flag)

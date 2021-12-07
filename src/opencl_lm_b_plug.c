@@ -859,7 +859,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		}
 		else {
 			warp_size = 1;
-			fprintf(stderr, "Possible auto_tune fail!!.\n");
+			//fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
 		if (lws_tune_flag)
 			local_work_size = warp_size;
