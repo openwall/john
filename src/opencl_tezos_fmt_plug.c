@@ -1,6 +1,8 @@
 /*
- * This software is Copyright (c) 2018 Dhiru Kholia and it is hereby released
- * to the general public under the following terms:
+ * This software is
+ * Copyright (c) 2018 Dhiru Kholia
+ * Copyright (c) 2021 Solar Designer
+ * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -29,7 +31,6 @@ john_register_one(&fmt_opencl_tezos);
 #include "options.h"
 #include "opencl_common.h"
 #include "tezos_common.h"
-#include "ed25519.h"
 #include "blake2.h"
 #include "johnswap.h"
 #include "pbkdf2_hmac_common.h"
@@ -45,8 +46,9 @@ john_register_one(&fmt_opencl_tezos);
 #define REAL_PLAINTEXT_LENGTH   48
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
-#define KERNEL_NAME             "pbkdf2_sha512_tezos_kernel"
+#define INIT_KERNEL_NAME        "pbkdf2_sha512_tezos_init"
 #define SPLIT_KERNEL_NAME       "pbkdf2_sha512_loop"
+#define FINAL_KERNEL_NAME       "pbkdf2_sha512_tezos_final"
 
 #define HASH_LOOPS              512
 #define ITERATIONS              2048
@@ -84,13 +86,17 @@ typedef struct {
 	unsigned char mnemonic[128];
 } tezos_salt_t;
 
+typedef struct {
+	unsigned char pk[32];
+} tezos_pk_t;
+
 static int *cracked;
 static int any_cracked, cracked_size;
 static pass_t *host_pass;  /** plain ciphertexts **/
 static tezos_salt_t *host_salt;  /** salt **/
-static crack_t *host_crack;  /** cracked or no **/
-static cl_mem mem_in, mem_out, mem_salt, mem_state;
-static cl_kernel split_kernel;
+static tezos_pk_t *host_pk;
+static cl_mem mem_in, mem_out, mem_salt, mem_state, mem_pk;
+static cl_kernel split_kernel, final_kernel;
 static cl_int cl_error;
 static struct fmt_main *self;
 
@@ -98,7 +104,7 @@ static struct fmt_main *self;
 #define SEED                    256
 
 static const char *warn[] = {
-        "xfer: ",  ", init: " , ", crypt: ", ", res xfer: "
+        "xfer: ",  ", init: " , ", crypt: ", ", final: ", ", res xfer: "
 };
 
 static int split_events[] = { 2, -1, -1 };
@@ -106,11 +112,13 @@ static int split_events[] = { 2, -1, -1 };
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 
+static size_t final_kernel_max_lws;
+
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
+	final_kernel_max_lws = autotune_get_task_max_work_group_size(FALSE, 0, final_kernel);
 	size_t min_lws = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
-
 	return MIN(min_lws, autotune_get_task_max_work_group_size(FALSE, 0, split_kernel));
 }
 
@@ -121,8 +129,8 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	release_clobj();
 
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
-	host_crack = mem_calloc(kpc, sizeof(crack_t));
 	host_salt = mem_calloc(1, sizeof(tezos_salt_t));
+	host_pk = mem_calloc(kpc, sizeof(tezos_pk_t));
 	cracked_size = sizeof(*cracked) * kpc;
 	cracked = mem_calloc(1, cracked_size);
 #define CL_RO CL_MEM_READ_ONLY
@@ -144,6 +152,8 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 			"Cannot allocate mem out");
 	mem_state = CLCREATEBUFFER(CL_RW, kpc * sizeof(state_t),
 			"Cannot allocate mem state");
+	mem_pk = CLCREATEBUFFER(CL_WO, kpc * sizeof(tezos_pk_t),
+			"Cannot allocate mem pk");
 
 	CLKERNELARG(crypt_kernel, 0, mem_in, "Error while setting mem_in");
 	CLKERNELARG(crypt_kernel, 1, mem_salt, "Error while setting mem_salt");
@@ -151,6 +161,9 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 
 	CLKERNELARG(split_kernel, 0, mem_state, "Error while setting mem_state");
 	CLKERNELARG(split_kernel, 1, mem_out, "Error while setting mem_out");
+
+	CLKERNELARG(final_kernel, 0, mem_out, "Error while setting mem_out");
+	CLKERNELARG(final_kernel, 1, mem_pk, "Error while setting mem_pk");
 }
 
 static void init(struct fmt_main *_self)
@@ -171,12 +184,16 @@ static void reset(struct db_main *db)
 		opencl_init("$JOHN/opencl/tezos_kernel.cl",
 		            gpu_id, build_opts);
 
-		crypt_kernel = clCreateKernel(program[gpu_id], KERNEL_NAME, &cl_error);
-		HANDLE_CLERROR(cl_error, "Error creating kernel");
+		crypt_kernel = clCreateKernel(program[gpu_id], INIT_KERNEL_NAME, &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating init kernel");
 
 		split_kernel =
 			clCreateKernel(program[gpu_id], SPLIT_KERNEL_NAME, &cl_error);
 		HANDLE_CLERROR(cl_error, "Error creating split kernel");
+
+		final_kernel =
+			clCreateKernel(program[gpu_id], FINAL_KERNEL_NAME, &cl_error);
+		HANDLE_CLERROR(cl_error, "Error creating final kernel");
 	}
 
 	// Initialize openCL tuning (library) for this format.
@@ -193,12 +210,13 @@ static void release_clobj(void)
 	if (host_pass) {
 		MEM_FREE(host_pass);
 		MEM_FREE(host_salt);
-		MEM_FREE(host_crack);
+		MEM_FREE(host_pk);
 
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
+		HANDLE_CLERROR(clReleaseMemObject(mem_pk), "Release mem pk");
 	}
 }
 
@@ -208,6 +226,7 @@ static void done(void)
 		release_clobj();
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(split_kernel), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		program[gpu_id] = NULL;
@@ -262,33 +281,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		opencl_process_event();
 	}
 
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
+				final_kernel, 1, NULL,
+				&gws, (local_work_size <= final_kernel_max_lws) ? lws : NULL, 0, NULL,
+				multi_profilingEvent[3]), "Run final kernel");
+
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-				gws * sizeof(crack_t), host_crack,
-				0, NULL, multi_profilingEvent[3]), "Copy result back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_pk, CL_TRUE, 0,
+				gws * sizeof(tezos_pk_t), host_pk,
+				0, NULL, multi_profilingEvent[4]), "Copy result back");
 
 	if (!ocl_autotune_running) {
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 		for (index = 0; index < count; index++) {
-			union {
-				uint64_t u64[4];
-				ed25519_secret_key sk;
-			} u;
-			ed25519_public_key pk;
 			unsigned char buffer[20];
-			int j;
-
-			// Room for optimization: we use only half of each hash here => can halve transfer size
-			for (j = 0; j < 4; j++)
-				u.u64[j] = JOHNSWAP64(host_crack[index].hash[j]);
-
-			// asymmetric stuff
-			ed25519_publickey(u.sk, pk);
-
-			blake2b((uint8_t *)buffer, (unsigned char*)pk, NULL, 20, 32, 0); // pk is pkh (pubkey hash)
-
+			blake2b((uint8_t *)buffer, host_pk[index].pk, NULL, 20, 32, 0);
 			if (memmem(cur_salt->raw_address, cur_salt->raw_address_length, buffer, 8)) {
 				cracked[index] = 1;
 #ifdef _OPENMP
