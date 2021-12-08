@@ -93,6 +93,8 @@ static struct rpp_context *rule_ctx;
 static char *word_file_str, **words;
 static int64_t nWordFileLines;
 
+static int file_is_fifo;
+
 static void save_state(FILE *file)
 {
 	fprintf(file, "%d\n%" PRId64 "\n%" PRId64 "\n",
@@ -167,7 +169,7 @@ static int restore_state(FILE *file)
 	if (restore_rule_number())
 		return 1;
 
-	if (word_file == stdin) {
+	if (word_file == stdin || file_is_fifo) {
 		restore_line_number();
 	} else
 	if (!nWordFileLines) {
@@ -221,7 +223,7 @@ static void fix_state(void)
 	rec_rule = rule_number;
 	rec_line = line_number;
 
-	if (word_file == stdin)
+	if (word_file == stdin || file_is_fifo)
 		rec_pos = line_number;
 	else
 	if (!mem_map && !nWordFileLines &&
@@ -240,7 +242,7 @@ void wordlist_hybrid_fix_state(void)
 	hybrid_rec_rule = rule_number;
 	hybrid_rec_line = line_number;
 
-	if (word_file == stdin)
+	if (word_file == stdin || file_is_fifo)
 		hybrid_rec_pos = line_number;
 	else
 	if (!mem_map && !nWordFileLines &&
@@ -266,7 +268,7 @@ static double get_progress(void)
 	if (progress)
 		return progress;
 
-	if (!word_file || word_file == stdin)
+	if (!word_file || word_file == stdin || file_is_fifo)
 		return -1;
 
 	if (nWordFileLines) {
@@ -550,6 +552,24 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 	}
 
 	if (name) {
+		struct stat st;
+
+		if (!(word_file = jtr_fopen(path_expand(name), "rb")))
+			pexit(STR_MACRO(jtr_fopen)": %s", path_expand(name));
+
+		if (fstat(fileno(word_file), &st))
+			pexit("fstat");
+
+		file_is_fifo = ((st.st_mode & S_IFMT) == S_IFIFO);
+
+		if (john_main_process)
+			log_event("- %s %s: %.100s", loopBack ? "Loopback pot" : "Wordlist",
+			          file_is_fifo ? "FIFO" : "file",
+			          path_expand(name));
+	} else
+		file_is_fifo = 0;
+
+	if (name && !file_is_fifo) {
 		char *cp, csearch;
 		int64_t ourshare = 0;
 #ifdef HAVE_MMAP
@@ -560,13 +580,6 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 		if (mmap_max == -1)
 			mmap_max = 1 << 20;
 #endif
-		if (!(word_file = jtr_fopen(path_expand(name), "rb")))
-			pexit(STR_MACRO(jtr_fopen)": %s", path_expand(name));
-		if (john_main_process)
-			log_event("- %s file: %.100s",
-			          loopBack ? "Loopback pot" : "Wordlist",
-			          path_expand(name));
-
 		jtr_fseek64(word_file, 0, SEEK_END);
 		if ((file_len = jtr_ftell64(word_file)) == -1)
 			pexit(STR_MACRO(jtr_ftell64));
@@ -854,7 +867,9 @@ skip:
  * in --stdin mode, we can NOT perform rules, due to we can not fseek stdin in
  * most OS's.
  */
-		word_file = stdin;
+		if (!file_is_fifo)
+			word_file = stdin;
+
 		if (options.flags & FLG_STDIN_CHK) {
 			log_event("- Reading candidate passwords from stdin");
 		} else {
@@ -1363,7 +1378,7 @@ next_rule:
 			}
 
 			line_number = 0;
-			if (!nWordFileLines && word_file != stdin) {
+			if (!nWordFileLines && word_file != stdin && !file_is_fifo) {
 				if (mem_map)
 					map_pos = mem_map;
 				else
