@@ -106,10 +106,11 @@ void BF_clear_buffer() {
 	MEM_FREE(BF_init_key) ;
 	MEM_FREE(opencl_BF_out) ;
 
-	if (krnl[gpu_id])
+	if (program[gpu_id]) {
 		HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id]), "Error releasing kernel") ;
 
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
+	}
 }
 
 static void find_best_gws(struct fmt_main *fmt) {
