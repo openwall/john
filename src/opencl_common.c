@@ -939,7 +939,7 @@ void opencl_load_environment(void)
 unsigned int opencl_get_vector_width(int sequential_id, int size)
 {
 	/* --force-vector-width=N */
-	if (options.v_width && !fmt_matching) {
+	if (options.v_width) {
 		ocl_v_width = options.v_width;
 	} else {
 		cl_uint v_width = 0;
