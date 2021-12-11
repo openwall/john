@@ -98,6 +98,7 @@ static tezos_pk_t *host_pk;
 static cl_mem mem_in, mem_out, mem_salt, mem_state, mem_pk;
 static cl_kernel split_kernel, final_kernel;
 static cl_int cl_error;
+static int new_keys;
 static struct fmt_main *self;
 
 #define STEP                    0
@@ -262,10 +263,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		any_cracked = 0;
 	}
 
-	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		gws * sizeof(pass_t), host_pass, 0, NULL,
-		multi_profilingEvent[0]), "Copy data to gpu");
+	if (new_keys || ocl_autotune_running) {
+		// Copy data to gpu
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			gws * sizeof(pass_t), host_pass, 0, NULL,
+			multi_profilingEvent[0]), "Copy data to gpu");
+		new_keys = 0;
+	}
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
@@ -332,6 +336,7 @@ static void set_key(char *key, int index)
 
 	memcpy(host_pass[index].v, key, saved_len);
 	host_pass[index].length = saved_len;
+	new_keys = 1;
 }
 
 static char *get_key(int index)
