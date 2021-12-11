@@ -225,7 +225,7 @@ static void john_register_all(void)
 		if (strncasecmp(options.format, "dynamic=", 8)) {
 			strlwr(options.format);
 
-			if (strchr(options.format, ',')) {
+			if (options.format[0] != ',' && strchr(options.format, ',')) {
 				options.format_list = options.format;
 				options.format = NULL;
 			}
@@ -274,10 +274,7 @@ static void john_register_all(void)
 
 	if (!fmt_list) {
 		if (john_main_process) {
-			if (!options.format_list && fmt_is_class(options.format))
-				fprintf(stderr, "Error: No format matched '%s'\n", options.format);
-			else
-				fprintf(stderr, "Unknown ciphertext format name requested\n");
+			fprintf(stderr, "Error: No format matched requested %s '%s'\n", fmt_type(options.format), options.format);
 		}
 		error();
 	}
