@@ -38,15 +38,15 @@ int tezos_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) // mnemonic
 		goto err;
-	if (strlen(p) > 512)
+	if (strlen(p) > 128)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) // email
 		goto err;
-	if (strlen(p) > 256)
+	if (strlen(p) >= 256)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) // address
 		goto err;
-	if (strlen(p) > 64)
+	if (strlen(p) >= 64)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) // raw address
 		goto err;

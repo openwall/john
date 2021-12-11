@@ -42,8 +42,7 @@ john_register_one(&fmt_opencl_tezos);
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
-#define PLAINTEXT_LENGTH        110
-#define REAL_PLAINTEXT_LENGTH   48
+#define PLAINTEXT_LENGTH        48
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define INIT_KERNEL_NAME        "pbkdf2_sha512_tezos_init"
@@ -332,8 +331,7 @@ static int cmp_exact(char *source, int index)
 
 static void set_key(char *key, int index)
 {
-	int saved_len = MIN(strlen(key), PLAINTEXT_LENGTH);
-
+	size_t saved_len = strnlen(key, PLAINTEXT_LENGTH);
 	memcpy(host_pass[index].v, key, saved_len);
 	host_pass[index].length = saved_len;
 	new_keys = 1;
@@ -357,7 +355,7 @@ struct fmt_main fmt_opencl_tezos = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
 		0,
-		REAL_PLAINTEXT_LENGTH,
+		PLAINTEXT_LENGTH,
 		BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,
