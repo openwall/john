@@ -130,18 +130,20 @@ __kernel void pbkdf2_sha512_tezos_init(__global const pass_t *inbuffer,
 	ulong tmp_out[8];
 	uint i;
 	uint idx = get_global_id(0);
-	int passlen = gsalt->mnemonic_length;
 	uint rounds = gsalt->pbkdf2.rounds;
-	int saltlen;
+	uint saltlen;
 	union {
-		uchar bytes[8 + sizeof(gsalt->pbkdf2.salt) + 48 /* REAL_PLAINTEXT_LENGTH */];
-		ulong data[(8 + sizeof(gsalt->pbkdf2.salt) + 48 + 7) / 8];
+		uchar bytes[8 + sizeof(gsalt->pbkdf2.salt) + PLAINTEXT_LENGTH];
+		ulong data[(8 + sizeof(gsalt->pbkdf2.salt) + PLAINTEXT_LENGTH + 7) / 8];
 	} salt;
-
 	union {
-		uchar bytes[PLAINTEXT_LENGTH];
-		ulong data[(PLAINTEXT_LENGTH + 7) / 8];
+		uchar bytes[128];  // this large to also accommodate mnemonic
+		ulong data[128 / 8];
 	} pass;
+
+	uint passlen = inbuffer[idx].length;
+	if (passlen > PLAINTEXT_LENGTH)
+		passlen = PLAINTEXT_LENGTH;  // safety, although we better fail reliably
 
 	// setup "password" buffer
 	memcpy_macro(pass.data, inbuffer[idx].v, sizeof(inbuffer[idx].v) / 8);
@@ -149,20 +151,31 @@ __kernel void pbkdf2_sha512_tezos_init(__global const pass_t *inbuffer,
 	// create varying salt
 	memcpy_macro(salt.bytes, "mnemonic", 8);
 	memcpy_macro(&salt.data[1], gsalt->pbkdf2.salt, sizeof(gsalt->pbkdf2.salt) / 8);
-	memcpy_macro(salt.bytes + 8 + gsalt->pbkdf2.length, pass.bytes, inbuffer[idx].length);
-	saltlen = 8 + gsalt->pbkdf2.length + inbuffer[idx].length;
+	saltlen = 8 + gsalt->pbkdf2.length;
+	if (saltlen > 8 + sizeof(gsalt->pbkdf2.salt))
+		saltlen = 8 + sizeof(gsalt->pbkdf2.salt);  // safety, although we better fail reliably
+	memcpy_macro(salt.bytes + saltlen, pass.bytes, passlen);
+	saltlen += passlen;
+
+	if (saltlen > 115)
+		saltlen = 115;  // safety, although we better fail reliably
 
 	// we append the count and eom here, one time, this hack is required by our peculiar opencl pbkdf2_sha512_kernel stuff
 	memcpy_macro(salt.bytes + saltlen, "\x0\x0\x0\x1\x80", 5);
-	saltlen = saltlen + 5;  // we include the x80 byte in our saltlen, but the .cl kernel knows to reduce saltlen by 1
-	for (int i = saltlen; i < saltlen + (8 - saltlen % 8); i++)  // zeroize buffer correctly
-            salt.bytes[i] = 0;
+	saltlen += 5;  // we include the x80 byte in our saltlen, but the .cl kernel knows to reduce saltlen by 1
+	if (saltlen % 8)
+		for (int i = saltlen; i < saltlen + (8 - saltlen % 8); i++)  // zeroize buffer correctly
+			salt.bytes[i] = 0;
 
 	state[idx].rounds = rounds - 1;
 
+	passlen = gsalt->mnemonic_length;
+	if (passlen > sizeof(pass.bytes))
+		passlen = sizeof(pass.bytes);  // safety, although we better fail reliably
 	memcpy_macro(pass.bytes, gsalt->mnemonic, passlen);  // actual password
-	for (int i = passlen; i < passlen + (8 - passlen % 8); i++)  // zeroize buffer correctly
-            pass.bytes[i] = 0;
+	if (passlen % 8)
+		for (int i = passlen; i < passlen + (8 - passlen % 8); i++)  // zeroize buffer correctly
+			pass.bytes[i] = 0;
 
 	_tezos_preproc_(pass.data, passlen, ipad_state, 0x3636363636363636UL);
 	_tezos_preproc_(pass.data, passlen, opad_state, 0x5c5c5c5c5c5c5c5cUL);
