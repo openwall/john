@@ -90,21 +90,11 @@ char fmt_class_list[] = "all, enabled, disabled"
 int fmt_is_class(char *name)
 {
 	return (name && (!strcasecmp(name, "all") || !strcasecmp(name, "enabled") || !strcasecmp(name, "disabled") ||
-#if _OPENMP
 	                 !strcasecmp(name , "omp") ||
-#endif
-#if HAVE_OPENCL || HAVE_ZTEX
 	                 !strcasecmp(name , "mask") ||
-#endif
-#if HAVE_ZTEX
 	                 !strcasecmp(name , "ztex") ||
-#endif
-#if HAVE_OPENCL
 	                 !strcasecmp(name , "opencl") || !strcasecmp(name , "vector") ||
-#endif
-#ifndef DYNAMIC_DISABLED
 	                 !strcasecmp(name , "dynamic") ||
-#endif
 	                 !strcasecmp(name , "cpu")));
 }
 
@@ -151,7 +141,7 @@ int fmt_match(const char *req_format, struct fmt_main *format, int override_disa
 	if (strncasecmp(req_format, "dynamic=", 8) && (pos = strchr(req_format, '*'))) {
 		if (pos != strrchr(req_format, '*')) {
 			if (john_main_process)
-				fprintf(stderr, "Error: Only one wildcard allowed in a format name\n");
+				fprintf(stderr, "Error: '%s': Only one wildcard allowed in a format name\n", req_format);
 			error();
 		}
 
@@ -171,12 +161,12 @@ int fmt_match(const char *req_format, struct fmt_main *format, int override_disa
 	}
 
 	/* Algo match, eg. --format=@xop or --format=@sha384 */
-	if (strncasecmp(req_format, "dynamic=", 8) && (pos = strchr(req_format, '@')))
-		return enabled && strcasestr(format->params.algorithm_name, ++pos);
+	if (req_format[0] == '@' && req_format[1])
+		return enabled && strcasestr(format->params.algorithm_name, ++req_format);
 
 	/* Long-name match, eg. --format=#ipmi or --format=#1password */
-	if (strncasecmp(req_format, "dynamic=", 8) && (pos = strchr(req_format, '#')))
-		return enabled && strcasestr(format->params.format_name, ++pos);
+	if (req_format[0] == '#' && req_format[1])
+		return enabled && strcasestr(format->params.format_name, ++req_format);
 
 	/* Format classes */
 	if (!strcasecmp(req_format, "dynamic"))
@@ -330,6 +320,20 @@ static void comma_split(struct list_main *dst, const char *src)
 	MEM_FREE(src_cpy);
 }
 
+char* fmt_type(char *name)
+{
+	if (name[1] && (name[0] == '+' || name[0] == '-'))
+		name++;
+
+	if (fmt_is_class(name))
+		return "class";
+
+	if (strchr(name, '*') || name[0] == '@' || name[0] == '#')
+		return "wildcard";
+
+	return "name";
+}
+
 int fmt_check_custom_list(void)
 {
 	if (strchr(options.format_list, ',')) {
@@ -364,7 +368,9 @@ int fmt_check_custom_list(void)
 					had_i = 1;
 					if (!include_formats(req_format->data, &full_fmt_list) && !is_in_fmt_list(req_format->data)) {
 						if (john_main_process)
-							fprintf(stderr, "Error: No format matched '%s'%s\n", req_format->data,
+							fprintf(stderr, "Error: No format matched requested %s '%s'%s\n",
+							        fmt_type(req_format->data),
+							        req_format->data,
 							        num_e ? " after exclusions" : "");
 						error();
 					}
@@ -383,13 +389,19 @@ int fmt_check_custom_list(void)
 					if (!require_fmt[0])
 						error_msg("Error: '%s' in format list doesn't make sense\n", req_format->data);
 					prune_formats(require_fmt, had_i);
+
+					if (!fmt_list) {
+						if (john_main_process)
+							fprintf(stderr, "Error: No format matched requested '%s' after processing '%s'\n",
+							        options.format_list, req_format->data);
+						error();
+					}
 				}
 			} while ((req_format = req_format->next));
 
 			if (!fmt_list) {
 				if (john_main_process)
-					fprintf(stderr, "Error: No format matched '%s' after processing final requirements\n",
-					        options.format_list);
+					fprintf(stderr, "Error: No format matched requested criteria '%s'\n", options.format_list);
 				error();
 			}
 

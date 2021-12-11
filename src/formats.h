@@ -456,6 +456,9 @@ extern void fmt_register(struct fmt_main *format);
  */
 extern int fmt_is_class(char *name);
 
+/* Returns "class", "wildcard" or "name" */
+extern char* fmt_type(char *name);
+
 /*
  * Match req_format to format, supporting wildcards/groups/classes etc.
  */
