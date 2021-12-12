@@ -98,6 +98,7 @@ static cl_mem mem_in, mem_out, mem_salt, mem_state, mem_pk;
 static cl_kernel split_kernel, final_kernel;
 static cl_int cl_error;
 static int new_keys;
+static size_t max_key_length;
 static struct fmt_main *self;
 
 #define STEP                    0
@@ -262,6 +263,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		any_cracked = 0;
 	}
 
+	static int warned;
+	if (!warned && 8 + cur_salt->email_length + max_key_length > 107) {
+		warned = 1;
+		fprintf(stderr, "Warning: over-long combination(s) of e-mail address and candidate password\n");
+	}
+
 	if (new_keys || ocl_autotune_running) {
 		// Copy data to gpu
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
@@ -335,6 +342,8 @@ static void set_key(char *key, int index)
 	memcpy(host_pass[index].v, key, saved_len);
 	host_pass[index].length = saved_len;
 	new_keys = 1;
+	if (saved_len > max_key_length)
+		max_key_length = saved_len;
 }
 
 static char *get_key(int index)
