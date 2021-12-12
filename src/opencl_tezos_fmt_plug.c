@@ -308,7 +308,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (index = 0; index < count; index++) {
 			unsigned char buffer[20];
 			blake2b((uint8_t *)buffer, host_pk[index].pk, NULL, 20, 32, 0);
-			if (memmem(cur_salt->raw_address, cur_salt->raw_address_length, buffer, 8)) {
+			if (!memcmp(cur_salt->raw_address + 2, buffer, 20)) {
 				cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic

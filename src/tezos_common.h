@@ -20,8 +20,8 @@ struct custom_salt {
         uint32_t raw_address_length;
         char mnemonic[132]; /* our OpenCL kernel supports up to 128, and on host we also add NUL */
         char email[256];
-        char address[64];
-        char raw_address[64];
+        char address[62];
+        char raw_address[22];
 };
 
 extern struct fmt_tests tezos_tests[];
