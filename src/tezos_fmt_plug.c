@@ -36,6 +36,7 @@ john_register_one(&fmt_tezos);
 #include "blake2.h"
 #include "tezos_common.h"
 #define PBKDF2_HMAC_SHA512_VARYING_SALT 1
+#include "pbkdf2_hmac_common.h"
 #include "pbkdf2_hmac_sha512.h"
 
 #define FORMAT_NAME             "Tezos Key"
@@ -55,13 +56,17 @@ john_register_one(&fmt_tezos);
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
-#define PLAINTEXT_LENGTH        125
 #ifdef SIMD_COEF_64
+#define PLAINTEXT_LENGTH        (PBKDF2_64_MAX_SALT_SIZE - 8)
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
 #define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA512 * 4)
 #else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      4
+#endif
+#if !defined(PLAINTEXT_LENGTH) || PLAINTEXT_LENGTH > 125
+#undef PLAINTEXT_LENGTH
+#define PLAINTEXT_LENGTH        125
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -105,6 +110,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+#ifdef SIMD_COEF_64
+	static int warned;
+#endif
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
@@ -141,6 +149,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			sin[i] = (unsigned char*)salt[i];
 			pout[i] = seed[i].seed;
 			slens[i] = strlen(salt[i]);
+			if (!warned && !self_test_running && slens[i] > PBKDF2_64_MAX_SALT_SIZE) {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+				{
+					warned = 1;
+					fprintf(stderr,
+						"Warning: over-long combination(s) of e-mail address and candidate password\n");
+				}
+			}
 		}
 		pbkdf2_sha512_sse_varying_salt((const unsigned char**)pin, lens, sin, slens, 2048, pout, 64, 0);
 #else

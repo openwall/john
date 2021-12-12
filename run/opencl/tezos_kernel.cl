@@ -157,8 +157,8 @@ __kernel void pbkdf2_sha512_tezos_init(__global const pass_t *inbuffer,
 	memcpy_macro(salt.bytes + saltlen, pass.bytes, passlen);
 	saltlen += passlen;
 
-	if (saltlen > 115)
-		saltlen = 115;  // safety, although we better fail reliably
+	if (saltlen > 107)
+		saltlen = 107;  // safety, although we better fail reliably
 
 	// we append the count and eom here, one time, this hack is required by our peculiar opencl pbkdf2_sha512_kernel stuff
 	memcpy_macro(salt.bytes + saltlen, "\x0\x0\x0\x1\x80", 5);
