@@ -176,7 +176,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			blake2b((uint8_t *)buffer, (unsigned char*)pk, NULL, 20, 32, 0); // pk is pkh (pubkey hash)
 
-			if (memmem(cur_salt->raw_address, cur_salt->raw_address_length, (void*)buffer, 8)) {
+			if (!memcmp(cur_salt->raw_address + 2, buffer, 20)) {
 				cracked[index+i] = 1;
 #ifdef _OPENMP
 #pragma omp atomic

@@ -46,11 +46,18 @@ int tezos_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) // address
 		goto err;
-	if (strlen(p) >= 64)
+	if (strlen(p) >= 62)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) // raw address
 		goto err;
-	if (hexlenl(p, &extra) > 64 * 2 || extra)
+/*
+ * https://gitlab.com/tezos/tezos/blob/master/src/lib_crypto/base58.ml says:
+ * (* 20 *)
+ * let ed25519_public_key_hash = "\006\161\159" (* tz1(36) *)
+ * Since ed25519_public_key_hash is the only thing we support in code, it would
+ * be wrong to accept other address types here (we'd have false negatives).
+ */
+	if (hexlenl(p, &extra) != 22 * 2 || extra || strncmp(p, "a19f", 4))
 		goto err;
 
 	MEM_FREE(keeptr);
