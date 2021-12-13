@@ -247,21 +247,20 @@ void BF_select_device(struct fmt_main *fmt) {
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 6, sizeof(cl_mem), &buffers[gpu_id].S_box_gpu), "Set Kernel Arg FAILED arg6") ;
 
 	if (global_work_size) {
-		global_work_size =
-			global_work_size / local_work_size * local_work_size;
-		if (global_work_size > BF_N)
-			global_work_size = BF_N;
+		global_work_size = MIN(global_work_size / local_work_size * local_work_size, BF_N);
 		fmt->params.max_keys_per_crypt = global_work_size;
 	} else
 		find_best_gws(fmt);
 
-	if ((!self_test_running && options.verbosity >= VERB_DEFAULT) ||
-	    ocl_always_show_ws)
-		fprintf(stderr, "LWS="Zu" GWS="Zu"%s", local_work_size,
-		        global_work_size, benchmark_running ? " " : "\n");
+	if (ocl_always_show_ws || !self_test_running) {
+		if (options.node_count)
+			fprintf(stderr, "%u: ", NODE);
+		fprintf(stderr, "LWS="Zu" GWS="Zu" ("Zu" blocks)%c",
+		        local_work_size, global_work_size, global_work_size / local_work_size,
+		        (options.flags & FLG_TEST_CHK) ? ' ' : '\n');
+	}
 
-	fmt->params.min_keys_per_crypt = opencl_calc_min_kpc(local_work_size,
-	                                                     global_work_size, 1);
+	fmt->params.min_keys_per_crypt = opencl_calc_min_kpc(local_work_size, global_work_size, 1);
 }
 
 void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug) {
