@@ -89,32 +89,42 @@ sub unique
     return !$uniq{$input}++;
 }
 
-# Credits for original code and description hobbit@avian.org,
-# SPHiXe, .mudge et al. and for John Bashinski
-# for Cisco IOS password encryption facts.
-#
-# Use of this code for any malicious or illegal purposes is strictly prohibited!
-#
-sub deobfuscate
-{
-    my @xlat = ( 0x64, 0x73, 0x66, 0x64, 0x3b, 0x6b, 0x66, 0x6f, 0x41,
-		 0x2c, 0x2e, 0x69, 0x79, 0x65, 0x77, 0x72, 0x6b, 0x6c,
-		 0x64, 0x4a, 0x4b, 0x44, 0x48, 0x53 , 0x55, 0x42 );
-    my ($ep) = @_;
-    my $dp = "";
+sub cisco_decrypt {
+    ##################################################
+    # Nicked late 2021 from CPAN, Crypt::Cisco
+    # Copyright (C) Michael Vincent 2010, 2017
+    # www.VinsWorld.com
+    ##################################################
 
-    if (!(length($ep) & 1)) {
-	    my ($s, $e) = ($ep =~ /^(..)(.+)/);
-	    $s = hex($s);
-	    for (my $i = 0; $i < length($e); $i += 2) {
-		    $dp .= sprintf "%c", hex(substr($e, $i, 2)) ^
-		      $xlat[$s++ % 26];
-	    }
-	    if ($dp =~ m/[\x00-\x19]/) {
-		    $dp = unpack("H*", $dp);
-	    }
-	    return $dp;
+    # Cisco's XOR key
+    my @xlat = (
+                0x64, 0x73, 0x66, 0x64, 0x3B, 0x6B, 0x66, 0x6F, 0x41, 0x2C, 0x2E, 0x69,
+                0x79, 0x65, 0x77, 0x72, 0x6B, 0x6C, 0x64, 0x4A, 0x4B, 0x44, 0x48, 0x53,
+                0x55, 0x42, 0x73, 0x67, 0x76, 0x63, 0x61, 0x36, 0x39, 0x38, 0x33, 0x34,
+                0x6E, 0x63, 0x78, 0x76, 0x39, 0x38, 0x37, 0x33, 0x32, 0x35, 0x34, 0x6B,
+                0x3B, 0x66, 0x67, 0x38, 0x37
+               );
+
+    my ($passwd) = @_;
+
+    if ( ( $passwd =~ /^[\da-f]+$/i ) and ( length($passwd) > 2 ) ) {
+        if ( !( length($passwd) & 1 ) ) {
+            my $dec = "";
+            my ( $s, $e ) = ( $passwd =~ /^(..)(.+)/o );
+
+            for ( my $i = 0; $i < length($e); $i += 2 ) {
+
+                # If we move past the end of the XOR key, reset
+                if ( $s > $#xlat ) { $s = 0 }
+                $dec .= sprintf "%c",
+                  hex( substr( $e, $i, 2 ) ) ^ $xlat[$s++];
+            }
+            return $dec;
+        }
     }
+    print STDERR "Invalid password `$passwd'\n";
+
+    return "";
 }
 
 sub notice
@@ -142,7 +152,7 @@ while (<>) {
 	}
     } elsif ($ssid && m/hex 7 ([\dA-F]+)/) {
 	#print "in: $_\nhex: $1\n";
-	my $hex = deobfuscate($1);
+	my $hex = cisco_decrypt($1);
 	my $output = "$ssid:\$pbkdf2-hmac-sha1\$4096\$" . unpack("H*", $ssid) . '$' . $hex . $filename;
 	if ($hex && unique($output)) {
 	    print $output, "\n";
@@ -161,7 +171,7 @@ while (<>) {
     } elsif (m/(?:password|md5|ascii|key|hex|encryption .*) 7 ([\dA-F]+)/) {
 	#print "in2: $_\n";
 	notice();
-	my $pw = deobfuscate($1);
+	my $pw = cisco_decrypt($1);
 	if (unique($pw)) {
 	    print STDERR $pw, "\n";
 	}
