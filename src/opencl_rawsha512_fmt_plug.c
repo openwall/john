@@ -71,7 +71,7 @@ typedef struct {
 
 static sha512_key *gkey;
 static sha512_hash *ghash;
-static uint8_t sha512_key_changed;
+static uint8_t new_keys;
 static uint8_t hash_copy_back;
 
 //OpenCL variables:
@@ -208,7 +208,7 @@ static void set_key(char *key, int index)
 		length = PLAINTEXT_LENGTH;
 	gkey[index].length = length;
 	memcpy(gkey[index].v, key, length);
-	sha512_key_changed = 1;
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -306,21 +306,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
-	///Copy data to GPU memory
-	if (sha512_key_changed || ocl_autotune_running) {
+	// Copy data to GPU memory
+	if (new_keys) {
 		BENCH_CLERROR(clEnqueueWriteBuffer
 		    (queue[gpu_id], mem_in, CL_FALSE, 0, insize, gkey, 0, NULL,
 			multi_profilingEvent[0]), "Copy memin");
+
+		new_keys = 0;
 	}
 
-	///Run kernel
+	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws,
 		0, NULL, multi_profilingEvent[1]), "Set ND range");
 
-	/// Reset key to unchanged and hashes uncopy to host
-	sha512_key_changed = 0;
-    hash_copy_back = 0;
+	hash_copy_back = 0;
 
 	return count;
 }

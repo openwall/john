@@ -528,7 +528,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	//printf("%s(%d) lws "Zu" gws "Zu" kidx %u k %d mult %u\n", __FUNCTION__, count, lws, gws, key_idx, new_keys, mask_int_cand.num_int_cand);
 
-	if (new_keys || ocl_autotune_running) {
+	if (new_keys) {
 		/* Self-test kludge */
 		if (idx_offset > 4 * (gws + 1))
 			idx_offset = 0;
