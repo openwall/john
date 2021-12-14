@@ -323,10 +323,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		any_cracked = 0;
 	}
 
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
+
 	if (ocl_autotune_running || new_keys) {
 		int i;
-
-		global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 		// Copy data to gpu
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
@@ -353,9 +353,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_final, 1,
 			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]),
 			"Run final loop kernel");
-	}
 
-	new_keys = 0;
+		new_keys = 0;
+	}
 
 	if (sevenzip_trust_padding || sevenzip_salt->type == 0x80) {
 		// Run AES kernel (only for truncated hashes)

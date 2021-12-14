@@ -573,7 +573,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		output_hashes = calculated_hash;
 	}
 
-	if (new_keys) {
+	if (ocl_autotune_running || new_keys) {
 		// sort passwords by length
 		if (bitmap_of_lens & (bitmap_of_lens - 1)) {
 			if (count > indices_size) {

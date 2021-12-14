@@ -384,7 +384,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	in_size = sizeof(password_t) * global_work_size;
 	cracked_size = sizeof(*cracked) * global_work_size;
 
-	if (new_keys) {
+	if (ocl_autotune_running || new_keys) {
 		// Copy data to gpu
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
 			in_size, saved_key, 0, NULL, multi_profilingEvent[0]),
