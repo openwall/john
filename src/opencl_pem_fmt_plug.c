@@ -286,7 +286,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * ocl_v_width;
 
 	// Copy data to gpu
-	if (ocl_autotune_running || new_keys) {
+	if (new_keys) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 		new_keys = 0;
 	}
