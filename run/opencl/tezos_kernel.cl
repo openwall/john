@@ -164,7 +164,7 @@ __kernel void pbkdf2_sha512_tezos_init(__global const pass_t *inbuffer,
 	memcpy_macro(salt.bytes + saltlen, "\x0\x0\x0\x1\x80", 5);
 	saltlen += 5;  // we include the x80 byte in our saltlen, but the .cl kernel knows to reduce saltlen by 1
 	if (saltlen % 8)
-		for (int i = saltlen; i < saltlen + (8 - saltlen % 8); i++)  // zeroize buffer correctly
+		for (uint i = saltlen; i < saltlen + (8 - saltlen % 8); i++)  // zeroize buffer correctly
 			salt.bytes[i] = 0;
 
 	state[idx].rounds = rounds - 1;
@@ -174,7 +174,7 @@ __kernel void pbkdf2_sha512_tezos_init(__global const pass_t *inbuffer,
 		passlen = sizeof(pass.bytes);  // safety, although we better fail reliably
 	memcpy_macro(pass.bytes, gsalt->mnemonic, passlen);  // actual password
 	if (passlen % 8)
-		for (int i = passlen; i < passlen + (8 - passlen % 8); i++)  // zeroize buffer correctly
+		for (uint i = passlen; i < passlen + (8 - passlen % 8); i++)  // zeroize buffer correctly
 			pass.bytes[i] = 0;
 
 	_tezos_preproc_(pass.data, passlen, ipad_state, 0x3636363636363636UL);

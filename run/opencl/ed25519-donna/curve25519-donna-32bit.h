@@ -322,7 +322,7 @@ curve25519_square(bignum25519 out, const bignum25519 in) {
 }
 
 static void
-curve25519_mul_const(bignum25519 out, const bignum25519 a, __constant bignum25519 b) {
+curve25519_mul_const(bignum25519 out, const bignum25519 a, __constant uint32_t *b) {
 	bignum25519 bpvt;
 	memcpy_cp(bpvt, b, sizeof(bpvt));
 	curve25519_mul(out, a, bpvt);
@@ -534,7 +534,7 @@ curve25519_contract(unsigned char out[32], const bignum25519 in) {
 
 /* out = (flag) ? in : out */
 static void
-curve25519_move_conditional_bytes(uint8_t out[96], __constant uint8_t in[96], uint32_t flag) {
+curve25519_move_conditional_bytes(uint8_t out[96], __constant uint8_t *in, uint32_t flag) {
 	const uint32_t nb = flag - 1, b = ~nb;
 	__constant uint32_t *inl = (__constant uint32_t *)in;
 	uint32_t *outl = (uint32_t *)out;
