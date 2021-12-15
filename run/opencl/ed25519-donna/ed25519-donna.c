@@ -29,6 +29,6 @@ ed25519_publickey(const ed25519_secret_key sk, ed25519_public_key pk) {
 	/* A = aB */
 	ed25519_extsk(extsk, sk);
 	expand256_modm(a, extsk, 32);
-	ge25519_scalarmult_base_niels(&A, ge25519_niels_base_multiples, a);
+	ge25519_scalarmult_base_niels(&A, a);
 	ge25519_pack(pk, &A);
 }
