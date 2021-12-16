@@ -1558,12 +1558,6 @@ static void ldr_show_left(struct db_main *db, struct db_password *pw)
 	char *pw_source = db->format->methods.source(pw->source, pw->binary);
 	char *login = (db->options->flags & DB_LOGIN) ? pw->login : "?";
 
-#ifndef DYNAMIC_DISABLED
-	/* Note for salted dynamic, we 'may' need to fix up the salts to
-	 * make them properly usable. */
-	if (!strncmp(pw_source, "$dynamic_", 9))
-		pw_source = dynamic_FIX_SALT_TO_HEX(pw_source);
-#endif
 	if (options.show_uid_in_cracks && pw->uid && *pw->uid) {
 		uid_sep[0] = db->options->field_sep_char;
 		uid_out = pw->uid;

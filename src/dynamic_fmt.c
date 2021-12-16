@@ -362,7 +362,17 @@ private_subformat_data curdat;
  *********************************************************************************
  *********************************************************************************/
 
-char *RemoveHEX(char *output, char *input)
+#define KEEP_UNPRINTABLE 0
+#define KEEP_NULLS 1
+
+/*
+ * Decode HEX$deadcafe salt strings into bytes. If last parameter is KEEP_UNPRINTABLE and there's
+ * unprintable characters in the string, bail without decoding (still copy input to output).
+ * If last parameter is KEEP_NULLS, anything except embedded nulls will be decoded.
+ * Output buffer must at least as big as input buffer.  If hex is decoded, the resulting
+ * output will be shorter.
+ */
+static char *RemoveHEX(char *output, char *input, int only_null)
 {
 	char *cpi = input;
 	char *cpo = output;
@@ -380,12 +390,13 @@ char *RemoveHEX(char *output, char *input)
 	*cpo++ = *cpi;
 	cpi += 5;
 	while (*cpi) {
-		if (*cpi == '0' && cpi[1] == '0') {
-			strcpy(output, input);
-			return output;
-		}
 		if (atoi16[ARCH_INDEX(*cpi)] != 0x7f && atoi16[ARCH_INDEX(cpi[1])] != 0x7f) {
-			*cpo++ = atoi16[ARCH_INDEX(*cpi)]*16 + atoi16[ARCH_INDEX(cpi[1])];
+			unsigned char c = atoi16[ARCH_INDEX(*cpi)]*16 + atoi16[ARCH_INDEX(cpi[1])];
+			if ((only_null && c == 0) || (!only_null && (c < ' ' || c > 0x7e))) {
+				strcpy(output, input);
+				return output;
+			}
+			*cpo++ = c;
 			cpi += 2;
 		} else if (*cpi == '$') {
 			while (*cpi && strncmp(cpi, "$HEX$", 5)) {
@@ -402,6 +413,56 @@ char *RemoveHEX(char *output, char *input)
 	}
 	*cpo = 0;
 	return output;
+}
+
+/*
+ * Add $HEX$ encoding for salts where needed.  For canonicalized pot storage, we encode
+ * anything containing unprintables or field separators, but never anything else.
+ */
+static char *AddHEX(char *ciphertext) {
+	char *cp;
+
+	if (strncmp(ciphertext, "$dynamic_", 9) && strncmp(ciphertext, "@dynamic=", 9))
+		return ciphertext;  // not a dynamic format, so we can not 'fix' it.
+
+	if (!(cp = strchr(&ciphertext[1], ciphertext[0])) || !(cp = strchr(&cp[1], '$')))
+		return ciphertext;  // not a salted format.
+
+	if (!strncmp(cp, "$HEX$", 5))
+		return ciphertext;  // already HEX$
+
+	unsigned char *s = (unsigned char*)cp++;
+	int need_hex = 0;
+	if (*cp && (cp[strlen(cp) - 1] == ' ' || cp[strlen(cp) - 1] == '\t'))
+		need_hex = 1;
+	else
+	while (*++s) {
+		if (*s < ' ' || *s > 0x7e || *s == ':' || *s == '$') {
+			need_hex = 1;
+			break;
+		}
+	}
+
+	/* New length is length of ciphertext, the HEX$ and 2 bytes per char of salt string plus ending null. */
+	if (need_hex) {
+		static char *out;
+		static size_t out_size;
+		size_t size_needed = strlen(ciphertext) + 4 + strlen(cp) + 1;
+
+		if (size_needed > out_size) {
+			out_size = (size_needed + 1024) / 1024 * 1024;
+			out = mem_realloc(out, out_size);
+		}
+
+		char *cpx = out;
+		cpx += sprintf(out, "%.*sHEX$", (int)(cp - ciphertext), ciphertext);
+		while (*cp)
+			cpx += sprintf(cpx, "%02x", (unsigned char)(*cp++));
+
+		return out;
+	}
+
+	return ciphertext;
 }
 
 /*********************************************************************************
@@ -432,7 +493,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	// of leaving it in there. The ONLY problem we still have is NULL bytes.
 	if (strstr(ciphertext, "$HEX$")) {
 		if (strnlen(ciphertext, sizeof(fixed_ciphertext) + 1) < sizeof(fixed_ciphertext))
-			ciphertext = RemoveHEX(fixed_ciphertext, ciphertext);
+			ciphertext = RemoveHEX(fixed_ciphertext, ciphertext, KEEP_NULLS);
 	}
 
 	cp = &ciphertext[strlen(pPriv->dynamic_WHICH_TYPE_SIG)];
@@ -1029,44 +1090,12 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 	/* the ONE exception to this, is if there is a NULL byte in the $HEX$ string, then we MUST leave that $HEX$ string */
 	/* alone, and let the later calls in dynamic.c handle them. */
 	if (strstr(cpBuilding, "$HEX$")) {
-		char *cp, *cpo;
-		int bGood=1;
 		static char ct[512];
 
-		strcpy(ct, cpBuilding);
-		cp = strstr(ct, "$HEX$");
-		cpo = cp;
-		*cpo++ = *cp;
-		cp += 5;
-		while (*cp && bGood) {
-			if (*cp == '0' && cp[1] == '0') {
-				bGood = 0;
-				break;
-			}
-			if (atoi16[ARCH_INDEX(*cp)] != 0x7f && atoi16[ARCH_INDEX(cp[1])] != 0x7f) {
-				*cpo++ = atoi16[ARCH_INDEX(*cp)]*16 + atoi16[ARCH_INDEX(cp[1])];
-				*cpo = 0;
-				cp += 2;
-			} else if (*cp == '$') {
-				while (*cp && strncmp(cp, "$HEX$", 5)) {
-					*cpo++ = *cp++;
-				}
-				*cpo = 0;
-				if (!strncmp(cp, "$HEX$", 5)) {
-					*cpo++ = *cp;
-					cp += 5;
-				}
-			} else {
-				return split_fields[1];
-			}
-		}
-		if (bGood)
-			cpBuilding = ct;
-		// if we came into $HEX$ removal, then cpBuilding will always be shorter
+		cpBuilding = RemoveHEX(ct, cpBuilding, KEEP_NULLS);
 	}
 
 	// at this point max length is still < 512.  491 + strlen($dynamic_xxxxx$) is 506
-
 	if (pPriv->nUserName && !strstr(cpBuilding, "$$U")) {
 		if (split_fields[0] && split_fields[0][0] && strcmp(split_fields[0], "?")) {
 			char *userName=split_fields[0], *cp;
@@ -1133,8 +1162,9 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	if (!strncmp(ciphertext, "$dynamic", 8) ||
 	    !strncmp(ciphertext, "@dynamic=", 9)) {
 		if (strstr(ciphertext, "$HEX$"))
-			return RemoveHEX(out, ciphertext);
-		return ciphertext;
+			return AddHEX(RemoveHEX(out, ciphertext, KEEP_UNPRINTABLE));
+
+		return AddHEX(ciphertext);
 	}
 	if (!strncmp(ciphertext, "md5_gen(", 8)) {
 		ciphertext += 8;
@@ -1143,11 +1173,12 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	}
 	if (strstr(ciphertext, "$HEX$")) {
 		char *cp = out + sprintf(out, "%s", pPriv->dynamic_WHICH_TYPE_SIG);
-		RemoveHEX(cp, ciphertext);
+		RemoveHEX(cp, ciphertext, KEEP_UNPRINTABLE);
 	} else
 		snprintf(out, sizeof(out), "%s%s", pPriv->dynamic_WHICH_TYPE_SIG, ciphertext);
 
-	return out;
+	/* Add missing $HEX$ encoding (contains unprintables or field separators). */
+	return AddHEX(out);
 }
 
 // This split unifies case.
@@ -1159,12 +1190,12 @@ static char *split_UC(char *ciphertext, int index, struct fmt_main *pFmt)
 
 	if (!strncmp(ciphertext, "$dynamic", 8)) {
 		if (strstr(ciphertext, "$HEX$"))
-			RemoveHEX(out, ciphertext);
+			RemoveHEX(out, ciphertext, KEEP_UNPRINTABLE);
 		else
 			strcpy(out, ciphertext);
 	} else if (!strncmp(ciphertext, "@dynamic=", 9)) {
 		if (strstr(ciphertext, "$HEX$"))
-			RemoveHEX(out, ciphertext);
+			RemoveHEX(out, ciphertext, KEEP_UNPRINTABLE);
 		else
 			strcpy(out, ciphertext);
 		search_char = '@';
@@ -1176,7 +1207,7 @@ static char *split_UC(char *ciphertext, int index, struct fmt_main *pFmt)
 		}
 		if (strstr(ciphertext, "$HEX$")) {
 			char *cp = out + sprintf(out, "%s", pPriv->dynamic_WHICH_TYPE_SIG);
-			RemoveHEX(cp, ciphertext);
+			RemoveHEX(cp, ciphertext, KEEP_UNPRINTABLE);
 		} else
 			sprintf(out, "%s%s", pPriv->dynamic_WHICH_TYPE_SIG, ciphertext);
 	}
@@ -1186,8 +1217,9 @@ static char *split_UC(char *ciphertext, int index, struct fmt_main *pFmt)
 			*ciphertext += 0x20; // ASCII specific, but I really do not care.
 		++ciphertext;
 	}
-//	printf("%s\n", out);
-	return out;
+
+	/* Add missing $HEX$ encoding (contains unprintables or field separators). */
+	return AddHEX(out);
 }
 
 /*********************************************************************************
@@ -2324,7 +2356,7 @@ static unsigned int salt_external_to_internal_convert(unsigned char *extern_salt
  *********************************************************************************/
 static void *get_salt(char *ciphertext)
 {
-	char Salt[SALT_SIZE+1], saltIntBuf[SALT_SIZE+1];
+	char Salt[SALT_SIZE + 1], saltIntBuf[SALT_SIZE + 1], unhex_salt[1024];
 	int off, possible_neg_one=0;
 	unsigned char *saltp;
 	unsigned int the_real_len;
@@ -2332,6 +2364,10 @@ static void *get_salt(char *ciphertext)
 		unsigned char salt_p[sizeof(unsigned char*)];
 		ARCH_WORD p[1];
 	} union_x;
+
+	// We may have kept unprintables (except NULLs) so far, now remove them
+	if (strstr(ciphertext, "$HEX$"))
+		ciphertext = RemoveHEX(unhex_salt, ciphertext, KEEP_NULLS);
 
 	if ( (curdat.pSetup->flags&MGF_SALTED) == 0) {
 		memset(union_x.salt_p, 0, sizeof(union_x.salt_p));

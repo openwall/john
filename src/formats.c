@@ -1939,7 +1939,7 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 						good = 1;
 					if (!good) {
 						// white list.
-						if (!strncmp(ret, "@dynamic=", 9) ||
+						if (!strncmp(ret, "@dynamic=", 9) || strstr(ret, "$HEX$") ||
 						    (ret[0]=='$'&&ret[1]=='2'&&ret[3]=='$'&& (ret[2]=='a'||ret[2]=='b'||ret[2]=='x'||ret[2]=='y') ) )
 						{
 						} else
