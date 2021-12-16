@@ -562,10 +562,6 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 	in_logger = 1;
 
 	if (pot.fd >= 0 && ciphertext ) {
-#ifndef DYNAMIC_DISABLED
-		if (!strncmp(ciphertext, "$dynamic_", 9))
-			ciphertext = dynamic_FIX_SALT_TO_HEX(ciphertext);
-#endif
 		if (options.secure) {
 			secret = components(store_plain, len);
 			count1 = (int)sprintf(pot.ptr,
