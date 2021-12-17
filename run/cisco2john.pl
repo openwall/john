@@ -1,7 +1,11 @@
 #!/usr/bin/env perl
 #
-# Basic Cisco type 4 - password decoder by Kost, Dhiru
-# and magnum
+# Basic Cisco password decoder
+#
+# This software is Copyright (c) 2012-2021 magnum/Kost/Dhiru, and it is hereby
+# released to the general public under the following terms:
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted.
 #
 # Usage Examples:
 #
@@ -10,7 +14,7 @@
 #	companysecret
 #	test
 #
-# (because of that output, we re-run it and save stderr to its own file)
+# (because of that output to stderr, we re-run it and save stderr to its own file)
 #	$ ./cisco2john.pl cisco.conf >cisco.in 2>cisco.seed
 #
 #	$ cat cisco.in
@@ -20,20 +24,20 @@
 #	$ ./john -wo:cisco.seed -rules cisco.in
 #
 # Credits:
-#
 # magnum : Change cisco2john.pl so it reads a Cisco config file and outputs
 # any clear-text or deobfuscated passwords, and outputs hashes in JtR format.
 #
+# cisco_decrypt based on same function from Crypt::Cisco, Copyright (C) Michael Vincent 2010, 2017
+# This software is released under the same terms as Perl itself (https://dev.perl.org/licenses/):
+# This is free software; you can redistribute it and/or modify it under the terms of either:
+# a) the GNU General Public License as published by the Free Software Foundation; either version 1,
+#    or (at your option) any later version, or
+# b) the Perl "Artistic License".
+#
 # Base64 custom decoder taken from VOMS::Lite::Base64
-# This module was originally designed for the JISC funded SARoNGS project at developed at
-#
-# The University of Manchester.
-# http://www.rcs.manchester.ac.uk/projects/sarongs/
-#
-# Mike Jones <mike.jones@manchester.ac.uk>
-#
-# Copyright (C) 2010 by Mike Jones
-#
+# This module was originally designed for the JISC funded SARoNGS project developed at
+# The University of Manchester.  http://www.rcs.manchester.ac.uk/projects/sarongs/
+# Copyright (C) 2010 by Mike Jones <mike.jones@manchester.ac.uk>
 # This library is free software; you can redistribute it and/or modify
 # it under the same terms as Perl itself, either Perl version 5.8.3 or,
 # at your option, any later version of Perl 5 you may have available.
@@ -62,12 +66,12 @@ sub Decode {
 	my $type;
 	if ( defined $str && ! defined $Alphabets{$str} ) { $type = 'USER'; }
 	elsif ( defined $str && defined $Alphabets{$str} ) { $type = $str; }
-	#Try to guess
+	# Try to guess
 	elsif ( $data =~ /[\.\/]/s && $data !~ /[+\/_-]/ ) { $type = 'CISCO'; }
 	else { $type = 'CISCO'; } # Assume Standard Base64 if
 	if ( $type eq "USER" ) { $Alphabets{'USER'} = $str; }
 
-	#strip non-base64 chars
+	# strip non-base64 chars
 	my $estr;
 	if ( $Alphabets{$type} =~ /^(.{64})(.?)$/s ) { $str=$1; $estr=quotemeta($1); $pad=$2; } else { return undef; }
 	$data =~ s/[^$estr]//gs;
@@ -75,9 +79,9 @@ sub Decode {
 	# Force Padding
 	$data .= $pad x (3-(((length($data)+3) % 4)));
 	$data=~s|(.)(.)(.?)(.?)|
-	  chr(((index($str,$1)<<2)&252)+((index($str,$2)>>4)&3)).	#{six bits from first with two bits from the second
-	  (($3 ne $pad)?chr(((index($str,$2)<<4)&240)+((index($str,$3)>>2)&15)):"").	#{last 4 bits from second with four bits from third unless third is pad
-	  (($4 ne $pad)?chr(((index($str,$3)<<6)&192)+((index($str,$4))&63)):"")	#{last 2 bits from third with six bits from the forth unless forth is pad
+	  chr(((index($str,$1)<<2)&252)+((index($str,$2)>>4)&3)).	# six bits from first with two bits from the second
+	  (($3 ne $pad)?chr(((index($str,$2)<<4)&240)+((index($str,$3)>>2)&15)):"").	# last 4 bits from second with four bits from third unless third is pad
+	  (($4 ne $pad)?chr(((index($str,$3)<<6)&192)+((index($str,$4))&63)):"")	# last 2 bits from third with six bits from the fourth unless fourth is pad
 	  |ge;
 	return $data;
 }
@@ -89,12 +93,6 @@ sub unique {
 }
 
 sub cisco_decrypt {
-	##################################################
-	# Nicked late 2021 from CPAN, Crypt::Cisco
-	# Copyright (C) Michael Vincent 2010, 2017
-	# www.VinsWorld.com
-	##################################################
-
 	# Cisco's XOR key
 	my @xlat = (
 				0x64, 0x73, 0x66, 0x64, 0x3B, 0x6B, 0x66, 0x6F, 0x41, 0x2C, 0x2E, 0x69,
@@ -132,7 +130,7 @@ sub notice {
 	}
 }
 
-if ($ARGV[0] =~ /-h/) { usage() }
+if (!defined($ARGV[0]) or $ARGV[0] =~ /^-h/) { usage() }
 
 my $ssid = "";
 while (<>) {
