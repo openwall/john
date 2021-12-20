@@ -278,7 +278,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	release_clobj();
 	create_clobj(global_work_size, self);
 
-	if (!homogenous || john_main_process)
+	if (!self_test_running && (!homogenous || john_main_process))
 		log_event("- OpenCL LWS: "Zu"%s, GWS: "Zu" %s("Zu" blocks)",
 		          local_work_size,
 		          (need_best_lws && !needed_best_gws) ? " (auto-tuned)" : "",
