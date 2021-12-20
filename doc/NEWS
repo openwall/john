@@ -245,6 +245,7 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Revised regex mode's support for librexgen, to version >= 2.1.5  [Jan Starke,
   magnum; 2021]
 
+- Added support for ENCDataVault and encdatavault2john.py script [sylvainpelissier; 2021]
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
