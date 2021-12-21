@@ -31,7 +31,6 @@ john_register_one(&fmt_opencl_tezos);
 #include "options.h"
 #include "opencl_common.h"
 #include "tezos_common.h"
-#include "blake2.h"
 #include "johnswap.h"
 #include "pbkdf2_hmac_common.h"
 
@@ -86,15 +85,15 @@ typedef struct {
 } tezos_salt_t;
 
 typedef struct {
-	unsigned char pk[32];
-} tezos_pk_t;
+	unsigned char pkh[20];
+} tezos_pkh_t;
 
 static int *cracked;
 static int any_cracked, cracked_size;
 static pass_t *host_pass;  /** plain ciphertexts **/
 static tezos_salt_t *host_salt;  /** salt **/
-static tezos_pk_t *host_pk;
-static cl_mem mem_in, mem_out, mem_salt, mem_state, mem_pk;
+static tezos_pkh_t *host_pkh;
+static cl_mem mem_in, mem_out, mem_salt, mem_state, mem_pkh;
 static cl_kernel split_kernel, final_kernel;
 static cl_int cl_error;
 static int new_keys;
@@ -131,7 +130,7 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 
 	host_pass = mem_calloc(kpc, sizeof(pass_t));
 	host_salt = mem_calloc(1, sizeof(tezos_salt_t));
-	host_pk = mem_calloc(kpc, sizeof(tezos_pk_t));
+	host_pkh = mem_calloc(kpc, sizeof(tezos_pkh_t));
 	cracked_size = sizeof(*cracked) * kpc;
 	cracked = mem_calloc(1, cracked_size);
 #define CL_RO CL_MEM_READ_ONLY
@@ -153,7 +152,7 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 			"Cannot allocate mem out");
 	mem_state = CLCREATEBUFFER(CL_RW, kpc * sizeof(state_t),
 			"Cannot allocate mem state");
-	mem_pk = CLCREATEBUFFER(CL_WO, kpc * sizeof(tezos_pk_t),
+	mem_pkh = CLCREATEBUFFER(CL_WO, kpc * sizeof(tezos_pkh_t),
 			"Cannot allocate mem pk");
 
 	CLKERNELARG(crypt_kernel, 0, mem_in, "Error while setting mem_in");
@@ -164,7 +163,7 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	CLKERNELARG(split_kernel, 1, mem_out, "Error while setting mem_out");
 
 	CLKERNELARG(final_kernel, 0, mem_out, "Error while setting mem_out");
-	CLKERNELARG(final_kernel, 1, mem_pk, "Error while setting mem_pk");
+	CLKERNELARG(final_kernel, 1, mem_pkh, "Error while setting mem_pkh");
 }
 
 static void init(struct fmt_main *_self)
@@ -211,13 +210,13 @@ static void release_clobj(void)
 	if (host_pass) {
 		MEM_FREE(host_pass);
 		MEM_FREE(host_salt);
-		MEM_FREE(host_pk);
+		MEM_FREE(host_pkh);
 
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
-		HANDLE_CLERROR(clReleaseMemObject(mem_pk), "Release mem pk");
+		HANDLE_CLERROR(clReleaseMemObject(mem_pkh), "Release mem pkh");
 	}
 }
 
@@ -339,8 +338,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	// Read the result back
 	WAIT_INIT(gws)
 	WAIT_SLEEP
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_pk, CL_TRUE, 0,
-				gws * sizeof(tezos_pk_t), host_pk,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_pkh, CL_TRUE, 0,
+				gws * sizeof(tezos_pkh_t), host_pkh,
 				0, NULL, multi_profilingEvent[4]), "Copy result back");
 	WAIT_UPDATE
 	WAIT_DONE
@@ -350,9 +349,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 		for (index = 0; index < count; index++) {
-			unsigned char buffer[20];
-			blake2b((uint8_t *)buffer, host_pk[index].pk, NULL, 20, 32, 0);
-			if (!memcmp(cur_salt->raw_address + 2, buffer, 20)) {
+			if (!memcmp(cur_salt->raw_address + 2, host_pkh[index].pkh, 20)) {
 				cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic

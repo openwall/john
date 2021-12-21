@@ -16,8 +16,8 @@ typedef struct {
 } tezos_salt_t;
 
 typedef struct {
-	uchar pk[32];
-} tezos_pk_t;
+	uchar pkh[20];
+} tezos_pkh_t;
 
 inline void _tezos_preproc_(const ulong *key, uint keylen,
                             ulong *state, ulong mask)
@@ -191,8 +191,10 @@ __kernel void pbkdf2_sha512_tezos_init(__global const pass_t *inbuffer,
 }
 
 #include "ed25519-donna/ed25519-donna.c"
+#define ROTR64 ror64 /* Reuse our SHA-512's optimized macro */
+#include "blake2_mjosref/blake2b.c"
 
-__kernel void pbkdf2_sha512_tezos_final(__global const crack_t *in, __global tezos_pk_t *out)
+__kernel void pbkdf2_sha512_tezos_final(__global const crack_t *in, __global tezos_pkh_t *out)
 {
 	union {
 		uchar uc[32];
@@ -204,5 +206,6 @@ __kernel void pbkdf2_sha512_tezos_final(__global const crack_t *in, __global tez
 	for (int i = 0; i < 4; i++)
 		sk.u64[i] = SWAP64(sk.u64[i]);
 	ed25519_publickey(sk.uc, pk);
-	memcpy_pg(out[idx].pk, pk, sizeof(out[idx].pk));
+	blake2b(pk, 20, NULL, 0, pk, sizeof(pk)); /* Replace pk with pkh */
+	memcpy_pg(out[idx].pkh, pk, sizeof(out[idx].pkh));
 }
