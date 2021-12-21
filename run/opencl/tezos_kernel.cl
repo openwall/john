@@ -190,7 +190,6 @@ __kernel void pbkdf2_sha512_tezos_init(__global const pass_t *inbuffer,
 	}
 }
 
-#undef z /* was defined by opencl_sha2.h and used in SHA256_ZEROS, but conflicts with the below */
 #include "ed25519-donna/ed25519-donna.c"
 
 __kernel void pbkdf2_sha512_tezos_final(__global const crack_t *in, __global tezos_pk_t *out)

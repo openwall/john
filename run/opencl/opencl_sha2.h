@@ -259,7 +259,6 @@ __constant uint k[] = {
 	ROUND_A(B,C,D,E,F,G,H,A,k[15],W[15]); \
 	SHA256_16to63(A,B,C,D,E,F,G,H,W)
 
-#define Z (0)
 //W[9]-W[14] are zeros
 #define SHA256_ZEROS(A,B,C,D,E,F,G,H,W)	  \
 	ROUND_A(A,B,C,D,E,F,G,H,k[0],W[0]); \
@@ -278,21 +277,21 @@ __constant uint k[] = {
 	ROUND_Z(D,E,F,G,H,A,B,C,k[13]); \
 	ROUND_Z(C,D,E,F,G,H,A,B,k[14]); \
 	ROUND_A(B,C,D,E,F,G,H,A,k[15],W[15]); \
-	ROUND_I(A,B,C,D,E,F,G,H,k[16],W[0],  Z,W[1],W[0],Z) \
-	ROUND_J(H,A,B,C,D,E,F,G,k[17],W[1],  W[15],W[2],W[1],Z) \
-	ROUND_J(G,H,A,B,C,D,E,F,k[18],W[2],  W[0],W[3],W[2],Z) \
-	ROUND_J(F,G,H,A,B,C,D,E,k[19],W[3],  W[1],W[4],W[3],Z) \
-	ROUND_J(E,F,G,H,A,B,C,D,k[20],W[4],  W[2],W[5],W[4],Z) \
-	ROUND_J(D,E,F,G,H,A,B,C,k[21],W[5],  W[3],W[6],W[5],Z) \
+	ROUND_I(A,B,C,D,E,F,G,H,k[16],W[0],  0,W[1],W[0],0) \
+	ROUND_J(H,A,B,C,D,E,F,G,k[17],W[1],  W[15],W[2],W[1],0) \
+	ROUND_J(G,H,A,B,C,D,E,F,k[18],W[2],  W[0],W[3],W[2],0) \
+	ROUND_J(F,G,H,A,B,C,D,E,k[19],W[3],  W[1],W[4],W[3],0) \
+	ROUND_J(E,F,G,H,A,B,C,D,k[20],W[4],  W[2],W[5],W[4],0) \
+	ROUND_J(D,E,F,G,H,A,B,C,k[21],W[5],  W[3],W[6],W[5],0) \
 	ROUND_B(C,D,E,F,G,H,A,B,k[22],W[6],  W[4],W[7],W[6],W[15]) \
 	ROUND_B(B,C,D,E,F,G,H,A,k[23],W[7],  W[5],W[8],W[7],W[0]) \
-	ROUND_K(A,B,C,D,E,F,G,H,k[24],W[8],  W[6],Z,W[8],W[1]) \
-	ROUND_L(H,A,B,C,D,E,F,G,k[25],W[9],  W[7],Z,Z,W[2]) \
-	ROUND_L(G,H,A,B,C,D,E,F,k[26],W[10],  W[8],Z,Z,W[3]) \
-	ROUND_L(F,G,H,A,B,C,D,E,k[27],W[11],  W[9],Z,Z,W[4]) \
-	ROUND_L(E,F,G,H,A,B,C,D,k[28],W[12],  W[10],Z,Z,W[5]) \
-	ROUND_L(D,E,F,G,H,A,B,C,k[29],W[13],  W[11],Z,Z,W[6]) \
-	ROUND_M(C,D,E,F,G,H,A,B,k[30],W[14],  W[12],W[15],Z,W[7]) \
+	ROUND_K(A,B,C,D,E,F,G,H,k[24],W[8],  W[6],0,W[8],W[1]) \
+	ROUND_L(H,A,B,C,D,E,F,G,k[25],W[9],  W[7],0,0,W[2]) \
+	ROUND_L(G,H,A,B,C,D,E,F,k[26],W[10],  W[8],0,0,W[3]) \
+	ROUND_L(F,G,H,A,B,C,D,E,k[27],W[11],  W[9],0,0,W[4]) \
+	ROUND_L(E,F,G,H,A,B,C,D,k[28],W[12],  W[10],0,0,W[5]) \
+	ROUND_L(D,E,F,G,H,A,B,C,k[29],W[13],  W[11],0,0,W[6]) \
+	ROUND_M(C,D,E,F,G,H,A,B,k[30],W[14],  W[12],W[15],0,W[7]) \
 	ROUND_B(B,C,D,E,F,G,H,A,k[31],W[15],  W[13],W[0],W[15],W[8]) \
 	SHA256_32to63(A,B,C,D,E,F,G,H,W)
 
@@ -624,7 +623,6 @@ __constant ulong K[] = {
 	ROUND512_A(B,C,D,E,F,G,H,A,K[15],W[15]) \
 	SHA512_16to79(A,B,C,D,E,F,G,H,W)
 
-#define z 0UL
 //W[9]-W[14] are zeros
 #define SHA512_ZEROS(A, B, C, D, E, F, G, H, W)	  \
 	ROUND512_A(A,B,C,D,E,F,G,H,K[0],W[0]) \
@@ -643,21 +641,21 @@ __constant ulong K[] = {
 	ROUND512_Z(D,E,F,G,H,A,B,C,K[13]) \
 	ROUND512_Z(C,D,E,F,G,H,A,B,K[14]) \
 	ROUND512_A(B,C,D,E,F,G,H,A,K[15],W[15]) \
-	ROUND512_B(A,B,C,D,E,F,G,H,K[16],W[0],  z,W[1],W[0],z) \
-	ROUND512_B(H,A,B,C,D,E,F,G,K[17],W[1],  W[15],W[2],W[1],z) \
-	ROUND512_B(G,H,A,B,C,D,E,F,K[18],W[2],  W[0],W[3],W[2],z) \
-	ROUND512_B(F,G,H,A,B,C,D,E,K[19],W[3],  W[1],W[4],W[3],z) \
-	ROUND512_B(E,F,G,H,A,B,C,D,K[20],W[4],  W[2],W[5],W[4],z) \
-	ROUND512_B(D,E,F,G,H,A,B,C,K[21],W[5],  W[3],W[6],W[5],z) \
+	ROUND512_B(A,B,C,D,E,F,G,H,K[16],W[0],  0UL,W[1],W[0],0UL) \
+	ROUND512_B(H,A,B,C,D,E,F,G,K[17],W[1],  W[15],W[2],W[1],0UL) \
+	ROUND512_B(G,H,A,B,C,D,E,F,K[18],W[2],  W[0],W[3],W[2],0UL) \
+	ROUND512_B(F,G,H,A,B,C,D,E,K[19],W[3],  W[1],W[4],W[3],0UL) \
+	ROUND512_B(E,F,G,H,A,B,C,D,K[20],W[4],  W[2],W[5],W[4],0UL) \
+	ROUND512_B(D,E,F,G,H,A,B,C,K[21],W[5],  W[3],W[6],W[5],0UL) \
 	ROUND512_B(C,D,E,F,G,H,A,B,K[22],W[6],  W[4],W[7],W[6],W[15]) \
 	ROUND512_B(B,C,D,E,F,G,H,A,K[23],W[7],  W[5],W[8],W[7],W[0]) \
-	ROUND512_B(A,B,C,D,E,F,G,H,K[24],W[8],  W[6],z,W[8],W[1]) \
-	ROUND512_B(H,A,B,C,D,E,F,G,K[25],W[9],  W[7],z,z,W[2]) \
-	ROUND512_B(G,H,A,B,C,D,E,F,K[26],W[10],  W[8],z,z,W[3]) \
-	ROUND512_B(F,G,H,A,B,C,D,E,K[27],W[11],  W[9],z,z,W[4]) \
-	ROUND512_B(E,F,G,H,A,B,C,D,K[28],W[12],  W[10],z,z,W[5]) \
-	ROUND512_B(D,E,F,G,H,A,B,C,K[29],W[13],  W[11],z,z,W[6]) \
-	ROUND512_B(C,D,E,F,G,H,A,B,K[30],W[14],  W[12],W[15],z,W[7]) \
+	ROUND512_B(A,B,C,D,E,F,G,H,K[24],W[8],  W[6],0UL,W[8],W[1]) \
+	ROUND512_B(H,A,B,C,D,E,F,G,K[25],W[9],  W[7],0UL,0UL,W[2]) \
+	ROUND512_B(G,H,A,B,C,D,E,F,K[26],W[10],  W[8],0UL,0UL,W[3]) \
+	ROUND512_B(F,G,H,A,B,C,D,E,K[27],W[11],  W[9],0UL,0UL,W[4]) \
+	ROUND512_B(E,F,G,H,A,B,C,D,K[28],W[12],  W[10],0UL,0UL,W[5]) \
+	ROUND512_B(D,E,F,G,H,A,B,C,K[29],W[13],  W[11],0UL,0UL,W[6]) \
+	ROUND512_B(C,D,E,F,G,H,A,B,K[30],W[14],  W[12],W[15],0UL,W[7]) \
 	ROUND512_B(B,C,D,E,F,G,H,A,K[31],W[15],  W[13],W[0],W[15],W[8]) \
 	SHA512_32to79(A,B,C,D,E,F,G,H,W)
 
