@@ -324,7 +324,7 @@ curve25519_square(bignum25519 out, const bignum25519 in) {
 static void
 curve25519_mul_const(bignum25519 out, const bignum25519 a, __constant uint32_t *b) {
 	bignum25519 bpvt;
-	memcpy_cp(bpvt, b, sizeof(bpvt));
+	memcpy_macro(bpvt, b, sizeof(bpvt) / sizeof(bpvt[0]));
 	curve25519_mul(out, a, bpvt);
 }
 

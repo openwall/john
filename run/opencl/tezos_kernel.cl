@@ -201,7 +201,7 @@ __kernel void pbkdf2_sha512_tezos_final(__global const crack_t *in, __global tez
 	} sk;
 	ed25519_public_key pk;
 	uint idx = get_global_id(0);
-	memcpy_gp(&sk, in[idx].hash, sizeof(sk));
+	memcpy_macro(sk.u64, in[idx].hash, 4);
 	for (int i = 0; i < 4; i++)
 		sk.u64[i] = SWAP64(sk.u64[i]);
 	ed25519_publickey(sk.uc, pk);
