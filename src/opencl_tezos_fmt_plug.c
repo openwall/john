@@ -21,9 +21,6 @@ john_register_one(&fmt_opencl_tezos);
 
 #include <stdint.h>
 #include <string.h>
-#ifdef _OPENMP
-#include <omp.h>
-#endif
 
 #include "misc.h"
 #include "common.h"
@@ -345,16 +342,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	WAIT_DONE
 
 	if (!ocl_autotune_running) {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
 		for (index = 0; index < count; index++) {
 			if (!memcmp(cur_salt->raw_address + 2, host_pkh[index].pkh, 20)) {
 				cracked[index] = 1;
-#ifdef _OPENMP
-#pragma omp atomic
-#endif
-				any_cracked |= 1;
+				any_cracked = 1;
 			}
 		}
 	}
@@ -412,7 +403,7 @@ struct fmt_main fmt_opencl_tezos = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_HUGE_INPUT,
 		{ NULL },
 		{ FORMAT_TAG },
 		tezos_tests
