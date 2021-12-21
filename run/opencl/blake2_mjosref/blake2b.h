@@ -4,9 +4,6 @@
 #ifndef BLAKE2B_H
 #define BLAKE2B_H
 
-#include <stdint.h>
-#include <stddef.h>
-
 // state context
 typedef struct {
     uint8_t b[128];                     // input buffer
