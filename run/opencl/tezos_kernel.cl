@@ -192,6 +192,7 @@ __kernel void pbkdf2_sha512_tezos_init(__global const pass_t *inbuffer,
 
 #include "ed25519-donna/ed25519-donna.c"
 #define ROTR64 ror64 /* Reuse our SHA-512's optimized macro */
+#define B2B_ONE_BLOCK_ONLY
 #include "blake2_mjosref/blake2b.c"
 
 __kernel void pbkdf2_sha512_tezos_final(__global const crack_t *in, __global tezos_pkh_t *out)

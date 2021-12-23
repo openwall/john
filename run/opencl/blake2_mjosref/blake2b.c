@@ -112,6 +112,7 @@ int blake2b_init(blake2b_ctx *ctx, size_t outlen,
     ctx->c = 0;                         // pointer within buffer
     ctx->outlen = outlen;
 
+#pragma unroll 1 // reduces register usage in pbkdf2_sha512_tezos_final on NVIDIA Pascal with driver 418.39
     for (i = keylen; i < 128; i++)      // zero input block
         ctx->b[i] = 0;
     if (keylen > 0) {
@@ -130,6 +131,7 @@ void blake2b_update(blake2b_ctx *ctx,
     size_t i;
 
     for (i = 0; i < inlen; i++) {
+#ifndef B2B_ONE_BLOCK_ONLY
         if (ctx->c == 128) {            // buffer full ?
             ctx->t[0] += ctx->c;        // add counters
             if (ctx->t[0] < ctx->c)     // carry overflow ?
@@ -137,6 +139,7 @@ void blake2b_update(blake2b_ctx *ctx,
             blake2b_compress(ctx, 0);   // compress (not last)
             ctx->c = 0;                 // counter to zero
         }
+#endif
         ctx->b[ctx->c++] = ((const uint8_t *) in)[i];
     }
 }
@@ -149,8 +152,10 @@ void blake2b_final(blake2b_ctx *ctx, void *out)
     size_t i;
 
     ctx->t[0] += ctx->c;                // mark last block offset
+#ifndef B2B_ONE_BLOCK_ONLY
     if (ctx->t[0] < ctx->c)             // carry overflow
         ctx->t[1]++;                    // high word
+#endif
 
     while (ctx->c < 128)                // fill up with zeros
         ctx->b[ctx->c++] = 0;
