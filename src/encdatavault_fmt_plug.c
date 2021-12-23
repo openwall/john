@@ -181,7 +181,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strcmp(p, "1") && strcmp(p, "3")) {
 		static int warned;
-		if (!warned++)
+		if (!self_test_running && !warned++)
 			fprintf(stderr, "%s: Warning: version %d not supported, not loading such hashes!\n", self->params.label, atoi(p));
 		goto err;
 	}
