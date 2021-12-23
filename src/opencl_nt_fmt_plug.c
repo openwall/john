@@ -556,7 +556,7 @@ static void reset(struct db_main *db)
 {
 	static int last_int_cand;
 
-	if (!crypt_kernel || last_int_cand != mask_int_cand.num_int_cand) {
+	if (!crypt_kernel || last_int_cand != mask_int_cand.num_int_cand || num_loaded_hashes != db->salts->count) {
 		release_base_clobj();
 		release_clobj();
 
