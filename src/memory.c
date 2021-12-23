@@ -18,6 +18,10 @@
 #include <malloc.h>
 #endif
 
+#if defined(WITH_ASAN) && !defined(DEBUG)
+#define DEBUG
+#endif
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
