@@ -1669,7 +1669,6 @@ static void john_run(void)
 		options.loader.flags |= DB_WORDS;
 		list_init(&single_seed); /* Required for DB_WORDS */
 
-		ldr_init_database(&database, &options.loader);
 		exit_status = fuzz(&database);
 	}
 #endif

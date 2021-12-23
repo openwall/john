@@ -32,6 +32,7 @@
 #include "misc.h"	// error()
 #include "config.h"
 #include "john.h"
+#include "options.h"
 #include "params.h"
 #include "signals.h"
 #include "unicode.h"
@@ -575,13 +576,13 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 	current = format->params.tests;
 
 	init_status(format->params.label);
+	ldr_init_database(db, &options.loader); /* Leaks memory on second call and on */
 	db->format = format;
 
 	while (1) {
 		ret = get_next_fuzz_case(format->params.label, current->ciphertext);
 		save_index(index++);
 		line = fuzz_hash;
-		db->format = format;
 		ldr_load_pw_line(db, line);
 
 		if (!ret) {
