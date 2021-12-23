@@ -33,6 +33,8 @@ john_register_one(&fmt_DPAPImk);
 #include <omp.h>
 #endif
 
+#include <assert.h>
+
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
@@ -166,6 +168,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)    /* SID */
 		goto err;
+	{
+		UTF16 SID[MAX_SID_LEN + 1]; /* assumes MAX_SID_LEN is 2x+ larger than PLAINTEXT_LENGTH */
+		if (enc_to_utf16(SID, PLAINTEXT_LENGTH, (UTF8 *) p, strlen(p)) < 0)
+			goto err;
+	}
 	if ((p = strtokm(NULL, "*")) == NULL)    /* cipher algorithm */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)    /* hash algorithm */
@@ -203,9 +210,8 @@ static void *get_salt(char *ciphertext)
 	char *ctcopy = strdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
-	int i, SID_size;
+	int i;
 	static struct custom_salt cs;
-	static char *ptrSID;
 
 	memset(&cs, 0, sizeof(cs));
 	ctcopy += FORMAT_TAG_LEN;     /* skip over "$DPAPImk$" */
@@ -216,15 +222,7 @@ static void *get_salt(char *ciphertext)
 	cs.cred_type = atoi(p);       /* credential type */
 
 	p = strtokm(NULL, "*");       /* SID */
-	ptrSID = (char *)malloc(strlen(p) + 1);
-	memcpy(ptrSID, p, strlen(p));
-	ptrSID[strlen(p)] = '\0';
-	SID_size = enc_to_utf16(cs.SID, PLAINTEXT_LENGTH, (UTF8 *) ptrSID, strlen(ptrSID) + 1);
-	free(ptrSID);
-
-	if (SID_size < 0){
-		error_msg("SID_size < 0 !");
-	}
+	assert(enc_to_utf16(cs.SID, PLAINTEXT_LENGTH, (UTF8 *) p, strlen(p)) >= 0); /* already checked in valid() */
 
 	p = strtokm(NULL, "*"); /* cipher algorithm */
 
