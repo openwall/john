@@ -257,12 +257,12 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(NULL, "$");
 	cs.salt_size = atoi(p);
 	p = strtokm(NULL, "$");
-	for (i = 0; i < cs.salt_size; i++)
+	for (i = 0; i < cs.salt_size && p[2*i]; i++)
 		cs.salt[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 	p = strtokm(NULL, "$");
 	cs.active_slots = atoi(p);
 	p = strtokm(NULL, "$");
-	for (i = 0; i < cs.active_slots * kKeySlotSize; i++)
+	for (i = 0; i < cs.active_slots * kKeySlotSize && p[2*i]; i++)
 		cs.key[i] = (atoi16[ARCH_INDEX(p[2*i])] << 4) | atoi16[ARCH_INDEX(p[2*i+1])];
 
 	MEM_FREE(keeptr);
