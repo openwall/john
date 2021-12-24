@@ -8,6 +8,9 @@
  * modification, are permitted.
  *
  * Based on opencl_pbkdf2_hmac_sha512_fmt_plug.c file.
+ *
+ * Update to implement and use on-device ed25519_publickey() and BLAKE2b for
+ * great speedup was funded by the Tezos Foundation.
  */
 
 #include "arch.h"

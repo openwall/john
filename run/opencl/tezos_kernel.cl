@@ -1,10 +1,14 @@
 /*
- * This software is Copyright (c) 2018 Dhiru Kholia
+ * This software is
+ * Copyright (c) 2018 Dhiru Kholia
  * Copyright (c) 2019-2020 magnum
  * Copyright (c) 2021 Solar Designer
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
+ *
+ * Update to implement and use on-device ed25519_publickey() and BLAKE2b for
+ * great speedup was funded by the Tezos Foundation.
  */
 
 #include "pbkdf2_hmac_sha512_kernel.cl"
