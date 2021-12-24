@@ -17,11 +17,8 @@ typedef struct {
 	salt_t pbkdf2;
 	uint mnemonic_length;
 	uchar mnemonic[128];
-} tezos_salt_t;
-
-typedef struct {
 	uchar pkh[20];
-} tezos_pkh_t;
+} tezos_salt_t;
 
 inline void _tezos_preproc_(const ulong *key, uint keylen,
                             ulong *state, ulong mask)
@@ -199,7 +196,7 @@ __kernel void pbkdf2_sha512_tezos_init(__global const pass_t *inbuffer,
 #define B2B_ONE_BLOCK_ONLY
 #include "blake2_mjosref/blake2b.c"
 
-__kernel void pbkdf2_sha512_tezos_final(__global const crack_t *in, __global tezos_pkh_t *out)
+__kernel void pbkdf2_sha512_tezos_final(__global const crack_t *in, __constant tezos_salt_t *gsalt, volatile __global uint *out)
 {
 	union {
 		uchar uc[32];
@@ -212,5 +209,8 @@ __kernel void pbkdf2_sha512_tezos_final(__global const crack_t *in, __global tez
 		sk.u64[i] = SWAP64(sk.u64[i]);
 	ed25519_publickey(sk.uc, pk);
 	blake2b(pk, 20, NULL, 0, pk, sizeof(pk)); /* Replace pk with pkh */
-	memcpy_pg(out[idx].pkh, pk, sizeof(out[idx].pkh));
+	if (!memcmp_pc(pk, gsalt->pkh, 20)) {
+		atomic_inc(out);
+		out[idx + 1] = 0x486954;
+	}
 }
