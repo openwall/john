@@ -6,4 +6,5 @@ come from a previously #include'ed file before a #include of ed25519-donna.c.
 The filenames of original ed25519-donna have been preserved to allow for easy
 "diff -ur" against the original.
 
-The code stays in the public domain.
+The porting to OpenCL was funded by the Tezos Foundation, and the code stays in
+the public domain.
