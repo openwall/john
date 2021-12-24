@@ -14,7 +14,7 @@
 #include "common.h"
 #include "opencl_DES_bs.h"
 #include "../run/opencl/opencl_DES_hst_dev_shared.h"
-#include "unicode.h"
+#include "options.h"
 #include "bt_interface.h"
 #include "mask_ext.h"
 #include "logger.h"

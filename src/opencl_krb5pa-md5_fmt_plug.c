@@ -628,6 +628,10 @@ static char *get_key(int index)
 				mask_int_cand.int_cand[int_index].x[i];
 	}
 
+	/* Ensure truncation due to over-length or invalid UTF-8 is made like in GPU code. */
+	if (options.target_enc == UTF_8)
+		truncate_utf8((UTF8*)out, PLAINTEXT_LENGTH);
+
 	return out;
 }
 
