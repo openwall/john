@@ -26,7 +26,6 @@ john_register_one(&fmt_opencl_axcrypt2);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "unicode.h"
 #include "opencl_common.h"
 #include "axcrypt_common.h"
 #define VERSION_2_SUPPORT 1

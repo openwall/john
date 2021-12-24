@@ -186,6 +186,10 @@ static void set_key(char *key, int index) {
 }
 
 static  char *get_key(int index) {
+	/* Ensure truncation due to over-length or invalid UTF-8 is made like in GPU code. */
+	if (options.target_enc == UTF_8)
+		truncate_utf8((UTF8*)key_host[index], MAX_PLAINTEXT_LENGTH);
+
 	return (char *)key_host[index] ;
 }
 
