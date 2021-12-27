@@ -25,6 +25,7 @@ static unsigned char *saved_salt;
 static unsigned char *saved_key;
 static int (*cracked);
 static unpack_data_t (*unpack_data);
+static int new_keys;
 
 static unsigned int *saved_len;
 #ifndef RAR_OPENCL_FORMAT
@@ -167,6 +168,8 @@ static void set_key(char *key, int index)
 	memcpy(&saved_key[UNICODE_LENGTH * index], buf, UNICODE_LENGTH);
 
 	saved_len[index] = plen << 1;
+
+	new_keys = 1;
 }
 
 static void *get_binary(char *ciphertext)

@@ -83,6 +83,7 @@ typedef struct {
 } out_t;
 
 static struct custom_salt *cur_salt;
+static int new_keys;
 
 /* Original password */
 static char (*orig_key)[PLAINTEXT_LENGTH + 1];
@@ -291,10 +292,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-				gws * sizeof(pass_t), host_pass,
-				0, NULL, multi_profilingEvent[0]),
-				"Copy data to gpu");
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			gws * sizeof(pass_t), host_pass,
+			0, NULL, multi_profilingEvent[0]),
+			"Copy data to gpu");
+
+		new_keys = 0;
+	}
 
 	// Run standard PBKDF2 kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
@@ -355,6 +360,8 @@ static void set_key(char *key, int index)
 	if (len < 0)
 		len = strlen16((UTF16 *)host_pass[index].v);
 	host_pass[index].length = len << 1;
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)
