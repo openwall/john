@@ -34,7 +34,7 @@ static WORD current_salt;
 
 static cl_kernel keys_kernel;
 static cl_mem buffer_raw_keys, buffer_int_des_keys, buffer_int_key_loc;
-static int keys_changed = 1;
+static int new_keys = 1;
 static des_combined *des_all;
 static opencl_DES_bs_transfer *des_raw_keys;
 static unsigned int *des_int_key_loc;
@@ -964,7 +964,7 @@ void opencl_DES_bs_set_key(char *key, int index)
 	key_index = index & (DES_BS_DEPTH - 1);
 	dst = des_all[sector].pxkeys[key_index];
 
-	keys_changed = 1;
+	new_keys = 1;
 
 	dst[0] = 				(!flag) ? 0 : key[0];
 	dst[sizeof(DES_bs_vector) * 8]      =	(!flag) ? 0 : key[1];
@@ -1075,7 +1075,7 @@ static void set_key_mm(char *key, int index)
 		}
 	}
 
-	keys_changed = 1;
+	new_keys = 1;
 }
 
 /* des_bs_key arrangement.
@@ -1198,7 +1198,7 @@ void process_keys(size_t current_gws, size_t *lws)
 {
 	process_key_gws = current_gws;
 
-	if (keys_changed) {
+	if (new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_DES_bs_transfer), des_raw_keys, 0, NULL, NULL ), "Failed to write buffer buffer_raw_keys.\n");
 
 		if (!mask_gpu_is_static)
@@ -1207,7 +1207,7 @@ void process_keys(size_t current_gws, size_t *lws)
 		ret_code = clEnqueueNDRangeKernel(queue[gpu_id], keys_kernel, 1, NULL, &current_gws, lws, 0, NULL, NULL);
 		HANDLE_CLERROR(ret_code, "Enqueue kernel DES_bs_finalize_keys failed.\n");
 
-		keys_changed = 0;
+		new_keys = 0;
 	}
 }
 

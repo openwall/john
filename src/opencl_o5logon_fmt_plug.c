@@ -88,6 +88,7 @@ static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_result, buffer_out;
 static cl_mem buffer_keys, buffer_idx;
 static cl_mem salt_buffer;
 static cl_uint *result;
+static int new_keys;
 static unsigned int *saved_plain, *saved_idx;
 static unsigned int key_idx;
 static struct fmt_main *self;
@@ -276,16 +277,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu"\n", __FUNCTION__, count, local_work_size, global_work_size);
-
-	if (key_idx)
+	if (new_keys && key_idx) {
 		BENCH_CLERROR(
 			clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]),
 			"failed in clEnqueueWriteBuffer buffer_keys");
 
-	BENCH_CLERROR(
-		clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]),
-		"failed in clEnqueueWriteBuffer buffer_idx");
+		BENCH_CLERROR(
+			clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]),
+			"failed in clEnqueueWriteBuffer buffer_idx");
+
+		new_keys = 0;
+	}
 
 	BENCH_CLERROR(
 		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]),
@@ -336,6 +338,8 @@ static void set_key(char *_key, int index)
 	}
 	if (len)
 		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)

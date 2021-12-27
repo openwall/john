@@ -90,6 +90,7 @@ static pfx_password *inbuffer;
 static pfx_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
 static struct fmt_main *self;
+static int new_keys;
 
 static size_t insize, outsize, settingsize;
 
@@ -225,13 +226,15 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
-static void pfx_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
 	uint32_t length = strlen(key);
 	if (length > PLAINTEXT_LENGTH)
 		length = PLAINTEXT_LENGTH;
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -256,9 +259,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
-		"Copy data to gpu");
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
+			"Copy data to gpu");
+
+		new_keys = 0;
+	}
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
@@ -336,7 +343,7 @@ struct fmt_main fmt_opencl_pfx = {
 		fmt_default_salt_hash,
 		NULL,
 		set_salt,
-		pfx_set_key,
+		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,

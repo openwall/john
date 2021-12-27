@@ -72,6 +72,7 @@ static unsigned char salt_storage[SALT_STORAGE_SIZE];
 
 static cl_mem salt_buffer, keys_buffer, idx_buffer, digest_buffer;
 
+static int new_keys;
 static unsigned int *keys;
 static uint32_t *idx;
 static uint32_t (*digest);
@@ -263,6 +264,8 @@ static void set_key(char *key, int index)
 	}
 	if (len)
 		keys[key_idx++] = *key32 & (0xffffffffU >> (32 - (len << 3)));
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -382,16 +385,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = GET_KPC_MULTIPLE(count, local_work_size);
 	scalar_gws = global_work_size * ocl_v_width;
 
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" sgws "Zu" kidx %u\n", __FUNCTION__, count, local_work_size, global_work_size, scalar_gws, key_idx);
-
-	if (key_idx)
+	if (new_keys && key_idx) {
 		BENCH_CLERROR(
 			clEnqueueWriteBuffer(queue[gpu_id], keys_buffer, CL_FALSE, 0, 4 * key_idx, keys, 0, NULL, multi_profilingEvent[0]),
 			"Error updating contents of keys_buffer");
 
-	BENCH_CLERROR(
-		clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, multi_profilingEvent[1]),
-		"Error updating contents of idx_buffer");
+		BENCH_CLERROR(
+			clEnqueueWriteBuffer(queue[gpu_id], idx_buffer, CL_FALSE, 0, 4 * scalar_gws, idx, 0, NULL, multi_profilingEvent[1]),
+			"Error updating contents of idx_buffer");
+
+		new_keys = 0;
+	}
 
 	BENCH_CLERROR(
 		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]),
