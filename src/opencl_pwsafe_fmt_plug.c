@@ -77,11 +77,15 @@ static size_t get_task_max_work_group_size()
 
 static int split_events[3] = { 2, -1, -1 };
 
-// Also acts as the hash state
 typedef struct {
-	uint8_t v[87];
 	uint32_t length;
+	uint8_t v[PLAINTEXT_LENGTH];
 } pwsafe_pass;
+
+typedef struct {
+	uint32_t v[8];
+	uint32_t iterations;
+} pwsafe_state;
 
 typedef struct {
 	uint32_t cracked;
@@ -96,9 +100,11 @@ typedef struct {
 
 #define SALT_SIZE               sizeof(pwsafe_salt)
 
-static cl_mem mem_in, mem_out, mem_salt;
+static int new_keys;
+static cl_mem mem_in, mem_out, mem_state, mem_salt;
 
 #define insize (sizeof(pwsafe_pass) * global_work_size)
+#define statesize (sizeof(pwsafe_state) * global_work_size)
 #define outsize (sizeof(pwsafe_hash) * global_work_size)
 #define saltsize (sizeof(pwsafe_salt))
 
@@ -111,6 +117,7 @@ static void release_clobj(void)
 {
 	if (host_pass) {
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
+		HANDLE_CLERROR(clReleaseMemObject(mem_state), "Release mem state");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
@@ -134,11 +141,13 @@ static void done(void)
 	}
 }
 
-static void pwsafe_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
 	int saved_len = MIN(strlen(key), PLAINTEXT_LENGTH);
 	memcpy(host_pass[index].v, key, saved_len);
 	host_pass[index].length = saved_len;
+
+	new_keys = 1;
 }
 
 static void release_clobj(void);
@@ -163,6 +172,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
 	    &ret_code);
 	HANDLE_CLERROR(ret_code, "Error while allocating memory for passwords");
+	mem_state =
+	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, statesize, NULL,
+	    &ret_code);
+	HANDLE_CLERROR(ret_code, "Error while allocating memory for state");
 	mem_out =
 	    clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, outsize, NULL,
 	    &ret_code);
@@ -170,9 +183,12 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	// Assign kernel parameters
 	clSetKernelArg(init_kernel, 0, sizeof(mem_in), &mem_in);
-	clSetKernelArg(init_kernel, 1, sizeof(mem_salt), &mem_salt);
-	clSetKernelArg(crypt_kernel, 0, sizeof(mem_in), &mem_in);
-	clSetKernelArg(finish_kernel, 0, sizeof(mem_in), &mem_in);
+	clSetKernelArg(init_kernel, 1, sizeof(mem_state), &mem_state);
+	clSetKernelArg(init_kernel, 2, sizeof(mem_salt), &mem_salt);
+
+	clSetKernelArg(crypt_kernel, 0, sizeof(mem_state), &mem_state);
+
+	clSetKernelArg(finish_kernel, 0, sizeof(mem_state), &mem_state);
 	clSetKernelArg(finish_kernel, 1, sizeof(mem_out), &mem_out);
 	clSetKernelArg(finish_kernel, 2, sizeof(mem_salt), &mem_salt);
 }
@@ -255,9 +271,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	// Copy data to GPU memory
-	BENCH_CLERROR(clEnqueueWriteBuffer
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer
 			(queue[gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
 			 multi_profilingEvent[0]), "Copy memin");
+
+		new_keys = 0;
+	}
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel
 			(queue[gpu_id], init_kernel, 1, NULL, &global_work_size, lws,
@@ -363,7 +383,7 @@ struct fmt_main fmt_opencl_pwsafe = {
 		fmt_default_salt_hash,
 		NULL,
 		set_salt,
-		pwsafe_set_key,
+		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
