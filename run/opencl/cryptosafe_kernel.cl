@@ -83,9 +83,6 @@ void cryptoSafe(__global const uchar *pwbuf,
 #define GPU_LOC_3 LOC_3
 #endif
 
-	if (gid == 0)
-		*crack_count_ret = 0;
-
 	/* Prepare password, pad to length 32 with ASCII '0's */
 	prepare(pwbuf, index, password);
 

@@ -249,9 +249,6 @@ __kernel void zip(__global const uchar *pwbuf,
 	uchar password[PLAINTEXT_LENGTH];
 	uchar pwd_ver[BLK_SZ];
 
-	if (gid == 0)
-		*crack_count_ret = 0;
-
 	/* Fetch password from packed buffer */
 	const uint len = prepare(pwbuf, buf_idx, gid, password);
 
