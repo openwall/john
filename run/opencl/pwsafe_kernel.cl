@@ -51,19 +51,24 @@
 
 
 typedef struct {
-        uint8_t v[87];
-        uint32_t length;
+	uint32_t length;
+	uint8_t v[87];
 } pwsafe_pass;
 
 typedef struct {
-        uint32_t cracked;       ///cracked or not
+	uint32_t v[8];
+	uint32_t iterations;
+} pwsafe_state;
+
+typedef struct {
+	uint32_t cracked;
 } pwsafe_hash;
 
 typedef struct {
-        int version;
-        uint32_t iterations;
-        uint8_t hash[32];
-        uint8_t salt[32];
+	int version;
+	uint32_t iterations;
+	uint8_t hash[32];
+	uint8_t salt[32];
 } pwsafe_salt;
 
 inline void sha256_transform(uint32_t *w, uint32_t *state)
@@ -161,12 +166,12 @@ inline void sha256_transform(uint32_t *w, uint32_t *state)
 	state[7] += h;
 }
 
-__kernel void pwsafe_init(__global pwsafe_pass *in,
+__kernel void pwsafe_init(__global const pwsafe_pass *in,
+                          __global pwsafe_state *state,
                           __constant pwsafe_salt *salt)
 {
 	uint32_t idx = get_global_id(0);
 	uint32_t pl = in[idx].length, i;
-	__global uint32_t *state = (__global uint32_t*)in[idx].v;
 	uint32_t w[32] = {0};
 	uint32_t tstate[8] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
 
@@ -200,34 +205,33 @@ __kernel void pwsafe_init(__global pwsafe_pass *in,
 		sha256_transform(&w[16], tstate);
 	}
 
-	state[0] = tstate[0];
-	state[1] = tstate[1];
-	state[2] = tstate[2];
-	state[3] = tstate[3];
-	state[4] = tstate[4];
-	state[5] = tstate[5];
-	state[6] = tstate[6];
-	state[7] = tstate[7];
-	in[idx].length = salt->iterations + 1;
+	state[idx].v[0] = tstate[0];
+	state[idx].v[1] = tstate[1];
+	state[idx].v[2] = tstate[2];
+	state[idx].v[3] = tstate[3];
+	state[idx].v[4] = tstate[4];
+	state[idx].v[5] = tstate[5];
+	state[idx].v[6] = tstate[6];
+	state[idx].v[7] = tstate[7];
+	state[idx].iterations = salt->iterations + 1;
 }
 
-__kernel void pwsafe_iter(__global pwsafe_pass *in)
+__kernel void pwsafe_iter(__global pwsafe_state *state)
 {
 	uint32_t idx = get_global_id(0);
-	uint32_t i = (258 > in[idx].length) ? in[idx].length : 258;
-	in[idx].length -= i;
-	__global uint32_t *state = (__global uint32_t *)in[idx].v;
+	uint32_t i = MIN(state[idx].iterations, 258);
+	state[idx].iterations -= i;
 	uint32_t a, b, c, d, e, f, g, h;
 	uint32_t w[16];
 
-	w[0] = state[0];
-	w[1] = state[1];
-	w[2] = state[2];
-	w[3] = state[3];
-	w[4] = state[4];
-	w[5] = state[5];
-	w[6] = state[6];
-	w[7] = state[7];
+	w[0] = state[idx].v[0];
+	w[1] = state[idx].v[1];
+	w[2] = state[idx].v[2];
+	w[3] = state[idx].v[3];
+	w[4] = state[idx].v[4];
+	w[5] = state[idx].v[5];
+	w[6] = state[idx].v[6];
+	w[7] = state[idx].v[7];
 
 	while (i > 0) {
 		i--;
@@ -339,23 +343,21 @@ __kernel void pwsafe_iter(__global pwsafe_pass *in)
 		w[7] = 0x5be0cd19 + h;
 	}
 
-	state[0] = w[0];
-	state[1] = w[1];
-	state[2] = w[2];
-	state[3] = w[3];
-	state[4] = w[4];
-	state[5] = w[5];
-	state[6] = w[6];
-	state[7] = w[7];
+	state[idx].v[0] = w[0];
+	state[idx].v[1] = w[1];
+	state[idx].v[2] = w[2];
+	state[idx].v[3] = w[3];
+	state[idx].v[4] = w[4];
+	state[idx].v[5] = w[5];
+	state[idx].v[6] = w[6];
+	state[idx].v[7] = w[7];
 }
 
-
-
-__kernel void pwsafe_check(__global pwsafe_pass *in, __global pwsafe_hash *out,
+__kernel void pwsafe_check(__global pwsafe_state *state, __global pwsafe_hash *out,
                            __constant pwsafe_salt *salt)
 {
 	uint32_t idx = get_global_id(0);
-	__global uint32_t *w = (__global uint32_t *)in[idx].v;
+	__global uint32_t *w = (__global uint32_t *)state[idx].v;
 	uint32_t cmp = 0;
 	__constant uint32_t *v = (__constant uint32_t *) salt->hash;
 
