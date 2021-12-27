@@ -132,6 +132,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	cl_crack_count_ret = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(cl_uint), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	crack_count_ret = 0;
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &crack_count_ret, 0, NULL, NULL), "Failed resetting crack return");
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), &cl_saved_key), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), &cl_saved_idx), "Error setting argument 1");
@@ -277,7 +279,7 @@ static char *get_key(int out_index)
 	static char out[PLAINTEXT_LENGTH + 1];
 	char *key;
 	int i, len;
-	int index = crack_count_ret ? outbuffer[out_index].in_idx : out_index; /* Self-test kludge */
+	int index = crack_count_ret ? outbuffer[out_index].in_idx : out_index; /* Self-test & status kludge */
 
 	len = saved_idx[index + 1] - saved_idx[index];
 	key = (char*)&saved_key[saved_idx[index]];
@@ -295,7 +297,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
-	if (new_keys || ocl_autotune_running) {
+	if (new_keys) {
 		if (idx_offset > 4 * (gws + 1))
 			idx_offset = 0;	/* Self-test kludge */
 
@@ -310,9 +312,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_crack_count_ret, CL_TRUE, 0, sizeof(cl_uint), &crack_count_ret, 0, NULL, NULL), "failed reading results back");
 
 	if (crack_count_ret) {
+		if (crack_count_ret > count)
+			error_msg("Corrupt return: Got a claimed %u cracks out of %d\n", crack_count_ret, count);
+
 		gws = GET_NEXT_MULTIPLE(crack_count_ret, local_work_size);
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "Failed running crypt kernel");
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(zip_hash) * crack_count_ret, outbuffer, 0, NULL, multi_profilingEvent[3]), "failed reading results back");
+
+		cl_uint zero = 0;
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &zero, 0, NULL, NULL), "Failed resetting crack return");
 	}
 
 	return crack_count_ret;
