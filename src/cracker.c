@@ -870,13 +870,12 @@ static int crk_password_loop(struct db_salt *salt)
 			last_warn_kpc = crk_key_index;
 			if (options.node_count)
 				fprintf(stderr, "%u: ", NODE);
-			fprintf(stderr, "Warning: Only %d%s candidate%s %s, "
+			fprintf(stderr, "Warning: Only %d%s candidate%s buffered%s, "
 			        "minimum %d needed for performance.\n",
 			        crk_key_index,
 			        mask_int_cand.num_int_cand > 1 ? " base" : "",
 			        crk_key_index > 1 ? "s" : "",
-			        single_running ? "buffered for the current salt" :
-			        mask_increments_len ? "buffered" : "left",
+			        single_running ? " for the current salt" : "",
 			        crk_params->min_keys_per_crypt);
 
 			if (!--kpc_warn_limit) {
