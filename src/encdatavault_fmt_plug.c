@@ -127,7 +127,9 @@ void static enc_aes_ctr_iterated(const unsigned char *in, unsigned char *out, co
 
 	AES_set_encrypt_key(key, ENC_KEY_SIZE * 8, &aes_key);
 	len >>= 4;
+#if ARCH_LITTLE_ENDIAN
 	counter <<= 56;
+#endif
 
 	for (i = 0; i < len; i++) {
 		tmp_iv.u64[0] = ivs[0].u64[0];
@@ -145,7 +147,11 @@ void static enc_aes_ctr_iterated(const unsigned char *in, unsigned char *out, co
 		memcpy(out, tmp_out.u8, AES_BLOCK_SIZE);
 
 		// Increment counter, only 255 block encryption is supported.
+#if ARCH_LITTLE_ENDIAN
 		counter += 0x0100000000000000;
+#else
+		counter++;
+#endif
 		out += AES_BLOCK_SIZE;
 		in += AES_BLOCK_SIZE;
 	}
