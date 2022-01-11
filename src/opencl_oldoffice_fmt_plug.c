@@ -7,7 +7,7 @@
  * modification, are permitted.
  */
 
-#define FORMAT_STRUCT fmt_ocl_oldoff
+#define FORMAT_STRUCT fmt_opencl_oldoff
 
 #ifdef HAVE_OPENCL
 

@@ -9,9 +9,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_1otus5;
+extern struct fmt_main fmt_opencl_lotus5;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_1otus5);
+john_register_one(&fmt_opencl_lotus5);
 #else
 
 #include <stdio.h>
@@ -272,7 +272,7 @@ static int get_hash_5(int index) { return crypt_key[index * BINARY_SIZE_IN_uint3
 static int get_hash_6(int index) { return crypt_key[index * BINARY_SIZE_IN_uint32_t] & PH_MASK_6; }
 
 /* C's version of a class specifier */
-struct fmt_main fmt_opencl_1otus5 = {
+struct fmt_main fmt_opencl_lotus5 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

@@ -8,7 +8,7 @@
  * Vault file is loaded as-is; there's no "cryptosafe2john" or such involved.
  */
 
-#define FORMAT_STRUCT fmt_ocl_cryptosafe
+#define FORMAT_STRUCT fmt_opencl_cryptosafe
 
 #ifdef HAVE_OPENCL
 
