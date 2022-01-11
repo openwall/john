@@ -16,9 +16,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_ocl_rar5;
+extern struct fmt_main fmt_opencl_rar5;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_ocl_rar5);
+john_register_one(&fmt_opencl_rar5);
 #else
 
 #include <string.h>
@@ -309,7 +309,7 @@ static int get_hash_4(int index) { return host_crack[index].hash[0] & PH_MASK_4;
 static int get_hash_5(int index) { return host_crack[index].hash[0] & PH_MASK_5; }
 static int get_hash_6(int index) { return host_crack[index].hash[0] & PH_MASK_6; }
 
-struct fmt_main fmt_ocl_rar5 = {
+struct fmt_main fmt_opencl_rar5 = {
 {
 	FORMAT_LABEL,
 	FORMAT_NAME,

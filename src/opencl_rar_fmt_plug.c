@@ -50,9 +50,9 @@
 #if ARCH_ALLOWS_UNALIGNED || __ARM_FEATURE_UNALIGNED
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_ocl_rar;
+extern struct fmt_main fmt_opencl_rar;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_ocl_rar);
+john_register_one(&fmt_opencl_rar);
 #else
 
 #include <string.h>
@@ -388,7 +388,7 @@ static int cmp_all(void *binary, int count)
 	return 0;
 }
 
-struct fmt_main fmt_ocl_rar = {
+struct fmt_main fmt_opencl_rar = {
 {
 		FORMAT_LABEL,
 		FORMAT_NAME,

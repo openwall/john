@@ -9,9 +9,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_ocl_cryptsha1;
+extern struct fmt_main fmt_opencl_cryptsha1;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_ocl_cryptsha1);
+john_register_one(&fmt_opencl_cryptsha1);
 #else
 
 #include <string.h>
@@ -377,7 +377,7 @@ static unsigned int iteration_count(void *salt)
 	return p->iterations;
 }
 
-struct fmt_main fmt_ocl_cryptsha1 = {
+struct fmt_main fmt_opencl_cryptsha1 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

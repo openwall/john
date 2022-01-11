@@ -13,9 +13,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_ocl_KeePass;
+extern struct fmt_main fmt_opencl_KeePass;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_ocl_KeePass);
+john_register_one(&fmt_opencl_KeePass);
 #else
 
 #include <string.h>
@@ -308,7 +308,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_ocl_KeePass = {
+struct fmt_main fmt_opencl_KeePass = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

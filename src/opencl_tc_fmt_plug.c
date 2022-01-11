@@ -10,7 +10,7 @@
 
 #if HAVE_OPENCL
 
-#define FMT_STRUCT fmt_ocl_tc
+#define FMT_STRUCT fmt_opencl_tc
 #if FMT_EXTERNS_H
 extern struct fmt_main FMT_STRUCT;
 #elif FMT_REGISTERS_H

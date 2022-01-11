@@ -8,9 +8,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_ocl_pbkdf2_md5;
+extern struct fmt_main fmt_opencl_pbkdf2_md5;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_ocl_pbkdf2_md5);
+john_register_one(&fmt_opencl_pbkdf2_md5);
 #else
 
 #include <stdint.h>
@@ -350,7 +350,7 @@ static unsigned int iteration_count(void *salt)
 	return ((pbkdf2_salt*)salt)->iterations;
 }
 
-struct fmt_main fmt_ocl_pbkdf2_md5 = {
+struct fmt_main fmt_opencl_pbkdf2_md5 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
