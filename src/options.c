@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2021 by Solar Designer
+ * Copyright (c) 1996-2022 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF and magnum (and various others?)
  *
@@ -257,7 +257,7 @@ static struct opt_entry opt_list[] = {
 
 #define JOHN_BANNER	  \
 "John the Ripper " JTR_GIT_VERSION _MP_VERSION DEBUG_STRING ASAN_STRING UBSAN_STRING " [" JOHN_BLD "]\n" \
-"Copyright (c) 1996-2021 by " JOHN_COPYRIGHT "\n" \
+"Copyright (c) 1996-2022 by " JOHN_COPYRIGHT "\n" \
 "Homepage: https://www.openwall.com/john/\n" \
 "\n" \
 "Usage: %s [OPTIONS] [PASSWORD-FILES]\n\n"
@@ -418,6 +418,10 @@ void opt_init(char *name, int argc, char **argv)
 			printf("Use --help to list all available options.\n");
 		}
 		exit(0);
+	} else if (argc > 10000000 && !rec_restored) {
+		if (john_main_process)
+			fprintf(stderr, "Too many command-line arguments\n");
+		error();
 	}
 
 	/*
