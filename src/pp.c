@@ -1530,7 +1530,7 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
 #ifdef HAVE_MMAP
   if (mmap_max == -1)
   {
-    mmap_max = 1 << 20;
+    mmap_max = 1 << 10;
   }
   if (options.flags & FLG_PRINCE_MMAP &&
       mmap_max && mmap_max >= (file_len >> 20))

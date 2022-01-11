@@ -578,7 +578,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			            "WordlistMemoryMapMaxSize");
 
 		if (mmap_max == -1)
-			mmap_max = 1 << 20;
+			mmap_max = 1 << 10;
 #endif
 		jtr_fseek64(word_file, 0, SEEK_END);
 		if ((file_len = jtr_ftell64(word_file)) == -1)
