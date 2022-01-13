@@ -1055,6 +1055,7 @@ REDO_AFTER_LMLOOP:
 		prerule = rpp_next(&ctx);
 
 /* A string that can't be produced by fgetl(). */
+	last = aligned.buffer[1];
 	last[0] = '\n';
 	last[1] = 0;
 
