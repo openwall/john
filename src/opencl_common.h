@@ -42,6 +42,7 @@
 #include "common.h"
 #include "formats.h"
 #include "path.h"
+#include "timer.h"
 #include "../run/opencl/opencl_device_info.h"
 
 #define MAX_PLATFORMS   8
@@ -329,6 +330,41 @@ void opencl_process_event(void);
 
 #define GET_EXACT_MULTIPLE(dividend, divisor)	  \
 	(divisor) ? ((dividend > divisor) ? ((dividend / divisor) * divisor) : divisor) : dividend
+
+#define WAIT_INIT(work_size) { \
+	static uint64_t wait_last_work_size; \
+	int wait_sleep = (work_size >= wait_last_work_size); \
+	wait_last_work_size = work_size; \
+	static uint64_t wait_times[20], wait_min; \
+	static unsigned int wait_index; \
+	uint64_t wait_start = 0;
+#define WAIT_SLEEP \
+	if (gpu_nvidia(device_info[gpu_id])) { \
+		wait_start = john_get_nano(); \
+		uint64_t us = wait_min >> 10; /* 2.4% less than min */ \
+		if (wait_sleep && us >= 1000) \
+			usleep(us); \
+	}
+#define WAIT_UPDATE \
+	if (gpu_nvidia(device_info[gpu_id])) { \
+		uint64_t wait_new = john_get_nano() - wait_start; \
+		if (wait_new < wait_min && wait_new < wait_min * 1000 / 1012) /* 1.2% less than min */ \
+			wait_new = wait_new * 7 / 8; /* we might have overslept and don't know by how much */ \
+		if (wait_times[wait_index] == wait_min) { /* about to replace former minimum */ \
+			unsigned int i; \
+			wait_times[wait_index] = wait_min = ~(uint64_t)0; \
+			for (i = 0; i < sizeof(wait_times) / sizeof(wait_times[0]); i++) \
+				if (wait_times[i] < wait_min) \
+					wait_min = wait_times[i]; \
+		} \
+		wait_times[wait_index++] = wait_new; \
+		if (wait_index >= sizeof(wait_times) / sizeof(wait_times[0])) \
+			wait_index = 0; \
+		if (wait_new < wait_min) \
+			wait_min = wait_new; \
+		wait_sleep = 1; \
+	}
+#define WAIT_DONE }
 
 /*
  * Shared function to find 'the best' local work group size.
