@@ -337,16 +337,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]),
 			"Run init kernel");
 
+		// Better precision for WAIT_ macros
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+
 		// Run loop kernel
+		WAIT_INIT(global_work_size)
 		for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 				crypt_kernel, 1, NULL, &global_work_size, lws, 0,
 				NULL, multi_profilingEvent[2]),
 				"Run loop kernel");
-			BENCH_CLERROR(clFinish(queue[gpu_id]),
-				"Error running loop kernel");
+			WAIT_SLEEP
+			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+			WAIT_UPDATE
 			opencl_process_event();
 		}
+		WAIT_DONE
 
 		// Run final kernel
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_final, 1,
