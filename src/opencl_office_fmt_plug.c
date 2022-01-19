@@ -111,8 +111,8 @@ static cl_kernel Generate2010key;
 static cl_kernel GenerateSHA512pwhash, Loop13, Generate2013key;
 static struct fmt_main *self;
 
-#define HASH_LOOPS0710      500 /* Lower figure gives less X hogging */
-#define HASH_LOOPS13        100 /* Lower figure gives less X hogging */
+#define HASH_LOOPS0710      2500 /* Lower figure gives less X hogging */
+#define HASH_LOOPS13        500 /* Lower figure gives less X hogging */
 #define ITERATIONS2007      50000
 #define STEP                0
 #define SEED                128
@@ -339,14 +339,21 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
 	}
 
+	int loops = HASH_LOOPS0710;
+	int iterations = ITERATIONS2007;
+
+	if (options.loader.min_cost[0]) {
+		iterations = options.loader.min_cost[0] == 2007 ? 50000 : 100000;
+		loops = options.loader.min_cost[0] == 2013 ? HASH_LOOPS13 : HASH_LOOPS0710;
+	}
+
 	// Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, HASH_LOOPS0710, split_events, warn,
+	opencl_init_auto_setup(SEED, loops, split_events, warn,
 	                       3, self, create_clobj, release_clobj,
 	                       UNICODE_LENGTH, 0, db);
 
 	// Auto tune execution from shared/included code.
-	// We aim for just 10ms because 2013 will be slower
-	autotune_run(self, ITERATIONS2007 + 4, 0, 10);
+	autotune_run(self, iterations + 4, 0, 200);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -361,6 +368,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (new_keys) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer saved_len");
+
 		new_keys = 0;
 	}
 
@@ -368,21 +376,35 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], GenerateSHA512pwhash, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
+		// Better precision for WAIT_ macros
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+
+		WAIT_INIT(global_work_size)
 		for (index = 0; index < (ocl_autotune_running ? 1 : cur_salt->spinCount / HASH_LOOPS13); index++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Loop13, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
+			WAIT_SLEEP
 			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+			WAIT_UPDATE
 			opencl_process_event();
 		}
+		WAIT_DONE
 
 	} else { /* 2007 or 2010 */
 
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], GenerateSHA1pwhash, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
+		// Better precision for WAIT_ macros
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+
+		WAIT_INIT(global_work_size)
 		for (index = 0; index < (ocl_autotune_running ? 1 : cur_salt->spinCount / HASH_LOOPS0710); index++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], Loop0710, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
+			WAIT_SLEEP
 			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+			WAIT_UPDATE
 			opencl_process_event();
 		}
+		WAIT_DONE
 
 	}
 
@@ -415,7 +437,14 @@ static int cmp_all(void *binary, int count)
 	}
 
 	// Get results
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_out, CL_TRUE, 0, outsize, out, 0, NULL, multi_profilingEvent[5]), "failed in reading results");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_out, CL_FALSE, 0, outsize, out, 0, NULL, multi_profilingEvent[5]), "failed in reading results");
+
+	WAIT_INIT(gws)
+	BENCH_CLERROR(clFlush(queue[gpu_id]), "clFlush");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+	WAIT_UPDATE
+	WAIT_DONE
 
 	for (index = 0; index < count; index++)
 		if (out[index].cracked)
