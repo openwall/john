@@ -672,10 +672,22 @@ static int cmp_all(void *binary, int count)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_sha1, 1, NULL, &global_work_size, lws, 0, NULL, EVENT(3)), "Run final kernel (SHA1)");
 	else
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_final_sha256, 1, NULL, &global_work_size, lws, 0, NULL, EVENT(3)), "Run final kernel (SHA256)");
+
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running final kernel");
 
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, EVENT(4)), "Copy result back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0, sizeof(mic_t) * scalar_gws, mic, 0, NULL, EVENT(4)), "Copy result back");
+
+#ifndef WPAPMK
+	WAIT_INIT(global_work_size)
+	BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+	WAIT_SLEEP
+#endif
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error transferring keys");
+#ifndef WPAPMK
+	WAIT_UPDATE
+	WAIT_DONE
+#endif
 
 	for (i = 0; i < count; i++)
 		if (!memcmp(hccap->keymic, mic[i].keymic, 16))
