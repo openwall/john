@@ -302,26 +302,50 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Copy data to gpu
 	if (new_keys) {
+		WAIT_INIT(global_work_size)
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 64, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+		BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+		WAIT_SLEEP
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error transferring keys");
+		WAIT_UPDATE
+		WAIT_DONE
 		new_keys = 0;
 	}
 
 	// Run kernel
+	WAIT_INIT(global_work_size)
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error transferring keys");
+	WAIT_UPDATE
+	WAIT_DONE
 
+	WAIT_INIT(global_work_size)
 	for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS / HASH_LOOPS); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
+		WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		WAIT_UPDATE
 		opencl_process_event();
 	}
+	WAIT_DONE
 
+	WAIT_INIT(global_work_size)
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_pass2, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error transferring keys");
+	WAIT_UPDATE
+	WAIT_DONE
 
+	WAIT_INIT(global_work_size)
 	for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS / HASH_LOOPS); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel (2nd pass)");
+		WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		WAIT_UPDATE
 		opencl_process_event();
 	}
+	WAIT_DONE
 
 	return count;
 }
