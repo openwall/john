@@ -539,12 +539,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (!mask_gpu_is_static)
 			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * gws - idx_offset, saved_int_key_loc + (idx_offset / 4), 0, NULL, NULL), "failed transferring buffer_int_key_loc.");
 
+		// Better precision for WAIT_ macros
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+
 		new_keys = 0;
 	}
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, &lws, 0, NULL, multi_profilingEvent[2]), "Failed running crypt kernel");
 
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, sizeof(cs), cur_salt, 0, NULL, multi_profilingEvent[3]), "Failed transferring salt");
+
+	WAIT_INIT(global_work_size)
+	BENCH_CLERROR(clFlush(queue[gpu_id]), "clFlush");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+	WAIT_UPDATE
+	WAIT_DONE
 
 	if (cur_salt->cracked) {
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * *pcount, cracked, 0, NULL, NULL), "failed reading results back");
