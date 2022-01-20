@@ -272,9 +272,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Copy data to GPU memory
 	if (new_keys) {
+		WAIT_INIT(global_work_size)
 		BENCH_CLERROR(clEnqueueWriteBuffer
 			(queue[gpu_id], mem_in, CL_FALSE, 0, insize, host_pass, 0, NULL,
 			 multi_profilingEvent[0]), "Copy memin");
+
+		BENCH_CLERROR(clFlush(queue[gpu_id]), "Error in clFlush");
+		WAIT_SLEEP
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error transferring keys");
+		WAIT_UPDATE
+		WAIT_DONE
 
 		new_keys = 0;
 	}
@@ -283,14 +290,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			(queue[gpu_id], init_kernel, 1, NULL, &global_work_size, lws,
 			 0, NULL, multi_profilingEvent[1]), "Set ND range");
 
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running init kernel");
+
 	// Run kernel
+	WAIT_INIT(global_work_size)
 	for (i = 0; i < (ocl_autotune_running ? 1 : 8); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel
 			(queue[gpu_id], crypt_kernel, 1, NULL, &global_work_size, lws,
 			0, NULL, multi_profilingEvent[2]), "Set ND range");
+		WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
 		opencl_process_event();
+		WAIT_UPDATE
 	}
+	WAIT_DONE
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel
 	    (queue[gpu_id], finish_kernel, 1, NULL, &global_work_size, lws,
