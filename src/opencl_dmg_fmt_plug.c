@@ -499,28 +499,54 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Copy data to gpu
 	if (new_keys) {
+		WAIT_INIT(global_work_size)
+
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+
+		BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+		WAIT_SLEEP
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+		WAIT_UPDATE
+		WAIT_DONE
+
 		new_keys = 0;
 	}
 
 	// Run kernels
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running init kernel");
+
+	WAIT_INIT(global_work_size)
 	for (j = 0; j < (ocl_autotune_running ? 1 : ((cur_salt->pbkdf2.outlen + 19) / 20)); j++) {
 		for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
+
+			WAIT_SLEEP
 			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+			WAIT_UPDATE
+
 			opencl_process_event();
 		}
 
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run final pbkdf2 kernel");
 	}
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running final pbkdf2 kernel");
+	WAIT_DONE
+
+	WAIT_INIT(global_work_size)
 
 	// DMG post-processing
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], dmg_final[cur_salt->headerver], 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[4]), "Run final dmg kernel");
 
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(dmg_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[5]), "Copy result back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0, sizeof(dmg_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[5]), "Copy result back");
+
+	BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+	WAIT_UPDATE
+	WAIT_DONE
 
 	return count;
 }
