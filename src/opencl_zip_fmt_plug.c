@@ -303,13 +303,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[0]), "Failed transferring index");
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
 
 		new_keys = 0;
 	}
 
+	WAIT_INIT(gws)
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[1]), "Failed running crypt kernel");
 
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_crack_count_ret, CL_TRUE, 0, sizeof(cl_uint), &crack_count_ret, 0, NULL, NULL), "failed reading results back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &crack_count_ret, 0, NULL, NULL), "failed reading results back");
+
+	BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+	WAIT_UPDATE
+	WAIT_DONE
 
 	if (crack_count_ret) {
 		if (crack_count_ret > count)
