@@ -238,13 +238,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		1, NULL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[1]), "Run kernel");
 
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+
+	WAIT_INIT(global_work_size)
 	for (i = 0; i < (ocl_autotune_running ? 1 : loops); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
 			1, NULL, &global_work_size, lws, 0, NULL,
 			multi_profilingEvent[2]), "Run split kernel");
+		WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+		WAIT_UPDATE
 		opencl_process_event();
 	}
+	WAIT_DONE
+
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel,
 		1, NULL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[3]), "Run final kernel");
