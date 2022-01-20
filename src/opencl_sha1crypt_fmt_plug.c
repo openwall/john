@@ -265,18 +265,32 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	// Copy data to gpu
 	if (new_keys) {
+		WAIT_INIT(global_work_size)
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+
+		BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+		WAIT_SLEEP
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+		WAIT_UPDATE
+		WAIT_DONE
+
 		new_keys = 0;
 	}
 
 	// Run kernels
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running init kernel");
+
+	WAIT_INIT(global_work_size)
 	for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
+		WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		WAIT_UPDATE
 		opencl_process_event();
 	}
+	WAIT_DONE
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 
