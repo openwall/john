@@ -63,7 +63,7 @@ static size_t insize, outsize, saltsize;
 #define STEP			0
 #define SEED			256
 
-#define HASH_LOOPS		100
+#define HASH_LOOPS		1000
 
 #define LOOP_COUNT		((keepass_salt->key_transf_rounds + HASH_LOOPS - 1) / HASH_LOOPS)
 
@@ -187,8 +187,10 @@ static void reset(struct db_main *db)
 	                       create_clobj, release_clobj,
 	                       sizeof(keepass_state), 0, db);
 
-	// iterations for benchmarking
-	int iter = db->salts->cost[0];
+	int iter = db->max_cost[0];
+
+	if (options.loader.min_cost[0])
+		iter = options.loader.min_cost[0];
 
 	// Auto tune execution from shared/included code, max. 200ms total.
 	autotune_run(self, iter, 0, 200);
@@ -266,24 +268,35 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		&global_work_size, lws, 0, NULL,
 		multi_profilingEvent[1]), "Run kernel");
 
+	WAIT_INIT(global_work_size)
 	for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 			kernel_loop, 1, NULL,
 			&global_work_size, lws, 0, NULL,
 			multi_profilingEvent[2]), "Run kernel");
+		WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		WAIT_UPDATE
 		opencl_process_event();
 	}
+	WAIT_DONE
 
+	WAIT_INIT(global_work_size)
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 		kernel_final, 1, NULL,
 		&global_work_size, lws, 0, NULL,
 		multi_profilingEvent[3]), "Run kernel");
 
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
 		outsize, outbuffer, 0, NULL, multi_profilingEvent[4]),
 		"Copy result back");
+
+	BENCH_CLERROR(clFlush(queue[gpu_id]), "Error in clFlush");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error in clFinish");
+	WAIT_UPDATE
+	WAIT_DONE
 
 	return count;
 }
