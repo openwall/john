@@ -529,6 +529,14 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			name = options.wordlist = WORDLIST_NAME;
 	}
 
+	static unsigned int prev_g;
+	static unsigned long long prev_p;
+	if (rules && cfg_get_bool(SECTION_OPTIONS, NULL, "PerRuleStats", 0)) {
+		rules = 2;
+		prev_g = status.guess_count;
+		prev_p = status.cands;
+	}
+
 	if (((options.flags & FLG_BATCH_CHK) || rec_restored || default_wordlist) && john_main_process) {
 		fprintf(stderr, "Proceeding with wordlist:%s",
 		        loopBack ? "loopback" :
@@ -1366,6 +1374,17 @@ EndOfFile:
 #endif
 		if (rules) {
 next_rule:
+			if (rules > 1 && prerule) {
+				unsigned int g = status.guess_count - prev_g;
+				unsigned long long p = status.cands - prev_p;
+				double score = p ? (g ? (double)g * g : 1e-9) / (double)p : 0;
+				double pg = (double)(p ? p : 1e9) / (g ? g : 1e-9);
+				log_event("- Score %.18f for %.2f p/g %ug %llup during rule #%d :%.100s",
+					score, pg, g, p, rule_number + 1, prerule);
+				prev_g = status.guess_count;
+				prev_p = status.cands;
+			}
+
 			if (!(rule = rpp_next(&ctx))) break;
 			rule_number++;
 
