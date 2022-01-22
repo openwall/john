@@ -1375,8 +1375,13 @@ EndOfFile:
 		if (rules) {
 next_rule:
 			if (rules > 1 && prerule) {
+				unsigned long long p = status.cands, fake_p = 0;
+				if (!(options.flags & FLG_STDOUT)) do {
+					crk_process_key("injected wrong password");
+					fake_p++;
+				} while (p == status.cands);
 				unsigned int g = status.guess_count - prev_g;
-				unsigned long long p = status.cands - prev_p;
+				p = status.cands - fake_p - prev_p;
 				double score = p ? (g ? (double)g * g : 1e-9) / (double)p : 0;
 				double pg = (double)(p ? p : 1e9) / (g ? g : 1e-9);
 				log_event("- Score %.18f for %.2f p/g %ug %llup during rule #%d :%.100s",
