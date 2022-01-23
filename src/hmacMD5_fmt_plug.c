@@ -243,7 +243,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 
 	p = strrchr(ciphertext, '#'); // allow # in salt
-	if (!p || p > &ciphertext[strlen(ciphertext) - 1])
+	if (!p)
 		return 0;
 
 	i = (int)(p - ciphertext);

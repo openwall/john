@@ -166,7 +166,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 
 	p = strrchr(ciphertext, '#'); // allow # in salt
-	if (!p || p > &ciphertext[strlen(ciphertext) - 1]) return 0;
+	if (!p) return 0;
 	i = (int)(p - ciphertext);
 #if SIMD_COEF_32
 	if (i > 55) return 0;
