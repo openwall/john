@@ -243,7 +243,7 @@ static int valid(char *ciphertext, struct fmt_main *self, const int B_LEN, const
 		ciphertext = split(ciphertext, 0, self, B_LEN, CT_LEN);
 		p = strrchr(ciphertext, '#');
 	}
-	if (!p || p > &ciphertext[strlen(ciphertext)-1])
+	if (!p)
 		return 0;
 	i = (int)(p - ciphertext);
 	if (i > SALT_LENGTH)
