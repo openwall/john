@@ -169,7 +169,7 @@ static struct opt_entry opt_list[] = {
 	{"fix-state-delay", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.max_fix_state_delay},
 	{"field-separator-char", FLG_ONCE, 0, FLG_PWD_SUP, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &field_sep_char_str},
 	{"config", FLG_ONCE, 0, 0, USUAL_REQ_CLR | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.config},
-	{"loader-dupecheck", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_TRISTATE, NULL, &options.loader_dupecheck},
+	{"loader-dupe-check", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_TRISTATE, NULL, &options.loader_dupecheck},
 	{"no-log", FLG_NOLOG, FLG_NOLOG, 0, FLG_TEST_CHK},
 	{"log-stderr", FLG_ONCE, 0, 0, USUAL_REQ_CLR | OPT_BOOL, NULL, &options.log_stderr},
 	{"crack-status", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_TRISTATE, NULL, &options.crack_status},
@@ -352,7 +352,7 @@ FUZZ_USAGE \
 "--max-run-time=[-]N        Gracefully exit after this many seconds (if negative,\n" \
 "                           reset timer on each crack)\n" \
 "--mkpc=N                   Request a lower max. keys per crypt\n" \
-"--no-loader-dupecheck      Disable the dupe checking when loading hashes\n" \
+"--no-loader-dupe-check     Disable the dupe checking when loading hashes\n" \
 "--pot=NAME                 Pot file to use\n" \
 "--regen-lost-salts=N       Brute force unknown salts (see doc/OPTIONS)\n" \
 "--reject-printable         Reject printable binaries\n" \

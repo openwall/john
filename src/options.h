@@ -269,12 +269,12 @@ struct options_main {
  */
 	int single_pair_max;
 /*
- * --[no]-single-retest-guess tri-state option (vs. deprecated config option)
+ * --[no-]single-retest-guess tri-state option (vs. deprecated config option)
  */
 	char *single_retest_guess;
 
 /*
- * --no-loader-dupecheck option tri-state option (vs. deprecated config option)
+ * --[no-]loader-dupe-check option tri-state option (vs. deprecated config option)
  */
 	int loader_dupecheck;
 

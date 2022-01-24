@@ -50,14 +50,14 @@ this option would have the same result as having that word in the gecos
 field of all users named "root" in the input file.  If the wordlist is
 very large, sorting it will speed up loading.
 
---single-retest-guess=BOOL
+--[no-]single-retest-guess
 
 Override config file setting for SingleRetestGuess.  Setting this to false
 stops Single mode from re-testing guessed plaintexts with all other salts.
 This is normally only needed for attacking massive, salted, input files
 eg. where you intend to use the --loopback option later instead.
 
---loader-dupecheck=BOOL
+--no-loader-dupe-check
 
 Disable the dupe checking when loading hashes.  This can be used when
 loading massive input files that you know don't contain any dupes, for
