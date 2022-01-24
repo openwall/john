@@ -253,7 +253,8 @@ static void *get_binary(char *ciphertext)
 		p = ciphertext + TAG_LENGTH_3;
 	}
 
-	if (!out) out = mem_alloc_tiny(binary_size, MEM_ALIGN_WORD);
+	/* 32 is max possible binary_size above */
+	if (!out) out = mem_alloc_tiny(32, MEM_ALIGN_WORD);
 	p = strstr(p, "$") + 1;
 
 	for (; i < binary_size; i++) {
