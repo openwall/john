@@ -18,15 +18,15 @@
 #include <malloc.h>
 #endif
 
-#if defined(WITH_ASAN) && !defined(DEBUG)
-#define DEBUG
-#endif
-
 #include "arch.h"
 #include "misc.h"
 #include "memory.h"
 #include "common.h"
 #include "johnswap.h"
+
+#if defined(WITH_ASAN) && !defined(DEBUG)
+#define DEBUG
+#endif
 
 #if (defined (_MSC_VER) || HAVE___MINGW_ALIGNED_MALLOC)
 char *strdup_MSVC(const char *str)
