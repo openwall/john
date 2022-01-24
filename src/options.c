@@ -50,7 +50,7 @@
 #include "prince.h"
 #endif
 #include "version.h"
-#include "listconf.h" /* must be included after version.h */
+#include "listconf.h" /* must be included after version.h and misc.h */
 #include "jumbo.h"
 
 struct options_main options;

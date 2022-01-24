@@ -86,7 +86,7 @@
 #include "mask_ext.h"
 #include "john.h"
 #include "version.h"
-#include "listconf.h" /* must be included after version.h */
+#include "listconf.h" /* must be included after version.h and misc.h */
 
 #ifdef NO_JOHN_BLD
 #define JOHN_BLD "unk-build-type"
