@@ -163,7 +163,7 @@ while (<>) {
 			print STDERR $1, "\n";
 		}
 		# password 7 <obfuscated>
-	} elsif (m/(?:password|md5|ascii|key|hex|encryption .*) 7 ([\dA-F]+)/) {
+	} elsif (m/(?:password|md5|ascii|key|key-string|hex|encryption .*) 7 ([\dA-F]+)/) {
 		#print "in2: $_\n";
 		notice();
 		my $pw = cisco_decrypt($1);
