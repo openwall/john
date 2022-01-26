@@ -215,7 +215,7 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!ishexlc(p))
 		goto err;
-	if (c_type && c_type != 128) {
+	if (type && type != 128) {
 		if ((p = strtokm(NULL, "$")) == NULL) /* CRC len */
 			goto err;
 		if (!isdec(p))
