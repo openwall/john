@@ -70,7 +70,8 @@ int mscash1_common_valid(char *ciphertext, struct fmt_main *self)
 	UTF16 realsalt[MSCASH1_MAX_SALT_LENGTH+2];
 	int saltlen;
 	/* Extra +4 over similar code in split() to catch truncation (#5027). */
-	char lc_buf[MSCASH1_MAX_CIPHERTEXT_LENGTH + 1 + 4];
+	/* Extra +1 until #5029 is fixed. */
+	char lc_buf[MSCASH1_MAX_CIPHERTEXT_LENGTH + 1 + 4 + 1];
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -123,7 +124,8 @@ int mscash1_common_valid(char *ciphertext, struct fmt_main *self)
 
 char *mscash1_common_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[MSCASH1_MAX_CIPHERTEXT_LENGTH + 1];
+	/* Extra +1 until #5029 is fixed. */
+	static char out[MSCASH1_MAX_CIPHERTEXT_LENGTH + 1 + 1];
 
 	memcpy(out, ciphertext, FORMAT_TAG_LEN);
 	// lowercase salt as well as hash, encoding-aware
@@ -290,7 +292,8 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 	UTF16 realsalt[129];
 	int saltlen;
 	/* Extra +4 over similar code in split() to catch truncation (#5027). */
-	char lc_buf[MSCASH2_MAX_CIPHERTEXT_LENGTH + 1 + 4];
+	/* Extra +1 until #5029 is fixed. */
+	char lc_buf[MSCASH2_MAX_CIPHERTEXT_LENGTH + 1 + 4 + 1];
 
 	if (strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG2_LEN))
 		return 0;
@@ -357,7 +360,8 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 
 char *mscash2_common_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char out[MSCASH2_MAX_CIPHERTEXT_LENGTH + 1];
+	/* Extra +1 until #5029 is fixed. */
+	static char out[MSCASH2_MAX_CIPHERTEXT_LENGTH + 1 + 1];
 
 	memcpy(out, ciphertext, FORMAT_TAG2_LEN);
 	// lowercase salt as well as hash, encoding-aware
