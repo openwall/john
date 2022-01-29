@@ -102,6 +102,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (strlen(ciphertext) != HASH_LENGTH)
 		return 0;
+	if (ciphertext[HASH_LENGTH - 1] != '=')
+		return 0;
 
 	return 1;
 }
