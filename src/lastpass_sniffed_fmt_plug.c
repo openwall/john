@@ -126,6 +126,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) > 50) /* not exact! */
 		goto err;
+	if (strtokm(NULL, "$"))	/* no more fields  */
+		goto err;
 	MEM_FREE(keeptr);
 	return 1;
 
