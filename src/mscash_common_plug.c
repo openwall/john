@@ -289,6 +289,8 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 	char insalt[3*MSCASH2_MAX_MAX_SALT_LEN+1];
 	UTF16 realsalt[129];
 	int saltlen;
+	/* Extra +4 over similar code in split() to catch truncation (#5027). */
+	char lc_buf[MSCASH2_MAX_CIPHERTEXT_LENGTH + 1 + 4];
 
 	if (strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG2_LEN))
 		return 0;
@@ -298,6 +300,16 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 		return 0;
 
 	l = strlen(ciphertext);
+	if (l <= 32 || l > MSCASH2_MAX_CIPHERTEXT_LENGTH)
+		return 0;
+
+	/* lowercase can transform string in unexpected ways (#5026). */
+	memcpy(lc_buf, ciphertext, FORMAT_TAG2_LEN);
+	l = enc_lc((UTF8*)&lc_buf[FORMAT_TAG2_LEN], sizeof(lc_buf) - 1 - FORMAT_TAG2_LEN,
+	           (UTF8*)&ciphertext[FORMAT_TAG2_LEN], l - FORMAT_TAG2_LEN);
+	l += FORMAT_TAG2_LEN;
+	ciphertext = lc_buf;
+
 	if (l <= 32 || l > MSCASH2_MAX_CIPHERTEXT_LENGTH)
 		return 0;
 
@@ -346,15 +358,11 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 char *mscash2_common_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[MSCASH2_MAX_CIPHERTEXT_LENGTH + 1];
-	int i = 0;
 
-	for (; ciphertext[i] && i < MSCASH2_MAX_CIPHERTEXT_LENGTH; i++)
-		out[i] = ciphertext[i];
-
-	out[i] = 0;
-
+	memcpy(out, ciphertext, FORMAT_TAG2_LEN);
 	// lowercase salt as well as hash, encoding-aware
-	enc_strlwr(&out[6]);
+	enc_lc((UTF8*)&out[FORMAT_TAG2_LEN], sizeof(out) - 1 - FORMAT_TAG2_LEN,
+	       (UTF8*)&ciphertext[FORMAT_TAG2_LEN], strlen(ciphertext) - FORMAT_TAG2_LEN);
 
 	return out;
 }
