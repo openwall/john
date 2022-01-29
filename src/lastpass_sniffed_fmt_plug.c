@@ -160,12 +160,12 @@ static void *get_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static unsigned int out[4];
-	char Tmp[48];
+	char Tmp[sizeof(out)];
 	char *p;
 	ciphertext += FORMAT_TAG_LEN;
 	p = strchr(ciphertext, '$')+1;
 	p = strchr(p, '$')+1;
-	base64_convert(p, e_b64_mime, strlen(p), Tmp, e_b64_raw, sizeof(Tmp), 0, 0);
+	base64_convert(p, e_b64_mime, strlen(p), Tmp, e_b64_raw, sizeof(Tmp), flg_Base64_DONOT_NULL_TERMINATE, 0);
 	memcpy(out, Tmp, 16);
 	return out;
 }
