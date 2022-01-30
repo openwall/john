@@ -153,11 +153,11 @@ int pgpwde_valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "*")) == NULL) // salt
 		goto bail;
-	if (hexlenl(p, &extra) > 16 * 2 || extra)
+	if (hexlenl(p, &extra) != 16 * 2 || extra)
 		goto bail;
 	if ((p = strtokm(NULL, "*")) == NULL) // ESK
 		goto bail;
-	if (hexlenl(p, &extra) > 128 * 2 || extra)
+	if (hexlenl(p, &extra) != 128 * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
