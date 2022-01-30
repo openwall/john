@@ -176,7 +176,6 @@ char *winzip_common_split(char *ciphertext, int index, struct fmt_main *self)
 	if (!cp) return ciphertext;
 	if (!strncmp(cp, "*0*", 3)) return ciphertext;
 	if (!buf || len < strlen(ciphertext)+1) {
-		MEM_FREE(buf);
 		len = strlen(ciphertext)+1;
 		buf = mem_alloc_tiny(len, 1);
 	}
