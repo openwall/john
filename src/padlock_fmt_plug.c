@@ -141,13 +141,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
 		goto bail;
-	if (hexlenl(p, &extra) > res * 2 || extra)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // iv
 		goto bail;
-	if (hexlenl(p, &extra) > 16 * 2 || extra)
+	if (hexlenl(p, &extra) != 16 * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
@@ -160,7 +160,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // add
 		goto bail;
-	if (hexlenl(p, &extra) > res * 2 || extra)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
@@ -173,7 +173,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // ct
 		goto bail;
-	if (hexlenl(p, &extra) > res * 2 || extra)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
