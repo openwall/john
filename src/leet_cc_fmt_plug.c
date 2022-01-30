@@ -164,7 +164,9 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 	cp = mem_alloc(strlen(split_fields[0]) + strlen(split_fields[1]) + 2);
 	sprintf(cp, "%s$%s", split_fields[0], split_fields[1]);
 	if (valid(cp, self)) {
-		return cp;
+		char *cipher = str_alloc_copy(cp);
+		MEM_FREE(cp);
+		return cipher;
 	}
 	MEM_FREE(cp);
 	return split_fields[1];
