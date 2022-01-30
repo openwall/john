@@ -14,6 +14,7 @@ int sappse_common_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext, *ctcopy, *keeptr;
 	int extra;
+	int res;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		return 0;
@@ -34,9 +35,12 @@ int sappse_common_valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if (!isdec(p))
 		goto bail;
+	res = atoi(p);
+	if (res > 32)
+		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
 		goto bail;
-	if (hexlenl(p, &extra) > 32 * 2 || extra)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
@@ -54,9 +58,12 @@ int sappse_common_valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if (!isdec(p))
 		goto bail;
+	res = atoi(p);
+	if (res > 128)
+		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // encrypted_pin
 		goto bail;
-	if (hexlenl(p, &extra) > 128 * 2 || extra)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
