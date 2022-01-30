@@ -131,7 +131,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p, *q;
 
 	p = ciphertext;
-	q = strchr(p, '$'); // end of salt
+	q = strrchr(p, '$'); // end of salt
 	if (!q)
 		return 0;
 
