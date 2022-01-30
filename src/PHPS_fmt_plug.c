@@ -74,7 +74,8 @@ static struct fmt_tests phps_tests[] = {
 	{"$PHPS$73616c$aba22b2ceb7c841473c03962b145feb3", "password"},
 	{"$PHPS$247824$ad14afbbf0e16d4ad8c8985263a3d051","test"},  // salt is $x$ (I want to test that a $ works)
 	{"$dynamic_6$ad14afbbf0e16d4ad8c8985263a3d051$HEX$247824","test"},
-	//{"$dynamic_6$ad14afbbf0e16d4ad8c8985263a3d051$$x$","test"}, // fails $HEX$ IS required by dyna
+	{"$dynamic_6$ad14afbbf0e16d4ad8c8985263a3d051$$x$","test"},
+	{"$dynamic_6$aba22b2ceb7c841473c03962b145feb3$sal", "password"},
 	{NULL}
 };
 
@@ -162,10 +163,12 @@ static int phps_valid(char *ciphertext, struct fmt_main *self)
 
 		if (!val)
 			return 0;
-		cp = strrchr(ciphertext, '$');
-		if (strstr(ciphertext, "$HEX$"))
-			wanted_len += 3; // salt is in hex.
-		return cp && strlen(cp) == wanted_len;
+		cp = &ciphertext[11 + MD5_HEX_SIZE];
+		if (*cp != '$')
+			return 0;
+		if (!strncmp(cp, "$HEX$", 5))
+			wanted_len += 3+4; // salt is in hex. +len("HEX$")
+		return strlen(cp) == wanted_len;
 	}
 
 	if (strncmp(ciphertext, "$PHPS$", 6) != 0)
