@@ -138,7 +138,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "*")) == NULL)   // ciphertext
 		goto err;
 	value = hexlenl(p, &extra);
-	if (value < MIN_CIPHERTEXT_LENGTH || value > MAX_CIPHERTEXT_LENGTH * 2 || extra)
+	if (value < MIN_CIPHERTEXT_LENGTH * 2 || value > MAX_CIPHERTEXT_LENGTH * 2 || extra)
 		goto err;
 
 	MEM_FREE(keeptr);
