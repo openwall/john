@@ -298,10 +298,6 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 	if (strncmp(ciphertext, FORMAT_TAG2, FORMAT_TAG2_LEN))
 		return 0;
 
-	/* We demand an iteration count (after prepare()) */
-	if (strchr(ciphertext, '#') == strrchr(ciphertext, '#'))
-		return 0;
-
 	l = strlen(ciphertext);
 	if (l <= 32 || l > MSCASH2_MAX_CIPHERTEXT_LENGTH)
 		return 0;
@@ -323,6 +319,10 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 	for (i = l; i < l + 32; i++)
 		if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7F)
 			return 0;
+
+	/* We demand an iteration count (after prepare()) */
+	if (strchr(ciphertext, '#') == strrchr(ciphertext, '#'))
+		return 0;
 
 	// This is tricky: Max supported salt length is 128 characters of Unicode
 	i = FORMAT_TAG2_LEN;
