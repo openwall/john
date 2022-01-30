@@ -50,7 +50,7 @@ john_register_one(&fmt_opencl_mscash2);
 typedef struct {
 	unsigned int 	length ;
 	unsigned int 	iter_cnt;
-	unsigned char 	username[MAX_SALT_LENGTH + 1] ;
+	unsigned char 	username[MAX_SALT_LENGTH * 3 + 1] ;
 } ms_cash2_salt ;
 
 static cl_uint 		*dcc_hash_host ;
