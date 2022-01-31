@@ -148,6 +148,7 @@ int telegram_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int version, extra;
+	size_t len;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
@@ -180,7 +181,10 @@ int telegram_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)  // encrypted_blob
 		goto err;
-	if (hexlenl(p, &extra) > ENCRYPTED_BLOB_LEN * 2 || extra)
+	len = hexlenl(p, &extra);
+	if (len < 16 * 2 || len > ENCRYPTED_BLOB_LEN * 2 || extra)
+		goto err;
+	if (strtokm(NULL, "*"))  // no more fields
 		goto err;
 
 	MEM_FREE(keeptr);
