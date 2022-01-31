@@ -272,7 +272,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 		if (cp2 && cp2-cp1 == CHALLENGE_LENGTH/4) {
 			++cp2;
 			cp3 = strchr(cp2, '$');
-			if (cp3 && cp3-cp2 == CIPHERTEXT_LENGTH && (strlen(cp3) > 2 || cp3[2] != '$')) {
+			if (cp3 && cp3-cp2 == CIPHERTEXT_LENGTH && (strlen(cp3) > 2 || cp3[1] != '$')) {
 				ret = out;
 				memcpy(ret, split_fields[1], cp3-split_fields[1] + 1);
 				ret[(cp3-split_fields[1])+1] = '$';
