@@ -111,7 +111,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int index;
 #ifdef SIMD_COEF_64
-	static int warned;
+	static volatile int warned;
 #endif
 
 	if (any_cracked) {
