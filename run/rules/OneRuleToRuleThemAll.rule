@@ -8207,9 +8207,11 @@ $o$p
 ^o^o^z
 ^o^o^w
 ^o^o^t
-!! hashcat logic OFF
-^o^\x85^\xc4^\x82^\xc4^o^t
-!! hashcat logic ON
+# This was originally ^o^ą^Ă^o^t, which obviously must have been thrashed by
+# multiple codepage conversions along the way in unknown history.  Assuming
+# "toño" was meant to be prepended, we do just that and rely on rules logic
+# to handle any codepage conversions or rejection.
+A0"toño"
 ^o^o^r^a^g^n^a^k
 ^o^o^r
 ^o^o^p^o^o^p
@@ -42458,9 +42460,11 @@ $a$f
 ^a^e^s^o^j
 ^a^e^s^l^e^h^c
 ^a^e^s^e^u^q^o^l
-!! hashcat logic OFF
-^a^\x85^\xc4^\x82^\xc4^e^s^a^r^t^n^o^c
-!! hashcat logic ON
+# The below was originally ^a^ą^Ă^e^s^a^r^t^n^o^c, which obviously must have
+# been thrashed by multiple codepage conversions along the way in unknown
+# history.  Assuming "contraseña" was meant to be prepended, we do just that
+# and rely on rules logic to handle any codepage conversions or rejection.
+A0"contraseña"
 ^a^e^s
 ^a^e^r^o^k
 ^a^e^r^d^n^a
