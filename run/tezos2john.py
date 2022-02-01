@@ -267,7 +267,7 @@ if __name__ == "__main__":
         data = json.loads(data)
         mnemonic, email, address = (" ".join(data["mnemonic"]), data["email"], data["pkh"])
         raw_address = binascii.hexlify(b58check_to_bin(address)).decode("ascii")
-        print("%s:$tezos$1*%s*%s*%s*%s*%s" % ("dummy", 2048, mnemonic, email, address, raw_address))
+        print("%s:$tezos$1*%s*%s*%s*%s*%s" % (email, 2048, mnemonic, email, address, raw_address))
         sys.exit(0)
     if len(myArgs) != 3:
         sys.stderr.write("Usage: %s \'mnemonic data (15 words)\' \'email\' \'public key\'\n" %
@@ -298,4 +298,4 @@ if __name__ == "__main__":
         sys.stderr.write("[ERROR] Invalid address, Please Check before continuing.\n")
         sys.exit(1)
 
-    print("%s:$tezos$1*%s*%s*%s*%s*%s" % ("dummy", 2048, mnemonic, email, address, raw_address))
+    print("%s:$tezos$1*%s*%s*%s*%s*%s" % (email, 2048, mnemonic, email, address, raw_address))
