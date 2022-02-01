@@ -1118,6 +1118,11 @@ static void parse_braces(char *mask, mask_parsed_ctx *parsed_mask)
 
 		j = i;
 		k++;
+		if (k > MAX_NUM_MASK_PLHDR) {
+			if (john_main_process)
+				fprintf(stderr, "Error: Mask parsing unsuccessful, too many ranges / custom placeholders\n");
+			error();
+		}
 	}
 
 	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++)
@@ -1158,6 +1163,11 @@ static void parse_qtn(char *mask, mask_parsed_ctx *parsed_mask)
 				j++;
 			}
 			parsed_mask->stack_qtn[k++] = i;
+			if (k > MAX_NUM_MASK_PLHDR) {
+				if (john_main_process)
+					fprintf(stderr, "Error: Mask parsing unsuccessful, too many placeholders\n");
+				error();
+			}
 		}
 cont:
 		;
