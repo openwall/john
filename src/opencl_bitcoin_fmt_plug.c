@@ -398,11 +398,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		&global_work_size, (local_work_size <= init_kernel_max_lws) ? lws : NULL, 0, NULL,
 		multi_profilingEvent[1]), "Run init kernel");
 
+	// Better precision for WAIT_ macros
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+
 	// Run loop kernel
 	cl_uint left = cur_salt->cry_rounds - 1;
 	cl_uint batch = HASH_LOOPS;
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_uint),
 		(void *)&batch), "Error setting kernel argument 1");
+	WAIT_INIT(global_work_size)
 	do {
 		if (batch > left) {
 			batch = left;
@@ -413,10 +417,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			crypt_kernel, 1, NULL,
 			&global_work_size, lws, 0, NULL,
 			multi_profilingEvent[2]), "Run loop kernel");
+		if (batch == HASH_LOOPS)
+			WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		if (batch == HASH_LOOPS)
+			WAIT_UPDATE
 		opencl_process_event();
 		left -= batch;
 	} while (left && !ocl_autotune_running);
+	WAIT_DONE
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 		final_kernel, 1, NULL,
