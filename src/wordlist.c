@@ -65,6 +65,7 @@
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
+#include "suppressor.h"
 #include "john.h"
 #include "unicode.h"
 #include "regex.h"
@@ -1057,6 +1058,9 @@ REDO_AFTER_LMLOOP:
 
 		crk_init(db, fix_state, NULL);
 	}
+
+	if (dupeCheck || (options.flags & FLG_BATCH_CHK))
+		suppressor_init(1);
 
 	prerule = rule = "";
 	if (rules)

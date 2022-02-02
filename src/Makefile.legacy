@@ -148,7 +148,7 @@ JOHN_OBJS = \
 	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
 	loader.o logger.o mask.o mask_ext.o memory.o misc.o options.o \
 	params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
-	tty.o wordlist.o \
+	suppressor.o tty.o wordlist.o \
 	mkv.o mkvlib.o \
 	subsets.o unicode_range.o \
 	listconf.o \
