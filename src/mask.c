@@ -1082,7 +1082,8 @@ static void parse_braces(char *mask, mask_parsed_ctx *parsed_mask)
 	int i, j ,k;
 	int cl_br_enc;
 
-	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++) {
+	/* The last element is worst-case boundary for search_stack(). */
+	for (i = 0; i <= MAX_NUM_MASK_PLHDR; i++) {
 		store_cl(i, -1);
 		store_op(i, -1);
 	}
@@ -1146,7 +1147,8 @@ static void parse_qtn(char *mask, mask_parsed_ctx *parsed_mask)
 {
 	int i, j, k;
 
-	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++)
+	/* The last element is worst-case boundary for search_stack(). */
+	for (i = 0; i <= MAX_NUM_MASK_PLHDR; i++)
 		parsed_mask->stack_qtn[i] = -1;
 
 	for (i = 0, k = 0; i < strlen(mask); i++) {
