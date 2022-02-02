@@ -389,7 +389,7 @@ static void opt_banner(char *name)
 
 void opt_usage()
 {
-	printf(JOHN_USAGE, SINGLE_WORDS_PAIR_MAX, WORDLIST_BUFFER_DEFAULT >> 20,
+	printf(JOHN_USAGE, SINGLE_WORDS_PAIR_MAX, WORDLIST_BUFFER_DEFAULT / 1000000,
 		   VERB_MAX, VERB_DEBUG, VERB_DEFAULT);
 #if defined(HAVE_OPENCL)
 	printf("%s", JOHN_USAGE_GPU);
