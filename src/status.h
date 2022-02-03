@@ -43,6 +43,9 @@ struct status_main {
 	int resume_salt;
 	uint32_t *resume_salt_md5;
 	unsigned int salt_count, password_count;
+	unsigned long long suppressor_start, suppressor_end;
+	unsigned int suppressor_start_time, suppressor_end_time;
+	unsigned long long suppressor_hit, suppressor_miss;
 };
 
 extern struct status_main status;

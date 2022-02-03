@@ -487,12 +487,30 @@ void status_print(int level)
 	clock_t new_raw_time = raw_time - prev_raw_time;
 	char s_gps[32], s_pps[32], s_crypts_ps[32], s_combs_ps[32];
 	char s_combs[32], s_combs_new[32];
+	char s_when[64], s_mps[32], s_hps[32], s_tps[32];
+	s_when[0] = 0;
+	if (status.suppressor_start) {
+		sprintf(s_when, " since accepted candidate %llu", status.suppressor_start);
+		if (status.suppressor_end)
+			sprintf(s_when + strlen(s_when), " until ~%llu", status.suppressor_end);
+
+	}
+	unsigned long long suppressor_total = status.suppressor_hit + status.suppressor_miss;
+	unsigned int suppressor_time = (status.suppressor_end ? status.suppressor_end_time : time);
+	if (suppressor_time <= status.suppressor_start_time)
+		suppressor_time = 1;
+	else
+		suppressor_time -= status.suppressor_start_time;
 	fprintf(stderr,
 	    "Remaining hashes    %u (%u removed)\n"
 	    "Remaining salts     %u (%u removed)\n"
 	    "Time in seconds     %u (%.*f new)\n"
 	    "Successful guesses  %u (%u new, %s g/s)\n"
-	    "Password candidates %llu (%llu new, %s p/s)\n"
+	    "Passwords tested    %llu (%llu new, %s p/s)\n"
+	    " dupe suppressor    %ss %sabled%s\n"
+	    " and it accepted    %llu (%.2f%%, %s p/s)\n"
+	    "        rejected    %llu (%.2f%%, %s p/s)\n"
+	    "    out of total    %llu (%s p/s)\n"
 	    "Hash computations   %llu (%llu new, %s c/s)\n"
 	    "Hash combinations   %s (%s new, %s C/s)\n",
 	    status.password_count, prev.password_count ? prev.password_count - status.password_count : 0,
@@ -504,6 +522,13 @@ void status_print(int level)
 	    status_get_cps(s_gps, status.guess_count - prev.guess_count, 0, new_time, new_raw_time),
 	    (unsigned long long)status.cands, (unsigned long long)(status.cands - prev.cands),
 	    status_get_cps(s_pps, status.cands - prev.cands, 0, new_time, new_raw_time),
+	    status.suppressor_end ? "wa" : "i", (status.suppressor_start | status.suppressor_end) ? "en" : "dis", s_when,
+	    status.suppressor_miss, 100.0 * status.suppressor_miss / (suppressor_total ? suppressor_total : 1),
+	    status_get_cps(s_mps, status.suppressor_miss, 0, suppressor_time, suppressor_time * clk_tck),
+	    status.suppressor_hit, 100.0 * status.suppressor_hit / (suppressor_total ? suppressor_total : 1),
+	    status_get_cps(s_hps, status.suppressor_hit, 0, suppressor_time, suppressor_time * clk_tck),
+	    suppressor_total,
+	    status_get_cps(s_tps, suppressor_total, 0, suppressor_time, suppressor_time * clk_tck),
 	    (unsigned long long)status.crypts, (unsigned long long)(status.crypts - prev.crypts),
 	    status_get_cps(s_crypts_ps, status.crypts - prev.crypts, 0, new_time, new_raw_time),
 	    status_get_c(s_combs, status.combs, status.combs_ehi),

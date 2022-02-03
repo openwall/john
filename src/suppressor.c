@@ -8,6 +8,7 @@
 #include "common.h"
 #include "memory.h"
 #include "cracker.h"
+#include "status.h"
 #include "suppressor.h"
 
 #define N 0x400000
@@ -31,7 +32,11 @@ void suppressor_init(int update)
 		if (!update)
 			return;
 		filter = mem_calloc_align(N, sizeof(*filter), MEM_ALIGN_CACHE);
+		status.suppressor_start = status.cands + 1;
+		status.suppressor_start_time = status_get_time();
 	}
+	status.suppressor_end = 0;
+	status.suppressor_end_time = 0;
 	mode = update ? MODE_UPDATING : MODE_CHECKING;
 	old_process_key = crk_process_key;
 	crk_process_key = suppressor_process_key;
@@ -91,9 +96,12 @@ static int suppressor_process_key(char *key)
 				filter[i][j] = filter[i][j + 1];
 				filter[i][j + 1] = hash;
 			}
+			status.suppressor_hit++;
 			return 0;
 		}
 	}
+
+	status.suppressor_miss++;
 
 	if (mode == MODE_UPDATING) {
 		/* insert */
