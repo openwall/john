@@ -143,10 +143,8 @@ void opencl_process_event(void)
 				rec_save();
 			}
 
-			if (event_status) {
-				event_status = 0;
-				status_print();
-			}
+			if (event_status)
+				status_print(0);
 
 			if (event_ticksafety) {
 				event_ticksafety = 0;

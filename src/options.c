@@ -629,7 +629,7 @@ void opt_init(char *name, int argc, char **argv)
 		rec_restore_args(0);
 		options.flags |= FLG_STATUS_SET;
 		status_init(NULL, 1);
-		status_print();
+		status_print(0);
 #if OS_FORK
 		if (options.fork) {
 			unsigned int node_max = options.node_max;
@@ -647,7 +647,7 @@ void opt_init(char *name, int argc, char **argv)
 				options.node_min = options.node_max = i;
 				options.flags |= FLG_STATUS_SET;
 				if (rec_restoring_now)
-					status_print();
+					status_print(0);
 			}
 		}
 #endif
