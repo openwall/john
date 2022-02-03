@@ -58,7 +58,7 @@
 #endif
 
 volatile int event_pending = 0, event_reload = 0;
-volatile int event_abort = 0, event_save = 0, event_status = 0, event_delayed_status = 0;
+volatile int event_abort = 0, event_help = 0, event_save = 0, event_status = 0, event_delayed_status = 0;
 volatile int event_ticksafety = 0;
 volatile int event_mpiprobe = 0, event_poll_files = 0;
 volatile int event_fix_state = 0, event_refresh_salt = 0;
@@ -424,6 +424,8 @@ static void sig_handle_timer(int signum)
 #endif
 				sig_handle_abort(0);
 #ifndef BENCH_BUILD
+			} else if (c == 'h') {
+				event_help = event_pending = 1;
 			} else if (c == '>' && options.verbosity < VERB_DEBUG) {
 				options.verbosity++;
 				if (john_main_process) {
@@ -644,4 +646,17 @@ static void sig_done(void)
 #ifdef SIGUSR2
 	sig_remove_reload();
 #endif
+}
+
+void sig_help(void)
+{
+	fprintf(stderr, "The following keypresses are recognized:\n"
+	    "'q' or Ctrl-C to abort\n"
+	    "'h' for help (this message)\n"
+	    "'>' and '<' to increase or decrease verbosity, respectively\n"
+	    "'s' for detailed status (and changes since its previous display)\n"
+	    "'d' for delayed status (right upon completion of current batch)\n"
+	    "'D' for delayed detailed status\n"
+	    "Almost any other key for simple status\n");
+	event_help = 0;
 }

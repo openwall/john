@@ -151,7 +151,7 @@ static void crk_help(void)
 	else
 #endif
 	if (tty_has_keyboard())
-		fprintf(stderr, "Press 'q' or Ctrl-C to abort, almost any other key for status\n");
+		fprintf(stderr, "Press 'q' or Ctrl-C to abort, 'h' for help, almost any other key for status\n");
 	else
 		fprintf(stderr, "Press Ctrl-C to abort, "
 #ifdef SIGUSR1
@@ -792,6 +792,9 @@ static int crk_process_event(void)
 		event_save = 0;
 		rec_save();
 	}
+
+	if (event_help)
+		sig_help();
 
 	if (event_status)
 		status_print(0);
