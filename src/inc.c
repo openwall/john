@@ -795,7 +795,7 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	memcpy(numbers, rec_numbers, sizeof(numbers));
 
 	crk_init(db, fix_state, NULL);
-	suppressor_init(0);
+	suppressor_init(SUPPRESSOR_CHECK);
 
 	last_count = last_length = -1;
 

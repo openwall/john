@@ -8,6 +8,7 @@
 #include "common.h"
 #include "memory.h"
 #include "cracker.h"
+#include "logger.h"
 #include "status.h"
 #include "suppressor.h"
 
@@ -15,31 +16,47 @@
 #define K 8
 
 static uint64_t (*filter)[K];
-
-static enum {
-	MODE_NONE = 0,
-	MODE_UPDATING,
-	MODE_CHECKING
-} mode;
+static unsigned int flags;
 
 static int (*old_process_key)(char *key);
 
 static int suppressor_process_key(char *key);
 
-void suppressor_init(int update)
+void suppressor_init(unsigned int new_flags)
 {
-	if (mode == MODE_NONE) {
-		if (!update)
+	if (!flags) {
+		if (!(new_flags & SUPPRESSOR_UPDATE))
 			return;
+
+		const char *msg = "Enabling duplicate candidate password suppressor";
+		log_event("%s", msg);
+		fprintf(stderr, "%s\n", msg);
+
 		filter = mem_calloc_align(N, sizeof(*filter), MEM_ALIGN_CACHE);
+
 		status.suppressor_start = status.cands + 1;
 		status.suppressor_start_time = status_get_time();
 	}
+
+	flags = new_flags;
 	status.suppressor_end = 0;
 	status.suppressor_end_time = 0;
-	mode = update ? MODE_UPDATING : MODE_CHECKING;
 	old_process_key = crk_process_key;
 	crk_process_key = suppressor_process_key;
+}
+
+static void suppressor_done(void)
+{
+	const char *msg = "Disabling duplicate candidate password suppressor";
+	log_event("%s (accepted %llu, rejected %llu)", msg, status.suppressor_miss, status.suppressor_hit);
+	fprintf(stderr, "%s\n", msg);
+
+	MEM_FREE(filter);
+
+	flags = SUPPRESSOR_OFF;
+	status.suppressor_end = status.cands;
+	status.suppressor_end_time = status_get_time();
+	crk_process_key = old_process_key;
 }
 
 /*
@@ -92,7 +109,7 @@ static int suppressor_process_key(char *key)
 	/* lookup */
 	for (j = 0; j < K && filter[i][j]; j++) {
 		if (filter[i][j] == hash) {
-			if (j < K - 1 && filter[i][j + 1] && mode == MODE_UPDATING) { /* postpone eviction of this hash */
+			if (j < K - 1 && filter[i][j + 1] && (flags & SUPPRESSOR_UPDATE)) { /* postpone eviction of this hash */
 				filter[i][j] = filter[i][j + 1];
 				filter[i][j + 1] = hash;
 			}
@@ -101,15 +118,27 @@ static int suppressor_process_key(char *key)
 		}
 	}
 
-	status.suppressor_miss++;
-
-	if (mode == MODE_UPDATING) {
+	if ((flags & SUPPRESSOR_UPDATE)) {
 		/* insert */
 		if (j == K) { /* on full bucket, evict a hash */
 			for (j = 0; j < K - 1; j++)
 				filter[i][j] = filter[i][j + 1];
 		}
 		filter[i][j] = hash;
+	}
+
+	if (!(++status.suppressor_miss & 0x3ffffff) && !(flags & SUPPRESSOR_FORCE)) {
+		double ps_rate_threshold = 5000000.0 * status.suppressor_hit / status.suppressor_miss;
+		static unsigned long misses_at_non_update;
+		if (!(flags & SUPPRESSOR_UPDATE)) {
+			if (misses_at_non_update)
+				ps_rate_threshold /= 1 + ((status.suppressor_miss - misses_at_non_update) / ((double)N * K));
+			else
+				misses_at_non_update = status.suppressor_miss;
+		}
+		unsigned int time = status_get_time() - status.suppressor_start_time;
+		if (time > 9 && status.suppressor_miss / time > ps_rate_threshold)
+			suppressor_done();
 	}
 
 	return old_process_key(key);

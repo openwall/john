@@ -1060,7 +1060,7 @@ REDO_AFTER_LMLOOP:
 	}
 
 	if (dupeCheck || (options.flags & FLG_BATCH_CHK))
-		suppressor_init(1);
+		suppressor_init(SUPPRESSOR_UPDATE | (dupeCheck ? SUPPRESSOR_FORCE : 0));
 
 	prerule = rule = "";
 	if (rules)
