@@ -1843,7 +1843,7 @@ static void john_run(void)
 		if (options.flags & FLG_MASK_CHK)
 			mask_done();
 
-		status_print();
+		status_print(0);
 
 		if (options.flags & FLG_MASK_CHK)
 			mask_destroy();

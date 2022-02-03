@@ -436,8 +436,8 @@ static void sig_handle_timer(int signum)
 					verb_msg[14] += options.verbosity;
 					write_loop(2, verb_msg, sizeof(verb_msg) - 1);
 				}
-			} else if (c == 'd') {
-				event_delayed_status = 1;
+			} else if (c == 'd' || c == 'D') {
+				event_delayed_status = 1 + (c == 'D');
 				write_loop(2, "Delayed status pending...\r", 26);
 #endif
 			} else {
@@ -445,6 +445,8 @@ static void sig_handle_timer(int signum)
 				new_status = 1;
 #endif
 				event_status = event_pending = 1;
+				if (c == 's' || c == 'S')
+					event_status = 2;
 			}
 		}
 

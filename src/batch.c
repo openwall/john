@@ -55,14 +55,14 @@ void do_batch_crack(struct db_main *db)
 		if (event_abort || !db->salts) break;
 		event_reload = 1;
 		if (status.cands)
-			status_print();
+			status_print(0);
 
 	case 2:
 		status.pass = 2;
 		do_wordlist_pass(db);
 		if (event_abort || !db->salts) break;
 		event_reload = 1;
-		status_print();
+		status_print(0);
 
 	case 3:
 		status.pass = 3;
