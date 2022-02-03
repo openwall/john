@@ -587,6 +587,43 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	}
 	else if (!regen_salts_options && pPriv->dynamic_FIXED_SALT_SIZE < -1 && strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) > -(pPriv->dynamic_FIXED_SALT_SIZE)) {
 		char *cpX;
+// NOTE if looking at this in the future, that was added by Aleksey for #5032
+		if (!pPriv->b2Salts && !pPriv->nUserName && !pPriv->FldMask) {
+			/* salt-only, strict mode: salt without $HEX$ or $HEX$hex till the end */
+			if (!memcmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4)) {
+				for (i = pPriv->dynamic_SALT_OFFSET + 4; ciphertext[i]; i++)
+					if (atoi16[ARCH_INDEX(ciphertext[i])] == 0x7f)
+						return 0; // not hex
+				if ((i - pPriv->dynamic_SALT_OFFSET - 4) % 2 == 1)
+					return 0; // odd length
+				if ((i - pPriv->dynamic_SALT_OFFSET - 4) / 2 > -(pPriv->dynamic_FIXED_SALT_SIZE))
+					return 0; // salt is too long
+			} else {
+				if (strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET]) > -(pPriv->dynamic_FIXED_SALT_SIZE))
+					return 0; // salt is too long
+			}
+		} else if (pPriv->nUserName && !pPriv->b2Salts && !pPriv->FldMask) {
+			/* username and maybe salt: no $HEX$ allowed */
+			/* Bad, but code searching for $$U would not work with $HEX$ anyway. */
+			if (!memcmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4))
+				return 0; // no $HEX$ here (for simplicity)
+			if (!memcmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "$U", 2)) {
+				/* username only */
+				if (strlen(&ciphertext[pPriv->dynamic_SALT_OFFSET + 2]) > -(pPriv->dynamic_FIXED_SALT_SIZE))
+					return 0; // username is too long
+			} else {
+				/* salt and username */
+				char *t = strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET], "$$U");;
+				/* salt_external_to_internal_convert parses fields from right to left, but it may overwrite found fields */
+				if (strstr(t + 3, "$$U"))
+					return 0; // second $$U is prohibited (for simplicity)
+				if (t - &ciphertext[pPriv->dynamic_SALT_OFFSET] > -(pPriv->dynamic_FIXED_SALT_SIZE))
+					return 0; // salt is too long
+				if (strlen(t + 3) > -(pPriv->dynamic_FIXED_SALT_SIZE))
+					return 0; // username is too long
+			}
+		}
+// end NOTE.
 		// first check to see if this salt has left the $HEX$ in the string (i.e. embedded nulls).  If so, then
 		// validate length with this in mind.
 		if (!memcmp(&ciphertext[pPriv->dynamic_SALT_OFFSET], "HEX$", 4)) {
