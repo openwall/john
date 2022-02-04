@@ -15,7 +15,7 @@
 #define DEFAULT_SIZE 256 /* MiB */
 #define K 8
 
-static uint32_t N;
+static uint32_t N, Klock;
 static uint64_t (*filter)[K];
 static unsigned int flags;
 
@@ -42,6 +42,10 @@ void suppressor_init(unsigned int new_flags)
 			if ((size_t)((uint64_t)N * sizeof(*filter)) == (uint64_t)size << 20)
 				break;
 		}
+
+		Klock = 0;
+		if (cfg_get_bool(SECTION_OPTIONS, ":Suppressor", "LockHalf", 1))
+			Klock = K / 2;
 
 		const char *msg = "Enabling duplicate candidate password suppressor";
 		log_event("%s", msg);
@@ -124,9 +128,9 @@ static int suppressor_process_key(char *key)
 	/* lookup */
 	for (j = 0; j < K && filter[i][j]; j++) {
 		if (filter[i][j] == hash) {
-			if (j < K - 1 && filter[i][j + 1] && (flags & SUPPRESSOR_UPDATE)) { /* postpone eviction of this hash */
+			if (j >= Klock && j < K - 1 && filter[i][j + 1] && (flags & SUPPRESSOR_UPDATE)) {
 				filter[i][j] = filter[i][j + 1];
-				filter[i][j + 1] = hash;
+				filter[i][j + 1] = hash; /* postpone eviction of this hash */
 			}
 			status.suppressor_hit++;
 			return 0;
@@ -136,7 +140,7 @@ static int suppressor_process_key(char *key)
 	if ((flags & SUPPRESSOR_UPDATE)) {
 		/* insert */
 		if (j == K) { /* on full bucket, evict a hash */
-			for (j = 0; j < K - 1; j++)
+			for (j = Klock; j < K - 1; j++)
 				filter[i][j] = filter[i][j + 1];
 		}
 		filter[i][j] = hash;
