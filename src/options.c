@@ -161,8 +161,8 @@ static struct opt_entry opt_list[] = {
 	{"format", FLG_FORMAT, FLG_FORMAT, 0, FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.format},
 	{"subformat", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.subformat},
 	{"list", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.listconf},
-	{"mem-file-size", FLG_ONCE, 0, FLG_WORDLIST_CHK, FLG_DUPESUPP | FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM, Zu, &options.max_wordfile_memory},
-	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK, FLG_STDIN_CHK | FLG_PIPE_CHK},
+	{"mem-file-size", FLG_ONCE, 0, FLG_WORDLIST_CHK, FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM, Zu, &options.max_wordfile_memory},
+	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK, 0, "%d", &options.suppressor_size},
 /*
  * --fix-state-delay=N is deprecated and ignored, drop support after releasing 1.9.0-Jumbo-2
  */
@@ -284,7 +284,7 @@ static struct opt_entry opt_list[] = {
 "--rules-skip-nop           Skip any NOP \":\" rules (you already ran w/o rules)\n" \
 "--loopback[=FILE]          Like --wordlist, but extract words from a .pot file\n" \
 "--mem-file-size=SIZE       Size threshold for wordlist preload (default %u MB)\n" \
-"--dupe-suppression         Suppress all dupes in wordlist (and force preload)\n" \
+"--dupe-suppression[=SIZE]  Opportunistic dupe suppression for wordlist+rules\n" \
 "--incremental[=MODE]       \"Incremental\" mode [using section MODE]\n" \
 "--incremental-charcount=N  Override CharCount for incremental mode\n" \
 "--external=MODE            External mode or word filter\n" \
@@ -452,6 +452,7 @@ void opt_init(char *name, int argc, char **argv)
 #endif
 
 	options.length = -1;
+	options.suppressor_size = -1;
 
 	opt_process(opt_list, &options.flags, argv);
 

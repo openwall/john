@@ -9,6 +9,7 @@
 #include "memory.h"
 #include "cracker.h"
 #include "logger.h"
+#include "options.h"
 #include "status.h"
 #include "suppressor.h"
 
@@ -29,7 +30,9 @@ void suppressor_init(unsigned int new_flags)
 		if (!(new_flags & SUPPRESSOR_UPDATE))
 			return;
 
-		int size = cfg_get_int(SECTION_OPTIONS, ":Suppressor", "Size");
+		int size = options.suppressor_size;
+		if (size < 0)
+			size = cfg_get_int(SECTION_OPTIONS, ":Suppressor", "Size");
 		if (size <= 0) {
 			if (size < 0 || (new_flags & SUPPRESSOR_FORCE))
 				size = DEFAULT_SIZE;

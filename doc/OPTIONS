@@ -76,18 +76,38 @@ Set the terminal up for reading status/quit keystrokes even if we're not
 the foreground process.  The downside is we might get race conditions so
 you may end up with strange problems hard to reproduce.
 
---dupe-suppression		suppress all duplicates from wordlist
+--dupe-suppression[=SIZE]	suppress some duplicates from wordlist+rules
 
-Normally, consecutive duplicates are ignored when reading a wordlist file.
-This switch enables full dupe suppression, using some memory and a little
-extra start-up time.  This option implies preload regardless of file size,
-see the --mem-file-size option.
+Opportunistic duplicate candidate password suppression for wordlist+rules.
+This creates a buffer in memory, which is then used to detect and suppress
+some (hopefully, most) duplicates resulting from application of wordlist
+rules (or otherwise, but rules are the most common source of duplicates).
+
+When you use wordlist rules (explicitly or as part of batch mode), this is
+enabled by default, but it also gets automatically disabled if efficiency
+isn't high enough (ratio of candidate passwords suppressed does not look
+high enough to justify the overhead given the current attack's p/s rate).
+
+When in batch mode, the suppression can continue into its incremental mode
+pass - to suppress incremental mode's passwords that happen to match those
+previously generated in wordlist mode.
+
+When enabled along with --rules-stack, the suppression is applied before the
+stacked rules (but after the main --rules, which would be the reason to have
+it enabled).
+
+You can use this option to override the default behavior, such as to enable
+suppression for a wordlist without rules, keep it enabled regardless of
+current efficiency (e.g., in case you expect more duplicates later in the
+run), disable suppression despite of use of rules (--dupe-suppression=0
+does that), or request a specific allocation size (in MiB).  See also
+[Options:Suppressor] in john.conf.
 
 --loopback[=FILE]		use (a) pot file as a wordlist
 
-This mode implies --dupe-suppression.  This is a special variant of wordlist
-mode.  Parse the file as a .pot file, so only the actual password part of
-each line will be used.  If FILE is not specified, the active .pot file will
+This is a special variant of wordlist mode.  Parse the file as a .pot file,
+so only the actual password part of each line will be used, and duplicate
+passwords suppressed.  If FILE is not specified, the active .pot file will
 be used.  This is very effective for applying rules to further permute words
 that has been successful, or without rules after a run using --salts in case
 the cracks are successful on other salts than the ones that has already been

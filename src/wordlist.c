@@ -514,7 +514,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 		name = options.wordlist = options.activepot;
 
 	/* These will ignore --save-memory */
-	if (loopBack || dupeCheck ||
+	if (loopBack ||
 	    (!options.max_wordfile_memory &&
 	     (options.flags & FLG_RULES_CHK)))
 		forceLoad = 1;
@@ -782,7 +782,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			if (csearch == '\n')
 				while (*cp == '\r') cp++;
 
-			if (dupeCheck) {
+			if (loopBack) {
 				hash_log = 1;
 				while (((1 << hash_log) < (nWordFileLines))
 				       && hash_log < 27)
@@ -841,7 +841,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 					} else
 						if (ep - cp >= LINE_BUFFER_SIZE)
 							cp[LINE_BUFFER_SIZE-1] = 0;
-					if (dupeCheck) {
+					if (loopBack) {
 						/* Full suppression of dupes
 						   after truncation */
 						if (wbuf_unique(cp))
@@ -1059,8 +1059,10 @@ REDO_AFTER_LMLOOP:
 		crk_init(db, fix_state, NULL);
 	}
 
-	if (dupeCheck || rules)
-		suppressor_init(SUPPRESSOR_UPDATE | ((dupeCheck || (options.flags & FLG_STDOUT)) ? SUPPRESSOR_FORCE : 0));
+	if (dupeCheck || rules) {
+		int force = (dupeCheck || (options.flags & FLG_STDOUT)) && options.suppressor_size;
+		suppressor_init(SUPPRESSOR_UPDATE | (force ? SUPPRESSOR_FORCE : 0));
+	}
 
 	prerule = rule = "";
 	if (rules)
