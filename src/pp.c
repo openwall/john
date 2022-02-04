@@ -115,6 +115,7 @@
 #include "options.h"
 #include "external.h"
 #include "cracker.h"
+#include "suppressor.h"
 #include "john.h"
 #include "unicode.h"
 #include "prince.h"
@@ -1974,6 +1975,11 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
   mpf_mul_ui(count, count, rule_count);
 
   crk_init(db, fix_state, NULL);
+
+  if (dupe_check || rules) {
+    int force = (dupe_check || (options.flags & FLG_STDOUT)) && options.suppressor_size;
+    suppressor_init(SUPPRESSOR_UPDATE | (force ? SUPPRESSOR_FORCE : 0));
+  }
 #endif
 
   /**
