@@ -1059,8 +1059,8 @@ REDO_AFTER_LMLOOP:
 		crk_init(db, fix_state, NULL);
 	}
 
-	if (dupeCheck || (options.flags & FLG_BATCH_CHK))
-		suppressor_init(SUPPRESSOR_UPDATE | (dupeCheck ? SUPPRESSOR_FORCE : 0));
+	if (dupeCheck || rules)
+		suppressor_init(SUPPRESSOR_UPDATE | ((dupeCheck || (options.flags & FLG_STDOUT)) ? SUPPRESSOR_FORCE : 0));
 
 	prerule = rule = "";
 	if (rules)
