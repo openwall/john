@@ -12,9 +12,10 @@
 #include "status.h"
 #include "suppressor.h"
 
-#define N 0x400000
+#define DEFAULT_SIZE 256 /* MiB */
 #define K 8
 
+static uint32_t N;
 static uint64_t (*filter)[K];
 static unsigned int flags;
 
@@ -27,6 +28,20 @@ void suppressor_init(unsigned int new_flags)
 	if (!flags) {
 		if (!(new_flags & SUPPRESSOR_UPDATE))
 			return;
+
+		int size = cfg_get_int(SECTION_OPTIONS, ":Suppressor", "Size");
+		if (size <= 0) {
+			if (size < 0 || (new_flags & SUPPRESSOR_FORCE))
+				size = DEFAULT_SIZE;
+			else
+				return;
+		}
+
+		for (;; size = DEFAULT_SIZE) {
+			N = ((uint64_t)size << 20) / sizeof(*filter);
+			if ((size_t)((uint64_t)N * sizeof(*filter)) == (uint64_t)size << 20)
+				break;
+		}
 
 		const char *msg = "Enabling duplicate candidate password suppressor";
 		log_event("%s", msg);
