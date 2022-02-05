@@ -3225,6 +3225,10 @@ static void __SSE_append_output_base16_to_input_semi_aligned_2(unsigned int ip, 
 
 static void __SSE_append_output_base16_to_input_semi_aligned_0(unsigned int ip, uint32_t *IPBdw, unsigned char *CRY, unsigned int idx_mod)
 {
+// NOTE if looking at this in the future, that was added by Aleksey for #5032
+	if (ip + 32 > 55)
+		return;
+// end NOTE.
 	// #2
     // 6083k  (core2, $dynamic_2$)
     // 1590K  (core2, $dynamic_1006$)
@@ -3329,6 +3333,10 @@ static void __SSE_append_string_to_input_unicode(unsigned char *IPB, unsigned in
 static void __SSE_append_string_to_input(unsigned char *IPB, unsigned int idx_mod, unsigned char *cp, unsigned int len, unsigned int bf_ptr, unsigned int bUpdate0x80)
 {
 	unsigned char *cpO;
+// NOTE if looking at this in the future, that was added by Aleksey for #5032
+	if (len + bf_ptr > 55)
+		return;
+// end NOTE.
 	// if our insertion point is on an 'even' DWORD, then we use DWORD * copying, as long as we can
 	// This provides quite a nice speedup.
 #if ARCH_LITTLE_ENDIAN && ARCH_ALLOWS_UNALIGNED
