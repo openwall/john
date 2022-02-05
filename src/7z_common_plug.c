@@ -112,7 +112,7 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int type, c_type, p_type, len, NumCyclesPower;
-	static char warned[128];
+	static char warned[256];
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
@@ -127,7 +127,7 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 	type = atoi(p);
 	c_type = type & 0xf;
 	p_type = (type >> 4) & 0xf;
-	if (strlen(p) == 0 || type < 0 || !precomp_type[p_type] || !comp_type[c_type]) /* Codec(s) needed for CRC check */
+	if (strlen(p) == 0 || type < 0 || type >= 256 || !precomp_type[p_type] || !comp_type[c_type]) /* Codec(s) needed for CRC check */
 		goto err;
 	if (c_type > 2
 #if HAVE_LIBBZ2
@@ -137,7 +137,8 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 		    && c_type != 7
 #endif
 			    && type != 128) {
-		if (john_main_process && !warned[type]++) {
+		if (john_main_process && !warned[type]) {
+			warned[type] = 1;
 			fprintf(stderr, YEL "Warning: Not loading files with unsupported compression type %s (0x%02x)\n" NRM,
 			        comp_type[c_type] ? comp_type[c_type] : "(unknown)", type);
 #if !HAVE_LIBBZ2
@@ -152,9 +153,11 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	}
 	if (john_main_process && !ldr_in_pot && !self_test_running &&
-	    options.verbosity > VERB_DEFAULT && !warned[type]++)
+	    options.verbosity > VERB_DEFAULT && !warned[type]) {
+		warned[type] = 1;
 		fprintf(stderr, YEL "Saw file(s) with compression type %s%s%s (0x%02x)\n" NRM,
 		        precomp_type[p_type], p_type ? "+" : "", comp_type[c_type], type);
+	}
 	if ((p = strtokm(NULL, "$")) == NULL) /* NumCyclesPower */
 		goto err;
 	if (strlen(p) > 2)
