@@ -114,7 +114,7 @@ static MAYBE_INLINE uint32_t key_hash(const char *key, uint64_t *hash2)
 	}
 
 	if (p - (const unsigned char *)key + !!*p > 8) /* different hash than for any short 7-bit */
-		*(unsigned char *)hash2 |= 0x80;
+		((unsigned char *)hash2)[7] |= 0x80;
 
 	hash1 ^= extra;
 
