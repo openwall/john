@@ -2142,7 +2142,7 @@ static int get_hash_6(int index)
 
 /************************************************************************
  * We now fully handle all hashing of salts, here in the format. We
- * return a pointer ot an allocated salt record. Thus, we search all
+ * return a pointer to an allocated salt record. Thus, we search all
  * of the salt records, looking for the same salt.  If we find it, we
  * want to return THAT pointer, and not allocate a new pointer.
  * This works great, but forces us to do salt comparision here.
