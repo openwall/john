@@ -109,7 +109,7 @@ static int ckcdecrypt(unsigned char *key)
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;

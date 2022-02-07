@@ -18,7 +18,7 @@ int sappse_common_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL) // version
@@ -83,7 +83,7 @@ void *sappse_common_get_salt(char *ciphertext)
 	char *p = ciphertext, *ctcopy, *keeptr;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LENGTH;
 	p = strtokm(ctcopy, "$");

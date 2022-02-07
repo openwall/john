@@ -923,7 +923,7 @@ void _test_strtokm(char *delims, int cnt, ...) {
 	*cp = 0;
 	va_end(args);
 
-	buf = strdup(big);
+	buf = xstrdup(big);
 
 	cp = strtokm(buf, delims);
 	inc_test(); failed = 0;
@@ -2084,7 +2084,7 @@ void _Load_NESSIE_hash_file(const char *fname) {
 			if ((cp = strstr(cpLB, "message=")) != NULL) {
 				cp += 8;
 				strtok(cp, "\r\n");
-				HTst[n].message = strdup(cp);
+				HTst[n].message = xstrdup(cp);
 				HTst[n].test_bits = _parse_NESSIE_bits(cp);
 				HTst[n].test_data = _parse_NESSIE(cp, HTst[n].test_bits);
 				HTst[n].cur = HTst[n].hash;
@@ -2256,7 +2256,7 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 			if (HTst[n].test_bits)
 				HTst[n].test_data = mem_calloc(1, HTst[n].test_bits / 8);
 		} else if (!strncmp(cpLB, "Msg = ", 6)) {
-			HTst[n].message = strdup(cpLB);
+			HTst[n].message = xstrdup(cpLB);
 			ParseHex(HTst[n].test_data, &cpLB[6], HTst[n].test_bits / 8);
 		} else if (!strncmp(cpLB, "MD = ", 5)) {
 			strcpy(HTst[n].hash, &cpLB[5]);

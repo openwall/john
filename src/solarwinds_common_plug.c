@@ -22,7 +22,7 @@ int solarwinds_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* version */
@@ -67,7 +67,7 @@ void *solarwinds_get_binary(char *ciphertext)
 void *solarwinds_get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 

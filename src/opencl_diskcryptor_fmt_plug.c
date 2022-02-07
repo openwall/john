@@ -234,7 +234,7 @@ static void done(void)
 void *diskcryptor_get_salt_opencl(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;

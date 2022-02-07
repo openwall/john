@@ -223,7 +223,7 @@ static void init(struct fmt_main *self)
 			c = crypt(tests[i].plaintext, salt);
 #endif
 			if (c && strlen(c) >= 7)
-				tests[i].ciphertext = strdup(c);
+				tests[i].ciphertext = xstrdup(c);
 			else {
 				fprintf(stderr, "%s not supported on this system\n",
 				       options.subformat);

@@ -59,7 +59,7 @@ err:
 void *diskcryptor_get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;

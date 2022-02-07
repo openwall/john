@@ -145,7 +145,7 @@ static void done(void)
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	static struct custom_salt cs;

@@ -356,7 +356,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (strlen(ciphertext) > CIPHERTEXT_LENGTH)
 		return 0;
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	ctcopy += TAG_LEN;
@@ -426,7 +426,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 static void *get_salt(char *ciphertext)
 {
 	static void *ptr;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;

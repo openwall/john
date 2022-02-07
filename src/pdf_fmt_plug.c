@@ -125,7 +125,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* V */
@@ -196,7 +196,7 @@ static int old_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG_OLD, FORMAT_TAG_OLD_LEN))
 		return 0;
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_OLD_LEN;
@@ -255,7 +255,7 @@ error:
 
 char * convert_old_to_new(char ciphertext[])
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *out = mem_alloc_tiny(strlen(ctcopy), MEM_ALIGN_NONE);
 	const char *fields[14];
@@ -300,7 +300,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;

@@ -929,7 +929,7 @@ static void print_and_cleanup(zip_context *ctx)
 	if (ctx->num_candidates == 0)
 		return;
 
-	filenames = strdup(ctx->best_files[0].file_name);
+	filenames = xstrdup(ctx->best_files[0].file_name);
 	bname = jtr_basename(ctx->archive.fname);
 
 	printf("%s%s%s:$pkzip$%x*%x*", bname,

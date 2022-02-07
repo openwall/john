@@ -19,7 +19,7 @@ int openbsdsoftraid_valid(char* ciphertext, struct fmt_main *self, int is_cpu)
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 
@@ -70,7 +70,7 @@ err:
 void *openbsdsoftraid_get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;

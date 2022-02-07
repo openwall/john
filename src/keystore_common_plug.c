@@ -29,7 +29,7 @@ MAYBE_INLINE static int keystore_common_valid(char *ciphertext, struct fmt_main 
 	int v, extra;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)
@@ -94,7 +94,7 @@ void *keystore_common_get_binary(char *ciphertext)
 	} buf;
 	unsigned char *out = buf.c;
 	int i;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 

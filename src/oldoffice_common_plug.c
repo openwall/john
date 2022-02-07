@@ -68,7 +68,7 @@ int oldoffice_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (strlen(ciphertext) > CIPHERTEXT_LENGTH)
 		return 0;
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	ctcopy += TAG_LEN;
@@ -140,7 +140,7 @@ void *oldoffice_get_binary(char *ciphertext)
 {
 	static fmt_data data;
 	binary_blob *blob;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i, type;
@@ -195,7 +195,7 @@ void *oldoffice_get_binary(char *ciphertext)
 void *oldoffice_get_salt(char *ciphertext)
 {
 	static custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;

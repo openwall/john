@@ -225,7 +225,7 @@ static void reset(struct db_main *db)
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;

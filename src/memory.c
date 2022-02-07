@@ -129,6 +129,18 @@ void *mem_realloc(void *old_ptr, size_t size)
 	return res;
 }
 
+char *xstrdup (const char* str)
+{
+	char *res = strdup(str);
+
+	if (res == NULL) {
+		fprintf(stderr, "xstrdup(): %s\n", strerror (ENOMEM));
+		error();
+	}
+	
+	return res;
+}
+
 /*
  * if -DDEBUG we turn mem_alloc_tiny() to essentially be just a malloc()
  * with additional alignment. The reason for this is it's way easier to

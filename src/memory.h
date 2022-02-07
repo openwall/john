@@ -99,6 +99,13 @@ extern void *mem_alloc_align(size_t size, size_t align);
 extern void *mem_calloc_align(size_t count, size_t size, size_t align);
 
 /*
+ * Creates a new null terminated copy of the given string using strdup() and 
+ * retruns a pointer to it. The allocation is done using malloc(). 
+ * If an error occurs in the memory allocation, the function does not return
+ */
+extern char *xstrdup(const char* str);
+
+/*
  * Frees memory allocated with mem_alloc() and sets the pointer to NULL.
  * Does nothing if the pointer is already NULL.
  */

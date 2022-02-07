@@ -108,7 +108,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
-	keepptr=strdup(ciphertext);
+	keepptr=xstrdup(ciphertext);
 	p = &keepptr[TAG_LENGTH];
 	if (*p != '*')
 		goto err;

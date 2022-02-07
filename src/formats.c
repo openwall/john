@@ -290,7 +290,7 @@ static void comma_split(struct list_main *dst, const char *src)
 {
 	char *word, *pos;
 	char c;
-	char *src_cpy = strdup(src);
+	char *src_cpy = xstrdup(src);
 
 	strlwr(src_cpy);
 
@@ -980,7 +980,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		    strcmp(format->params.label, "dummy") &&
 		    strcmp(format->params.label, "crypt")) {
 			if (*ciphertext == '$') {
-				char *p, *k = strdup(ciphertext);
+				char *p, *k = xstrdup(ciphertext);
 
 				p = k + 1;
 				while (*p) {
@@ -1453,7 +1453,7 @@ static void test_fmt_case(struct fmt_main *format, void *binary,
 	if (*plaintext == 0)
 		return;
 
-	plain_copy = strdup(plaintext);
+	plain_copy = xstrdup(plaintext);
 	pk = plain_copy;
 
 	while (*pk) {
@@ -1489,7 +1489,7 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 		return;
 
 	*plaintext_is_blank = 0;
-	plain_copy = strdup(plaintext);
+	plain_copy = xstrdup(plaintext);
 
 	// All OR '\x80'
 	pk = plain_copy;
@@ -1597,7 +1597,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 
 	if (*is_split_unifies_case>2) return; /* already know all we need to know. */
 
-	cipher_copy = strdup(ciphertext);
+	cipher_copy = xstrdup(ciphertext);
 
 	/*
 	 * check for common case problem.  hash is HEX, so find it, change it,
@@ -1611,7 +1611,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 		char *cp;
 		int do_test=0;
 		ret = format->methods.split(ret, 0, format);
-		ret_copy = strdup(ret);
+		ret_copy = xstrdup(ret);
 		bin = format->methods.binary(ret_copy);
 		if (BLOB_SIZE(format, bin) > 4) {
 			bin_hex = mem_alloc(BLOB_SIZE(format, bin) * 2 + 1);
@@ -1771,7 +1771,7 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 	void *orig_binary, *orig_salt;
 	void *binary, *salt;
 
-	cipher_copy = strdup(ciphertext);
+	cipher_copy = xstrdup(ciphertext);
 	split_ret = format->methods.split(cipher_copy, 0, format);
 
 	orig_binary = NULL;
@@ -1892,7 +1892,7 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 
 	if (*is_split_unifies_case>2) return; /* already know all we need to know. */
 
-	cipher_copy = strdup(ciphertext);
+	cipher_copy = xstrdup(ciphertext);
 
 	/*
 	 * check for common case problem, but in a 'generic' manner. Here, we find sets of
@@ -1908,7 +1908,7 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 	if (format->methods.valid(ret, format)) {
 		char *cp;
 		ret = format->methods.split(ret, 0, format);
-		ret_copy = strdup(ret);
+		ret_copy = xstrdup(ret);
 		// Ok, now walk the string, LOOKING for hex string or known lengths which are all 1 case, and NOT pure numeric
 		cp = ret_copy;
 		while (strlen(cp) > 16) {

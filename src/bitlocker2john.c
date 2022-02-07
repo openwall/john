@@ -389,7 +389,7 @@ int main(int argc, char **argv)
 					fprintf(stderr, "ERROR: Input string is bigger than %d\n", INPUT_SIZE);
 					exit(EXIT_FAILURE);
 				}
-				image_path = strdup(optarg);
+				image_path = xstrdup(optarg);
 				break;
 
 			default:
