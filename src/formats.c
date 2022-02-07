@@ -145,16 +145,21 @@ int fmt_match(const char *req_format, struct fmt_main *format, int override_disa
 			error();
 		}
 
-		/* Match anything before wildcard */
-		if (strncasecmp(format->params.label, req_format, (int)(pos - req_format)))
+		int pre_len = (pos - req_format);
+
+		/* Match anything before wildcard, as in office*, if applicable */
+		if (pre_len && strncasecmp(format->params.label, req_format, pre_len))
 			return 0;
 
-		/* If anything after wildcard, as in *office or raw*ng, does this also match? */
+		/* Match anything after wildcard, as in *office or raw*ng, if applicable */
 		if (*(++pos)) {
-			int wild_len = strlen(pos);
+			int trail_len = strlen(pos);
 			int label_len = strlen(format->params.label);
 
-			if (strcasecmp(&format->params.label[label_len - wild_len], pos))
+			if (label_len - pre_len < trail_len)
+				return 0;
+
+			if (strcasecmp(&format->params.label[label_len - trail_len], pos))
 				return 0;
 		}
 		return enabled;
