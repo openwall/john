@@ -39,6 +39,7 @@ john_register_one(&fmt_racf_kdfaes);
 #include "aes.h"
 #include "sha2.h"
 #include "hmac_sha.h"
+#include "memory.h"
 
 #define FORMAT_LABEL            "RACF-KDFAES"
 #define FORMAT_NAME             ""
@@ -331,7 +332,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char key[32];
 		unsigned char *key_p = key;
 		unsigned char m[MAX_SALT_SIZE + HASH_OUTPUT_SIZE + 32];
-		unsigned char *t1f = malloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
+		unsigned char *t1f = mem_alloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
 		unsigned char *h_out = (unsigned char*)crypt_out[index];
 		unsigned char plaint[16];
 		AES_KEY akey;

@@ -326,7 +326,7 @@ int _tst_strnzcatn() {
 	memset(head, 0, sizeof(head));
 
 	for (j = 0; j < 14; ++j)
-		tail[j] = (char*)malloc(j + 1); // allocate for proper sized ASCIIZ string.
+		tail[j] = (char*)mem_alloc(j + 1); // allocate for proper sized ASCIIZ string.
 	for (i = 0; i < 14; ++i) {
 		sprintf(head, "%*.*s", i, i, data);
 		for (j = 0; j < 14; ++j) {
@@ -396,7 +396,7 @@ void _test_cpy_func(char *(cfn)(char *, const char *, int),
 		else {
 			// Allocate EXACTLY the right size, so that ASAN will
 			// catch any over/under reads or writes.
-			char *buf = malloc(i);
+			char *buf = mem_alloc(i);
 			int check_len = i - 1;
 			int null_check = i - 1 > input_len ? input_len : i - 1;
 
@@ -459,7 +459,7 @@ int _tst_trim() {
 	char *p, *string, buffer[56], expected[56];
 	int i, j, len;
 
-	string = (char *) malloc(strlen(data) + 1); // allocate for proper sized ASCIIZ string.
+	string = (char *) mem_alloc(strlen(data) + 1); // allocate for proper sized ASCIIZ string.
 
 	// Test lTrim()
 	for (len = 0; len < strlen(data); ++len) {
@@ -624,7 +624,7 @@ void _nontest_gen_fgetl_files(int generate) {
 		return;
 	}
 	/* first, setup the fgetl 'pad' data (moved from main() function. */
-	_fgetl_pad = (char*)malloc(_FGETL_PAD_SIZE + 1);
+	_fgetl_pad = (char*)mem_alloc(_FGETL_PAD_SIZE + 1);
 	for (i = 0; i <= _FGETL_PAD_SIZE; ++i)
 		_fgetl_pad[i] = (i % 95) + ' ';
 	_fgetl_pad[_FGETL_PAD_SIZE] = 0;
@@ -850,10 +850,10 @@ void test_strnzcat() {
 
 	start_test(__FUNCTION__);
 	for (i = 0; i < 512 * 2; ++i)
-		buf[i] = malloc(i + 1);
+		buf[i] = mem_alloc(i + 1);
 	for (i = 0; i < 512; ++i) {
-		buf1[i] = malloc(i + 1);
-		buf2[i] = malloc(i + 1);
+		buf1[i] = mem_alloc(i + 1);
+		buf2[i] = mem_alloc(i + 1);
 		_fill_str(buf1[i], i); // fill random string data here.
 		_fill_str(buf2[i], i); // the fill is exactly i bytes long.
 	}
@@ -1247,14 +1247,14 @@ void _gen_hex_len_data() {
 	for (i = 1; i < _ISHEX_CNT; ++i) {
 		// each line is 2*i or 2*i+1 length.  The "", and 1 byte hex strings
 		// are handled by special code, NOT by the normal generic loop code.
-		_hex_even_lower[i] = malloc(i * 2 + 1);
-		_hex_even_upper[i] = malloc(i * 2 + 1);
-		_hex_even_mixed[i] = malloc(i * 2 + 1);
-		_hex_even_digits[i] = malloc(i * 2 + 1);
-		_hex_odd_lower[i] = malloc(i * 2 + 2);
-		_hex_odd_upper[i] = malloc(i * 2 + 2);
-		_hex_odd_mixed[i] = malloc(i * 2 + 2);
-		_hex_odd_digits[i] = malloc(i * 2 + 2);
+		_hex_even_lower[i] = mem_alloc(i * 2 + 1);
+		_hex_even_upper[i] = mem_alloc(i * 2 + 1);
+		_hex_even_mixed[i] = mem_alloc(i * 2 + 1);
+		_hex_even_digits[i] = mem_alloc(i * 2 + 1);
+		_hex_odd_lower[i] = mem_alloc(i * 2 + 2);
+		_hex_odd_upper[i] = mem_alloc(i * 2 + 2);
+		_hex_odd_mixed[i] = mem_alloc(i * 2 + 2);
+		_hex_odd_digits[i] = mem_alloc(i * 2 + 2);
 		// fill our 2 mIXed case hex strings.
 		_fill_hEx(_hex_even_mixed[i], i * 2, 0);
 		_fill_hEx(_hex_odd_mixed[i], i * 2 + 1, 0);
@@ -1296,7 +1296,7 @@ void _test_one_ishex(int (fn)(const char *), int uc, int lc, int odd) {
 	// a string is NOT hex, when it should pass.  All text lengths from 0
 	// to 512 are tested, in all 3 casing flavors.
 
-	Line = malloc(_ISHEX_CNT * 2 + 1);
+	Line = mem_alloc(_ISHEX_CNT * 2 + 1);
 	inc_test(); failed = 0; v = fn(NULL); if (v) inc_failed_test();
 	// this tests all the 3 even[0] strings, they are all ""
 	inc_test(); failed = 0; v = fn(""); if (v) inc_failed_test();
@@ -2103,7 +2103,7 @@ void _Load_NESSIE_hash_file(const char *fname) {
 				++n;
 				// replicate last message
 				// but append iterated x times message.
-				HTst[n].message = malloc(strlen(HTst[n - 1].message) + strlen(cp) + 4);
+				HTst[n].message = mem_alloc(strlen(HTst[n - 1].message) + strlen(cp) + 4);
 				sprintf(HTst[n].message, "%s - %s", HTst[n - 1].message, cp);
 				// test bits and data are SAME.
 				HTst[n].test_bits = HTst[n - 1].test_bits;
