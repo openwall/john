@@ -37,6 +37,7 @@ john_register_one(&fmt_aixssha512);
 #include "pbkdf2_hmac_sha1.h"
 #include "pbkdf2_hmac_sha256.h"
 #include "pbkdf2_hmac_sha512.h"
+#include "memory.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE               4	// MKPC and OMP_SCALE tuned for core i7
@@ -180,7 +181,7 @@ static int valid_sha512(char *ciphertext, struct fmt_main *self) {
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	static struct custom_salt cs;

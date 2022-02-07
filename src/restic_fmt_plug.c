@@ -120,7 +120,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
 
@@ -162,7 +162,7 @@ static void *get_binary(char *ciphertext)
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;

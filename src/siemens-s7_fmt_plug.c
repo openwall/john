@@ -95,7 +95,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (strnlen(ciphertext, CIPHERTEXT_LENGTH + 1) != CIPHERTEXT_LENGTH)
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;		/* skip over "$siemens-s7$" */
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* outcome, currently unused */
@@ -134,7 +134,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;

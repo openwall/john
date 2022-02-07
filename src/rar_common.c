@@ -177,7 +177,7 @@ static void *get_binary(char *ciphertext)
 	static fmt_data out;
 	rar_file *file = NULL;
 	unsigned int i, type, ex_len;
-	char *saltcopy = strdup(ciphertext);
+	char *saltcopy = xstrdup(ciphertext);
 	char *keep_ptr = saltcopy;
 	int inlined = 1;
 
@@ -351,7 +351,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	if (!(ctcopy = strdup(ciphertext))) {
+	if (!(ctcopy = xstrdup(ciphertext))) {
 		fprintf(stderr, "Memory allocation failed in %s, unable to check if hash is valid!", FORMAT_LABEL);
 		return 0;
 	}

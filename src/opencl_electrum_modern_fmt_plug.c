@@ -249,7 +249,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 
 	ctcopy += TAG_LENGTH;
@@ -286,7 +286,7 @@ static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
 	secp256k1_context *ctx;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i, length;

@@ -23,7 +23,7 @@ int strip_valid(char *ciphertext, struct fmt_main *self)
 	int extra;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$strip$" and first '*' */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt + data */
@@ -41,7 +41,7 @@ err:
 
 void *strip_get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;

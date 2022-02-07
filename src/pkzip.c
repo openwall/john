@@ -67,7 +67,7 @@ int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, WINZIP_FORMAT_TAG, WINZIP_TAG_LENGTH) || ciphertext[WINZIP_TAG_LENGTH] != '*')
 		return 0;
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 
@@ -190,7 +190,7 @@ void *winzip_common_get_salt(char *ciphertext)
 	uint64_t i;
 	winzip_salt salt, *psalt;
 	static unsigned char *ptr;
-	c8 *copy_mem = strdup(ciphertext);
+	c8 *copy_mem = xstrdup(ciphertext);
 	c8 *cp, *p;
 
 	if (!ptr)

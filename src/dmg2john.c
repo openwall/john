@@ -362,7 +362,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 				fprintf(stderr, "Unusual keyblobsize found in %s\n", filename);
 				goto bailout;
 			}
-			v2_password_header.keyblob = mem_alloc(v2_password_header.keyblobsize);
+			v2_password_header.keyblob = malloc(v2_password_header.keyblobsize);
 			if (!v2_password_header.keyblob) {
 				fprintf(stderr, "Error allocating memory while processing %s\n", filename);
 				goto bailout;
@@ -447,7 +447,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 		}
 
 		/* read starting chunk(s) */
-		chunk1 = (unsigned char *)mem_alloc(data_size);
+		chunk1 = (unsigned char *)malloc(data_size);
 		if (lseek(fd, header2.dataoffset + cno * 4096LL, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			free(chunk1);

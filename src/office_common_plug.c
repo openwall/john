@@ -13,7 +13,7 @@
 void *ms_office_common_get_salt(char *ciphertext)
 {
 	int i;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy, *p;
 	static ms_office_custom_salt cur_salt;
 
@@ -46,7 +46,7 @@ void *ms_office_common_binary(char *ciphertext)
 {
 	static fmt_data data;
 	int i, length;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy, *p;
 	ms_office_binary_blob *blob;
 
@@ -86,7 +86,7 @@ int ms_office_common_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG_OFFICE, FORMAT_TAG_OFFICE_LEN))
 		return 0;
-	if (!(ctcopy = strdup(ciphertext))) {
+	if (!(ctcopy = xstrdup(ciphertext))) {
 		fprintf(stderr, "Memory allocation failed in office format, unable to check if hash is valid!");
 		return 0;
 	}

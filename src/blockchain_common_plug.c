@@ -31,7 +31,7 @@ int blockchain_common_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL)
@@ -64,7 +64,7 @@ err:
 
 void *blockchain_common_get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;

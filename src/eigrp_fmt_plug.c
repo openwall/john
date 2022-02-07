@@ -111,7 +111,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
-	ptrkeep = strdup(ciphertext);
+	ptrkeep = xstrdup(ciphertext);
 	p = &ptrkeep[TAG_LENGTH];
 
 	if ((p = strtokm(p, "$")) == NULL)

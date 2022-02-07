@@ -84,7 +84,7 @@ int pbkdf2_hmac_md4_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	ciphertext += PBKDF2_MD4_TAG_LEN;
 	delim = strchr(ciphertext, '.') ? "." : "$";
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	if (!(ptr = strtokm(ctcopy, delim)))
@@ -228,7 +228,7 @@ int pbkdf2_hmac_md5_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	ciphertext += PBKDF2_MD5_TAG_LEN;
 	delim = strchr(ciphertext, '.') ? "." : "$";
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	if (!(ptr = strtokm(ctcopy, delim)))
@@ -384,7 +384,7 @@ int pbkdf2_hmac_sha1_valid(char *ciphertext, struct fmt_main *self) {
 		return 0;
 	ciphertext += PBKDF2_SHA1_TAG_LEN;
 	delim = strchr(ciphertext, '.') ? "." : "$";
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	if (!(ptr = strtokm(ctcopy, delim)))
@@ -705,7 +705,7 @@ int pbkdf2_hmac_sha512_valid(char *ciphertext, struct fmt_main *self) {
 	if (strlen(ciphertext) > PBKDF2_SHA512_MAX_CIPHERTEXT_LENGTH)
 		return 0;
 	ciphertext += PBKDF2_SHA512_TAG_LEN;
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	if (!(ptr = strtokm(ctcopy, ".")))

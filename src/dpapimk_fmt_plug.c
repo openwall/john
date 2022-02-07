@@ -151,7 +151,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;                /* skip over "$DPAPImk$" */
 	if ((p = strtokm(ctcopy, "*")) == NULL)  /* version */
@@ -207,7 +207,7 @@ err:
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;

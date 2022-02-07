@@ -52,7 +52,7 @@ int odf_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* cipher type */
@@ -134,7 +134,7 @@ err:
 
 void *odf_get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
@@ -187,7 +187,7 @@ void *odf_get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i, type, len;
-	char *ctcopy = strdup(ciphertext + FORMAT_TAG_LEN);
+	char *ctcopy = xstrdup(ciphertext + FORMAT_TAG_LEN);
 
 	memset(&buf, 0, sizeof(buf));
 	p = strtokm(ctcopy, "*");

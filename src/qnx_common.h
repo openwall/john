@@ -31,7 +31,7 @@
 
 /* ------- Check if the ciphertext if a valid QNX crypt ------- */
 static int valid(char *ciphertext, struct fmt_main *self) {
-	char *origptr = strdup(ciphertext), *ct = origptr;
+	char *origptr = xstrdup(ciphertext), *ct = origptr;
 	int len, ret = 0;
 
 	if (*ct != '@')

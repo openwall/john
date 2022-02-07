@@ -91,7 +91,7 @@ int telegram_check_password(unsigned char *authkey, struct custom_salt *cs)
 void *telegram_get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
@@ -153,7 +153,7 @@ int telegram_valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 
 	ctcopy += TAG_LENGTH;

@@ -222,7 +222,7 @@ static void *get_salt(char *ciphertext)
 	char qop[9];
 	char authzid[8];
 	unsigned char *ptr_src, *ptr_dst, v, i;
-	char *ccopy = strdup(ciphertext);
+	char *ccopy = xstrdup(ciphertext);
 	char *p, *data = ccopy + FORMAT_TAG_LEN;
 	MD5_CTX ctx;
 	char A2[DSIZE + sizeof(digest_uri)];

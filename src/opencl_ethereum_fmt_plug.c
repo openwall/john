@@ -218,7 +218,7 @@ static int ethereum_valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 
 	ctcopy += TAG_LENGTH;

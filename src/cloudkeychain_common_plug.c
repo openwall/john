@@ -29,7 +29,7 @@ int cloudkeychain_valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* salt length */

@@ -213,7 +213,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p = NULL;
 	if (strncmp(ciphertext, CLIPPERZSIG, CLIPPERZSIGLEN))
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += CLIPPERZSIGLEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)
