@@ -36,6 +36,7 @@
 #include "crc32.h"
 #include "logger.h"
 #include "7z_common.h"
+#include "memory.h"
 
 struct fmt_tests sevenzip_tests[] = {
 	/* CRC checks passes for this hash (4 bytes of padding) */
@@ -284,7 +285,7 @@ void *sevenzip_get_salt(char *ciphertext)
 		cs.crc = atou(p); /* unsigned function */
 	p = strtokm(NULL, "$");
 	cs.aes_length = atoll(p);
-	psalt = malloc(sizeof(sevenzip_salt_t) + cs.aes_length - 1);
+	psalt = mem_alloc(sizeof(sevenzip_salt_t) + cs.aes_length - 1);
 	memcpy(psalt, &cs, sizeof(cs));
 	p = strtokm(NULL, "$");
 	psalt->packed_size = atoll(p);

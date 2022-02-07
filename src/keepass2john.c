@@ -252,7 +252,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	printf("*");
 	print_hex(contents_hash, 32);
 
-	buffer = (unsigned char*)malloc(datasize * sizeof(char));
+	buffer = (unsigned char*)mem_alloc(datasize * sizeof(char));
 
 	/* we inline the content with the hash */
 	fprintf(stderr, "Inlining %s\n", encryptedDatabase);
@@ -269,7 +269,7 @@ static void process_old_database(FILE *fp, char* encryptedDatabase)
 	MEM_FREE(buffer);
 
 	if (keyfile) {
-		buffer = (unsigned char*)malloc(filesize_keyfile * sizeof(char));
+		buffer = (unsigned char*)mem_alloc(filesize_keyfile * sizeof(char));
 		printf("*1*64*"); /* inline keyfile content */
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1) {
 			warn("%s: Error: read failed: %s.",
@@ -383,7 +383,7 @@ static void process_database(char* encryptedDatabase)
 			goto bailout;
 		}
 		if (uSize > 0) {
-			pbData = (unsigned char*)malloc(uSize);
+			pbData = (unsigned char*)mem_alloc(uSize);
 			if (!pbData || fread(pbData, uSize, 1, fp) != 1) {
 				fprintf(stderr, "error allocating / reading pbData, is the database corrupt?\n");
 				MEM_FREE(pbData);
@@ -513,7 +513,7 @@ static void process_database(char* encryptedDatabase)
 	print_hex(out, 32);
 
 	if (keyfile) {
-		buffer = (unsigned char*)malloc(filesize_keyfile * sizeof(char));
+		buffer = (unsigned char*)mem_alloc(filesize_keyfile * sizeof(char));
 		printf("*1*64*"); /* inline keyfile content */
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1) {
 			warn("%s: Error: read failed: %s.",
@@ -583,7 +583,7 @@ int main(int argc, char **argv)
 	while ((c = getopt(argc, argv, "k:")) != -1) {
 		switch (c) {
 		case 'k':
-			keyfile = (char *)malloc(strlen(optarg) + 1);
+			keyfile = (char *)mem_alloc(strlen(optarg) + 1);
 			strcpy(keyfile, optarg);
 			break;
 		case '?':
