@@ -1939,7 +1939,7 @@ unsigned char *_parse_NESSIE(const char *cp, uint64_t bits) {
 	char c;
 
 	bytes = (bits + 7) / 8;
-	p = bytes ? calloc(1, bytes) : calloc (1,1);
+	p = bytes ? mem_calloc(1, bytes) : mem_calloc (1,1);
 	pRet = p;
 
 	if (*cp == '\"') {
@@ -2059,7 +2059,7 @@ void _Load_NESSIE_hash_file(const char *fname) {
 		return;
 	}
 	// Now allocate
-	HTst = (Hash_Tests*)calloc(nHTst, sizeof(Hash_Tests));
+	HTst = (Hash_Tests*)mem_calloc(nHTst, sizeof(Hash_Tests));
 
 	// Now, re-read the file, and load the hash tests.
 	in = fopen(fname, "r");
@@ -2107,7 +2107,7 @@ void _Load_NESSIE_hash_file(const char *fname) {
 				sprintf(HTst[n].message, "%s - %s", HTst[n - 1].message, cp);
 				// test bits and data are SAME.
 				HTst[n].test_bits = HTst[n - 1].test_bits;
-				HTst[n].test_data = calloc(1, (HTst[n].test_bits + 7) / 8);
+				HTst[n].test_data = mem_calloc(1, (HTst[n].test_bits + 7) / 8);
 				// The hash we will read from the file, starting
 				// with THIS line.
 				HTst[n].cur = HTst[n].hash;
@@ -2205,7 +2205,7 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 		// handle monte-carlo
 		// here, we simply read the seed, and the expected hash values.
 		nHTst = 100;
-		HTst = calloc(nHTst, sizeof(HTst[0]));
+		HTst = mem_calloc(nHTst, sizeof(HTst[0]));
 
 		// handle getting the seed, AND hashes from the file
 		// we put the seed into HTst[0].test_data
@@ -2218,7 +2218,7 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 				sscanf(cpLB, "[L = %d]", &len);
 			} else if (!strncmp(cpLB, "Seed = ", 7)) {
 				HTst[0].test_bits = len * 8;
-				HTst[0].test_data = calloc(1, HTst[0].test_bits / 8);
+				HTst[0].test_data = mem_calloc(1, HTst[0].test_bits / 8);
 				ParseHex(HTst[0].test_data, &cpLB[7], HTst[0].test_bits / 8);
 			} else if (!strncmp(cpLB, "MD = ", 5)) {
 				strcpy(HTst[n].hash, &cpLB[5]);
@@ -2242,7 +2242,7 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 		cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 	}
 	// Ok, now we know how many variables we have
-	HTst = calloc(nHTst, sizeof(HTst[0]));
+	HTst = mem_calloc(nHTst, sizeof(HTst[0]));
 
 	// start over in the file.
 	fseek(in, 0, SEEK_SET);
@@ -2254,7 +2254,7 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 			++n;
 			sscanf(cpLB, "Len = %"PRIu64, &HTst[n].test_bits);
 			if (HTst[n].test_bits)
-				HTst[n].test_data = calloc(1, HTst[n].test_bits / 8);
+				HTst[n].test_data = mem_calloc(1, HTst[n].test_bits / 8);
 		} else if (!strncmp(cpLB, "Msg = ", 6)) {
 			HTst[n].message = strdup(cpLB);
 			ParseHex(HTst[n].test_data, &cpLB[6], HTst[n].test_bits / 8);
