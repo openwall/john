@@ -301,7 +301,7 @@ void *mem_calloc_align(size_t count, size_t size, size_t align)
 	}
 
 	void *ptr = mem_alloc_align(total, align);
-	memset(ptr, 0, size * count);
+	memset(ptr, 0, total);
 	return ptr;
 }
 
