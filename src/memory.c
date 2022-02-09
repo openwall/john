@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010,2012,2016 by Solar Designer
+ * Copyright (c) 1996-2022 by Solar Designer
+ *
+ * With many changes in jumbo by other contributors.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -243,8 +245,12 @@ void *mem_alloc_align(size_t size, size_t align)
 	if (!size)
 		return NULL;
 #ifdef DEBUG
-    assert(!(align & (align - 1)));
+	assert(!(align & (align - 1)));
 #endif
+	if (size + (align - 1) < size) {
+		fprintf(stderr, "mem_alloc_align(): %s\n", strerror(ENOMEM));
+		error();
+	}
 #if HAVE_POSIX_MEMALIGN
 	if (posix_memalign(&ptr, align, size))
 		pexit("posix_memalign ("Zu" bytes)", size);
@@ -288,8 +294,13 @@ void *mem_alloc_align(size_t size, size_t align)
 
 void *mem_calloc_align(size_t count, size_t size, size_t align)
 {
-	void *ptr = mem_alloc_align(size * count, align);
+	size_t total = count * size;
+	if (total / size != count) {
+		fprintf(stderr, "mem_calloc_align(): %s\n", strerror(ENOMEM));
+		error();
+	}
 
+	void *ptr = mem_alloc_align(total, align);
 	memset(ptr, 0, size * count);
 	return ptr;
 }
