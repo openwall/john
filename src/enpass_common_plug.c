@@ -4,6 +4,7 @@
 
 #include "arch.h"
 #include "misc.h"
+#include "memory.h"
 #include "common.h"
 #include "enpass_common.h"
 
@@ -13,7 +14,7 @@ int enpass_valid(char *ciphertext, struct fmt_main *self)
 	int extra;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* version */
