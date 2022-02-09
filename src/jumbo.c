@@ -353,8 +353,14 @@ int setenv(const char *name, const char *val, int overwrite) {
 		if (str)
 			return 0;
 	}
+	if (strlen(name) > 0x10000000 || strlen(val) > 0x10000000) {
+		errno = ENOMEM;
+		return -1;
+	}
 	len = strlen(name)+1+strlen(val)+1;
 	str = malloc(len);
+	if (!str)
+		return -1;
 	sprintf(str, "%s=%s", name, val);
 	putenv(str);
 	return 0;
