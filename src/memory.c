@@ -129,15 +129,15 @@ void *mem_realloc(void *old_ptr, size_t size)
 	return res;
 }
 
-char *xstrdup (const char* str)
+char *xstrdup(const char *str)
 {
 	char *res = strdup(str);
 
-	if (res == NULL) {
-		fprintf(stderr, "xstrdup(): %s\n", strerror (ENOMEM));
+	if (!res) {
+		fprintf(stderr, "xstrdup(): %s\n", strerror(ENOMEM));
 		error();
 	}
-	
+
 	return res;
 }
 
