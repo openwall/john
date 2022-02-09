@@ -327,7 +327,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "Failed running crypt kernel");
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(zip_hash) * crack_count_ret, outbuffer, 0, NULL, multi_profilingEvent[3]), "failed reading results back");
 
-		cl_uint zero = 0;
+		static const cl_uint zero = 0;
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &zero, 0, NULL, NULL), "Failed resetting crack return");
 	}
 
