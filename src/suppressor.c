@@ -7,6 +7,7 @@
 
 #include "common.h"
 #include "memory.h"
+#include "john.h"
 #include "cracker.h"
 #include "logger.h"
 #include "options.h"
@@ -50,9 +51,11 @@ void suppressor_init(unsigned int new_flags)
 		if (cfg_get_bool(SECTION_OPTIONS, ":Suppressor", "LockHalf", 1))
 			Klock = K / 2;
 
-		const char *msg = "Enabling duplicate candidate password suppressor";
-		log_event("%s", msg);
-		fprintf(stderr, "%s\n", msg);
+		if (john_main_process) {
+			const char *msg = "Enabling duplicate candidate password suppressor";
+			log_event("%s", msg);
+			fprintf(stderr, "%s\n", msg);
+		}
 
 		filter = mem_calloc_align(N, sizeof(*filter), MEM_ALIGN_CACHE);
 
@@ -71,7 +74,10 @@ static void suppressor_done(void)
 {
 	const char *msg = "Disabling duplicate candidate password suppressor";
 	log_event("%s (accepted %llu, rejected %llu)", msg, status.suppressor_miss, status.suppressor_hit);
-	fprintf(stderr, "%s\n", msg);
+	if (NODES > 1)
+		fprintf(stderr, "%d: %s\n", NODE, msg);
+	else
+		fprintf(stderr, "%s\n", msg);
 
 	MEM_FREE(filter);
 
