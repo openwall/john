@@ -80,6 +80,7 @@ size_t ocl_max_lws;
 static char opencl_log[LOG_SIZE];
 static int opencl_initialized;
 int opencl_unavailable;
+int opencl_avoid_busy_wait[MAX_GPU_DEVICES];
 
 static void load_device_info(int sequential_id);
 static char* get_device_capability(int sequential_id);
@@ -2387,6 +2388,19 @@ int opencl_prepare_dev(int sequential_id)
 	else
 		ocl_always_show_ws = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL,
 		                                  "AlwaysShowWorksizes", 0);
+
+	if (gpu_nvidia(device_info[sequential_id])) {
+		opencl_avoid_busy_wait[sequential_id] = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_GPU,
+		                                                     "AvoidBusyWait", 1);
+		static int warned;
+
+		/* Remove next line once (nearly) all formats has got the macros */
+		if (!opencl_avoid_busy_wait[sequential_id])
+		if (!warned) {
+			warned = 1;
+			log_event("- Busy-wait reduction %sabled", opencl_avoid_busy_wait[sequential_id] ? "en" : "dis");
+		}
+	}
 
 	return sequential_id;
 }
