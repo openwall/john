@@ -130,6 +130,7 @@ extern size_t ocl_max_lws;
 extern struct db_main *ocl_autotune_db;
 extern int autotune_real_db;
 extern int opencl_unavailable;
+extern int opencl_avoid_busy_wait[MAX_GPU_DEVICES];
 
 #define ocl_any_test_running	(bench_or_test_running || ocl_autotune_running)
 
@@ -339,14 +340,14 @@ void opencl_process_event(void);
 	static unsigned int wait_index; \
 	uint64_t wait_start = 0;
 #define WAIT_SLEEP \
-	if (gpu_nvidia(device_info[gpu_id])) { \
+	if (opencl_avoid_busy_wait[gpu_id]) { \
 		wait_start = john_get_nano(); \
 		uint64_t us = wait_min >> 10; /* 2.4% less than min */ \
 		if (wait_sleep && us >= 1000) \
 			usleep(us); \
 	}
 #define WAIT_UPDATE \
-	if (gpu_nvidia(device_info[gpu_id])) { \
+	if (opencl_avoid_busy_wait[gpu_id]) { \
 		uint64_t wait_new = john_get_nano() - wait_start; \
 		if (wait_new < wait_min && wait_new < wait_min * 1000 / 1012) /* 1.2% less than min */ \
 			wait_new = wait_new * 7 / 8; /* we might have overslept and don't know by how much */ \
