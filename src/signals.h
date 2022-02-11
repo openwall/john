@@ -66,7 +66,7 @@ extern void sig_timer_emu_tick(void);
 #endif
 
 /*
- * Mitigate a race condition where a children receives a SIGUSR2 before
+ * Mitigate a race condition where a child could receive a signal before
  * being prepared for it.
  */
 void sig_preinit(void);

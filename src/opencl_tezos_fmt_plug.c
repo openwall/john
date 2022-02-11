@@ -281,36 +281,31 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				NULL, &gws, lws, 0, NULL,
 				multi_profilingEvent[1]), "Run kernel");
 
-	// Better precision for WAIT_ macros
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
-
-	WAIT_INIT(gws)
+	WAIT2_INIT(multi_profilingEvent[4]);
 	for (i = 0; i < (ocl_autotune_running ? 1 : loops); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 					split_kernel, 1, NULL,
 					&gws, lws, 0, NULL,
 					multi_profilingEvent[2]), "Run split kernel");
-		WAIT_SLEEP
-		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
-		WAIT_UPDATE
+
+		/* Dummy read for WAIT2 macro */
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_FALSE, 0,
+				sizeof(*cracked), cracked,
+				0, NULL, multi_profilingEvent[4]), "Copy result back");
+
+		WAIT2_FINISH(multi_profilingEvent[4]);
 		opencl_process_event();
 	}
-	WAIT_DONE
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 				final_kernel, 1, NULL,
 				&gws, (local_work_size <= final_kernel_max_lws) ? lws : NULL, 0, NULL,
 				multi_profilingEvent[3]), "Run final kernel");
+
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_final, CL_FALSE, 0,
 				sizeof(*cracked), cracked,
 				0, NULL, multi_profilingEvent[4]), "Copy result back");
-
-	WAIT_INIT(gws)
-	BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
-	WAIT_SLEEP
-	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
-	WAIT_UPDATE
-	WAIT_DONE
+	WAIT2_FINISH(multi_profilingEvent[4]);
 
 	if (*cracked) {
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_final, CL_TRUE, 0,

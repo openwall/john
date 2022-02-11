@@ -145,7 +145,8 @@ static void sig_install(void *handler, int signum)
 
 	memset(&sa, 0, sizeof(sa));
 	sa.sa_handler = handler;
-	sa.sa_flags = SA_RESTART;
+	if (signum != SIGUSR2)
+		sa.sa_flags = SA_RESTART;
 	sigaction(signum, &sa, NULL);
 #else
 	signal(signum, handler);
@@ -167,7 +168,7 @@ static void sig_remove_update(void)
 }
 
 #ifdef SIGUSR2
-static void sig_remove_reload(void)
+static void sig_remove_usr2(void)
 {
 	signal(SIGUSR2, SIG_IGN);
 }
@@ -304,7 +305,7 @@ static void sig_remove_abort(void)
 static void sig_install_timer(void);
 #ifndef BENCH_BUILD
 #ifdef SIGUSR2
-static void sig_handle_reload(int signum);
+static void sig_handle_usr2(int signum);
 #endif
 #endif
 
@@ -335,9 +336,6 @@ static void sig_handle_timer(int signum)
 		}
 #endif
 		event_poll_files = event_pending = 1;
-#ifdef SIGUSR2
-		sig_install(sig_handle_reload, SIGUSR2);
-#endif
 	}
 	if (!--timer_save_value) {
 		event_save = event_pending = 1;
@@ -368,9 +366,6 @@ static void sig_handle_timer(int signum)
 		}
 #endif
 		event_poll_files = event_pending = 1;
-#ifdef SIGUSR2
-		sig_install(sig_handle_reload, SIGUSR2);
-#endif
 	}
 	if (time >= timer_save_value) {
 		timer_save_value += timer_save_interval;
@@ -545,21 +540,9 @@ static void sig_handle_status(int signum)
 
 #ifndef BENCH_BUILD
 #ifdef SIGUSR2
-static void sig_handle_reload(int signum)
+static void sig_handle_usr2(int signum)
 {
-#if OS_FORK && !defined(BENCH_BUILD)
-	if (!event_reload && options.fork) {
-		if (john_main_process)
-			signal_children(signum);
-		else
-			kill(getppid(), signum);
-	}
-#endif
-	if (!event_abort)
-		event_reload = 1;
-	/* Avoid loops from signalling ppid. We re-enable this signal
-	   in sig_handle_timer() */
-	signal(signum, SIG_IGN);
+	sig_install(sig_handle_usr2, SIGUSR2);
 }
 #endif
 #endif
@@ -568,11 +551,11 @@ static void sig_done(void);
 
 void sig_preinit(void)
 {
-#ifdef SIGUSR2
-	sig_remove_reload();
-#endif
 #ifdef SIGUSR1
 	sig_install(sig_handle_status, SIGUSR1);
+#endif
+#ifdef SIGUSR2
+	sig_install(sig_handle_usr2, SIGUSR2);
 #endif
 }
 
@@ -634,7 +617,7 @@ void sig_init_child(void)
 	sig_install(sig_handle_status, SIGUSR1);
 #endif
 #ifdef SIGUSR2
-	sig_remove_reload();
+	sig_install(sig_handle_usr2, SIGUSR2);
 #endif
 }
 
@@ -644,7 +627,7 @@ static void sig_done(void)
 	sig_remove_abort();
 	sig_remove_timer();
 #ifdef SIGUSR2
-	sig_remove_reload();
+	sig_remove_usr2();
 #endif
 }
 

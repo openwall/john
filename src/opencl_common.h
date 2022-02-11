@@ -131,6 +131,8 @@ extern struct db_main *ocl_autotune_db;
 extern int autotune_real_db;
 extern int opencl_unavailable;
 extern int opencl_avoid_busy_wait[MAX_GPU_DEVICES];
+extern int opencl_sleep_pid;
+extern cl_event opencl_sleep_event;
 
 #define ocl_any_test_running	(bench_or_test_running || ocl_autotune_running)
 
@@ -155,6 +157,9 @@ extern int device_info[MAX_GPU_DEVICES];
 #define GWS_CONFIG_NAME         "_GWS"
 #define DUR_CONFIG_NAME         "_MaxDuration"
 #define FALSE               0
+
+extern void opencl_sleep(void);
+extern void opencl_event_callback(cl_event event, cl_int event_command_exec_status, void* user_data);
 
 size_t opencl_read_source(const char *kernel_filename, char **kernel_source);
 
@@ -331,6 +336,19 @@ void opencl_process_event(void);
 
 #define GET_EXACT_MULTIPLE(dividend, divisor)	  \
 	(divisor) ? ((dividend > divisor) ? ((dividend / divisor) * divisor) : divisor) : dividend
+
+#define ns2s(ns) human_prefix_small((ns) / 1E9)
+
+#define WAIT2_INIT(event)	if (!event) event = &opencl_sleep_event
+
+#define WAIT2_FINISH(event)	  \
+	if (opencl_avoid_busy_wait[gpu_id]) { \
+		if (clSetEventCallback(*event, CL_COMPLETE, &opencl_event_callback, NULL) == CL_SUCCESS) { \
+			BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush"); \
+			opencl_sleep(); \
+		} \
+	} \
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish")
 
 #define WAIT_INIT(work_size) { \
 	static uint64_t wait_last_work_size; \

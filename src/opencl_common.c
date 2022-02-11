@@ -132,6 +132,23 @@ cl_event *multi_profilingEvent[MAX_EVENTS];
 int device_info[MAX_GPU_DEVICES];
 static ocl_device_details ocl_device_list[MAX_GPU_DEVICES];
 
+int opencl_sleep_pid;
+cl_event opencl_sleep_event;
+
+void opencl_sleep(void)
+{
+	struct timeval timeout = { 10, 0 };
+
+	select(0, NULL, NULL, NULL, &timeout);
+}
+
+void opencl_event_callback(cl_event event, cl_int status, void* user_data)
+{
+	if (status != CL_COMPLETE)
+		fprintf(stderr, "** callback status %d\n", status);
+	kill(opencl_sleep_pid, SIGUSR2);
+}
+
 void opencl_process_event(void)
 {
 	if (!ocl_autotune_running && !bench_or_test_running) {
@@ -2390,10 +2407,11 @@ int opencl_prepare_dev(int sequential_id)
 		                                  "AlwaysShowWorksizes", 0);
 
 	if (gpu_nvidia(device_info[sequential_id])) {
-		opencl_avoid_busy_wait[sequential_id] = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_GPU,
-		                                                     "AvoidBusyWait", 1);
 		static int warned;
 
+		opencl_avoid_busy_wait[sequential_id] = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_GPU,
+		                                                     "AvoidBusyWait", 1);
+		opencl_sleep_pid = getpid(); \
 		/* Remove next line once (nearly) all formats has got the macros */
 		if (!opencl_avoid_busy_wait[sequential_id])
 		if (!warned) {
