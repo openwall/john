@@ -271,7 +271,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL) // data
 		goto err;
-	if (hexlenl(p, &extra) > 32 * 2 || extra)
+	if (hexlenl(p, &extra) != 32 * 2 || extra)
+		goto err;
+	if (strtokm(NULL, "*")) // no more fields
 		goto err;
 
 	MEM_FREE(keeptr);
