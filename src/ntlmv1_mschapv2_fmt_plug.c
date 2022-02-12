@@ -516,6 +516,9 @@ static char *chap_prepare(char *split_fields[10], struct fmt_main *pFmt)
 	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN)) {
 		// check for a short format that has any extra trash fields, and if so remove them.
 		char *cp1, *cp2, *cp3;
+		static char *out;
+		if (!out)
+			out = mem_alloc_tiny(FORMAT_TAG_LEN + CHAP_CHALLENGE_LENGTH/4 + 1 + CIPHERTEXT_LENGTH + 3, MEM_ALIGN_NONE);
 		cp1 = split_fields[1];
 		cp1 += FORMAT_TAG_LEN;
 		cp2 = strchr(cp1, '$');
@@ -523,8 +526,9 @@ static char *chap_prepare(char *split_fields[10], struct fmt_main *pFmt)
 		if (cp2 && cp2-cp1 == CHAP_CHALLENGE_LENGTH/4) {
 			++cp2;
 			cp3 = strchr(cp2, '$');
-			if (cp3 && cp3-cp2 == CIPHERTEXT_LENGTH && (strlen(cp3) > 2 || cp3[2] != '$')) {
-				ret = str_alloc_copy(split_fields[1]);
+			if (cp3 && cp3-cp2 == CIPHERTEXT_LENGTH && (strlen(cp3) > 2 || cp3[1] != '$')) {
+				ret = out;
+				memcpy(ret, split_fields[1], cp3-split_fields[1] + 1);
 				ret[(cp3-split_fields[1]) + 1] = '$';
 				ret[(cp3-split_fields[1]) + 2] = 0;
 				//printf("Here is the cut item: %s\n", ret);
