@@ -61,6 +61,7 @@ john_register_one(&fmt_truecrypt_whirlpool);
 #include "pbkdf2_hmac_sha512.h"
 #include "pbkdf2_hmac_ripemd160.h"
 #include "pbkdf2_hmac_whirlpool.h"
+#include "john.h"
 
 /* 64 is the actual maximum used by Truecrypt software as of version 7.1a */
 #define PLAINTEXT_LENGTH        64
@@ -327,12 +328,18 @@ static void* get_salt(char *ciphertext)
 		/* read this into keyfiles_data[idx] */
 		fp = fopen(tpath, "rb");
 		if (!fp)
-			pexit("fopen %s", p);
+			pexit("fopen %s", tpath);
 
 		if (fseek(fp, 0L, SEEK_END) == -1)
 			pexit("fseek");
 
 		sz = ftell(fp);
+
+		if (sz > MAX_KFILE_SZ) {
+			if (john_main_process)
+				fprintf(stderr, "Error: keyfile '%s' is bigger than maximum size (MAX_KFILE_SZ is %d).\n", tpath, MAX_KFILE_SZ);
+			error();
+		}
 
 		if (fseek(fp, 0L, SEEK_SET) == -1)
 			pexit("fseek");

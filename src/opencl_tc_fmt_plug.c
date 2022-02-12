@@ -153,9 +153,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-
-	keyfiles_data = mem_calloc(MAX_KEYFILES, sizeof(*keyfiles_data));
-	keyfiles_length = mem_calloc(MAX_KEYFILES, sizeof(int));
 }
 
 static void release_clobj(void)
@@ -167,13 +164,13 @@ static void release_clobj(void)
 
 		MEM_FREE(inbuffer);
 		MEM_FREE(outbuffer);
-		MEM_FREE(keyfiles_data);
-		MEM_FREE(keyfiles_length);
 	}
 }
 
 static void done(void)
 {
+	MEM_FREE(keyfiles_data);
+	MEM_FREE(keyfiles_length);
 	if (program[gpu_id]) {
 		release_clobj();
 
@@ -188,6 +185,9 @@ static void init(struct fmt_main *_self)
 {
 	self = _self;
 	opencl_prepare_dev(gpu_id);
+
+	keyfiles_data = mem_calloc(MAX_KEYFILES, sizeof(*keyfiles_data));
+	keyfiles_length = mem_calloc(MAX_KEYFILES, sizeof(int));
 }
 
 static void reset(struct db_main *db)
@@ -311,12 +311,18 @@ static void* get_salt(char *ciphertext)
 		/* read this into keyfiles_data[idx] */
 		fp = fopen(tpath, "rb");
 		if (!fp)
-			pexit("fopen %s", p);
+			pexit("fopen %s", tpath);
 
 		if (fseek(fp, 0L, SEEK_END) == -1)
 			pexit("fseek");
 
 		sz = ftell(fp);
+
+		if (sz > MAX_KFILE_SZ) {
+			if (john_main_process)
+				fprintf(stderr, "Error: keyfile '%s' is bigger than maximum size (MAX_KFILE_SZ is %d).\n", tpath, MAX_KFILE_SZ);
+			error();
+		}
 
 		if (fseek(fp, 0L, SEEK_SET) == -1)
 			pexit("fseek");
@@ -370,9 +376,9 @@ static void AES_256_XTS_first_sector(const unsigned char *double_key,
 	}
 }
 
-static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles)
+static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles, unsigned int pass_len)
 {
-	int pl, k;
+	int k;
 	unsigned char *kpool;
 	unsigned char *kdata;
 	int kpool_idx;
@@ -383,8 +389,7 @@ static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles)
 		error();
 	}
 
-	pl = strlen((char*)pass);
-	memset(pass+pl, 0, MAX_PASSSZ-pl);
+	memset(pass+pass_len, 0, MAX_PASSSZ-pass_len);
 
 	if ((kpool = mem_calloc(1, KPOOL_SZ)) == NULL) {
 		error();
@@ -428,7 +433,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	if (psalt->nkeyfiles) {
 		for (i = 0; i < count; i++) {
-			apply_keyfiles(inbuffer[i].v, 64, psalt->nkeyfiles);
+			apply_keyfiles(inbuffer[i].v, 64, psalt->nkeyfiles, inbuffer[i].length);
 			inbuffer[i].length = 64;
 		}
 	}
@@ -485,7 +490,7 @@ static int cmp_exact(char *source, int idx)
 
 	/* process keyfile(s) */
 	if (psalt->nkeyfiles) {
-		apply_keyfiles(key, 64, psalt->nkeyfiles);
+		apply_keyfiles(key, 64, psalt->nkeyfiles, inbuffer[idx].length);
 		ksz = 64;
 	}
 
