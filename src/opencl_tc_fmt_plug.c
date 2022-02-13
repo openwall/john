@@ -221,7 +221,9 @@ static int valid(char* ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 	char *p, *q;
-	int nkeyfiles = -1;
+	int nkeyfiles, idx;
+	char tpath[PATH_BUFFER_SIZE];
+	size_t len;
 
 	if (strncmp(ciphertext, TAG_RIPEMD160, TAG_RIPEMD160_LEN))
 		return 0;
@@ -236,10 +238,38 @@ static int valid(char* ciphertext, struct fmt_main *self)
 	} else {
 		if (q - p != 512 * 2)
 			return 0;
-		/* check keyfile(s) */
+		/* check number of keyfile(s) */
 		p = q + 1;
+		q = strchr(p, '$');
+		if (!q) /* number implies at least 1 filename */
+			return 0;
+		/* We use same buffer for number. */
+		len = q - p;
+		if (len > sizeof(tpath) - 1)
+			return 0;
+		memcpy(tpath, p, len);
+		tpath[len] = '\0';
+		if (!isdec(tpath))
+			return 0;
 		nkeyfiles = atoi(p);
 		if (nkeyfiles > MAX_KEYFILES || nkeyfiles < 1)
+			return 0;
+		/* check keyfile(s) */
+		for (idx = 0; idx < nkeyfiles; idx++) {
+			p = strchr(p, '$') + 1;
+			q = strchr(p, '$');
+
+			if (!q) { // last file
+				if (idx != nkeyfiles - 1)
+					return 0;
+				len = strlen(p);
+			} else {
+				len = q - p;
+			}
+			if (len > sizeof(tpath) - 1)
+				return 0;
+		}
+		if (q) // last expected filename is not last
 			return 0;
 	}
 
@@ -269,11 +299,11 @@ static void* get_salt(char *ciphertext)
 	static char buf[sizeof(struct cust_salt)+4];
 	struct cust_salt *s = (struct cust_salt*)mem_align(buf, 4);
 	unsigned int i;
-	char tpath[PATH_BUFFER_SIZE] = { 0 };
+	char tpath[PATH_BUFFER_SIZE];
 	char *p, *q;
 	int idx;
 	FILE *fp;
-	size_t sz;
+	size_t sz, len;
 
 	memset(s, 0, sizeof(struct cust_salt));
 
@@ -302,12 +332,18 @@ static void* get_salt(char *ciphertext)
 		q = strchr(p, '$');
 
 		if (!q) { // last file
-			memset(tpath, 0, sizeof(tpath) - 1);
-			strncpy(tpath, p, sizeof(tpath));
+			len = strlen(p);
 		} else {
-			memset(tpath, 0, sizeof(tpath) - 1);
-			strncpy(tpath, p, q-p);
+			len = q - p;
 		}
+		if (len > sizeof(tpath) - 1) {
+			// should never get here!  valid() should catch all lines with overly long paths
+			if (john_main_process)
+				fprintf(stderr, "Error, path is too long in truecrypt_opencl::get_salt(), [%.10s...]\n", p);
+			error();
+		}
+		memcpy(tpath, p, len);
+		tpath[len] = '\0';
 		/* read this into keyfiles_data[idx] */
 		fp = fopen(tpath, "rb");
 		if (!fp)
