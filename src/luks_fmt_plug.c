@@ -96,17 +96,6 @@ john_register_one(&fmt_luks);
 #define MAX_KEYS_PER_CRYPT  1
 #endif
 
-#if ARCH_LITTLE_ENDIAN
-#define john_htonl(x) ((((x)>>24) & 0xffL) | (((x)>>8) & 0xff00L) | \
-		(((x)<<8) & 0xff0000L) | (((x)<<24) & 0xff000000L))
-
-#define john_ntohl(x) ((((x)>>24) & 0xffL) | (((x)>>8) & 0xff00L) | \
-		(((x)<<8) & 0xff0000L) | (((x)<<24) & 0xff000000L))
-#else
-#define john_htonl(x) (x)
-#define john_ntohl(x) (x)
-#endif
-
 #include "luks_insane_tests.h"
 
 /* taken from LUKS on disk format specification */
