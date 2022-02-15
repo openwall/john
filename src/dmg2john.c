@@ -42,23 +42,11 @@
 #include "misc.h"
 #include "jumbo.h"
 #include "memory.h"
+#include "johnswap.h"
 
-#ifndef ntohl
-#if ARCH_LITTLE_ENDIAN
-#define htonl(x) ((((x)>>24) & 0xffL) | (((x)>>8) & 0xff00L) | \
-		(((x)<<8) & 0xff0000L) | (((x)<<24) & 0xff000000L))
-
-#define ntohl(x) ((((x)>>24) & 0xffL) | (((x)>>8) & 0xff00L) | \
-		(((x)<<8) & 0xff0000L) | (((x)<<24) & 0xff000000L))
-#else
-#define htonl(x) (x)
-#define ntohl(x) (x)
-#endif
-#endif
-
-#ifndef ntohll
-#define ntohll(x) (((uint64_t) ntohl((x) >> 32)) | (((uint64_t) ntohl((uint32_t) ((x) & 0xFFFFFFFF))) << 32))
-#endif
+#define htonl(x) john_htonl((x))
+#define ntohl(x) john_ntohl((x))
+#define ntohll(x) john_ntohll((x))
 
 #define LARGE_ENOUGH 8192
 
