@@ -239,7 +239,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			goto bailout;
 		}
-		if (read(fd, &header, sizeof(cencrypted_v1_header)) < 1) {
+		if (read(fd, &header, sizeof(cencrypted_v1_header)) != sizeof(cencrypted_v1_header)) {
 			fprintf(stderr, "%s is not a DMG file!\n", filename);
 			goto bailout;
 		}
@@ -277,7 +277,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			goto bailout;
 		}
-		if (read(fd, &header2, sizeof(cencrypted_v2_header)) < 1) {
+		if (read(fd, &header2, sizeof(cencrypted_v2_header)) != sizeof(cencrypted_v2_header)) {
 			fprintf(stderr, "%s is not a DMG file!\n", filename);
 			goto bailout;
 		}
