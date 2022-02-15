@@ -44,55 +44,53 @@
 #include "memory.h"
 #include "johnswap.h"
 
-#define htonl(x) john_htonl((x))
-#define ntohl(x) john_ntohl((x))
-#define ntohll(x) john_ntohll((x))
+#define inplace_ntohl(x) do { (x) = john_ntohl((x)); } while (0)
 
 #define LARGE_ENOUGH 8192
 
 static void header_byteorder_fix(cencrypted_v1_header *hdr)
 {
-	hdr->kdf_iteration_count = htonl(hdr->kdf_iteration_count);
-	hdr->kdf_salt_len = htonl(hdr->kdf_salt_len);
-	hdr->len_wrapped_aes_key = htonl(hdr->len_wrapped_aes_key);
-	hdr->len_hmac_sha1_key = htonl(hdr->len_hmac_sha1_key);
-	hdr->len_integrity_key = htonl(hdr->len_integrity_key);
+	inplace_ntohl(hdr->kdf_iteration_count);
+	inplace_ntohl(hdr->kdf_salt_len);
+	inplace_ntohl(hdr->len_wrapped_aes_key);
+	inplace_ntohl(hdr->len_hmac_sha1_key);
+	inplace_ntohl(hdr->len_integrity_key);
 }
 
 static void header2_byteorder_fix(cencrypted_v2_header *header)
 {
-	header->version = ntohl(header->version);
-	header->enc_iv_size = ntohl(header->enc_iv_size);
-	header->encMode = ntohl(header->encMode);
-	header->encAlg = ntohl(header->encAlg);
-	header->keyBits = ntohl(header->keyBits);
-	header->prngalg = ntohl(header->prngalg);
-	header->prngkeysize = ntohl(header->prngkeysize);
-	header->blocksize = ntohl(header->blocksize);
-	header->datasize = ntohll(header->datasize);
-	header->dataoffset = ntohll(header->dataoffset);
-	header->keycount = ntohl(header->keycount);
+	inplace_ntohl(header->version);
+	inplace_ntohl(header->enc_iv_size);
+	inplace_ntohl(header->encMode);
+	inplace_ntohl(header->encAlg);
+	inplace_ntohl(header->keyBits);
+	inplace_ntohl(header->prngalg);
+	inplace_ntohl(header->prngkeysize);
+	inplace_ntohl(header->blocksize);
+	header->datasize = john_ntohll(header->datasize);
+	header->dataoffset = john_ntohll(header->dataoffset);
+	inplace_ntohl(header->keycount);
 }
 
 static void v2_key_header_pointer_byteorder_fix(cencrypted_v2_key_header_pointer *key_header_pointer)
 {
-	key_header_pointer->header_type = ntohl(key_header_pointer->header_type);
-	key_header_pointer->header_offset = ntohl(key_header_pointer->header_offset);
-	key_header_pointer->header_size = ntohl(key_header_pointer->header_size);
+	inplace_ntohl(key_header_pointer->header_type);
+	inplace_ntohl(key_header_pointer->header_offset);
+	inplace_ntohl(key_header_pointer->header_size);
 }
 
 static void v2_password_header_byteorder_fix(cencrypted_v2_password_header *password_header)
 {
-	password_header->algorithm = ntohl(password_header->algorithm);
-	password_header->prngalgo = ntohl(password_header->prngalgo);
-	password_header->itercount = ntohl(password_header->itercount);
-	password_header->salt_size = ntohl(password_header->salt_size);
-	password_header->iv_size = ntohl(password_header->iv_size);
-	password_header->blob_enc_keybits = ntohl(password_header->blob_enc_keybits);
-	password_header->blob_enc_algo = ntohl(password_header->blob_enc_algo);
-	password_header->blob_enc_padding = ntohl(password_header->blob_enc_padding);
-	password_header->blob_enc_mode = ntohl(password_header->blob_enc_mode);
-	password_header->keyblobsize = ntohl(password_header->keyblobsize);
+	inplace_ntohl(password_header->algorithm);
+	inplace_ntohl(password_header->prngalgo);
+	inplace_ntohl(password_header->itercount);
+	inplace_ntohl(password_header->salt_size);
+	inplace_ntohl(password_header->iv_size);
+	inplace_ntohl(password_header->blob_enc_keybits);
+	inplace_ntohl(password_header->blob_enc_algo);
+	inplace_ntohl(password_header->blob_enc_padding);
+	inplace_ntohl(password_header->blob_enc_mode);
+	inplace_ntohl(password_header->keyblobsize);
 }
 
 static void print_hex(unsigned char *str, int len)
