@@ -304,7 +304,7 @@ DES_std.o:	DES_std.c arch.h common.h memory.h DES_std.h os.h os-autoconf.h autoc
 
 detect.o:	detect.c
 
-dmg2john.o:	dmg2john.c autoconfig.h arch.h filevault.h misc.h jumbo.h memory.h os.h os-autoconf.h
+dmg2john.o:	dmg2john.c autoconfig.h arch.h filevault.h misc.h jumbo.h memory.h johnswap.h os.h os-autoconf.h
 
 dummy.o:	dummy.c common.h arch.h memory.h formats.h params.h misc.h jumbo.h autoconfig.h options.h list.h loader.h getopt.h os.h os-autoconf.h
 
