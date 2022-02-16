@@ -111,14 +111,7 @@ static struct opt_entry opt_list[] = {
 	{"rules-skip-nop", FLG_RULE_SKIP_NOP, FLG_RULE_SKIP_NOP, FLG_RULES_IN_USE},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"incremental-charcount", FLG_ONCE, 0, FLG_INC_CHK, OPT_REQ_PARAM, "%u", &options.charcount},
-	{"subsets", FLG_SUBSETS_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.subset_full},
-	{"subsets-required", FLG_ONCE, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM, "%u", &options.subset_must},
-	{"subsets-min-diff", FLG_ONCE, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM, "%u", &options.subset_min_diff},
-	{"subsets-max-diff", FLG_ONCE, 0, FLG_SUBSETS_CHK, OPT_REQ_PARAM, "%u", &options.subset_max_diff},
-	{"inc2", FLG_INC2_SET, FLG_CRACKING_CHK,
-		0, 0, OPT_FMT_STR_ALLOC},
-	{"subsets-prefer-short", FLG_SUBSETS_SHORT, FLG_SUBSETS_SHORT, FLG_SUBSETS_CHK, FLG_SUBSETS_SMALL},
-	{"subsets-prefer-small", FLG_SUBSETS_SMALL, FLG_SUBSETS_SMALL, FLG_SUBSETS_CHK, FLG_SUBSETS_SHORT},
+	{"rain", FLG_RAIN_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.rain_full},
 	{"no-mask", FLG_NO_MASK_BENCH, FLG_NO_MASK_BENCH, FLG_TEST_CHK, FLG_MASK_CHK},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ONCE, 0, FLG_MASK_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
@@ -294,12 +287,7 @@ static struct opt_entry opt_list[] = {
 "--mkv-stats=FILE           \"Markov\" stats file\n" \
 PRINCE_USAGE \
 JOHN_USAGE_REGEX \
-"--subsets[=CHARSET]        \"Subsets\" mode (see doc/SUBSETS)\n" \
-"--subsets-required=N       The N first characters of \"subsets\" charset are\n" \
-"--subsets-min-diff=N       Minimum unique characters in subset\n" \
-"--subsets-max-diff=[-]N    Maximum unique characters in subset (negative N is\n" \
-"                           relative to word length)\n" \
-"--inc2						\"inc2\" generation mode\n" \
+"--rain[=CHARSET]        \"RAIN\" mode (see TODO doc/RAIN)\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
 "--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--session=NAME             give a new session the NAME\n" \
@@ -310,8 +298,6 @@ JOHN_USAGE_REGEX \
 "--show=formats             show information about hashes in a file (JSON)\n" \
 "--show=invalid             show lines that are not valid for selected format(s)\n" \
 "--test[=TIME]              run tests and benchmarks for TIME seconds each\n" \
-"--subsets-prefer-short     Prefer shorter candidates over smaller subsets\n" \
-"--subsets-prefer-small     Prefer smaller subsets over shorter candidates\n" \
 "--make-charset=FILE        Make a charset, FILE will be overwritten\n" \
 "--stdout[=LENGTH]          Just output candidate passwords [cut at LENGTH]\n" \
 "--session=NAME             Give a new session the NAME\n" \

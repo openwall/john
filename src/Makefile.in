@@ -105,7 +105,7 @@ JOHN_OBJS = \
 	memory.o misc.o options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
 	tty.o  wordlist.o \
 	mkv.o mkvlib.o \
-	subsets.o inc2.o unicode_range.o \
+	rain.o unicode_range.o \
 	listconf.o \
 	fake_salts.o \
 	win32_memmap.o mmap-windows.o \
@@ -406,9 +406,7 @@ missing_getopt.o:	missing_getopt.c missing_getopt.h os.h os-autoconf.h autoconfi
 
 mkv.o:	mkv.c arch.h misc.h jumbo.h autoconfig.h params.h path.h memory.h os.h os-autoconf.h signals.h formats.h loader.h list.h logger.h status.h recovery.h config.h charset.h external.h compiler.h cracker.h options.h getopt.h common.h john.h mkv.h mkvlib.h mask.h
 
-subsets.o: subsets.c subsets.h unicode_range.h loader.h cracker.h options.h logger.h status.h recovery.h
-
-inc2.o: inc2.c inc2.h unicode_range.h loader.h cracker.h options.h logger.h status.h recovery.h
+rain.o: rain.h rain.c unicode_range.h loader.h cracker.h options.h logger.h status.h recovery.h
 
 unicode_range.o: unicode_range.c unicode_range.h
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -O0 unicode_range.c

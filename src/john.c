@@ -103,8 +103,7 @@ static int john_omp_threads_new;
 #include "inc.h"
 #include "mask.h"
 #include "mkv.h"
-#include "subsets.h"
-#include "inc2.h"
+#include "rain.h"
 #include "external.h"
 #include "batch.h"
 #include "dynamic.h"
@@ -1818,11 +1817,8 @@ static void john_run(void)
 		if (options.flags & FLG_MKV_CHK)
 			do_markov_crack(&database, options.mkv_param);
 		else
-		if (options.flags & FLG_SUBSETS_CHK)
-			do_subsets_crack(&database, options.subset_full);
-		else
-		if (options.flags & FLG_INC2_CHK)
-			do_inc2_crack(&database);
+		if (options.flags & FLG_RAIN_CHK)
+			do_rain_crack(&database, options.rain_full);
 		else
 #if HAVE_REXGEN
 		if ((options.flags & FLG_REGEX_CHK) &&
