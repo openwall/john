@@ -394,7 +394,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (is_inlined) {
 		if ((p = strtokm(NULL, "$")) == NULL)	/* dump data */
 			goto err;
-		len = (afsize + 2) / 3 * 4;
+		len = ((size_t)afsize + 2) / 3 * 4;
 		if (len != strlen(p))
 			goto err;
 		/* check base64 and precise number of trailing = */
