@@ -65,7 +65,7 @@ Casing (note: only a few things can be cased)
   lc($p) and uc($p) are for lower/upper casing the password.
 ** If uc($u) or lc($u) are used in the expression, then ALL $u must be done
    the same way.  This also applies to the password.
-   so  md5($u.$p.$) is valid, but md5(uc($u).$p.$u) is not valid
+   so md5($u.$p.$u) is valid, but md5(uc($u).$p.$u) is not valid
    This is a limitation of the dynamic format in general.
    When using constants, they must be appended with commas to the end of
      the expression.  NOTE, if there are any ':' chars used in constants
