@@ -8423,7 +8423,7 @@ int text_in_dynamic_format_already(struct fmt_main *pFmt, char *ciphertext)
 // if caseType == 4, return upcaseFirstChar(locase(cp))
 static char *HandleCase(char *cp, int caseType)
 {
-	static UTF8 dest[256];
+	static UTF8 dest[512];
 
 	switch(caseType) {
 		case 1:
