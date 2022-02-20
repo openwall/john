@@ -7,8 +7,8 @@ Cracking ENCSecurity DataVault
 $ ../run/encdatavault2john.py path/to/vault > hash
 ```
 
-For Sandisk and Sony the script must be run in the "Settings" folder, for example, 
-"SanDiskSecureAccess Settings". 
+For Sandisk and Sony the script must be run in the "Settings" or "Vault" folders, for example, 
+"SanDiskSecureAccess Settings" or "SanDiskSecureAccess Vault".
 
 2. Run john on the file.
 
