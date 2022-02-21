@@ -270,7 +270,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 			fprintf(stderr, "Rain: Too large min. length\n");
 		error();
 	}
-	default_set = (char*)cfg_get_param("Rain", NULL, "DefaultCharset");
+	default_set = (char*)("Rain", NULL, "DefaultCharset");
 	if (!req_charset)
 		req_charset = default_set;
 
