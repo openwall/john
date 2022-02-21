@@ -654,7 +654,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 		return NULL;
 	}
 
-	if (!*rule && options.flags & FLG_RULE_SKIP_NOP)
+	if ((options.flags & FLG_RULE_SKIP_NOP) && !rule[strspn(rule, ": \t")])
 		return NULL;
 
 	while (RULE)
@@ -662,8 +662,6 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 	case ':':
 	case ' ':
 	case '\t':
-		if (options.flags & FLG_RULE_SKIP_NOP)
-			return NULL;
 		break;
 
 	case '-':
@@ -1475,13 +1473,14 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			break;
 
 		case '+':
-			if (hc_logic || split < 0) {
+			if (hc_logic || !which) {
 				/* HC rule: increment character */
 				unsigned char x;
 				POSITION(x)
 				if (x < length)
 					++in[x];
-			} else {
+				break;
+			}
 			switch (which) {
 			case 1:
 				strcat(in, buffer[2][STAGE]);
@@ -1503,7 +1502,6 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 			}
 			length = strlen(in);
 			which = 0;
-			}
 			break;
 
 /* Rules added in Jumbo */

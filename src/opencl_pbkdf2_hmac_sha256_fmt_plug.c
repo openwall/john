@@ -49,6 +49,7 @@ static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static cl_kernel split_kernel, final_kernel;
 static struct fmt_main *self;
+static int new_keys;
 
 #define STEP			0
 #define SEED			1024
@@ -228,9 +229,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
-		CL_FALSE, 0, global_work_size * sizeof(pass_t), host_pass, 0,
-		NULL, multi_profilingEvent[0]), "Copy data to gpu");
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
+			CL_FALSE, 0, global_work_size * sizeof(pass_t), host_pass, 0,
+			NULL, multi_profilingEvent[0]), "Copy data to gpu");
+
+		new_keys = 0;
+	}
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
@@ -283,6 +288,8 @@ static void set_key(char *key, int index)
 
 	memcpy(host_pass[index].v, key, saved_len);
 	host_pass[index].length = saved_len;
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)

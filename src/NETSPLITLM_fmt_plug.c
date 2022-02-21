@@ -198,7 +198,7 @@ inline static void setup_des_key(unsigned char key_56[], DES_key_schedule *ks)
   key[6] = (key_56[5] << 2) | (key_56[6] >> 6);
   key[7] = (key_56[6] << 1);
 
-  DES_set_key(&key, ks);
+  DES_set_key_unchecked(&key, ks);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

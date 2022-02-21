@@ -99,6 +99,7 @@ static struct fmt_main *self;
 
 static int any_cracked, *cracked;
 static size_t cracked_size;
+static int new_keys;
 
 #define STEP			0
 #define SEED			256
@@ -163,8 +164,6 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 	CLKERNELARG(split_kernel, 1, mem_out, "Error while setting mem_out");
 }
 
-extern int bench_running;
-
 static void init(struct fmt_main *_self)
 {
 	static int warned = 0;
@@ -174,7 +173,7 @@ static void init(struct fmt_main *_self)
 
 	Twofish_initialise();
 
-	if (!warned++ && !bench_or_test_running && !options.listconf) {
+	if (!warned++ && !(options.flags & FLG_TEST_CHK) && !options.listconf) {
 		fprintf(stderr, "[ATTENTION] This format (%s) does not support cascaded cipher modes yet.\n", FORMAT_LABEL);
 	}
 }
@@ -235,7 +234,7 @@ static void done(void)
 void *diskcryptor_get_salt_opencl(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
@@ -287,9 +286,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		gws * sizeof(pass_t), host_pass, 0, NULL,
-		multi_profilingEvent[0]), "Copy data to gpu");
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			gws * sizeof(pass_t), host_pass, 0, NULL,
+			multi_profilingEvent[0]), "Copy data to gpu");
+
+		new_keys = 0;
+	}
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
@@ -367,10 +370,16 @@ static void set_key(char *key, int index)
 	if (len < 0)
 		len = strlen16((UTF16 *)host_pass[index].v);
 	host_pass[index].length = len << 1;
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)
 {
+	/* Ensure truncation due to over-length or invalid UTF-8 is made like how the GPU got it. */
+	if (options.target_enc == UTF_8)
+		truncate_utf8((UTF8*)orig_key[index], PLAINTEXT_LENGTH);
+
 	return orig_key[index];
 }
 

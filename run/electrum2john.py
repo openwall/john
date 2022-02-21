@@ -30,7 +30,7 @@ except ImportError:
         import simplejson as json
     except ImportError:
         sys.stderr.write("Please install json / simplejson module which is currently not installed.\n")
-        sys.exit(-1)
+        sys.exit(1)
 
 
 def process_electrum28_wallets(bname, data, options):
@@ -232,7 +232,7 @@ def process_file(filename, options):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s [Ethereum Wallet files (default_wallet)]\n" % sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     parser = optparse.OptionParser()
     parser.add_option('-t', action="store_true", dest="truncate", help="force generation of truncated hashes")

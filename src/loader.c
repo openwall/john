@@ -1279,6 +1279,7 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 
 	testdb = mem_alloc(sizeof(struct db_main));
 
+	self_test_running++;
 	fmt_init(format);
 	dyna_salt_init(format);
 	ldr_init_database(testdb, &options.loader);
@@ -1288,7 +1289,6 @@ struct db_main *ldr_init_test_db(struct fmt_main *format, struct db_main *real)
 	ldr_init_password_hash(testdb);
 
 	ldr_loading_testdb = 1;
-	self_test_running++;
 	while (current->ciphertext) {
 		char *ex_len_line = NULL;
 		char _line[LINE_BUFFER_SIZE], *line = _line;
@@ -1558,12 +1558,6 @@ static void ldr_show_left(struct db_main *db, struct db_password *pw)
 	char *pw_source = db->format->methods.source(pw->source, pw->binary);
 	char *login = (db->options->flags & DB_LOGIN) ? pw->login : "?";
 
-#ifndef DYNAMIC_DISABLED
-	/* Note for salted dynamic, we 'may' need to fix up the salts to
-	 * make them properly usable. */
-	if (!strncmp(pw_source, "$dynamic_", 9))
-		pw_source = dynamic_FIX_SALT_TO_HEX(pw_source);
-#endif
 	if (options.show_uid_in_cracks && pw->uid && *pw->uid) {
 		uid_sep[0] = db->options->field_sep_char;
 		uid_out = pw->uid;

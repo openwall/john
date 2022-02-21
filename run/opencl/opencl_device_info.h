@@ -31,8 +31,8 @@
 #define DEV_NV_C32                  (1 << 16)   //65536
 #define DEV_NV_C35                  (1 << 17)   //131072
 #define DEV_NV_MAXWELL              (1 << 18)   //262144
-#define DEV_NV_PASCAL               (1 << 19)   //524288
-#define DEV_NV_VOLTA                (1 << 20)   //1M
+#define DEV_NV_MAXWELL_PLUS         (1 << 19)   //524288
+                                                //1M
 #define DEV_USE_LOCAL               (1 << 21)   //2M
 #define DEV_NO_BYTE_ADDRESSABLE     (1 << 22)   //4M
 #define PLATFORM_MESA               (1 << 23)   //8M
@@ -55,8 +55,7 @@
 #define nvidia_sm_2x(n)             ((n & DEV_NV_C2X) && gpu_nvidia(n))
 #define nvidia_sm_3x(n)             (((n & DEV_NV_C30) || (n & DEV_NV_C32) || (n & DEV_NV_C35)) && gpu_nvidia(n))
 #define nvidia_sm_5x(n)             ((n & DEV_NV_MAXWELL) && gpu_nvidia(n))
-#define nvidia_sm_6x(n)             ((n & DEV_NV_PASCAL) && gpu_nvidia(n))
-#define nvidia_sm_7x(n)             ((n & DEV_NV_VOLTA) && gpu_nvidia(n))
+#define nvidia_sm_5plus(n)          ((n & DEV_NV_MAXWELL_PLUS) && gpu_nvidia(n))
 #define no_byte_addressable(n)      ((n & DEV_NO_BYTE_ADDRESSABLE))
 #define use_local(n)                ((n & DEV_USE_LOCAL))
 

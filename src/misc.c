@@ -35,6 +35,7 @@
 #include "options.h"
 
 #include "john_mpi.h"
+#include "memory.h"
 
 void real_error(const char *file, int line)
 {
@@ -197,7 +198,7 @@ char *fgetll(char *s, size_t size, FILE *stream)
 		return s;
 	}
 
-	cp = strdup(s);
+	cp = xstrdup(s);
 
 	while (1) {
 		int increase = MIN((((len >> 12) + 1) << 12), 0x40000000);

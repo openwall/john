@@ -31,7 +31,7 @@ try:
     from asn1crypto import pkcs12
 except ImportError:
     sys.stderr.write("asn1crypto is missing, run 'pip install --user asn1crypto' to install it!\n")
-    sys.exit(-1)
+    sys.exit(1)
 import os
 
 

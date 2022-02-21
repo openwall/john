@@ -3,26 +3,6 @@
 
 typedef unsigned WORD vtype;
 
-/*
- * Some devices/drivers has problems with the optimized 'goto' program flow.
- * Some AMD driver versions can't build the "fast goto" version but those who
- * can runs faster. Hawaii on 14.9 fails, Tahiti on 14.9 does not (!?).
- *
- * Nvidia can build either kernel but GTX980 is significantly faster with the
- * "safe goto" version (7% faster for one salt, 16% for many salts).
- *
- * OSX' Intel HD4000 driver [1.2(Sep25 2014 22:26:04)] fails building the
- * "fast goto" version.
- */
-#if nvidia_sm_5x(DEVICE_INFO) || gpu_intel(DEVICE_INFO) ||	  \
-	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1573 && !defined(__Tahiti__)) || \
-	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1702)
-//#warning Using 'safe goto' kernel
-#define SAFE_GOTO
-#else
-//#warning Using 'fast goto' kernel
-#endif
-
 #if no_byte_addressable(DEVICE_INFO)
 #define RV7xx
 #endif

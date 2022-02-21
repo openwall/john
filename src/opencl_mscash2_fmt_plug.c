@@ -50,7 +50,7 @@ john_register_one(&fmt_opencl_mscash2);
 typedef struct {
 	unsigned int 	length ;
 	unsigned int 	iter_cnt;
-	unsigned char 	username[MAX_SALT_LENGTH + 1] ;
+	unsigned char 	username[MAX_SALT_LENGTH * 3 + 1] ;
 } ms_cash2_salt ;
 
 static cl_uint 		*dcc_hash_host ;
@@ -186,6 +186,10 @@ static void set_key(char *key, int index) {
 }
 
 static  char *get_key(int index) {
+	/* Ensure truncation due to over-length or invalid UTF-8 is made like in GPU code. */
+	if (options.target_enc == UTF_8)
+		truncate_utf8((UTF8*)key_host[index], MAX_PLAINTEXT_LENGTH);
+
 	return (char *)key_host[index] ;
 }
 

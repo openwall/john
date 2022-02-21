@@ -362,7 +362,6 @@ int dynamic_IS_VALID(int i, int single_lookup_only);
 int dynamic_real_salt_length(struct fmt_main *pFmt);
 void dynamic_salt_md5(struct db_salt *p);
 void dynamic_DISPLAY_ALL_FORMATS();
-char *RemoveHEX(char *output, char *input);
 const char *dynamic_Find_Function_Name(DYNAMIC_primitive_funcp p);
 
 // Function used to 'link' a thin format into dynamic.  See PHPS_fmt.c for an example.
@@ -378,10 +377,6 @@ int dynamic_IS_PARSER_VALID(int which, int single_lookup_only);
 
 // when switching to the RDP format, there are a few things we need to correct in the format.
 void dynamic_switch_compiled_format_to_RDP(struct fmt_main *pFmt);
-
-// This one is called in the .pot writing.  We 'fixup' salts which contain ':' chars, or other
-// chars which cause problems (like the $ char).
-char *dynamic_FIX_SALT_TO_HEX(char *ciphertext);
 
 // Here are the 'parser' functions (i.e. user built stuff in john.conf)
 int  dynamic_LOAD_PARSER_FUNCTIONS(int which, struct fmt_main *pFmt);

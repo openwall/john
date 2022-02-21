@@ -16,9 +16,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_ocl_rar5;
+extern struct fmt_main fmt_opencl_rar5;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_ocl_rar5);
+john_register_one(&fmt_opencl_rar5);
 #else
 
 #include <string.h>
@@ -56,6 +56,8 @@ john_register_one(&fmt_ocl_rar5);
 #define ITERATIONS              (32800 - 1)
 
 #include "../run/opencl/opencl_pbkdf2_hmac_sha256.h"
+
+static int new_keys;
 
 static pass_t *host_pass;			      /** plain ciphertexts **/
 static salt_t *host_salt;			      /** salt **/
@@ -223,22 +225,33 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	loops += host_salt->rounds % HASH_LOOPS > 0;
 
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
-		CL_FALSE, 0, global_work_size * sizeof(pass_t), host_pass, 0,
-		NULL, multi_profilingEvent[0]), "Copy data to gpu");
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in,
+			CL_FALSE, 0, global_work_size * sizeof(pass_t), host_pass, 0,
+			NULL, multi_profilingEvent[0]), "Copy data to gpu");
+
+		new_keys = 0;
+	}
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel,
 		1, NULL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[1]), "Run kernel");
 
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+
+	WAIT_INIT(global_work_size)
 	for (i = 0; i < (ocl_autotune_running ? 1 : loops); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], split_kernel,
 			1, NULL, &global_work_size, lws, 0, NULL,
 			multi_profilingEvent[2]), "Run split kernel");
+		WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+		WAIT_UPDATE
 		opencl_process_event();
 	}
+	WAIT_DONE
+
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel,
 		1, NULL, &global_work_size, lws, 0, NULL,
 		multi_profilingEvent[3]), "Run final kernel");
@@ -257,6 +270,8 @@ static void set_key(char *key, int index)
 
 	memcpy(host_pass[index].v, key, saved_len);
 	host_pass[index].length = saved_len;
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -301,7 +316,7 @@ static int get_hash_4(int index) { return host_crack[index].hash[0] & PH_MASK_4;
 static int get_hash_5(int index) { return host_crack[index].hash[0] & PH_MASK_5; }
 static int get_hash_6(int index) { return host_crack[index].hash[0] & PH_MASK_6; }
 
-struct fmt_main fmt_ocl_rar5 = {
+struct fmt_main fmt_opencl_rar5 = {
 {
 	FORMAT_LABEL,
 	FORMAT_NAME,

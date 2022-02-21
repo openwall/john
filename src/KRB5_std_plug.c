@@ -184,9 +184,9 @@ inline static void derive_key(const void *constant, int len, krb5_key *krb5key) 
     // set the des schedule
     bk = (DES_cblock*) krb5key->key;
     s = (DES_key_schedule *) krb5key->schedule;
-    DES_set_key(&bk[0], &s[0]);
-    DES_set_key(&bk[1], &s[1]);
-    DES_set_key(&bk[2], &s[2]);
+    DES_set_key_unchecked(&bk[0], &s[0]);
+    DES_set_key_unchecked(&bk[1], &s[1]);
+    DES_set_key_unchecked(&bk[2], &s[2]);
 
     if (DES3_BLOCK_SIZE * 8 < DES3_KEY_BITS || len != DES3_BLOCK_SIZE) {
         nblocks = (DES3_KEY_BITS + DES3_BLOCK_SIZE * 8 - 1) / (DES3_BLOCK_SIZE * 8);
@@ -243,9 +243,9 @@ void des3_decrypt(krb5_key *key, char *cipher, char *plain, int len) {
     k = (DES_cblock *) key->key;
     s = (DES_key_schedule *) key->schedule;
 
-    DES_set_key(&k[0], &s[0]);
-    DES_set_key(&k[1], &s[1]);
-    DES_set_key(&k[2], &s[2]);
+    DES_set_key_unchecked(&k[0], &s[0]);
+    DES_set_key_unchecked(&k[1], &s[1]);
+    DES_set_key_unchecked(&k[2], &s[2]);
 
     DES_ede3_cbc_encrypt((const unsigned char*) cipher, (unsigned char*) plain, len, &s[0], &s[1], &s[2], &ivec, 0);
 

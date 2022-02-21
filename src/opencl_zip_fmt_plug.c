@@ -1,8 +1,7 @@
 /*
- *
  * This software is Copyright (c) 2012 Dhiru Kholia <dhiru at openwall.com>
- * with some code (c) 2012 Lukas Odzioba <ukasz@openwall.net>
- * and improvements (c) 2014 by magnum and JimF.
+ * with some code Copyright (c) 2012 Lukas Odzioba <ukasz@openwall.net>
+ * improvements Copyright (c) 2014 by JimF, Copyright (c) 2014-2021 by magnum.
  *
  * This is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
@@ -29,26 +28,20 @@ john_register_one(&fmt_opencl_zip);
 #include "dyna_salt.h"
 #include "options.h"
 
-#define FORMAT_LABEL		"ZIP-opencl"
-#define FORMAT_NAME		"WinZip"
-#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
-#define MIN_KEYS_PER_CRYPT	1
-#define MAX_KEYS_PER_CRYPT	1
- #define SWAP(n) \
-    (((n) << 24) | (((n) & 0xff00) << 8) | (((n) >> 8) & 0xff00) | ((n) >> 24))
-
-#define BINARY_ALIGN		sizeof(uint32_t)
-#define PLAINTEXT_LENGTH	64
-#define SALT_SIZE		sizeof(my_salt*)
-#define SALT_ALIGN		sizeof(size_t)
+#define FORMAT_LABEL        "ZIP-opencl"
+#define FORMAT_NAME         "WinZip"
+#define ALGORITHM_NAME      "PBKDF2-SHA1 OpenCL"
+#define MIN_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  1
+#define BINARY_ALIGN        sizeof(uint32_t)
+#define PLAINTEXT_LENGTH    64
+#define SALT_SIZE           sizeof(winzip_salt*)
+#define SALT_ALIGN          sizeof(size_t)
+#define BLK_SZ              20
 
 typedef struct {
-	uint32_t length;
-	uint8_t v[PLAINTEXT_LENGTH];
-} zip_password;
-
-typedef struct {
-	uint32_t v[(2 * KEY_LENGTH(3) + PWD_VER_LENGTH + 3) / 4];
+	uint in_idx;
+	uint8_t v[BLK_SZ]; /* MAX(BLK_SZ, WINZIP_BINARY_SIZE) */
 } zip_hash;
 
 typedef struct {
@@ -56,33 +49,28 @@ typedef struct {
 	uint32_t key_len;
 	uint32_t length;
 	uint8_t  salt[64];
-	uint32_t comp_len;
+	uint32_t autotune;
+	uint64_t comp_len;
 	uint8_t  passverify[2];
 } zip_salt;
 
-typedef struct my_salt_t {
-	dyna_salt dsalt;
-	uint32_t comp_len;
-	struct {
-		uint16_t type     : 4;
-		uint16_t mode : 4;
-	} v;
-	unsigned char passverify[2];
-	unsigned char salt[SALT_LENGTH(3)];
-	//uint64_t data_key; // MSB of md5(data blob).  We lookup using this.
-	unsigned char datablob[1];
-} my_salt;
-
-static my_salt *saved_salt;
-
-static cl_int cl_error;
-static zip_password *inbuffer;
-static zip_hash *outbuffer;
+static winzip_salt *saved_salt;
 static zip_salt currentsalt;
-static cl_mem mem_in, mem_out, mem_setting, mem_data;
+
+static char *saved_key;
+static int new_keys;
+
+static unsigned int *saved_idx, key_idx;
+static zip_hash *outbuffer;
+static unsigned int crack_count_ret;
+static size_t key_offset, idx_offset;
+static cl_mem pinned_key, pinned_idx, pinned_result;
+static cl_mem cl_saved_key, cl_saved_idx, cl_result, cl_crack_count_ret, cl_salt, cl_data;
+static cl_kernel final_kernel;
+
 static struct fmt_main *self;
 
-static size_t insize, outsize, settingsize, datasize;
+static size_t saltsize, datasize;
 
 #define STEP			0
 #define SEED			256
@@ -90,66 +78,96 @@ static size_t insize, outsize, settingsize, datasize;
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"
 
-static const char * warn[] = {
-	"xfer: ",  ", crypt: ",  ", xfer: "
+static const char *warn[] = {
+	"xfer: ",  ", crypt: ",  ", final: ",  ", xfer: "
 };
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	size_t s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+
+	return MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, final_kernel));
 }
 
 static void release_clobj(void);
 
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
+	size_t insize, idxsize, outsize;
+
 	release_clobj();
 
-	insize = sizeof(zip_password) * gws;
+	insize = PLAINTEXT_LENGTH * gws;
+	idxsize = sizeof(cl_uint) * (gws + 1);
 	outsize = sizeof(zip_hash) * gws;
-	settingsize = sizeof(zip_salt);
+	saltsize = sizeof(zip_salt);
 	datasize = MAX(datasize, 1024);
 
-	inbuffer = mem_calloc(1, insize);
-	outbuffer = mem_alloc(outsize);
+	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, insize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	saved_key = clEnqueueMapBuffer(queue[gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping saved_key");
 
-	mem_in =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL,
-	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem in");
-	mem_setting =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, settingsize,
-	    NULL, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem setting");
-	mem_out =
-	    clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, outsize, NULL,
-	    &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem out");
-	mem_data = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-	                          datasize, NULL, &cl_error);
-	HANDLE_CLERROR(cl_error, "Error allocating mem data");
+	pinned_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, idxsize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	cl_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, idxsize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, idxsize, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping saved_idx");
 
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(mem_in),
-		&mem_in), "Error while setting mem_in kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(mem_out),
-		&mem_out), "Error while setting mem_out kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
-		&mem_setting), "Error while setting mem_salt kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(mem_data),
-		&mem_data), "Error while setting mem_salt kernel argument");
+	pinned_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, outsize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	cl_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, outsize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	outbuffer = clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error mapping outbuffer");
+
+	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+
+	cl_data = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, datasize, NULL, &ret_code);
+
+	cl_crack_count_ret = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(cl_uint), NULL, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	crack_count_ret = 0;
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &crack_count_ret, 0, NULL, NULL), "Failed resetting crack return");
+
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), &cl_saved_key), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), &cl_saved_idx), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), &cl_salt), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), &cl_crack_count_ret), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem), &cl_result), "Error setting argument 4");
+
+	HANDLE_CLERROR(clSetKernelArg(final_kernel, 0, sizeof(cl_mem), &cl_saved_key), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_mem), &cl_saved_idx), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(final_kernel, 2, sizeof(cl_mem), &cl_salt), "Error setting argument 2");
+	HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_mem), &cl_data), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(final_kernel, 4, sizeof(cl_mem), &cl_crack_count_ret), "Error setting argument 4");
+	HANDLE_CLERROR(clSetKernelArg(final_kernel, 5, sizeof(cl_mem), &cl_result), "Error setting argument 5");
 }
 
 static void release_clobj(void)
 {
 	if (outbuffer) {
-		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
-		HANDLE_CLERROR(clReleaseMemObject(mem_setting), "Release mem setting");
-		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
-		HANDLE_CLERROR(clReleaseMemObject(mem_data), "Release mem data");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, outbuffer, 0, NULL, NULL), "Error Unmapping outbuffer");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-		MEM_FREE(inbuffer);
-		MEM_FREE(outbuffer);
+		HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Release pinned result buffer");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release pinned key buffer");
+		HANDLE_CLERROR(clReleaseMemObject(pinned_idx), "Release pinned index buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_data), "Release salt datablob");
+		HANDLE_CLERROR(clReleaseMemObject(cl_crack_count_ret), "Release crack count buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release result buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release key buffer");
+		HANDLE_CLERROR(clReleaseMemObject(cl_saved_idx), "Release index buffer");
+
+		outbuffer = NULL;
 	}
 }
 
@@ -158,6 +176,7 @@ static void done(void)
 	if (program[gpu_id]) {
 		release_clobj();
 
+		HANDLE_CLERROR(clReleaseKernel(final_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
@@ -173,131 +192,36 @@ static void init(struct fmt_main *_self)
 
 static void reset(struct db_main *db)
 {
-	if (!program[gpu_id]) {
-		char build_opts[64];
+	size_t gws_limit = 4 << 20;
+	char build_opts[64];
 
-		snprintf(build_opts, sizeof(build_opts),
-		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d",
-		         PLAINTEXT_LENGTH,
-		         (int)sizeof(currentsalt.salt),
-		         (int)sizeof(outbuffer->v));
-		opencl_init("$JOHN/opencl/zip_kernel.cl",
-		            gpu_id, build_opts);
+	if (crypt_kernel)
+		done();
 
-		crypt_kernel = clCreateKernel(program[gpu_id], "zip", &cl_error);
-		HANDLE_CLERROR(cl_error, "Error creating kernel");
-	}
+	snprintf(build_opts, sizeof(build_opts), "-DPLAINTEXT_LENGTH=%u -DSALTLEN=%d",
+	         PLAINTEXT_LENGTH, (int)sizeof(currentsalt.salt));
+
+	if (!program[gpu_id])
+		opencl_init("$JOHN/opencl/zip_kernel.cl", gpu_id, build_opts);
+
+	crypt_kernel = clCreateKernel(program[gpu_id], "zip", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating zip kernel");
+
+	final_kernel = clCreateKernel(program[gpu_id], "zip_final", &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating zip_final kernel");
 
 	// Initialize openCL tuning (library) for this format.
 	opencl_init_auto_setup(SEED, 0, NULL, warn, 1,
 	                       self, create_clobj, release_clobj,
-	                       sizeof(zip_password), 0, db);
+	                       PLAINTEXT_LENGTH + 4 + sizeof(zip_hash), 0, db);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, 0, 1000);
-}
-
-static void *get_salt(char *ciphertext)
-{
-	int i;
-	my_salt salt, *psalt;
-	static unsigned char *ptr;
-	/* extract data from "ciphertext" */
-	c8 *copy_mem = strdup(ciphertext);
-	c8 *cp, *p;
-
-	if (!ptr) ptr = mem_alloc_tiny(sizeof(my_salt*),sizeof(my_salt*));
-	p = copy_mem + WINZIP_TAG_LENGTH+1; /* skip over "$zip2$*" */
-	memset(&salt, 0, sizeof(salt));
-	cp = strtokm(p, "*"); // type
-	salt.v.type = atoi((const char*)cp);
-	cp = strtokm(NULL, "*"); // mode
-	salt.v.mode = atoi((const char*)cp);
-	cp = strtokm(NULL, "*"); // file_magic enum (ignored)
-	cp = strtokm(NULL, "*"); // salt
-	for (i = 0; i < SALT_LENGTH(salt.v.mode); i++)
-		salt.salt[i] = (atoi16[ARCH_INDEX(cp[i<<1])]<<4) | atoi16[ARCH_INDEX(cp[(i<<1)+1])];
-	cp = strtokm(NULL, "*");	// validator
-	salt.passverify[0] = (atoi16[ARCH_INDEX(cp[0])]<<4) | atoi16[ARCH_INDEX(cp[1])];
-	salt.passverify[1] = (atoi16[ARCH_INDEX(cp[2])]<<4) | atoi16[ARCH_INDEX(cp[3])];
-	cp = strtokm(NULL, "*");	// data len
-	sscanf((const char *)cp, "%x", &salt.comp_len);
-
-	// later we will store the data blob in our own static data structure, and place the 64 bit LSB of the
-	// MD5 of the data blob into a field in the salt. For the first POC I store the entire blob and just
-	// make sure all my test data is small enough to fit.
-
-	cp = strtokm(NULL, "*");	// data blob
-
-	// Ok, now create the allocated salt record we are going to return back to John, using the dynamic
-	// sized data buffer.
-	psalt = (my_salt*)mem_calloc(1, sizeof(my_salt) + salt.comp_len);
-	psalt->v.type = salt.v.type;
-	psalt->v.mode = salt.v.mode;
-	psalt->comp_len = salt.comp_len;
-	psalt->dsalt.salt_alloc_needs_free = 1;  // we used mem_calloc, so JtR CAN free our pointer when done with them.
-	memcpy(psalt->salt, salt.salt, sizeof(salt.salt));
-	psalt->passverify[0] = salt.passverify[0];
-	psalt->passverify[1] = salt.passverify[1];
-
-	// set the JtR core linkage stuff for this dyna_salt
-	psalt->dsalt.salt_cmp_offset = SALT_CMP_OFF(my_salt, comp_len);
-	psalt->dsalt.salt_cmp_size = SALT_CMP_SIZE(my_salt, comp_len, datablob, psalt->comp_len);
-
-
-	if (strcmp((const char*)cp, "ZFILE")) {
-	for (i = 0; i < psalt->comp_len; i++)
-		psalt->datablob[i] = (atoi16[ARCH_INDEX(cp[i<<1])]<<4) | atoi16[ARCH_INDEX(cp[(i<<1)+1])];
-	} else {
-		c8 *Fn, *Oh, *Ob;
-		long len;
-		uint32_t id;
-		FILE *fp;
-
-		Fn = strtokm(NULL, "*");
-		Oh = strtokm(NULL, "*");
-		Ob = strtokm(NULL, "*");
-
-		fp = fopen((const char*)Fn, "rb");
-		if (!fp) {
-			psalt->v.type = 1; // this will tell the format to 'skip' this salt, it is garbage
-			goto Bail;
-		}
-		sscanf((const char*)Oh, "%lx", &len);
-		if (fseek(fp, len, SEEK_SET)) {
-			fclose(fp);
-			psalt->v.type = 1;
-			goto Bail;
-		}
-		id = fget32LE(fp);
-		if (id != 0x04034b50U) {
-			fclose(fp);
-			psalt->v.type = 1;
-			goto Bail;
-		}
-		sscanf((const char*)Ob, "%lx", &len);
-		if (fseek(fp, len, SEEK_SET)) {
-			fclose(fp);
-			psalt->v.type = 1;
-			goto Bail;
-		}
-		if (fread(psalt->datablob, 1, psalt->comp_len, fp) != psalt->comp_len) {
-			fclose(fp);
-			psalt->v.type = 1;
-			goto Bail;
-		}
-		fclose(fp);
-	}
-Bail:;
-	MEM_FREE(copy_mem);
-
-	memcpy(ptr, &psalt, sizeof(my_salt*));
-	return (void*)ptr;
+	autotune_run(self, 2 * KEYING_ITERATIONS + 2, gws_limit, 2000);
 }
 
 static void set_salt(void *salt)
 {
-	saved_salt = *((my_salt**)salt);
+	saved_salt = *((winzip_salt**)salt);
 
 	memcpy((char*)currentsalt.salt, saved_salt->salt, SALT_LENGTH(saved_salt->v.mode));
 	memcpy((char*)currentsalt.passverify, saved_salt->passverify, PWD_VER_LENGTH);
@@ -305,100 +229,132 @@ static void set_salt(void *salt)
 	currentsalt.iterations = KEYING_ITERATIONS;
 	currentsalt.key_len = KEY_LENGTH(saved_salt->v.mode);
 	currentsalt.comp_len = saved_salt->comp_len;
+	currentsalt.autotune = ocl_autotune_running;
 
 	if (saved_salt->comp_len > datasize) {
 		datasize = saved_salt->comp_len;
-		HANDLE_CLERROR(clReleaseMemObject(mem_data), "Release mem data");
-		mem_data = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY,
-		                          datasize, NULL, &cl_error);
-		HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(mem_data),
-			&mem_data), "Error while setting mem_salt kernel argument");
+		HANDLE_CLERROR(clReleaseMemObject(cl_data), "Release mem data");
+		cl_data = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, datasize, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating buffer");
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_data), &cl_data),
+		               "Error while setting mem_salt kernel argument");
 	}
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
-	               CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),
-	               "Salt transfer");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_data, CL_FALSE, 0,
-	                                    saved_salt->comp_len,
-	                                    saved_salt->datablob,
-	                                    0, NULL, NULL),
-	               "Salt transfer");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, saltsize, &currentsalt, 0, NULL, NULL),
+	               "Failed transferring salt");
+	if (saved_salt->comp_len)
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_data, CL_FALSE, 0,
+			saved_salt->comp_len, saved_salt->datablob, 0, NULL, NULL), "Salt transfer");
 	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
-#undef set_key
-static void set_key(char *key, int index)
+static void clear_keys(void)
 {
-	uint8_t length = strlen(key);
-	if (length > PLAINTEXT_LENGTH)
-		length = PLAINTEXT_LENGTH;
-	inbuffer[index].length = length;
-	memcpy(inbuffer[index].v, key, length);
+	key_idx = 0;
+	saved_idx[0] = 0;
+	key_offset = 0;
+	idx_offset = 0;
 }
 
-static char *get_key(int index)
+static void set_key(char *key, int index)
 {
-	static char ret[PLAINTEXT_LENGTH + 1];
-	uint8_t length = inbuffer[index].length;
-	memcpy(ret, inbuffer[index].v, length);
-	ret[length] = '\0';
-	return ret;
+	while (*key)
+		saved_key[key_idx++] = *key++;
+
+	saved_idx[index + 1] = key_idx;
+	new_keys = 1;
+
+	/* Early partial transfer to GPU */
+	if (index && !(index & (64 * 1024 - 1))) {
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
+		key_offset = key_idx;
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * index - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
+		idx_offset = 4 * index;
+		HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+		new_keys = 0;
+	}
+}
+
+static char *get_key(int out_index)
+{
+	static char out[PLAINTEXT_LENGTH + 1];
+	char *key;
+	int i, len;
+	int index = crack_count_ret ? outbuffer[out_index].in_idx : out_index; /* Self-test & status kludge */
+
+	len = saved_idx[index + 1] - saved_idx[index];
+	key = (char*)&saved_key[saved_idx[index]];
+
+	for (i = 0; i < len; i++)
+		out[i] = *key++;
+	out[i] = 0;
+
+	return out;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
-	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
+	if (new_keys) {
+		if (idx_offset > 4 * (gws + 1))
+			idx_offset = 0;	/* Self-test kludge */
 
-	if (saved_salt->v.type) {
-		// This salt passed valid() but failed get_salt().
-		// Should never happen.
-		memset(outbuffer, 0, count * WINZIP_BINARY_SIZE);
-		return count;
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[0]), "Failed transferring index");
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+
+		new_keys = 0;
 	}
 
-	// Copy data to gpu
-	insize = sizeof(zip_password) * global_work_size;
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
-		"Copy data to gpu");
+	WAIT_INIT(gws)
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[1]), "Failed running crypt kernel");
 
-	// Run kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
-		NULL, &global_work_size, lws, 0, NULL,
-		multi_profilingEvent[1]),
-		"Run kernel");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &crack_count_ret, 0, NULL, NULL), "failed reading results back");
 
-	// Read the result back
-	outsize = sizeof(zip_hash) * global_work_size;
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0,
-		outsize, outbuffer, 0, NULL, multi_profilingEvent[2]),
-		"Copy result back");
+	BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+	WAIT_UPDATE
+	WAIT_DONE
 
-	return count;
+	if (crack_count_ret) {
+		if (crack_count_ret > count)
+			error_msg("Corrupt return: Got a claimed %u cracks out of %d\n", crack_count_ret, count);
+
+		gws = GET_NEXT_MULTIPLE(crack_count_ret, local_work_size);
+		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "Failed running crypt kernel");
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(zip_hash) * crack_count_ret, outbuffer, 0, NULL, multi_profilingEvent[3]), "failed reading results back");
+
+		static const cl_uint zero = 0;
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &zero, 0, NULL, NULL), "Failed resetting crack return");
+	}
+
+	return crack_count_ret;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int i;
-
-	for (i = 0; i < count; i++)
-		if (((uint32_t*)&(outbuffer[i].v))[0] == ((uint32_t*)binary)[0])
-			return 1;
-	return 0;
+	return crack_count_ret;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	return (((uint32_t*)&(outbuffer[index].v))[0] == ((uint32_t*)binary)[0]);
+	return !memcmp(outbuffer[index].v, binary, WINZIP_BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	void *b = winzip_common_binary(source);
+	return 1;
+}
 
-	return !memcmp(b, outbuffer[index].v, WINZIP_BINARY_SIZE);
+
+static unsigned int cost_hmac_len(void *salt)
+{
+	winzip_salt *s = *((winzip_salt**)salt);
+
+	return s->comp_len;
 }
 
 struct fmt_main fmt_opencl_zip = {
@@ -417,7 +373,9 @@ struct fmt_main fmt_opencl_zip = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT | FMT_HUGE_INPUT,
-		{ NULL },
+		{
+			"HMAC size"
+		},
 		{ WINZIP_FORMAT_TAG },
 		winzip_common_tests
 	}, {
@@ -428,8 +386,10 @@ struct fmt_main fmt_opencl_zip = {
 		winzip_common_valid,
 		winzip_common_split,
 		winzip_common_binary,
-		get_salt,
-		{ NULL },
+		winzip_common_get_salt,
+		{
+			cost_hmac_len
+		},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
@@ -439,7 +399,7 @@ struct fmt_main fmt_opencl_zip = {
 		set_salt,
 		set_key,
 		get_key,
-		fmt_default_clear_keys,
+		clear_keys,
 		crypt_all,
 		{
 			fmt_default_get_hash

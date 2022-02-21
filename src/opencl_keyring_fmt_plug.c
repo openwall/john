@@ -86,6 +86,7 @@ static keyring_hash *outbuffer;
 static keyring_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
 static struct fmt_main *self;
+static int new_keys;
 
 #define insize (sizeof(keyring_password) * global_work_size)
 #define outsize (sizeof(keyring_hash) * global_work_size)
@@ -218,7 +219,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	int ctlen, extra;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	if (keeptr == NULL)
 		goto err;
@@ -267,7 +268,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
@@ -312,13 +313,15 @@ static void set_salt(void *salt)
 	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
 
-static void keyring_set_key(char *key, int index)
+static void set_key(char *key, int index)
 {
 	uint8_t length = strlen(key);
 	if (length > PLAINTEXT_LENGTH)
 		length = PLAINTEXT_LENGTH;
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -338,8 +341,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			insize, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+
+		new_keys = 0;
+	}
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
@@ -421,7 +428,7 @@ struct fmt_main fmt_opencl_keyring = {
 		fmt_default_salt_hash,
 		NULL,
 		set_salt,
-		keyring_set_key,
+		set_key,
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,

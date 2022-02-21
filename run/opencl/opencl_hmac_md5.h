@@ -47,7 +47,7 @@ inline void hmac_md5(HMAC_KEY_TYPE void *_key, uint key_len,
 
 			memcpy_macro(pbuf, key, len);
 			MD5_Update(&ctx, pbuf, len);
-			data_len -= len;
+			key_len -= len;
 			key += len;
 		}
 #else
@@ -70,15 +70,21 @@ inline void hmac_md5(HMAC_KEY_TYPE void *_key, uint key_len,
 	MD5_Init(&ctx);
 	MD5_Update(&ctx, buf, 64);
 #ifdef USE_DATA_BUF
-	while (data_len) {
-		uchar pbuf[64];
-		uint len = MIN(data_len, (uint)sizeof(pbuf));
+	HMAC_MSG_TYPE uint *data32 = (HMAC_MSG_TYPE uint*)_data;
+	uint blocks = data_len / 64;
+	data_len -= 64 * blocks;
+	data += 64 * blocks;
+	ctx.total += 64 * blocks;
+	while (blocks--) {
+		uint W[16];
 
-		memcpy_macro(pbuf, data, len);
-		MD5_Update(&ctx, pbuf, len);
-		data_len -= len;
-		data += len;
+		memcpy_macro(W, data32, 16);
+		md5_block(uint, W, ctx.state);
+		data32 += 16;
 	}
+	uchar pbuf[64];
+	memcpy_macro(pbuf, data, data_len);
+	MD5_Update(&ctx, pbuf, data_len);
 #else
 	MD5_Update(&ctx, data, data_len);
 #endif

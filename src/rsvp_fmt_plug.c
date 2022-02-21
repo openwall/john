@@ -196,7 +196,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
 
-	strkeep = strdup(ciphertext);
+	strkeep = xstrdup(ciphertext);
 	p = &strkeep[TAG_LENGTH];
 
 	if ((p = strtokm(p, "$")) == NULL) /* version */

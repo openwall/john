@@ -81,7 +81,7 @@ if __name__ == "__main__":
         sys.stderr.write("\nUsage: %s [-b] volume_filename [keyfiles(s)]> output_file\n" % sys.argv[0])
         sys.stderr.write("\nEnable -b only when attacking TrueCrypt's boot mode.\n")
         sys.stderr.write("\nError: No truecrypt volume file specified.\n")
-        sys.exit(-1)
+        sys.exit(1)
 
     parser = optparse.OptionParser()
     parser.add_option('-b', action="store_true", default=False, dest="boot_mode")

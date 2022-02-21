@@ -41,7 +41,7 @@ def process_dir(directory):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s [restic repository dirs]\n" % sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     for j in range(1, len(sys.argv)):
         process_dir(sys.argv[j])

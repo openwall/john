@@ -42,6 +42,7 @@
 #include "common.h"
 #include "formats.h"
 #include "path.h"
+#include "timer.h"
 #include "../run/opencl/opencl_device_info.h"
 
 #define MAX_PLATFORMS   8
@@ -129,6 +130,9 @@ extern size_t ocl_max_lws;
 extern struct db_main *ocl_autotune_db;
 extern int autotune_real_db;
 extern int opencl_unavailable;
+extern int opencl_avoid_busy_wait[MAX_GPU_DEVICES];
+
+#define ocl_any_test_running	(bench_or_test_running || ocl_autotune_running)
 
 extern cl_device_id devices[MAX_GPU_DEVICES + 1];
 extern cl_context context[MAX_GPU_DEVICES];
@@ -187,7 +191,7 @@ void opencl_init(const char *kernel_filename, int sequential_id, const char *opt
 /* used by opencl_DES_bs_*.c */
 void opencl_build(int sequential_id, const char *opts, int save, const char *file_name,
 		  cl_program *program, const char *kernel_source_file, const char *kernel_source);
-void opencl_build_from_binary(int sequential_id, cl_program *program, const char *kernel_source,
+cl_int opencl_build_from_binary(int sequential_id, cl_program *program, const char *kernel_source,
 			      size_t program_size);
 
 /* Build kernel (if not cached), and cache it */
@@ -327,6 +331,41 @@ void opencl_process_event(void);
 
 #define GET_EXACT_MULTIPLE(dividend, divisor)	  \
 	(divisor) ? ((dividend > divisor) ? ((dividend / divisor) * divisor) : divisor) : dividend
+
+#define WAIT_INIT(work_size) { \
+	static uint64_t wait_last_work_size; \
+	int wait_sleep = (work_size >= wait_last_work_size); \
+	wait_last_work_size = work_size; \
+	static uint64_t wait_times[20], wait_min; \
+	static unsigned int wait_index; \
+	uint64_t wait_start = 0;
+#define WAIT_SLEEP \
+	if (opencl_avoid_busy_wait[gpu_id]) { \
+		wait_start = john_get_nano(); \
+		uint64_t us = wait_min >> 10; /* 2.4% less than min */ \
+		if (wait_sleep && us >= 1000) \
+			usleep(us); \
+	}
+#define WAIT_UPDATE \
+	if (opencl_avoid_busy_wait[gpu_id]) { \
+		uint64_t wait_new = john_get_nano() - wait_start; \
+		if (wait_new < wait_min && wait_new < wait_min * 1000 / 1012) /* 1.2% less than min */ \
+			wait_new = wait_new * 7 / 8; /* we might have overslept and don't know by how much */ \
+		if (wait_times[wait_index] == wait_min) { /* about to replace former minimum */ \
+			unsigned int i; \
+			wait_times[wait_index] = wait_min = ~(uint64_t)0; \
+			for (i = 0; i < sizeof(wait_times) / sizeof(wait_times[0]); i++) \
+				if (wait_times[i] < wait_min) \
+					wait_min = wait_times[i]; \
+		} \
+		wait_times[wait_index++] = wait_new; \
+		if (wait_index >= sizeof(wait_times) / sizeof(wait_times[0])) \
+			wait_index = 0; \
+		if (wait_new < wait_min) \
+			wait_min = wait_new; \
+		wait_sleep = 1; \
+	}
+#define WAIT_DONE }
 
 /*
  * Shared function to find 'the best' local work group size.

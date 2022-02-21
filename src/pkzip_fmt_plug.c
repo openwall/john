@@ -155,7 +155,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return ret;
 	}
 
-	cpkeep = strdup(ciphertext);
+	cpkeep = xstrdup(ciphertext);
 	cp = cpkeep;
 
 	p = &cp[FORMAT_TAG_LEN];

@@ -180,7 +180,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		hash_len = SHA512_BINARY_SIZE;
 	else
 		return 0;
-	keeptr = strdup(cp);
+	keeptr = xstrdup(cp);
 	cp = keeptr;
 	while (*cp++ != ' ') ;  /* skip the "{x-issha?, " */
 

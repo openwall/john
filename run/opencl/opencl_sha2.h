@@ -1,6 +1,8 @@
 /*
- * This software is Copyright (c) 2013 Lukas Odzioba <ukasz at openwall dot net>
- * and Copyright (c) 2014-2018 magnum
+ * This software is
+ * Copyright (c) 2013 Lukas Odzioba <ukasz at openwall dot net>
+ * Copyright (c) 2014-2018 magnum
+ * Copyright (c) 2021 Solar Designer
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -161,23 +163,7 @@ __constant uint k[] = {
 		d += (t); h = (t) + Sigma0(a) + Maj((a), (b), (c)); \
 	}
 
-#define SHA256(A,B,C,D,E,F,G,H,W)	  \
-	ROUND_A(A,B,C,D,E,F,G,H,k[0],W[0]); \
-	ROUND_A(H,A,B,C,D,E,F,G,k[1],W[1]); \
-	ROUND_A(G,H,A,B,C,D,E,F,k[2],W[2]); \
-	ROUND_A(F,G,H,A,B,C,D,E,k[3],W[3]); \
-	ROUND_A(E,F,G,H,A,B,C,D,k[4],W[4]); \
-	ROUND_A(D,E,F,G,H,A,B,C,k[5],W[5]); \
-	ROUND_A(C,D,E,F,G,H,A,B,k[6],W[6]); \
-	ROUND_A(B,C,D,E,F,G,H,A,k[7],W[7]); \
-	ROUND_A(A,B,C,D,E,F,G,H,k[8],W[8]); \
-	ROUND_A(H,A,B,C,D,E,F,G,k[9],W[9]); \
-	ROUND_A(G,H,A,B,C,D,E,F,k[10],W[10]); \
-	ROUND_A(F,G,H,A,B,C,D,E,k[11],W[11]); \
-	ROUND_A(E,F,G,H,A,B,C,D,k[12],W[12]); \
-	ROUND_A(D,E,F,G,H,A,B,C,k[13],W[13]); \
-	ROUND_A(C,D,E,F,G,H,A,B,k[14],W[14]); \
-	ROUND_A(B,C,D,E,F,G,H,A,k[15],W[15]); \
+#define SHA256_16to31(A,B,C,D,E,F,G,H,W) \
 	ROUND_B(A,B,C,D,E,F,G,H,k[16],W[0],  W[14],W[1],W[0],W[9]) \
 	ROUND_B(H,A,B,C,D,E,F,G,k[17],W[1],  W[15],W[2],W[1],W[10]) \
 	ROUND_B(G,H,A,B,C,D,E,F,k[18],W[2],  W[0],W[3],W[2],W[11]) \
@@ -193,7 +179,8 @@ __constant uint k[] = {
 	ROUND_B(E,F,G,H,A,B,C,D,k[28],W[12],  W[10],W[13],W[12],W[5]) \
 	ROUND_B(D,E,F,G,H,A,B,C,k[29],W[13],  W[11],W[14],W[13],W[6]) \
 	ROUND_B(C,D,E,F,G,H,A,B,k[30],W[14],  W[12],W[15],W[14],W[7]) \
-	ROUND_B(B,C,D,E,F,G,H,A,k[31],W[15],  W[13],W[0],W[15],W[8]) \
+	ROUND_B(B,C,D,E,F,G,H,A,k[31],W[15],  W[13],W[0],W[15],W[8])
+#define SHA256_32to63_unrolled(A,B,C,D,E,F,G,H,W) \
 	ROUND_B(A,B,C,D,E,F,G,H,k[32],W[0],  W[14],W[1],W[0],W[9]) \
 	ROUND_B(H,A,B,C,D,E,F,G,k[33],W[1],  W[15],W[2],W[1],W[10]) \
 	ROUND_B(G,H,A,B,C,D,E,F,k[34],W[2],  W[0],W[3],W[2],W[11]) \
@@ -226,8 +213,52 @@ __constant uint k[] = {
 	ROUND_B(D,E,F,G,H,A,B,C,k[61],W[13],  W[11],W[14],W[13],W[6]) \
 	ROUND_B(C,D,E,F,G,H,A,B,k[62],W[14],  W[12],W[15],W[14],W[7]) \
 	ROUND_B(B,C,D,E,F,G,H,A,k[63],W[15],  W[13],W[0],W[15],W[8])
+#define SHA256_16to63(A,B,C,D,E,F,G,H,W) \
+	SHA256_16to31(A,B,C,D,E,F,G,H,W) \
+	SHA256_32to63_unrolled(A,B,C,D,E,F,G,H,W)
+#if nvidia_sm_3x(DEVICE_INFO)
+#define SHA256_32to63 SHA256_32to63_unrolled
+#else
+#define SHA256_32to63(A,B,C,D,E,F,G,H,W) \
+	for (uint i = 32; i <= 48; i += 16) { \
+		ROUND_B(A,B,C,D,E,F,G,H,k[i],W[0],  W[14],W[1],W[0],W[9]) \
+		ROUND_B(H,A,B,C,D,E,F,G,k[i+1],W[1],  W[15],W[2],W[1],W[10]) \
+		ROUND_B(G,H,A,B,C,D,E,F,k[i+2],W[2],  W[0],W[3],W[2],W[11]) \
+		ROUND_B(F,G,H,A,B,C,D,E,k[i+3],W[3],  W[1],W[4],W[3],W[12]) \
+		ROUND_B(E,F,G,H,A,B,C,D,k[i+4],W[4],  W[2],W[5],W[4],W[13]) \
+		ROUND_B(D,E,F,G,H,A,B,C,k[i+5],W[5],  W[3],W[6],W[5],W[14]) \
+		ROUND_B(C,D,E,F,G,H,A,B,k[i+6],W[6],  W[4],W[7],W[6],W[15]) \
+		ROUND_B(B,C,D,E,F,G,H,A,k[i+7],W[7],  W[5],W[8],W[7],W[0]) \
+		ROUND_B(A,B,C,D,E,F,G,H,k[i+8],W[8],  W[6],W[9],W[8],W[1]) \
+		ROUND_B(H,A,B,C,D,E,F,G,k[i+9],W[9],  W[7],W[10],W[9],W[2]) \
+		ROUND_B(G,H,A,B,C,D,E,F,k[i+10],W[10],  W[8],W[11],W[10],W[3]) \
+		ROUND_B(F,G,H,A,B,C,D,E,k[i+11],W[11],  W[9],W[12],W[11],W[4]) \
+		ROUND_B(E,F,G,H,A,B,C,D,k[i+12],W[12],  W[10],W[13],W[12],W[5]) \
+		ROUND_B(D,E,F,G,H,A,B,C,k[i+13],W[13],  W[11],W[14],W[13],W[6]) \
+		ROUND_B(C,D,E,F,G,H,A,B,k[i+14],W[14],  W[12],W[15],W[14],W[7]) \
+		ROUND_B(B,C,D,E,F,G,H,A,k[i+15],W[15],  W[13],W[0],W[15],W[8]) \
+	}
+#endif
 
-#define Z (0)
+#define SHA256(A,B,C,D,E,F,G,H,W)	  \
+	ROUND_A(A,B,C,D,E,F,G,H,k[0],W[0]); \
+	ROUND_A(H,A,B,C,D,E,F,G,k[1],W[1]); \
+	ROUND_A(G,H,A,B,C,D,E,F,k[2],W[2]); \
+	ROUND_A(F,G,H,A,B,C,D,E,k[3],W[3]); \
+	ROUND_A(E,F,G,H,A,B,C,D,k[4],W[4]); \
+	ROUND_A(D,E,F,G,H,A,B,C,k[5],W[5]); \
+	ROUND_A(C,D,E,F,G,H,A,B,k[6],W[6]); \
+	ROUND_A(B,C,D,E,F,G,H,A,k[7],W[7]); \
+	ROUND_A(A,B,C,D,E,F,G,H,k[8],W[8]); \
+	ROUND_A(H,A,B,C,D,E,F,G,k[9],W[9]); \
+	ROUND_A(G,H,A,B,C,D,E,F,k[10],W[10]); \
+	ROUND_A(F,G,H,A,B,C,D,E,k[11],W[11]); \
+	ROUND_A(E,F,G,H,A,B,C,D,k[12],W[12]); \
+	ROUND_A(D,E,F,G,H,A,B,C,k[13],W[13]); \
+	ROUND_A(C,D,E,F,G,H,A,B,k[14],W[14]); \
+	ROUND_A(B,C,D,E,F,G,H,A,k[15],W[15]); \
+	SHA256_16to63(A,B,C,D,E,F,G,H,W)
+
 //W[9]-W[14] are zeros
 #define SHA256_ZEROS(A,B,C,D,E,F,G,H,W)	  \
 	ROUND_A(A,B,C,D,E,F,G,H,k[0],W[0]); \
@@ -246,54 +277,23 @@ __constant uint k[] = {
 	ROUND_Z(D,E,F,G,H,A,B,C,k[13]); \
 	ROUND_Z(C,D,E,F,G,H,A,B,k[14]); \
 	ROUND_A(B,C,D,E,F,G,H,A,k[15],W[15]); \
-	ROUND_I(A,B,C,D,E,F,G,H,k[16],W[0],  Z,W[1],W[0],Z) \
-	ROUND_J(H,A,B,C,D,E,F,G,k[17],W[1],  W[15],W[2],W[1],Z) \
-	ROUND_J(G,H,A,B,C,D,E,F,k[18],W[2],  W[0],W[3],W[2],Z) \
-	ROUND_J(F,G,H,A,B,C,D,E,k[19],W[3],  W[1],W[4],W[3],Z) \
-	ROUND_J(E,F,G,H,A,B,C,D,k[20],W[4],  W[2],W[5],W[4],Z) \
-	ROUND_J(D,E,F,G,H,A,B,C,k[21],W[5],  W[3],W[6],W[5],Z) \
+	ROUND_I(A,B,C,D,E,F,G,H,k[16],W[0],  0,W[1],W[0],0) \
+	ROUND_J(H,A,B,C,D,E,F,G,k[17],W[1],  W[15],W[2],W[1],0) \
+	ROUND_J(G,H,A,B,C,D,E,F,k[18],W[2],  W[0],W[3],W[2],0) \
+	ROUND_J(F,G,H,A,B,C,D,E,k[19],W[3],  W[1],W[4],W[3],0) \
+	ROUND_J(E,F,G,H,A,B,C,D,k[20],W[4],  W[2],W[5],W[4],0) \
+	ROUND_J(D,E,F,G,H,A,B,C,k[21],W[5],  W[3],W[6],W[5],0) \
 	ROUND_B(C,D,E,F,G,H,A,B,k[22],W[6],  W[4],W[7],W[6],W[15]) \
 	ROUND_B(B,C,D,E,F,G,H,A,k[23],W[7],  W[5],W[8],W[7],W[0]) \
-	ROUND_K(A,B,C,D,E,F,G,H,k[24],W[8],  W[6],Z,W[8],W[1]) \
-	ROUND_L(H,A,B,C,D,E,F,G,k[25],W[9],  W[7],Z,Z,W[2]) \
-	ROUND_L(G,H,A,B,C,D,E,F,k[26],W[10],  W[8],Z,Z,W[3]) \
-	ROUND_L(F,G,H,A,B,C,D,E,k[27],W[11],  W[9],Z,Z,W[4]) \
-	ROUND_L(E,F,G,H,A,B,C,D,k[28],W[12],  W[10],Z,Z,W[5]) \
-	ROUND_L(D,E,F,G,H,A,B,C,k[29],W[13],  W[11],Z,Z,W[6]) \
-	ROUND_M(C,D,E,F,G,H,A,B,k[30],W[14],  W[12],W[15],Z,W[7]) \
+	ROUND_K(A,B,C,D,E,F,G,H,k[24],W[8],  W[6],0,W[8],W[1]) \
+	ROUND_L(H,A,B,C,D,E,F,G,k[25],W[9],  W[7],0,0,W[2]) \
+	ROUND_L(G,H,A,B,C,D,E,F,k[26],W[10],  W[8],0,0,W[3]) \
+	ROUND_L(F,G,H,A,B,C,D,E,k[27],W[11],  W[9],0,0,W[4]) \
+	ROUND_L(E,F,G,H,A,B,C,D,k[28],W[12],  W[10],0,0,W[5]) \
+	ROUND_L(D,E,F,G,H,A,B,C,k[29],W[13],  W[11],0,0,W[6]) \
+	ROUND_M(C,D,E,F,G,H,A,B,k[30],W[14],  W[12],W[15],0,W[7]) \
 	ROUND_B(B,C,D,E,F,G,H,A,k[31],W[15],  W[13],W[0],W[15],W[8]) \
-	ROUND_B(A,B,C,D,E,F,G,H,k[32],W[0],  W[14],W[1],W[0],W[9]) \
-	ROUND_B(H,A,B,C,D,E,F,G,k[33],W[1],  W[15],W[2],W[1],W[10]) \
-	ROUND_B(G,H,A,B,C,D,E,F,k[34],W[2],  W[0],W[3],W[2],W[11]) \
-	ROUND_B(F,G,H,A,B,C,D,E,k[35],W[3],  W[1],W[4],W[3],W[12]) \
-	ROUND_B(E,F,G,H,A,B,C,D,k[36],W[4],  W[2],W[5],W[4],W[13]) \
-	ROUND_B(D,E,F,G,H,A,B,C,k[37],W[5],  W[3],W[6],W[5],W[14]) \
-	ROUND_B(C,D,E,F,G,H,A,B,k[38],W[6],  W[4],W[7],W[6],W[15]) \
-	ROUND_B(B,C,D,E,F,G,H,A,k[39],W[7],  W[5],W[8],W[7],W[0]) \
-	ROUND_B(A,B,C,D,E,F,G,H,k[40],W[8],  W[6],W[9],W[8],W[1]) \
-	ROUND_B(H,A,B,C,D,E,F,G,k[41],W[9],  W[7],W[10],W[9],W[2]) \
-	ROUND_B(G,H,A,B,C,D,E,F,k[42],W[10],  W[8],W[11],W[10],W[3]) \
-	ROUND_B(F,G,H,A,B,C,D,E,k[43],W[11],  W[9],W[12],W[11],W[4]) \
-	ROUND_B(E,F,G,H,A,B,C,D,k[44],W[12],  W[10],W[13],W[12],W[5]) \
-	ROUND_B(D,E,F,G,H,A,B,C,k[45],W[13],  W[11],W[14],W[13],W[6]) \
-	ROUND_B(C,D,E,F,G,H,A,B,k[46],W[14],  W[12],W[15],W[14],W[7]) \
-	ROUND_B(B,C,D,E,F,G,H,A,k[47],W[15],  W[13],W[0],W[15],W[8]) \
-	ROUND_B(A,B,C,D,E,F,G,H,k[48],W[0],  W[14],W[1],W[0],W[9]) \
-	ROUND_B(H,A,B,C,D,E,F,G,k[49],W[1],  W[15],W[2],W[1],W[10]) \
-	ROUND_B(G,H,A,B,C,D,E,F,k[50],W[2],  W[0],W[3],W[2],W[11]) \
-	ROUND_B(F,G,H,A,B,C,D,E,k[51],W[3],  W[1],W[4],W[3],W[12]) \
-	ROUND_B(E,F,G,H,A,B,C,D,k[52],W[4],  W[2],W[5],W[4],W[13]) \
-	ROUND_B(D,E,F,G,H,A,B,C,k[53],W[5],  W[3],W[6],W[5],W[14]) \
-	ROUND_B(C,D,E,F,G,H,A,B,k[54],W[6],  W[4],W[7],W[6],W[15]) \
-	ROUND_B(B,C,D,E,F,G,H,A,k[55],W[7],  W[5],W[8],W[7],W[0]) \
-	ROUND_B(A,B,C,D,E,F,G,H,k[56],W[8],  W[6],W[9],W[8],W[1]) \
-	ROUND_B(H,A,B,C,D,E,F,G,k[57],W[9],  W[7],W[10],W[9],W[2]) \
-	ROUND_B(G,H,A,B,C,D,E,F,k[58],W[10],  W[8],W[11],W[10],W[3]) \
-	ROUND_B(F,G,H,A,B,C,D,E,k[59],W[11],  W[9],W[12],W[11],W[4]) \
-	ROUND_B(E,F,G,H,A,B,C,D,k[60],W[12],  W[10],W[13],W[12],W[5]) \
-	ROUND_B(D,E,F,G,H,A,B,C,k[61],W[13],  W[11],W[14],W[13],W[6]) \
-	ROUND_B(C,D,E,F,G,H,A,B,k[62],W[14],  W[12],W[15],W[14],W[7]) \
-	ROUND_B(B,C,D,E,F,G,H,A,k[63],W[15],  W[13],W[0],W[15],W[8])
+	SHA256_32to63(A,B,C,D,E,F,G,H,W)
 
 #define sha256_init(ctx)	  \
 	{ \
@@ -510,23 +510,7 @@ __constant ulong K[] = {
 	t = (ki) + (wi) + (h) + Sigma1_64(e) + Ch((e), (f), (g)); \
 	d += (t); h = (t) + Sigma0_64(a) + Maj((a), (b), (c));
 
-#define SHA512(A, B, C, D, E, F, G, H, W)	  \
-	ROUND512_A(A,B,C,D,E,F,G,H,K[0],W[0]) \
-	ROUND512_A(H,A,B,C,D,E,F,G,K[1],W[1]) \
-	ROUND512_A(G,H,A,B,C,D,E,F,K[2],W[2]) \
-	ROUND512_A(F,G,H,A,B,C,D,E,K[3],W[3]) \
-	ROUND512_A(E,F,G,H,A,B,C,D,K[4],W[4]) \
-	ROUND512_A(D,E,F,G,H,A,B,C,K[5],W[5]) \
-	ROUND512_A(C,D,E,F,G,H,A,B,K[6],W[6]) \
-	ROUND512_A(B,C,D,E,F,G,H,A,K[7],W[7]) \
-	ROUND512_A(A,B,C,D,E,F,G,H,K[8],W[8]) \
-	ROUND512_A(H,A,B,C,D,E,F,G,K[9],W[9]) \
-	ROUND512_A(G,H,A,B,C,D,E,F,K[10],W[10]) \
-	ROUND512_A(F,G,H,A,B,C,D,E,K[11],W[11]) \
-	ROUND512_A(E,F,G,H,A,B,C,D,K[12],W[12]) \
-	ROUND512_A(D,E,F,G,H,A,B,C,K[13],W[13]) \
-	ROUND512_A(C,D,E,F,G,H,A,B,K[14],W[14]) \
-	ROUND512_A(B,C,D,E,F,G,H,A,K[15],W[15]) \
+#define SHA512_16to31(A,B,C,D,E,F,G,H,W) \
 	ROUND512_B(A,B,C,D,E,F,G,H,K[16],W[0],  W[14],W[1],W[0],W[9]) \
 	ROUND512_B(H,A,B,C,D,E,F,G,K[17],W[1],  W[15],W[2],W[1],W[10]) \
 	ROUND512_B(G,H,A,B,C,D,E,F,K[18],W[2],  W[0],W[3],W[2],W[11]) \
@@ -542,7 +526,8 @@ __constant ulong K[] = {
 	ROUND512_B(E,F,G,H,A,B,C,D,K[28],W[12],  W[10],W[13],W[12],W[5]) \
 	ROUND512_B(D,E,F,G,H,A,B,C,K[29],W[13],  W[11],W[14],W[13],W[6]) \
 	ROUND512_B(C,D,E,F,G,H,A,B,K[30],W[14],  W[12],W[15],W[14],W[7]) \
-	ROUND512_B(B,C,D,E,F,G,H,A,K[31],W[15],  W[13],W[0],W[15],W[8]) \
+	ROUND512_B(B,C,D,E,F,G,H,A,K[31],W[15],  W[13],W[0],W[15],W[8])
+#define SHA512_32to79_unrolled(A,B,C,D,E,F,G,H,W) \
 	ROUND512_B(A,B,C,D,E,F,G,H,K[32],W[0],  W[14],W[1],W[0],W[9]) \
 	ROUND512_B(H,A,B,C,D,E,F,G,K[33],W[1],  W[15],W[2],W[1],W[10]) \
 	ROUND512_B(G,H,A,B,C,D,E,F,K[34],W[2],  W[0],W[3],W[2],W[11]) \
@@ -591,8 +576,53 @@ __constant ulong K[] = {
 	ROUND512_B(D,E,F,G,H,A,B,C,K[77],W[13],  W[11],W[14],W[13],W[6]) \
 	ROUND512_B(C,D,E,F,G,H,A,B,K[78],W[14],  W[12],W[15],W[14],W[7]) \
 	ROUND512_B(B,C,D,E,F,G,H,A,K[79],W[15],  W[13],W[0],W[15],W[8])
+#define SHA512_16to79(A,B,C,D,E,F,G,H,W) \
+	SHA512_16to31(A,B,C,D,E,F,G,H,W) \
+	SHA512_32to79_unrolled(A,B,C,D,E,F,G,H,W)
 
-#define z 0UL
+#if nvidia_sm_3x(DEVICE_INFO)
+#define SHA512_32to79 SHA512_32to79_unrolled
+#else
+#define SHA512_32to79(A,B,C,D,E,F,G,H,W) \
+	for (uint i = 32; i <= 64; i += 16) { \
+		ROUND512_B(A,B,C,D,E,F,G,H,K[i],W[0],  W[14],W[1],W[0],W[9]) \
+		ROUND512_B(H,A,B,C,D,E,F,G,K[i+1],W[1],  W[15],W[2],W[1],W[10]) \
+		ROUND512_B(G,H,A,B,C,D,E,F,K[i+2],W[2],  W[0],W[3],W[2],W[11]) \
+		ROUND512_B(F,G,H,A,B,C,D,E,K[i+3],W[3],  W[1],W[4],W[3],W[12]) \
+		ROUND512_B(E,F,G,H,A,B,C,D,K[i+4],W[4],  W[2],W[5],W[4],W[13]) \
+		ROUND512_B(D,E,F,G,H,A,B,C,K[i+5],W[5],  W[3],W[6],W[5],W[14]) \
+		ROUND512_B(C,D,E,F,G,H,A,B,K[i+6],W[6],  W[4],W[7],W[6],W[15]) \
+		ROUND512_B(B,C,D,E,F,G,H,A,K[i+7],W[7],  W[5],W[8],W[7],W[0]) \
+		ROUND512_B(A,B,C,D,E,F,G,H,K[i+8],W[8],  W[6],W[9],W[8],W[1]) \
+		ROUND512_B(H,A,B,C,D,E,F,G,K[i+9],W[9],  W[7],W[10],W[9],W[2]) \
+		ROUND512_B(G,H,A,B,C,D,E,F,K[i+10],W[10],  W[8],W[11],W[10],W[3]) \
+		ROUND512_B(F,G,H,A,B,C,D,E,K[i+11],W[11],  W[9],W[12],W[11],W[4]) \
+		ROUND512_B(E,F,G,H,A,B,C,D,K[i+12],W[12],  W[10],W[13],W[12],W[5]) \
+		ROUND512_B(D,E,F,G,H,A,B,C,K[i+13],W[13],  W[11],W[14],W[13],W[6]) \
+		ROUND512_B(C,D,E,F,G,H,A,B,K[i+14],W[14],  W[12],W[15],W[14],W[7]) \
+		ROUND512_B(B,C,D,E,F,G,H,A,K[i+15],W[15],  W[13],W[0],W[15],W[8]) \
+	}
+#endif
+
+#define SHA512(A, B, C, D, E, F, G, H, W)	  \
+	ROUND512_A(A,B,C,D,E,F,G,H,K[0],W[0]) \
+	ROUND512_A(H,A,B,C,D,E,F,G,K[1],W[1]) \
+	ROUND512_A(G,H,A,B,C,D,E,F,K[2],W[2]) \
+	ROUND512_A(F,G,H,A,B,C,D,E,K[3],W[3]) \
+	ROUND512_A(E,F,G,H,A,B,C,D,K[4],W[4]) \
+	ROUND512_A(D,E,F,G,H,A,B,C,K[5],W[5]) \
+	ROUND512_A(C,D,E,F,G,H,A,B,K[6],W[6]) \
+	ROUND512_A(B,C,D,E,F,G,H,A,K[7],W[7]) \
+	ROUND512_A(A,B,C,D,E,F,G,H,K[8],W[8]) \
+	ROUND512_A(H,A,B,C,D,E,F,G,K[9],W[9]) \
+	ROUND512_A(G,H,A,B,C,D,E,F,K[10],W[10]) \
+	ROUND512_A(F,G,H,A,B,C,D,E,K[11],W[11]) \
+	ROUND512_A(E,F,G,H,A,B,C,D,K[12],W[12]) \
+	ROUND512_A(D,E,F,G,H,A,B,C,K[13],W[13]) \
+	ROUND512_A(C,D,E,F,G,H,A,B,K[14],W[14]) \
+	ROUND512_A(B,C,D,E,F,G,H,A,K[15],W[15]) \
+	SHA512_16to79(A,B,C,D,E,F,G,H,W)
+
 //W[9]-W[14] are zeros
 #define SHA512_ZEROS(A, B, C, D, E, F, G, H, W)	  \
 	ROUND512_A(A,B,C,D,E,F,G,H,K[0],W[0]) \
@@ -611,70 +641,23 @@ __constant ulong K[] = {
 	ROUND512_Z(D,E,F,G,H,A,B,C,K[13]) \
 	ROUND512_Z(C,D,E,F,G,H,A,B,K[14]) \
 	ROUND512_A(B,C,D,E,F,G,H,A,K[15],W[15]) \
-	ROUND512_B(A,B,C,D,E,F,G,H,K[16],W[0],  z,W[1],W[0],z) \
-	ROUND512_B(H,A,B,C,D,E,F,G,K[17],W[1],  W[15],W[2],W[1],z) \
-	ROUND512_B(G,H,A,B,C,D,E,F,K[18],W[2],  W[0],W[3],W[2],z) \
-	ROUND512_B(F,G,H,A,B,C,D,E,K[19],W[3],  W[1],W[4],W[3],z) \
-	ROUND512_B(E,F,G,H,A,B,C,D,K[20],W[4],  W[2],W[5],W[4],z) \
-	ROUND512_B(D,E,F,G,H,A,B,C,K[21],W[5],  W[3],W[6],W[5],z) \
+	ROUND512_B(A,B,C,D,E,F,G,H,K[16],W[0],  0UL,W[1],W[0],0UL) \
+	ROUND512_B(H,A,B,C,D,E,F,G,K[17],W[1],  W[15],W[2],W[1],0UL) \
+	ROUND512_B(G,H,A,B,C,D,E,F,K[18],W[2],  W[0],W[3],W[2],0UL) \
+	ROUND512_B(F,G,H,A,B,C,D,E,K[19],W[3],  W[1],W[4],W[3],0UL) \
+	ROUND512_B(E,F,G,H,A,B,C,D,K[20],W[4],  W[2],W[5],W[4],0UL) \
+	ROUND512_B(D,E,F,G,H,A,B,C,K[21],W[5],  W[3],W[6],W[5],0UL) \
 	ROUND512_B(C,D,E,F,G,H,A,B,K[22],W[6],  W[4],W[7],W[6],W[15]) \
 	ROUND512_B(B,C,D,E,F,G,H,A,K[23],W[7],  W[5],W[8],W[7],W[0]) \
-	ROUND512_B(A,B,C,D,E,F,G,H,K[24],W[8],  W[6],z,W[8],W[1]) \
-	ROUND512_B(H,A,B,C,D,E,F,G,K[25],W[9],  W[7],z,z,W[2]) \
-	ROUND512_B(G,H,A,B,C,D,E,F,K[26],W[10],  W[8],z,z,W[3]) \
-	ROUND512_B(F,G,H,A,B,C,D,E,K[27],W[11],  W[9],z,z,W[4]) \
-	ROUND512_B(E,F,G,H,A,B,C,D,K[28],W[12],  W[10],z,z,W[5]) \
-	ROUND512_B(D,E,F,G,H,A,B,C,K[29],W[13],  W[11],z,z,W[6]) \
-	ROUND512_B(C,D,E,F,G,H,A,B,K[30],W[14],  W[12],W[15],z,W[7]) \
+	ROUND512_B(A,B,C,D,E,F,G,H,K[24],W[8],  W[6],0UL,W[8],W[1]) \
+	ROUND512_B(H,A,B,C,D,E,F,G,K[25],W[9],  W[7],0UL,0UL,W[2]) \
+	ROUND512_B(G,H,A,B,C,D,E,F,K[26],W[10],  W[8],0UL,0UL,W[3]) \
+	ROUND512_B(F,G,H,A,B,C,D,E,K[27],W[11],  W[9],0UL,0UL,W[4]) \
+	ROUND512_B(E,F,G,H,A,B,C,D,K[28],W[12],  W[10],0UL,0UL,W[5]) \
+	ROUND512_B(D,E,F,G,H,A,B,C,K[29],W[13],  W[11],0UL,0UL,W[6]) \
+	ROUND512_B(C,D,E,F,G,H,A,B,K[30],W[14],  W[12],W[15],0UL,W[7]) \
 	ROUND512_B(B,C,D,E,F,G,H,A,K[31],W[15],  W[13],W[0],W[15],W[8]) \
-	ROUND512_B(A,B,C,D,E,F,G,H,K[32],W[0],  W[14],W[1],W[0],W[9]) \
-	ROUND512_B(H,A,B,C,D,E,F,G,K[33],W[1],  W[15],W[2],W[1],W[10]) \
-	ROUND512_B(G,H,A,B,C,D,E,F,K[34],W[2],  W[0],W[3],W[2],W[11]) \
-	ROUND512_B(F,G,H,A,B,C,D,E,K[35],W[3],  W[1],W[4],W[3],W[12]) \
-	ROUND512_B(E,F,G,H,A,B,C,D,K[36],W[4],  W[2],W[5],W[4],W[13]) \
-	ROUND512_B(D,E,F,G,H,A,B,C,K[37],W[5],  W[3],W[6],W[5],W[14]) \
-	ROUND512_B(C,D,E,F,G,H,A,B,K[38],W[6],  W[4],W[7],W[6],W[15]) \
-	ROUND512_B(B,C,D,E,F,G,H,A,K[39],W[7],  W[5],W[8],W[7],W[0]) \
-	ROUND512_B(A,B,C,D,E,F,G,H,K[40],W[8],  W[6],W[9],W[8],W[1]) \
-	ROUND512_B(H,A,B,C,D,E,F,G,K[41],W[9],  W[7],W[10],W[9],W[2]) \
-	ROUND512_B(G,H,A,B,C,D,E,F,K[42],W[10],  W[8],W[11],W[10],W[3]) \
-	ROUND512_B(F,G,H,A,B,C,D,E,K[43],W[11],  W[9],W[12],W[11],W[4]) \
-	ROUND512_B(E,F,G,H,A,B,C,D,K[44],W[12],  W[10],W[13],W[12],W[5]) \
-	ROUND512_B(D,E,F,G,H,A,B,C,K[45],W[13],  W[11],W[14],W[13],W[6]) \
-	ROUND512_B(C,D,E,F,G,H,A,B,K[46],W[14],  W[12],W[15],W[14],W[7]) \
-	ROUND512_B(B,C,D,E,F,G,H,A,K[47],W[15],  W[13],W[0],W[15],W[8]) \
-	ROUND512_B(A,B,C,D,E,F,G,H,K[48],W[0],  W[14],W[1],W[0],W[9]) \
-	ROUND512_B(H,A,B,C,D,E,F,G,K[49],W[1],  W[15],W[2],W[1],W[10]) \
-	ROUND512_B(G,H,A,B,C,D,E,F,K[50],W[2],  W[0],W[3],W[2],W[11]) \
-	ROUND512_B(F,G,H,A,B,C,D,E,K[51],W[3],  W[1],W[4],W[3],W[12]) \
-	ROUND512_B(E,F,G,H,A,B,C,D,K[52],W[4],  W[2],W[5],W[4],W[13]) \
-	ROUND512_B(D,E,F,G,H,A,B,C,K[53],W[5],  W[3],W[6],W[5],W[14]) \
-	ROUND512_B(C,D,E,F,G,H,A,B,K[54],W[6],  W[4],W[7],W[6],W[15]) \
-	ROUND512_B(B,C,D,E,F,G,H,A,K[55],W[7],  W[5],W[8],W[7],W[0]) \
-	ROUND512_B(A,B,C,D,E,F,G,H,K[56],W[8],  W[6],W[9],W[8],W[1]) \
-	ROUND512_B(H,A,B,C,D,E,F,G,K[57],W[9],  W[7],W[10],W[9],W[2]) \
-	ROUND512_B(G,H,A,B,C,D,E,F,K[58],W[10],  W[8],W[11],W[10],W[3]) \
-	ROUND512_B(F,G,H,A,B,C,D,E,K[59],W[11],  W[9],W[12],W[11],W[4]) \
-	ROUND512_B(E,F,G,H,A,B,C,D,K[60],W[12],  W[10],W[13],W[12],W[5]) \
-	ROUND512_B(D,E,F,G,H,A,B,C,K[61],W[13],  W[11],W[14],W[13],W[6]) \
-	ROUND512_B(C,D,E,F,G,H,A,B,K[62],W[14],  W[12],W[15],W[14],W[7]) \
-	ROUND512_B(B,C,D,E,F,G,H,A,K[63],W[15],  W[13],W[0],W[15],W[8]) \
-	ROUND512_B(A,B,C,D,E,F,G,H,K[64],W[0],  W[14],W[1],W[0],W[9]) \
-	ROUND512_B(H,A,B,C,D,E,F,G,K[65],W[1],  W[15],W[2],W[1],W[10]) \
-	ROUND512_B(G,H,A,B,C,D,E,F,K[66],W[2],  W[0],W[3],W[2],W[11]) \
-	ROUND512_B(F,G,H,A,B,C,D,E,K[67],W[3],  W[1],W[4],W[3],W[12]) \
-	ROUND512_B(E,F,G,H,A,B,C,D,K[68],W[4],  W[2],W[5],W[4],W[13]) \
-	ROUND512_B(D,E,F,G,H,A,B,C,K[69],W[5],  W[3],W[6],W[5],W[14]) \
-	ROUND512_B(C,D,E,F,G,H,A,B,K[70],W[6],  W[4],W[7],W[6],W[15]) \
-	ROUND512_B(B,C,D,E,F,G,H,A,K[71],W[7],  W[5],W[8],W[7],W[0]) \
-	ROUND512_B(A,B,C,D,E,F,G,H,K[72],W[8],  W[6],W[9],W[8],W[1]) \
-	ROUND512_B(H,A,B,C,D,E,F,G,K[73],W[9],  W[7],W[10],W[9],W[2]) \
-	ROUND512_B(G,H,A,B,C,D,E,F,K[74],W[10],  W[8],W[11],W[10],W[3]) \
-	ROUND512_B(F,G,H,A,B,C,D,E,K[75],W[11],  W[9],W[12],W[11],W[4]) \
-	ROUND512_B(E,F,G,H,A,B,C,D,K[76],W[12],  W[10],W[13],W[12],W[5]) \
-	ROUND512_B(D,E,F,G,H,A,B,C,K[77],W[13],  W[11],W[14],W[13],W[6]) \
-	ROUND512_B(C,D,E,F,G,H,A,B,K[78],W[14],  W[12],W[15],W[14],W[7]) \
-	ROUND512_B(B,C,D,E,F,G,H,A,K[79],W[15],  W[13],W[0],W[15],W[8])
+	SHA512_32to79(A,B,C,D,E,F,G,H,W)
 
 #ifdef SCALAR
 #define sha512_single_s		sha512_single
@@ -706,6 +689,28 @@ inline void sha512_single_s(ulong *W, ulong *output)
 	output[7] = H + SHA2_INIT_H;
 }
 #endif
+
+#define sha512_block(pad, ctx)\
+ {	  \
+	ulong A, B, C, D, E, F, G, H, t; \
+	A = (ctx)[0]; \
+	B = (ctx)[1]; \
+	C = (ctx)[2]; \
+	D = (ctx)[3]; \
+	E = (ctx)[4]; \
+	F = (ctx)[5]; \
+	G = (ctx)[6]; \
+	H = (ctx)[7]; \
+	SHA512(A, B, C, D, E, F, G, H, pad); \
+	(ctx)[0] += A; \
+	(ctx)[1] += B; \
+	(ctx)[2] += C; \
+	(ctx)[3] += D; \
+	(ctx)[4] += E; \
+	(ctx)[5] += F; \
+	(ctx)[6] += G; \
+	(ctx)[7] += H; \
+}
 
 /* Raw'n'lean single-block SHA-512, no context[tm] */
 inline void sha512_single(MAYBE_VECTOR_ULONG *W, MAYBE_VECTOR_ULONG *output)

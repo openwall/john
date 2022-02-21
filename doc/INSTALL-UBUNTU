@@ -79,16 +79,14 @@ build CPU fallback chains for any x86-64 CPU.
     as Open MPI (Message Passing Interface).  You do get OpenMP support
     compiled into JtR by default if your system supports it.
 
-==== Optional REXGEN support (experimental; additional cracking mode)
-
-    You almost certainly don't need this.
+==== Optional REXGEN support (experimental; additional "regex" cracking mode)
 
     NOTE this support is experimental and may not build at all until tweaked.
     The rexgen library is notorious for changing its API between versions,
     breaking stuff.  Leave this step out unless you really know that you want
-    it and are capable of fixing issues.  Last known good version is 2.0.8.
+    it and are capable of fixing issues.  Last known good version is 2.1.5.
 
-    sudo apt-get -y install cmake bison flex libicu-dev
+    sudo apt-get -y install cmake bison flex
     cd ~/src
     git clone --recursive https://github.com/teeshop/rexgen.git
     cd rexgen

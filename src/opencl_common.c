@@ -51,7 +51,7 @@
 #include "recovery.h"
 #include "status.h"
 #include "john.h"
-#include "md5.h"
+#include "md4.h"
 #include "misc.h"
 #include "john_mpi.h"
 #include "timer.h"
@@ -80,6 +80,7 @@ size_t ocl_max_lws;
 static char opencl_log[LOG_SIZE];
 static int opencl_initialized;
 int opencl_unavailable;
+int opencl_avoid_busy_wait[MAX_GPU_DEVICES];
 
 static void load_device_info(int sequential_id);
 static char* get_device_capability(int sequential_id);
@@ -143,10 +144,11 @@ void opencl_process_event(void)
 				rec_save();
 			}
 
-			if (event_status) {
-				event_status = 0;
-				status_print();
-			}
+			if (event_help)
+				sig_help();
+
+			if (event_status)
+				status_print(0);
 
 			if (event_ticksafety) {
 				event_ticksafety = 0;
@@ -931,13 +933,13 @@ void opencl_load_environment(void)
 	}
 }
 
-/* Get the device preferred vector width */
+/*
+ * Get the device preferred vector width.  The --force-scalar option, or
+ * john.conf ForceScalar boolean, is taken care of in john.c and converted
+ * to "options.v_width = 1".
+ */
 unsigned int opencl_get_vector_width(int sequential_id, int size)
 {
-	/* --force-scalar option, or john.conf ForceScalar boolean */
-	if (options.flags & FLG_SCALAR)
-		options.v_width = 1;
-
 	/* --force-vector-width=N */
 	if (options.v_width) {
 		ocl_v_width = options.v_width;
@@ -1192,9 +1194,8 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 		file_name = name;
 	}
 
-	*program =
-	    clCreateProgramWithSource(context[sequential_id], 1, srcptr,
-	                              NULL, &err_code);
+	uint64_t start = john_get_nano();
+	*program = clCreateProgramWithSource(context[sequential_id], 1, srcptr, NULL, &err_code);
 	HANDLE_CLERROR(err_code, "clCreateProgramWithSource");
 
 	build_opts = get_build_opts(sequential_id, opts);
@@ -1279,6 +1280,9 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	                                     (void *)build_log, NULL),
 	               "clGetProgramBuildInfo II");
 
+	uint64_t end = john_get_nano();
+	log_event("- build time: %ss", ns2string(end - start));
+
 	// Report build errors and warnings
 	if (build_code != CL_SUCCESS) {
 		// Give us info about error and exit (through HANDLE_CLERROR)
@@ -1355,22 +1359,25 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 #endif /* HAVE_MPI */
 }
 
-void opencl_build_from_binary(int sequential_id, cl_program *program, const char *kernel_source, size_t program_size)
+cl_int opencl_build_from_binary(int sequential_id, cl_program *program, const char *kernel_source, size_t program_size)
 {
-	cl_int build_code, err_code;
+	cl_int build_code;
 	char *build_log;
 	const char *srcptr[] = { kernel_source };
 
-	build_log = (char *) mem_calloc(LOG_SIZE, sizeof(char));
-	*program =
-	    clCreateProgramWithBinary(context[sequential_id], 1,
-	                              &devices[sequential_id], &program_size,
-	                              (const unsigned char **)srcptr,
-	                              NULL, &err_code);
-	HANDLE_CLERROR(err_code, "clCreateProgramWithBinary (using cached binary - try clearing the cache)");
+	build_log = mem_calloc(LOG_SIZE, sizeof(char));
 
-	build_code = clBuildProgram(*program, 0,
-	                            NULL, NULL, NULL, NULL);
+	uint64_t start = john_get_nano();
+	*program = clCreateProgramWithBinary(context[sequential_id], 1,
+	                                     &devices[sequential_id], &program_size,
+	                                     (const unsigned char **)srcptr,
+	                                     NULL, &ret_code);
+	if (ret_code != CL_SUCCESS) {
+		MEM_FREE(build_log);
+		return ret_code;
+	}
+
+	build_code = (clBuildProgram(*program, 0, NULL, NULL, NULL, NULL));
 
 	HANDLE_CLERROR(clGetProgramBuildInfo(*program,
 	                                     devices[sequential_id],
@@ -1378,20 +1385,20 @@ void opencl_build_from_binary(int sequential_id, cl_program *program, const char
 	                                     (void *)build_log,
 	                                     NULL), "clGetProgramBuildInfo (using cached binary - try clearing the cache)");
 
-	// Report build errors and warnings
+	uint64_t end = john_get_nano();
+
+	// If it failed, don't show a log - we'll just rebuild without the cache
 	if (build_code != CL_SUCCESS) {
-		// Give us info about error and exit (through HANDLE_CLERROR)
-		if (strlen(build_log) > 1)
-			fprintf(stderr, "Binary build log: %s\n", build_log);
-		fprintf(stderr, "Error %d building kernel using cached binary - try clearing the cache."
-		        " DEVICE_INFO=%d\n", build_code, device_info[sequential_id]);
-		HANDLE_CLERROR(build_code, "clBuildProgram");
+		MEM_FREE(build_log);
+		return build_code;
 	}
 	// Nvidia may return a single '\n' that we ignore
 	else if (options.verbosity >= LOG_VERB && strlen(build_log) > 1)
 		fprintf(stderr, "Binary Build log: %s\n", build_log);
 
+	log_event("- build time: %ss", ns2string(end - start));
 	MEM_FREE(build_log);
+	return CL_SUCCESS;
 }
 
 // Do the proper test using different global work sizes.
@@ -1415,6 +1422,8 @@ static void clear_profiling_events()
 // salt, and fills binary pointer.
 static void* fill_opencl_device(size_t gws, void **binary)
 {
+	static int reported;
+	int len = mask_add_len;
 	int i;
 	size_t kpc = gws * ocl_v_width;
 	void *salt;
@@ -1423,7 +1432,6 @@ static void* fill_opencl_device(size_t gws, void **binary)
 	self->methods.clear_keys();
 	{
 		char key[PLAINTEXT_BUFFER_SIZE];
-		int len = mask_add_len;
 
 		if (mask_add_len == 0 ||
 		    options.req_minlength != -1 || options.req_maxlength != 0) {
@@ -1437,9 +1445,6 @@ static void* fill_opencl_device(size_t gws, void **binary)
 		// Obey format's min and max length
 		len = MAX(len, self->params.plaintext_min_length);
 		len = MIN(len, self->params.plaintext_length);
-
-		if (options.verbosity == VERB_DEBUG)
-			fprintf(stderr, "Tuning to length %d\n", len);
 
 		memset(key, 0x41, sizeof(key));
 		key[len] = 0;
@@ -1463,6 +1468,10 @@ static void* fill_opencl_device(size_t gws, void **binary)
 			s = s->next;
 		salt = s->salt;
 		*binary = s->list->binary;
+
+		if (options.verbosity >= VERB_MAX && !reported++)
+			fprintf(stderr, "Tuning for %s of %u and password length %d\n",
+			        db->format->params.tunable_cost_name[0], db->max_cost[0], len);
 	} else {
 		char *ciphertext;
 
@@ -1474,6 +1483,15 @@ static void* fill_opencl_device(size_t gws, void **binary)
 		*binary = self->methods.binary(ciphertext);
 		if (salt)
 			dyna_salt_create(salt);
+
+		if (options.verbosity >= VERB_MAX && !reported++) {
+			if (salt && self->methods.tunable_cost_value[0]) {
+				struct db_main *db = ocl_autotune_db;
+				fprintf(stderr, "Tuning for %s of %u and password length %d\n",
+				        db->format->params.tunable_cost_name[0], self->methods.tunable_cost_value[0](salt), len);
+			} else
+				fprintf(stderr, "Tuning for password length %d\n", len);
+		}
 	}
 	self->methods.set_salt(salt);
 
@@ -2142,8 +2160,7 @@ static void load_device_info(int sequential_id)
 		device_info[sequential_id] +=
 		    (major == 3 && minor == 5 ? DEV_NV_C35 : 0);
 		device_info[sequential_id] += (major == 5 ? DEV_NV_MAXWELL : 0);
-		device_info[sequential_id] += (major == 6 ? DEV_NV_PASCAL : 0);
-		device_info[sequential_id] += (major == 7 ? DEV_NV_VOLTA : 0);
+		device_info[sequential_id] += (major >= 5 ? DEV_NV_MAXWELL_PLUS : 0);
 	}
 }
 
@@ -2220,113 +2237,113 @@ void opencl_build_kernel_opt(const char *kernel_filename, int sequential_id,
 	MEM_FREE(kernel_source);
 }
 
-#define md5add(string) MD5_Update(&ctx, (string), strlen(string))
+#define md4add(string) MD4_Update(&ctx, (string), strlen(string))
 
 void opencl_build_kernel(const char *kernel_filename, int sequential_id, const char *opts,
                          int warn)
 {
+	struct stat source_stat, bin_stat;
+	char dev_name[512], bin_name[512];
+	const char *tmp_name;
+	unsigned char hash[16];
+	char hash_str[33];
+	int i, use_cache;
+	MD4_CTX ctx;
+	char *kernel_source = NULL;
+	const char *global_opts;
+
 #if HAVE_MPI
 	static int once;
 #endif
 
-	/*
-	 * Disable binary caching for:
-	 * - nvidia unless on macOS
-	 * - CPU if on macOS
-	 */
-	if ((gpu_nvidia(device_info[sequential_id]) && !platform_apple(get_platform_id(sequential_id))) ||
-	    (cpu(device_info[sequential_id]) && platform_apple(get_platform_id(sequential_id)))) {
-		if (john_main_process || !cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0))
-			log_event("- Kernel binary caching disabled for this platform/device");
-		opencl_build_kernel_opt(kernel_filename, sequential_id, opts);
-	} else {
-		struct stat source_stat, bin_stat;
-		char dev_name[512], bin_name[512];
-		const char *tmp_name;
-		unsigned char hash[16];
-		char hash_str[33];
-		uint64_t startTime, runtime;
-		int i;
-		MD5_CTX ctx;
-		char *kernel_source = NULL;
-		const char *global_opts;
+	if (!(global_opts = getenv("OPENCLBUILDOPTIONS")) &&
+	    !(global_opts = cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL, "GlobalBuildOpts")))
+		global_opts = OPENCLBUILDOPTIONS;
 
-		if (!(global_opts = getenv("OPENCLBUILDOPTIONS")))
-			if (!(global_opts = cfg_get_param(SECTION_OPTIONS,
-			    SUBSECTION_OPENCL, "GlobalBuildOpts")))
-				global_opts = OPENCLBUILDOPTIONS;
-
-		startTime = (unsigned long)time(NULL);
-
-		// Get device name.
-		HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
-		                               CL_DEVICE_NAME, sizeof(dev_name),
-		                               dev_name, NULL),
-		               "clGetDeviceInfo for DEVICE_NAME");
+	// Get device name.
+	HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
+	                               CL_DEVICE_NAME, sizeof(dev_name),
+	                               dev_name, NULL),
+	               "clGetDeviceInfo for DEVICE_NAME");
 
 /*
  * Create a hash of kernel source and parameters, and use as cache name.
  */
-		MD5_Init(&ctx);
-		md5add(kernel_filename);
-		opencl_read_source(kernel_filename, &kernel_source);
-		md5add(kernel_source);
-		md5add(global_opts);
-		if (opts)
-			md5add(opts);
-		md5add(opencl_driver_ver(sequential_id));
-		md5add(dev_name);
-		MD5_Update(&ctx, (char*)&platform_id, sizeof(platform_id));
-		MD5_Final(hash, &ctx);
+	MD4_Init(&ctx);
+	md4add(kernel_filename);
+	opencl_read_source(kernel_filename, &kernel_source);
+	md4add(kernel_source);
+	md4add(global_opts);
+	if (opts)
+		md4add(opts);
+	md4add(opencl_driver_ver(sequential_id));
+	md4add(dev_name);
+	MD4_Update(&ctx, (char*)&platform_id, sizeof(platform_id));
+	MD4_Final(hash, &ctx);
 
-		for (i = 0; i < 16; i++) {
-			hash_str[2 * i + 0] = itoa16[hash[i] >> 4];
-			hash_str[2 * i + 1] = itoa16[hash[i] & 0xf];
-		}
-		hash_str[32] = 0;
+	for (i = 0; i < 16; i++) {
+		hash_str[2 * i + 0] = itoa16[hash[i] >> 4];
+		hash_str[2 * i + 1] = itoa16[hash[i] & 0xf];
+	}
+	hash_str[32] = 0;
 
 #if JOHN_SYSTEMWIDE
-		tmp_name = replace_str(kernel_filename, "$JOHN", JOHN_PRIVATE_HOME);
+	tmp_name = replace_str(kernel_filename, "$JOHN", JOHN_PRIVATE_HOME);
 #else
-		tmp_name = kernel_filename;
+	tmp_name = kernel_filename;
 #endif
-		snprintf(bin_name, sizeof(bin_name), "%s_%s.bin",
-		         tmp_name, hash_str);
+	snprintf(bin_name, sizeof(bin_name), "%s_%s.bin", tmp_name, hash_str);
 
-		// Select the kernel to run.
-		if (!getenv("DUMP_BINARY") &&
-		    !stat(path_expand(kernel_filename), &source_stat) &&
-		    !stat(path_expand(bin_name), &bin_stat) &&
-			(source_stat.st_mtime < bin_stat.st_mtime)) {
-			size_t program_size = opencl_read_source(bin_name, &kernel_source);
-			log_event("- Building kernel from cached binary");
-			opencl_build_from_binary(sequential_id, &program[sequential_id], kernel_source, program_size);
-		} else {
-			log_event("- Building kernel and caching binary");
-			if (warn && options.verbosity > VERB_DEFAULT) {
-				fprintf(stderr, "Building the kernel, this "
-				        "could take a while\n");
-				fflush(stdout);
-			}
-			opencl_read_source(kernel_filename, &kernel_source);
-			opencl_build(sequential_id, opts, 1, bin_name, &program[sequential_id], kernel_filename, kernel_source);
-		}
-		if (warn && options.verbosity > VERB_DEFAULT) {
-			if ((runtime = (unsigned long)(time(NULL) - startTime))
-			        > 2UL)
-				fprintf(stderr, "Build time: %lu seconds\n",
-				        (unsigned long)runtime);
-			fflush(stdout);
-		}
+#if 1
+	/*
+	 * Disable binary caching for nvidia, they have their own in ~/.nv/ComputeCache
+	 */
+	if (gpu_nvidia(device_info[sequential_id]) && !platform_apple(get_platform_id(sequential_id))) {
+		if (john_main_process || !cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0))
+			log_event("- Kernel binary caching disabled for this platform/device");
+		use_cache = 0;
+	} else
+#endif
+	if (getenv("DUMP_BINARY")) {
+		log_event("- DUMP_BINARY is set, ignoring cached kernel");
+		use_cache = 0;
+	} else {
+		use_cache = !stat(path_expand(bin_name), &bin_stat);
 
-		MEM_FREE(kernel_source);
+		if (use_cache && !stat(path_expand(kernel_filename), &source_stat) &&
+		    source_stat.st_mtime > bin_stat.st_mtime) {
+			use_cache = 0;
+			log_event("- cached kernel may be stale, ignoring");
+		}
 	}
+
+	// Select the kernel to run.
+	if (use_cache) {
+		size_t program_size = opencl_read_source(bin_name, &kernel_source);
+
+		log_event("- Building kernel from cached binary");
+		ret_code = opencl_build_from_binary(sequential_id, &program[sequential_id], kernel_source, program_size);
+		if (ret_code != CL_SUCCESS)
+			log_event("- Build from cached binary failed");
+	}
+
+	if (!use_cache || ret_code != CL_SUCCESS) {
+		log_event("- Building kernel from source and caching binary");
+		if (warn && options.verbosity > VERB_DEFAULT) {
+			fflush(stdout);
+			fprintf(stderr, "Building the kernel, this could take a while\n");
+		}
+		opencl_read_source(kernel_filename, &kernel_source);
+		opencl_build(sequential_id, opts, 1, bin_name, &program[sequential_id], kernel_filename, kernel_source);
+	}
+
+	MEM_FREE(kernel_source);
+
 #if HAVE_MPI
 	if (mpi_p > 1 && !once++) {
 #if RACE_CONDITION_DEBUG || MPI_DEBUG
 		if (options.verbosity == VERB_DEBUG)
-			fprintf(stderr, "Node %d reached %s() MPI build barrier\n",
-			        NODE, __FUNCTION__);
+			fprintf(stderr, "Node %d reached %s() MPI build barrier\n", NODE, __FUNCTION__);
 #endif
 		MPI_Barrier(MPI_COMM_WORLD);
 		if (mpi_id == 0 && options.verbosity >= VERB_DEFAULT)
@@ -2371,6 +2388,19 @@ int opencl_prepare_dev(int sequential_id)
 	else
 		ocl_always_show_ws = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL,
 		                                  "AlwaysShowWorksizes", 0);
+
+	if (gpu_nvidia(device_info[sequential_id])) {
+		opencl_avoid_busy_wait[sequential_id] = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_GPU,
+		                                                     "AvoidBusyWait", 1);
+		static int warned;
+
+		/* Remove next line once (nearly) all formats has got the macros */
+		if (!opencl_avoid_busy_wait[sequential_id])
+		if (!warned) {
+			warned = 1;
+			log_event("- Busy-wait reduction %sabled", opencl_avoid_busy_wait[sequential_id] ? "en" : "dis");
+		}
+	}
 
 	return sequential_id;
 }
@@ -2490,6 +2520,47 @@ void get_compute_capability(int sequential_id, unsigned int *major,
 	clGetDeviceInfo(devices[sequential_id],
 	                CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
 	                sizeof(cl_uint), minor, NULL);
+
+	if (!major) {
+/*
+ * Apple, VCL and some other environments don't expose CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV
+ * so we need this crap - which is incomplete, best effort matching.
+ * http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
+ */
+		char dname[MAX_OCLINFO_STRING_LEN];
+
+		HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
+		                               CL_DEVICE_NAME,
+		                               sizeof(dname), dname, NULL),
+		               "clGetDeviceInfo for CL_DEVICE_NAME");
+
+		// Ampere 8.0
+		if ((strstr(dname, "RTX 30") ||
+		           (strstr(dname, "RTX A") && (dname[5] >= '1' && dname[5] <= '9')) ||
+		     (dname[0] == 'A' && dname[1] >= '1' && dname[1] <= '9')))
+			*major = 8;
+		// Volta 7.0, Turing 7.5
+		else if (strstr(dname, "TITAN V") || strstr(dname, "RTX 20")) {
+			*major = 7;
+			if (strstr(dname, "RTX 20"))
+				*minor = 5;
+		}
+		// Pascal 6.x
+		else if (strstr(dname, "GT 10") || strstr(dname, "GTX 10") || strcasestr(dname, "TITAN Xp"))
+			*major = 6;
+		// Maxwell 5.x
+		else if (strstr(dname, "GT 9") || strstr(dname, "GTX 9") || strstr(dname, "GTX TITAN X"))
+			*major = 5;
+		// Kepler 3.x
+		else if (strstr(dname, "GT 6") || strstr(dname, "GTX 6") ||
+		         strstr(dname, "GT 7") || strstr(dname, "GTX 7") ||
+		         strstr(dname, "GT 8") || strstr(dname, "GTX 8") ||
+		         strstr(dname, "GTX TITAN"))
+			*major = 3;
+		// Fermi 2.0
+		else if (strstr(dname, "GT 5") || strstr(dname, "GTX 5"))
+			*major = 2;
+	}
 }
 
 cl_uint get_processors_count(int sequential_id)
@@ -2520,44 +2591,21 @@ cl_uint get_processors_count(int sequential_id)
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
 		else if (major == 6)    // 6.x Pascal
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-		else if (major >= 7)    // 7.x Volta, 8.x Turing?
+		else if (major >= 7)    // 7.0 Volta, 7.5 Turing, 8.x Ampere
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
-/*
- * Apple, VCL and some other environments don't expose get_compute_capability()
- * so we need this crap - which is incomplete.
- * http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
- *
- * This will produce a *guessed* figure
- */
-
-		// Volta or Turing
-		else if (strstr(dname, "TITAN V") || strstr(dname, "RTX 2"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
-		// Pascal
-		else if (strstr(dname, "GTX 10"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-		// Maxwell
-		else if (strstr(dname, "GTX 9") || strstr(dname, "GTX TITAN X"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-		// Kepler
-		else if (strstr(dname, "GT 6") || strstr(dname, "GTX 6") ||
-		         strstr(dname, "GT 7") || strstr(dname, "GTX 7") ||
-		         strstr(dname, "GT 8") || strstr(dname, "GTX 8") ||
-		         strstr(dname, "GTX TITAN"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 192);
-		// Fermi
-		else if (strstr(dname, "GT 5") || strstr(dname, "GTX 5"))
-			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 48);
 	} else if (gpu_intel(device_info[sequential_id])) {
 		// It seems all current models are x 8
 		core_count *= ocl_device_list[sequential_id].cores_per_MP = 8;
+	} else if (!strcmp(dname, "Apple M1")) {
+		// Each GPU core is split into 16 Execution Units, which each contain eight Arithmetic Logic Units (ALUs)
+		core_count *= ocl_device_list[sequential_id].cores_per_MP = 16 * 8;
 	} else if (gpu_amd(device_info[sequential_id])) {
 		// 16 thread proc * 5 SP
 		core_count *= (ocl_device_list[sequential_id].cores_per_MP = (16 *
 		               ((amd_gcn(device_info[sequential_id]) ||
 		                 amd_vliw4(device_info[sequential_id])) ? 4 : 5)));
 	} else {
-		// Nothing else known, we use half native vector width for long
+		// Nothing else known, we use the native vector width for long.
 		cl_uint v_width;
 
 		HANDLE_CLERROR(clGetDeviceInfo(devices[sequential_id],
@@ -3069,9 +3117,8 @@ void opencl_list_devices(void)
 
 			long_entries = get_processors_count(sequence_nr);
 			if (!cpu && ocl_device_list[sequence_nr].cores_per_MP > 1)
-				printf("    %s      "LLu" "
-				       " (%d x %d)\n",
-					gpu_nvidia(device_info[sequence_nr]) ? "CUDA cores:       " : "Stream processors:",
+				printf("    %s      "LLu"  (%d x %d)\n",
+					gpu_nvidia(device_info[sequence_nr]) ? "CUDA INT32 cores: " : "Stream processors:",
 				       (unsigned long long)long_entries,
 				       entries, ocl_device_list[sequence_nr].cores_per_MP);
 			printf("    Speed index:            %u\n",

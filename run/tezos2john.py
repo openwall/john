@@ -12,7 +12,7 @@
 # Contributor: LordDarkHelmet (https://github.com/LordDarkHelmet)
 
 
-# code from https://github.com/trezor/python-mnemonic used. 
+# code from https://github.com/trezor/python-mnemonic used.
 # Copyright (c) 2013 Pavol Rusnak
 # Copyright (c) 2017 mruddy
 #
@@ -167,7 +167,7 @@ def b58check_to_bin(inp):
 ### Borrowed code ends ####
 
 def getSeedWordListFromString(seedWords):
-    return [seedWord for seedWord in normalize_string(seedWords).split(' ')] 
+    return [seedWord for seedWord in normalize_string(seedWords).split(' ')]
 
 # from https://github.com/trezor/python-mnemonic/blob/master/mnemonic/mnemonic.py
 def normalize_string(txt):
@@ -183,7 +183,7 @@ def normalize_string(txt):
 ### Check if the provided seed words conform to the Tezos ICO rules
 def isICOValidSeed(seedWords):
 
-    # Ensure that it meets the ICO spec of exactly 15 words. 
+    # Ensure that it meets the ICO spec of exactly 15 words.
     myWords = getSeedWordListFromString(seedWords)
     if len(myWords) != 15:
         sys.stderr.write("[WARNING] There must be 15 Seed Words to be a valid ICO mnemonic!\n")
@@ -214,7 +214,7 @@ def isValidMnemonic(seedWords):
          if set(myWords).issubset(bip39Words):
             if isValidChecksumForMnemonic(seedWords, bip39Words):
                 return True
-            return False 
+            return False
 
     sys.stderr.write("[WARNING] Provided Seed Words Are Not Valid Seed Words!\n")
     return False
@@ -222,7 +222,7 @@ def isValidMnemonic(seedWords):
 
 
 ### Check if the seed words form a valid checksum. All ICO wallets have a valid seed checksum.
-### See Josh McIntyre's post for a good walkthrough. https://jmcintyre.net/?p=180 
+### See Josh McIntyre's post for a good walkthrough. https://jmcintyre.net/?p=180
 def isValidChecksumForMnemonic(seedWords, wordList):
     myWords = getSeedWordListFromString(seedWords)
     myWordPosBinString = ""
@@ -233,7 +233,7 @@ def isValidChecksumForMnemonic(seedWords, wordList):
         return False
 
     #check to ensure that seed words are on the list, and to get a string for the checksum process
-    try:    
+    try:
         for t in myWords:
             myWordPosBinString += str(bin(wordList.index(t)))[2:].zfill(11);
     except ValueError:
@@ -254,7 +254,7 @@ def isValidChecksumForMnemonic(seedWords, wordList):
         return False
     return True
 
-     
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Creates Tezos File For John The Ripper')
     parser.add_argument('-i', '--ignoreRules', '--ignorerules', action='store_true', help='Ignore All Rules, seed words, checksum, ...', required=False)
@@ -267,13 +267,13 @@ if __name__ == "__main__":
         data = json.loads(data)
         mnemonic, email, address = (" ".join(data["mnemonic"]), data["email"], data["pkh"])
         raw_address = binascii.hexlify(b58check_to_bin(address)).decode("ascii")
-        print("%s:$tezos$1*%s*%s*%s*%s*%s" % ("dummy", 2048, mnemonic, email, address, raw_address))
+        print("%s:$tezos$1*%s*%s*%s*%s*%s" % (email, 2048, mnemonic, email, address, raw_address))
         sys.exit(0)
     if len(myArgs) != 3:
         sys.stderr.write("Usage: %s \'mnemonic data (15 words)\' \'email\' \'public key\'\n" %
                          sys.argv[0])
         sys.stderr.write("""\nExample: %s 'put guide flat machine express cave hello connect stay local spike ski romance express brass' 'jbzbdybr.vpbdbxnn@tezos.example.org' 'tz1eTjPtwYjdcBMStwVdEcwY2YE3th1bXyMR'\n""" % sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     mnemonic, email, address = sys.argv[1:4]
     if len(email) > 51:
@@ -283,19 +283,19 @@ if __name__ == "__main__":
         if args.ignoreICORules == False:
            if isICOValidSeed(mnemonic) == False:
                 sys.stderr.write("[ERROR] ICO Rules Broken, Bad Seed Words! Use the -h argument for more options.\n")
-                sys.exit(-1)
+                sys.exit(1)
         if  isValidMnemonic(mnemonic) == False:
             sys.stderr.write("[ERROR] Rules Broken, Bad Seed Words! Use the -h argument for more options.\n")
-            sys.exit(-1)
+            sys.exit(1)
         #Check if it is a valid email address
         if not re.fullmatch(r"[^@]+@[^@]+\.[^@]+", email):
             sys.stderr.write("[ERROR] Rules Broken, Invalid Email Address! Use the -h argument for more options.\n")
-            sys.exit(-1)
+            sys.exit(1)
 
     try:
         raw_address = binascii.hexlify(b58check_to_bin(address)).decode("ascii")
     except AssertionError:
         sys.stderr.write("[ERROR] Invalid address, Please Check before continuing.\n")
-        sys.exit(-1)
+        sys.exit(1)
 
-    print("%s:$tezos$1*%s*%s*%s*%s*%s" % ("dummy", 2048, mnemonic, email, address, raw_address))
+    print("%s:$tezos$1*%s*%s*%s*%s*%s" % (email, 2048, mnemonic, email, address, raw_address))

@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-98,2010,2012,2016 by Solar Designer
+ * Copyright (c) 1996-2022 by Solar Designer
+ *
+ * With many changes in jumbo by other contributors.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -23,6 +25,10 @@
 #include "memory.h"
 #include "common.h"
 #include "johnswap.h"
+
+#if defined(WITH_ASAN) && !defined(DEBUG)
+#define DEBUG
+#endif
 
 #if (defined (_MSC_VER) || HAVE___MINGW_ALIGNED_MALLOC)
 char *strdup_MSVC(const char *str)
@@ -121,6 +127,18 @@ void *mem_realloc(void *old_ptr, size_t size)
 	}
 
 /* We don't know old size, so also don't know how much to mem_debug_fill() */
+
+	return res;
+}
+
+char *xstrdup(const char *str)
+{
+	char *res = strdup(str);
+
+	if (!res) {
+		fprintf(stderr, "xstrdup(): %s\n", strerror(ENOMEM));
+		error();
+	}
 
 	return res;
 }
@@ -227,8 +245,12 @@ void *mem_alloc_align(size_t size, size_t align)
 	if (!size)
 		return NULL;
 #ifdef DEBUG
-    assert(!(align & (align - 1)));
+	assert(!(align & (align - 1)));
 #endif
+	if (size + (align - 1) < size) {
+		fprintf(stderr, "mem_alloc_align(): %s\n", strerror(ENOMEM));
+		error();
+	}
 #if HAVE_POSIX_MEMALIGN
 	if (posix_memalign(&ptr, align, size))
 		pexit("posix_memalign ("Zu" bytes)", size);
@@ -272,9 +294,14 @@ void *mem_alloc_align(size_t size, size_t align)
 
 void *mem_calloc_align(size_t count, size_t size, size_t align)
 {
-	void *ptr = mem_alloc_align(size * count, align);
+	size_t total = count * size;
+	if (total / size != count) {
+		fprintf(stderr, "mem_calloc_align(): %s\n", strerror(ENOMEM));
+		error();
+	}
 
-	memset(ptr, 0, size * count);
+	void *ptr = mem_alloc_align(total, align);
+	memset(ptr, 0, total);
 	return ptr;
 }
 

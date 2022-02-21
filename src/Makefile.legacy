@@ -148,7 +148,7 @@ JOHN_OBJS = \
 	crc32.o external.o formats.o getopt.o idle.o inc.o john.o list.o \
 	loader.o logger.o mask.o mask_ext.o memory.o misc.o options.o \
 	params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
-	tty.o wordlist.o \
+	suppressor.o tty.o wordlist.o \
 	mkv.o mkvlib.o \
 	subsets.o unicode_range.o \
 	listconf.o \
@@ -160,7 +160,7 @@ JOHN_OBJS = \
 	unafs.o \
 	undrop.o \
 	regex.o pp.o \
-	lzma/LzmaDec.o lzma/Lzma2Dec.o lzma/Bra.o lzma/Bra86.o lzma/BraIA64.o lzma/CpuArch.o \
+	lzma/LzmaDec.o lzma/Lzma2Dec.o lzma/Bra.o lzma/Bra86.o lzma/BraIA64.o lzma/CpuArch.o lzma/Delta.o \
 	unique.o gpg2john.o \
 	showformats.o
 
@@ -2038,8 +2038,13 @@ shell-completion: bash-completion zsh-completion
 	@echo
 	@echo "You should have bash and zsh completion now"
 
-kernel-cache-clean:
-	$(RM) -fr ~/.nv/ComputeCache ../run/opencl/*.bin
+kernel-cache-clean-nvidia:
+	$(RM) -fr ~/.nv/ComputeCache
+
+kernel-cache-clean-john:
+	$(RM) -f ../run/opencl/*.bin ../run/opencl/*.config
+
+kernel-cache-clean: kernel-cache-clean-nvidia kernel-cache-clean-john
 
 clean:
 	$(RM) $(PROJ) $(PROJ_DOS) $(PROJ_WIN32) $(PROJ_WIN32_MINGW)

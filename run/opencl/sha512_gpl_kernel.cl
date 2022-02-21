@@ -14,6 +14,7 @@
 
 #include "opencl_rawsha512.h"
 #include "opencl_mask_extras.h"
+#include "opencl_device_info.h"
 
 #ifndef UNROLL_LOOP
     ///	    *** UNROLL ***
@@ -29,7 +30,7 @@
         #define UNROLL_LOOP    132098
     #elif nvidia_sm_5x(DEVICE_INFO)
         #define UNROLL_LOOP    33686536
-    #elif nvidia_sm_6x(DEVICE_INFO)
+    #elif nvidia_sm_5plus(DEVICE_INFO)
         #define UNROLL_LOOP    132104
     #elif gpu_intel(DEVICE_INFO)
         #define UNROLL_LOOP    262658

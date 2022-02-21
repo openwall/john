@@ -32,6 +32,7 @@
 #include "misc.h"	// error()
 #include "config.h"
 #include "john.h"
+#include "options.h"
 #include "params.h"
 #include "signals.h"
 #include "unicode.h"
@@ -575,13 +576,13 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 	current = format->params.tests;
 
 	init_status(format->params.label);
+	ldr_init_database(db, &options.loader); /* Leaks memory on second call and on */
 	db->format = format;
 
-	while (1) {
+	while (!event_abort) {
 		ret = get_next_fuzz_case(format->params.label, current->ciphertext);
 		save_index(index++);
 		line = fuzz_hash;
-		db->format = format;
 		ldr_load_pw_line(db, line);
 
 		if (!ret) {
@@ -591,7 +592,8 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 	}
 	if (fclose(s_file)) pexit("fclose");
 	remove(status_file_path);
-	printf("   Completed\n");
+	if (!event_abort)
+		printf("   Completed\n");
 }
 
 // Dump fuzzed hashes which index is between from and to, including from and excluding to
@@ -686,13 +688,14 @@ int fuzz(struct db_main *db)
 		else
 			fuzz_test(db, format);
 
-		total++;
+		if (!event_abort)
+			total++;
 	} while ((format = format->next) && !event_abort);
 
 	if (options.flags & FLG_FUZZ_DUMP_CHK)
-		printf("Generated pwfile.<format> for %u formats\n", total);
-	else
-		printf("All %u formats passed fuzzing test!\n", total);
+		printf("\nGenerated pwfile.<format> for %u formats\n", total);
+	else if (total)
+		printf("\nAll %u formats passed fuzzing test!\n", total);
 
 	return 0;
 }

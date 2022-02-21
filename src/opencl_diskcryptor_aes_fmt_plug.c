@@ -83,6 +83,7 @@ typedef struct {
 } out_t;
 
 static struct custom_salt *cur_salt;
+static int new_keys;
 
 /* Original password */
 static char (*orig_key)[PLAINTEXT_LENGTH + 1];
@@ -175,7 +176,7 @@ static void init(struct fmt_main *_self)
 	self = _self;
 	opencl_prepare_dev(gpu_id);
 
-	if (!warned++ && !bench_or_test_running && !options.listconf) {
+	if (!warned++ && !(options.flags & FLG_TEST_CHK) && !options.listconf) {
 		fprintf(stderr, "[ATTENTION] This format (%s) can only crack AES XTS DiskCryptor hashes.\n", FORMAT_LABEL);
 	}
 }
@@ -243,7 +244,7 @@ static void done(void)
 static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
@@ -291,10 +292,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-				gws * sizeof(pass_t), host_pass,
-				0, NULL, multi_profilingEvent[0]),
-				"Copy data to gpu");
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			gws * sizeof(pass_t), host_pass,
+			0, NULL, multi_profilingEvent[0]),
+			"Copy data to gpu");
+
+		new_keys = 0;
+	}
 
 	// Run standard PBKDF2 kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
@@ -355,10 +360,16 @@ static void set_key(char *key, int index)
 	if (len < 0)
 		len = strlen16((UTF16 *)host_pass[index].v);
 	host_pass[index].length = len << 1;
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)
 {
+	/* Ensure truncation due to over-length or invalid UTF-8 is made like how the GPU got it. */
+	if (options.target_enc == UTF_8)
+		truncate_utf8((UTF8*)orig_key[index], PLAINTEXT_LENGTH);
+
 	return orig_key[index];
 }
 

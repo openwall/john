@@ -225,7 +225,7 @@ static void john_register_all(void)
 		if (strncasecmp(options.format, "dynamic=", 8)) {
 			strlwr(options.format);
 
-			if (strchr(options.format, ',')) {
+			if (options.format[0] != ',' && strchr(options.format, ',')) {
 				options.format_list = options.format;
 				options.format = NULL;
 			}
@@ -273,8 +273,9 @@ static void john_register_all(void)
 		error_msg("Could not parse format list '%s'\n", options.format_list);
 
 	if (!fmt_list) {
-		if (john_main_process)
-		fprintf(stderr, "Unknown ciphertext format name requested\n");
+		if (john_main_process) {
+			fprintf(stderr, "Error: No format matched requested %s '%s'\n", fmt_type(options.format), options.format);
+		}
 		error();
 	}
 }
@@ -1655,7 +1656,6 @@ static void john_init(char *name, int argc, char **argv)
 static void john_run(void)
 {
 	struct stat trigger_stat;
-	int trigger_reset = 0;
 
 	if (options.flags & FLG_TEST_CHK)
 		exit_status = benchmark_all() ? 1 : 0;
@@ -1669,7 +1669,6 @@ static void john_run(void)
 		options.loader.flags |= DB_WORDS;
 		list_init(&single_seed); /* Required for DB_WORDS */
 
-		ldr_init_database(&database, &options.loader);
 		exit_status = fuzz(&database);
 	}
 #endif
@@ -1705,7 +1704,6 @@ static void john_run(void)
 				    where);
 				error();
 			}
-			trigger_reset = 1;
 			log_init(LOG_NAME, options.activepot,
 			         options.session);
 			status_init(NULL, 1);
@@ -1780,8 +1778,14 @@ static void john_run(void)
 
 		omp_autotune_run(&database);
 
-		if (trigger_reset)
-			database.format->methods.reset(&database);
+		clock_t before = status_get_raw_time();
+
+		database.format->methods.reset(&database);
+
+		clock_t after = status_get_raw_time();
+
+		/* Disregard OpenCL build & autotune time, for stable ETA and speed figures */
+		status.start_time += (after - before);
 
 		if (!(options.flags & FLG_STDOUT) && john_main_process) {
 			john_log_format2();
@@ -1791,7 +1795,7 @@ static void john_run(void)
 		if (options.flags & FLG_MASK_CHK)
 			mask_crk_init(&database);
 
-		/* Placed here to disregard load time. */
+		/* Start our timers */
 		sig_init_late();
 
 		/* Start a resumed session by emitting a status line. */
@@ -1839,7 +1843,7 @@ static void john_run(void)
 		if (options.flags & FLG_MASK_CHK)
 			mask_done();
 
-		status_print();
+		status_print(0);
 
 		if (options.flags & FLG_MASK_CHK)
 			mask_destroy();

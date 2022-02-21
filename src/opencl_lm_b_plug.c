@@ -8,6 +8,7 @@
 #if HAVE_OPENCL
 
 #include <string.h>
+#include <stdlib.h>
 #include <sys/time.h>
 
 #include "opencl_lm.h"
@@ -15,6 +16,7 @@
 #include "../run/opencl/opencl_lm_hst_dev_shared.h"
 #include "bt_interface.h"
 #include "mask_ext.h"
+#include "logger.h"
 
 #define PADDING 	2048
 
@@ -437,12 +439,35 @@ static void release_kernels();
 
 static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem, unsigned int use_last_build_opt)
 {
-	static unsigned int last_build_opts[3];
+	static unsigned int warned, last_build_opts[3];
 	char build_opts[500];
 	cl_ulong const_cache_size;
 	unsigned int i;
 
 	release_kernels();
+
+	char *kernel, *lm_kernel, *force_kernel = getenv("JOHN_DES_KERNEL");
+
+	if (force_kernel && !strcmp(force_kernel, "bs_f")) {
+		if (!warned++) fprintf(stderr, "Using fully unrolled kernel (lm_bs_f)\n");
+		full_unroll = 1;
+		lm_kernel = "lm_bs_f";
+		kernel = "$JOHN/opencl/lm_kernel_f.cl";
+	} else if (force_kernel && !strcmp(force_kernel, "bs_b")) {
+		if (!warned++) fprintf(stderr, "Using basic kernel (lm_bs_b)\n");
+		full_unroll = 0;
+		lm_kernel = "lm_bs_b";
+		kernel = "$JOHN/opencl/lm_kernel_b.cl";
+	} else
+	if (use_last_build_opt ? last_build_opts[0] : full_unroll) {
+		if (!warned++) log_event("- Using fully unrolled kernel (lm_bs_f)");
+		lm_kernel = "lm_bs_f";
+		kernel = "$JOHN/opencl/lm_kernel_f.cl";
+	} else {
+		if (!warned++) log_event("- Using basic kernel (lm_bs_b)");
+		lm_kernel = "lm_bs_b";
+		kernel = "$JOHN/opencl/lm_kernel_b.cl";
+	}
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
@@ -510,22 +535,10 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 		, mask_gpu_is_static, (unsigned long long)const_cache_size, bitmap_params);
 	}
 
+	opencl_build_kernel(kernel, gpu_id, build_opts, 0);
 
-	if (use_last_build_opt ? last_build_opts[0] : full_unroll)
-		opencl_build_kernel("$JOHN/opencl/lm_kernel_f.cl",
-		                    gpu_id, build_opts, 0);
-	else
-		opencl_build_kernel("$JOHN/opencl/lm_kernel_b.cl",
-		                    gpu_id, build_opts, 0);
-
-	if (use_last_build_opt ? last_build_opts[0] : full_unroll) {
-		crypt_kernel = clCreateKernel(program[gpu_id], "lm_bs_f", &ret_code);
-		HANDLE_CLERROR(ret_code, "Failed creating kernel lm_bs_f.");
-	}
-	else {
-		crypt_kernel = clCreateKernel(program[gpu_id], "lm_bs_b", &ret_code);
-		HANDLE_CLERROR(ret_code, "Failed creating kernel lm_bs_b.");
-	}
+	crypt_kernel = clCreateKernel(program[gpu_id], lm_kernel, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error building crypt kernel");
 }
 
 static void release_kernels()
@@ -723,6 +736,11 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		use_local_mem = 0;
 		full_unroll = 1;
 	}
+	else if (platform_apple(platform_id) && gpu_amd(device_info[gpu_id])) {
+		force_global_keys = 1;
+		use_local_mem = 1;
+		full_unroll = 1;
+	}
 	else if (gpu(device_info[gpu_id])) {
 		force_global_keys = 0;
 		use_local_mem = 1;
@@ -841,7 +859,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		}
 		else {
 			warp_size = 1;
-			fprintf(stderr, "Possible auto_tune fail!!.\n");
+			//fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
 		if (lws_tune_flag)
 			local_work_size = warp_size;
@@ -930,10 +948,14 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		}
 	}
 
-	if ((!self_test_running && options.verbosity >= VERB_DEFAULT) ||
-	    ocl_always_show_ws)
-		fprintf(stderr, "LWS="Zu" GWS="Zu"%s", local_work_size,
-		        global_work_size, benchmark_running ? " " : "\n");
+	if ((!self_test_running && options.verbosity >= VERB_DEFAULT) || ocl_always_show_ws) {
+		if (mask_int_cand.num_int_cand > 1)
+			fprintf(stderr, "LWS="Zu" GWS="Zu" x%d%s", local_work_size,
+			        global_work_size, mask_int_cand.num_int_cand, (options.flags & FLG_TEST_CHK) ? " " : "\n");
+		else
+			fprintf(stderr, "LWS="Zu" GWS="Zu"%s", local_work_size,
+			        global_work_size, (options.flags & FLG_TEST_CHK) ? " " : "\n");
+	}
 }
 
 /* Use only for smaller bitmaps < 16MB */
@@ -1158,7 +1180,7 @@ static char *get_key_mm(int index)
 
 static void reset(struct db_main *db)
 {
-	if (db->real && db == db->real) {
+	if (!self_test_running) {
 		struct db_salt *salt;
 		unsigned int *bitmaps = NULL;
 		OFFSET_TABLE_WORD *offset_table = NULL;
@@ -1175,7 +1197,7 @@ static void reset(struct db_main *db)
 		release_buffer();
 		create_buffer(num_loaded_hashes, offset_table, offset_table_size, hash_table_size, bitmaps, bitmap_size_bits);
 
-		if (options.flags & FLG_MASK_CHK) {
+		if ((options.flags & FLG_MASK_CHK) && mask_int_cand.num_int_cand > 1) {
 			mask_mode = 1;
 			fmt_opencl_lm.methods.set_key = opencl_lm_set_key_mm;
 			fmt_opencl_lm.methods.get_key = get_key_mm;
@@ -1297,7 +1319,7 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 	*pcount *= mask_int_cand.num_int_cand;
 
-	 return hash_ids[0];
+	return hash_ids[0];
 }
 
 int opencl_lm_get_hash_0(int index)

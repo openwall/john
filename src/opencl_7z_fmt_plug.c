@@ -58,8 +58,8 @@ typedef struct {
 } sevenzip_hash;
 
 typedef struct {
-	size_t length;
-	size_t unpacksize;
+	size_t aes_length;
+	size_t packed_size;
 	uint32_t iterations;
 	//uint32_t salt_size;
 	//uint8_t salt[16];
@@ -264,11 +264,11 @@ static void set_salt(void *salt)
 	if (currentsalt.iterations != sevenzip_salt->NumCyclesPower)
 		new_keys = 1;
 
-	if (sevenzip_salt->length >= 32)
-		memcpy(currentsalt.data, sevenzip_salt->data + sevenzip_salt->length - 32, 32);
+	if (sevenzip_salt->aes_length >= 32)
+		memcpy(currentsalt.data, sevenzip_salt->data + sevenzip_salt->aes_length - 32, 32);
 
-	currentsalt.length = sevenzip_salt->length;
-	currentsalt.unpacksize = sevenzip_salt->unpacksize;
+	currentsalt.aes_length = sevenzip_salt->aes_length;
+	currentsalt.packed_size = sevenzip_salt->packed_size;
 	currentsalt.iterations = sevenzip_salt->NumCyclesPower;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
@@ -316,17 +316,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	//fprintf(stderr, "%s(%d) lws %zu gws %zu\n", __FUNCTION__, count, local_work_size, global_work_size);
-
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
 		any_cracked = 0;
 	}
 
-	if (ocl_autotune_running || new_keys) {
-		int i;
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
-		global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
+	/* Note: This format is effectively unsalted */
+	if (new_keys) {
+		int i;
 
 		// Copy data to gpu
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
@@ -338,24 +337,30 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]),
 			"Run init kernel");
 
+		// Better precision for WAIT_ macros
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+
 		// Run loop kernel
+		WAIT_INIT(global_work_size)
 		for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 				crypt_kernel, 1, NULL, &global_work_size, lws, 0,
 				NULL, multi_profilingEvent[2]),
 				"Run loop kernel");
-			BENCH_CLERROR(clFinish(queue[gpu_id]),
-				"Error running loop kernel");
+			WAIT_SLEEP
+			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+			WAIT_UPDATE
 			opencl_process_event();
 		}
+		WAIT_DONE
 
 		// Run final kernel
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_final, 1,
 			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]),
 			"Run final loop kernel");
-	}
 
-	new_keys = 0;
+		new_keys = 0;
+	}
 
 	if (sevenzip_trust_padding || sevenzip_salt->type == 0x80) {
 		// Run AES kernel (only for truncated hashes)
@@ -428,6 +433,7 @@ struct fmt_main fmt_opencl_sevenzip = {
 			"iteration count",
 			"padding size",
 			"compression type",
+			"data length"
 		},
 		{ FORMAT_TAG },
 		sevenzip_tests
@@ -444,6 +450,7 @@ struct fmt_main fmt_opencl_sevenzip = {
 			sevenzip_iteration_count,
 			sevenzip_padding_size,
 			sevenzip_compression_type,
+			sevenzip_data_len
 		},
 		fmt_default_source,
 		{

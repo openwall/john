@@ -7,7 +7,7 @@
  * modification, are permitted.
  */
 
-#define FORMAT_STRUCT fmt_ocl_oldoff
+#define FORMAT_STRUCT fmt_opencl_oldoff
 
 #ifdef HAVE_OPENCL
 
@@ -356,7 +356,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (strlen(ciphertext) > CIPHERTEXT_LENGTH)
 		return 0;
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	ctcopy += TAG_LEN;
@@ -426,7 +426,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 static void *get_salt(char *ciphertext)
 {
 	static void *ptr;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
@@ -528,15 +528,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	//printf("%s(%d) lws "Zu" gws "Zu" kidx %u k %d mult %u\n", __FUNCTION__, count, lws, gws, key_idx, new_keys, mask_int_cand.num_int_cand);
 
-	if (new_keys || ocl_autotune_running) {
+	if (new_keys) {
 		/* Self-test kludge */
 		if (idx_offset > 4 * (gws + 1))
 			idx_offset = 0;
 
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
+
 		if (!mask_gpu_is_static)
-			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, 0, 4 * gws, saved_int_key_loc, 0, NULL, NULL), "failed transferring buffer_int_key_loc.");
+			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * gws - idx_offset, saved_int_key_loc + (idx_offset / 4), 0, NULL, NULL), "failed transferring buffer_int_key_loc.");
+
+		// Better precision for WAIT_ macros
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
 		new_keys = 0;
 	}
@@ -544,6 +548,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, &lws, 0, NULL, multi_profilingEvent[2]), "Failed running crypt kernel");
 
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_salt, CL_TRUE, 0, sizeof(cs), cur_salt, 0, NULL, multi_profilingEvent[3]), "Failed transferring salt");
+
+	WAIT_INIT(global_work_size)
+	BENCH_CLERROR(clFlush(queue[gpu_id]), "clFlush");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+	WAIT_UPDATE
+	WAIT_DONE
 
 	if (cur_salt->cracked) {
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * *pcount, cracked, 0, NULL, NULL), "failed reading results back");
@@ -617,10 +628,15 @@ static void set_key(char *key, int index)
 	/* Early partial transfer to GPU */
 	if (index && !(index & (256*1024 - 1))) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
-		key_offset = key_idx;
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * index - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
-		idx_offset = 4 * index;
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (index + 2) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
+
+		if (!mask_gpu_is_static)
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * (index + 1) - idx_offset, saved_int_key_loc + (idx_offset / 4), 0, NULL, NULL), "failed transferring buffer_int_key_loc.");
+
 		HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+
+		key_offset = key_idx;
+		idx_offset = 4 * (index + 1);
 		new_keys = 0;
 	}
 }
@@ -663,6 +679,10 @@ static char *get_key(int index)
 				ret[(saved_int_key_loc[t] & (0xff << (i * 8))) >> (i * 8)] =
 					mask_int_cand.int_cand[int_index].x[i];
 	}
+
+	/* Ensure truncation due to over-length or invalid UTF-8 is made like in GPU code. */
+	if (options.target_enc == UTF_8)
+		truncate_utf8((UTF8*)out, PLAINTEXT_LENGTH);
 
 	return (char*)ret;
 }

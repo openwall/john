@@ -47,7 +47,7 @@ def parse_item(data, item, x):
 
     if i == len(data):
         sys.stderr.write("%s : not passphrase based or protocol error\n" % filename)
-        sys.exit(-1)
+        sys.exit(1)
 
     return data[i + len(item) + 4 : i + len(item) + 4 + int.from_bytes(data[i + len(item) : i + len(item) + 4],byteorder='big')]
 
@@ -105,7 +105,7 @@ def parse_decode_global_properties(filename):
         ver = '2'
     else:
         sys.stderr.write("%s : unknown version\n" % filename)
-        sys.exit(-1)
+        sys.exit(1)
 
     global_iv = data[offset+2:offset+18]
     j = offset
@@ -128,7 +128,7 @@ def parse_decode_global_properties(filename):
         #    key_size = '64'
         #else:
         #    sys.stderr.write("%s : unknown pkcs12_hashfunc\n" % filename)
-        #    sys.exit(-1)
+        #    sys.exit(1)
         sys.stdout.write("%s:$zed$%s$%s$%s$%s$%s:::%s\n" % (names[i], ver, str(int(hash_func,16)), str(int(pba_iter,16)), pba_salt, pba_chk, os.path.basename(filename))) # If ID=3, then the pseudorandom bits being produced are to be used as an integrity key for MACing. (RFC 7292 Appendix B.3)
         i += 1
 

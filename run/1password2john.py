@@ -97,7 +97,7 @@ except ImportError:
         import simplejson as json
     except ImportError:
         sys.stderr.write("Please install json / simplejson module which is currently not installed.\n")
-        sys.exit(-1)
+        sys.exit(1)
 
 from base64 import b64decode
 import binascii
@@ -331,7 +331,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <1Password Agile Keychain(s) / Cloud Keychain(s)> / OnePassword.sqlite\n" %
                          sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     for j in range(1, len(sys.argv)):
         process_file(sys.argv[j])

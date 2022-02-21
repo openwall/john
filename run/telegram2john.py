@@ -481,7 +481,7 @@ if __name__ == "__main__":
 
     if argc < 2:
         usage (sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     for i in range(1, argc):
         file_path = sys.argv[i]

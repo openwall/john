@@ -145,7 +145,7 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   the current batch has been run among all salts.  Under some circumstances
   that may take a good while.  [magnum; 2020]
 
-- Add command-line option --loader-dupecheck=<yes/no>, overriding config file.
+- Add command-line option --[no-]loader-dupe-check, overriding config file.
   Mark the latter as deprecated in config file comments.  [magnum; 2020]
 
 - Add alternative syntax to --salts option for loading "N most populated
@@ -227,6 +227,29 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Added sense2john.py: pfSense/OPNsense config.xml hash extract script.
   [Private Wolf; 2021]
+
+- The Zip (WinZip) formats got several optimizations and the OpenCL version now
+  handles large data sizes much better.  [magnum; 2021]
+
+- Added apop2john.py: script to extract and format POP3 APOP challenge/responses
+  [Mark Silinio; 2021]
+
+- Added option --mask-internal-target=N for overriding format's idea of how
+  large portion of a mask should be generated on device-side (or completely
+  disabling internal mask).  [magnum; 2021]
+
+- Add a format class "vector" for matching vector capable OpenCL formats.  This
+  doesn't include bitslice formats.  It matches formats that will run SIMD
+  using the default GPU, or per the  --device option.  [magnum; 2021]
+
+- Revised regex mode's support for librexgen, to version >= 2.1.5  [Jan Starke,
+  magnum; 2021]
+
+- Added support for ENCDataVault and encdatavault2john.py script [sylvainpelissier; 2021]
+
+- Optimize tezos-opencl by computing ed25519_publickey() and BLAKE2b on-device,
+  removing the CPU bottleneck.  This work was funded by the Tezos Foundation.
+  [Solar; 2021]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):

@@ -45,7 +45,7 @@ int pem_valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 
 	ctcopy += TAG_LENGTH;
@@ -96,7 +96,7 @@ err:
 
 void *pem_get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
@@ -180,9 +180,9 @@ int pem_decrypt(unsigned char *key, unsigned char *iv, unsigned char *data, stru
 		memcpy(key1, key, 8);
 		memcpy(key2, key + 8, 8);
 		memcpy(key3, key + 16, 8);
-		DES_set_key((DES_cblock *) key1, &ks1);
-		DES_set_key((DES_cblock *) key2, &ks2);
-		DES_set_key((DES_cblock *) key3, &ks3);
+		DES_set_key_unchecked((DES_cblock *) key1, &ks1);
+		DES_set_key_unchecked((DES_cblock *) key2, &ks2);
+		DES_set_key_unchecked((DES_cblock *) key3, &ks3);
 		memcpy(ivec, iv, 8);
 		DES_ede3_cbc_encrypt(data, out, cur_salt->ciphertext_length, &ks1, &ks2, &ks3, &ivec, DES_DECRYPT);
 	} else if (cur_salt->cid == 2) {  // AES-128

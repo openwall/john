@@ -9,9 +9,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_ocl_cryptsha1;
+extern struct fmt_main fmt_opencl_cryptsha1;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_ocl_cryptsha1);
+john_register_one(&fmt_opencl_cryptsha1);
 #else
 
 #include <string.h>
@@ -264,19 +264,33 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	        count, local_work_size, global_work_size, scalar_gws);
 #endif
 	// Copy data to gpu
-	if (ocl_autotune_running || new_keys) {
+	if (new_keys) {
+		WAIT_INIT(global_work_size)
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+
+		BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+		WAIT_SLEEP
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+		WAIT_UPDATE
+		WAIT_DONE
+
 		new_keys = 0;
 	}
 
 	// Run kernels
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
 
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running init kernel");
+
+	WAIT_INIT(global_work_size)
 	for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
+		WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		WAIT_UPDATE
 		opencl_process_event();
 	}
+	WAIT_DONE
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf1_final, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
 
@@ -377,7 +391,7 @@ static unsigned int iteration_count(void *salt)
 	return p->iterations;
 }
 
-struct fmt_main fmt_ocl_cryptsha1 = {
+struct fmt_main fmt_opencl_cryptsha1 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

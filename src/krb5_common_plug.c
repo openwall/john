@@ -258,7 +258,7 @@ void des_cbc_mac_shishi(char key[8], char iv[8], unsigned char *in, size_t inlen
 #endif
 
 	memcpy(dkey, key, 8);
-	DES_set_key((DES_cblock *)dkey, &dks);
+	DES_set_key_unchecked((DES_cblock *)dkey, &dks);
 	memcpy(ivec, iv, 8);
 	DES_cbc_encrypt(in, ct, inlen, &dks, &ivec, DES_ENCRYPT);
 	memcpy(out, ct + inlen - 8, 8);

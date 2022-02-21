@@ -59,7 +59,7 @@ try:
     import ldap3
 except ImportError:
     sys.stderr.write("This utility requires ldap3 python package to be installed.\n")
-    sys.exit(-2)
+    sys.exit(1)
 
 # Library code starts #
 
@@ -664,10 +664,10 @@ if __name__ == "__main__":
             l.simple_bind_s(binddn, pw)
     except ldap.INVALID_CREDENTIALS:
         print("Authentication failed, invalid credentials likely.")
-        sys.exit(-1)
+        sys.exit(1)
     except ldap.LDAPError as e:
         print(e)
-        sys.exit(-2)
+        sys.exit(1)
     try:
         rs = l.search_s(basedn, searchScope, searchFilter, searchAttribute)
         for r in rs:
@@ -676,7 +676,7 @@ if __name__ == "__main__":
                 extract_hashes_old(t, d)
     except ldap.LDAPError as e:
         print(e)
-        sys.exit(-3)
+        sys.exit(1)
 
     l.unbind_s()
     """

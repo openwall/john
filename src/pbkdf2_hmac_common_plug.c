@@ -47,7 +47,6 @@ static void dump_hex(const void *msg, void *x, unsigned int size)
  **************************************/
 
 struct fmt_tests pbkdf2_hmac_md4_common_tests[] = {
-	{"$pbkdf2-hmac-md4$1000$6d61676e756d$32ebfcea201e61cc498948916a213459", "magnum"},
 	{"$pbkdf2-hmac-md4$1000$6d61676e756d$32ebfcea201e61cc498948916a213459c259c7b0a8ce9473368665f0808dcde1", "magnum"},
 	{"$pbkdf2-hmac-md4$1$73616c74$1857f69412150bca4542581d0f9e7fd1", "password"},
 	{"$pbkdf2-hmac-md4$10000$6d61676e756d$72afea482e97ffbba4171f5cc251215e", "Borkum"},
@@ -85,7 +84,7 @@ int pbkdf2_hmac_md4_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	ciphertext += PBKDF2_MD4_TAG_LEN;
 	delim = strchr(ciphertext, '.') ? "." : "$";
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	if (!(ptr = strtokm(ctcopy, delim)))
@@ -194,7 +193,6 @@ int pbkdf2_hmac_md4_cmp_exact(char *key, char *source, unsigned char *salt, int 
  **************************************/
 
 struct fmt_tests pbkdf2_hmac_md5_common_tests[] = {
-	{"$pbkdf2-hmac-md5$1000$38333335343433323338$f445d6d0ed5cbe9fc12c03ea9530c1c6", "hashcat"},
 	{"$pbkdf2-hmac-md5$1000$38333335343433323338$f445d6d0ed5cbe9fc12c03ea9530c1c6f79e7886a6af1552b40f3704a8b87847", "hashcat"},
 	{"$pbkdf2-hmac-md5$10000$6d61676e756d$8802b8d3bc1ba8fe973313a3606d0db3", "Borkum"},
 	{"$pbkdf2-hmac-md5$10000$6d61676e756d$0d21b39b60a304aa649b5da493c8e202", "Riff"},
@@ -230,7 +228,7 @@ int pbkdf2_hmac_md5_valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	ciphertext += PBKDF2_MD5_TAG_LEN;
 	delim = strchr(ciphertext, '.') ? "." : "$";
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	if (!(ptr = strtokm(ctcopy, delim)))
@@ -386,7 +384,7 @@ int pbkdf2_hmac_sha1_valid(char *ciphertext, struct fmt_main *self) {
 		return 0;
 	ciphertext += PBKDF2_SHA1_TAG_LEN;
 	delim = strchr(ciphertext, '.') ? "." : "$";
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	if (!(ptr = strtokm(ctcopy, delim)))
@@ -707,7 +705,7 @@ int pbkdf2_hmac_sha512_valid(char *ciphertext, struct fmt_main *self) {
 	if (strlen(ciphertext) > PBKDF2_SHA512_MAX_CIPHERTEXT_LENGTH)
 		return 0;
 	ciphertext += PBKDF2_SHA512_TAG_LEN;
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	if (!(ptr = strtokm(ctcopy, ".")))

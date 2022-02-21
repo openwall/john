@@ -448,6 +448,10 @@ static void hash_plugin_parse_hash(char *in_filepath)
 
 		/* read starting chunk(s) */
 		chunk1 = (unsigned char *)malloc(data_size);
+		if (!chunk1) {
+			fprintf(stderr, "Error allocating memory while processing %s\n", filename);
+			goto bailout;
+		}
 		if (lseek(fd, header2.dataoffset + cno * 4096LL, SEEK_SET) < 0) {
 			fprintf(stderr, "Unable to seek in %s\n", filename);
 			free(chunk1);

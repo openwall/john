@@ -77,7 +77,7 @@ def process_folder(folder):
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s <EncFS folder>\n" % sys.argv[0])
-        sys.exit(-1)
+        sys.exit(1)
 
     for i in range(1, len(sys.argv)):
         process_folder(sys.argv[i])

@@ -33,7 +33,7 @@ try:
     from google.protobuf import descriptor_pb2
 except ImportError:
     sys.stderr.write("Install the missing protobuf package, use 'pip install --user protobuf' command to do so.\n")
-    sys.exit(-1)
+    sys.exit(1)
 # @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
@@ -1387,7 +1387,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: %s [MultiBit Classic or HD wallets files (.key, mbhd.wallet.aes, .wallet)]\n" % sys.argv[0])
         sys.stderr.write("\nMultiBit Classic -> for a wallet named 'xyz', we need the xyz-data/key-backup/xyz*.key OR xyz-data/wallet-backup/xyz*.wallet file\n")
-        sys.exit(-1)
+        sys.exit(1)
 
     for j in range(1, len(sys.argv)):
         process_file(sys.argv[j])

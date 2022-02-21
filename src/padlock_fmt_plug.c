@@ -114,7 +114,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL) // version
@@ -141,13 +141,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
 		goto bail;
-	if (hexlenl(p, &extra) > res * 2 || extra)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // iv
 		goto bail;
-	if (hexlenl(p, &extra) > 16 * 2 || extra)
+	if (hexlenl(p, &extra) != 16 * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
@@ -160,7 +160,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // add
 		goto bail;
-	if (hexlenl(p, &extra) > res * 2 || extra)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
@@ -173,7 +173,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) // ct
 		goto bail;
-	if (hexlenl(p, &extra) > res * 2 || extra)
+	if (hexlenl(p, &extra) != res * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
@@ -193,7 +193,7 @@ static void *get_salt(char *ciphertext)
 	char *p = ciphertext, *ctcopy, *keeptr;
 	memset(&cs, 0, sizeof(cs));
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LENGTH;
 	p = strtokm(ctcopy, "$");

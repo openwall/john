@@ -10,7 +10,7 @@
 
 #if HAVE_OPENCL
 
-#define FMT_STRUCT fmt_ocl_tc
+#define FMT_STRUCT fmt_opencl_tc
 #if FMT_EXTERNS_H
 extern struct fmt_main FMT_STRUCT;
 #elif FMT_REGISTERS_H
@@ -153,9 +153,6 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 		&mem_out), "Error while setting mem_out kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(mem_setting),
 		&mem_setting), "Error while setting mem_salt kernel argument");
-
-	keyfiles_data = mem_calloc(MAX_KEYFILES, sizeof(*keyfiles_data));
-	keyfiles_length = mem_calloc(MAX_KEYFILES, sizeof(int));
 }
 
 static void release_clobj(void)
@@ -167,13 +164,13 @@ static void release_clobj(void)
 
 		MEM_FREE(inbuffer);
 		MEM_FREE(outbuffer);
-		MEM_FREE(keyfiles_data);
-		MEM_FREE(keyfiles_length);
 	}
 }
 
 static void done(void)
 {
+	MEM_FREE(keyfiles_data);
+	MEM_FREE(keyfiles_length);
 	if (program[gpu_id]) {
 		release_clobj();
 
@@ -188,6 +185,9 @@ static void init(struct fmt_main *_self)
 {
 	self = _self;
 	opencl_prepare_dev(gpu_id);
+
+	keyfiles_data = mem_calloc(MAX_KEYFILES, sizeof(*keyfiles_data));
+	keyfiles_length = mem_calloc(MAX_KEYFILES, sizeof(int));
 }
 
 static void reset(struct db_main *db)
@@ -221,7 +221,9 @@ static int valid(char* ciphertext, struct fmt_main *self)
 {
 	unsigned int i;
 	char *p, *q;
-	int nkeyfiles = -1;
+	int nkeyfiles, idx;
+	char tpath[PATH_BUFFER_SIZE];
+	size_t len;
 
 	if (strncmp(ciphertext, TAG_RIPEMD160, TAG_RIPEMD160_LEN))
 		return 0;
@@ -236,10 +238,38 @@ static int valid(char* ciphertext, struct fmt_main *self)
 	} else {
 		if (q - p != 512 * 2)
 			return 0;
-		/* check keyfile(s) */
+		/* check number of keyfile(s) */
 		p = q + 1;
+		q = strchr(p, '$');
+		if (!q) /* number implies at least 1 filename */
+			return 0;
+		/* We use same buffer for number. */
+		len = q - p;
+		if (len > sizeof(tpath) - 1)
+			return 0;
+		memcpy(tpath, p, len);
+		tpath[len] = '\0';
+		if (!isdec(tpath))
+			return 0;
 		nkeyfiles = atoi(p);
 		if (nkeyfiles > MAX_KEYFILES || nkeyfiles < 1)
+			return 0;
+		/* check keyfile(s) */
+		for (idx = 0; idx < nkeyfiles; idx++) {
+			p = strchr(p, '$') + 1;
+			q = strchr(p, '$');
+
+			if (!q) { // last file
+				if (idx != nkeyfiles - 1)
+					return 0;
+				len = strlen(p);
+			} else {
+				len = q - p;
+			}
+			if (len > sizeof(tpath) - 1)
+				return 0;
+		}
+		if (q) // last expected filename is not last
 			return 0;
 	}
 
@@ -269,11 +299,11 @@ static void* get_salt(char *ciphertext)
 	static char buf[sizeof(struct cust_salt)+4];
 	struct cust_salt *s = (struct cust_salt*)mem_align(buf, 4);
 	unsigned int i;
-	char tpath[PATH_BUFFER_SIZE] = { 0 };
+	char tpath[PATH_BUFFER_SIZE];
 	char *p, *q;
 	int idx;
 	FILE *fp;
-	size_t sz;
+	size_t sz, len;
 
 	memset(s, 0, sizeof(struct cust_salt));
 
@@ -302,21 +332,33 @@ static void* get_salt(char *ciphertext)
 		q = strchr(p, '$');
 
 		if (!q) { // last file
-			memset(tpath, 0, sizeof(tpath) - 1);
-			strncpy(tpath, p, sizeof(tpath));
+			len = strlen(p);
 		} else {
-			memset(tpath, 0, sizeof(tpath) - 1);
-			strncpy(tpath, p, q-p);
+			len = q - p;
 		}
+		if (len > sizeof(tpath) - 1) {
+			// should never get here!  valid() should catch all lines with overly long paths
+			if (john_main_process)
+				fprintf(stderr, "Error, path is too long in truecrypt_opencl::get_salt(), [%.10s...]\n", p);
+			error();
+		}
+		memcpy(tpath, p, len);
+		tpath[len] = '\0';
 		/* read this into keyfiles_data[idx] */
 		fp = fopen(tpath, "rb");
 		if (!fp)
-			pexit("fopen %s", p);
+			pexit("fopen %s", tpath);
 
 		if (fseek(fp, 0L, SEEK_END) == -1)
 			pexit("fseek");
 
 		sz = ftell(fp);
+
+		if (sz > MAX_KFILE_SZ) {
+			if (john_main_process)
+				fprintf(stderr, "Error: keyfile '%s' is bigger than maximum size (MAX_KFILE_SZ is %d).\n", tpath, MAX_KFILE_SZ);
+			error();
+		}
 
 		if (fseek(fp, 0L, SEEK_SET) == -1)
 			pexit("fseek");
@@ -370,9 +412,9 @@ static void AES_256_XTS_first_sector(const unsigned char *double_key,
 	}
 }
 
-static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles)
+static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles, unsigned int pass_len)
 {
-	int pl, k;
+	int k;
 	unsigned char *kpool;
 	unsigned char *kdata;
 	int kpool_idx;
@@ -383,8 +425,7 @@ static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles)
 		error();
 	}
 
-	pl = strlen((char*)pass);
-	memset(pass+pl, 0, MAX_PASSSZ-pl);
+	memset(pass+pass_len, 0, MAX_PASSSZ-pass_len);
 
 	if ((kpool = mem_calloc(1, KPOOL_SZ)) == NULL) {
 		error();
@@ -428,7 +469,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	if (psalt->nkeyfiles) {
 		for (i = 0; i < count; i++) {
-			apply_keyfiles(inbuffer[i].v, 64, psalt->nkeyfiles);
+			apply_keyfiles(inbuffer[i].v, 64, psalt->nkeyfiles, inbuffer[i].length);
 			inbuffer[i].length = 64;
 		}
 	}
@@ -485,7 +526,7 @@ static int cmp_exact(char *source, int idx)
 
 	/* process keyfile(s) */
 	if (psalt->nkeyfiles) {
-		apply_keyfiles(key, 64, psalt->nkeyfiles);
+		apply_keyfiles(key, 64, psalt->nkeyfiles, inbuffer[idx].length);
 		ksz = 64;
 	}
 

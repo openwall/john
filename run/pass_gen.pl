@@ -284,7 +284,7 @@ if ($bVectors == 1 && (@ARGV != 1 || $arg_genall != 0)) {
 if (-t STDIN) {
 	print STDERR "\nEnter words to hash, one per line.\n";
 	if (@ARGV != 1) { print STDERR "When all entered ^D starts the processing.\n\n"; }
-	$arg_nocomment = 1;  # we do not output 'comment' line if writing to stdout.
+	$arg_nocomment = 1;  # we do not output further 'comment' lines if reading from stdin.
 }
 
 if ($arg_genall != 0) {
@@ -326,7 +326,7 @@ if (@ARGV == 1) {
 		if ($arg eq lc $_) {
 			$have_something = 1;
 			if (!$arg_nocomment) {
-				print "\n  ** Here are the ";
+				print "\n#!comment: ** Here are the ";
 				print $bVectors ? "test vectors" : "hashes";
 				print " for format $orig_arg **\n";
 			}
@@ -335,12 +335,20 @@ if (@ARGV == 1) {
 				next if (/^#!comment/);
 				chomp;
 				s/\r$//;  # strip CR for non-Windows
+				my $real_arguser;
 				if ($arg_usertab)
 				{
 					my ($this_user, $this_plain) = split(/\t/, $_, 2);
 					next unless defined($this_plain);
 					$arguser = $this_user;
 					$_ = $this_plain;
+				}
+				elsif ($arguser and $arguser =~ /([0-9]+)?\+\+/)
+				{
+					my $usernum = $1 ? $1 : 0;
+					$usernum += $u;
+					$real_arguser = $arguser;
+					$arguser =~ s/([0-9]+)?\+\+/$usernum/;
 				}
 				#my $line_len = length($_);
 				my $line_len = utf16_len($_);
@@ -356,6 +364,10 @@ if (@ARGV == 1) {
 				if ($u >= $arg_count) {
 					print STDERR "Got $arg_count, not processing more. Use -count to bump limit.\n";
 					last;
+				}
+				if ($real_arguser)
+				{
+					$arguser = $real_arguser;
 				}
 			}
 			last;
@@ -385,7 +397,7 @@ if (@ARGV == 1) {
 		foreach (@funcs) {
 			if ($arg eq lc $_) {
 				$have_something = 1;
-				if (!$arg_nocomment) { print "\n  ** Here are the hashes for format $orig_arg **\n"; }
+				if (!$arg_nocomment) { print "\n#!comment: ** Here are the hashes for format $orig_arg **\n"; }
 				$arg =~ s/-/_/g;
 				foreach (@lines) {
 					next if (/^#!comment/);
@@ -2602,6 +2614,7 @@ sub blockchain {
 	return '$blockchain$'.length($data).'$'.unpack("H*", $data);
 }
 sub keystore {
+	$out_username = get_username($arg_maxuserlen);
 	# we want to assure that we will NEVER set the 0x80 bit in the first block.
 	# so, salt and contant have to be > 64 bytes (at min).
 	$salt = pack("H*", "feedfeed0000000200000001000000010000") . get_salt(36) . get_salt(-128);
@@ -2738,6 +2751,7 @@ sub mozilla {
 	return "\$mozilla\$*3*20*1*".unpack("H*",$salt)."*11*2a864886f70d010c050103*16*".unpack("H*",$enc)."*20*".unpack("H*",$gsalt);
 }
 sub keychain {
+	$out_username = get_username($arg_maxuserlen);
 	require Crypt::DES_EDE3;
 	require Crypt::CBC;
 	my $iv; my $data; my $key; my $h;
@@ -2854,6 +2868,7 @@ sub lm {
 	return "0:".unpack("H*",LANMan($p));
 }
 sub nt {
+	$out_username = get_username($arg_maxuserlen);
 	return "\$NT\$".unpack("H*",md4(encode("UTF-16LE", $_[0])));
 }
 sub pwdump {
@@ -2868,6 +2883,7 @@ sub raw_md4 {
 	return md4_hex($_[1]);
 }
 sub mediawiki {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(8);
 	return "\$B\$$salt\$".md5_hex($salt . "-" . md5_hex($_[1]));
 }
@@ -2880,6 +2896,7 @@ sub formspring {
 	return sha256_hex($salt. $_[1])."\$$salt";
 }
 sub phpass {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(8);
 	my $h = phpass_hash($_[1], 11, $salt);
 	return "\$P\$".to_phpbyte(11).$salt.substr(base64i($h),0,22);
@@ -3284,12 +3301,14 @@ sub _sha_crypts {
 	return $tmp;
 }
 sub sha256crypt {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(-16);
 	my $bin = _sha_crypts(\&sha256, 256, $_[1], $salt);
 	if ($arg_loops != -1) { return "\$5\$rounds=${arg_loops}\$$salt\$$bin"; }
 	return "\$5\$$salt\$$bin";
 }
 sub sha512crypt {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(-16);
 	my $bin = _sha_crypts(\&sha512, 512, $_[1], $salt);
 	if ($arg_loops != -1) { return "\$6\$rounds=${arg_loops}\$$salt\$$bin" }
@@ -3405,10 +3424,12 @@ sub asamd5 {
 	return "\$dynamic_20\$$h\$$salt";
 }
 sub mssql12 {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(4);
 	return "0x0200".uc unpack("H*",$salt).uc sha512_hex(encode("UTF-16LE", $_[0]).$salt);
 }
 sub mssql05 {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(4);
 	return "0x0100".uc unpack("H*",$salt).uc sha1_hex(encode("UTF-16LE", $_[0]).$salt);
 }
@@ -3442,6 +3463,7 @@ sub nsldaps {
 	return "{SSHA}".base64($h);
 }
 sub openssha {
+	$out_username = get_username($arg_maxuserlen);
 	$salt = get_salt(4);
 	$h = sha1($_[1],$salt);
 	$h .= $salt;
@@ -3506,6 +3528,7 @@ sub oracle_no_upcase_change {
 	return uc(unpack('H*', $hash));
 }
 sub oracle11 {
+	$out_username = get_username($arg_maxuserlen);
 	$salt=get_salt(10);
 	return uc sha1_hex($_[1], $salt).uc unpack("H*",$salt);
 }
@@ -3724,6 +3747,7 @@ sub pbkdf2_hmac_sha512 {
 	return "\$pbkdf2-hmac-sha512\$${itr}.".unpack("H*", $salt).".".pp_pbkdf2_hex($_[1],$salt,$itr,"sha512",64, 128);
 }
 sub pbkdf2_hmac_sha256 {
+	$out_username = get_username($arg_maxuserlen);
 	$salt=get_salt(16, -179);
 	my $itr = get_loops(12000);
 	my $s64 = base64pl($salt);

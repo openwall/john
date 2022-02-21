@@ -11,16 +11,17 @@ use File::Basename;
 # magnum (added proper handling of BCJ et. al. and adapt to JtR use)
 
 # version:
-# 1.3
+# 1.6
 
 # date released:
 # April 2015
 
 # date last updated:
-# 28th Nov 2018
+# 3rd Dec 2021
 
 # dependencies:
 # Compress::Raw::Lzma
+# File::Basename
 
 # supported file types:
 # - is able to identify and parse .7z files
@@ -67,7 +68,11 @@ use File::Basename;
 # "$"
 # [length of data for CRC32]      # the length of the first "file" needed to verify the CRC32 checksum
 # "$"
-# [coder attributes]              # most of the coders/decompressors need some attributes (e.g. encoded lc, pb, lp, dictSize values);
+# [coder attributes]              # most of the coders/decompressors need some attributes (e.g. encoded lc, pb, lp, dictSize values)
+
+# in case a preprocessor is used, this field is appended:
+# "$"
+# [preprocessor attributes]       # the preprocessor attributes are appended after the main coder attributes
 
 #
 # Explanation of the data type indicator
@@ -81,7 +86,7 @@ use File::Basename;
 # - the value will be 0 if the data doesn't need to be decompressed to check the CRC32 checksum
 # - all values different from 128, but greater than 0, indicate that the data must be decompressed as follows:
 #
-# LOWER NIBBLE (type & 0xf)
+# LOWER NIBBLE (4 bits, type & 0xf)
 #   - 1 means that the data must be decompressed using the LZMA1 decompressor
 #   - 2 means that the data must be decompressed using the LZMA2 decompressor
 #   - 3 means that the data must be decompressed using the PPMD decompressor
@@ -91,7 +96,7 @@ use File::Basename;
 #   - 7 means that the data must be decompressed using the DEFLATE decompressor
 #   - 8 .. 15 reserved (future use)
 #
-# UPPER NIBBLE ((type >> 4) & 0x07)
+# UPPER NIBBLE (4 bits, (type >> 4) & 0xf)
 #   - 1 means that the data must be post-processed using BCJ (x86)
 #   - 2 means that the data must be post-processed using BCJ2 (four data streams needed)
 #   - 3 means that the data must be post-processed using PPC (big-endian)
@@ -99,6 +104,8 @@ use File::Basename;
 #   - 5 means that the data must be post-processed using ARM (little-endian)
 #   - 6 means that the data must be post-processed using ARMT (little-endian)
 #   - 7 means that the data must be post-processed using SPARC
+#   - 8 means that the data must be post-processed using DELTA
+#   - 9 .. 15 reserved (future use)
 
 # Truncated data can only be verified using the padding attack and therefore combinations between truncation + a compressor are not allowed.
 # Therefore, whenever the value is 128 or 0, neither coder attributes nor the length of the data for the CRC32 check is within the output.
@@ -130,9 +137,9 @@ my $DISPLAY_SENSITIVE_DATA_WARNING = 1; # 0 means skip or use --skip-sensitive-d
 my $PASSWORD_RECOVERY_TOOL_NAME = "john";
 my $PASSWORD_RECOVERY_TOOL_DATA_LIMIT = 0x80000000;          # hexadecimal output value. This value should always be >= 64
 my $PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK  = 1;      # does the cracker support the AES-CBC padding attack (0 means no, 1 means yes)
-my @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS = (1, 2, 7); # within this list we only need values ranging from 1 to 7
+my @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS = (1, 2, 6, 7); # within this list we only need values ranging from 1 to 7
                                                              # i.e. SEVEN_ZIP_LZMA1_COMPRESSED to SEVEN_ZIP_DEFLATE_COMPRESSED
-my @PASSWORD_RECOVERY_TOOL_SUPPORTED_PREPROCESSORS = (1, 2, 3, 4, 5, 6, 7); # BCJ2 can be "supported" by ignoring CRC
+my @PASSWORD_RECOVERY_TOOL_SUPPORTED_PREPROCESSORS = (1, 2, 3, 4, 5, 6, 7, 8); # BCJ2 can be "supported" by ignoring CRC
 
 # 7-zip specific stuff
 
@@ -193,6 +200,7 @@ my $SEVEN_ZIP_ARMT              = "\x03\x03\x07\x01";
 my $SEVEN_ZIP_SPARC             = "\x03\x03\x08\x05";
 my $SEVEN_ZIP_BZIP2             = "\x04\x02\x02";
 my $SEVEN_ZIP_DEFLATE           = "\x04\x01\x08";
+my $SEVEN_ZIP_DELTA             = "\x03";
 
 # hash format
 
@@ -214,12 +222,13 @@ my $SEVEN_ZIP_IA64_PREPROCESSED  =   4;
 my $SEVEN_ZIP_ARM_PREPROCESSED   =   5;
 my $SEVEN_ZIP_ARMT_PREPROCESSED  =   6;
 my $SEVEN_ZIP_SPARC_PREPROCESSED =   7;
+my $SEVEN_ZIP_DELTA_PREPROCESSED =   8;
 
 my $SEVEN_ZIP_TRUNCATED          = 128; # (0x80 or 0b10000000)
 
 my %SEVEN_ZIP_COMPRESSOR_NAMES   = (1 => "LZMA1", 2 => "LZMA2", 3 => "PPMD", 6 => "BZIP2", 7 => "DEFLATE",
                                     (1 << 4) => "BCJ", (2 << 4) => "BCJ2", (3 << 4) => "PPC", (4 << 4) => "IA64",
-                                    (5 << 4) => "ARM", (6 << 4) => "ARMT", (7 << 4) => "SPARC");
+                                    (5 << 4) => "ARM", (6 << 4) => "ARMT", (7 << 4) => "SPARC", (8 << 4) => "DELTA");
 
 #
 # Helper functions
@@ -1167,7 +1176,7 @@ sub extract_hash_from_archive
   }
   elsif ($codec_id ne $SEVEN_ZIP_AES)
   {
-    print STDERR "WARNING: unsupported coder with codec id '" . unpack ("H*", $codec_id) . "' in file '" . $file_path . "' found.\n";
+    print STDERR "WARNING: unsupported coder with codec id '0x" . unpack ("H*", $codec_id) . "' in file '" . $file_path . "' found.\n";
     print STDERR "If you think this codec method from DOC/Methods.txt of the 7-Zip source code ";
     print STDERR "should be supported, please file a problem report/feature request\n";
 
@@ -1194,7 +1203,7 @@ sub extract_hash_from_archive
 
   my $digest = get_digest ($digests_index, $unpack_info, $substreams_info);
 
-  return undef unless ((defined ($digest)) && ($digest->{'defined'} == 1));
+  return "" unless ((defined ($digest)) && ($digest->{'defined'} == 1));
 
   my $attributes = $coder->{'attributes'};
 
@@ -1237,9 +1246,10 @@ sub extract_hash_from_archive
     }
   }
 
-  my $type_of_compression    = $SEVEN_ZIP_UNCOMPRESSED;
-  my $type_of_preprocessor   = $SEVEN_ZIP_UNCOMPRESSED;
-  my $compression_attributes = "";
+  my $type_of_compression     = $SEVEN_ZIP_UNCOMPRESSED;
+  my $type_of_preprocessor    = $SEVEN_ZIP_UNCOMPRESSED;
+  my $compression_attributes  = "";
+  my $preprocessor_attributes = "";
 
   for (my $coder_pos = $coder_id + 1; $coder_pos < $number_coders; $coder_pos++)
   {
@@ -1247,6 +1257,8 @@ sub extract_hash_from_archive
     last unless (defined ($coder));
 
     $codec_id = $coder->{'codec_id'};
+
+    my $is_preprocessor = 0;
 
     if ($codec_id eq $SEVEN_ZIP_LZMA1)
     {
@@ -1260,34 +1272,6 @@ sub extract_hash_from_archive
     {
       $type_of_compression = $SEVEN_ZIP_PPMD_COMPRESSED;
     }
-    elsif ($codec_id eq $SEVEN_ZIP_BCJ)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_BCJ_PREPROCESSED;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_BCJ2)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_BCJ2_PREPROCESSED;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_PPC)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_PPC_PREPROCESSED;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_IA64)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_IA64_PREPROCESSED;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_ARM)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_ARM_PREPROCESSED;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_ARMT)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_ARMT_PREPROCESSED;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_SPARC)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_SPARC_PREPROCESSED;
-    }
     elsif ($codec_id eq $SEVEN_ZIP_BZIP2)
     {
       $type_of_compression = $SEVEN_ZIP_BZIP2_COMPRESSED;
@@ -1296,16 +1280,86 @@ sub extract_hash_from_archive
     {
       $type_of_compression = $SEVEN_ZIP_DEFLATE_COMPRESSED;
     }
-
-    if ($type_of_compression != $SEVEN_ZIP_UNCOMPRESSED)
+    elsif ($codec_id eq $SEVEN_ZIP_BCJ)
     {
-      if (defined ($coder->{'attributes'}))
-      {
-        $compression_attributes = unpack ("H*", $coder->{'attributes'});
-      }
+      $type_of_preprocessor = $SEVEN_ZIP_BCJ_PREPROCESSED;
+
+      $is_preprocessor = 1;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_BCJ2)
+    {
+      $type_of_preprocessor = $SEVEN_ZIP_BCJ2_PREPROCESSED;
+
+      $is_preprocessor = 1;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_PPC)
+    {
+      $type_of_preprocessor = $SEVEN_ZIP_PPC_PREPROCESSED;
+
+      $is_preprocessor = 1;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_IA64)
+    {
+      $type_of_preprocessor = $SEVEN_ZIP_IA64_PREPROCESSED;
+
+      $is_preprocessor = 1;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_ARM)
+    {
+      $type_of_preprocessor = $SEVEN_ZIP_ARM_PREPROCESSED;
+
+      $is_preprocessor = 1;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_ARMT)
+    {
+      $type_of_preprocessor = $SEVEN_ZIP_ARMT_PREPROCESSED;
+
+      $is_preprocessor = 1;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_SPARC)
+    {
+      $type_of_preprocessor = $SEVEN_ZIP_SPARC_PREPROCESSED;
+
+      $is_preprocessor = 1;
+    }
+    elsif ($codec_id eq $SEVEN_ZIP_DELTA)
+    {
+      $type_of_preprocessor = $SEVEN_ZIP_DELTA_PREPROCESSED;
+
+      $is_preprocessor = 1;
+    }
+    else
+    {
+      print STDERR "WARNING: unsupported coder with codec id '0x" . unpack ("H*", $codec_id) . "' in file '" . $file_path . "' found.\n";
+
+      return "";
     }
 
-    #print STDERR "Saw unknown codec '" . $codec_id . "'\n";
+    if ($is_preprocessor == 0)
+    {
+      if ($type_of_compression != $SEVEN_ZIP_UNCOMPRESSED)
+      {
+        if (defined ($coder->{'attributes'}))
+        {
+          $compression_attributes = unpack ("H*", $coder->{'attributes'});
+        }
+      }
+    }
+    else
+    {
+      if ($type_of_preprocessor != $SEVEN_ZIP_UNCOMPRESSED)
+      {
+        if (defined ($coder->{'attributes'}))
+        {
+          $preprocessor_attributes = unpack ("H*", $coder->{'attributes'});
+        }
+      }
+    }
+  }
+
+  if (length ($preprocessor_attributes) > 0) # special case: we need both attributes
+  {
+    $compression_attributes .= "\$" . $preprocessor_attributes;
   }
 
   # show a warning if the decompression algorithm is currently not supported by the cracker
@@ -1335,6 +1389,13 @@ sub extract_hash_from_archive
             print STDERR "the password recovery tool might be able to use that to verify the correctness of password candidates.\n";
             print STDERR "By using this attack there might of course be a higher probability of false positives.\n";
             print STDERR "\n";
+
+            if ($PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK == 0)
+            {
+              print STDERR "$PASSWORD_RECOVERY_TOOL_NAME currently does not support padding attacks.\n";
+
+              return "";
+            }
           }
           elsif ($type_of_compression == $SEVEN_ZIP_LZMA2_COMPRESSED) # this special case should only work for LZMA2
           {
@@ -1515,7 +1576,7 @@ sub extract_hash_from_archive
                                       # that would help to achieve minimal RAM consumption (even for very large hashes)
   }
 
-  return undef unless (length ($data) == $data_len);
+  return "" unless (length ($data) == $data_len);
 
   if ($data_len > ($PASSWORD_RECOVERY_TOOL_DATA_LIMIT / 2))
   {
@@ -1530,7 +1591,7 @@ sub extract_hash_from_archive
     return "";
   }
 
-  $hash_buf = basename($file_path) . ":" . $hash_buf if $PASSWORD_RECOVERY_TOOL_NAME eq "john";
+  $hash_buf = basename ($file_path) . ":" . $hash_buf if $PASSWORD_RECOVERY_TOOL_NAME eq "john";
 
   $hash_buf .= sprintf ("%s%u\$%u\$%u\$%s\$%u\$%s\$%u\$%u\$%u\$%s",
     $SEVEN_ZIP_HASH_SIGNATURE,
@@ -2361,20 +2422,6 @@ sub read_seven_zip_streams_info
   };
 
   return $streams_info;
-}
-
-sub folder_seven_zip_decode
-{
-  my $streams_info = shift;
-
-  my $number_coders = 0;
-
-  for (my $i = 0; $i < $number_coders; $i++)
-  {
-  }
-  #parse_folder ();
-
-  return;
 }
 
 sub read_seven_zip_archive_properties

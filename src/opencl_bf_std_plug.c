@@ -32,14 +32,14 @@ static unsigned int 	*BF_current_P ;
 static unsigned int 	*BF_init_key ;
 BF_binary 		*opencl_BF_out ;
 
-typedef struct	{
+typedef struct {
 	cl_mem salt_gpu ;
 	cl_mem P_box_gpu ;
 	cl_mem S_box_gpu ;
 	cl_mem out_gpu ;
 	cl_mem BF_current_S_gpu ;
 	cl_mem BF_current_P_gpu ;
-	} gpu_buffer;
+} gpu_buffer;
 
 static cl_kernel 	krnl[MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM];
 static gpu_buffer 	buffers[MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM];
@@ -85,15 +85,18 @@ static gpu_buffer 	buffers[MAX_PLATFORMS * MAX_DEVICES_PER_PLATFORM];
 	R = L ;								\
 	L = u4 ^ ctx_P[pos_P((BF_ROUNDS+1))] ;
 
-static void clean_gpu_buffer(gpu_buffer *pThis) {
+static void clean_gpu_buffer(gpu_buffer *pThis)
+{
 	const char *errMsg = "Release Memory Object FAILED." ;
 
-	HANDLE_CLERROR(clReleaseMemObject(pThis->salt_gpu), errMsg);
-	HANDLE_CLERROR(clReleaseMemObject(pThis-> P_box_gpu), errMsg);
-	HANDLE_CLERROR(clReleaseMemObject(pThis-> S_box_gpu), errMsg);
-	HANDLE_CLERROR(clReleaseMemObject(pThis->out_gpu), errMsg);
-	HANDLE_CLERROR(clReleaseMemObject(pThis->BF_current_S_gpu), errMsg);
-	HANDLE_CLERROR(clReleaseMemObject(pThis->BF_current_P_gpu), errMsg);
+	if (pThis->salt_gpu) {
+		HANDLE_CLERROR(clReleaseMemObject(pThis->salt_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(pThis-> P_box_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(pThis-> S_box_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(pThis->out_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(pThis->BF_current_S_gpu), errMsg);
+		HANDLE_CLERROR(clReleaseMemObject(pThis->BF_current_P_gpu), errMsg);
+	}
 }
 
 void BF_clear_buffer() {
@@ -102,9 +105,12 @@ void BF_clear_buffer() {
 	MEM_FREE(BF_current_P) ;
 	MEM_FREE(BF_init_key) ;
 	MEM_FREE(opencl_BF_out) ;
-	HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id]), "Error releasing kernel") ;
-	HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
-	               "Error releasing Program");
+
+	if (program[gpu_id]) {
+		HANDLE_CLERROR(clReleaseKernel(krnl[gpu_id]), "Error releasing kernel") ;
+
+		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Error releasing Program");
+	}
 }
 
 static void find_best_gws(struct fmt_main *fmt) {
@@ -182,12 +188,11 @@ void BF_select_device(struct fmt_main *fmt) {
 	    (gpu_intel(device_info[gpu_id]) && platform_apple(platform_id)))
 	{
 	        if (CHANNEL_INTERLEAVE == 1)
-		        opencl_init("$JOHN/opencl/bf_cpu_kernel.cl",
-			             gpu_id, NULL);
+		        opencl_init("$JOHN/opencl/bf_cpu_kernel.cl", gpu_id, NULL);
 	        else {
-			fprintf(stderr, "Please set NUM_CHANNELS and "
-			        "WAVEFRONT_SIZE to 1 in opencl_bf_std.h");
-			error();
+		        fprintf(stderr, "Please set NUM_CHANNELS and "
+		                "WAVEFRONT_SIZE to 1 in opencl_bf_std.h");
+		        error();
 	        }
 	}
 	else {
@@ -242,21 +247,20 @@ void BF_select_device(struct fmt_main *fmt) {
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 6, sizeof(cl_mem), &buffers[gpu_id].S_box_gpu), "Set Kernel Arg FAILED arg6") ;
 
 	if (global_work_size) {
-		global_work_size =
-			global_work_size / local_work_size * local_work_size;
-		if (global_work_size > BF_N)
-			global_work_size = BF_N;
+		global_work_size = MIN(global_work_size / local_work_size * local_work_size, BF_N);
 		fmt->params.max_keys_per_crypt = global_work_size;
 	} else
 		find_best_gws(fmt);
 
-	if ((!self_test_running && options.verbosity >= VERB_DEFAULT) ||
-	    ocl_always_show_ws)
-		fprintf(stderr, "LWS="Zu" GWS="Zu"%s", local_work_size,
-		        global_work_size, benchmark_running ? " " : "\n");
+	if (ocl_always_show_ws || !self_test_running) {
+		if (options.node_count)
+			fprintf(stderr, "%u: ", NODE);
+		fprintf(stderr, "LWS="Zu" GWS="Zu" ("Zu" blocks)%c",
+		        local_work_size, global_work_size, global_work_size / local_work_size,
+		        (options.flags & FLG_TEST_CHK) ? ' ' : '\n');
+	}
 
-	fmt->params.min_keys_per_crypt = opencl_calc_min_kpc(local_work_size,
-	                                                     global_work_size, 1);
+	fmt->params.min_keys_per_crypt = opencl_calc_min_kpc(local_work_size, global_work_size, 1);
 }
 
 void opencl_BF_std_set_key(char *key, int index, int sign_extension_bug) {
@@ -321,7 +325,7 @@ void exec_bf(cl_uint *salt_api, cl_uint *BF_out, cl_uint rounds, int n) {
 	HANDLE_CLERROR(clSetKernelArg(krnl[gpu_id], 5, sizeof(cl_uint), &rounds),"Set Kernel Arg FAILED arg5");
 
 	err = clEnqueueNDRangeKernel(queue[gpu_id], krnl[gpu_id], 1, NULL, &N, &M, 0, NULL, &evnt) ;
-	HANDLE_CLERROR(err, "Enque Kernel Failed") ;
+	HANDLE_CLERROR(err, "Enqueue Kernel Failed") ;
 
 	HANDLE_CLERROR(clWaitForEvents(1, &evnt), "Sync :FAILED") ;
 	clReleaseEvent(evnt);

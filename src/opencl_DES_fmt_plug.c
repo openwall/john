@@ -14,6 +14,7 @@ john_register_one(&fmt_opencl_DES);
 #else
 
 #include <string.h>
+#include <stdlib.h>
 
 #include "arch.h"
 #include "common.h"
@@ -21,6 +22,7 @@ john_register_one(&fmt_opencl_DES);
 #include "config.h"
 #include "opencl_DES_bs.h"
 #include "../run/opencl/opencl_DES_hst_dev_shared.h"
+#include "logger.h"
 
 #define FORMAT_NAME			"traditional crypt(3)"
 
@@ -45,7 +47,7 @@ static struct fmt_tests tests[] = {
 #define BINARY_SIZE			(2 * sizeof(WORD))
 #define SALT_SIZE			sizeof(WORD)
 
-#define USE_FULL_UNROLL 		(amd_gcn(device_info[gpu_id]) || nvidia_sm_5x(device_info[gpu_id]))
+#define USE_FULL_UNROLL 		(amd_gcn(device_info[gpu_id]) || nvidia_sm_5plus(device_info[gpu_id]))
 #define USE_BASIC_KERNEL		(cpu(device_info[gpu_id]) || platform_apple(platform_id))
 
 void (*opencl_DES_bs_init_global_variables)(void);
@@ -83,16 +85,31 @@ static unsigned char DES_atoi64[0x100] = {
 
 static void init(struct fmt_main *pFmt)
 {
+	char *force_kernel = getenv("JOHN_DES_KERNEL");
+
 	opencl_prepare_dev(gpu_id);
 
-	if ((USE_BASIC_KERNEL&& !OVERRIDE_AUTO_CONFIG) ||
-		(OVERRIDE_AUTO_CONFIG && !HARDCODE_SALT && !FULL_UNROLL))
+	if (force_kernel && !strcmp(force_kernel, "bs_b")) {
+		fprintf(stderr, "Using basic kernel (bs_b)\n");
 		opencl_DES_bs_b_register_functions(pFmt);
-	else if ((USE_FULL_UNROLL && !OVERRIDE_AUTO_CONFIG) ||
-		(OVERRIDE_AUTO_CONFIG && HARDCODE_SALT && FULL_UNROLL))
+	} else if (force_kernel && !strcmp(force_kernel, "bs_f")) {
+		fprintf(stderr, "Using fully unrolled, salt-specific kernels (bs_f)\n");
 		opencl_DES_bs_f_register_functions(pFmt);
-	else
+	} else if (force_kernel && !strcmp(force_kernel, "bs_h")) {
+		fprintf(stderr, "Using salt-specific kernels (bs_h)\n");
 		opencl_DES_bs_h_register_functions(pFmt);
+	} else if ((USE_BASIC_KERNEL && !OVERRIDE_AUTO_CONFIG) ||
+	    (OVERRIDE_AUTO_CONFIG && !HARDCODE_SALT && !FULL_UNROLL)) {
+		log_event("- Using basic kernel (bs_b)");
+		opencl_DES_bs_b_register_functions(pFmt);
+	} else if ((USE_FULL_UNROLL && !OVERRIDE_AUTO_CONFIG) ||
+	           (OVERRIDE_AUTO_CONFIG && HARDCODE_SALT && FULL_UNROLL)) {
+		log_event("- Using fully unrolled and salt-specific kernels (bs_f)");
+		opencl_DES_bs_f_register_functions(pFmt);
+	} else {
+		log_event("- Using salt-specific kernels (bs_h)");
+		opencl_DES_bs_h_register_functions(pFmt);
+	}
 
 	// Check if specific LWS/GWS was requested
 	opencl_get_user_preferences(FORMAT_LABEL);

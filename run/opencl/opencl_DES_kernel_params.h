@@ -13,8 +13,10 @@ typedef unsigned WORD vtype;
  *
  * macOS in general has problems building the "fast goto" version, and the
  * same goes for MESA and POCL.
+ *
+ * The bs_f kernel doesn't use any 'goto'.
  */
-#if nvidia_sm_5x(DEVICE_INFO) || __OS_X__ || __MESA__ || __POCL__ || \
+#if nvidia_sm_5plus(DEVICE_INFO) || __OS_X__ || __MESA__ || __POCL__ || \
 	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1573 && !defined(__Tahiti__)) || \
 	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1702)
 //#warning Using 'safe goto' kernel

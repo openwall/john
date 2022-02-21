@@ -1192,11 +1192,13 @@ DES_bs_crypt_25_swap:
 	movl $0x108,rounds_and_swapped
 	decl iterations
 	jnz DES_bs_crypt_25_swap
+	movl 12(%esp),%eax
 	popl %esi
 	popl %ebp
 #ifdef EMMS
 	emms
 #endif
+	movl (%eax),%eax
 	ret
 DES_bs_crypt_25_next:
 	subl $nvec(0x300-48),k_ptr

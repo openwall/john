@@ -8,6 +8,8 @@ import argparse
 import json
 import traceback
 
+PY3 = sys.version_info[0] == 3
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
@@ -23,7 +25,7 @@ if __name__ == '__main__':
 
     if len(sys.argv) < 2:
         parser.print_help()
-        sys.exit(-1)
+        sys.exit(1)
 
     for filename in unknown:
         with open(filename, "rb") as f:
@@ -54,7 +56,10 @@ if __name__ == '__main__':
                 # handle blockchain version 1 wallet format files which contain
                 # only a base64 encoded string
                 try:
-                    ddata = base64.decodestring(data)
+                    if PY3:
+                        ddata = base64.decodebytes(data)
+                    else:
+                        ddata = base64.decodestring(data)
                     print("%s:$blockchain$%s$%s" % (
                         os.path.basename(filename), len(ddata),
                         binascii.hexlify(ddata).decode("ascii")))

@@ -161,8 +161,8 @@ static void build_salt(WORD salt)
 
 static void set_kernel_args_kpc()
 {
-	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 2, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25.\n");
-	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 3, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_25.\n");
+	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 2, sizeof(cl_mem), &buffer_bs_keys), "Failed setting kernel argument buffer_bs_keys, kernel DES_bs_25_b.\n");
+	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 3, sizeof(cl_mem), &buffer_unchecked_hashes), "Failed setting kernel argument buffer_unchecked_hashes, kernel DES_bs_25_b.\n");
 
 	set_common_kernel_args_kpc(buffer_unchecked_hashes, buffer_bs_keys);
 }
@@ -182,7 +182,7 @@ static void init_kernel(int id_gpu, size_t s_mem_lws, unsigned int use_local_mem
 	kernels[id_gpu][0] = clCreateKernel(program[id_gpu], "DES_bs_25_b", &ret_code);
 	HANDLE_CLERROR(ret_code, "Failed creating kernel DES_bs_25_b.\n");
 
-	HANDLE_CLERROR(clSetKernelArg(kernels[id_gpu][0], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
+	HANDLE_CLERROR(clSetKernelArg(kernels[id_gpu][0], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25_b.\n");
 }
 
 /* if returns 0x800000, means there is no restriction on lws due to local memory limitations.*/
@@ -349,6 +349,9 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 
 	unsigned int des_log_depth = mask_mode ? 0 : DES_LOG_DEPTH;
 
+	unsigned int cc_major = 0, cc_minor = 0;
+	get_compute_capability(gpu_id, &cc_major, &cc_minor);
+
 	if (cpu(device_info[gpu_id])) {
 		if (get_platform_vendor_id(platform_id) == DEV_AMD) {
 			force_global_keys = 0;
@@ -364,7 +367,7 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 		force_global_keys = 0;
 		use_local_mem = 1;
 	}
-	else if (platform_apple(platform_id) && gpu_nvidia(device_info[gpu_id])) {
+	else if (gpu_nvidia(device_info[gpu_id]) && cc_major >= 7) {
 		force_global_keys = 1;
 		use_local_mem = 0;
 	}
@@ -482,8 +485,8 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 		}
 		else {
 			warp_size = 1;
-			if (!(cpu(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])))
-			fprintf(stderr, "Possible auto_tune fail!!.\n");
+			//if (!(cpu(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])))
+				//fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
 
 		if (lws_tune_flag)
@@ -575,10 +578,14 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 	if (lws_tune_flag)
 		save_lws_config(CONFIG_FILE, gpu_id, local_work_size, 0);
 
-	if ((!self_test_running && options.verbosity >= VERB_DEFAULT) ||
-	    ocl_always_show_ws)
-		fprintf(stderr, "LWS="Zu" GWS="Zu"%s", local_work_size,
-		        global_work_size, benchmark_running ? " " : "\n");
+	if ((!self_test_running && options.verbosity >= VERB_DEFAULT) || ocl_always_show_ws) {
+		if (mask_int_cand.num_int_cand > 1)
+			fprintf(stderr, "LWS="Zu" GWS="Zu" x%d%s", local_work_size,
+			        global_work_size, mask_int_cand.num_int_cand, (options.flags & FLG_TEST_CHK) ? " " : "\n");
+		else
+			fprintf(stderr, "LWS="Zu" GWS="Zu"%s", local_work_size,
+			        global_work_size, (options.flags & FLG_TEST_CHK) ? " " : "\n");
+	}
 }
 
 static void reset(struct db_main *db)
@@ -593,7 +600,7 @@ static void reset(struct db_main *db)
 		release_clobj_kpc();
 		release_clobj();
 
-		if (options.flags & FLG_MASK_CHK)
+		if ((options.flags & FLG_MASK_CHK) && mask_int_cand.num_int_cand > 1)
 			mask_mode = 1;
 
 		create_clobj(db);
@@ -676,11 +683,11 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 		num_uncracked_hashes(current_salt) > salt->count)
 		update_buffer(salt);
 
-	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 1, sizeof(cl_mem), &buffer_processed_salts[current_salt]), "Failed setting kernel argument buffer_processed_salts, kernel DES_bs_25.\n");
+	HANDLE_CLERROR(clSetKernelArg(kernels[gpu_id][0], 1, sizeof(cl_mem), &buffer_processed_salts[current_salt]), "Failed setting kernel argument buffer_processed_salts, kernel DES_bs_25_b.\n");
 
 	current_gws *= iter_count;
 	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], kernels[gpu_id][0], 1, NULL, &current_gws, lws, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_25 failed.\n");
+	HANDLE_CLERROR(ret_code, "Enqueue kernel DES_bs_25_b failed.\n");
 
 	*pcount = mask_mode ? *pcount * mask_int_cand.num_int_cand : *pcount;
 

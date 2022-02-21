@@ -14,6 +14,7 @@
 #include "lzma/Lzma2Dec.h"
 #include "lzma/Bra.h"
 #include "lzma/CpuArch.h"
+#include "lzma/Delta.h"
 #include "crc32.h"
 
 #define FORMAT_NAME             "7-Zip archive encryption"
@@ -28,9 +29,9 @@
 
 typedef struct sevenzip_salt_s {
 	dyna_salt dsalt;
-	size_t length;     /* used in decryption */
-	size_t unpacksize; /* used in padding check */
-	size_t crc_len;    /* used in CRC calculation */
+	size_t aes_length;  /* AES length (even blocks) */
+	size_t packed_size; /* Deflated length */
+	size_t crc_len;     /* Inflated length */
 	int NumCyclesPower;
 	int SaltSize;
 	int ivSize;
@@ -38,7 +39,8 @@ typedef struct sevenzip_salt_s {
 	unsigned char iv[16];
 	unsigned char salt[16];
 	unsigned int crc;
-	unsigned char props[LZMA_PROPS_SIZE];
+	unsigned char decoder_props[LZMA_PROPS_SIZE];
+	unsigned char preproc_props;
 	unsigned char data[1];
 } sevenzip_salt_t;
 
@@ -54,6 +56,6 @@ extern int sevenzip_decrypt(unsigned char *derived_key);
 extern unsigned int sevenzip_iteration_count(void *salt);
 extern unsigned int sevenzip_padding_size(void *salt);
 extern unsigned int sevenzip_compression_type(void *salt);
-
+extern unsigned int sevenzip_data_len(void *salt);
 
 #endif /* _7Z_COMMON_H */

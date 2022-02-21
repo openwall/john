@@ -29,6 +29,7 @@ static cl_kernel wpapsk_init, wpapsk_loop, wpapsk_pass2, wpapsk_final_md5, wpaps
 static size_t key_buf_size;
 static unsigned int *inbuffer;
 static struct fmt_main *self;
+static int new_keys;
 
 #define JOHN_OCL_WPAPSK
 #include "wpapsk.h"
@@ -196,6 +197,8 @@ static void set_key(char *key, int index)
 
 	for (i = 0; i < length; i++)
 		((char*)inbuffer)[GETPOS(i, index)] = key[i];
+
+	new_keys = 1;
 }
 
 static char* get_key(int index)
@@ -298,24 +301,51 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * ocl_v_width;
 
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 64, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+	if (new_keys) {
+		WAIT_INIT(global_work_size)
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, scalar_gws * 64, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
+		BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+		WAIT_SLEEP
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error transferring keys");
+		WAIT_UPDATE
+		WAIT_DONE
+		new_keys = 0;
+	}
 
 	// Run kernel
+	WAIT_INIT(global_work_size)
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_init, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error transferring keys");
+	WAIT_UPDATE
+	WAIT_DONE
 
+	WAIT_INIT(global_work_size)
 	for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS / HASH_LOOPS); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[2]), "Run loop kernel");
+		WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		WAIT_UPDATE
 		opencl_process_event();
 	}
+	WAIT_DONE
 
+	WAIT_INIT(global_work_size)
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_pass2, 1, NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]), "Run intermediate kernel");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "Error transferring keys");
+	WAIT_UPDATE
+	WAIT_DONE
 
+	WAIT_INIT(global_work_size)
 	for (i = 0; i < (ocl_autotune_running ? 1 : ITERATIONS / HASH_LOOPS); i++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], wpapsk_loop, 1, NULL, &global_work_size, lws, 0, NULL, NULL), "Run loop kernel (2nd pass)");
+		WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		WAIT_UPDATE
 		opencl_process_event();
 	}
+	WAIT_DONE
 
 	return count;
 }

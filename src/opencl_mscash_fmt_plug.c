@@ -54,7 +54,7 @@ static cl_uint *loaded_hashes, max_num_loaded_hashes, *hash_ids, *bitmaps, max_h
 static cl_ulong bitmap_size_bits;
 
 static unsigned int key_idx;
-static unsigned int set_new_keys;
+static unsigned int new_keys;
 static struct fmt_main *self;
 static cl_uint *zero_buffer;
 
@@ -375,7 +375,6 @@ static int get_hash_6(int index) { return hash_tables[current_salt][hash_ids[3 +
 static void clear_keys(void)
 {
 	key_idx = 0;
-	set_new_keys = 0;
 }
 
 static void set_key(char *_key, int index)
@@ -406,7 +405,7 @@ static void set_key(char *_key, int index)
 	}
 	if (len)
 		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
-	set_new_keys = 1;
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -447,6 +446,10 @@ static char *get_key(int index)
 				out[(saved_int_key_loc[t]& (0xff << (i * 8))) >> (i * 8)] =
 				mask_int_cand.int_cand[int_index].x[i];
 	}
+
+	/* Ensure truncation due to over-length or invalid UTF-8 is made like in GPU code. */
+	if (options.target_enc == UTF_8)
+		truncate_utf8((UTF8*)out, PLAINTEXT_LENGTH);
 
 	return out;
 }
@@ -667,13 +670,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand %d\n", __FUNCTION__, count, local_work_size, gws, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
-	if (set_new_keys || ocl_autotune_running) {
+	if (new_keys) {
 		if (key_idx)
 			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
 		if (!mask_gpu_is_static)
 			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, 0, 4 * gws, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
-		set_new_keys = 0;
+		new_keys = 0;
 	}
 
 	current_salt = salt->sequential_id;

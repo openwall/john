@@ -322,9 +322,9 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 		memcpy(key1, key, 8);
 		memcpy(key2, key + 8, 8);
 		memcpy(key3, key + 16, 8);
-		DES_set_key((DES_cblock *) key1, &ks1);
-		DES_set_key((DES_cblock *) key2, &ks2);
-		DES_set_key((DES_cblock *) key3, &ks3);
+		DES_set_key_unchecked((DES_cblock *) key1, &ks1);
+		DES_set_key_unchecked((DES_cblock *) key2, &ks2);
+		DES_set_key_unchecked((DES_cblock *) key3, &ks3);
 		if (full_decrypt) {
 			DES_ede3_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
 		} else {

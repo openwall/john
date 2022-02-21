@@ -115,11 +115,12 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
+	int extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
 
@@ -131,9 +132,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (((p = strtokm(NULL, "*")) == NULL) || !isdec(p)) /* scrypt: p */
 		goto err;
-	if (((p = strtokm(NULL, "*")) == NULL) || !ishexn(p, 64)) /* scrypt: salt */
+	if (((p = strtokm(NULL, "*")) == NULL) || hexlenl(p, &extra) != 64 * 2 || extra) /* scrypt: salt */
 		goto err;
-	if (((p = strtokm(NULL, "*")) == NULL) || !ishexn(p, 160)) /* restic: data */
+	if (((p = strtokm(NULL, "*")) == NULL) || hexlenl(p, &extra) != 160 * 2 || extra) /* restic: data */
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -161,7 +162,7 @@ static void *get_binary(char *ciphertext)
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;

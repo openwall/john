@@ -932,10 +932,15 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 
 	self->params.max_keys_per_crypt = global_work_size;
 
-	if ((!self_test_running && options.verbosity >= VERB_DEFAULT) ||
-	    ocl_always_show_ws)
-		fprintf(stderr, "LWS="Zu" GWS="Zu"%s", local_work_size,
-		        global_work_size, benchmark_running ? " " : "\n");
+	if ((!self_test_running && options.verbosity >= VERB_DEFAULT) || ocl_always_show_ws) {
+		if (mask_int_cand.num_int_cand > 1)
+			fprintf(stderr, "LWS="Zu" GWS="Zu" x%d%s", local_work_size,
+			        global_work_size, mask_int_cand.num_int_cand, (options.flags & FLG_TEST_CHK) ? " " : "\n");
+		else
+			fprintf(stderr, "LWS="Zu" GWS="Zu"%s", local_work_size,
+			        global_work_size, (options.flags & FLG_TEST_CHK) ? " " : "\n");
+	}
+
 #undef calc_ms
 }
 

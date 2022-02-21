@@ -65,6 +65,7 @@
 #include "rules.h"
 #include "external.h"
 #include "cracker.h"
+#include "suppressor.h"
 #include "john.h"
 #include "unicode.h"
 #include "regex.h"
@@ -92,6 +93,8 @@ static struct rpp_context *rule_ctx;
 // used for file in 'memory buffer' mode (ready to use array)
 static char *word_file_str, **words;
 static int64_t nWordFileLines;
+
+static int file_is_fifo;
 
 static void save_state(FILE *file)
 {
@@ -167,7 +170,7 @@ static int restore_state(FILE *file)
 	if (restore_rule_number())
 		return 1;
 
-	if (word_file == stdin) {
+	if (word_file == stdin || file_is_fifo) {
 		restore_line_number();
 	} else
 	if (!nWordFileLines) {
@@ -221,7 +224,7 @@ static void fix_state(void)
 	rec_rule = rule_number;
 	rec_line = line_number;
 
-	if (word_file == stdin)
+	if (word_file == stdin || file_is_fifo)
 		rec_pos = line_number;
 	else
 	if (!mem_map && !nWordFileLines &&
@@ -240,7 +243,7 @@ void wordlist_hybrid_fix_state(void)
 	hybrid_rec_rule = rule_number;
 	hybrid_rec_line = line_number;
 
-	if (word_file == stdin)
+	if (word_file == stdin || file_is_fifo)
 		hybrid_rec_pos = line_number;
 	else
 	if (!mem_map && !nWordFileLines &&
@@ -266,7 +269,7 @@ static double get_progress(void)
 	if (progress)
 		return progress;
 
-	if (!word_file || word_file == stdin)
+	if (!word_file || word_file == stdin || file_is_fifo)
 		return -1;
 
 	if (nWordFileLines) {
@@ -511,7 +514,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 		name = options.wordlist = options.activepot;
 
 	/* These will ignore --save-memory */
-	if (loopBack || dupeCheck ||
+	if (loopBack ||
 	    (!options.max_wordfile_memory &&
 	     (options.flags & FLG_RULES_CHK)))
 		forceLoad = 1;
@@ -525,6 +528,14 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 		if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordlist")))
 		if (!(name = cfg_get_param(SECTION_OPTIONS, NULL, "Wordfile")))
 			name = options.wordlist = WORDLIST_NAME;
+	}
+
+	static unsigned int prev_g;
+	static unsigned long long prev_p;
+	if (rules && cfg_get_bool(SECTION_OPTIONS, NULL, "PerRuleStats", 0)) {
+		rules = 2;
+		prev_g = status.guess_count;
+		prev_p = status.cands;
 	}
 
 	if (((options.flags & FLG_BATCH_CHK) || rec_restored || default_wordlist) && john_main_process) {
@@ -550,6 +561,24 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 	}
 
 	if (name) {
+		struct stat st;
+
+		if (!(word_file = jtr_fopen(path_expand(name), "rb")))
+			pexit(STR_MACRO(jtr_fopen)": %s", path_expand(name));
+
+		if (fstat(fileno(word_file), &st))
+			pexit("fstat");
+
+		file_is_fifo = ((st.st_mode & S_IFMT) == S_IFIFO);
+
+		if (john_main_process)
+			log_event("- %s %s: %.100s", loopBack ? "Loopback pot" : "Wordlist",
+			          file_is_fifo ? "FIFO" : "file",
+			          path_expand(name));
+	} else
+		file_is_fifo = 0;
+
+	if (name && !file_is_fifo) {
 		char *cp, csearch;
 		int64_t ourshare = 0;
 #ifdef HAVE_MMAP
@@ -558,15 +587,8 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			            "WordlistMemoryMapMaxSize");
 
 		if (mmap_max == -1)
-			mmap_max = 1 << 20;
+			mmap_max = 1 << 10;
 #endif
-		if (!(word_file = jtr_fopen(path_expand(name), "rb")))
-			pexit(STR_MACRO(jtr_fopen)": %s", path_expand(name));
-		if (john_main_process)
-			log_event("- %s file: %.100s",
-			          loopBack ? "Loopback pot" : "Wordlist",
-			          path_expand(name));
-
 		jtr_fseek64(word_file, 0, SEEK_END);
 		if ((file_len = jtr_ftell64(word_file)) == -1)
 			pexit(STR_MACRO(jtr_ftell64));
@@ -760,7 +782,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			if (csearch == '\n')
 				while (*cp == '\r') cp++;
 
-			if (dupeCheck) {
+			if (loopBack) {
 				hash_log = 1;
 				while (((1 << hash_log) < (nWordFileLines))
 				       && hash_log < 27)
@@ -819,7 +841,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 					} else
 						if (ep - cp >= LINE_BUFFER_SIZE)
 							cp[LINE_BUFFER_SIZE-1] = 0;
-					if (dupeCheck) {
+					if (loopBack) {
 						/* Full suppression of dupes
 						   after truncation */
 						if (wbuf_unique(cp))
@@ -854,7 +876,9 @@ skip:
  * in --stdin mode, we can NOT perform rules, due to we can not fseek stdin in
  * most OS's.
  */
-		word_file = stdin;
+		if (!file_is_fifo)
+			word_file = stdin;
+
 		if (options.flags & FLG_STDIN_CHK) {
 			log_event("- Reading candidate passwords from stdin");
 		} else {
@@ -1035,11 +1059,17 @@ REDO_AFTER_LMLOOP:
 		crk_init(db, fix_state, NULL);
 	}
 
+	if (dupeCheck || rules) {
+		int force = (dupeCheck || (options.flags & FLG_STDOUT)) && options.suppressor_size;
+		suppressor_init(SUPPRESSOR_UPDATE | (force ? SUPPRESSOR_FORCE : 0));
+	}
+
 	prerule = rule = "";
 	if (rules)
 		prerule = rpp_next(&ctx);
 
 /* A string that can't be produced by fgetl(). */
+	last = aligned.buffer[1];
 	last[0] = '\n';
 	last[1] = 0;
 
@@ -1350,6 +1380,22 @@ EndOfFile:
 #endif
 		if (rules) {
 next_rule:
+			if (rules > 1 && prerule) {
+				unsigned long long p = status.cands, fake_p = 0;
+				if (!(options.flags & FLG_STDOUT)) do {
+					crk_process_key("injected wrong password");
+					fake_p++;
+				} while (p == status.cands);
+				unsigned int g = status.guess_count - prev_g;
+				p = status.cands - fake_p - prev_p;
+				double score = p ? (g ? (double)g * g : 1e-9) / (double)p : 0;
+				double pg = (double)(p ? p : 1e9) / (g ? g : 1e-9);
+				log_event("- Score %.18f for %.2f p/g %ug %llup during rule #%d :%.100s",
+					score, pg, g, p, rule_number + 1, prerule);
+				prev_g = status.guess_count;
+				prev_p = status.cands;
+			}
+
 			if (!(rule = rpp_next(&ctx))) break;
 			rule_number++;
 
@@ -1363,7 +1409,7 @@ next_rule:
 			}
 
 			line_number = 0;
-			if (!nWordFileLines && word_file != stdin) {
+			if (!nWordFileLines && word_file != stdin && !file_is_fifo) {
 				if (mem_map)
 					map_pos = mem_map;
 				else

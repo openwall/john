@@ -11,6 +11,7 @@ jobs:
       - run:
           name: Testing JtR
           command: .circleci/circle-ci.sh TEST
+          no_output_timeout: 20m
 
   wine-32bits:
     <<: *common_linux

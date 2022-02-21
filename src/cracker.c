@@ -151,7 +151,7 @@ static void crk_help(void)
 	else
 #endif
 	if (tty_has_keyboard())
-		fprintf(stderr, "Press 'q' or Ctrl-C to abort, almost any other key for status\n");
+		fprintf(stderr, "Press 'q' or Ctrl-C to abort, 'h' for help, almost any other key for status\n");
 	else
 		fprintf(stderr, "Press Ctrl-C to abort, "
 #ifdef SIGUSR1
@@ -189,6 +189,9 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	if (john_main_process && isatty(fileno(stderr)))
 		fprintf(stderr, " \b");
 #endif
+
+	status.salt_count = db->salt_count;
+	status.password_count = db->password_count;
 
 	crk_db = db;
 	crk_params = &db->format->params;
@@ -258,6 +261,15 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 		crk_process_key = process_key_stack_rules;
 	else
 		crk_process_key = process_key;
+
+	/*
+	 * Resetting crk_process_key above disables the suppressor, but it can
+	 * possibly be re-enabled by a cracking mode.
+	 */
+	if (status.suppressor_start) {
+		status.suppressor_end = status.cands;
+		status.suppressor_end_time = status_get_time();
+	}
 }
 
 /*
@@ -465,6 +477,8 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw, int i
 
 		crk_db->guess_count++;
 		status.guess_count++;
+		status.salt_count = crk_db->salt_count;
+		status.password_count = crk_db->password_count;
 
 		if (crk_guesses && !dupe) {
 			strnfcpy(crk_guesses->ptr, key,
@@ -742,7 +756,7 @@ static void crk_poll_files(void)
 		clock_t end, start = times(&buf);
 #endif
 
-		status_print();
+		status_print(0);
 		if (john_main_process)
 			fprintf(stderr, "Pause file seen, going to sleep (session saved)\n");
 		log_event("Pause file seen, going to sleep");
@@ -788,10 +802,11 @@ static int crk_process_event(void)
 		rec_save();
 	}
 
-	if (event_status) {
-		event_status = 0;
-		status_print();
-	}
+	if (event_help)
+		sig_help();
+
+	if (event_status)
+		status_print(0);
 
 	if (event_ticksafety) {
 		event_ticksafety = 0;
@@ -870,13 +885,12 @@ static int crk_password_loop(struct db_salt *salt)
 			last_warn_kpc = crk_key_index;
 			if (options.node_count)
 				fprintf(stderr, "%u: ", NODE);
-			fprintf(stderr, "Warning: Only %d%s candidate%s %s, "
+			fprintf(stderr, "Warning: Only %d%s candidate%s buffered%s, "
 			        "minimum %d needed for performance.\n",
 			        crk_key_index,
 			        mask_int_cand.num_int_cand > 1 ? " base" : "",
 			        crk_key_index > 1 ? "s" : "",
-			        single_running ? "buffered for the current salt" :
-			        mask_increments_len ? "buffered" : "left",
+			        single_running ? " for the current salt" : "",
 			        crk_params->min_keys_per_crypt);
 
 			if (!--kpc_warn_limit) {
@@ -1069,8 +1083,9 @@ static int crk_salt_loop(void)
 
 	if (event_delayed_status || (crk_db->salt_count < sc && john_main_process &&
 	                             cfg_get_bool(SECTION_OPTIONS, NULL, "ShowSaltProgress", 0))) {
+		event_status = event_delayed_status ? event_delayed_status : 1;
 		event_delayed_status = 0;
-		event_status = event_pending = 1;
+		event_pending = 1;
 	}
 
 	if (!salt || crk_db->salt_count < 2)
@@ -1104,9 +1119,10 @@ static int crk_salt_loop(void)
 		event_abort = 1;
 
 	if (ext_status && !event_abort) {
+		if (ext_status >= event_status)
+			event_status = 0;
+		status_print(ext_status);
 		ext_status = 0;
-		event_status = 0;
-		status_print();
 	}
 
 	return ext_abort;
@@ -1128,9 +1144,10 @@ int crk_process_buffer(void)
 		event_abort = 1;
 
 	if (ext_status && !event_abort) {
+		if (ext_status >= event_status)
+			event_status = 0;
+		status_print(ext_status);
 		ext_status = 0;
-		event_status = 0;
-		status_print();
 	}
 
 	return ext_abort;
@@ -1204,9 +1221,10 @@ static int process_key(char *key)
 		event_abort = 1;
 
 	if (ext_status && !event_abort) {
+		if (ext_status >= event_status)
+			event_status = 0;
+		status_print(ext_status);
 		ext_status = 0;
-		event_status = 0;
-		status_print();
 	}
 
 	return ext_abort;

@@ -36,6 +36,7 @@ john_register_one(&fmt_tezos);
 #include "blake2.h"
 #include "tezos_common.h"
 #define PBKDF2_HMAC_SHA512_VARYING_SALT 1
+#include "pbkdf2_hmac_common.h"
 #include "pbkdf2_hmac_sha512.h"
 
 #define FORMAT_NAME             "Tezos Key"
@@ -55,13 +56,17 @@ john_register_one(&fmt_tezos);
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
-#define PLAINTEXT_LENGTH        125
 #ifdef SIMD_COEF_64
+#define PLAINTEXT_LENGTH        (PBKDF2_64_MAX_SALT_SIZE - 8)
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
 #define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA512 * 4)
 #else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      4
+#endif
+#if !defined(PLAINTEXT_LENGTH) || PLAINTEXT_LENGTH > 125
+#undef PLAINTEXT_LENGTH
+#define PLAINTEXT_LENGTH        125
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -105,6 +110,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
+#ifdef SIMD_COEF_64
+	static volatile int warned;
+#endif
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
@@ -114,7 +122,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
-		unsigned char seed[MIN_KEYS_PER_CRYPT][64];
+		union {
+			unsigned char seed[64];
+			ed25519_secret_key sk;
+		} seed[MIN_KEYS_PER_CRYPT];
 		char salt[MIN_KEYS_PER_CRYPT][16 + 256 + PLAINTEXT_LENGTH];
 		int i;
 #ifdef SIMD_COEF_64
@@ -136,28 +147,36 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			lens[i] = cur_salt->mnemonic_length;
 			pin[i] = (unsigned char*)cur_salt->mnemonic;
 			sin[i] = (unsigned char*)salt[i];
-			pout[i] = seed[i];
+			pout[i] = seed[i].seed;
 			slens[i] = strlen(salt[i]);
+			if (!warned && !self_test_running && slens[i] > PBKDF2_64_MAX_SALT_SIZE) {
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+				{
+					warned = 1;
+					fprintf(stderr,
+						"Warning: over-long combination(s) of e-mail address and candidate password\n");
+				}
+			}
 		}
 		pbkdf2_sha512_sse_varying_salt((const unsigned char**)pin, lens, sin, slens, 2048, pout, 64, 0);
 #else
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i)
 			pbkdf2_sha512((unsigned char*)cur_salt->mnemonic,
 					cur_salt->mnemonic_length, (unsigned char*)salt[i], strlen(salt[i]), 2048,
-					seed[i], 64, 0);
+					seed[i].seed, 64, 0);
 #endif
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			unsigned char buffer[20];
 			ed25519_public_key pk;
-			ed25519_secret_key sk;
 
 			// asymmetric stuff
-			memcpy(sk, seed[i], 32);
-			ed25519_publickey(sk, pk);
+			ed25519_publickey(seed[i].sk, pk);
 
 			blake2b((uint8_t *)buffer, (unsigned char*)pk, NULL, 20, 32, 0); // pk is pkh (pubkey hash)
 
-			if (memmem(cur_salt->raw_address, cur_salt->raw_address_length, (void*)buffer, 8)) {
+			if (!memcmp(cur_salt->raw_address + 2, buffer, 20)) {
 				cracked[index+i] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -201,9 +220,7 @@ struct fmt_main fmt_tezos = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
-		{
-			"iteration count",
-		},
+		{ NULL },
 		{ FORMAT_TAG },
 		tezos_tests
 	}, {
@@ -215,9 +232,7 @@ struct fmt_main fmt_tezos = {
 		fmt_default_split,
 		fmt_default_binary,
 		tezos_get_salt,
-		{
-			tezos_iteration_count,
-		},
+		{ NULL },
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

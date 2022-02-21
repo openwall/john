@@ -528,6 +528,10 @@ static char *get_key(int index)
 				mask_int_cand.int_cand[int_index].x[i];
 	}
 
+	/* Ensure truncation due to over-length or invalid UTF-8 is made like in GPU code. */
+	if (options.target_enc == UTF_8)
+		truncate_utf8((UTF8*)out, PLAINTEXT_LENGTH);
+
 	return out;
 }
 
@@ -554,21 +558,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static void reset(struct db_main *db)
 {
-	static int last_int_cand;
+	release_base_clobj();
+	release_clobj();
 
-	if (!crypt_kernel || last_int_cand != mask_int_cand.num_int_cand) {
-		release_base_clobj();
-		release_clobj();
+	num_loaded_hashes = db->salts->count;
+	ocl_hc_128_prepare_table(db->salts);
+	init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
 
-		num_loaded_hashes = db->salts->count;
-		ocl_hc_128_prepare_table(db->salts);
-		init_kernel(num_loaded_hashes,
-		            ocl_hc_128_select_bitmap(num_loaded_hashes));
-
-		create_base_clobj();
-
-		last_int_cand = mask_int_cand.num_int_cand;
-	}
+	create_base_clobj();
 
 	size_t gws_limit = MIN((0xf << 21) * 4 / BUFSIZE,
 	                       get_max_mem_alloc_size(gpu_id) / BUFSIZE);

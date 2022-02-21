@@ -137,10 +137,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	h_wblocks = (unsigned int *)mem_calloc((BL_SINGLE_BLOCK_SHA_SIZE *BITLOCKER_ITERATION_NUMBER), sizeof(unsigned int));
 	hash_zero = (unsigned int *)mem_calloc(gws * BITLOCKER_INT_HASH_SIZE, sizeof(unsigned int));
 	h_attack = (int *)mem_calloc(1, sizeof(int));
-	h_mac = (unsigned char *)calloc(BITLOCKER_MAC_SIZE, sizeof(unsigned char));
-	h_vmkIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
-	h_macIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
-	h_cMacIV = (unsigned char *)calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
+	h_mac = (unsigned char *)mem_calloc(BITLOCKER_MAC_SIZE, sizeof(unsigned char));
+	h_vmkIV = (unsigned char *)mem_calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
+	h_macIV = (unsigned char *)mem_calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
+	h_cMacIV = (unsigned char *)mem_calloc(BITLOCKER_IV_SIZE, sizeof(unsigned char));
 
 	// ============================================= DEVICE =============================================
 	d_attack = CLCREATEBUFFER(CL_MEM_READ_ONLY, sizeof(int), "Cannot allocate device memory");
@@ -380,7 +380,7 @@ static int w_block_precomputed(unsigned char *salt)
 	global_work_size = GET_NEXT_MULTIPLE(1, local_work_size); //count
 
 	padding =
-	    (unsigned char *)calloc(BITLOCKER_PADDING_SIZE, sizeof(unsigned char));
+	    (unsigned char *)mem_calloc(BITLOCKER_PADDING_SIZE, sizeof(unsigned char));
 	padding[0] = 0x80;
 	memset(padding + 1, 0, 31);
 	msgLen = (BITLOCKER_FIXED_PART_INPUT_CHAIN_HASH << 3);

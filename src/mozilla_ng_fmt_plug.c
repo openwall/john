@@ -108,7 +108,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
-	keepptr=strdup(ciphertext);
+	keepptr=xstrdup(ciphertext);
 	p = &keepptr[TAG_LENGTH];
 	if (*p != '*')
 		goto err;
@@ -360,9 +360,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA1_Final(key+20, &ctxo);
 
 		// k = k1||k2 // encrypt "password-check" string using this key
-		DES_set_key((DES_cblock *) key, &ks1);
-		DES_set_key((DES_cblock *) (key+8), &ks2);
-		DES_set_key((DES_cblock *) (key+16), &ks3);
+		DES_set_key_unchecked((DES_cblock *) key, &ks1);
+		DES_set_key_unchecked((DES_cblock *) (key+8), &ks2);
+		DES_set_key_unchecked((DES_cblock *) (key+16), &ks3);
 		memcpy(ivec, key + 32, 8);  // last 8 bytes!
 		// PKCS#5 padding (standard block padding)
 		DES_ede3_cbc_encrypt((unsigned char*)"password-check\x02\x02", (unsigned char*)crypt_out[index], 16, &ks1, &ks2, &ks3, &ivec, DES_ENCRYPT);

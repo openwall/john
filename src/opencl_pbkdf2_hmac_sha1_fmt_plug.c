@@ -8,9 +8,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_ocl_pbkdf2_sha1;
+extern struct fmt_main fmt_opencl_pbkdf2_sha1;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_ocl_pbkdf2_sha1);
+john_register_one(&fmt_opencl_pbkdf2_sha1);
 #else
 
 #include <stdint.h>
@@ -227,6 +227,7 @@ static void *get_binary(char *ciphertext)
 #if !ARCH_LITTLE_ENDIAN
 	char *p = strrchr(ciphertext, '$') + 1;
 	int len = strlen(p) / 2;
+	int i;
 	for (i = 0; i < len / sizeof(uint32_t); ++i) {
 		((uint32_t*)out)[i] = JOHNSWAP(((uint32_t*)out)[i]);
 	}
@@ -291,7 +292,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	scalar_gws = global_work_size * ocl_v_width;
 
 	/// Copy data to gpu
-	if (ocl_autotune_running || new_keys) {
+	if (new_keys) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 		new_keys = 0;
 	}
@@ -374,7 +375,7 @@ static unsigned int iteration_count(void *salt)
 	return ((pbkdf2_salt*)salt)->iterations;
 }
 
-struct fmt_main fmt_ocl_pbkdf2_sha1 = {
+struct fmt_main fmt_opencl_pbkdf2_sha1 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

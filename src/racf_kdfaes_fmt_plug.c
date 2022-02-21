@@ -39,6 +39,7 @@ john_register_one(&fmt_racf_kdfaes);
 #include "aes.h"
 #include "sha2.h"
 #include "hmac_sha.h"
+#include "memory.h"
 
 #define FORMAT_LABEL            "RACF-KDFAES"
 #define FORMAT_NAME             ""
@@ -161,7 +162,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 	p = strtok(ctcopy, "*");
@@ -214,7 +215,7 @@ static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
 
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy, *username;
 	char *c, *p;
 	char mf[5], rf[5] = "0x0";
@@ -331,7 +332,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char key[32];
 		unsigned char *key_p = key;
 		unsigned char m[MAX_SALT_SIZE + HASH_OUTPUT_SIZE + 32];
-		unsigned char *t1f = malloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
+		unsigned char *t1f = mem_alloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
 		unsigned char *h_out = (unsigned char*)crypt_out[index];
 		unsigned char plaint[16];
 		AES_KEY akey;

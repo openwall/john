@@ -1,10 +1,10 @@
-This coding style is borrowed from Kernel CodingStyle
-(https://www.kernel.org/doc/Documentation/CodingStyle).
+This coding style is based on Kernel CodingStyle
+(https://www.kernel.org/doc/Documentation/process/coding-style.rst).
 
-	Chapter 1: Indentation
+Chapter 1: Indentation
 
-1.1 Indentation is one tab per level. Recommended tab width is 4 or 8 for jumbo
-and 8 for core but it mostly just affects where a line exceeds max length.
+1.1 Indentation is one tab per level. Recommended tab width is 4 or 8 but it
+    mostly just affects where a line exceeds max length.
 
 1.2 Indent with tabs, align with spaces. E.g.
 
@@ -13,8 +13,8 @@ and 8 for core but it mostly just affects where a line exceeds max length.
 void *memmem(const void *haystack, size_t haystack_len,
 .............const void *needle, size_t needle_len)
 {
-->	haystack_ = (char*)haystack;
-->	needle_ = (char*)needle;
+->	haystack_ = (char *)haystack;
+->	needle_ = (char *)needle;
 ->	last = haystack_+(haystack_len - needle_len + 1);
 ->	for (; haystack_ < last; ++haystack_)
 ->	{
@@ -61,20 +61,18 @@ void *memmem(const void *haystack, size_t haystack_len,
 		do_something();
 
 
-	Chapter 2: Breaking long lines and strings
+Chapter 2: Breaking long lines and strings
 
-The limit on the length of lines is 80 columns.
+The recommended limit on the length of lines is 120 columns when viewed with a
+tab width of 4, or 132 columns viewed with a tab width of 8, or something along
+those lines.
 
-However, there are some cases that the lines can exceed 80 columns. Never break
-user-visible strings such as print messages, because that breaks the ability
-to grep for them.
-
-E.g.:
-
-	fprintf(stderr, "Error, a c%c found in expression, but the data for this const was not provided\n", pInput[2]);
+However, there are some cases where lines can exceed 120 columns:  Avoid
+breaking user-visible strings such as print messages, because that breaks the
+ability to grep for them.
 
 
-	Chapter 3: Placing Braces and Spaces
+Chapter 3: Placing Braces and Spaces
 
 3.1 Braces
 
@@ -147,20 +145,19 @@ This example is *bad*:
 	s = sizeof( struct file );
 
 3.2.3 When declaring pointer, the preferred use of '*' is adjacent to the data
-name or function name. E.g.:
+      name or function name. E.g.:
 
 	char *linux_banner;
 	unsigned long long memparse(char *ptr, char **retptr);
 	char *match_strdup(substring_t *s);
 
-3.2.4 When type conversin, add a space before '*'.
+3.2.4 When type casting, we recommend a space before '*' but not after the
+      right paren.  E.g:
 
-E.g:
-
-	hostSalt = (cl_uint *) mem_alloc(SALT_BUFFER_SIZE);
+	byte_len = strlen((char *)utf8_string);
 
 3.2.5 Use one space around (on each side of) most binary and ternary operators,
-such as any of these:
+      such as any of these:
 
 	=  +  -  <  >  *  /  %  |  &  ^  <=  >=  ==  !=  ?  :
 
@@ -178,15 +175,10 @@ no space after the prefix increment & decrement unary operators:
 
 and no space around the '.' and "->" structure member operators.
 
-3.2.6 Don't leave whilespace at the end of lines.
+3.2.6 Don't leave whitespace at the end of lines, or of files.  The last line
+      of a file should have a linefeed, but no blank lines.
 
-Don't do this:
-
-	do_something();. // '.' is a space
-
-3.2.7 There should not be any spaces between lables and left column.
-
-E.g:
+3.2.7 There should not be any indentation before labels.  E.g:
 
 void f()
 {
@@ -197,9 +189,9 @@ out:
 }
 
 
-	Chapter 4: Naming
+Chapter 4: Naming
 
-GLOBAL variables (to be used only if you _really_ need them) need to
+Global variables (to be used only if you _really_ need them) need to
 have descriptive names, as do global functions.  If you have a function
 that counts the number of active users, you should call that
 "count_active_users()" or similar, you should _not_ call it "cntusr()".
@@ -208,9 +200,9 @@ We use names prefixed by crk_ for global functions in cracker.c, ldr_ for
 ones from loader.c and so on.
 
 
-	Chapter 5: Declaration
+Chapter 5: Declaration
 
-5.1 Functions declartion
+5.1 Functions declaration
 
 In function prototypes, include parameter names with their data types.
 Although this is not required by the C language, it is preferred in Linux
@@ -218,19 +210,27 @@ because it is a simple way to add valuable information for the reader.
 
 5.2 Variables declaration
 
-Add a blank line after variables declaration. E.g:
+Until 2020 or so, we wanted everything declared at block start and with a blank
+line after variables declaration. E.g:
 
 void function(void)
 {
 	unsigned char master[32];
 
-	sevenzip_kdf((unsigned char*)saved_key[index], master);
+	sevenzip_kdf((unsigned char *)saved_key[index], master);
 }
 
+We have since relaxed that, so variable declarations can occur right before the
+use of it, especially if it gains readability or preprocessing logics.
 
-	Chapter 6: Commenting
+We still do not want C99 style declaration within e.g. a for statement as in:
 
-6.1 C89 style and C99 style
+	for (int i = 0; ... )
+
+
+Chapter 6: Commenting
+
+6.1 C89 style and C99 comment style
 
 C89:
 
@@ -240,4 +240,6 @@ C99:
 
 // ...
 
-Use C89 style in core, and both are ok in jumbo.
+We recommend using the C89 style for most everything, but C99 style may be used
+e.g. for quickly commenting out a line of code that we don't want permanently
+removed.

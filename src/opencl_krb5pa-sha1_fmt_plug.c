@@ -356,7 +356,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
@@ -505,7 +505,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	scalar_gws = gws * ocl_v_width;
 
 	// Copy data to gpu
-	if (ocl_autotune_running || new_keys) {
+	if (new_keys) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 		new_keys = 0;
 	}

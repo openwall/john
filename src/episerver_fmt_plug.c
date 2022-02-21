@@ -50,6 +50,7 @@ john_register_one(&fmt_episerver);
 #include "sha.h"
 #include "sha2.h"
 #include "misc.h"
+#include "memory.h"
 #include "common.h"
 #include "formats.h"
 #include "params.h"
@@ -186,7 +187,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;	/* skip leading '$episerver$*' */

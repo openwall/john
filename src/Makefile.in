@@ -103,7 +103,7 @@ JOHN_OBJS = \
 	batch.o bench.o charset.o common.o compiler.o config.o cracker.o crc32.o external.o \
 	formats.o getopt.o idle.o inc.o john.o list.o loader.o logger.o mask.o mask_ext.o \
 	memory.o misc.o options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
-	tty.o  wordlist.o \
+	suppressor.o tty.o wordlist.o \
 	mkv.o mkvlib.o \
 	rain.o unicode_range.o \
 	listconf.o \
@@ -116,7 +116,7 @@ JOHN_OBJS = \
 	undrop.o \
 	regex.o pp.o \
 	c3_fmt.o \
-	lzma/LzmaDec.o lzma/Lzma2Dec.o lzma/Bra.o lzma/Bra86.o lzma/BraIA64.o lzma/CpuArch.o \
+	lzma/LzmaDec.o lzma/Lzma2Dec.o lzma/Bra.o lzma/Bra86.o lzma/BraIA64.o lzma/CpuArch.o lzma/Delta.o \
 	unique.o gpg2john.o \
 	showformats.o
 
@@ -226,10 +226,6 @@ digipaq-alpha.o: alpha.S
 
 AFS_fmt.o:	AFS_fmt.c arch.h misc.h jumbo.h autoconfig.h params.h DES_std.h common.h memory.h formats.h os.h os-autoconf.h
 
-lzma/Lzma2Dec.o:	lzma/Lzma2Dec.c lzma/Precomp.h lzma/Compiler.h lzma/Lzma2Dec.h lzma/LzmaDec.h lzma/7zTypes.h
-
-lzma/LzmaDec.o:	lzma/LzmaDec.c lzma/Precomp.h lzma/Compiler.h lzma/LzmaDec.h lzma/7zTypes.h
-
 lzma/Bra.o:	lzma/Bra.c lzma/Precomp.h lzma/Compiler.h lzma/CpuArch.h lzma/7zTypes.h lzma/Bra.h
 
 lzma/Bra86.o:	lzma/Bra86.c lzma/Precomp.h lzma/Compiler.h lzma/Bra.h lzma/7zTypes.h
@@ -237,6 +233,12 @@ lzma/Bra86.o:	lzma/Bra86.c lzma/Precomp.h lzma/Compiler.h lzma/Bra.h lzma/7zType
 lzma/BraIA64.o:	lzma/BraIA64.c lzma/Precomp.h lzma/Compiler.h lzma/CpuArch.h lzma/7zTypes.h lzma/Bra.h
 
 lzma/CpuArch.o:	lzma/CpuArch.c lzma/Precomp.h lzma/Compiler.h lzma/CpuArch.h lzma/7zTypes.h
+
+lzma/Delta.o:	lzma/Delta.c lzma/Precomp.h lzma/Compiler.h lzma/Delta.h lzma/7zTypes.h
+
+lzma/Lzma2Dec.o:	lzma/Lzma2Dec.c lzma/Precomp.h lzma/Compiler.h lzma/Lzma2Dec.h lzma/LzmaDec.h lzma/7zTypes.h
+
+lzma/LzmaDec.o:	lzma/LzmaDec.c lzma/Precomp.h lzma/Compiler.h lzma/LzmaDec.h lzma/7zTypes.h
 
 base64_convert.o:	base64_convert.c missing_getopt.h memory.h arch.h misc.h jumbo.h autoconfig.h common.h base64_convert.h os.h os-autoconf.h
 
@@ -827,6 +829,7 @@ bash-completion:
 	[ -d $(DESTDIR)/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/etc/bash_completion.d/ || true
 	[ -d $(DESTDIR)/usr/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/usr/local/etc/bash_completion.d/ || true
 	[ -d $(DESTDIR)/opt/local/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/opt/local/etc/bash_completion.d/ || true
+	[ -d $(DESTDIR)/opt/homebrew/etc/bash_completion.d ] && $(CP) ../run/john.bash_completion $(DESTDIR)/opt/homebrew/etc/bash_completion.d/ || true
 	@echo Bash-completion for JtR opportunistically installed.
 	@echo Source \". ../run/john.bash_completion\" or logout/login to activate the changes
 
@@ -839,8 +842,13 @@ zsh-completion:
 
 shell-completion: bash-completion zsh-completion
 
-kernel-cache-clean:
-	$(RM) -fr ~/.nv/ComputeCache ../run/opencl/*.bin
+kernel-cache-clean-nvidia:
+	$(RM) -fr ~/.nv/ComputeCache
+
+kernel-cache-clean-john:
+	$(RM) -f ../run/opencl/*.bin ../run/opencl/*.config
+
+kernel-cache-clean: kernel-cache-clean-nvidia kernel-cache-clean-john
 
 clean:
 	$(RM) $(PROJ)

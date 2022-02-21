@@ -255,7 +255,8 @@ void rec_save(void)
 
 	if (fseek(rec_file, 0, SEEK_SET)) pexit("fseek");
 
-	save_format = !options.format && rec_db->loaded;
+	/* Always save the ultimately selected format (could be eg. class or wildcard). */
+	save_format = rec_db->loaded;
 
 #if HAVE_MPI
 	fake_fork = (mpi_p > 1);
@@ -284,6 +285,14 @@ void rec_save(void)
 			rec_argc--;
 		}
 		/***********************************************/
+		else
+		if (save_format && !strncmp(*opt, "--format=", 9)) {
+			char **o = opt;
+			do
+				*o = o[1];
+			while (*++o);
+			rec_argc--;
+		}
 		else
 #if HAVE_MPI
 		if (fake_fork && !strncmp(*opt, "--fork", 6))
@@ -543,7 +552,7 @@ void rec_restore_args(int lock)
 
 	if (fscanf(rec_file, "%d\n", &argc) != 1)
 		rec_format_error("fscanf");
-	if (argc < 2)
+	if (argc < 2 || argc > 11000000)
 		rec_format_error(NULL);
 	argv = mem_alloc_tiny(sizeof(char *) * (argc + 1), MEM_ALIGN_WORD);
 

@@ -117,7 +117,7 @@ def usage():
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         usage()
-        sys.exit(-1)
+        sys.exit(1)
 
     if len(sys.argv) == 4:  # LastPass v3.x for Firefox + Linux mode
         process_file(sys.argv[1], sys.argv[2], sys.argv[3])
@@ -125,4 +125,4 @@ if __name__ == "__main__":
         process_lastpass_cli(sys.argv[1])
     else:
         usage()
-        sys.exit(-1)
+        sys.exit(1)

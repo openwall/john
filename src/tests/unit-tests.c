@@ -326,7 +326,7 @@ int _tst_strnzcatn() {
 	memset(head, 0, sizeof(head));
 
 	for (j = 0; j < 14; ++j)
-		tail[j] = (char*)malloc(j + 1); // allocate for proper sized ASCIIZ string.
+		tail[j] = (char*)mem_alloc(j + 1); // allocate for proper sized ASCIIZ string.
 	for (i = 0; i < 14; ++i) {
 		sprintf(head, "%*.*s", i, i, data);
 		for (j = 0; j < 14; ++j) {
@@ -396,7 +396,7 @@ void _test_cpy_func(char *(cfn)(char *, const char *, int),
 		else {
 			// Allocate EXACTLY the right size, so that ASAN will
 			// catch any over/under reads or writes.
-			char *buf = malloc(i);
+			char *buf = mem_alloc(i);
 			int check_len = i - 1;
 			int null_check = i - 1 > input_len ? input_len : i - 1;
 
@@ -459,7 +459,7 @@ int _tst_trim() {
 	char *p, *string, buffer[56], expected[56];
 	int i, j, len;
 
-	string = (char *) malloc(strlen(data) + 1); // allocate for proper sized ASCIIZ string.
+	string = (char *) mem_alloc(strlen(data) + 1); // allocate for proper sized ASCIIZ string.
 
 	// Test lTrim()
 	for (len = 0; len < strlen(data); ++len) {
@@ -624,7 +624,7 @@ void _nontest_gen_fgetl_files(int generate) {
 		return;
 	}
 	/* first, setup the fgetl 'pad' data (moved from main() function. */
-	_fgetl_pad = (char*)malloc(_FGETL_PAD_SIZE + 1);
+	_fgetl_pad = (char*)mem_alloc(_FGETL_PAD_SIZE + 1);
 	for (i = 0; i <= _FGETL_PAD_SIZE; ++i)
 		_fgetl_pad[i] = (i % 95) + ' ';
 	_fgetl_pad[_FGETL_PAD_SIZE] = 0;
@@ -850,10 +850,10 @@ void test_strnzcat() {
 
 	start_test(__FUNCTION__);
 	for (i = 0; i < 512 * 2; ++i)
-		buf[i] = malloc(i + 1);
+		buf[i] = mem_alloc(i + 1);
 	for (i = 0; i < 512; ++i) {
-		buf1[i] = malloc(i + 1);
-		buf2[i] = malloc(i + 1);
+		buf1[i] = mem_alloc(i + 1);
+		buf2[i] = mem_alloc(i + 1);
 		_fill_str(buf1[i], i); // fill random string data here.
 		_fill_str(buf2[i], i); // the fill is exactly i bytes long.
 	}
@@ -923,7 +923,7 @@ void _test_strtokm(char *delims, int cnt, ...) {
 	*cp = 0;
 	va_end(args);
 
-	buf = strdup(big);
+	buf = xstrdup(big);
 
 	cp = strtokm(buf, delims);
 	inc_test(); failed = 0;
@@ -1247,14 +1247,14 @@ void _gen_hex_len_data() {
 	for (i = 1; i < _ISHEX_CNT; ++i) {
 		// each line is 2*i or 2*i+1 length.  The "", and 1 byte hex strings
 		// are handled by special code, NOT by the normal generic loop code.
-		_hex_even_lower[i] = malloc(i * 2 + 1);
-		_hex_even_upper[i] = malloc(i * 2 + 1);
-		_hex_even_mixed[i] = malloc(i * 2 + 1);
-		_hex_even_digits[i] = malloc(i * 2 + 1);
-		_hex_odd_lower[i] = malloc(i * 2 + 2);
-		_hex_odd_upper[i] = malloc(i * 2 + 2);
-		_hex_odd_mixed[i] = malloc(i * 2 + 2);
-		_hex_odd_digits[i] = malloc(i * 2 + 2);
+		_hex_even_lower[i] = mem_alloc(i * 2 + 1);
+		_hex_even_upper[i] = mem_alloc(i * 2 + 1);
+		_hex_even_mixed[i] = mem_alloc(i * 2 + 1);
+		_hex_even_digits[i] = mem_alloc(i * 2 + 1);
+		_hex_odd_lower[i] = mem_alloc(i * 2 + 2);
+		_hex_odd_upper[i] = mem_alloc(i * 2 + 2);
+		_hex_odd_mixed[i] = mem_alloc(i * 2 + 2);
+		_hex_odd_digits[i] = mem_alloc(i * 2 + 2);
 		// fill our 2 mIXed case hex strings.
 		_fill_hEx(_hex_even_mixed[i], i * 2, 0);
 		_fill_hEx(_hex_odd_mixed[i], i * 2 + 1, 0);
@@ -1296,7 +1296,7 @@ void _test_one_ishex(int (fn)(const char *), int uc, int lc, int odd) {
 	// a string is NOT hex, when it should pass.  All text lengths from 0
 	// to 512 are tested, in all 3 casing flavors.
 
-	Line = malloc(_ISHEX_CNT * 2 + 1);
+	Line = mem_alloc(_ISHEX_CNT * 2 + 1);
 	inc_test(); failed = 0; v = fn(NULL); if (v) inc_failed_test();
 	// this tests all the 3 even[0] strings, they are all ""
 	inc_test(); failed = 0; v = fn(""); if (v) inc_failed_test();
@@ -1939,7 +1939,7 @@ unsigned char *_parse_NESSIE(const char *cp, uint64_t bits) {
 	char c;
 
 	bytes = (bits + 7) / 8;
-	p = bytes ? calloc(1, bytes) : calloc (1,1);
+	p = bytes ? mem_calloc(1, bytes) : mem_calloc (1,1);
 	pRet = p;
 
 	if (*cp == '\"') {
@@ -2059,7 +2059,7 @@ void _Load_NESSIE_hash_file(const char *fname) {
 		return;
 	}
 	// Now allocate
-	HTst = (Hash_Tests*)calloc(nHTst, sizeof(Hash_Tests));
+	HTst = (Hash_Tests*)mem_calloc(nHTst, sizeof(Hash_Tests));
 
 	// Now, re-read the file, and load the hash tests.
 	in = fopen(fname, "r");
@@ -2084,7 +2084,7 @@ void _Load_NESSIE_hash_file(const char *fname) {
 			if ((cp = strstr(cpLB, "message=")) != NULL) {
 				cp += 8;
 				strtok(cp, "\r\n");
-				HTst[n].message = strdup(cp);
+				HTst[n].message = xstrdup(cp);
 				HTst[n].test_bits = _parse_NESSIE_bits(cp);
 				HTst[n].test_data = _parse_NESSIE(cp, HTst[n].test_bits);
 				HTst[n].cur = HTst[n].hash;
@@ -2103,11 +2103,11 @@ void _Load_NESSIE_hash_file(const char *fname) {
 				++n;
 				// replicate last message
 				// but append iterated x times message.
-				HTst[n].message = malloc(strlen(HTst[n - 1].message) + strlen(cp) + 4);
+				HTst[n].message = mem_alloc(strlen(HTst[n - 1].message) + strlen(cp) + 4);
 				sprintf(HTst[n].message, "%s - %s", HTst[n - 1].message, cp);
 				// test bits and data are SAME.
 				HTst[n].test_bits = HTst[n - 1].test_bits;
-				HTst[n].test_data = calloc(1, (HTst[n].test_bits + 7) / 8);
+				HTst[n].test_data = mem_calloc(1, (HTst[n].test_bits + 7) / 8);
 				// The hash we will read from the file, starting
 				// with THIS line.
 				HTst[n].cur = HTst[n].hash;
@@ -2205,7 +2205,7 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 		// handle monte-carlo
 		// here, we simply read the seed, and the expected hash values.
 		nHTst = 100;
-		HTst = calloc(nHTst, sizeof(HTst[0]));
+		HTst = mem_calloc(nHTst, sizeof(HTst[0]));
 
 		// handle getting the seed, AND hashes from the file
 		// we put the seed into HTst[0].test_data
@@ -2218,7 +2218,7 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 				sscanf(cpLB, "[L = %d]", &len);
 			} else if (!strncmp(cpLB, "Seed = ", 7)) {
 				HTst[0].test_bits = len * 8;
-				HTst[0].test_data = calloc(1, HTst[0].test_bits / 8);
+				HTst[0].test_data = mem_calloc(1, HTst[0].test_bits / 8);
 				ParseHex(HTst[0].test_data, &cpLB[7], HTst[0].test_bits / 8);
 			} else if (!strncmp(cpLB, "MD = ", 5)) {
 				strcpy(HTst[n].hash, &cpLB[5]);
@@ -2242,7 +2242,7 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 		cpLB = fgetll(LineBuf, sizeof(LineBuf), in);
 	}
 	// Ok, now we know how many variables we have
-	HTst = calloc(nHTst, sizeof(HTst[0]));
+	HTst = mem_calloc(nHTst, sizeof(HTst[0]));
 
 	// start over in the file.
 	fseek(in, 0, SEEK_SET);
@@ -2254,9 +2254,9 @@ void _Load_CAVS_hash_file(const char *fname, int type) {
 			++n;
 			sscanf(cpLB, "Len = %"PRIu64, &HTst[n].test_bits);
 			if (HTst[n].test_bits)
-				HTst[n].test_data = calloc(1, HTst[n].test_bits / 8);
+				HTst[n].test_data = mem_calloc(1, HTst[n].test_bits / 8);
 		} else if (!strncmp(cpLB, "Msg = ", 6)) {
-			HTst[n].message = strdup(cpLB);
+			HTst[n].message = xstrdup(cpLB);
 			ParseHex(HTst[n].test_data, &cpLB[6], HTst[n].test_bits / 8);
 		} else if (!strncmp(cpLB, "MD = ", 5)) {
 			strcpy(HTst[n].hash, &cpLB[5]);

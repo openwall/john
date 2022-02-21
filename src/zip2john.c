@@ -778,12 +778,17 @@ static int process_legacy(zip_file *zfp, zip_ptr *p)
 
 		scan_for_data_descriptor(zfp, p);
 
+		if (p->cmptype != 0 && p->cmptype != 8) {
+			fprintf(stderr, "%s/%s is not encrypted, or stored with non-handled compression type=%"PRIu16"\n",
+			        zfp->fname, p->file_name, p->cmptype);
+			return 0;
+		}
+
 		// Ok, now set checksum bytes.  This will depend upon if from crc, or from timestamp
 		if (p->flags & FLAG_LOCAL_SIZE_UNKNOWN)
 			sprintf(p->cs, "%02x%02x", p->lastmod_time >> 8, p->lastmod_time & 0xFF);
 		else
 			sprintf(p->cs, "%02x%02x", (p->crc >> 24) & 0xFF, (p->crc >> 16) & 0xFF);
-
 
 		fprintf(stderr,
 		        "%s/%s PKZIP%s Encr: %s%scmplen=%"PRIu64", decmplen=%"PRIu64", crc=%08X ts=%04X cs=%s type=%"PRIu16"\n",
@@ -924,7 +929,7 @@ static void print_and_cleanup(zip_context *ctx)
 	if (ctx->num_candidates == 0)
 		return;
 
-	filenames = strdup(ctx->best_files[0].file_name);
+	filenames = xstrdup(ctx->best_files[0].file_name);
 	bname = jtr_basename(ctx->archive.fname);
 
 	printf("%s%s%s:$pkzip$%x*%x*", bname,

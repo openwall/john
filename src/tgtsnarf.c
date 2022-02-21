@@ -190,7 +190,10 @@ fetch_tgt(char *host, char *user, char *realm, unsigned char *dst, int size)
   to.sin_port = htons(750);
 
   /* Fill in our TGT request. */
-  ktext.length = make_req(ktext.dat, user, realm);
+  int ktext_length = make_req(ktext.dat, user, realm);
+  if (ktext_length < 0)
+    return (-1);
+  ktext.length = ktext_length;
 
   /* Send it to KDC. */
   if ((sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0) {
