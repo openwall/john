@@ -221,7 +221,7 @@ static void parse_unicode(char *string)
 	*d = 0;
 }
 
-static int submit(UTF32 *rain)
+static int submit(UTF32 *rain, int loop2)
 {
 	UTF8 out[4 * MAX_CAND_LENGTH];
 	int i;
@@ -229,16 +229,16 @@ static int submit(UTF32 *rain)
 	/* Set current word */
 	if (quick_conversion) {
 		/* Quick conversion (only ASCII or ISO-8859-1) */
-		for (i = 0; i < rain_cur_len; i++)
+		for (i = 0; i < rain_cur_len + loop2; ++i)
 			out[i] = rain[i];
 		out[i] = 0;
 	} else if (options.target_enc == UTF_8) {
 		/* Nearly as quick conversion, from UTF-8-32[tm] to UTF-8 */
-		rain[rain_cur_len] = 0;
+		rain[rain_cur_len + loop2] = 0;
 		utf8_32_to_utf8(out, rain);
 	} else {
 		/* Slowest conversion, from real UTF-32 to some legacy codepage */
-		rain[rain_cur_len] = 0;
+		rain[rain_cur_len + loop2] = 0;
 		utf32_to_enc(out, sizeof(out), rain);
 	}
 
@@ -250,7 +250,7 @@ static int submit(UTF32 *rain)
 
 int do_rain_crack(struct db_main *db, char *req_charset)
 {
-	int i, j, cp_max = 127;
+	int i, cp_max = 127;
 	int charcount;
 	int fmt_case = (db->format->params.flags & FMT_CASE);
 	char *default_set;
@@ -377,7 +377,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	crk_init(db, fix_state, NULL);
 	
 	/* Iterate over subset sizes and output lengths */
-	for(rain_cur_len; rain_cur_len <= maxlength; rain_cur_len++) {
+	for(rain_cur_len; rain_cur_len <= maxlength; ++rain_cur_len) {
 		if(rain_cur_len == minlength)
 			cur_keyspace = powi(charcount, rain_cur_len);
 		else
@@ -385,19 +385,14 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		
 		if (options.verbosity >= VERB_DEFAULT)
 		log_event("Rain - word length %d  - keyspace %"PRIu64, rain_cur_len, cur_keyspace);
-
-		if (!state_restored) {
-			/* Initialize first subset */
-			for (i = 0; i <= maxlength - minlength; i++)
-				for (j = 0; j < maxlength; j++)
-					charset_idx[i][j] = i;
-		}
+        
 		/* Iterate over Rain for this size */
 		uint64_t X;
-		for(X = 0; X < cur_keyspace; X++)
+		int loop = rain_cur_len - minlength;
+		for(X = 0; X < cur_keyspace; ++X)
 		{
 			int loop2;
-			for(loop2 = 0; loop2 <= maxlength - rain_cur_len; loop2++) {
+			for(loop2 = loop; loop2 <= maxlength - minlength; ++loop2) {
 				int skip = 0;
 	
 				if (state_restored)
@@ -405,21 +400,20 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				else
 					set++;
 	
-				if (options.node_count) {
+				if(options.node_count) {
 					int for_node = set % options.node_count + 1;
 					skip = for_node < options.node_min ||
 						for_node > options.node_max;
 				}
-				if (!skip) {
-					/* Set current subset */
+				if(!skip) {
 					quick_conversion = 1;
-					for (i = 0; i < minlength+loop2; i++) {
-						if ((rain[i] = charset_utf32[charset_idx[loop2][i]]) > cp_max)
+					for(i = 0; i < rain_cur_len + loop2; ++i) {
+						if((rain[i] = charset_utf32[charset_idx[loop2][i]]) > cp_max)
 							quick_conversion = 0;
 					}
-					submit(rain);
+					submit(rain, loop2);
 				}
-				for(i = 0; i < minlength+loop2; i++) {
+				for(i = 0; i < rain_cur_len + loop2; ++i) {
 					if(++charset_idx[loop2][i] >= charcount) {
 						charset_idx[loop2][i] = 0;
 						break;
