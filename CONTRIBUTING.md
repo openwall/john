@@ -25,10 +25,10 @@ John the Ripper is released under GNU GPL v2 "or later", with portions also avai
 Solar Designer's current preference is that new code contributions be licensed under very liberal terms:
 ```
 /*
- * This software is Copyright (c) YEAR YOUR NAME <your at e-mail.address>,<br>
- * and it is hereby released to the general public under the following terms:<br>
- * Redistribution and use in source and binary forms, with or without<br>
- * modification, are permitted.<br>
+ * This software is Copyright (c) YEAR YOUR NAME <your at e-mail.address>,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 ```
 This is a heavily cut-down “BSD license”. You may also include the warranty disclaimer.

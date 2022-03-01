@@ -96,17 +96,6 @@ john_register_one(&fmt_luks);
 #define MAX_KEYS_PER_CRYPT  1
 #endif
 
-#if ARCH_LITTLE_ENDIAN
-#define john_htonl(x) ((((x)>>24) & 0xffL) | (((x)>>8) & 0xff00L) | \
-		(((x)<<8) & 0xff0000L) | (((x)<<24) & 0xff000000L))
-
-#define john_ntohl(x) ((((x)>>24) & 0xffL) | (((x)>>8) & 0xff00L) | \
-		(((x)<<8) & 0xff0000L) | (((x)<<24) & 0xff000000L))
-#else
-#define john_htonl(x) (x)
-#define john_ntohl(x) (x)
-#endif
-
 #include "luks_insane_tests.h"
 
 /* taken from LUKS on disk format specification */
@@ -245,7 +234,7 @@ static void decrypt_aes_cbc_essiv(unsigned char *src, unsigned char *dst,
 static int hash_plugin_parse_hash(char *filename, unsigned char **cp, int afsize, int is_critical)
 {
 	FILE *myfile;
-	int readbytes;
+	int read_entries;
 
 	myfile = jtr_fopen(filename, "rb");
 
@@ -259,9 +248,9 @@ static int hash_plugin_parse_hash(char *filename, unsigned char **cp, int afsize
 	if (!*cp)
 		goto bad;
 	// printf(">>> %d\n", cs->afsize);
-	readbytes = fread(*cp, afsize, 1, myfile);
+	read_entries = fread(*cp, afsize, 1, myfile);
 
-	if (readbytes < 0) {
+	if (read_entries != 1) {
 		fprintf(stderr, "%s : unable to read required data\n",
 			filename);
 		goto bad;
@@ -304,7 +293,8 @@ static void init(struct fmt_main *self)
  * to re-run luks2john and retry the passwords that have been stored for the current LUKS hashes
  * once the redesign of john's LUKS format implementation has been completed.)
  */
-	if (!options.listconf && !(options.flags & FLG_TEST_CHK) && warned++ == 0) {
+	if (!options.listconf && !(options.flags & FLG_TEST_CHK) && !warned) {
+		warned = 1;
 		fprintf(stderr,
 		        "WARNING, LUKS format hash representation will change in future releases,\n"
 		        "see doc/README.LUKS\n"); // FIXME: address github issue #557 after 1.8.0-jumbo-1
@@ -329,14 +319,15 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *ctcopy;
 	char *keeptr;
 	char *p, *q;
-	unsigned char *buf;
-	int is_inlined, i, bestslot=0;
-	int res;
+	unsigned char *buf = 0;
+	int is_inlined, i, bestslot = -1;
+	int hdr_size;
 	int afsize;
 	unsigned char *out;
 	struct custom_salt_LUKS cs;
 	uint64_t keybytes, stripes;
 	unsigned int bestiter = 0xFFFFFFFF;
+	size_t len, len_b64;
 
 	out = (unsigned char*)&cs.myphdr;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
@@ -353,20 +344,22 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (!isdec(p))
 		goto err;
-	afsize = atoi(p);
-	if (afsize != sizeof(struct luks_phdr))
+	hdr_size = atoi(p);
+	if (hdr_size != sizeof(struct luks_phdr))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
-	if (afsize != strlen(p) / 2)
+	if (hdr_size != strlen(p) / 2)
 		goto err;
 	if (!ishexlc(p))
 		goto err;
-	for (i = 0; i < afsize; i++) {
+	for (i = 0; i < hdr_size; i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
 	keybytes = john_ntohl(cs.myphdr.keyBytes);
+	if (keybytes > 256) /* bigger requires more space in keycandidate */
+		goto err;
 	for (i = 0; i < LUKS_NUMKEYS; i++) {
 			if ((john_ntohl(cs.myphdr.keyblock[i].passwordIterations) < bestiter)
 			&& (john_ntohl(cs.myphdr.keyblock[i].passwordIterations) > 1) &&
@@ -376,22 +369,53 @@ static int valid(char *ciphertext, struct fmt_main *self)
 				john_ntohl(cs.myphdr.keyblock[i].passwordIterations);
 			}
 	}
+	if (bestslot < 0) /* active key is not found */
+		goto err;
+	if (bestiter >= INT_MAX) /* artificial, to fit in int, plus 1 special value */
+		goto err;
 	stripes = john_ntohl(cs.myphdr.keyblock[bestslot].stripes);
-	if ( (uint64_t)(john_ntohl(cs.myphdr.keyBytes)*john_ntohl(cs.myphdr.keyblock[bestslot].stripes)) !=
-		keybytes*stripes)
+	if (stripes == 0) /* we use it for division */
+		goto err;
+	if ((uint32_t)keybytes * (uint32_t)stripes != keybytes*stripes)
+		goto err;
+	if (stripes > INT_MAX || keybytes > INT_MAX) /* artificial, to allow int */
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)
 		goto err;
 	if (!isdec(p))
 		goto err;
-	res = atoi(p);
-	if (res != keybytes*stripes)
+	afsize = atoi(p);
+	if (afsize != keybytes*stripes)
 		goto err;
+	if (afsize % 512 != 0) /* incomplete sectors are not implemented */
+		goto err;
+	/* 'afsize % 512 == 0' implies that 'afsize <= INT_MAX - 20', that's good against wrapping of integers. */
 
 	if (is_inlined) {
-		if ((p = strtokm(NULL, "$")) == NULL)
+		if ((p = strtokm(NULL, "$")) == NULL)	/* dump data */
 			goto err;
-		if ((p = strtokm(NULL, "$")) == NULL)
+		len = ((size_t)afsize + 2) / 3 * 4;
+		if (len != strlen(p))
+			goto err;
+		/* check base64 and precise number of trailing = */
+		len_b64 = base64_valid_length(p, e_b64_mime, flg_Base64_NO_FLAGS, 0);
+		switch (len - len_b64) {
+		case 0: /* BBB <-> AAAA */
+			if (afsize % 3 != 0)
+				goto err;
+			break;
+		case 1: /* BB  <-> AAA= */
+			if (afsize % 3 != 2 || p[len - 1] != '=')
+				goto err;
+			break;
+		case 2: /* B   <-> AA==  */
+			if (afsize % 3 != 1 || p[len - 1] != '=' || p[len - 2] != '=')
+				goto err;
+			break;
+		default:
+			goto err;
+		}
+		if ((p = strtokm(NULL, "$")) == NULL)	/* mkDigest */
 			goto err;
 		if (strlen(p) != LUKS_DIGESTSIZE * 2)
 			goto err;
@@ -413,14 +437,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 		/* more tests */
 		if (hash_plugin_parse_hash(q, &buf, afsize, 0) == -1) {
-			return 0;
+			goto err;
 		}
-		MEM_FREE(buf);
 	}
+	if (strtokm(NULL, "$")) /* no more fields */
+		goto err;
 
+	MEM_FREE(buf);
 	MEM_FREE(keeptr);
 	return 1;
 err:
+	MEM_FREE(buf);
 	MEM_FREE(keeptr);
 	return 0;
 }
@@ -438,7 +465,6 @@ static void *get_salt(char *ciphertext)
 	unsigned char *buf;
 	struct custom_salt_LUKS cs, *psalt;
 	static unsigned char *ptr;
-	unsigned int bestiter = 0xFFFFFFFF;
 	size_t size = 0;
 
 	ctcopy += FORMAT_TAG_LEN;
@@ -446,6 +472,7 @@ static void *get_salt(char *ciphertext)
 
 	if (!ptr) ptr = mem_alloc_tiny(sizeof(struct custom_salt*),sizeof(struct custom_salt*));
 	memset(&cs, 0, sizeof(cs));
+	cs.bestiter = INT_MAX;
 	out = (unsigned char*)&cs.myphdr;
 
 	p = strtokm(ctcopy, "$");
@@ -460,25 +487,22 @@ static void *get_salt(char *ciphertext)
 		p += 2;
 	}
 	p = strtokm(NULL, "$");
-	res = atoi(p);
+	cs.afsize = atoi(p);
 
 	if (is_inlined) {
 		p = strtokm(NULL, "$");
 		size = strlen(p) / 4 * 3 + 1;
 		buf = mem_calloc(1, size+4);
 		base64_convert(p, e_b64_mime, strlen(p), buf, e_b64_raw, size+4, flg_Base64_NO_FLAGS, 0);
-
-		cs.afsize = size;
 	}
 	else {
-		cs.afsize = res;
 		p = strtokm(NULL, "$");
 		p = strtokm(NULL, "$");
 		strcpy(cs.path, p);
 		size = hash_plugin_parse_hash(cs.path, &buf, cs.afsize, 1);
 	}
 	for (cnt = 0; cnt < LUKS_NUMKEYS; cnt++) {
-			if ((john_ntohl(cs.myphdr.keyblock[cnt].passwordIterations) < bestiter)
+			if ((john_ntohl(cs.myphdr.keyblock[cnt].passwordIterations) < cs.bestiter)
 			&& (john_ntohl(cs.myphdr.keyblock[cnt].passwordIterations) > 1) &&
 			(john_ntohl(cs.myphdr.keyblock[cnt].active) == 0x00ac71f3)) {
 				cs.bestslot = cnt;

@@ -251,8 +251,8 @@ Formats to be tried may be limited with `--format=` option.
   - ad-hoc dynamic formats may be specified this way (e.g.
     `--format='sha512($s.sha512($p.$s).$p)'`, see doc/DYNAMIC ),
 
-- multiple formats may be specified by mask in `--format=` option
-  (e.g. `--format=*crypt`, `--format=mssql*`),
+- multiple formats may be specified in `--format=` option
+  (e.g. with wildcard `--format=*crypt`; see doc/OPTIONS ),
 
   - set of formats in john may differ between builds, so
     `--list=formats` with `--format=` may be used to check that
