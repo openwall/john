@@ -229,7 +229,7 @@ static int submit(UTF32 *rain, int loop2)
 	/* Set current word */
 	if (quick_conversion) {
 		/* Quick conversion (only ASCII or ISO-8859-1) */
-		for (i = 0; i < rain_cur_len + loop2; ++i)
+		for (i = 0; i < rain_cur_len + loop2; i++)
 			out[i] = rain[i];
 		out[i] = 0;
 	} else if (options.target_enc == UTF_8) {
@@ -388,11 +388,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
         
 		/* Iterate over Rain for this size */
 		uint64_t X;
-		int loop = rain_cur_len - minlength;
 		for(X = 0; X < cur_keyspace; ++X)
 		{
 			int loop2;
-			for(loop2 = loop; loop2 <= maxlength - minlength; ++loop2) {
+			for(loop2 = rain_cur_len - minlength; loop2 <= maxlength - minlength; loop2++) {
 				int skip = 0;
 	
 				if (state_restored)
@@ -407,13 +406,13 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 				}
 				if(!skip) {
 					quick_conversion = 1;
-					for(i = 0; i < rain_cur_len + loop2; ++i) {
-						if((rain[i] = charset_utf32[charset_idx[loop2][i]]) > cp_max)
+					for (i = 0; i < rain_cur_len+loop2; i++) {
+						if ((rain[i] = charset_utf32[charset_idx[loop2][i]]) > cp_max)
 							quick_conversion = 0;
 					}
 					submit(rain, loop2);
 				}
-				for(i = 0; i < rain_cur_len + loop2; ++i) {
+				for(i = 0; i < rain_cur_len+loop2; i++) {
 					if(++charset_idx[loop2][i] >= charcount) {
 						charset_idx[loop2][i] = 0;
 						break;
