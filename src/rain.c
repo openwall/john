@@ -424,7 +424,8 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	}
 	crk_done();
 	rec_done(event_abort);
-	MEM_FREE(charset_utf32);
-
+	MEM_FREE(charset);
+ 	MEM_FREE(charset_utf32);
+    MEM_FREE(default_set);
 	return 0;
 }
