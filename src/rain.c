@@ -250,6 +250,7 @@ static int submit(UTF32 *rain, int loop2)
 
 int do_rain_crack(struct db_main *db, char *req_charset)
 {
+	int bail = 0;
 	int i, cp_max = 127;
 	int charcount;
 	int fmt_case = (db->format->params.flags & FMT_CASE);
@@ -378,6 +379,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	
 	/* Iterate over subset sizes and output lengths */
 	for(rain_cur_len; rain_cur_len <= maxlength; ++rain_cur_len) {
+		if(bail) break;
 		if(rain_cur_len == minlength)
 			cur_keyspace = powi(charcount, rain_cur_len);
 		else
@@ -390,6 +392,7 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 		uint64_t X;
 		for(X = 0; X < cur_keyspace; ++X)
 		{
+			if(bail) break;
 			int loop2;
 			for(loop2 = rain_cur_len - minlength; loop2 <= maxlength - minlength; loop2++) {
 				int skip = 0;
@@ -410,7 +413,10 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 						if ((rain[i] = charset_utf32[charset_idx[loop2][i]]) > cp_max)
 							quick_conversion = 0;
 					}
-					submit(rain, loop2);
+					if(submit(rain, loop2)) {
+						bail = 1;
+						break;
+					}
 				}
 				for(i = 0; i < rain_cur_len+loop2; i++) {
 					if(++charset_idx[loop2][i] >= charcount) {
@@ -423,8 +429,6 @@ int do_rain_crack(struct db_main *db, char *req_charset)
 	}
 	crk_done();
 	rec_done(event_abort);
-	MEM_FREE(charset);
  	MEM_FREE(charset_utf32);
-    MEM_FREE(default_set);
 	return 0;
 }
