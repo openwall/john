@@ -27,7 +27,7 @@ struct custom_salt {
 	unsigned char masterkey[CTLEN];
 	unsigned int plaintextlen;
 	unsigned int ivlen;
-	unsigned char iv[32];
+	unsigned char iv[IVLEN];
 	unsigned int cryptextlen;
 	unsigned char cryptext[CTLEN];
 	unsigned int expectedhmaclen;
