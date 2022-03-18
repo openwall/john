@@ -28,14 +28,28 @@ def process(vault):
         version = 1
     elif "index.dat" in file_list and "keychain.dat" in file_list:
         # ENCSecurity vault prior to 7.2.1.
+        file_size = os.path.getsize(Path(vault) / "keychain.dat")
+        if file_size < 132:
+            sys.stderr.write("keychain.dat : Problem file too small.\n")
+            return
         file_path = Path(vault) / "index.dat"
         version = 3
     else:
         sys.stderr.write(f"{vault} : Valid vault not found.\n")
         return
     
+    # Check file size
+    file_size = os.path.getsize(file_path)
+    if file_size < 24:
+        sys.stderr.write(f"{file_path} : Problem file too small.\n")
+        return
+
     if "enckey.dat" in file_list:
         # Sandisk PrivateAccess or ENCSecurity vault 7.2.1 and later.
+        file_size = os.path.getsize(Path(vault) / "enckey.dat")
+        if file_size <= 8:
+            sys.stderr.write("enckey.dat : Problem file too small.\n")
+            return
         tag += "-pbkdf2"
 
     with open(file_path, "rb") as f:
@@ -56,10 +70,6 @@ def process(vault):
     sys.stdout.write(f"{vault}:${tag}${version}${crypto}${iv.decode()}${header_enc.decode()}")
 
     if tag == "encdv-pbkdf2":
-        file_size = os.path.getsize(Path(vault) / "enckey.dat")
-        if file_size <= 8:
-            sys.stderr.write("enckey.dat : Problem file too small.\n")
-            return
         with open(Path(vault) / "enckey.dat", "rb") as f:
             f.seek(4)
             length = int.from_bytes(f.read(4),byteorder="big")
