@@ -1612,8 +1612,9 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
 
 #define init_key(ps)							\
 	while (ps < MAX_NUM_MASK_PLHDR) {				\
-		template_key[ranges(ps).pos + ranges(ps).offset] =	\
-		ranges(ps).chars[ranges(ps).iter];			\
+		if (!mask_increments_len || ranges(ps).pos + ranges(ps).offset < mask_cur_len) \
+			template_key[ranges(ps).pos + ranges(ps).offset] = \
+				ranges(ps).chars[ranges(ps).iter]; \
 		ps = ranges(ps).next;					\
 	}
 
@@ -1669,6 +1670,8 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 			process_key(template_key);
 			ps = ps1;
 			next_state(ps);
+			if (mask_increments_len && ranges(ps).pos + ranges(ps).offset >= mask_cur_len)
+				break;
 		}
 	}
 
