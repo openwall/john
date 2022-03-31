@@ -34,7 +34,7 @@ john_register_one(&fmt_encdadatavault_pbkdf2);
 #define PLAINTEXT_LENGTH          	125
 #define BINARY_SIZE               	0
 #define BINARY_ALIGN              	1
-#define SALT_SIZE                 	sizeof(struct salt)
+#define SALT_SIZE                 	sizeof(custom_salt)
 #define SALT_ALIGN                	4
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_PBKDF2_CRYPT	SSE_GROUP_SZ_SHA256
@@ -60,6 +60,7 @@ static struct fmt_tests encdatavault_pbkdf2_tests[] = {
 	{ NULL }
 };
 
+static custom_salt *cur_salt;
 static int *cracked;
 static int any_cracked;
 static size_t cracked_size;
@@ -93,7 +94,7 @@ static void *get_salt_pbkdf2(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-	cur_salt = (struct salt *)salt;
+	cur_salt = (custom_salt *)salt;
 }
 
 static int crypt_all_pbkdf2(int *pcount, struct db_salt *salt)
@@ -125,7 +126,7 @@ static int crypt_all_pbkdf2(int *pcount, struct db_salt *salt)
 			key_len = nb_keys * ENC_KEY_SIZE;
 		} else {
 			key_len = ENC_MAX_KEY_NUM * ENC_KEY_SIZE;
-		} 
+		}
 #ifdef SIMD_COEF_32
 		int lens[MIN_KEYS_PER_PBKDF2_CRYPT];
 		unsigned char *pin[MIN_KEYS_PER_PBKDF2_CRYPT], *pout[MIN_KEYS_PER_PBKDF2_CRYPT];
@@ -228,7 +229,7 @@ static char *get_key(int index)
 
 static unsigned int tunable_cost_iterations(void *_salt)
 {
-	struct salt *cs = (struct salt *)_salt;
+	custom_salt *cs = (custom_salt *)_salt;
 	return cs->iterations;
 }
 

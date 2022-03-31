@@ -6,9 +6,9 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
- * 
+ *
  * This file is for common code between the two formats.
- * 
+ *
  */
 #include "encdatavault_common.h"
 
@@ -146,7 +146,7 @@ void *get_salt_common(char *ciphertext, int is_pbkdf2)
 {
 	int i;
 	char *p = ciphertext, *ctcopy, *keeptr;
-	static struct salt cs;
+	static custom_salt cs;
 
 	memset(&cs, 0, sizeof(cs));
 	ctcopy = xstrdup(ciphertext);

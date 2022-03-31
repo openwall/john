@@ -6,9 +6,9 @@
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
- * 
+ *
  * This file is for common code between the two formats.
- * 
+ *
  */
 #include <string.h>
 
@@ -38,7 +38,7 @@ typedef union buffer_128_u {
 	uint64_t u64[2];
 } buffer_128;
 
-static struct salt {
+typedef struct {
 	unsigned int version;
 	unsigned int algo_id;
 	unsigned char iv[ENC_IV_SIZE];
@@ -47,7 +47,7 @@ static struct salt {
 	unsigned int iterations;
 	unsigned char encrypted_data[ENC_BLOCK_SIZE];
 	unsigned char keychain[ENC_KEYCHAIN_SIZE];
-} *cur_salt;
+} custom_salt;
 
 void enc_xor_block(uint64_t *dst, const uint64_t *src);
 void enc_aes_ctr_iterated(const unsigned char *in, unsigned char *out, const unsigned char *key,

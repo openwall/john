@@ -30,7 +30,7 @@ john_register_one(&fmt_encdadatavault_md5);
 #define PLAINTEXT_LENGTH          	125
 #define BINARY_SIZE               	0
 #define BINARY_ALIGN              	1
-#define SALT_SIZE                 	sizeof(struct salt)
+#define SALT_SIZE                 	sizeof(custom_salt)
 #define SALT_ALIGN                	4
 #define MIN_KEYS_PER_MD5_CRYPT		1
 #define MAX_KEYS_PER_MD5_CRYPT		1
@@ -76,6 +76,7 @@ static struct fmt_tests encdatavault_md5_tests[] = {
 	{ NULL }
 };
 
+static custom_salt *cur_salt;
 static int *cracked;
 static int any_cracked;
 static size_t cracked_size;
@@ -109,7 +110,7 @@ static void *get_salt_md5(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-	cur_salt = (struct salt *)salt;
+	cur_salt = (custom_salt *)salt;
 }
 
 static int crypt_all_md5(int *pcount, struct db_salt *salt)
