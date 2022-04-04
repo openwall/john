@@ -24,7 +24,7 @@
 #include "unicode.h"
 #include "unicode_range.h"
 
-#include "inc2.h"
+#include "talkative.h"
 
 #define MAX_CAND_LENGTH PLAINTEXT_BUFFER_SIZE
 #define DEFAULT_MAX_LEN 16
@@ -43,7 +43,7 @@ static int maxlength;
 static int minlength;
 static int state_restored;
 static uint64_t total;
-int inc2_cur_len;
+int talkative_cur_len;
 static int set;
 static int rec_set;
 static int rec_cur_len;
@@ -91,10 +91,10 @@ static double get_progress(void)
 	if (!total)
 		return -1;
 		
-	if (inc2_cur_len > maxlength)
+	if (talkative_cur_len > maxlength)
 		return 100;
 	
-	return (100.0 * counter[maxlength-inc2_cur_len]) / total;
+	return (100.0 * counter[maxlength-talkative_cur_len]) / total;
 }
 
 static uint_big powi(uint32_t b, uint32_t p)
@@ -187,7 +187,7 @@ static void fix_state(void)
     	    
     	}
     }
-	rec_cur_len = inc2_cur_len;
+	rec_cur_len = talkative_cur_len;
 	rec_loop = loop;
 }
 
@@ -310,7 +310,7 @@ static int restore_state(FILE *file)
         }
     }
 	if(fscanf(file, "%d\n", &d) == 1)
-		inc2_cur_len = d;
+	    talkative_cur_len = d;
 	else return 1;
 
 	if(fscanf(file, "%d\n", &d) == 1)
@@ -338,7 +338,7 @@ static int submit(char *word, int loop2)
 		return crk_process_key(out);
 }
 
-int do_inc2_crack(struct db_main *db)
+int do_talkative_crack(struct db_main *db)
 {
 	int i, j, k;
 	unsigned int charcount;
@@ -418,6 +418,7 @@ int do_inc2_crack(struct db_main *db)
 				strcpy(freq[i], "esdntyrfolgahmwcpibkuvxjqz\0");
 				break;
 			default:
+			    //these will be all characters between the first 7 and the last 8
 		        //strcpy(freq[i], "e3ta4o0i1ns5rhldcumfpgwybvkxjqzETAOINSRHLDCUMFPGWYBVKXJQZ26789\0");
 	        	strcpy(freq[i], "etaoinsrhldcumfpgwybvkxjqz\0");
 	        	break;
@@ -596,6 +597,7 @@ int do_inc2_crack(struct db_main *db)
 			}
 		}
 	}
+
 	char ***counterChainFreq = (char ***) mem_alloc((maxlength-1) * sizeof(char **));
 	for(i=1; i<maxlength; i++) {
 		counterChainFreq[i-1] = mem_alloc(8 * sizeof(char *));
@@ -765,24 +767,31 @@ int do_inc2_crack(struct db_main *db)
 	    	}
 		}
 	}
-	inc2_cur_len = minlength;
-	for(j=0; j<8; j++) {
-	    for(i=0; i<maxlength; i++) {
-		    if(j==0)
-		        divi[i] = charcount/4;
+
+	talkative_cur_len = minlength;
+	//divi is for the full lengths, divi2 for the counterchain frequencies
+    int chunk_size = 2;
+	for(i=0; i<maxlength; i++) { 
+        for(j=0; j<8; j++) {
+		    if(j==0) {
+		        divi[i] = charcount / chunk_size;
+		        if(charcount % chunk_size)
+		            divi[i] += 1;
+		    }
 		    if(i<maxlength-1) {
-		        divi2[i][j] = (charcount-chainFreqCount[j]) / 4;
-                if((charcount-chainFreqCount[j]) % 4)
+		        divi2[i][j] = (charcount-chainFreqCount[j]) / chunk_size;
+                if((charcount-chainFreqCount[j]) % chunk_size)
                     divi2[i][j]++;
             }
-            if(charcount % 4 && j == 0)
-	            divi[i]++;
 	    }
+	    fprintf(stderr, "using chunks of %d characters\n", chunk_size);
 	}
+
 	chrsts = (char ***) mem_alloc(sizeof(char **) * maxlength);
 	chrsts2 = (char ****) mem_alloc(sizeof(char ***) * 8);
 	rec_chrsts = (char ***) mem_alloc(sizeof(char **) * maxlength);
 	rec_chrsts2 = (char ****) mem_alloc(sizeof(char ***) * 8);
+
 	for(k=0; k<8; k++) {
 	    chrsts2[k] = (char ***) mem_alloc(sizeof(char **) * maxlength-1);
 	    rec_chrsts2[k] = (char ***) mem_alloc(sizeof(char **) * maxlength-1);
@@ -791,29 +800,30 @@ int do_inc2_crack(struct db_main *db)
 	            chrsts[i] = (char **) mem_alloc(sizeof(char *) * divi[i]);
 		        rec_chrsts[i] = (char **) mem_alloc(sizeof(char *) * divi[i]);
 		        for(j=0; j<divi[i]; j++) {
-			        chrsts[i][j] = (char *) mem_alloc(5);
-			        rec_chrsts[i][j] = (char *) mem_alloc(5);
+			        chrsts[i][j] = (char *) mem_alloc(chunk_size+1);
+			        rec_chrsts[i][j] = (char *) mem_alloc(chunk_size+1);
 			    }
 	        }
 		    if(i<maxlength-1) {
 		        chrsts2[k][i] = (char **) mem_alloc(sizeof(char *) * divi2[i][k]);
 		        rec_chrsts2[k][i] = (char **) mem_alloc(sizeof(char *) * divi2[i][k]);
 		        for(j=0; j<divi2[i][k]; j++) {
-		            chrsts2[k][i][j] = (char *) mem_alloc(5);
-		            rec_chrsts2[k][i][j] = (char *) mem_alloc(5);
+		            chrsts2[k][i][j] = (char *) mem_alloc(chunk_size+1);
+		            rec_chrsts2[k][i][j] = (char *) mem_alloc(chunk_size+1);
 	            }
 	        }
 	    }
+	    fprintf(stderr, "Allocation done\n");
 	}
 	status_init(get_progress, 0);
 	rec_restore_mode(restore_state);
 	rec_init(db, save_state);
 	if(john_main_process) {
-		log_event("Proceeding with \"inc2\" mode");
+		log_event("Proceeding with \"talkative\" mode");
 		log_event("- Lengths: %d-%d, max",
 		          MAX(options.eff_minlength, 1), maxlength);
 		if(rec_restored) {
-			fprintf(stderr, "Proceeding with \"inc2\" mode");
+			fprintf(stderr, "Proceeding with \"talkative\" mode");
 			if (options.flags & FLG_MASK_CHK)
 				fprintf(stderr, ", hybrid mask:%s", options.mask ?
 		                options.mask : options.eff_mask);
@@ -831,22 +841,30 @@ int do_inc2_crack(struct db_main *db)
 	if(!state_restored) {
         for(x=0; x<maxlength; x++) {
 		    for(y=0; y<divi[x]; y++) {
-			    int Z = 4;
+			    int Z = chunk_size;
 			    int min = 0;
 			    if(y == divi[x]-1) {
-				    Z = charcount % 4;
-				    min = Z;
-			    }
+				    Z = charcount % chunk_size;
+                    min = chunk_size - Z;
+                    if(Z == 0) {
+                        Z = chunk_size;
+                        min = 0;
+                    }
+                }
 			    for(z=0; z<Z; z++) {
 				    int again;
-				    chrsts[x][y][z] = freq[x][rand()%((y+1)*4-min)];
+				    chrsts[x][y][z] = freq[x][rand()%((y+1)*chunk_size-min)];
 				    again = 0;
 				    for(i=0; i<=y; i++) {
-					    int Z2 = 4;
+					    int Z2 = chunk_size;
 					    if(i == divi[x]-1) {
-						    Z2 = charcount % 4;
-						    min = Z2;
-						}
+						    Z2 = charcount % chunk_size;
+                            min = chunk_size - Z2;
+                            if(Z2 == 0) {
+                                Z2 = chunk_size;
+                                min = 0;
+                            }
+                        }
 					    for(j=0; j<Z2; j++) {
 						    if(z == j && i == y)
 							    continue;
@@ -858,7 +876,7 @@ int do_inc2_crack(struct db_main *db)
 					    if(again)
 						    break;
 				    }
-				    if(again) {
+				    if(again) {//we hit an already picked character
 					    z--;
 					    continue;
 				    }
@@ -872,37 +890,29 @@ int do_inc2_crack(struct db_main *db)
 	    for(a=0; a<8; a++) {
 		    for(x=0; x<maxlength-1; x++) {
 			    for(y=0; y<divi2[x][a]; y++) {
-	                int Z = 4;
+	                int Z = chunk_size;
 				    int min = 0;
 				    if(y == divi2[x][a]-1) {
-					    Z = strlen(counterChainFreq[x][a]) % 4;
-					    min = Z;
+					    Z = strlen(counterChainFreq[x][a]) % chunk_size;
+					    min = chunk_size - Z;
 				        if(Z == 0) {
-				            Z = 4;
+				            Z = chunk_size;
 				            min = 0;
 				        }
-				        if(Z == 1)
-				            min = 3;
-				        if(Z == 3)
-			                min = 1;
 				    }
 				    for(z=0; z<Z; z++) {
 					    int again;
-					    chrsts2[a][x][y][z] = counterChainFreq[x][a][rand()%((y+1)*4-min)];
+					    chrsts2[a][x][y][z] = counterChainFreq[x][a][rand()%((y+1)*chunk_size-min)];
 					    again = 0;
 					    for(i=0; i<=y; i++) {
-						    int Z2 = 4;
+						    int Z2 = chunk_size;
 						    if(i == divi2[x][a]-1) {
-							    Z2 = strlen(counterChainFreq[x][a]) % 4;
-						        min = Z2;
+							    Z2 = strlen(counterChainFreq[x][a]) % chunk_size;
+						        min = chunk_size - Z2;
 					            if(Z2 == 0) {
-						            Z2 = 4;
+						            Z2 = chunk_size;
 						            min = 0;
 						        }
-						        if(Z2 == 1)
-						            min = 3;
-					            if(Z2 == 3)
-						            min = 1;
 						    }
 						    for(j=0; j<Z2; j++) {
 							    if(z == j && i == y)
@@ -1073,7 +1083,7 @@ int do_inc2_crack(struct db_main *db)
 				counter[loop2]++;
 			}
 		}
-		inc2_cur_len++;
+		talkative_cur_len++;
 	}
 	crk_done();
 	rec_done(event_abort);

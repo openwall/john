@@ -170,9 +170,9 @@
 #define FLG_PRINCE_MMAP			0x0020000000000000ULL
 #define FLG_RULES_ALLOW			0x0040000000000000ULL
 #define FLG_REGEX_STACKED		0x0080000000000000ULL
-/* Rain cracking mode */
-#define FLG_RAIN_CHK			0x0100000000000000ULL
-#define FLG_RAIN_SET			(FLG_RAIN_CHK | FLG_CRACKING_SET)
+/* Talkative cracking mode */
+#define FLG_TALKATIVE_CHK			0x0100000000000000ULL
+#define FLG_TALKATIVE_SET			(FLG_TALKATIVE_CHK | FLG_CRACKING_SET)
 #define FLG_RULES_STACK_CHK		0x0200000000000000ULL
 #define FLG_RULES_STACK_SET		(FLG_RULES_STACK_CHK | FLG_RULES_IN_USE)
 #define FLG_RULES_IN_USE		0x0400000000000000ULL
@@ -437,16 +437,14 @@ struct options_main {
 	char *tune;
 /* Incremental CharCount override */
 	int charcount;
-/* Rain full charset */
-	char *rain_full;
+/* Talkative full charset */
+	char *talkative_full;
 /* --[no-]keep-guessing tri-state option (vs. format's FMT_NOT_EXACT) */
 	int keep_guessing;
 /* --log-stderr */
 	int log_stderr;
 /* Emit a status line for every password cracked */
 	int crack_status;
-/* Inc2 full charsets */
-	char *posfreq_full;
 /* --catch-up=oldsession */
 	char *catchup;
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
