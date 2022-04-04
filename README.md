@@ -6,6 +6,11 @@
 John the Ripper
 ===============
 
+NOTE:
+if you come from kali or hashcat forum looking for the 'rain' algorithm, I
+dropped it and am working on an "inc-like" generation module named talkative.
+It is work in progress but can be used with --talkative option.
+
 This is the community-enhanced, "jumbo" version of John the Ripper.
 It has a lot of code, documentation, and data contributed by jumbo
 developers and the user community.  It is easy for new code to be added
