@@ -1661,6 +1661,10 @@ void opencl_init_auto_setup(int p_default_value, int p_hash_loops,
 	ocl_autotune_db = db;
 	autotune_real_db = db && db->real && db->real == db;
 	autotune_salts = db ? db->salts : NULL;
+
+	/* We can't process more than 4G keys per crypt() */
+	if (mask_int_cand.num_int_cand > 1)
+		gws_limit = MIN(gws_limit, 0x100000000ULL / mask_int_cand.num_int_cand / ocl_v_width);
 }
 
 void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
@@ -1973,10 +1977,10 @@ void opencl_find_best_gws(int step, int max_duration,
 
 	if (have_lws) {
 		if (core_count > 2)
-			optimal_gws = lcm(core_count, optimal_gws);
+			optimal_gws = MIN(gws_limit, lcm(core_count, optimal_gws));
 		default_value = optimal_gws;
 	} else {
-		soft_limit = local_work_size * core_count * 128;
+		soft_limit = MIN(gws_limit, local_work_size * core_count * 128);
 	}
 
 	/* conf setting may override (decrease) code's max duration */
@@ -2022,7 +2026,7 @@ void opencl_find_best_gws(int step, int max_duration,
 				optimal_gws = num;
 
 			if (options.verbosity >= VERB_MAX)
-				fprintf(stderr, "Hardware resources exhausted\n");
+				fprintf(stderr, "Hardware resources exhausted for GWS=%zu\n", num);
 			break;
 		}
 
