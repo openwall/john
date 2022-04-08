@@ -2604,8 +2604,14 @@ int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 		// oSSL single step engine
 		pFmt->methods.init(pFmt);
 		for (j = 0; j < 5 && !failed; ++j) {
+			union {
+				char c[PLAINTEXT_BUFFER_SIZE];
+				int align;
+			} plain;
+
+			strnzcpy(plain.c, pFmt->params.tests[j].plaintext, sizeof(plain));
 			pFmt->methods.clear_keys();
-			pFmt->methods.set_key(pFmt->params.tests[j].plaintext, 0);
+			pFmt->methods.set_key(plain.c, 0);
 			binary = (unsigned char*)pFmt->methods.binary(pFmt->params.tests[j].ciphertext);
 			slt = pFmt->methods.salt(pFmt->params.tests[j].ciphertext);
 			pFmt->methods.set_salt(slt);
@@ -2633,8 +2639,14 @@ int dynamic_assign_script_to_format(DC_HANDLE H, struct fmt_main *pFmt) {
 			dynamic_switch_compiled_format_to_RDP(pFmt);
 			failed = 0;
 			for (j = 0; j < 5 && !failed; ++j) {
+				union {
+					char c[PLAINTEXT_BUFFER_SIZE];
+					int align;
+				} plain;
+
+				strnzcpy(plain.c, pFmt->params.tests[j].plaintext, sizeof(plain));
 				pFmt->methods.clear_keys();
-				pFmt->methods.set_key(pFmt->params.tests[j].plaintext, 0);
+				pFmt->methods.set_key(plain.c, 0);
 				binary = (unsigned char*)pFmt->methods.binary(pFmt->params.tests[j].ciphertext);
 				slt = pFmt->methods.salt(pFmt->params.tests[j].ciphertext);
 				pFmt->methods.set_salt(slt);
