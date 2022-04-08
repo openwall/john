@@ -2486,9 +2486,10 @@ static void finalize_mask(int len)
 	fprintf(stderr, "\n");
 #endif
 	int_mask_sum = 0;
-	for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges; i++)
-		int_mask_sum |=
-			cpu_mask_ctx.ranges[mask_skip_ranges[i]].count << (8 * i);
+	if (mask_skip_ranges) {
+		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] >= 0; i++)
+			int_mask_sum |= cpu_mask_ctx.ranges[mask_skip_ranges[i]].count << (8 * i);
+	}
 
 	skip_position(&cpu_mask_ctx, mask_skip_ranges);
 
