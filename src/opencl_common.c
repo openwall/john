@@ -2385,6 +2385,7 @@ int opencl_prepare_dev(int sequential_id)
 		ocl_always_show_ws = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL,
 		                                  "AlwaysShowWorksizes", 0);
 
+#ifndef __APPLE__
 	if (gpu_nvidia(device_info[sequential_id])) {
 		opencl_avoid_busy_wait[sequential_id] = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_GPU,
 		                                                     "AvoidBusyWait", 1);
@@ -2397,6 +2398,7 @@ int opencl_prepare_dev(int sequential_id)
 			log_event("- Busy-wait reduction %sabled", opencl_avoid_busy_wait[sequential_id] ? "en" : "dis");
 		}
 	}
+#endif
 
 	return sequential_id;
 }
