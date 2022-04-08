@@ -162,7 +162,7 @@ int process_encrypted_image(char *image_path)
 
 	fileLen = jtr_ftell64(fp_eimg);
 	FRET_CHECK(fileLen)
-	printf("Encrypted device %s opened, size %ldMB\n", image_path, ((fileLen/1024)/1024));
+	printf("Encrypted device %s opened, size %lldMB\n", image_path, (long long)((fileLen/1024)/1024));
 	ret = jtr_fseek64(fp_eimg, 0, SEEK_SET);
 	FRET_CHECK(ret)
 
@@ -239,7 +239,7 @@ int process_encrypted_image(char *image_path)
 				recoveryPasswordFound = 1;
 			}
 			else if ((c == key_protection_password[0]) && (d == key_protection_password[1]) && userPasswordFound == 0) {
-				fprintf(stderr, "\nVMK encrypted with User Password found at %lx\n", fp_before_salt);
+				fprintf(stderr, "\nVMK encrypted with User Password found at %llx\n", (long long)fp_before_salt);
 				ret = fseek(fp_eimg, 12, SEEK_CUR);
 				FRET_CHECK(ret)
 				fillBuffer(fp_eimg, p_salt, SALT_SIZE);
