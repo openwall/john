@@ -34,7 +34,7 @@ JTR_GIT_COMMIT = \"-$(shell git rev-parse --short HEAD 2>/dev/null)\"
 ifeq ($(JTR_GIT_COMMIT), \"-\")
 F = "" # for tarballs or zip files not created using git archive
 # this format string will be replaced by git archive:
-JTR_ARCHIVE_VERSION_STRING = $Format:-%h %ci$
+JTR_ARCHIVE_VERSION_STRING = -20f041b416 2022-03-04 16:43:33 +0100
 JTR_GIT_VERSION = JUMBO_VERSION "\"$(shell echo "$(JTR_ARCHIVE_VERSION_STRING)" | "$(SED)" 's/ormat:-%h %ci/-/g')\""
 else
 JTR_GIT_HEAD_TS = \" $(shell git show -s --format=%ci HEAD 2>/dev/null)\"

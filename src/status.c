@@ -38,7 +38,7 @@
 #include "unicode.h"
 #include "signals.h"
 #include "mask.h"
-#include "talkative.h"
+#include "rain.h"
 #include "john.h"
 #include "john_mpi.h"
 #include "gpu_common.h"
@@ -212,8 +212,8 @@ static char *status_get_ETA(double percent, unsigned int secs_done)
 	if (mask_increments_len)
 		sprintf(s_ETA, " (%d)", mask_cur_len);
 	else
-	if (talkative_cur_len)
-		sprintf(s_ETA, " (%d)", talkative_cur_len);
+	if (rain_cur_len)
+		sprintf(s_ETA, " (%d)", rain_cur_len);
 	else
 		s_ETA[0] = 0;
 

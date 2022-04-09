@@ -103,7 +103,7 @@ static int john_omp_threads_new;
 #include "inc.h"
 #include "mask.h"
 #include "mkv.h"
-#include "talkative.h"
+#include "rain.h"
 #include "external.h"
 #include "batch.h"
 #include "dynamic.h"
@@ -1821,8 +1821,8 @@ static void john_run(void)
 		if (options.flags & FLG_MKV_CHK)
 			do_markov_crack(&database, options.mkv_param);
 		else
-		if (options.flags & FLG_TALKATIVE_CHK)
-			do_talkative_crack(&database);
+		if (options.flags & FLG_RAIN_CHK)
+			do_rain_crack(&database, options.rain_full);
 		else
 #if HAVE_REXGEN
 		if ((options.flags & FLG_REGEX_CHK) &&
@@ -2067,7 +2067,8 @@ int main(int argc, char **argv)
 	if (options.max_cands) {
 		if (options.node_count) {
 			long long orig_max_cands = options.max_cands;
-		/* Split between nodes */
+
+			/* Split between nodes */
 			options.max_cands /= options.node_count;
 			if (options.node_min == 1)
 				options.max_cands +=
