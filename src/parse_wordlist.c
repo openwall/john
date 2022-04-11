@@ -9,6 +9,7 @@ struct freq {
     int freq;
     int nextfreq[95];
     char next[95];
+    char counterNext[95];
 };
 
 int main(int argc, char *argv[]) {
@@ -107,7 +108,7 @@ int main(int argc, char *argv[]) {
             for(x=0; x<95; x++) {
                 int set = 1;
                 for(i=0; i<95; i++) {
-                    if(chars[i].posfreq[j] > chars[x].posfreq[j] && !used[j][i] || (!chars[x].posfreq[j] && !full)) {
+                    if(chars[i].posfreq[j] > chars[x].posfreq[j] && !used[j][i] /*|| (!chars[x].posfreq[j] && !full)*/) {
                         set = 0;
                         break;
                     }
@@ -133,7 +134,7 @@ int main(int argc, char *argv[]) {
         for(x=0; x<95; x++) {
             int set = 1;
             for(i=0; i<95; i++) {
-                if(chars[i].freq > chars[x].freq && !used2[i] || (!chars[x].freq && !full)) {
+                if(chars[i].freq > chars[x].freq && !used2[i] /*|| (!chars[x].freq && !full)*/) {
                     set = 0;
                     break;
                 }
@@ -184,21 +185,22 @@ int main(int argc, char *argv[]) {
         }
 
     for(i=0; i<95; i++) {
-        for(j=0; j<95; j++)
+        for(j=0; j<95; j++) {
             chars[i].next[j] = 0;
+            chars[i].counterNext[j] = 0;
+        }
     }
 
-  
     for(y=0; y<95; y++) {
         end = 0;
         for(j=0; j<95; j++)
             used2[j] = 0;
-        int bail = 0;
+
         for(t=0; t<95; t++) {
             for(x=0; x<95; x++) {
                 int set = 1;
                 for(i=0; i<95; i++) {
-                    if(chars[i].nextfreq[y] > chars[x].nextfreq[y] && !used2[i] || (!chars[x].nextfreq[y] && !full) ) {
+                    if(chars[i].nextfreq[y] > chars[x].nextfreq[y] && !used2[i] || !chars[x].nextfreq[y]) {
                         set = 0;
                         break;
                     }
@@ -207,18 +209,45 @@ int main(int argc, char *argv[]) {
                     chars[y].next[t] = chars[x].c;
                     used2[x] = 1;
                     end++;
-                    bail = 1;
                     break;
                 }
             }
         }
+        chars[y].next[end] = 0;
     }
-
+    for(y=0; y<95; y++) {
+        int a;
+        for(a=0; a<95; a++)
+            used2[a] = 0;
+        end = 0;
+        for(x=0; x<95; x++) {
+            int set = 1;
+            for(i=0; i<strlen(chars[y].next); i++) {
+                if(chars[y].next[i] == chars[x].c && !used2[x]) {
+                    set = 0;
+                    break;
+                }
+            }
+            if(set) {
+                used2[x] = 1;
+                chars[y].counterNext[end] = chars[x].c;    
+                end++;
+            }
+        }
+        chars[y].counterNext[end] = 0;
+    }
     for(t=0; t<95; t++) {
         if(strlen(chars[t].next)) {
             char nextout[256];
             sprintf(nextout, "%c:%d:%s\n", chars[t].c, strlen(chars[t].next), chars[t].next);
             fwrite(nextout, strlen(nextout), 1, output);
+            //this enclosing avoid printing full sequence when no chaining is found.
+            if(strlen(chars[t].counterNext)) {
+                char counterNextout[256];
+                sprintf(counterNextout, "%d:%s\n", strlen(chars[t].counterNext), chars[t].counterNext);
+                fwrite(counterNextout, strlen(counterNextout), 1, output);
+            }
         }
     }
+    fclose(output);
 }
