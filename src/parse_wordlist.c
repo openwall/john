@@ -226,8 +226,6 @@ int main(int argc, char *argv[]) {
         }
         chars[y].next[end] = 0;
     }
-    //Going further by parsing these list of next characters by frequencies and by position, like the others.
-     
     
     //We need the remainers
     for(y=0; y<95; y++) {
@@ -251,7 +249,54 @@ int main(int argc, char *argv[]) {
         }
         chars[y].counterNext[end] = 0;
     }
-
+    //Going further by parsing these lists by frequencies and by position, like the others.
+    char chainpos[max_len][96][95];
+	int used3[max_len][95][94];
+	int a;
+	for(j=0; j<max_len; j++) {
+        for(p=0; p<max_len; p++)
+            for(q=0; q<95; q++)
+            	for(a=0; a<94; a++)
+                	used3[p][q][a] = 0;
+        end = 0;
+        
+        for(t=0; t<95; t++) {
+			for(q=0; q<95; q++) {
+            	for(p=0; p<strlen(chars[q].next); p++) {
+					if(chars[t].c == chars[q].next[p]) {
+						int z;
+						for(z=0; z<strlen(chars[i].next); z++) {
+							int set = 1;
+						
+							for(x=0; x<95; x++) {	
+								for(i=0; i<95; i++) {
+									if(chars[i].posfreq[j] > chars[x].posfreq[j] && !used3[j][i][z] /*|| (!chars[x].posfreq[j] && !full)*/) {
+										set = 0;
+										break;
+									}
+								}
+								if(set && !used3[j][x][p]) {//test loop doesn't overpass original char
+									chainpos[j][t][p] = chars[x].c;
+									used3[j][x][p] = 1;
+									end++;
+									break;
+								}
+							}
+						}
+					}
+				}
+			}
+			chainpos[j][t][end] = 0;
+        }
+    }
+	for(i=0; i<max_len; i++) {
+		for(j=0; j<95; j++) {
+			if(strlen(chainpos[i][j])) {
+				printf("%c:", chars[j].c); 
+				printf("%s\n", chainpos[i][j]);
+			}
+		}
+	}
     //And write
     for(t=0; t<95; t++) {
         if(strlen(chars[t].next)) {
