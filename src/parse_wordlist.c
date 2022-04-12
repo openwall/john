@@ -19,7 +19,9 @@ int main(int argc, char *argv[]) {
         ind = 2;
         full = 1;
     }
-    
+    /*  open the file, get the size, create a buffer,
+        get number of lines and size of words, and import these in a list of char*
+    */
     FILE *file = fopen(argv[ind], "r");
     int buff_size = 0;
     char c;
@@ -71,6 +73,9 @@ int main(int argc, char *argv[]) {
         fseek(file, 1, SEEK_CUR);//skip nl
         words[i][words_size[i]-1] = '\0';
     }
+    /*  Yeah it took all that, now we count the frequencies of characters by position
+    */
+    
     struct freq chars[95];
     for(i=0; i<95; i++) {
         chars[i].c = ' ' + i;
@@ -99,6 +104,7 @@ int main(int argc, char *argv[]) {
     int used[max_len][95];
     int end;
     int t,p,q;
+    //Parse them an write to a buffer
     for(j=0; j<max_len; j++) {
         for(p=0; p<max_len; p++)
             for(q=0; q<95; q++)
@@ -123,8 +129,9 @@ int main(int argc, char *argv[]) {
         }
         freqs[j][end] = 0;
     }
-    char glob_freq[95];//we will need this one for very long length for which we won't have datas
-    
+
+    //we will need this one for very long length for which we won't have datas
+    char glob_freq[95];
     int used2[95];
     for(q=0; q<95; q++)
         used2[q] = 0;
@@ -149,6 +156,7 @@ int main(int argc, char *argv[]) {
     }
     glob_freq[end] = 0;
 
+    //Prepare a file and write what we got so far
     FILE *output = fopen("talkative.conf", "w+");
     
     char max_lenout[256];
@@ -165,6 +173,8 @@ int main(int argc, char *argv[]) {
     sprintf(glob_freqout, "\n%s\n\n", glob_freq);
     fwrite(glob_freqout, strlen(glob_freqout), 1, output);
 
+    /*  Here we get the frequencies of characters N that are found after any character C
+    */
     for(i=0; i<95; i++)
         for(j=0; j<95; j++)
             chars[i].nextfreq[j] = 0;
@@ -191,6 +201,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    //with these frequencies, we can write a list
     for(y=0; y<95; y++) {
         end = 0;
         for(j=0; j<95; j++)
@@ -215,6 +226,10 @@ int main(int argc, char *argv[]) {
         }
         chars[y].next[end] = 0;
     }
+    //Going further by parsing these list of next characters by frequencies and by position, like the others.
+     
+    
+    //We need the remainers
     for(y=0; y<95; y++) {
         int a;
         for(a=0; a<95; a++)
@@ -236,6 +251,8 @@ int main(int argc, char *argv[]) {
         }
         chars[y].counterNext[end] = 0;
     }
+
+    //And write
     for(t=0; t<95; t++) {
         if(strlen(chars[t].next)) {
             char nextout[256];
