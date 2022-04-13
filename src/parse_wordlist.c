@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
         buff_size++;
     }
 
-    char buff[buff_size];
+    char *buff = malloc(buff_size);
     fseek(file, 0, SEEK_SET);
     fread(buff, buff_size, 1, file);
 
@@ -250,7 +250,7 @@ int main(int argc, char *argv[]) {
         chars[y].counterNext[end] = 0;
     }
     //Going further by parsing these lists by frequencies and by position, like the others.
-    char chainpos[max_len][96][95];
+    /*char chainpos[max_len][96][95];
 	int used3[max_len][95][94];
 	int a;
 	for(j=0; j<max_len; j++) {
@@ -270,7 +270,7 @@ int main(int argc, char *argv[]) {
 						
 							for(x=0; x<95; x++) {	
 								for(i=0; i<95; i++) {
-									if(chars[i].posfreq[j] > chars[x].posfreq[j] && !used3[j][i][z] /*|| (!chars[x].posfreq[j] && !full)*/) {
+									if(chars[i].posfreq[j] > chars[x].posfreq[j] && !used3[j][i][z] || (!chars[x].posfreq[j] && !full)) {
 										set = 0;
 										break;
 									}
@@ -296,7 +296,7 @@ int main(int argc, char *argv[]) {
 				printf("%s\n", chainpos[i][j]);
 			}
 		}
-	}
+	}*/
     //And write
     for(t=0; t<95; t++) {
         if(strlen(chars[t].next)) {
