@@ -83,8 +83,8 @@ static int short rec_cs2[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1][CHAINS_MAX];//tod
 
 static int short J[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
 static int short rec_J[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
-static uint_big chainCounter[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
-static uint_big chainCounter2[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
+static uint_big chainCounter[MAX_CAND_LENGTH-1];
+static uint_big chainCounter2[MAX_CAND_LENGTH-1];
 
 static int talk[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
 static int rec_talk[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
@@ -713,6 +713,7 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 		}
 	}
     crk_init(db, fix_state, NULL);
+    int c = 0;
 	for(; loop <= maxlength-minlength; loop++) {
 		if(event_abort) break;
 		uint_big total = powi(charcount, minlength+loop);
@@ -734,13 +735,17 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 		        }
 		        
 				if(!skip) {
-					word[0] = chrsts[0][cs[loop2][0]][state[loop2][cs[loop2][0]][0]];
+					word[0] = freq[0][c];
 		        	for(i=1; i<mpl; i++) {
 				    	for(j=0; j<chains/2; j++) {
 							if(chainFreq[j][0] == word[i-1]) {
 								J[loop2][i-1] = j;
-								if(++chainCounter[loop2][i-1] < pow(charcount, mpl-i)) {
+								if(++chainCounter[i-1] < pow(charcount, mpl-i-2) * (strlen(chainFreq[j])-1)) {
 									talk[loop2][i-1] = 1;
+									break;
+				            	}
+								else if(chainCounter[i-1] < pow(charcount, mpl-i-1)) {
+									talk[loop2][i-1] = 2;
 									break;
 				            	}
 				            	else
@@ -782,57 +787,57 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
             			    case 1:
             			    	if(++state1[loop2][cs1[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top2[J[loop2][i-1]][cs1[loop2][J[loop2][i-1]]]) {
 						            state1[loop2][cs1[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
-						            talk[loop2][i-1] = 2;
 						            i--;
-					            }
+						        }
 					            else bail = 1;
 					            break;
 				            case 2:
-				            	if(++state2[loop2][cs2[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top3[J[loop2][i-1]][cs2[loop2][J[loop2][i-1]]]) {
-						            state2[loop2][cs2[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
-						            talk[loop2][i-1] = 0;
-						            i--;
-							    } 
-						        else bail = 1;
-							    break;
+				            	{
+					        	if(++state2[loop2][cs2[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top3[J[loop2][i-1]][cs2[loop2][J[loop2][i-1]]]) {
+							        state2[loop2][cs2[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
+							        i--;
+								} 
+							    else bail = 1;
+								}
+								break;
 			            }
 					}
 					else {
-                        if(++state[loop2][cs[loop2][0]][0] >= top1[i][cs[loop2][i]]) {
-                            state[loop2][cs[loop2][0]][0] = 0;
+                        if(++c >= charcount) {
+                            c = 0;
 							i--;
 						    int i2 = mpl-1;
-				            while(i2 >= 0) {
-				                if(i2 > 0) {
-				                    if(talk[loop2][i2-1] == 0) {
-		                                if(++cs[loop2][i2] >= divi[i2]) {
-	                                        cs[loop2][i2] = 0;
-	                                        i2--;
-                                        }
-                                        else break;
-				                    }
-				                    else if(talk[loop2][i2-1] == 1) { 
-			                            if(++cs1[loop2][J[loop2][i2-1]] >= divi1[J[loop2][i2-1]]) {
-                                            cs1[loop2][J[loop2][i2-1]] = 0;
-                                            i2--;
-                                        }
-                                        else break;
+				            while(i2 >= 1) {
+				                //if(i2 > 0) {
+			                    if(talk[loop2][i2-1] == 0) {
+	                                if(++cs[loop2][i2] >= divi[i2]) {
+                                        cs[loop2][i2] = 0;
+                                        i2--;
                                     }
-                                    else if(talk[loop2][i2-1] == 2) { 
-			                            if(++cs2[loop2][J[loop2][i2-1]] >= divi2[J[loop2][i2-1]]) {
-                                            cs2[loop2][J[loop2][i2-1]] = 0;
-                                            i2--;
-                                        }
-                                        else break;
+                                    else break;
+			                    }
+			                    else if(talk[loop2][i2-1] == 1) { 
+		                            if(++cs1[loop2][J[loop2][i2-1]] >= divi1[J[loop2][i2-1]]) {
+                                        cs1[loop2][J[loop2][i2-1]] = 0;
+                                        i2--;
                                     }
-				                }
+                                    else break;
+                                }
+                                else if(talk[loop2][i2-1] == 2) { 
+		                            if(++cs2[loop2][J[loop2][i2-1]] >= divi2[J[loop2][i2-1]]) {
+                                        cs2[loop2][J[loop2][i2-1]] = 0;
+                                        i2--;
+                                    }
+                                    else break;
+                                }
+				                /*}
 				                else {
 				                    if(++cs[loop2][0] >= divi[0]) {
 				                        cs[loop2][0] = 0;
 				                        i2--;   
 				                    }
 				                    else break;
-				                }
+				                }*/
 				            }
 					    }
 						else break;
