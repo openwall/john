@@ -1,6 +1,4 @@
-#include "os.h"
-
-#include <stdio.h>
+#include "os.h"include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -42,20 +40,20 @@ typedef uint64_t uint_big;
 
 static char word[MAX_CAND_LENGTH+1];
 
-static int maxlength;
-static int minlength;
-static int state_restored;
-static uint64_t total;
+static int short maxlength;
+static int short minlength;
+static int short state_restored;
+static uint_big total;
 int talkative_cur_len;
 static int set;
 static int rec_set;
-static int rec_cur_len;
+static int short rec_cur_len;
 static uint_big counter[MAX_CAND_LENGTH-1];
 static uint_big rec_counter[MAX_CAND_LENGTH-1];
-static int state[MAX_CAND_LENGTH-1][CHAINS_MAX][MAX_CAND_LENGTH];
-static int rec_state[MAX_CAND_LENGTH-1][CHAINS_MAX][MAX_CAND_LENGTH];
-static int loop;
-static int rec_loop;
+static int short state[MAX_CAND_LENGTH-1][CHAINS_MAX][MAX_CAND_LENGTH];
+static int short rec_state[MAX_CAND_LENGTH-1][CHAINS_MAX][MAX_CAND_LENGTH];
+static int short loop;
+static int short rec_loop;
 static char ***chrsts;
 static char ***rec_chrsts;
 static char ***chrsts2;
@@ -65,28 +63,28 @@ static char ***rec_chrsts3;
 static char **chainFreq;
 static char **counterChainFreq;
 
-static int divi[MAX_CAND_LENGTH];
-static int rec_divi[MAX_CAND_LENGTH];
-static int divi1[MAX_CAND_LENGTH];
-static int rec_divi1[MAX_CAND_LENGTH];
-static int divi2[CHAINS_MAX];
-static int rec_divi2[CHAINS_MAX];
+static int short divi[MAX_CAND_LENGTH];
+static int short rec_divi[MAX_CAND_LENGTH];
+static int short divi1[MAX_CAND_LENGTH];
+static int short rec_divi1[MAX_CAND_LENGTH];
+static int short divi2[CHAINS_MAX];
+static int short rec_divi2[CHAINS_MAX];
 
-static int state1[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH-1];
-static int rec_state1[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH-1];
-static int state2[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH-1];
-static int rec_state2[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH-1];
+static int short state1[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH-1];
+static int short rec_state1[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH-1];
+static int short state2[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH-1];
+static int short rec_state2[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH-1];
 
-static int cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
-static int cs1[MAX_CAND_LENGTH-1][CHAINS_MAX];
-static int cs2[MAX_CAND_LENGTH-1][CHAINS_MAX];//todo loop2
-static int rec_cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
-static int rec_cs2[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1][CHAINS_MAX];//todo loop2
+static int short cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
+static int short cs1[MAX_CAND_LENGTH-1][CHAINS_MAX];
+static int short cs2[MAX_CAND_LENGTH-1][CHAINS_MAX];//todo loop2
+static int short rec_cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
+static int short rec_cs2[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1][CHAINS_MAX];//todo loop2
 
-static int J[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
-static int rec_J[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
-static uint_big freqCounter[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
-static uint_big freqCounter[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
+static int short J[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
+static int short rec_J[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
+static uint_big chainCounter[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
+static uint_big chainCounter2[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
 
 static int talk[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
 static int rec_talk[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
@@ -595,7 +593,7 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 				    }
 				    chrsts[x][y][z+1] = '\0';
 			    }
-		    }
+			}
 		}
 	    int a;
 	    for(a=0; a<chains/2; a++) {
@@ -734,10 +732,23 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 		        	int for_node = set % options.node_count + 1;
 		        	skip = for_node < options.node_min || for_node > options.node_max;
 		        }
-		    	if(!skip) {
+		        
+				if(!skip) {
 					word[0] = chrsts[0][cs[loop2][0]][state[loop2][cs[loop2][0]][0]];
 		        	for(i=1; i<mpl; i++) {
-					    switch(talk[loop2][i-1]) {
+				    	for(j=0; j<chains/2; j++) {
+							if(chainFreq[j][0] == word[i-1]) {
+								J[loop2][i-1] = j;
+								if(++chainCounter[loop2][i-1] < pow(charcount, mpl-i)) {
+									talk[loop2][i-1] = 1;
+									break;
+				            	}
+				            	else
+				            		talk[loop2][i-1] = 0;
+				            }
+						}
+
+				    	switch(talk[loop2][i-1]) {
 						    case 0:
 							    word[i] = chrsts[i][cs[loop2][i]][state[loop2][cs[loop2][i]][i]];
 							    break;
@@ -751,24 +762,15 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 					}
 					submit(word, loop2);
 				}
-				i = mpl-1;
+
+				
+
+		        i = mpl-1;
 				int bail = 0;
+
 				while(i >= 0 && !bail) {
 				    int a = 0;
 					if(i > 0) {
-		        		for(j=0; j<chains/2; j++) {
-						    if(chainFreq[j][0] == word[i-1]) {
-						    	J[loop2][i-1] = j;
-                                uint_big tot;
-                                if(++freqCounter[loop2][i-1] < powi(charcount, mpl-i-1) * (strlen(chainFreq[j]) - 1)) {
-                               		talk[loop2][i-1] = 1;
-                               		break;
-                               	}
-                               	else if(talk[loop2][i-1] < powi(charcount, mpl-i)) talk[loop2][i-1] = 2;
-                            }
-						    else
-						        talk[loop2][i-1] = 0;
-						}
 					    switch(talk[loop2][i-1]) {
             			    case 0:
                 				if(++state[loop2][cs[loop2][i]][i] >= top1[i][cs[loop2][i]]) {
@@ -778,10 +780,10 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 					            else bail = 1;
                 				break;
             			    case 1:
-                	            if(++state1[loop2][cs1[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top2[J[loop2][i-1]][cs1[loop2][J[loop2][i-1]]]) {//TODO copy all the lengths in a list to avoid calls to strlen
+            			    	if(++state1[loop2][cs1[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top2[J[loop2][i-1]][cs1[loop2][J[loop2][i-1]]]) {
 						            state1[loop2][cs1[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
-				                    talk[loop2][i-1] = 2;
-				                    i--;
+						            talk[loop2][i-1] = 2;
+						            i--;
 					            }
 					            else bail = 1;
 					            break;
