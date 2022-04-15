@@ -804,15 +804,7 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 							i--;
 						    int i2 = mpl-1;
 				            while(i2 >= 1) {
-				                //if(i2 > 0) {
-			                    if(talk[loop2][i2-1] == 0) {
-	                                if(++cs[loop2][i2] >= divi[i2]) {
-                                        cs[loop2][i2] = 0;
-                                        i2--;
-                                    }
-                                    else break;
-			                    }
-			                    else if(talk[loop2][i2-1] == 1) { 
+				                if(talk[loop2][i2-1] == 1) { 
 		                            if(++cs1[loop2][J[loop2][i2-1]] >= divi1[J[loop2][i2-1]]) {
                                         cs1[loop2][J[loop2][i2-1]] = 0;
                                         i2--;
@@ -826,14 +818,6 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
                                     }
                                     else break;
                                 }
-				                /*}
-				                else {
-				                    if(++cs[loop2][0] >= divi[0]) {
-				                        cs[loop2][0] = 0;
-				                        i2--;   
-				                    }
-				                    else break;
-				                }*/
 				            }
 					    }
 						else break;
