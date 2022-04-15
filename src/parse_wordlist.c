@@ -231,49 +231,60 @@ int main(int argc, char *argv[]) {
             }
         }
         chains[y][end] = 0;
-        //printf("%s\n", chains[y]);
+        //printf("%c:%s\n", chars[y].c, chains[y]);
     }
 
-    int used3[95][95];
-    for(j=0; j<max_len-1; j++) {
-        for(y=0; y<95; y++) {
-            int m;
-            //for(t=0; t<max_len; t++)
-                for(p=0; p<95; p++)
-                    used2[p] = 0;
+    int used3[max_len][95][95];
+    printf("%d\n", max_len);
+    for(x=0; x<max_len-1; x++)
+    {
+        for(y=0; y<95; y++) 
+        {
+            for(t=0; t<max_len; t++)
+                for(p=0; p<95; p++) {
+                    used[t][p] = 0;
+                    for(q=0; q<95; q++)
+                        used3[t][p][q];
+                }
+
             end = 0;
-            int k;
-            for(x=0; x<strlen(chains[y]); x++) 
+
+            for(j=0; j<strlen(chains[y]); j++) 
             {
-                //for(i=0; i<95; i++)
+                int b, c, u;
+                int k;
+                for(u=0; u<95; u++)
                 {
-                    
-                    for(k=0; k<strlen(chains[y]); k++) 
-                    {
-                        int b;
-                        for(m=0; m<95; m++) 
+                    for(c=0; c<strlen(chains[u]); c++)
+                    {       
+                        for(k=0; k<95; k++) 
                         {
                             int set = 1;
                             for(b=0; b<95; b++) {
-                                if(chains[y][k] != chars[m].c || chars[b].posfreq[j+1] > chars[m].posfreq[j+1] && !used2[k]) {
+                                if(chains[u][c] != chars[y].c || chars[b].posfreq[x+1] > chars[k].posfreq[x+1] && !used3[x][u][b] || !chars[k].posfreq[x+1]) {
                                     set = 0;
                                     break;
                                 }
                             }
-                            if(set && !used2[x]) { //test loop doesn't overpass original char
-                                chars[y].next[j][x] = chains[y][k];
-                                used2[x] = 1;
+
+                            if(set && !used3[x][u][k]) { //test loop doesn't overpass original char
+                                chars[y].next[x][j] = chars[k].c;
+                                used3[x][u][k] = 1;
                                 end++;
                                 break;
+                            
                             }
                         }
-                    }
-                }
+                    }    
+                }     
             }
-            chars[y].next[j][end] = 0;
+            chars[y].next[x][end] = 0;
         }
     }
-
+    for(i=0;i<95;i++)
+        for(x=0; x<max_len-1; x++)
+            if(strlen(chars[i].next[x]))
+                printf("%d:%c:%s\n", x+1, chars[i].c, chars[i].next[x]);
     //We need the remainers
     for(j=0; j<max_len; j++) {
         for(y=0; y<95; y++) {
@@ -298,15 +309,6 @@ int main(int argc, char *argv[]) {
             chars[y].counterNext[end] = 0;
         }
     }
-	for(j=0; j<95; j++) {
-	    for(i=0; i<max_len; i++) 
-	    {
-			if(strlen(chars[j].next[i])) {
-				printf("%c:", chars[j].c); 
-				printf("%s\n", chars[j].next[i]);
-			}
-		}
-	}
     //And write
     /*
     for(t=0; t<95; t++) {
