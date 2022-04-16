@@ -226,6 +226,7 @@ int main(int argc, char *argv[]) {
                     chains[y][t] = chars[x].c;
                     used2[x] = 1;
                     end++;
+                    break;
                 }
                          
             }
@@ -253,30 +254,28 @@ int main(int argc, char *argv[]) {
             {
                 int b, c, u;
                 int k;
-                for(u=0; u<95; u++)
-                {
-                    for(c=0; c<strlen(chains[u]); c++)
-                    {       
+                for(c=0; c<strlen(chains[y]); c++) 
+                  
                         for(k=0; k<95; k++) 
                         {
                             int set = 1;
                             for(b=0; b<95; b++) {
-                                if(chains[u][c] != chars[y].c || chars[b].posfreq[x+1] > chars[k].posfreq[x+1] && !used3[x][u][b] || !chars[k].posfreq[x+1]) {
+                                if(chains[k][c] != chars[y].c || chars[b].posfreq[x+1] > chars[k].posfreq[x+1] && !used[x][b] || !chars[k].posfreq[x+1]) {
                                     set = 0;
                                     break;
                                 }
                             }
 
-                            if(set && !used3[x][u][k]) { //test loop doesn't overpass original char
+                            if(set && !used[x][k]) { //test loop doesn't overpass original char
                                 chars[y].next[x][j] = chars[k].c;
-                                used3[x][u][k] = 1;
+                                used[x][k] = 1;
                                 end++;
                                 break;
                             
                             }
                         }
-                    }    
-                }     
+                        
+                     
             }
             chars[y].next[x][end] = 0;
         }
