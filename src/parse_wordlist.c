@@ -229,8 +229,7 @@ int main(int argc, char *argv[]) {
                     used2[x] = 1;
                     end++;
                     break;
-                }
-                         
+                }        
             }
         }
         chains[y][end] = 0;
@@ -238,18 +237,13 @@ int main(int argc, char *argv[]) {
     }
     //filter the chain frequencies with positions frequencies
     int used3[max_len][95][95];
-    printf("%d\n", max_len);
     for(x=0; x<max_len-1; x++)
     {
         for(y=0; y<95; y++) 
         {
             for(t=0; t<max_len; t++)
-                for(p=0; p<95; p++) {
+                for(p=0; p<95; p++)
                     used[t][p] = 0;
-                    for(q=0; q<95; q++)
-                        used3[t][p][q];
-                }
-
             end = 0;
 
             for(j=0; j<strlen(chains[y]); j++) {
@@ -302,27 +296,22 @@ int main(int argc, char *argv[]) {
             chars[y].counterNext[j][end] = 0;
         }
     }
-    
-    for(i=0;i<95;i++)
-        for(x=0; x<max_len-1; x++)
-            if(strlen(chars[i].next[x])) {
-                printf("%d:%c:%s\n", x+1, chars[i].c, chars[i].next[x]);
-                printf("%d:%c:%s\n", x+1, chars[i].c, chars[i].counterNext[x]);
-            }
+
     //And write
-    /*
     for(t=0; t<95; t++) {
-        if(strlen(chars[t].next)) {
-            char nextout[256];
-            sprintf(nextout, "%c:%d:%s\n", chars[t].c, strlen(chars[t].next), chars[t].next);
-            fwrite(nextout, strlen(nextout), 1, output);
-            //this enclosing avoid printing full sequence when no chaining is found.
-            if(strlen(chars[t].counterNext)) {
-                char counterNextout[256];
-                sprintf(counterNextout, "%d:%s\n", strlen(chars[t].counterNext), chars[t].counterNext);
-                fwrite(counterNextout, strlen(counterNextout), 1, output);
+        for(j=0; j<max_len-1; j++) {
+            if(strlen(chars[t].next[j])) {
+                char nextout[256];
+                sprintf(nextout, "%c:%d:%d:%s\n", chars[t].c, j+1, strlen(chars[t].next[j]), chars[t].next[j]);
+                fwrite(nextout, strlen(nextout), 1, output);
+                //this enclosing avoid printing full sequence when no chaining is found.
+                if(strlen(chars[t].counterNext[j])) {
+                    char counterNextout[256];
+                    sprintf(counterNextout, "%d:%s\n", strlen(chars[t].counterNext[j]), chars[t].counterNext[j]);
+                    fwrite(counterNextout, strlen(counterNextout), 1, output);
+                }
             }
         }
-    }*/
+    }
     fclose(output);
 }

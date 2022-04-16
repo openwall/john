@@ -56,19 +56,19 @@ static int short loop;
 static int short rec_loop;
 static char ***chrsts;
 static char ***rec_chrsts;
-static char ***chrsts2;
-static char ***rec_chrsts2;
-static char ***chrsts3;
-static char ***rec_chrsts3;
-static char **chainFreq;
-static char **counterChainFreq;
+static char ****chrsts2;
+static char ****rec_chrsts2;
+static char ****chrsts3;
+static char ****rec_chrsts3;
+static char chainFreq[MAX_CAND_LENGTH-1][95][95];
+static char counterChainFreq[MAX_CAND_LENGTH-1][95][94];
 
 static int short divi[MAX_CAND_LENGTH];
 static int short rec_divi[MAX_CAND_LENGTH];
-static int short divi1[MAX_CAND_LENGTH];
-static int short rec_divi1[MAX_CAND_LENGTH];
-static int short divi2[CHAINS_MAX];
-static int short rec_divi2[CHAINS_MAX];
+static int short divi1[MAX_CAND_LENGTH-1][CHAINS_MAX];
+static int short rec_divi1[MAX_CAND_LENGTH-1][CHAINS_MAX];
+static int short divi2[MAX_CAND_LENGTH-1][CHAINS_MAX];
+static int short rec_divi2[MAX_CAND_LENGTH-1][CHAINS_MAX];
 
 static int short state1[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH-1];
 static int short rec_state1[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH-1];
@@ -76,8 +76,8 @@ static int short state2[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH
 static int short rec_state2[MAX_CAND_LENGTH-1][DIVI_MAX][CHAINS_MAX][MAX_CAND_LENGTH-1];
 
 static int short cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
-static int short cs1[MAX_CAND_LENGTH-1][CHAINS_MAX];
-static int short cs2[MAX_CAND_LENGTH-1][CHAINS_MAX];//todo loop2
+static int short cs1[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1][CHAINS_MAX];
+static int short cs2[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1][CHAINS_MAX];//todo loop2
 static int short rec_cs[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH];
 static int short rec_cs2[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1][CHAINS_MAX];//todo loop2
 
@@ -357,14 +357,13 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
     if (!options.chunk_size)
         chunk_size = 4;
 
-	FILE *file = fopen("/home/i20/Documents/john/run/talkative.conf", "r");
+    FILE *file = fopen("/home/i20/Documents/john/run/talkative.conf", "r");
 	int file_size = 0;
 	while(!feof(file)) {
 	    char c = ' ';
 	    file_size++;
 	    fread(&c, 1, 1, file);
 	}
-
 	char *buff = mem_alloc(file_size+1);
 	fseek(file, 0, SEEK_SET);
 
@@ -427,62 +426,57 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
             ls--;
         i++;
     }
+	int chains_span = 0;
+	int lines = 0;
+	int iter = 0;
+	char c2 = 0;
+    static int pos;
     int chains = 0;
-    int i_save = i;
     while(i < file_size) {
-        if(strncmp(&buff[i], "\n", 1) == 0)
-            chains++;
+        if(strncmp(&buff[i], "\n", 1) == 0) {
+            char tmpline[95];
+	        int line_size;
+            strncpy(tmpline, &buff[i-chains_span], chains_span);
+            tmpline[chains_span] = 0;
+
+	        if(lines % 2 == 0) {
+	            char c = tmpline[0];
+	            if(c2 != c) {
+                    c2 = c;
+                    iter = 0;
+                    chains++;
+                }
+                else iter++;
+                
+	            if(c == ':') {
+                    char tmpline2[95];
+                    strcpy(tmpline2, &tmpline[1]);
+                    pos = strtoul(strtok(tmpline2, ":"), NULL, 10);
+                    line_size = strtoul(strtok(NULL, ":"), NULL, 10);
+                    strcpy(tmpline, tmpline2);
+                    tmpline[chains_span-1] = 0;
+                }
+                else {
+                    strtok(tmpline, ":");
+	                pos = strtoul(strtok(NULL, ":"), NULL, 10);
+                    line_size = strtoul(strtok(NULL, ":"), NULL, 10);
+	            }
+	            chainFreq[pos][iter][0] = c;
+	            strncpy(&chainFreq[pos][iter][1], strtok(NULL, "\n"), line_size);
+	            chainFreq[pos][iter][line_size+1] = 0;
+	        }
+	        else {
+                line_size = strtoul(strtok(tmpline, ":"), NULL, 10); 
+	            strncpy(counterChainFreq[pos][iter], strtok(NULL, "\n"), line_size);
+                counterChainFreq[pos][iter][line_size] = 0;
+	        }
+            lines++;
+            chains_span = 0;
+        }
+        else
+            chains_span++;
         i++;
     }
-    chainFreq = (char **) mem_alloc(chains / 2 * sizeof(char *));
-	counterChainFreq = (char **) mem_alloc(chains / 2 * sizeof(char *));
-
-	char **chains_buff = (char **) mem_alloc(chains * sizeof(char *));
-	int *chains_span = (int *) mem_alloc(chains * sizeof(int));
-	for(j=0; j<chains; j++)
-	    chains_span[j] = 0;
-
-	j = 0;
-	i = i_save;
-	while(i < file_size) {
-	    if(strncmp(&buff[i], "\n", 1) == 0)
-	        j++;
-	    else
-	        chains_span[j]++;
-	    i++;
-	}
-	i = i_save;
-	for(j=0; j<chains; j++) {
-        chains_buff[j] = (char *) malloc(chains_span[j]+1);
-	    strncpy(chains_buff[j], &buff[i], chains_span[j]);
-	    chains_buff[j][chains_span[j]] = 0;
-        i += chains_span[j]+1;
-        int line_size;
-        if(j % 2 == 0) {
-	        char c = chains_buff[j][0];
-            char *tmp_line;
-            if(c == ':') {
-                tmp_line = mem_alloc(charcount);
-                strcpy(tmp_line, chains_buff[j]);
-                line_size = strtoul(strtok(tmp_line, ":"), NULL, 10) + 2;
-                chains_buff[j] = tmp_line;
-            }
-            else {
-                strtok(chains_buff[j], ":");
-	            line_size = strtoul(strtok(NULL, ":"), NULL, 10) + 2; 
-	        }
-	        chainFreq[j/2] = mem_alloc(line_size);
-	        chainFreq[j/2][0] = c;
-	        strncpy(&chainFreq[j/2][1], strtok(NULL, "\n"), line_size-2);
-	        chainFreq[j/2][line_size-2] = 0;
-	    }
-	    else {
-	        line_size = strtoul(strtok(chains_buff[j], ":"), NULL, 10) + 1; 
-	        counterChainFreq[j/2] = mem_alloc(line_size);
-            strncpy(counterChainFreq[j/2], strtok(NULL, "\n"), line_size-1);
-            counterChainFreq[j/2][line_size-1] = 0;
-	    }
-	}
 	int **top1 = (int **) mem_alloc(sizeof(int*) * maxlength);
 	for(i=0; i<maxlength; i++) {
         divi[i] = charcount/chunk_size;
@@ -495,29 +489,34 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
         	else
         		top1[i][j] = chunk_size;
 	}
-	int **top2 = (int **) mem_alloc(sizeof(int*) * chains/2);
-	for(j=0; j<chains/2; j++) {
-	    divi1[j] = (strlen(chainFreq[j])-1) / chunk_size;
-	    if((strlen(chainFreq[j])-1) % chunk_size)
-            divi1[j]++;
-        top2[j] = (int *) mem_alloc(sizeof(int) * divi1[j]);
-        for(k=0; k<divi1[j]; k++)
-        	if(k == divi1[j] -1 )
-    		    top2[j][k] = (strlen(chainFreq[j]) - 1) % chunk_size;
-    		else top2[j][k] = chunk_size;
-    	
+	int ***top2 = (int ***) mem_alloc(sizeof(int**) * (maxlength-1));
+	for(i=0; i<maxlength-1; i++) {
+	    top2[i] = (int **) mem_alloc(sizeof(int *) * chains/2);
+	    for(j=0; j<chains/2; j++) {
+	        divi1[i][j] = (strlen(chainFreq[i][j])-1) / chunk_size;
+	        if((strlen(chainFreq[i][j])-1) % chunk_size)
+                divi1[i][j]++;
+            top2[i][j] = (int *) mem_alloc(sizeof(int) * divi1[i][j]);
+            for(k=0; k<divi1[i][j]; k++)
+            	if(k == divi1[i][j] - 1)
+        		    top2[i][j][k] = (strlen(chainFreq[i][j]) - 1) % chunk_size;
+        		else top2[i][j][k] = chunk_size;
+        }
     }
-    int **top3 = (int **) mem_alloc(sizeof(int *) * chains/2);
-    for(j=0; j<chains/2; j++) {
-	    divi2[j] = strlen(counterChainFreq[j]) / chunk_size;
-        if(strlen(counterChainFreq[j]) % chunk_size)
-            divi2[j]++;
-        top3[j] = (int *) mem_alloc(sizeof(int) * divi2[j]);
-        for(k=0; k<divi2[j]; k++)
-        	if(k == divi2[j] - 1)
-            	top3[j][k] = strlen(counterChainFreq[j]) / chunk_size;
-           	else
-           		top3[j][k] = chunk_size;
+    int ***top3 = (int ***) mem_alloc(sizeof(int **) * (maxlength-1));
+    for(i=0; i<maxlength-1; i++) {
+        top3[i] = (int **) mem_alloc(sizeof(int *) * chains/2);
+        for(j=0; j<chains/2; j++) {
+	        divi2[i][j] = strlen(counterChainFreq[i][j]) / chunk_size;
+            if(strlen(counterChainFreq[i][j]) % chunk_size)
+                divi2[i][j]++;
+            top3[i][j] = (int *) mem_alloc(sizeof(int) * divi2[i][j]);
+            for(k=0; k<divi2[i][j]; k++)
+            	if(k == divi2[i][j] - 1)
+                	top3[i][j][k] = strlen(counterChainFreq[i][j]) / chunk_size;
+               	else
+               		top3[i][j][k] = chunk_size;
+        }
     }
 	chrsts = (char ***) mem_alloc(sizeof(char **) * maxlength);
 	rec_chrsts = (char ***) mem_alloc(sizeof(char **) * maxlength);
@@ -529,23 +528,30 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 	        rec_chrsts[i][j] = (char *) mem_alloc(chunk_size+1);
 	    }
     }
-    chrsts2 = (char ***) mem_alloc(sizeof(char **) * chains / 2);
-	rec_chrsts2 = (char ***) mem_alloc(sizeof(char **) * chains / 2);
-    chrsts3 = (char ***) mem_alloc(sizeof(char **) * chains / 2);
-	rec_chrsts3 = (char ***) mem_alloc(sizeof(char **) * chains / 2);
-    for(k=0; k<chains/2; k++) {
-	    chrsts2[k] = (char **) mem_alloc(sizeof(char *) * divi1[k]);
-        rec_chrsts2[k] = (char **) mem_alloc(sizeof(char *) * divi1[k]);
-        chrsts3[k] = (char **) mem_alloc(sizeof(char *) * divi2[k]);
-        rec_chrsts3[k] = (char **) mem_alloc(sizeof(char *) * divi2[k]);
-        for(j=0; j<divi1[k]; j++) {
-            chrsts2[k][j] = (char *) mem_alloc(chunk_size+1);
-            rec_chrsts2[k][j] = (char *) mem_alloc(chunk_size+1);
-        }
-        for(j=0; j<divi2[k]; j++) {
-            chrsts3[k][j] = (char *) mem_alloc(chunk_size+1);
-            rec_chrsts3[k][j] = (char *) mem_alloc(chunk_size+1);
-        }
+    chrsts2 = (char ****) mem_alloc(sizeof(char ***) * (maxlength-1));
+    rec_chrsts2 = (char ****) mem_alloc(sizeof(char ***) * (maxlength-1));
+    chrsts3 = (char ****) mem_alloc(sizeof(char ***) * (maxlength-1));
+    rec_chrsts3 = (char ****) mem_alloc(sizeof(char ***) * (maxlength-1));
+    
+    for(i=0; i<maxlength-1; i++) {
+        chrsts2[i] = (char ***) mem_alloc(sizeof(char **) * chains / 2);
+	    rec_chrsts2[i] = (char ***) mem_alloc(sizeof(char **) * chains / 2);
+        chrsts3[i] = (char ***) mem_alloc(sizeof(char **) * chains / 2);
+	    rec_chrsts3[i] = (char ***) mem_alloc(sizeof(char **) * chains / 2);
+        for(k=0; k<chains/2; k++) {
+	        chrsts2[i][k] = (char **) mem_alloc(sizeof(char *) * divi1[i][k]);
+            rec_chrsts2[i][k] = (char **) mem_alloc(sizeof(char *) * divi1[i][k]);
+            chrsts3[i][k] = (char **) mem_alloc(sizeof(char *) * divi2[i][k]);
+            rec_chrsts3[i][k] = (char **) mem_alloc(sizeof(char *) * divi2[i][k]);
+            for(j=0; j<divi1[i][k]; j++) {
+                chrsts2[i][k][j] = (char *) mem_alloc(chunk_size+1);
+                rec_chrsts2[i][k][j] = (char *) mem_alloc(chunk_size+1);
+            }
+            for(j=0; j<divi2[i][k]; j++) {
+                chrsts3[i][k][j] = (char *) mem_alloc(chunk_size+1);
+                rec_chrsts3[i][k][j] = (char *) mem_alloc(chunk_size+1);
+            }
+	    }
 	}
 	int x, y, z;
 	crk_init(db, fix_state, NULL);
@@ -596,94 +602,98 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 			}
 		}
 	    int a;
-	    for(a=0; a<chains/2; a++) {
-		    for(y=0; y<divi1[a]; y++) {
-                int Z = chunk_size;
-			    int min = 0;
-			    if(y == divi1[a]-1) {
-				    Z = (strlen(chainFreq[a])-1) % chunk_size;
-				    min = chunk_size - Z;
-			    }
-			    if(Z == 0) {
-		            Z = chunk_size;
-				    min = 0;
-			    }
-			    for(z=0; z<Z; z++) {
-				    int again;
-				    chrsts2[a][y][z] = chainFreq[a][rand()%((y+1)*chunk_size-min)+1];
-				    again = 0;
-				    for(i=0; i<=y; i++) {
-					    int Z2 = chunk_size;
-					    if(i == divi1[a]-1) {
-						    Z2 = (strlen(chainFreq[a])-1) % chunk_size;
-					        min = chunk_size - Z2;
-					    }
-					    if(Z2 == 0) {
-		                    Z2 = chunk_size;
-				            min = 0;
-			            }
-					    for(j=0; j<Z2; j++) {
-						    if(z == j && i == y)
-							    continue;
-						    if(chrsts2[a][y][z] == chrsts2[a][i][j]) {
-							    again = 1;
-							    break;
-						    }
-					    }
-					    if(again)
-						    break;
-				    }
-				    if(again) {
-					    z--;
-					    continue;
-				    }
-				    chrsts2[a][y][z+1] = '\0';
+	    for(x=0; x<maxlength-1; x++) {
+	        for(a=0; a<chains/2; a++) {
+		        for(y=0; y<divi1[x][a]; y++) {
+                    int Z = chunk_size;
+			        int min = 0;
+			        if(y == divi1[x][a]-1) {
+				        Z = (strlen(chainFreq[x][a])-1) % chunk_size;
+				        min = chunk_size - Z;
+			        }
+			        if(Z == 0) {
+		                Z = chunk_size;
+				        min = 0;
+			        }
+			        for(z=0; z<Z; z++) {
+				        int again;
+				        chrsts2[x][a][y][z] = chainFreq[x][a][rand()%((y+1)*chunk_size-min)+1];
+				        again = 0;
+				        for(i=0; i<=y; i++) {
+					        int Z2 = chunk_size;
+					        if(i == divi1[x][a]-1) {
+						        Z2 = (strlen(chainFreq[x][a])-1) % chunk_size;
+					            min = chunk_size - Z2;
+					        }
+					        if(Z2 == 0) {
+		                        Z2 = chunk_size;
+				                min = 0;
+			                }
+					        for(j=0; j<Z2; j++) {
+						        if(z == j && i == y)
+							        continue;
+						        if(chrsts2[x][a][y][z] == chrsts2[x][a][i][j]) {
+							        again = 1;
+							        break;
+						        }
+					        }
+					        if(again)
+						        break;
+				        }
+				        if(again) {
+					        z--;
+					        continue;
+				        }
+				        chrsts2[x][a][y][z+1] = '\0';
+                    }
+                    //printf("%s\n", chrsts2[a][y]);
                 }
-                //printf("%s\n", chrsts2[a][y]);
             }
         }
-        for(a=0; a<chains/2; a++) {
-		    for(y=0; y<divi2[a]; y++) {
-                int Z = chunk_size;
-			    int min = 0;
-			    if(y == divi2[a]-1) {
-				    Z = strlen(counterChainFreq[a]) % chunk_size;
-				    min = chunk_size - Z;
-			    }
-			    if(Z == 0) {
-		            Z = chunk_size;
-				    min = 0;
-			    }
-			    for(z=0; z<Z; z++) {
-				    int again;
-				    chrsts3[a][y][z] = counterChainFreq[a][rand()%((y+1)*chunk_size-min)];
-				    again = 0;
-				    for(i=0; i<=y; i++) {
-					    int Z2 = chunk_size;
-					    if(i == divi2[a]-1) {
-						    Z2 = strlen(counterChainFreq[a]) % chunk_size;
-					        min = chunk_size - Z2;
-					    }
-					    if(Z2 == 0) {
-		                    Z2 = chunk_size;
-				            min = 0;
+        for(x=0; x<maxlength-1; x++) {
+            for(a=0; a<chains/2; a++) {
+	            for(y=0; y<divi2[x][a]; y++) {
+                    int Z = chunk_size;
+		            int min = 0;
+		            if(y == divi2[x][a]-1) {
+			            Z = strlen(counterChainFreq[x][a]) % chunk_size;
+			            min = chunk_size - Z;
+		            }
+		            if(Z == 0) {
+	                    Z = chunk_size;
+			            min = 0;
+		            }
+		            for(z=0; z<Z; z++) {
+			            int again;
+			            chrsts3[x][a][y][z] = counterChainFreq[x][a][rand()%((y+1)*chunk_size-min)];
+			            again = 0;
+			            for(i=0; i<=y; i++) {
+				            int Z2 = chunk_size;
+				            if(i == divi2[x][a]-1) {
+					            Z2 = strlen(counterChainFreq[x][a]) % chunk_size;
+				                min = chunk_size - Z2;
+				            }
+				            if(Z2 == 0) {
+	                            Z2 = chunk_size;
+			                    min = 0;
+		                    }
+				            for(j=0; j<Z2; j++) {
+					            if(z == j && i == y)
+						            continue;
+					            if(chrsts3[x][a][y][z] == chrsts3[x][a][i][j]) {
+						            again = 1;
+						            break;
+					            }
+				            }
+				            if(again)
+					            break;
 			            }
-					    for(j=0; j<Z2; j++) {
-						    if(z == j && i == y)
-							    continue;
-						    if(chrsts3[a][y][z] == chrsts3[a][i][j]) {
-							    again = 1;
-							    break;
-						    }
-					    }
-					    if(again)
-						    break;
-				    }
-				    if(again) {
-					    z--;
-					    continue;
-				    }
-				    chrsts3[a][y][z+1] = '\0';
+			            if(again) {
+				            z--;
+				            continue;
+			            }
+			            chrsts3[x][a][y][z+1] = '\0';
+                    }
                 }
             }
         }
@@ -738,9 +748,9 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 					word[0] = freq[0][c];
 		        	for(i=1; i<mpl; i++) {
 				    	for(j=0; j<chains/2; j++) {
-							if(chainFreq[j][0] == word[i-1]) {
+							if(chainFreq[i-1][j][0] == word[i-1]) {
 								J[loop2][i-1] = j;
-								if(chainCounter[i-1] < pow(charcount, mpl-i-2) * (strlen(chainFreq[j])-1)) {
+								if(chainCounter[i-1] < pow(charcount, mpl-i-2) * (strlen(chainFreq[i-1][j])-1)) {
 								    talk[loop2][i-1] = 1;
 									break;
 				            	}
@@ -757,11 +767,11 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 							    word[i] = chrsts[i][cs[loop2][i]][state[loop2][cs[loop2][i]][i]];
 							    break;
 						    case 1:
-							    word[i] = chrsts2[J[loop2][i-1]][cs1[loop2][J[loop2][i-1]]][state1[loop2][cs1[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1]];
+							    word[i] = chrsts2[i-1][J[loop2][i-1]][cs1[i-1][loop2][J[loop2][i-1]]][state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1]];
 							    break;
 						    case 2:
-							    word[i] = chrsts3[J[loop2][i-1]][cs2[loop2][J[loop2][i-1]]][state2[loop2][cs2[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1]];
-							    break;		
+							    word[i] = chrsts3[i-1][J[loop2][i-1]][cs2[i-1][loop2][J[loop2][i-1]]][state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1]];
+							    break;
 						}
 					}
 					submit(word, loop2);
@@ -783,15 +793,15 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 					            else bail = 1;
                 				break;
             			    case 1:
-            			        if(++state1[loop2][cs1[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top2[J[loop2][i-1]][cs1[loop2][J[loop2][i-1]]]) {
-						            state1[loop2][cs1[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
+            			        if(++state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top2[i-1][J[loop2][i-1]][cs1[i-1][loop2][J[loop2][i-1]]]) {
+						            state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
 						            i--;
 						        }
 					            else bail = 1;
 					            break;
 				            case 2:
-            			        if(++state2[loop2][cs2[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top3[J[loop2][i-1]][cs2[loop2][J[loop2][i-1]]]) {
-							        state2[loop2][cs2[loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
+            			        if(++state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top3[i-1][J[loop2][i-1]][cs2[i-1][loop2][J[loop2][i-1]]]) {
+							        state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
 							        i--;
 								} 
 							    else bail = 1;
@@ -804,16 +814,23 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 							i--;
 						    int i2 = mpl-1;
 				            while(i2 >= 1) {
+				                if(talk[loop2][i2-1] == 0) { 
+		                            if(++cs[loop2][i2] >= divi[i2]) {
+                                        cs[loop2][i2] = 0;
+                                        i2--;
+                                    }
+                                    else break;
+                                }
 				                if(talk[loop2][i2-1] == 1) { 
-		                            if(++cs1[loop2][J[loop2][i2-1]] >= divi1[J[loop2][i2-1]]) {
-                                        cs1[loop2][J[loop2][i2-1]] = 0;
+		                            if(++cs1[i2-1][loop2][J[loop2][i2-1]] >= divi1[i2-1][J[loop2][i2-1]]) {
+                                        cs1[i2-1][loop2][J[loop2][i2-1]] = 0;
                                         i2--;
                                     }
                                     else break;
                                 }
                                 else if(talk[loop2][i2-1] == 2) { 
-		                            if(++cs2[loop2][J[loop2][i2-1]] >= divi2[J[loop2][i2-1]]) {
-                                        cs2[loop2][J[loop2][i2-1]] = 0;
+		                            if(++cs2[i2-1][loop2][J[loop2][i2-1]] >= divi2[i2-1][J[loop2][i2-1]]) {
+                                        cs2[i2-1][loop2][J[loop2][i2-1]] = 0;
                                         i2--;
                                     }
                                     else break;
@@ -836,23 +853,21 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 	        MEM_FREE(chrsts[i][j]);
 	    MEM_FREE(chrsts[i]);
 	}
-	MEM_FREE(freqs_buff);
 	MEM_FREE(chrsts);
-	for(i=0; i<chains/2; i++) {
-    	MEM_FREE(chainFreq[i]);
-    	MEM_FREE(counterChainFreq[i]);
-        for(j=0; j<divi2[i]; j++)
+	for(i=0; i<maxlength-1; i++) {
+	    for(j=0; j<chains/2; j++) {
+	        for(k=0; k<divi1[i][j]; k++)
+	            MEM_FREE(chrsts2[i][j][k]);
+	        for(k=0; k<divi2[i][j]; k++)
+	            MEM_FREE(chrsts3[i][j][k]);
+	        MEM_FREE(chrsts2[i][j]);
 	        MEM_FREE(chrsts3[i][j]);
-        MEM_FREE(chrsts3[i]);
-    }
-    MEM_FREE(chainFreq);
-    MEM_FREE(counterChainFreq);
-    MEM_FREE(chrsts3);
-    for(i=0; i<chains; i++)
-        MEM_FREE(chains_buff[i]);
-    MEM_FREE(span);
-	MEM_FREE(chains_span);
-	MEM_FREE(length_supported);
-	MEM_FREE(chains_buff);	
+	    }
+	    MEM_FREE(chrsts2[i]);
+	    MEM_FREE(chrsts3[i]);
+	}
+	MEM_FREE(chrsts2);
+	MEM_FREE(chrsts3);
+	MEM_FREE(freqs_buff);
 	return 0;
 }
