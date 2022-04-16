@@ -9,7 +9,7 @@ struct freq {
     int freq;
     int nextfreq[95];
     char **next;
-    char counterNext[95];
+    char **counterNext;
 };
 
 int main(int argc, char *argv[]) {
@@ -196,11 +196,13 @@ int main(int argc, char *argv[]) {
 
     for(i=0; i<95; i++) {
         chars[i].next = (char **) malloc(max_len * sizeof(int *));
+        chars[i].counterNext = (char **) malloc(max_len * sizeof(int *));
         for(t=0; t<max_len; t++) {
             chars[i].next[t] = (char *) malloc(95);
+            chars[i].counterNext[t] = (char *) malloc(95);
             for(j=0; j<95; j++) {
                 chars[i].next[t][j] = 0;
-                chars[i].counterNext[j] = 0;
+                chars[i].counterNext[t][j] = 0;
             }
         }
     }
@@ -234,7 +236,7 @@ int main(int argc, char *argv[]) {
         chains[y][end] = 0;
         //printf("%c:%s\n", chars[y].c, chains[y]);
     }
-
+    //filter the chain frequencies with positions frequencies
     int used3[max_len][95][95];
     printf("%d\n", max_len);
     for(x=0; x<max_len-1; x++)
@@ -250,42 +252,34 @@ int main(int argc, char *argv[]) {
 
             end = 0;
 
-            for(j=0; j<strlen(chains[y]); j++) 
-            {
-                int b, c, u;
-                int k;
-                for(c=0; c<strlen(chains[y]); c++) 
-                  
-                        for(k=0; k<95; k++) 
-                        {
-                            int set = 1;
-                            for(b=0; b<95; b++) {
-                                if(chains[k][c] != chars[y].c || chars[b].posfreq[x+1] > chars[k].posfreq[x+1] && !used[x][b] || !chars[k].posfreq[x+1]) {
-                                    set = 0;
-                                    break;
-                                }
-                            }
-
-                            if(set && !used[x][k]) { //test loop doesn't overpass original char
-                                chars[y].next[x][j] = chars[k].c;
-                                used[x][k] = 1;
-                                end++;
+            for(j=0; j<strlen(chains[y]); j++) {
+                int c;
+                for(c=0; c<strlen(chains[y]); c++) {
+                    int k;
+                    for(k=0; k<95; k++) {
+                        int set = 1;
+                        int b;
+                        for(b=0; b<95; b++) {
+                            if(chains[k][c] != chars[y].c || chars[b].posfreq[x+1] > chars[k].posfreq[x+1] && !used[x][b] || !chars[k].posfreq[x+1]) {
+                                set = 0;
                                 break;
-                            
                             }
                         }
+                        if(set && !used[x][k]) { //test loop doesn't overpass original char
+                            chars[y].next[x][j] = chars[k].c;
+                            used[x][k] = 1;
+                            end++;
+                            break;
                         
-                     
+                        }
+                    }
+                }
             }
             chars[y].next[x][end] = 0;
         }
     }
-    for(i=0;i<95;i++)
-        for(x=0; x<max_len-1; x++)
-            if(strlen(chars[i].next[x]))
-                printf("%d:%c:%s\n", x+1, chars[i].c, chars[i].next[x]);
     //We need the remainers
-    for(j=0; j<max_len; j++) {
+    for(j=0; j<max_len-1; j++) {
         for(y=0; y<95; y++) {
             int a;
             for(a=0; a<95; a++)
@@ -301,13 +295,20 @@ int main(int argc, char *argv[]) {
                 }
                 if(set) {
                     used2[x] = 1;
-                    chars[y].counterNext[end] = chars[x].c;    
+                    chars[y].counterNext[j][end] = chars[x].c;    
                     end++;
                 }
             }
-            chars[y].counterNext[end] = 0;
+            chars[y].counterNext[j][end] = 0;
         }
     }
+    
+    for(i=0;i<95;i++)
+        for(x=0; x<max_len-1; x++)
+            if(strlen(chars[i].next[x])) {
+                printf("%d:%c:%s\n", x+1, chars[i].c, chars[i].next[x]);
+                printf("%d:%c:%s\n", x+1, chars[i].c, chars[i].counterNext[x]);
+            }
     //And write
     /*
     for(t=0; t<95; t++) {
