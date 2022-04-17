@@ -246,15 +246,16 @@ int main(int argc, char *argv[]) {
                     used[t][p] = 0;
             end = 0;
 
-            for(j=0; j<strlen(chains[y]); j++) {
+            for(j=0; j<strlen(chains[y]); j++) 
+            {
                 int c;
-                for(c=0; c<strlen(chains[y]); c++) {
-                    int k;
+                int k;
+                for(c=0; c<strlen(chains[k]); c++) {
                     for(k=0; k<95; k++) {
                         int set = 1;
                         int b;
                         for(b=0; b<95; b++) {
-                            if(chains[k][c] != chars[y].c || chars[b].posfreq[x+1] > chars[k].posfreq[x+1] && !used[x][b] || !chars[k].posfreq[x+1]) {
+                            if(chains[k][c] != chars[y].c || chars[b].posfreq[x+1] > chars[k].posfreq[x+1] && !used[x][b]) {
                                 set = 0;
                                 break;
                             }
@@ -264,7 +265,6 @@ int main(int argc, char *argv[]) {
                             used[x][k] = 1;
                             end++;
                             break;
-                        
                         }
                     }
                 }
@@ -272,6 +272,9 @@ int main(int argc, char *argv[]) {
             chars[y].next[x][end] = 0;
         }
     }
+    for(x=0; x<max_len-1; x++)
+        for(y=0; y<95; y++)
+            printf("%s\n", chars[y].next[x]);
     //We need the remainers
     for(j=0; j<max_len-1; j++) {
         for(y=0; y<95; y++) {
@@ -296,6 +299,28 @@ int main(int argc, char *argv[]) {
             chars[y].counterNext[j][end] = 0;
         }
     }
+    char counterchains[95][95];
+    for(y=0; y<95; y++) {
+        int a;
+        for(a=0; a<95; a++)
+            used2[a] = 0;
+        end = 0;
+        for(x=0; x<95; x++) {
+            int set = 1;
+            for(i=0; i<strlen(chains[y]); i++) {
+                if(chains[y][i] == chars[x].c && !used2[x]) {
+                    set = 0;
+                    break;
+                }
+            }
+            if(set) {
+                used2[x] = 1;
+                counterchains[y][end] = chars[x].c;    
+                end++;
+            }
+        }
+        counterchains[y][end] = 0;
+    }
 
     //And write
     for(t=0; t<95; t++) {
@@ -304,10 +329,20 @@ int main(int argc, char *argv[]) {
                 char nextout[256];
                 sprintf(nextout, "%c:%d:%d:%s\n", chars[t].c, j+1, strlen(chars[t].next[j]), chars[t].next[j]);
                 fwrite(nextout, strlen(nextout), 1, output);
-                //this enclosing avoid printing full sequence when no chaining is found.
+                //there might be chains using the whole ascii range who knows ?
                 if(strlen(chars[t].counterNext[j])) {
                     char counterNextout[256];
                     sprintf(counterNextout, "%d:%s\n", strlen(chars[t].counterNext[j]), chars[t].counterNext[j]);
+                    fwrite(counterNextout, strlen(counterNextout), 1, output);
+                }
+            }
+            else if(strlen(chains[t])) {
+                char nextout[256];
+                sprintf(nextout, "%c:%d:%d:%s\n", chars[t].c, j+1, strlen(chains[t]), chains[t]);
+                fwrite(nextout, strlen(nextout), 1, output);
+                if(strlen(counterchains[t])) {
+                    char counterNextout[256];
+                    sprintf(counterNextout, "%d:%s\n", strlen(counterchains[t]), counterchains[t]);
                     fwrite(counterNextout, strlen(counterNextout), 1, output);
                 }
             }
