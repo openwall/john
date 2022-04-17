@@ -84,10 +84,10 @@ static int short rec_cs2[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1][CHAINS_MAX];//tod
 static int short J[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
 static int short rec_J[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
 static uint_big chainCounter[MAX_CAND_LENGTH-1];
-static uint_big chainCounter2[MAX_CAND_LENGTH-1];
 
 static int talk[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
 static int rec_talk[MAX_CAND_LENGTH-1][MAX_CAND_LENGTH-1];
+static int c[MAX_CAND_LENGTH-1];
 
 static double get_progress(void)
 {
@@ -469,7 +469,7 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
                 line_size = strtoul(strtok(tmpline, ":"), NULL, 10); 
 	            strncpy(counterChainFreq[pos][iter], strtok(NULL, "\n"), line_size);
                 counterChainFreq[pos][iter][line_size] = 0;
-	        }
+            }
             lines++;
             chains_span = 0;
         }
@@ -723,8 +723,7 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 		}
 	}
     crk_init(db, fix_state, NULL);
-    int c = 0;
-	for(; loop <= maxlength-minlength; loop++) {
+    for(; loop <= maxlength-minlength; loop++) {
 		if(event_abort) break;
 		uint_big total = powi(charcount, minlength+loop);
 		for(; counter[loop] < total; ) {
@@ -745,7 +744,7 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 		        }
 		        
 				if(!skip) {
-					word[0] = freq[0][c];
+					word[0] = freq[0][c[loop2]];
 		        	for(i=1; i<mpl; i++) {
 				    	for(j=0; j<chains; j++) {
 							if(chainFreq[i-1][j][0] == word[i-1]) {
@@ -809,8 +808,8 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 			            }
 					}
 					else {
-                        if(++c >= charcount) {
-                            c = 0;
+                        if(++c[loop2] >= charcount) {
+                            c[loop2] = 0;
 							i--;
 						    int i2 = mpl-1;
 				            while(i2 >= 1) {
