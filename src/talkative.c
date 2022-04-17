@@ -471,13 +471,17 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
         i++;
     }
     int **top1 = (int **) mem_alloc(sizeof(int*) * maxlength);
-	for(i=0; i<maxlength; i++) {
+    int rest;
+	for(i=0; i<maxlength-1; i++) {
+	    rest = 0;
         divi[i] = charcount/chunk_size;
-		if(charcount % chunk_size)
+		if(charcount % chunk_size) {
             divi[i]++;
+            rest = 1;
+        }
 		top1[i] = (int *) mem_alloc(sizeof(int) * divi[i]);
         for(j=0; j<divi[i]; j++)
-        	if(j == divi[i] - 1)
+        	if(j == divi[i] - 1 && rest)
         		top1[i][j] = charcount % chunk_size;
         	else
         		top1[i][j] = chunk_size;
@@ -486,12 +490,16 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 	for(i=0; i<maxlength-1; i++) {
 	    top2[i] = (int **) mem_alloc(sizeof(int *) * chains);
 	    for(j=0; j<chains; j++) {
-	        divi1[i][j] = (strlen(chainFreq[i][j]) - 1) / chunk_size;
+	        rest = 0;
+	        divi1[i][j] = (int) ((strlen(chainFreq[i][j]) - 1) / chunk_size);
 	        if((strlen(chainFreq[i][j]) - 1) % chunk_size)
+            {
                 divi1[i][j]++;
+                rest = 1;
+            }
             top2[i][j] = (int *) mem_alloc(sizeof(int) * divi1[i][j]);
             for(k=0; k<divi1[i][j]; k++)
-            	if(k == divi1[i][j] - 1)
+            	if(k == divi1[i][j] - 1 && rest)
         		    top2[i][j][k] = (strlen(chainFreq[i][j]) - 1) % chunk_size;
         		else top2[i][j][k] = chunk_size;
         }
@@ -500,13 +508,16 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
     for(i=0; i<maxlength-1; i++) {
         top3[i] = (int **) mem_alloc(sizeof(int *) * chains);
         for(j=0; j<chains; j++) {
-            divi2[i][j] = strlen(counterChainFreq[i][j]) / chunk_size;
-	        if(strlen(counterChainFreq[i][j]) % chunk_size)
+            rest = 0;
+            divi2[i][j] = (int) (strlen(counterChainFreq[i][j]) / chunk_size);
+	        if(strlen(counterChainFreq[i][j]) % chunk_size) {
                 divi2[i][j]++;
+                rest = 1;
+            }
             top3[i][j] = (int *) mem_alloc(sizeof(int) * divi2[i][j]);
             for(k=0; k<divi2[i][j]; k++)
-            	if(k == divi2[i][j] - 1)
-                	top3[i][j][k] = strlen(counterChainFreq[i][j]) / chunk_size;
+            	if(k == divi2[i][j] - 1 && rest)
+                	top3[i][j][k] = strlen(counterChainFreq[i][j]) % chunk_size;
                	else
                		top3[i][j][k] = chunk_size;
         }
@@ -514,7 +525,7 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 	int x, y, z;
 	crk_init(db, fix_state, NULL);
 	if(!state_restored) {
-        for(x=0; x<maxlength; x++) {
+        for(x=0; x<maxlength-1; x++) {
 		    for(y=0; y<divi[x]; y++) {
 			    int Z = chunk_size;
 			    int min = 0;
@@ -702,24 +713,9 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 		        if(!skip) {
 					word[0] = freq[0][c[loop2]];
 		        	for(i=1; i<mpl; i++) {
-				    	for(j=0; j<chains; j++) {
-				    	        if(chainFreq[i-1][j][0] == word[i-1]) {
-								J[loop2][i-1] = j;
-								if(chainCounter[i-1] < pow(charcount, mpl-i-2) * (strlen(chainFreq[i-1][j])-1)) {
-								    talk[loop2][i-1] = 1;
-									break;
-				            	}
-				            	else if(chainCounter[i-1] < pow(charcount, mpl-i-1)) {
-								    talk[loop2][i-1] = 2;
-									break;
-				            	}
-				            }
-				            else talk[loop2][i-1] = 0;
-						}
-
-				    	switch(talk[loop2][i-1]) {
+		        	    switch(talk[loop2][i-1]) {
 						    case 0:
-							    word[i] = chrsts[i][cs[loop2][i]][state[loop2][cs[loop2][i]][i]];
+							    word[i] = chrsts[i-1][cs[loop2][i-1]][state[loop2][cs[loop2][i-1]][i-1]];
 							    break;
 						    case 1:
 						        word[i] = chrsts2[i-1][J[loop2][i-1]][cs1[i-1][loop2][J[loop2][i-1]]][state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1]];
@@ -738,28 +734,41 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 				while(i >= 0 && !bail) {
 				    int a = 0;
 					if(i > 0) {
-            			chainCounter[i-1]++;
+					    for(j=0; j<chains; j++) {
+			    	        if(chainFreq[i-1][j][0] == word[i-1]) {
+								J[loop2][i-1] = j;
+								if(++chainCounter[i-1] >= pow(charcount, mpl-i))
+								    talk[loop2][i-1] = 0;
+								else {
+								    talk[loop2][i-1] = 1;
+								    break;
+								}
+				            }
+				            else talk[loop2][i-1] = 0;
+						}
 					    switch(talk[loop2][i-1]) {
             			    case 0:
-                				if(++state[loop2][cs[loop2][i]][i] >= top1[i][cs[loop2][i]]) {
-						            state[loop2][cs[loop2][i]][i] = 0;
+                				if(++state[loop2][cs[loop2][i-1]][i-1] >= top1[i-1][cs[loop2][i-1]]) {
+						            state[loop2][cs[loop2][i-1]][i-1] = 0;
 						            i--;
 					            }
 					            else bail = 1;
                 				break;
             			    case 1:
-            			        if(++state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top2[i-1][J[loop2][i-1]][cs1[i-1][loop2][J[loop2][i-1]]]) {
-						            state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
-						            i--;
+            			        if(++state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] > top2[i-1][J[loop2][i-1]][cs1[i-1][loop2][J[loop2][i-1]]]) {
+						            a = 1;
 						        }
-					            else bail = 1;
-					            break;
+					            if(!a) break;
 				            case 2:
-            			        if(++state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top3[i-1][J[loop2][i-1]][cs2[i-1][loop2][J[loop2][i-1]]]) {
-							        state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
-							        i--;
-								} 
-							    else bail = 1;
+				                if(!a) {
+                			        if(++state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top3[i-1][J[loop2][i-1]][cs2[i-1][loop2][J[loop2][i-1]]]) {
+							            state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
+							            state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
+							            i--;
+								    } 
+							        else bail = 1;
+							    } 
+							    else a = 0;
 								break;
 			            }
 					}
@@ -770,8 +779,8 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 						    int i2 = mpl-1;
 				            while(i2 >= 1) {
 				                if(talk[loop2][i2-1] == 0) { 
-		                            if(++cs[loop2][i2] >= divi[i2]) {
-                                        cs[loop2][i2] = 0;
+		                            if(++cs[loop2][i2-1] >= divi[i2-1]) {
+                                        cs[loop2][i2-1] = 0;
                                         i2--;
                                     }
                                     else break;
