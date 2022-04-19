@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
         for(j=0; j<95; j++)
             chars[i].nextfreq[j] = 0;
 
-    for(i=0; i<wordcount; i++)
+    for(i=0; i<wordcount; i++) {
         for(j=1; j<words_size[i]; j++) {
             int bail = 0;
             for(t=0; t<95; t++) {
@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
                 if(bail) break;
             }
         }
-
+    }
     for(i=0; i<95; i++) {
         chars[i].next = (char **) malloc(max_len * sizeof(int *));
         chars[i].counterNext = (char **) malloc(max_len * sizeof(int *));
@@ -225,7 +225,7 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 if(set && !used2[x]) { //test loop doesn't overpass original char
-                    chains[y][t] = chars[x].c;
+                    chains[y][end] = chars[x].c;
                     used2[x] = 1;
                     end++;
                     break;
@@ -233,36 +233,25 @@ int main(int argc, char *argv[]) {
             }
         }
         chains[y][end] = 0;
-        //printf("%c:%s\n", chars[y].c, chains[y]);
     }
     //filter the chain frequencies with positions frequencies
-    int used3[max_len][95][95];
-    for(x=0; x<max_len-1; x++)
-    {
-        for(y=0; y<95; y++) 
-        {
-            for(t=0; t<max_len; t++)
-                for(p=0; p<95; p++)
-                    used[t][p] = 0;
+    int used3[95][95];
+    for(x=0; x<max_len-1; x++) {
+        for(y=0; y<95; y++) {
             end = 0;
-
-            for(j=0; j<strlen(chains[y]); j++) 
-            {
-                int c;
-                int k;
-                for(c=0; c<strlen(chains[k]); c++) {
-                    for(k=0; k<95; k++) {
-                        int set = 1;
-                        int b;
-                        for(b=0; b<95; b++) {
-                            if(chains[k][c] != chars[y].c || chars[b].posfreq[x+1] > chars[k].posfreq[x+1] && !used[x][b]) {
-                                set = 0;
-                                break;
-                            }
-                        }
-                        if(set && !used[x][k]) { //test loop doesn't overpass original char
-                            chars[y].next[x][j] = chars[k].c;
-                            used[x][k] = 1;
+            int bail = 0;
+            for(i=0; i<95; i++)
+                used2[i] = 0;
+            int k;
+            for(k=0; k<95; k++) {
+                int l;
+                //if(bail) break;
+                for(l=0; l<strlen(chains[k]); l++) {
+                    if(chains[y][l] == chars[k].c && !used2[k]) {
+                        if(chars[k].posfreq[x+1]) {
+                            chars[y].next[x][end] = chars[k].c;
+                            used2[k] = 1;
+                            bail = 1;
                             end++;
                             break;
                         }
@@ -272,9 +261,6 @@ int main(int argc, char *argv[]) {
             chars[y].next[x][end] = 0;
         }
     }
-    for(x=0; x<max_len-1; x++)
-        for(y=0; y<95; y++)
-            printf("%s\n", chars[y].next[x]);
     //We need the remainers
     for(j=0; j<max_len-1; j++) {
         for(y=0; y<95; y++) {
@@ -299,29 +285,6 @@ int main(int argc, char *argv[]) {
             chars[y].counterNext[j][end] = 0;
         }
     }
-    char counterchains[95][95];
-    for(y=0; y<95; y++) {
-        int a;
-        for(a=0; a<95; a++)
-            used2[a] = 0;
-        end = 0;
-        for(x=0; x<95; x++) {
-            int set = 1;
-            for(i=0; i<strlen(chains[y]); i++) {
-                if(chains[y][i] == chars[x].c && !used2[x]) {
-                    set = 0;
-                    break;
-                }
-            }
-            if(set) {
-                used2[x] = 1;
-                counterchains[y][end] = chars[x].c;    
-                end++;
-            }
-        }
-        counterchains[y][end] = 0;
-    }
-
     //And write
     for(t=0; t<95; t++) {
         for(j=0; j<max_len-1; j++) {
@@ -333,16 +296,6 @@ int main(int argc, char *argv[]) {
                 if(strlen(chars[t].counterNext[j])) {
                     char counterNextout[256];
                     sprintf(counterNextout, "%d:%s\n", strlen(chars[t].counterNext[j]), chars[t].counterNext[j]);
-                    fwrite(counterNextout, strlen(counterNextout), 1, output);
-                }
-            }
-            else if(strlen(chains[t])) {
-                char nextout[256];
-                sprintf(nextout, "%c:%d:%d:%s\n", chars[t].c, j+1, strlen(chains[t]), chains[t]);
-                fwrite(nextout, strlen(nextout), 1, output);
-                if(strlen(counterchains[t])) {
-                    char counterNextout[256];
-                    sprintf(counterNextout, "%d:%s\n", strlen(counterchains[t]), counterchains[t]);
                     fwrite(counterNextout, strlen(counterNextout), 1, output);
                 }
             }
