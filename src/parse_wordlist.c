@@ -240,24 +240,32 @@ int main(int argc, char *argv[]) {
         for(y=0; y<95; y++) {
             end = 0;
             int bail = 0;
-            for(i=0; i<95; i++)
-                used2[i] = 0;
-            int k;
-            for(k=0; k<95; k++) {
+            for(i=0; i<max_len; i++)
+                for(j=0; j<95; j++)
+                    used[i][i] = 0;
+            int u;
+            //for(u=0; u<strlen(chains[y]); u++) 
+            {
                 int l;
-                //if(bail) break;
-                for(l=0; l<strlen(chains[k]); l++) {
-                    if(chains[y][l] == chars[k].c && !used2[k]) {
-                        if(chars[k].posfreq[x+1]) {
-                            chars[y].next[x][end] = chars[k].c;
-                            used2[k] = 1;
-                            bail = 1;
-                            end++;
-                            break;
+                for(l=0; l<strlen(chains[y]); l++) {
+                    int k;
+                    //if(bail) break;
+                    for(k=0; k<95; k++) {
+                        int p;
+                        //for(p=0; p<95; p++)
+                        if(chains[y][l] == chars[k].c) {
+                            if(chars[k].posfreq[x+1]) {
+                                chars[y].next[x][end] = chars[k].c;
+                                //used[x][k] = 1;
+                                bail = 1;
+                                end++;
+                                break;
+                            }
                         }
                     }
                 }
             }
+        
             chars[y].next[x][end] = 0;
         }
     }
