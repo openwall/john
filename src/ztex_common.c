@@ -25,8 +25,10 @@ void ztex_init()
 {
 	static int ztex_initialized;
 
+#ifdef HAVE_FUZZ
 	if (options.flags & FLG_FUZZ_CHK)
 		return;
+#endif
 
 	if (ztex_initialized)
 		return;
