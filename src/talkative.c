@@ -714,18 +714,17 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 		        if(!skip) {
 		            word[0] = freq[0][c[loop2]];
                     for(i=1; i<mpl; i++) {
-                        if(!chainCounterDone[i-1])
-	        	        for(j=0; j<chains; j++) {
-                            if(word[i-1] == chainFreq[i-1][j][0]) {
-                                J[loop2][i-1] = j;
-                                if(chainCounter[i-1] < powi(charcount, mpl-i-1) * (strlen(chainFreq[i-1][j]) - 1))
-                                {   talk[loop2][i-1] = 1;
-                                    break; }
-                                else if(chainCounter[i-1] < powi(charcount, mpl-i))
-                                {   talk[loop2][i-1] = 2;
-                                    break; }
-                                else chainCounterDone[i-1] = 1;
-                            } else talk[loop2][i-1] = 0;
+                        if(!chainCounterDone[i-1]) 
+                        {
+	            	        for(j=0; j<chains; j++) {
+                                if(word[i-1] == chainFreq[i-1][j][0]) {
+                                    J[loop2][i-1] = j;
+                                    if(chainCounter[i-1] < powi(charcount, mpl-i) && talk[loop2][i-1] != 2)
+                                    {   talk[loop2][i-1] = 1;
+                                        break; }
+                                    chainCounterDone[i-1] = 1;
+                                } else talk[loop2][i-1] = 0;
+	                        }
 	                    }
 	        	        switch(talk[loop2][i-1]) {
         	            case 0:
@@ -748,6 +747,7 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 				    c[loop2] = 0;//the first character changes each word
 				else
                 while(i >= 1 && !bail) {
+                    int a = 0;
                     chainCounterDone[i-1] = 0;
                     switch(talk[loop2][i-1]) {
 				    case 0:
@@ -762,10 +762,10 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
                             state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
                             i--;
 	                    } else bail = 1;
-			            break;
+	                    break;
 		            case 2:
 		                chainCounter[i-1]++;
-	                    if(++state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top3[i-1][J[loop2][i-1]][cs2[i-1][loop2][J[loop2][i-1]]]) {
+                        if(++state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top3[i-1][J[loop2][i-1]][cs2[i-1][loop2][J[loop2][i-1]]]) {
                             state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
                             i--;
                         } else bail = 1;
