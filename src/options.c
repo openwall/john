@@ -111,7 +111,7 @@ static struct opt_entry opt_list[] = {
 	{"rules-skip-nop", FLG_RULE_SKIP_NOP, FLG_RULE_SKIP_NOP, FLG_RULES_IN_USE},
 	{"incremental", FLG_INC_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.charset},
 	{"incremental-charcount", FLG_ONCE, 0, FLG_INC_CHK, OPT_REQ_PARAM, "%u", &options.charcount},
-	{"talkative", FLG_TALKATIVE_SET, FLG_CRACKING_CHK, 0, 0, "%u", &options.chunk_size},
+	{"rain", FLG_RAIN_SET, FLG_CRACKING_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.rain_full},
 	{"no-mask", FLG_NO_MASK_BENCH, FLG_NO_MASK_BENCH, FLG_TEST_CHK, FLG_MASK_CHK},
 	{"mask", FLG_MASK_SET, FLG_MASK_CHK, 0, 0, OPT_FMT_STR_ALLOC, &options.mask},
 	{"1", FLG_ONCE, 0, FLG_MASK_CHK, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.custom_mask[0]},
@@ -288,7 +288,7 @@ static struct opt_entry opt_list[] = {
 "--mkv-stats=FILE           \"Markov\" stats file\n" \
 PRINCE_USAGE \
 JOHN_USAGE_REGEX \
-"--talkative[=CHUNKS SIZE]  \"TALKATIVE\" mode (see TODO doc/TALKATIVE)\n" \
+"--rain[=CHARSET]        \"RAIN\" mode (see TODO doc/RAIN)\n" \
 "--stdout[=LENGTH]          just output candidate passwords [cut at LENGTH]\n" \
 "--restore[=NAME]           restore an interrupted session [called NAME]\n" \
 "--session=NAME             give a new session the NAME\n" \

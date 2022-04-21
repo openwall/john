@@ -65,7 +65,7 @@ int pem_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // salt
 		goto err;
-	if (hexlenl(p, &extra) != SALTLEN * 2 || extra)
+	if (hexlenl(p, &extra) != 16 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // iterations
 		goto err;
@@ -81,8 +81,6 @@ int pem_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
-	if (len > CTLEN)
-		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)   // ciphertext
 		goto err;
 	if (hexlenl(p, &extra) != len*2 || extra)

@@ -172,7 +172,7 @@ cards by adding the 'Option "Interactive"' line to /etc/X11/xorg.conf:
 
 At this time we are not aware of any way to check or change this for AMD cards.
 What we do know is that some old AMD drivers will crash after repeated runs of
-as short durations as 200 ms, necessitating a reboot.  If this happens, just
+as short durations as 200 ms, necessating a reboot.  If this happens, just
 upgrade your driver.
 
 

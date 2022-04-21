@@ -525,7 +525,7 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 	int x, y, z;
 	crk_init(db, fix_state, NULL);
 	if(!state_restored) {
-        for(x=0; x<maxlength-1; x++) {
+        for(x=0; x<maxlength; x++) {
 		    for(y=0; y<divi[x]; y++) {
 			    int Z = chunk_size;
 			    int min = 0;
@@ -714,7 +714,7 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 		        if(!skip) {
 		            word[0] = freq[0][c[loop2]];
                     for(i=1; i<mpl; i++) {
-                        if(!chainCounterDone[i-1]) 
+                        if(!chainCounterDone[i-1])
                         {
 	            	        for(j=0; j<chains; j++) {
                                 if(word[i-1] == chainFreq[i-1][j][0]) {
@@ -758,17 +758,23 @@ int do_talkative_crack(struct db_main *db, int chunk_size)
 	                    break;
 	                case 1:
 	                    chainCounter[i-1]++;
-	                    if(++state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top2[i-1][J[loop2][i-1]][cs1[i-1][loop2][J[loop2][i-1]]]) {
-                            state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
-                            i--;
-	                    } else bail = 1;
-	                    break;
+	                    if(state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top2[i-1][J[loop2][i-1]][cs1[i-1][loop2][J[loop2][i-1]]]) {
+                            talk[loop2][i-1] = 2;
+                            a = 1;
+	                    } else {
+	                        bail = 1;
+	                        state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top2[i-1][J[loop2][i-1]][cs1[i-1][loop2][J[loop2][i-1]]]++;
+	                    }
+	                    if(!a) break;
 		            case 2:
 		                chainCounter[i-1]++;
-                        if(++state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top3[i-1][J[loop2][i-1]][cs2[i-1][loop2][J[loop2][i-1]]]) {
-                            state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
-                            i--;
-                        } else bail = 1;
+                        if(!a) {
+                            if(++state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] >= top3[i-1][J[loop2][i-1]][cs2[i-1][loop2][J[loop2][i-1]]]) {
+                                state1[loop2][cs1[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
+                                state2[loop2][cs2[i-1][loop2][J[loop2][i-1]]][J[loop2][i-1]][i-1] = 0;
+                                i--;
+                            } else bail = 1;
+				        } else a = 0;
 				    }
 				    if(i < 1) {
                         int i2 = mpl-1;

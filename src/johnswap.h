@@ -87,16 +87,4 @@
 	}
 #endif
 
-#if ARCH_LITTLE_ENDIAN
-#define john_htonl(x) JOHNSWAP((x))
-#define john_ntohl(x) JOHNSWAP((x))
-#define john_htonll(x) JOHNSWAP64((x))
-#define john_ntohll(x) JOHNSWAP64((x))
-#else
-#define john_htonl(x) (x)
-#define john_ntohl(x) (x)
-#define john_htonll(x) (x)
-#define john_ntohll(x) (x)
-#endif
-
 #endif // __JOHN_SWAP_H__

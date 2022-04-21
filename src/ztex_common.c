@@ -25,9 +25,6 @@ void ztex_init()
 {
 	static int ztex_initialized;
 
-	if (options.flags & FLG_FUZZ_CHK)
-		return;
-
 	if (ztex_initialized)
 		return;
 

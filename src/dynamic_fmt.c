@@ -8423,21 +8423,19 @@ int text_in_dynamic_format_already(struct fmt_main *pFmt, char *ciphertext)
 // if caseType == 4, return upcaseFirstChar(locase(cp))
 static char *HandleCase(char *cp, int caseType)
 {
-	static UTF8 dest[512];
+	static UTF8 dest[256];
 
 	switch(caseType) {
 		case 1:
 			return cp;
 		case 2:
-			/* -1 is a temporary workaround for #5029 */
-			enc_uc(dest, sizeof(dest) - 1, (unsigned char*)cp, strlen(cp));
+			enc_uc(dest, sizeof(dest), (unsigned char*)cp, strlen(cp));
 			if (!strcmp((char*)dest, cp))
 				return cp;
 			break;
 		case 3:
 		case 4:
-			/* -1 is a temporary workaround for #5029 */
-			enc_lc(dest, sizeof(dest) - 1, (unsigned char*)cp, strlen(cp));
+			enc_lc(dest, sizeof(dest), (unsigned char*)cp, strlen(cp));
 			if (caseType == 4)
 				dest[0] = low2up_ansi(dest[0]);
 			if (!strcmp((char*)dest, cp))

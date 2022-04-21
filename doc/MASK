@@ -104,44 +104,44 @@ We have on-device mask mode support for most fast hash types for which
 we have OpenCL support at all.  Further, such on-device mask support can
 be used along with a host-provided stream of partial candidate passwords
 to form a variety of hybrid modes.  For example, these are all valid:
-
+ 
 Test any 7-character printable ASCII strings, with a reasonable number
 of the mask positions being processed on device (JtR decides to
 optimally split the mask between host and device):
 
 --mask='?a?a?a?a?a?a?a'
-
+ 
 Ditto:
-
+ 
 --mask='?a' --min-length=7 --max-length=7
 
 Ditto, but for range of lengths 1 to 8:
-
+ 
 --mask='?a' --min-length=1 --max-length=8
-
+ 
 Can also use length ranges with more complex masks, where the last mask
 component would be the one extended to higher lengths:
-
+ 
 --mask='start?l?d' --min-length=7 --max-length=14
-
+ 
 Use the host's incremental mode to test strings of digits in a smart
 order, then append 3 more digits in a dumber order on device, no
 specific length (so let incremental mode switch lengths back and forth
 like it usually does):
-
+ 
 --incremental=digits --mask='?w?d?d?d'
-
+ 
 Ditto, but limit this to (total) length of 8 (adjusts incremental mode
 to only produces length 5 for its portion):
-
+ 
 --incremental=digits --mask='?w?d?d?d' --min-length=8 --max-length=8
-
+ 
 Have the host generate all-lowercase substrings in a smart order, then
 prepend an uppercase letter and append 3 digits, at least some of this
 on device:
-
+ 
 --incremental=lower --mask='?u?w?d?d?d'
-
+ 
 Read a wordlist on host, apply wordlist rules on host, then append 3
 digits on device:
 

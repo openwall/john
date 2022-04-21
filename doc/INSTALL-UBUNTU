@@ -10,7 +10,7 @@ build CPU fallback chains for any x86-64 CPU.
     (see below), you may simply enter the "run" directory and invoke John from
     there, e.g. with:
 
-    ./john --list=build-info
+    ./john --list=build-options
 
     Commands not explicitly prefixed by "sudo" must be run as a regular user
     (the one that will use JtR) rather than as root.

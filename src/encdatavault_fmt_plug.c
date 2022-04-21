@@ -1,7 +1,7 @@
 /*
  * Cracker for ENCSecurity Data Vault.
  *
- * This software is Copyright (c) 2021-2022 Sylvain Pelissier <sylvain.pelissier at kudelskisecurity.com>
+ * This software is Copyright (c) 2021 Sylvain Pelissier <sylvain.pelissier at kudelskisecurity.com>
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,33 +24,27 @@ john_register_one(&fmt_encdadatavault);
 #include "md5.h"
 #include "common.h"
 #include "formats.h"
-#include "pbkdf2_hmac_sha256.h"
 
 #define FORMAT_TAG              "$encdv$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 #define FORMAT_LABEL            "ENCDataVault"
 #define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "MD5 / PBKDF2-SHA256, AES"
-#define BENCHMARK_COMMENT       ""
+#define ALGORITHM_NAME          "MD5"
+#define BENCHMARK_COMMENT       " (1000 iterations)"
 #define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
-#define SALT_SIZE               sizeof(struct salt)
+#define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              4
-#ifdef SIMD_COEF_32
-#define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
-#define MAX_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA256
-#else
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      4
-#endif
 
 #ifndef OMP_SCALE
 #define OMP_SCALE               16
 #endif
 
-#define ENC_DEFAULT_MD5_ITERATIONS 1000
+#define ENC_DEFAULT_NUM_HASH_ITERATIONS 1000
 #define ENC_SALT_SIZE 16
 #define ENC_IV_SIZE 16
 #define ENC_BLOCK_SIZE 16
@@ -59,8 +53,6 @@ john_register_one(&fmt_encdadatavault);
 #define ENC_SIG_SIZE 4
 #define ENC_MAX_KEY_NUM 8
 #define ENC_KEYCHAIN_SIZE 128
-
-#define PBKDF2_32_MAX_SALT_SIZE 128
 
 typedef union buffer_128_u {
 	uint8_t u8[8];
@@ -92,31 +84,21 @@ static struct fmt_tests encdatavault_tests[] = {
 	// Sony vault
 	{ "$encdv$1$2$e8a5d78fa5511fa2$b96a4747", "bbbb" },
 	{ "$encdv$1$2$4e277e5547b88f9c$eb0ed650", "openwallopenwall!" },
-	// ENCDataVault v7.1.1 512 bits user password
+	// ENCDataVault 512 bits user password
 	{ "$encdv$1$3$d6209d17c0a87818$77608f04", "123456789ABCDEf" },
 	{ "$encdv$1$3$3563390c4d66944d$2b0470f5", "openwallopenwall" },
-	// ENCDataVault v7.1.1 128 bits vault
+	// ENCDataVault 128 bits vault
 	{ "$encdv$3$1$75c97f784cad5027$c58e34a9$6fa3c4085acadda7c94589fe3dd8209d59a79b0ea659c4af51861f659c2d6cc645dab7c821c2cc0e8da97ce66e9be779fcf8fc33c1250aee2cd46e08a3864763a5c7f790c9965376a36fbf3b1c8b944d096e3bbe586a952f9fab5ee2f1c1ca7d2cd06ff357bb397c3eb1da66c5562998411c0b2dff04860e6f6adf818c853941", "128vaultTest" },
 	{ "$encdv$3$1$af9479e81a896dbb$e643f5f6$8e8fd6ccf10cf651efcb561a167fa301849bef0a28718f67d31d53a1e7a8328b3aaa6c642d8a2483e8de5c3751fd0b81604ead7c6412e6197886735bcbd1dd50d23f293bf11856986bd07a7513275dea991968376703a643fc19c373c1d62a7779db88068e24752bb6761f42c8aec9cf7a80ef2b7f6384212ee6b670d8ba17a7", "OpenwallOpenwall" },
-	// ENCDataVault v7.1.1 256 bits vault
+	// ENCDataVault 256 bits vault
 	{ "$encdv$3$2$a44a9a62e131023e$d9fe5a04$0bc8c0c937cac8de5a226a9dc7ff5d2542bb8814973afdcc0e593fded8b337cac18acd60c1afea3550fdeabee339a36892eb99f0f502b9f74075e9cb26970e983189be1395ffbec8ebfb765a563db45c3e53d73040e41bcfe58dc211f03f1384c5080c298a5e4bdf7cf23b893b3d2dbe05c472180fdc3f7fd82d97ea0eec1e7e", "OpenwallOpenwall" },
-	{ "$encdv$3$2$85089cdde5cb099b$c3c98127$d96fd1e2709908e08994d1809e516985cf028cd73e2a829dee1ce7473c3c4d0ce35a2652b58ed7ad046641259b9a24a046c89d3251e1036e7117dd8221b07f5a45b6c215b3ad308e5f7b248ea8f1fabaa23da4840797c9052c3f8578187d514a92356b8138455db6424a41db6b0de2817d463f23d44f39537a6c28b2ba075a01", "Verylongbutstillfailpassword" },
-	// ENCDataVault v7.1.1 512 bits vault
+	{ "$encdv$3$2$85089cdde5cb099b$c3c98127$d96fd1e2709908e08994d1809e516985cf028cd73e2a829dee1ce7473c3c4d0ce35a2652b58ed7ad046641259b9a24a046c89d3251e1036e7117dd8221b07f5a45b6c215b3ad308e5f7b248ea8f1fabaa23da4840797c9052c3f8578187d514a92356b8138455db6424a41db6b0de2817d463f23d44f39537a6c28b2ba075a01", "Verylongbutstillfailpassword"},
+	// ENCDataVault 512 bits vault
 	{ "$encdv$3$3$bd837ac896f26983$15107b99$fb141e6db2cb586b2b445d6a6ca47f17d16947afa32298cc30c6fcdc4bfac7a874d53f2de4bcb196645e59e1c8e5883999875c9951d637e08f78d2bb16003c2abe8bfa1cb8b8d7b627828d61d775937308e7e119dea727da8af12490d50e8b8dc8f24daa7e101576112b52374f3ea4a73f7fa6bfb802bd6dfa845318a2884a9e", "123456789ABCDEf" },
 	{ "$encdv$3$3$ffd2a778b7f1304b$311893a8$5e48500065fc4138b134ce7858ac3b29d9f4b19c5f0d7ee1d07d8dd4dc3d5ae56b18e84d822087849573074a5776dee5309e5cb6bbd0d1470e0717463119bb080c96e24ebd563673060397803aebae5df7c59defcc8fa687b96c9a8245e540be699061c299a69830472e1a6a74ad72086dfac906a49e0ce84fc722da9715d675", "OpenwallOpenwall" },
-	// ENCDataVault v7.1.1 1024 bits vault
+	// ENCDataVault 1024 bits vault
 	{ "$encdv$3$4$bc93a92cf625e360$fe120bfb$739f9d85964cef2f63b927ff77f3328cc5192014ae21c29954c322f4e808fe5c8abe64cc150dbcb08cb334f3b5c28357f10d8d5c6a103e2c899402136c14633aaf8a5347959b33b80ade2e3f5698864605940dc1423704999e5da859d6584491bbe940f00f162c75d2766b868ef2b4c6bf599a2e8ccea3f7cdfab193744a8d10", "123456789ABCDEf" },
 	{ "$encdv$3$4$e9786d82101f30ef$d690010a$5748af61f246c1569cc72cbd6c97e0be46b1612842fd3c6284637af5351508a602c731739acb056b845dfa2b5befd40f14136b4336e0c8e98144555a90befbc85abfc4069fbb71709fa39e29f8c6a98d28e14251e50ffdd43d75252de2b0b14c386e72927c62ae39ba18ff8b32a339d882fdd0b15284af246fa50b7c6992f783", "Verylongbutstillfailpassword" },
-	// PrivateAccess
-	//{ "$encdv$17$1$eb012112b3561e6e$01c7dca5$32$9b1c17f7a467cf4d13b73dfd3ce12b3dd51cb980cc1f0ccfad4e47e9c9f3d774$100000", "123456Aa!"},
-	// ENCDataVault v7.2.1 user password
-	//{ "$encdv$17$3$e84dddc75bc68e3c$789ad76e$32$e89708fb33780d45b975117445c861ed6dfe30142dfdea9afc36ae1a28c552a7$100000", "openwallopenwall"},
-	// ENCDataVault v7.2.1 1024 bits vault
-	//{ "$encdv$19$4$4f1d3889c629968c$e8b68bb8$32$fa79c83e85a41973799522f525e1316ca07ab663def47b816da76205dc1e3e80$100000$0443baa02c7e00870a24f0c16ff0454c56ad079e334bb6fb52bf39de56485dc07f4827d8d83b6f3bf135062e2869d58b8ade04db0716c75d2519797cdbb1d9d75ffe3fc156edfd3bb95747fc0286c149c3c90da8a4b4cdf11838b680b6e9b26da3a0c93f29f8bff6e70f07e6077cda620f7b808793dc127395a11bfc068f1895", "123456789ABCDEf"},
-	// Fake hash to test pbkdf2
-	{ "$encdv$17$1$eb012112b3561e6e$85389b0f$32$9b1c17f7a467cf4d13b73dfd3ce12b3dd51cb980cc1f0ccfad4e47e9c9f3d774$100", "123456Aa!" },
-	{ "$encdv$17$1$eb012112b3561e6e$014f10cd$32$fa79c83e85a41973799522f525e1316ca07ab663def47b816da76205dc1e3e80$100", "openwallopenwall" },
-	{ "$encdv$19$4$4f1d3889c629968c$e8b68bb8$32$fa79c83e85a41973799522f525e1316ca07ab663def47b816da76205dc1e3e80$50$090a1bb3fc129b1549823a0ed70ffa1eff9033994766f25fcf3645b9a48bcd2175ab187ad1bf9a5f63d4a11aaea3c3b4d8cba240e439c484c7ed0e1e74828ca166fb5de6ea3f56eaf7c97ab217c3ecb5d4231976501fb5a35041bed0aa439cc75bcd8313e00bd24b84a2ed89d5c1246d36c394ba5c774925b48999df75e65b3a", "123456789ABCDEf" },
 	{ NULL }
 };
 
@@ -126,13 +108,11 @@ static size_t cracked_size;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 
-static struct salt {
+static struct custom_salt {
 	unsigned int version;
 	unsigned int algo_id;
+	unsigned char salt[ENC_SALT_SIZE];
 	unsigned char iv[ENC_IV_SIZE];
-	unsigned int salt_length;
-	unsigned char salt[PBKDF2_32_MAX_SALT_SIZE];
-	unsigned int iterations;
 	unsigned char encrypted_data[ENC_BLOCK_SIZE];
 	unsigned char keychain[ENC_KEYCHAIN_SIZE];
 } *cur_salt;
@@ -195,7 +175,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext, *ctcopy, *keeptr;
-	int extra, saltlen;
+	int extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH) != 0)
 		return 0;
@@ -205,16 +185,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += FORMAT_TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL) // version
 		goto err;
-	if (!isdec(p))
-		goto err;
-	int version = atoi(p);
-
-	if (version != 3 && version != 1 && version != 0x13 && version != 0x11) {
+	if (strcmp(p, "1") && strcmp(p, "3")) {
 		static int warned;
 		if (!self_test_running && !warned++)
-			fprintf(stderr, "%s: Warning: version %d not supported, not loading such hashes!\n", self->params.label, version);
+			fprintf(stderr, "%s: Warning: version %d not supported, not loading such hashes!\n", self->params.label, atoi(p));
 		goto err;
 	}
+	char version = *p;
 	if ((p = strtokm(NULL, "$")) == NULL)   // algorithm id
 		goto err;
 	if (!isdec(p))
@@ -233,33 +210,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (hexlenl(p, &extra) != ENC_SIG_SIZE * 2 || extra)
 		goto err;
-	if ((version >> 4) == 1) {
-		if ((p = strtokm(NULL, "$")) == NULL)   // Salt length
-			goto err;
-		if (!isdec(p))
-			goto err;
-		saltlen = atoi(p);
-		if (saltlen > PBKDF2_32_MAX_SALT_SIZE) {
-			static int warned;
-			if (!warned++)
-				fprintf(stderr, "%s: Warning: salt length %d too big!\n", self->params.label, saltlen);
-			goto err;
-		}
-		if ((p = strtokm(NULL, "$")) == NULL)   // Salt
-			goto err;
-		if (hexlenl(p, &extra) != saltlen * 2 || extra)
-			goto err;
-		if ((p = strtokm(NULL, "$")) == NULL)   // Iterations
-			goto err;
-		if (!isdec(p))
-			goto err;
-	}
-	if ((version & 0x0f) == 3) {
-		if ((p = strtokm(NULL, "$")) == NULL)   // Keychain
-			goto err;
+	if (version == '3') {
+		if ((p = strtokm(NULL, "$")) == NULL)	// Keychain
+				goto err;
 		if (hexlenl(p, &extra) != ENC_KEYCHAIN_SIZE * 2 || extra)
-			goto err;
-	}
+				goto err;
+    }
 	MEM_FREE(keeptr);
 	return 1;
 
@@ -270,7 +226,7 @@ err:
 
 static void *get_salt(char *ciphertext)
 {
-	static struct salt cs;
+	static struct custom_salt cs;
 	int i;
 	char *p = ciphertext, *ctcopy, *keeptr;
 
@@ -293,18 +249,8 @@ static void *get_salt(char *ciphertext)
 	for (i = 0; i < ENC_SIG_SIZE; i++)
 		cs.encrypted_data[i + 4] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
 
-	// Salt and iteration for latest versions
-	if ((cs.version >> 4) == 1) {
-		p = strtokm(NULL, "$");
-		cs.salt_length = atoi(p);
-		p = strtokm(NULL, "$");
-		for (i = 0; i < cs.salt_length; i++)
-			cs.salt[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
-		p = strtokm(NULL, "$");
-		cs.iterations = atoi(p);
-	}
 	// Keychain for version 3
-	if ((cs.version & 0x0f) == 3) {
+	if (cs.version == 3) {
 		p = strtokm(NULL, "$");
 		for (i = 0; i < ENC_KEYCHAIN_SIZE; i++)
 			cs.keychain[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
@@ -316,7 +262,7 @@ static void *get_salt(char *ciphertext)
 
 static void set_salt(void *salt)
 {
-	cur_salt = (struct salt *)salt;
+	cur_salt = (struct custom_salt *)salt;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -333,115 +279,79 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	nb_keys = 1 << (cur_salt->algo_id - 1);
 
 #ifdef _OPENMP
-	#pragma omp parallel for
+#pragma omp parallel for
 #endif
-	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
-		int i, j;
+	for (index = 0; index < count; index++) {
+		int j;
 		MD5_CTX ctx;
-		buffer_128 kdf_out[MIN_KEYS_PER_CRYPT][ENC_MAX_KEY_NUM];
+		buffer_128 kdf_out[ENC_MAX_KEY_NUM];
 		buffer_128 hash;
 		buffer_128 tmp;
 		buffer_128 ivs[ENC_MAX_KEY_NUM];
 		unsigned char result[ENC_KEY_SIZE * ENC_MAX_KEY_NUM] = { 0 };
 
-		// Key derivation based on MD5
-		if ((cur_salt->version >> 4) == 0) {
-			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
-				tmp.u64[0] = 0;
-				tmp.u64[1] = 0;
-				MD5_Init(&ctx);
-				MD5_Update(&ctx, saved_key[index + i], strlen(saved_key[index + i]));
-				MD5_Final(hash.u8, &ctx);
+		// Key derivation
+		tmp.u64[0] = 0;
+		tmp.u64[1] = 0;
+		MD5_Init(&ctx);
+		MD5_Update(&ctx, saved_key[index], strlen(saved_key[index]));
+		MD5_Final(hash.u8, &ctx);
 
-				for (j = 0; j < ENC_MAX_KEY_NUM; j++) {
-					memcpy(kdf_out[i][j].u8, default_salts[j], ENC_SALT_SIZE);
-				}
+		for (j = 0; j < ENC_MAX_KEY_NUM; j++) {
+			memcpy(kdf_out[j].u8, default_salts[j], ENC_SALT_SIZE);
+		}
 
-				for (j = 1; j < ENC_DEFAULT_MD5_ITERATIONS; j++) {
-					MD5_Init(&ctx);
-					MD5_Update(&ctx, hash.u8, 16);
-					MD5_Final(hash.u8, &ctx);
-					enc_xor_block(tmp.u64, hash.u64);
-				}
+		for (j = 1; j < ENC_DEFAULT_NUM_HASH_ITERATIONS; j++) {
+			MD5_Init(&ctx);
+			MD5_Update(&ctx, hash.u8, 16);
+			MD5_Final(hash.u8, &ctx);
+			enc_xor_block(tmp.u64, hash.u64);
+		}
 
-				for (j = 0; j < ENC_MAX_KEY_NUM; j++) {
-					enc_xor_block(kdf_out[i][j].u64, tmp.u64);
-				}
+		for (j = 0; j < ENC_MAX_KEY_NUM; j++) {
+			enc_xor_block(kdf_out[j].u64, tmp.u64);
+		}
+
+		/* AES iterated CTR */
+		if (cur_salt->version == 1) {
+			memcpy(ivs[0].u8, cur_salt->iv, ENC_NONCE_SIZE);
+			for (j = 1; j < nb_keys; j++) {
+				memcpy(ivs[j].u8, cur_salt->iv, ENC_NONCE_SIZE);
+				ivs[j].u64[0] ^= kdf_out[j].u64[0];
+			}
+			// result buffer is used here to hold the decrypted data.
+			enc_aes_ctr_iterated(cur_salt->encrypted_data, result, kdf_out[0].u8, ivs, AES_BLOCK_SIZE, nb_keys, 1);
+			if (!memcmp(result + 4, "\xd2\xc3\xb4\xa1", ENC_SIG_SIZE)) {
+				cracked[index] = 1;
+#ifdef _OPENMP
+#pragma omp atomic
+#endif
+				any_cracked |= 1;
 			}
 		} else {
-			// Key derviation based on PBKDF2-SHA256.
-			unsigned char master[MIN_KEYS_PER_CRYPT][ENC_KEY_SIZE * ENC_MAX_KEY_NUM];
+			// Decrypt keychain
+			ivs[0].u64[0] = 0;
+			for (j = 1; j < ENC_MAX_KEY_NUM; j++) {
+				ivs[j].u64[0] = kdf_out[ENC_MAX_KEY_NUM - j].u64[0];
+			}
+			// result buffer is used for the decrypted keys from the keychain
+			enc_aes_ctr_iterated(cur_salt->keychain, result, kdf_out[0].u8, ivs, ENC_KEYCHAIN_SIZE, ENC_MAX_KEY_NUM, 0);
 
-#ifdef SIMD_COEF_32
-			int lens[MIN_KEYS_PER_CRYPT];
-			unsigned char *pin[MIN_KEYS_PER_CRYPT], *pout[MIN_KEYS_PER_CRYPT];
-
-			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
-				lens[i] = strlen(saved_key[index + i]);
-				pin[i] = (unsigned char *)saved_key[index + i];
-				pout[i] = master[i];
+			// Decrypt data
+			memcpy(ivs[0].u8, cur_salt->iv, ENC_NONCE_SIZE);
+			for (j = 1; j < nb_keys; j++) {
+				memcpy(ivs[j].u8, cur_salt->iv, ENC_NONCE_SIZE);
+				memcpy(tmp.u8, result + j * 16, ENC_NONCE_SIZE);
+				ivs[j].u64[0] ^= tmp.u64[0];
 			}
-			pbkdf2_sha256_sse((const unsigned char **)pin, lens, cur_salt->salt, cur_salt->salt_length,
-			                  cur_salt->iterations, pout, ENC_KEY_SIZE * nb_keys, 0);
-			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
-				for (j = 0; j < nb_keys; j++) {
-					memcpy(kdf_out[i][j].u8, pout[i] + (j * ENC_KEY_SIZE), ENC_KEY_SIZE);
-				}
-			}
-#else
-			for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
-				pbkdf2_sha256((unsigned char *)saved_key[index + i], strlen(saved_key[index + i]), cur_salt->salt,
-				              cur_salt->salt_length, cur_salt->iterations, master[i], ENC_KEY_SIZE * nb_keys, 0);
-				for (j = 0; j < nb_keys; j++) {
-					memcpy(kdf_out[i][j].u8, master[i] + (j * ENC_KEY_SIZE), ENC_KEY_SIZE);
-				}
-			}
-#endif
-		}
-		/* AES iterated CTR */
-		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
-			if ((cur_salt->version & 0x0f) == 1) {
-				memcpy(ivs[0].u8, cur_salt->iv, ENC_NONCE_SIZE);
-				for (j = 1; j < nb_keys; j++) {
-					memcpy(ivs[j].u8, cur_salt->iv, ENC_NONCE_SIZE);
-					ivs[j].u64[0] ^= kdf_out[i][j].u64[0];
-				}
-				// result buffer is used here to hold the decrypted data.
-				enc_aes_ctr_iterated(cur_salt->encrypted_data, result, kdf_out[i][0].u8, ivs, AES_BLOCK_SIZE,
-				                     nb_keys, 1);
-				if (!memcmp(result + 4, "\xd2\xc3\xb4\xa1", ENC_SIG_SIZE)) {
-					cracked[index + i] = 1;
+			// result buffer is reused here to hold the decrypted data.
+			enc_aes_ctr_iterated(cur_salt->encrypted_data, result, result, ivs, AES_BLOCK_SIZE, nb_keys, 1);
+			if (!memcmp(result + 4, "\xd2\xc3\xb4\xa1", ENC_SIG_SIZE)) {
+				cracked[index] = 1;
 #ifdef _OPENMP
-					#pragma omp atomic
+#pragma omp atomic
 #endif
-					any_cracked |= 1;
-				}
-			} else {
-				// Decrypt keychain
-				ivs[0].u64[0] = 0;
-				for (j = 1; j < ENC_MAX_KEY_NUM; j++) {
-					ivs[j].u64[0] = kdf_out[i][ENC_MAX_KEY_NUM - j].u64[0];
-				}
-				// result buffer is used for the decrypted keys from the keychain
-				enc_aes_ctr_iterated(cur_salt->keychain, result, kdf_out[i][0].u8, ivs, ENC_KEYCHAIN_SIZE,
-				                     ENC_MAX_KEY_NUM, 0);
-
-				// Decrypt data
-				memcpy(ivs[0].u8, cur_salt->iv, ENC_NONCE_SIZE);
-				for (j = 1; j < nb_keys; j++) {
-					memcpy(ivs[j].u8, cur_salt->iv, ENC_NONCE_SIZE);
-					memcpy(tmp.u8, result + j * 16, ENC_NONCE_SIZE);
-					ivs[j].u64[0] ^= tmp.u64[0];
-				}
-				// result buffer is reused here to hold the decrypted data.
-				enc_aes_ctr_iterated(cur_salt->encrypted_data, result, result, ivs, AES_BLOCK_SIZE, nb_keys, 1);
-				if (!memcmp(result + 4, "\xd2\xc3\xb4\xa1", ENC_SIG_SIZE)) {
-					cracked[index + i] = 1;
-#ifdef _OPENMP
-					#pragma omp atomic
-#endif
-					any_cracked |= 1;
-				}
+				any_cracked |= 1;
 			}
 		}
 	}
