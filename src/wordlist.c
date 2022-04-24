@@ -46,6 +46,7 @@
 #endif
 
 #include <errno.h>
+#include <assert.h>
 
 #include "arch.h"
 #include "mem_map.h"
@@ -507,6 +508,8 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 #endif
 
 	length = options.eff_maxlength;
+	/* Nice message about truncation to length 0 is done by other mode. */
+	assert(length > 0);
 
 	/* If we did not give a name for loopback mode,
 	   we use the active pot file */

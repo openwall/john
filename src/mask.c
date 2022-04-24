@@ -2463,6 +2463,11 @@ static void finalize_mask(int len)
 		        __FUNCTION__,
 		        options.eff_minlength, options.eff_maxlength, mask_num_qw, mask_add_len, options.eff_maxlength * mask_num_qw + mask_add_len);
 #endif
+		if (options.eff_maxlength == 0) {
+			if (john_main_process)
+				fprintf(stderr, "Error: Hybrid mask would truncate input to length 0!\n");
+			error();
+		}
 	}
 
 	template_key_offsets = mem_alloc((mask_num_qw + 1) * sizeof(int));
