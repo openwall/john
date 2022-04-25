@@ -318,7 +318,7 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(NULL, "*");
 	cs.length = atoi(p);
 	p = strtokm(NULL, "*");
-	cs.P = atoi(p);
+	cs.P = (int)strtoll(p, (char **)NULL, 10);
 	p = strtokm(NULL, "*");
 	cs.encrypt_metadata = atoi(p);
 	p = strtokm(NULL, "*");
