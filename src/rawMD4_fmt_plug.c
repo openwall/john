@@ -230,6 +230,7 @@ static char *source(char *source, void *binary)
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
+#define SSEi_REVERSE_STEPS 0
 #endif
 
 static int crypt_all(int *pcount, struct db_salt *salt)
