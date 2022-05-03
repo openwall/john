@@ -63,7 +63,7 @@ static void generate_int_keys(mask_cpu_context *ptr)
 
 #define fill_cand(t) \
 	for (i = 0; i < mask_int_cand.num_int_cand; i++) \
-		mask_int_cand.int_cand[i].x[t] =	 \
+		mask_int_cand.int_cand[i].x[t] = \
 			ptr->ranges[mask_skip_ranges[t]].chars \
 			[(i/repeat) % modulo]
 
@@ -77,7 +77,7 @@ static void generate_int_keys(mask_cpu_context *ptr)
 		mask_int_cand.int_cand[i].i = 0;
 
 	fill_cand(0);
-
+    
 	if (cond(1)) {
 		modulo = ptr->ranges[mask_skip_ranges[1]].count;
 		repeat /= modulo;
@@ -151,7 +151,7 @@ void mask_ext_calc_combination(mask_cpu_context *ptr, int max_static_range)
 	if (mask_skip_ranges[0] != -1) {
 		mask_int_cand.num_int_cand = 1;
 		for (i = 0; i < MASK_FMT_INT_PLHDR &&
-		     mask_skip_ranges[i] != -1; i++)
+		    mask_skip_ranges[i] != -1; i++)
 			mask_int_cand.num_int_cand *= ptr->
 				ranges[mask_skip_ranges[i]].count;
 	}

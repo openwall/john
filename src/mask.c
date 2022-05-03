@@ -1492,7 +1492,7 @@ static void truncate_mask(mask_cpu_context *cpu_mask_ctx, int range_idx)
  * Returns the template of the keys corresponding to the mask.
  * Called by do_mask_crack()
  */
-static char* generate_template_key(char *mask, const char *key, int key_len,
+static char *generate_template_key(char *mask, const char *key, int key_len,
                                    mask_parsed_ctx *parsed_mask,
                                    mask_cpu_context *cpu_mask_ctx,
                                    int template_len)
@@ -1596,23 +1596,26 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
  */
 #define next_state(ps) \
     int note = 0; \
-	while(ps < mask_cur_len) { \
-		if ((++(ranges(ps).iter)) == ranges(ps).count) { \
-			ranges(ps).iter = 0; \
-			template_key[ranges(ps).pos + ranges(ps).offset] = \
-			ranges(ps).chars[ranges(ps).iter]; \
-		    if(ps == 0) note = 1; \
-		    else note = 0; \
+	int i; \
+	for(i=0; i<mask_cur_len; i++) { \
+		if((++(ranges(i).iter)) == ranges(i).count) { \
+			ranges(i).iter = 0; \
+			template_key[ranges(i).pos + ranges(i).offset] = \
+			ranges(i).chars[ranges(i).iter]; \
+		    if(i == 0) \
+		        note = 1; \
+		    else \
+		        note = 0; \
     	    break; \
 		} \
 		else { \
-			template_key[ranges(ps).pos + ranges(ps).offset] = \
-			    ranges(ps).chars[ranges(ps).iter]; \
+			template_key[ranges(i).pos + ranges(i).offset] = \
+			    ranges(i).chars[ranges(i).iter]; \
 		    \
-		    ps = ranges(ps).next; \
+		    ps = ranges(i).next; \
 		} \
 	} \
-    int i=1;\
+    i=1; \
     if(note) { \
         int done = 1; \
         while(i < mask_cur_len) { \
@@ -1664,7 +1667,7 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 	ps3 = cpu_mask_ctx->ranges[ps2].next;
 	ps4 = cpu_mask_ctx->ranges[ps3].next;
 
-	if (cpu_mask_ctx->cpu_count < 4) {
+	if(cpu_mask_ctx->cpu_count < 4) {
 		ps = ps1;
 
 		/* Initialize the placeholders */
@@ -1685,7 +1688,7 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 		}
 	}
 
-	else if (cpu_mask_ctx->cpu_count >= 4) {
+	else if(cpu_mask_ctx->cpu_count >= 4) {
 		ps = ranges(ps4).next;
 
 		/* Initialize the remaining placeholders other than the first four */
@@ -1749,10 +1752,8 @@ static int bench_generate_keys(mask_cpu_context *cpu_mask_ctx,
 
 	if (cpu_mask_ctx->cpu_count < 4) {
 		ps = ps1;
-
 		/* Initialize the placeholders */
 		init_key(ps);
-
 		while (1) {
 			if (options.node_count &&
 			    !(options.flags & FLG_MASK_STACKED) &&
@@ -1765,7 +1766,7 @@ static int bench_generate_keys(mask_cpu_context *cpu_mask_ctx,
 		}
 	}
 
-	else if (cpu_mask_ctx->cpu_count >= 4) {
+	else if(cpu_mask_ctx->cpu_count >= 4) {
 		ps = ranges(ps4).next;
 
 	/* Initialize the remaining placeholders other than the first four */
@@ -1791,11 +1792,11 @@ static int bench_generate_keys(mask_cpu_context *cpu_mask_ctx,
 							set_template_key(ps1, start1);
 							process_key(template_key);
 						}
-					ranges(ps1).iter = 0;
+					    ranges(ps1).iter = 0;
 					}
-				ranges(ps2).iter = 0;
+				    ranges(ps2).iter = 0;
 				}
-			ranges(ps3).iter = 0;
+			    ranges(ps3).iter = 0;
 			}
 			ranges(ps4).iter = 0;
 			ps = ranges(ps4).next;
@@ -2468,7 +2469,6 @@ static void finalize_mask(int len)
 	        "init_cpu_mask()):\n%s\n", __FUNCTION__, mask);
 #endif
 	init_cpu_mask(mask, &parsed_mask, &cpu_mask_ctx, len);
-
 	mask_ext_calc_combination(&cpu_mask_ctx, max_static_range);
 
 #ifdef MASK_DEBUG
