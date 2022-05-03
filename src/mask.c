@@ -51,7 +51,7 @@ static int mask_bench_index;
 static int parent_fix_state_pending;
 static unsigned int int_mask_sum, format_cannot_reset;
 static int using_default_mask;
-
+static int broke[MAX_NUM_MASK_PLHDR];
 
 int mask_add_len, mask_num_qw, mask_cur_len, mask_iter_warn;
 int mask_increments_len;
@@ -1594,22 +1594,35 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
  * Calculate next state of remaing placeholders, working
  * similar to counters.
  */
-#define next_state(ps)							\
-	while(1) {							\
-		if (ps == MAX_NUM_MASK_PLHDR) goto done;		\
-		if ((++(ranges(ps).iter)) == ranges(ps).count) {	\
-			ranges(ps).iter = 0;				\
+#define next_state(ps) \
+    int note = 0; \
+	while(ps < mask_cur_len) { \
+		if ((++(ranges(ps).iter)) == ranges(ps).count) { \
+			ranges(ps).iter = 0; \
 			template_key[ranges(ps).pos + ranges(ps).offset] = \
-			ranges(ps).chars[ranges(ps).iter];		\
-			ps = ranges(ps).next;				\
-		}							\
-		else {							\
+			ranges(ps).chars[ranges(ps).iter]; \
+		    if(ps == 0) note = 1; \
+		    else note = 0; \
+    	    break; \
+		} \
+		else { \
 			template_key[ranges(ps).pos + ranges(ps).offset] = \
-			      ranges(ps).chars[ranges(ps).iter];	\
-			break;						\
-		}							\
-	}
-
+			    ranges(ps).chars[ranges(ps).iter]; \
+		    \
+		    ps = ranges(ps).next; \
+		} \
+	} \
+    int i=1;\
+    if(note) { \
+        int done = 1; \
+        while(i < mask_cur_len) { \
+            if(ranges(i).iter != 0) \
+                done = 0; \
+            i++; \
+        } \
+        if(done) \
+            goto done; \
+    }
 #define init_key(ps)							\
 	while (ps < MAX_NUM_MASK_PLHDR) {				\
 		template_key[ranges(ps).pos + ranges(ps).offset] =	\
@@ -1698,11 +1711,11 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 							set_template_key(ps1, start1);
 							process_key(template_key);
 						}
-					ranges(ps1).iter = 0;
+					    ranges(ps1).iter = 0;
 					}
-				ranges(ps2).iter = 0;
+				    ranges(ps2).iter = 0;
 				}
-			ranges(ps3).iter = 0;
+			    ranges(ps3).iter = 0;
 			}
 			ranges(ps4).iter = 0;
 			ps = ranges(ps4).next;
