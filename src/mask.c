@@ -1594,34 +1594,35 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
  * similar to counters.
  */
 #define next_state(ps) \
-    int i; \
-	for(i=0; i<mask_cur_len; i++) { \
-		if((++(ranges(i).iter)) == ranges(i).count) { \
-			ranges(i).iter = 0; \
-			template_key[ranges(i).pos + ranges(i).offset] = \
-			ranges(i).chars[ranges(i).iter]; \
-		    break; \
+    int note = 0; \
+	int i; \
+	while(ps < mask_cur_len) { \
+		if((++(ranges(ps).iter)) == ranges(ps).count) { \
+			ranges(ps).iter = 0; \
+			template_key[ranges(ps).pos + ranges(ps).offset] = \
+			ranges(ps).chars[ranges(ps).iter]; \
+    	    break; \
 		} \
 		else { \
-			template_key[ranges(i).pos + ranges(i).offset] = \
-			    ranges(i).chars[ranges(i).iter]; \
+			template_key[ranges(ps).pos + ranges(ps).offset] = \
+			    ranges(ps).chars[ranges(ps).iter]; \
 		    \
-		    ps = ranges(i).next; \
+		    ps = ranges(ps).next; \
 		} \
 	} \
-    int finished = 1; \
-    for(i=0; i<mask_cur_len; i++) { \
-        if(ranges(i).iter != 0) \
-            finished = 0; \
+    int done = 1; \
+    for(ps=0; ps<mask_cur_len; ps++) { \
+        if(ranges(ps).iter != 0) \
+            done = 0; \
     } \
-    if(finished) \
+    if(done) \
         goto done; \
 
-#define init_key(ps) \
-	while (ps < MAX_NUM_MASK_PLHDR) { \
-		template_key[ranges(ps).pos + ranges(ps).offset] = \
-		ranges(ps).chars[ranges(ps).iter]; \
-		ps = ranges(ps).next; \
+#define init_key(ps)							\
+	while (ps < MAX_NUM_MASK_PLHDR) {				\
+		template_key[ranges(ps).pos + ranges(ps).offset] =	\
+		ranges(ps).chars[ranges(ps).iter];			\
+		ps = ranges(ps).next;					\
 	}
 
 #define iterate_over(ps)						\
