@@ -51,7 +51,6 @@ static int mask_bench_index;
 static int parent_fix_state_pending;
 static unsigned int int_mask_sum, format_cannot_reset;
 static int using_default_mask;
-static int broke[MAX_NUM_MASK_PLHDR];
 
 int mask_add_len, mask_num_qw, mask_cur_len, mask_iter_warn;
 int mask_increments_len;
@@ -1595,18 +1594,13 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
  * similar to counters.
  */
 #define next_state(ps) \
-    int note = 0; \
-	int i; \
+    int i; \
 	for(i=0; i<mask_cur_len; i++) { \
 		if((++(ranges(i).iter)) == ranges(i).count) { \
 			ranges(i).iter = 0; \
 			template_key[ranges(i).pos + ranges(i).offset] = \
 			ranges(i).chars[ranges(i).iter]; \
-		    if(i == 0) \
-		        note = 1; \
-		    else \
-		        note = 0; \
-    	    break; \
+		    break; \
 		} \
 		else { \
 			template_key[ranges(i).pos + ranges(i).offset] = \
@@ -1615,22 +1609,19 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
 		    ps = ranges(i).next; \
 		} \
 	} \
-    i=1; \
-    if(note) { \
-        int done = 1; \
-        while(i < mask_cur_len) { \
-            if(ranges(i).iter != 0) \
-                done = 0; \
-            i++; \
-        } \
-        if(done) \
-            goto done; \
-    }
-#define init_key(ps)							\
-	while (ps < MAX_NUM_MASK_PLHDR) {				\
-		template_key[ranges(ps).pos + ranges(ps).offset] =	\
-		ranges(ps).chars[ranges(ps).iter];			\
-		ps = ranges(ps).next;					\
+    int finished = 1; \
+    for(i=0; i<mask_cur_len; i++) { \
+        if(ranges(i).iter != 0) \
+            finished = 0; \
+    } \
+    if(finished) \
+        goto done; \
+
+#define init_key(ps) \
+	while (ps < MAX_NUM_MASK_PLHDR) { \
+		template_key[ranges(ps).pos + ranges(ps).offset] = \
+		ranges(ps).chars[ranges(ps).iter]; \
+		ps = ranges(ps).next; \
 	}
 
 #define iterate_over(ps)						\
@@ -1667,7 +1658,8 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 	ps3 = cpu_mask_ctx->ranges[ps2].next;
 	ps4 = cpu_mask_ctx->ranges[ps3].next;
 
-	if(cpu_mask_ctx->cpu_count < 4) {
+	if(cpu_mask_ctx->cpu_count < 4) 
+	{
 		ps = ps1;
 
 		/* Initialize the placeholders */
