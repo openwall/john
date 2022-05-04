@@ -437,8 +437,6 @@ struct options_main {
 	char *tune;
 /* Incremental CharCount override */
 	int charcount;
-/* Rain full charset */
-	char *rain_full;
 /* --[no-]keep-guessing tri-state option (vs. format's FMT_NOT_EXACT) */
 	int keep_guessing;
 /* --log-stderr */

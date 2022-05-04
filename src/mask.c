@@ -1593,10 +1593,9 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
  * Calculate next state of remaing placeholders, working
  * similar to counters.
  */
+#if 1
 #define next_state(ps) \
-    int note = 0; \
-	int i; \
-	while(ps < mask_cur_len) { \
+    while(ps < mask_cur_len) { \
 		if((++(ranges(ps).iter)) == ranges(ps).count) { \
 			ranges(ps).iter = 0; \
 			template_key[ranges(ps).pos + ranges(ps).offset] = \
@@ -1606,17 +1605,34 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
 		else { \
 			template_key[ranges(ps).pos + ranges(ps).offset] = \
 			    ranges(ps).chars[ranges(ps).iter]; \
-		    \
 		    ps = ranges(ps).next; \
 		} \
 	} \
-    int done = 1; \
+    int i; \
+	int done = 1; \
     for(i=0; i<mask_cur_len; i++) { \
         if(ranges(i).iter != 0) \
             done = 0; \
     } \
     if(done) \
-        goto done; \
+        goto done;
+#else
+#define next_state(ps) \
+	while(1) { \
+		if(ps == MAX_NUM_MASK_PLHDR) goto done;\
+		if((++(ranges(ps).iter)) == ranges(ps).count) { \
+			ranges(ps).iter = 0; \
+			template_key[ranges(ps).pos + ranges(ps).offset] = \
+			ranges(ps).chars[ranges(ps).iter]; \
+			ps = ranges(ps).next; \
+    	} \
+		else { \
+			template_key[ranges(ps).pos + ranges(ps).offset] = \
+			    ranges(ps).chars[ranges(ps).iter]; \
+		    break; \
+		} \
+	}
+#endif
 
 #define init_key(ps)							\
 	while (ps < MAX_NUM_MASK_PLHDR) {				\
@@ -1659,8 +1675,7 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 	ps3 = cpu_mask_ctx->ranges[ps2].next;
 	ps4 = cpu_mask_ctx->ranges[ps3].next;
 
-	//if(cpu_mask_ctx->cpu_count < 4) 
-	if(1)
+	if(cpu_mask_ctx->cpu_count < 4) 
 	{
 		ps = ps1;
 
@@ -1693,7 +1708,7 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 			start2 = ranges(ps2).start;
 			start3 = ranges(ps3).start;
 			start4 = ranges(ps4).start;
-			/* Iterate over first three placeholders */
+			/* Iterate over first fours placeholders */
 			for (iterate_over(ps4)) {
 				set_template_key(ps4, start4);
 				for (iterate_over(ps3)) {
@@ -1783,8 +1798,8 @@ static int bench_generate_keys(mask_cpu_context *cpu_mask_ctx,
 							    !(options.flags & FLG_MASK_STACKED) &&
 							    !(*my_candidates)--)
 								goto done;
-							set_template_key(ps1, start1);
 							process_key(template_key);
+							
 						}
 					    ranges(ps1).iter = 0;
 					}
