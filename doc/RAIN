@@ -1,8 +1,11 @@
 This is the rain mode, dev did not accept this, reason (among else) is that it doesn't crack as fast as inc.  
 The real point of this mode though is no to crack quickly: it makes no effort at targeting human words, being a simple piece of code which mangles to the extreme.  
-Markov like generation is no prone to find a WPA2 password or any (pseudo) randomly generated pass.  
+Markov like generation is no prone to find a WPA2 password or any randomly generated pass.  
 If you want to grasp a concept in which words are generated, run it with a same min/max length, and a small set of characters.  
 The reality is that the code comes from a bebinner's mistake, not exponentially changing the state but instead rolling through,  
-untill we reach the limit of the set. To be more precise we increase all characters in the same time when iterating on the word, and break if toping.  
+untill we reach the limit of the set. To be more precise we increase all characters in the same time when iterating on the word, and break when overflow.  
+
+The technique has been implemented into -mask, and leaves you no choice about setting it on/off since it just improves cracking rate.  
+  
 
 
