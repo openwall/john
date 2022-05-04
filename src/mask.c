@@ -1611,8 +1611,8 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
 		} \
 	} \
     int done = 1; \
-    for(ps=0; ps<mask_cur_len; ps++) { \
-        if(ranges(ps).iter != 0) \
+    for(i=0; i<mask_cur_len; i++) { \
+        if(ranges(i).iter != 0) \
             done = 0; \
     } \
     if(done) \
@@ -1659,7 +1659,8 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 	ps3 = cpu_mask_ctx->ranges[ps2].next;
 	ps4 = cpu_mask_ctx->ranges[ps3].next;
 
-	if(cpu_mask_ctx->cpu_count < 4) 
+	//if(cpu_mask_ctx->cpu_count < 4) 
+	if(1)
 	{
 		ps = ps1;
 
