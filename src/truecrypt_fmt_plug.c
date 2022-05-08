@@ -415,7 +415,7 @@ static int apply_keyfiles(unsigned char *pass, size_t pass_memsz)
 		error();
 	}
 
-	pl = strlen((char *)pass);
+	pl = strnlen((char *)pass, MAX_PASSSZ);
 	memset(pass+pl, 0, MAX_PASSSZ-pl);
 
 	/* Apply keyfile pool to passphrase */
