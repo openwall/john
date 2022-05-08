@@ -118,7 +118,6 @@ static struct cust_salt {
 	// test suite cracked, BUT the same password was used for all of them,
 	// the first password in the file.  Not what we wanted.
 	unsigned char bin[512-64];
-	int loop_inc;
 	int num_iterations;
 	int hash_type;
 	int nkeyfiles;
@@ -298,16 +297,12 @@ static void* get_salt(char *ciphertext)
 	memset(s, 0, sizeof(struct cust_salt));
 
 	s->num_iterations = 1000;
-	s->loop_inc = 1;
 	if (!strncmp(ciphertext, TAG_WHIRLPOOL, TAG_WHIRLPOOL_LEN)) {
 		ciphertext += TAG_WHIRLPOOL_LEN;
 		s->hash_type = IS_WHIRLPOOL;
 	} else if (!strncmp(ciphertext, TAG_SHA512, TAG_SHA512_LEN)) {
 		ciphertext += TAG_SHA512_LEN;
 		s->hash_type = IS_SHA512;
-#if SSE_GROUP_SZ_SHA512
-		s->loop_inc = SSE_GROUP_SZ_SHA512;
-#endif
 	} else if (!strncmp(ciphertext, TAG_RIPEMD160, TAG_RIPEMD160_LEN)) {
 		ciphertext += TAG_RIPEMD160_LEN;
 		s->hash_type = IS_RIPEMD160;
@@ -407,24 +402,6 @@ static void* get_salt(char *ciphertext)
 	return s;
 }
 
-static int apply_keyfiles(unsigned char *pass, size_t pass_memsz)
-{
-	int pl, i;
-
-	if (pass_memsz < MAX_PASSSZ) {
-		error();
-	}
-
-	pl = strnlen((char *)pass, MAX_PASSSZ);
-	memset(pass+pl, 0, MAX_PASSSZ-pl);
-
-	/* Apply keyfile pool to passphrase */
-	for (i = 0; i < KPOOL_SZ; i++)
-		pass[i] += psalt->kpool[i];
-
-	return 0;
-}
-
 // compare a BE string crc32, against crc32, and do it in a safe for non-aligned CPU way.
 // this function is not really speed critical.
 static int cmp_crc32s(unsigned char *given_crc32, CRC32_t comp_crc32) {
@@ -483,84 +460,65 @@ static int decrypt_and_verify(unsigned char *key, int algorithm)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i;
+	int i, inner_batch_size = 1;
 	const int count = *pcount;
+
+#if SSE_GROUP_SZ_SHA512
+#define INNER_BATCH_MAX_SZ SSE_GROUP_SZ_SHA512
+	if (psalt->hash_type == IS_SHA512)
+		inner_batch_size = SSE_GROUP_SZ_SHA512;
+#else
+#define INNER_BATCH_MAX_SZ 1
+#endif
 
 	memset(cracked, 0, sizeof(cracked[0]) * count);
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
-	for (i = 0; i < count; i+=psalt->loop_inc) {
-		unsigned char key[64];
-#if SSE_GROUP_SZ_SHA512
-		unsigned char Keys[SSE_GROUP_SZ_SHA512][64];
-#endif
+	for (i = 0; i < count; i += inner_batch_size) {
+		unsigned char keys[INNER_BATCH_MAX_SZ][64];
+		int lens[INNER_BATCH_MAX_SZ];
 		int j;
-		int ksz = strlen((char *)key_buffer[i]);
 
-#if SSE_GROUP_SZ_SHA512
-		if (psalt->hash_type != IS_SHA512)
-#endif
-		{
-			strncpy((char*)key, (char*)key_buffer[i], 64);
-
+		for (j = 0; j < inner_batch_size; ++j) {
+			lens[j] = strlen((char *)key_buffer[i+j]);
+			/* zeroing of end by strncpy is important for keyfiles */
+			strncpy((char*)keys[j], (char*)key_buffer[i+j], 64);
 			/* process keyfile(s) */
 			if (psalt->nkeyfiles) {
-				apply_keyfiles(key, 64);
-				ksz = 64;
+				int t;
+				/* Apply keyfile pool to passphrase */
+				for (t = 0; t < KPOOL_SZ; t++)
+					keys[j][t] += psalt->kpool[t];
+				lens[j] = 64;
 			}
 		}
 
-#if SSE_GROUP_SZ_SHA512
 		if (psalt->hash_type == IS_SHA512) {
-			int lens[SSE_GROUP_SZ_SHA512];
+#if SSE_GROUP_SZ_SHA512
 			unsigned char *pin[SSE_GROUP_SZ_SHA512];
-			union {
-				unsigned char *pout[SSE_GROUP_SZ_SHA512];
-				unsigned char *poutc;
-			} x;
+			unsigned char *pout[SSE_GROUP_SZ_SHA512];
 			for (j = 0; j < SSE_GROUP_SZ_SHA512; ++j) {
-				lens[j] = strlen((char*)(key_buffer[i+j]));
-
-				strncpy((char*)Keys[j], (char*)key_buffer[i+j], 64);
-
-				/* process keyfile(s) */
-				if (psalt->nkeyfiles) {
-					apply_keyfiles(Keys[j], 64);
-					lens[j] = 64;
-				}
-
-				pin[j] = Keys[j];
-				x.pout[j] = Keys[j];
+				pin[j] = keys[j];
+				pout[j] = keys[j];
 			}
-			pbkdf2_sha512_sse((const unsigned char **)pin, lens, psalt->salt, 64, psalt->num_iterations, &(x.poutc), sizeof(key), 0);
-		}
+			pbkdf2_sha512_sse((const unsigned char **)pin, lens, psalt->salt, 64, psalt->num_iterations, pout, sizeof(keys[0]), 0);
 #else
-		if (psalt->hash_type == IS_SHA512) {
-			pbkdf2_sha512((const unsigned char*)key, ksz, psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
+			pbkdf2_sha512((const unsigned char*)keys[0], lens[0], psalt->salt, 64, psalt->num_iterations, keys[0], sizeof(keys[0]), 0);
+#endif
 		}
-#endif
 		else if (psalt->hash_type == IS_RIPEMD160 || psalt->hash_type == IS_RIPEMD160BOOT)
-			pbkdf2_ripemd160((const unsigned char*)key, ksz, psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
+			pbkdf2_ripemd160((const unsigned char*)keys[0], lens[0], psalt->salt, 64, psalt->num_iterations, keys[0], sizeof(keys[0]), 0);
 		else
-			pbkdf2_whirlpool((const unsigned char*)key, ksz, psalt->salt, 64, psalt->num_iterations, key, sizeof(key), 0);
-		for (j = 0; j < psalt->loop_inc; ++j) {
-#if SSE_GROUP_SZ_SHA512
-			if (psalt->hash_type == IS_SHA512)
-				memcpy(key, Keys[j], sizeof(key));
-#endif
+			pbkdf2_whirlpool((const unsigned char*)keys[0], lens[0], psalt->salt, 64, psalt->num_iterations, keys[0], sizeof(keys[0]), 0);
+
+		for (j = 0; j < inner_batch_size; ++j) {
 			cracked[i+j] = 0;
-			if (decrypt_and_verify(key, 0)) // AES
+			if (decrypt_and_verify(keys[j], 0) // AES
+			    || decrypt_and_verify(keys[j], 1) // Twofish
+			    || decrypt_and_verify(keys[j], 2)) // Serpent
 				cracked[i+j] = 1;
-			else {
-				if (decrypt_and_verify(key, 1)) // Twofish
-					cracked[i+j] = 1;
-				else {
-					if (decrypt_and_verify(key, 2)) // Serpent
-						cracked[i+j] = 1;
-				}
-			}
 		}
 	}
 
