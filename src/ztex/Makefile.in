@@ -5,7 +5,7 @@
 # modification, are permitted.
 
 CC = gcc
-CFLAGS = -c -Wall -O2
+CFLAGS = -c -Wall -O2 -g
 CFLAGS_TEST = -O
 #LD = ld
 RM = /bin/rm -f
