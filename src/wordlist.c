@@ -635,12 +635,16 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 		}
 #endif
 
-		ourshare = options.node_count ?
-			(file_len / options.node_count) *
-			(options.node_max - options.node_min + 1)
-			: file_len;
+		ourshare = file_len;
 
-		if (ourshare < options.max_wordfile_memory &&
+		// Load only this node's share of words to memory
+		if (mem_map && options.node_count > 1 &&
+		    (file_len > options.node_count * (length * 100))) {
+			ourshare = (file_len / options.node_count) *
+				(options.node_max - options.node_min + 1);
+		}
+
+		if (ourshare <= options.max_wordfile_memory &&
 		    mem_saving_level < 2 &&
 		    (options.flags & FLG_RULES_CHK))
 			forceLoad = 1;
@@ -652,8 +656,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			char *aep;
 
 			// Load only this node's share of words to memory
-			if (mem_map && options.node_count > 1 &&
-			    (file_len > options.node_count * (length * 100))) {
+			if (ourshare < file_len) {
 				/* Check net size for our share. */
 				for (nWordFileLines = 0;; ++nWordFileLines) {
 					char *lp;
