@@ -531,7 +531,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					lens[j] = 64;
 				}
 
-				pin[j] = key_buffer[i+j];
+				pin[j] = Keys[j];
 				x.pout[j] = Keys[j];
 			}
 			pbkdf2_sha512_sse((const unsigned char **)pin, lens, psalt->salt, 64, psalt->num_iterations, &(x.poutc), sizeof(key), 0);
