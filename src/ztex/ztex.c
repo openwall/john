@@ -494,6 +494,8 @@ int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list,
 				break;
 			}
 		}
+		if (!ztex_dev)
+			continue;
 
 		// found new device
 		if (ZTEX_DEBUG) printf("found: SN %s productId: %d.%d\n",
