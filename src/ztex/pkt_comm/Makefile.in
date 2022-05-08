@@ -5,7 +5,7 @@
 # modification, are permitted.
 
 CC = gcc
-CFLAGS = -c -Wall -O2
+CFLAGS = -c -Wall -O2 -g
 
 OBJS = pkt_comm.o word_gen.o word_list.o cmp_config.o inpkt.o init_data.o
 
