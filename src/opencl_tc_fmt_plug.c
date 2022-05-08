@@ -59,9 +59,6 @@ john_register_one(&FMT_STRUCT);
 #define MAX_KFILE_SZ            1048576 /* 1 MB */
 #define MAX_KEYFILES            256
 
-static unsigned char (*keyfiles_data)[MAX_KFILE_SZ];
-static int (*keyfiles_length);
-
 #define KEYLEN  PLAINTEXT_LENGTH
 #define OUTLEN  64
 #define SALTLEN 64
@@ -83,10 +80,10 @@ typedef struct {
 static struct cust_salt {
 	unsigned char salt[64];
 	unsigned char bin[512 - 64];
-	int loop_inc;
 	int num_iterations;
 	int hash_type;
 	int nkeyfiles;
+	unsigned char kpool[KPOOL_SZ];
 } *psalt;
 
 static struct fmt_tests tests_ripemd160[] = {
@@ -96,7 +93,7 @@ static struct fmt_tests tests_ripemd160[] = {
 };
 
 static cl_int cl_error;
-static pbkdf2_password *inbuffer;
+static pbkdf2_password *inbuffer, *inbuffer_with_keyfiles;
 static tc_hash *outbuffer;
 static tc_salt currentsalt;
 static cl_mem mem_in, mem_out, mem_setting;
@@ -131,6 +128,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	settingsize = sizeof(tc_salt);
 
 	inbuffer = mem_calloc(1, insize);
+	inbuffer_with_keyfiles = mem_calloc(1, insize);
 	outbuffer = mem_alloc(outsize);
 
 	// Allocate memory
@@ -163,14 +161,13 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(mem_out), "Release mem out");
 
 		MEM_FREE(inbuffer);
+		MEM_FREE(inbuffer_with_keyfiles);
 		MEM_FREE(outbuffer);
 	}
 }
 
 static void done(void)
 {
-	MEM_FREE(keyfiles_data);
-	MEM_FREE(keyfiles_length);
 	if (program[gpu_id]) {
 		release_clobj();
 
@@ -185,9 +182,6 @@ static void init(struct fmt_main *_self)
 {
 	self = _self;
 	opencl_prepare_dev(gpu_id);
-
-	keyfiles_data = mem_calloc(MAX_KEYFILES, sizeof(*keyfiles_data));
-	keyfiles_length = mem_calloc(MAX_KEYFILES, sizeof(int));
 }
 
 static void reset(struct db_main *db)
@@ -298,16 +292,16 @@ static void* get_salt(char *ciphertext)
 {
 	static char buf[sizeof(struct cust_salt)+4];
 	struct cust_salt *s = (struct cust_salt*)mem_align(buf, 4);
-	unsigned int i;
 	char tpath[PATH_BUFFER_SIZE];
 	char *p, *q;
-	int idx;
+	int i, idx, kpool_idx;
 	FILE *fp;
 	size_t sz, len;
+	uint32_t crc;
+	unsigned char *keyfile_data;
 
 	memset(s, 0, sizeof(struct cust_salt));
 
-	s->loop_inc = 1;
 	ciphertext += TAG_RIPEMD160_LEN;
 	s->hash_type = IS_RIPEMD160;
 	s->num_iterations = 2000;
@@ -344,7 +338,7 @@ static void* get_salt(char *ciphertext)
 		}
 		memcpy(tpath, p, len);
 		tpath[len] = '\0';
-		/* read this into keyfiles_data[idx] */
+		/* read this into keyfile_data */
 		fp = fopen(tpath, "rb");
 		if (!fp)
 			pexit("fopen %s", tpath);
@@ -353,6 +347,11 @@ static void* get_salt(char *ciphertext)
 			pexit("fseek");
 
 		sz = ftell(fp);
+
+		if (sz == 0) {
+			fclose(fp);
+			continue;
+		}
 
 		if (sz > MAX_KFILE_SZ) {
 			if (john_main_process)
@@ -363,12 +362,31 @@ static void* get_salt(char *ciphertext)
 		if (fseek(fp, 0L, SEEK_SET) == -1)
 			pexit("fseek");
 
-		if (fread(keyfiles_data[idx], 1, sz, fp) != sz)
+		keyfile_data = mem_alloc(sz);
+		if (fread(keyfile_data, 1, sz, fp) != sz)
 			pexit("fread");
 
-		keyfiles_length[idx] = sz;
 		fclose(fp);
+
+		/* Mix keyfile into kpool */
+		kpool_idx = 0;
+		crc = ~0U;
+		for (i = 0; i < sz; i++) {
+			crc = jtr_crc32(crc, keyfile_data[i]);
+			s->kpool[kpool_idx++] += (unsigned char)(crc >> 24);
+			s->kpool[kpool_idx++] += (unsigned char)(crc >> 16);
+			s->kpool[kpool_idx++] += (unsigned char)(crc >> 8);
+			s->kpool[kpool_idx++] += (unsigned char)(crc);
+			/* Wrap around */
+			if (kpool_idx == KPOOL_SZ)
+				kpool_idx = 0;
+		}
+
+		free(keyfile_data);
 	}
+
+	/* Once kpool is ready, number of keyfiles does not matter. */
+	s->nkeyfiles = 1;
 
 	return s;
 }
@@ -412,14 +430,9 @@ static void AES_256_XTS_first_sector(const unsigned char *double_key,
 	}
 }
 
-static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles, unsigned int pass_len)
+static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, unsigned int pass_len)
 {
-	int k;
-	unsigned char *kpool;
-	unsigned char *kdata;
-	int kpool_idx;
-	size_t i, kdata_sz;
-	uint32_t crc;
+	int i;
 
 	if (pass_memsz < MAX_PASSSZ) {
 		error();
@@ -427,34 +440,9 @@ static int apply_keyfiles(unsigned char *pass, size_t pass_memsz, int nkeyfiles,
 
 	memset(pass+pass_len, 0, MAX_PASSSZ-pass_len);
 
-	if ((kpool = mem_calloc(1, KPOOL_SZ)) == NULL) {
-		error();
-	}
-
-	for (k = 0; k < nkeyfiles; k++) {
-		kpool_idx = 0;
-		kdata_sz = keyfiles_length[k];
-		kdata = keyfiles_data[k];
-		crc = ~0U;
-
-		for (i = 0; i < kdata_sz; i++) {
-			crc = jtr_crc32(crc, kdata[i]);
-			kpool[kpool_idx++] += (unsigned char)(crc >> 24);
-			kpool[kpool_idx++] += (unsigned char)(crc >> 16);
-			kpool[kpool_idx++] += (unsigned char)(crc >> 8);
-			kpool[kpool_idx++] += (unsigned char)(crc);
-
-			/* Wrap around */
-			if (kpool_idx == KPOOL_SZ)
-				kpool_idx = 0;
-		}
-	}
-
 	/* Apply keyfile pool to passphrase */
 	for (i = 0; i < KPOOL_SZ; i++)
-		pass[i] += kpool[i];
-
-	MEM_FREE(kpool);
+		pass[i] += psalt->kpool[i];
 
 	return 0;
 }
@@ -464,19 +452,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int i;
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	pbkdf2_password *pinbuffer = inbuffer;
 
 	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	if (psalt->nkeyfiles) {
+		pinbuffer = inbuffer_with_keyfiles;
+		memcpy(pinbuffer, inbuffer, count * sizeof(inbuffer[0]));
 		for (i = 0; i < count; i++) {
-			apply_keyfiles(inbuffer[i].v, 64, psalt->nkeyfiles, inbuffer[i].length);
-			inbuffer[i].length = 64;
+			apply_keyfiles(pinbuffer[i].v, 64, pinbuffer[i].length);
+			pinbuffer[i].length = 64;
 		}
 	}
 
 	// Copy data to gpu
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
+		insize, pinbuffer, 0, NULL, multi_profilingEvent[0]),
 	        "Copy data to gpu");
 
 	// Run kernel
@@ -526,7 +517,7 @@ static int cmp_exact(char *source, int idx)
 
 	/* process keyfile(s) */
 	if (psalt->nkeyfiles) {
-		apply_keyfiles(key, 64, psalt->nkeyfiles, inbuffer[idx].length);
+		apply_keyfiles(key, 64, inbuffer[idx].length);
 		ksz = 64;
 	}
 
