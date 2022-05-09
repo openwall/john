@@ -105,7 +105,7 @@ JOHN_OBJS = \
 	memory.o misc.o options.o params.o path.o recovery.o rpp.o rules.o signals.o single.o status.o \
 	suppressor.o tty.o wordlist.o \
 	mkv.o mkvlib.o \
-	rain.o unicode_range.o \
+	unicode_range.o \
 	listconf.o \
 	fake_salts.o \
 	win32_memmap.o mmap-windows.o \
@@ -407,8 +407,6 @@ misc.o:	misc.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h logger.h params.h 
 missing_getopt.o:	missing_getopt.c missing_getopt.h os.h os-autoconf.h autoconfig.h jumbo.h arch.h memory.h
 
 mkv.o:	mkv.c arch.h misc.h jumbo.h autoconfig.h params.h path.h memory.h os.h os-autoconf.h signals.h formats.h loader.h list.h logger.h status.h recovery.h config.h charset.h external.h compiler.h cracker.h options.h getopt.h common.h john.h mkv.h mkvlib.h mask.h
-
-rain.o: rain.h rain.c unicode_range.h loader.h cracker.h options.h logger.h status.h recovery.h
 
 unicode_range.o: unicode_range.c unicode_range.h
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -O0 unicode_range.c
@@ -729,7 +727,7 @@ poly1305-donna/poly1305-donna.a:
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) @OPENMP_CFLAGS@ -o $@
 
-john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john_mpi.h regex.h unicode.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) john_build_rule.h fmt_externs.h fmt_registers.h rain.h
+john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john_mpi.h regex.h unicode.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) john_build_rule.h fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O1 $*.c
 
 # Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)
