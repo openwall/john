@@ -1663,9 +1663,8 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 	} while(0)
 
 	ps1 = cpu_mask_ctx->ps1;
-
-	//if(cpu_mask_ctx->cpu_count < 2)
-	if(1)
+    ps2 = cpu_mask_ctx->ranges[ps1].next;
+	if(cpu_mask_ctx->cpu_count < 2)
 	{
 		ps = ps1;
         int loop;
@@ -1887,12 +1886,11 @@ static uint64_t divide_work(mask_cpu_context *cpu_mask_ctx)
 	ps = cpu_mask_ctx->ps1;
 	while(ps < MAX_NUM_MASK_PLHDR) {
 	    int loop;
-	    for(loop=0; loop<MAX_NUM_MASK_PLHDR-1; loop++) { 
-		    cpu_mask_ctx->ranges[ps].iter[loop] = (offset / ctr) %
-			    cpu_mask_ctx->ranges[ps].count;
-		    ctr *= cpu_mask_ctx->ranges[ps].count;
-		    ps = cpu_mask_ctx->ranges[ps].next;
-	    }
+        for(loop=0; loop<MAX_NUM_MASK_PLHDR-1; loop++) 
+	        cpu_mask_ctx->ranges[ps].iter[loop] = (offset / ctr) %
+		        cpu_mask_ctx->ranges[ps].count;
+	    ctr *= cpu_mask_ctx->ranges[ps].count;
+	    ps = cpu_mask_ctx->ranges[ps].next;
     }
 	return my_candidates;
 }
