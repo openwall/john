@@ -43,7 +43,7 @@ typedef struct {
 	/* next active range */
 	unsigned char next;
 	/* current postion in chars[] while iterating */
-	unsigned char iter;
+	unsigned char iter[MAX_NUM_MASK_PLHDR-1];
 	/* Number of characters in the range */
 	unsigned char count;
 	/*
