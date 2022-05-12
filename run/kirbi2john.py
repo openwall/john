@@ -19,7 +19,6 @@
 # limitations under the License
 
 from pyasn1.codec.ber import decoder
-import glob
 
 
 def extract_ticket_from_kirbi(filename):
@@ -45,17 +44,16 @@ if __name__ == '__main__':
     parser.add_argument('-o', dest='crack_file', metavar='crack_file', type=argparse.FileType('w'), default=sys.stdout, nargs='?',
                     help='File to save crackable output to (default is stdout')
     parser.add_argument('files', nargs='+', metavar='file.kirbi', type=str,
-                    help='File name to crack. Use asterisk \'*\' for many files.\n Files are exported with mimikatz or from extracttgsrepfrompcap.py')
+                    help='File name to crack.\n Files are exported with mimikatz or from extracttgsrepfrompcap.py')
 
     args = parser.parse_args()
 
     enctickets = []
 
-    for path in args.files:
-        for filename in glob.glob(path):
-            et = extract_ticket_from_kirbi(filename)
-            if et:
-                enctickets.append((et,filename))
+    for filename in args.files:
+        et = extract_ticket_from_kirbi(filename)
+        if et:
+            enctickets.append((et,filename))
 
     #out=open("crack_file","wb")
     for et in enctickets:
