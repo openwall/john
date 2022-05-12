@@ -27,6 +27,7 @@
 #include <unistd.h>
 #endif
 
+#define NEED_OS_FORK
 #include "os.h"
 
 #if !AC_BUILT
@@ -573,6 +574,14 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			pexit("fstat");
 
 		file_is_fifo = ((st.st_mode & S_IFMT) == S_IFIFO);
+
+#if OS_FORK
+		if (options.fork && file_is_fifo) {
+			if (john_main_process)
+				fprintf(stderr, "Error, cannot use --fork with FIFO as wordlist file.\n");
+			error();
+		}
+#endif
 
 		if (john_main_process)
 			log_event("- %s %s: %.100s", loopBack ? "Loopback pot" : "Wordlist",
