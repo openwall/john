@@ -225,7 +225,8 @@ static void read_file(struct db_main *db, char *name, int flags,
 	}
 
 	if (!(file = fopen(path_expand(name), "r"))) {
-		if ((flags & RF_ALLOW_MISSING) && errno == ENOENT) return;
+		if ((flags & RF_ALLOW_MISSING) && errno == ENOENT)
+			return;
 		pexit("fopen: %s", path_expand(name));
 	}
 
