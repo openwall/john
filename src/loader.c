@@ -247,15 +247,13 @@ static void read_file(struct db_main *db, char *name, int flags,
 			     options.input_enc == UTF_8)) {
 				if (!valid_utf8((UTF8*)u8check)) {
 					warn_enc = 0;
-					fprintf(stderr, "Warning: invalid UTF-8"
-					        " seen reading %s\n", name);
+					fprintf(stderr, "Warning: invalid UTF-8 seen reading %s\n", path_expand(name));
 				}
 			} else if (options.input_enc != UTF_8 &&
 			           (line != line_buf ||
 			            valid_utf8((UTF8*)u8check) > 1)) {
 				warn_enc = 0;
-				fprintf(stderr, "Warning: UTF-8 seen reading "
-				        "%s\n", name);
+				fprintf(stderr, "Warning: UTF-8 seen reading %s\n", path_expand(name));
 			}
 		}
 		process_line(db, line);
