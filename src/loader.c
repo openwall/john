@@ -209,13 +209,19 @@ static void read_file(struct db_main *db, char *name, int flags,
 	warn_enc = (john_main_process && (options.target_enc != ENC_RAW) &&
 	            cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0));
 
-	if (flags & RF_ALLOW_DIR) {
-		if (stat(name, &file_stat)) {
-			if (flags & RF_ALLOW_MISSING)
-				if (errno == ENOENT) return;
-			pexit("stat: %s", path_expand(name));
-		} else
-			if (S_ISDIR(file_stat.st_mode)) return;
+	if (stat(name, &file_stat)) {
+		if ((flags & RF_ALLOW_MISSING) && errno == ENOENT)
+			return;
+		pexit("stat: %s", path_expand(name));
+	}
+
+	if ((flags & RF_ALLOW_DIR) && S_ISDIR(file_stat.st_mode))
+		return;
+
+	if (ldr_in_pot && S_ISFIFO(file_stat.st_mode)) {
+		if (john_main_process)
+			fprintf(stderr, "Error, cannot use FIFO as pot file: %s\n", path_expand(name));
+		error();
 	}
 
 	if (!(file = fopen(path_expand(name), "r"))) {
