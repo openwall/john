@@ -209,7 +209,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 	warn_enc = (john_main_process && (options.target_enc != ENC_RAW) &&
 	            cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0));
 
-	if (stat(name, &file_stat)) {
+	if (stat(path_expand(name), &file_stat)) {
 		if ((flags & RF_ALLOW_MISSING) && errno == ENOENT)
 			return;
 		pexit("stat: %s", path_expand(name));
