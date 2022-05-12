@@ -607,8 +607,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 		jtr_fseek64(word_file, 0, SEEK_SET);
 		if (file_len == 0 && !loopBack) {
 			if (john_main_process)
-				fprintf(stderr, "Error, dictionary file is "
-				        "empty\n");
+				fprintf(stderr, "Error, wordlist file is empty\n");
 			error();
 		}
 
