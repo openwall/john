@@ -1598,15 +1598,12 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
     while(ps < mask_cur_len + loop) { \
 		if((++(ranges(ps).iter[loop])) == ranges(ps).count) { \
 			ranges(ps).iter[loop] = 0; \
-			template_key[ranges(ps).pos + ranges(ps).offset] = \
-			ranges(ps).chars[ranges(ps).iter[loop]]; \
-    	    break; \
+			template_key[ranges(ps).pos + ranges(ps).offset] = ranges(ps).chars[0]; \
+			break; \
 		} \
-		else { \
-			template_key[ranges(ps).pos + ranges(ps).offset] = \
-			    ranges(ps).chars[ranges(ps).iter[loop]]; \
-		    ps = ranges(ps).next; \
-		} \
+		else \
+			template_key[ranges(ps).pos + ranges(ps).offset] = ranges(ps).chars[ranges(ps).iter[loop]]; \
+		ps = ranges(ps).next; \
 	} \
 	template_key[mask_cur_len + loop] = 0; \
     int i; \
@@ -1622,7 +1619,7 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
     if(done) \
 	    goto done;
 
-#define init_key(ps, loop)							\
+#define init_key(ps, loop) \
 	while (ps < MAX_NUM_MASK_PLHDR) {				\
 		template_key[ranges(ps).pos + ranges(ps).offset] = \
 		ranges(ps).chars[ranges(ps).iter[loop]]; \
@@ -2057,12 +2054,12 @@ char *stretch_mask(char *mask, mask_parsed_ctx *parsed_mask)
 		first_pl = i;
 
 	stretched_mask =
-		mem_alloc_tiny((mask_cur_len + 2) * j, MEM_ALIGN_NONE);
+		mem_alloc_tiny((options.eff_maxlength + 2) * j, MEM_ALIGN_NONE);
 
 	strcpy(stretched_mask, mask);
 	k = mask_len(mask);
 
-	while (k && k < mask_cur_len) {
+	while (k && k < options.eff_maxlength) {
 		i = strlen(mask) - 1;
 		if (mask[i] == '\\' && i - 1 >= 0) {
 			i--;
@@ -2619,10 +2616,10 @@ int do_mask_crack(const char *extern_key)
 			if (format_cannot_reset)
 				save_restore(&cpu_mask_ctx, 0, RESTORE);
 			else
-				finalize_mask(mask_cur_len);
+				finalize_mask(options.eff_maxlength);
 
 			generate_template_key(mask, extern_key, extern_key_len, &parsed_mask,
-			                      &cpu_mask_ctx, mask_cur_len);
+			                      &cpu_mask_ctx, options.eff_maxlength);
             if (restored)
 				restored = 0;
 			else if (options.node_count) {
