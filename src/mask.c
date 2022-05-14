@@ -1272,16 +1272,16 @@ static void init_cpu_mask(const char *mask, mask_parsed_ctx *parsed_mask,
 	fprintf(stderr, "%s(%s, %d) real_max = %dx%d+%d = %d\n", __FUNCTION__, mask, len, options.eff_maxlength, mask_num_qw, mask_add_len, options.eff_maxlength * mask_num_qw + mask_add_len);
 #endif
 
-	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++)
-	    for (j = 0; j <= options.eff_maxlength - options.eff_minlength; j++) {
-		    cpu_mask_ctx->ranges[i].start =
-		    cpu_mask_ctx->ranges[i].count =
-		    cpu_mask_ctx->ranges[i].pos =
-		    cpu_mask_ctx->ranges[i].iter[j] =
-		    cpu_mask_ctx->active_positions[i] =
-		    cpu_mask_ctx->ranges[i].offset = 0;
-		    cpu_mask_ctx->ranges[i].next = MAX_NUM_MASK_PLHDR;
-	    }
+	for (i = 0; i < MAX_NUM_MASK_PLHDR; i++) {
+		cpu_mask_ctx->ranges[i].start =
+		cpu_mask_ctx->ranges[i].count =
+		cpu_mask_ctx->ranges[i].pos =
+		cpu_mask_ctx->active_positions[i] =
+		cpu_mask_ctx->ranges[i].offset = 0;
+	    for (j = 0; j <= options.eff_maxlength - options.eff_minlength; j++)
+			cpu_mask_ctx->ranges[i].iter[j] = 0;
+		cpu_mask_ctx->ranges[i].next = MAX_NUM_MASK_PLHDR;
+	}
 	cpu_mask_ctx->count = cpu_mask_ctx->offset =
 	cpu_mask_ctx->cpu_count = 0;
 	cpu_mask_ctx->ps1 = MAX_NUM_MASK_PLHDR;
@@ -1598,12 +1598,12 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
     while(ps < mask_cur_len + loop) { \
 		if((++(ranges(ps).iter[loop])) == ranges(ps).count) { \
 			ranges(ps).iter[loop] = 0; \
-			template_key[ranges(ps).pos + ranges(ps).offset + loop] = \
+			template_key[ranges(ps).pos + ranges(ps).offset] = \
 			ranges(ps).chars[ranges(ps).iter[loop]]; \
     	    break; \
 		} \
 		else { \
-			template_key[ranges(ps).pos + ranges(ps).offset + loop] = \
+			template_key[ranges(ps).pos + ranges(ps).offset] = \
 			    ranges(ps).chars[ranges(ps).iter[loop]]; \
 		    ps = ranges(ps).next; \
 		} \
@@ -1611,18 +1611,20 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
 	template_key[mask_cur_len + loop] = 0; \
     int i; \
 	int done = 1; \
-    for(i = 0; i < mask_cur_len + loop; i++) { \
+	if(mask_cur_len + loop == options.eff_maxlength) \
+    for(i = 0; i < mask_cur_len; i++) { \
         if(ranges(i).iter[loop] != 0) { \
             done = 0; \
             break; \
         } \
     } \
+    else done = 0;\
     if(done) \
 	    goto done;
 
 #define init_key(ps, loop)							\
 	while (ps < MAX_NUM_MASK_PLHDR) {				\
-		template_key[ranges(ps).pos + ranges(ps).offset + loop] = \
+		template_key[ranges(ps).pos + ranges(ps).offset] = \
 		ranges(ps).chars[ranges(ps).iter[loop]]; \
 		ps = ranges(ps).next; \
 	}
@@ -1631,7 +1633,7 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
 	;ranges(ps).iter[loop] < ranges(ps).count; ranges(ps).iter[loop]++
 
 #define set_template_key(ps, start, loop) \
-	template_key[ranges(ps).pos + ranges(ps).offset + loop] = \
+	template_key[ranges(ps).pos + ranges(ps).offset] = \
 		start ? start + ranges(ps).iter[loop] :			\
 		ranges(ps).chars[ranges(ps).iter[loop]];
 
@@ -1641,7 +1643,7 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 	char key_e[PLAINTEXT_BUFFER_SIZE];
 	char *key;
 	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
-	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
+	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps;
 	int start1, start2, start3, start4;
 
 #ifdef MASK_DEBUG
@@ -1657,17 +1659,18 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 	} while(0)
 
 	ps1 = cpu_mask_ctx->ps1;
-    ps2 = cpu_mask_ctx->ranges[ps1].next;
-	
+	ps2 = cpu_mask_ctx->ranges[ps1].next;
+
 	//if(cpu_mask_ctx->cpu_count < 2)
 	if(1)
 	{
-		ps = ps1;
-        int loop, bail = 0;
+		int loop, bail = 0;
 		/* Initialize the placeholders */
 		for(loop = 0; loop <= options.eff_maxlength - mask_cur_len; loop++)
-		    init_key(ps, loop);
-
+		{
+			ps = ps1;
+			init_key(ps, loop);
+		}
 		while (1) {
 		    for(loop = 0; loop <= options.eff_maxlength - mask_cur_len; loop++) {
 			    if (options.node_count &&
@@ -1685,12 +1688,13 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 	}
 
 	else if(cpu_mask_ctx->cpu_count >= 2) {
-		ps = ranges(ps2).next;
 		/* Initialize the remaining placeholders other than the first two */
 		int loop;
 		for(loop = 0; loop <= options.eff_maxlength - mask_cur_len; loop++)
-		    init_key(ps, loop);
-
+		{
+		    	init_key(ps, loop);
+			ps = ranges(ps2).next;
+		}
 		while (1) {
 		    for(loop = 0; loop <= options.eff_maxlength - mask_cur_len; loop++) {
 			    start1 = ranges(ps1).start;
@@ -1736,18 +1740,18 @@ static int bench_generate_keys(mask_cpu_context *cpu_mask_ctx,
 
 	ps1 = cpu_mask_ctx->ps1;
 	ps1 = cpu_mask_ctx->ranges[ps1].next;
-	if (cpu_mask_ctx->cpu_count < 2) 
+	if (cpu_mask_ctx->cpu_count < 2)
 	{
 		ps = ps1;
 		int loop, bail = 0;
 		/* Initialize the placeholders */
 		for(loop = 0; loop <= options.eff_maxlength - mask_cur_len; loop++)
 		    init_key(ps, loop);
-		
+
 		while (1) {
 		    if(bail) break;
 		    for(loop = 0; loop <= options.eff_maxlength - mask_cur_len; loop++) {
-			    
+
 			    if (options.node_count &&
 			        !(options.flags & FLG_MASK_STACKED) &&
 			        !(*my_candidates)--)
@@ -1780,7 +1784,7 @@ static int bench_generate_keys(mask_cpu_context *cpu_mask_ctx,
 					        !(*my_candidates)--)
 						    goto done;
 		        		set_template_key(ps1, start2, loop);
-		        		process_key(template_key);			
+		        		process_key(template_key);
 				    }
 			        ranges(ps1).iter[loop] = 0;
 			    }
@@ -1885,7 +1889,7 @@ static uint64_t divide_work(mask_cpu_context *cpu_mask_ctx)
 	ps = cpu_mask_ctx->ps1;
 	while(ps < MAX_NUM_MASK_PLHDR) {
 	    int j;
-        for(j=0; j <= options.eff_maxlength - options.eff_minlength; j++) 
+        for(j=0; j <= options.eff_maxlength - options.eff_minlength; j++)
 	        cpu_mask_ctx->ranges[ps].iter[j] = (offset / ctr) %
 		        cpu_mask_ctx->ranges[ps].count;
 	    ctr *= cpu_mask_ctx->ranges[ps].count;
@@ -1966,7 +1970,7 @@ int mask_restore_state(FILE *file)
 	}
 
 	/* vc and mingw can not handle %hhu */
-	for (i = 0; i < cpu_mask_ctx.count; i++) 
+	for (i = 0; i < cpu_mask_ctx.count; i++)
 	    for (j = 0; j <= options.eff_maxlength - options.eff_minlength; j++)
 	    if (fscanf(file, "%u\n", &cu) == 1)
 		    restored_ctx.ranges[i].iter[j] = cpu_mask_ctx.ranges[i].iter[j] = cu;
@@ -2597,7 +2601,7 @@ int do_mask_crack(const char *extern_key)
 			mask_cur_len++;
 		}
 
-        for (i = mask_cur_len; i <= options.eff_maxlength; i++) 
+        for (i = mask_cur_len; i <= options.eff_maxlength; i++)
 		{
 			cand_length = rec_cl ? rec_cl - 1 : status.cands;
 			rec_cl = 0;
