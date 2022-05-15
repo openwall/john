@@ -37,6 +37,8 @@ int cloudkeychain_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
+	if (len > SALTLEN)
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
 	if (hexlenl(p, &extra)/2 != len || extra)
@@ -50,6 +52,8 @@ int cloudkeychain_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
+	if (len > CTLEN)
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* masterkey */
 		goto err;
 	if (hexlenl(p, &extra)/2 != len || extra)

@@ -186,7 +186,7 @@ static struct opt_entry opt_list[] = {
 	{"gws", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, Zu, &options.gws},
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
-	{"mask-internal-target", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, "%d", &options.req_int_cand_target},
+	{"mask-internal-target", FLG_ONCE, 0, 0, FLG_RULES_STACK_CHK | USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, "%d", &options.req_int_cand_target},
 	{"devices", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.acc_devices},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS, 0, USUAL_REQ_CLR | FLG_STDOUT},

@@ -494,6 +494,8 @@ int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list,
 				break;
 			}
 		}
+		if (!ztex_dev)
+			continue;
 
 		// found new device
 		if (ZTEX_DEBUG) printf("found: SN %s productId: %d.%d\n",
@@ -553,10 +555,12 @@ int ztex_scan_new_devices(struct ztex_dev_list *new_dev_list,
 		fprintf(stderr, "Warning: unable to open %d board(s): ",
 			num_fail_access + num_fail_other);
 		if (!num_fail_other) {
-			fprintf(stderr, "insufficient permissions or "
+			fprintf(stderr, "insufficient permissions "
+				"(see doc/README-ZTEX) or "
 				"another instance of john running.\n");
 		} else {
-			fprintf(stderr, "%d insufficient permissions or "
+			fprintf(stderr, "%d insufficient permissions "
+				"(see doc/README-ZTEX) or "
 				"another instance of john running, %d ",
 				num_fail_access, num_fail_other);
 			if (num_fail_other == 1)

@@ -1840,7 +1840,7 @@ ucFallback:
 		src_len = dst_bufsize - 1;
 	for (i = 0; i < src_len; ++i)
 		if (*src >= 'a' && *src <= 'z')
-			*dst++ = *src++ | 0x20;
+			*dst++ = *src++ ^ 0x20;
 		else
 			*dst++ = *src++;
 	*dst = 0;

@@ -10,14 +10,14 @@
 
 import sys
 import binascii
-import os  
+import os
 from pathlib import Path
 
 
 def process(vault):
     salt = None
-
-    if not os.path.isdir(vault):  
+    tag = "encdv"
+    if not os.path.isdir(vault):
         sys.stderr.write(f"{vault} : should be a folder.\n")
         sys.exit(1)
 
@@ -29,14 +29,33 @@ def process(vault):
     elif "index.dat" in file_list and "keychain.dat" in file_list:
         # ENCSecurity vault.
         file_path = Path(vault) / "index.dat"
+        version = 3
     else:
         sys.stderr.write(f"{vault} : Valid vault not found.\n")
         return
-    
+
     with open(file_path, "rb") as f:
         header = f.read(4)                  # Read header
         if header == b'\xd2\xc3\xb4\xa1':   # Test if we have a valid header
             version = int.from_bytes(f.read(4),byteorder="little")
+    # Check file size
+    file_size = os.path.getsize(file_path)
+    if file_size < 24:
+        sys.stderr.write(f"{file_path} : Problem file too small.\n")
+        return
+
+    if "enckey.dat" in file_list:
+        # Sandisk PrivateAccess or ENCSecurity vault 7.2.1 and later.
+        file_size = os.path.getsize(Path(vault) / "enckey.dat")
+        if file_size <= 8:
+            sys.stderr.write("enckey.dat : Problem file too small.\n")
+            return
+        tag += "-pbkdf2"
+
+    with open(file_path, "rb") as f:
+        header = f.read(4)                  # Read header
+        if header == b'\xd2\xc3\xb4\xa1':   # Test if we have a valid header
+            f.seek(4,1)
             crypto = int.from_bytes(f.read(4),byteorder="little")
             iv = binascii.hexlify(f.read(8))
             header_enc = binascii.hexlify(f.read(4))
@@ -48,13 +67,28 @@ def process(vault):
             sys.stderr.write(f"{file_list[0]} : Problem reading encrypted header.\n")
             return
 
-    sys.stdout.write(f"{vault}:$encdv${version}${crypto}${iv.decode()}${header_enc.decode()}")
+    sys.stdout.write(f"{vault}:${tag}${version}${crypto}${iv.decode()}${header_enc.decode()}")
+
+    if tag == "encdv-pbkdf2":
+        with open(Path(vault) / "enckey.dat", "rb") as f:
+            f.seek(4)
+            length = int.from_bytes(f.read(4),byteorder="big")
+            if length >= file_size - 8:
+                sys.stderr.write("enckey.dat : Problem reading length.\n")
+                return
+            salt = binascii.hexlify(f.read(length))
+            iterations = int.from_bytes(f.read(4),byteorder="big")
+            sys.stdout.write(f"${length}${salt.decode()}${iterations}")
 
     if version == 3:
         with open(Path(vault) / "keychain.dat", "rb") as f:
-            f.seek(16)
+            f.seek(-132, 2)
+            length = int.from_bytes(f.read(4),byteorder="big")
+            if length != 128:
+                sys.stderr.write(f"keychain.dat : Problem reading length.\n")
+                return
             keychain = binascii.hexlify(f.read(128))
-            sys.stdout.write(f"${keychain.decode()}\n")
+        sys.stdout.write(f"${keychain.decode()}\n")
     else:
         sys.stdout.write("\n")
 

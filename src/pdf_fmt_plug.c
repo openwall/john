@@ -97,6 +97,8 @@ static struct fmt_tests pdf_tests[] = {
 	{"$pdf$4*4*128*-4*1*16*56761d6da774d8d47387dccf1a84428c*32*640782cab5b7c8f6cf5eab82c38016540122456a91bae5134273a6db134c87c4*32*b5720d5f3d9675a280c6bb8050cbb169e039b578b2de4a42a40dc14765e064cf", "24Le`m0ns"},
 	/* This hash exposed a problem with our length_id check */
 	{"$pdf$1*2*40*-4*1*36*65623237393831382d636439372d343130332d613835372d343164303037316639386134*32*c7230519f7db63ab1676fa30686428f0f997932bf831f1c1dcfa48cfb3b7fe99*32*161cd2f7c95283ca9db930b36aad3571ee6f5fb5632f30dc790e19c5069c86b8", "vision"},
+	/* This hash has unsigned permission value, and an id length of 0 */
+	{"$pdf$1*2*40*4294967239*1*0**32*585e4cc4113bbd8ff4012dce92dd7df1e1216fb630b29cf5aeea10a820066c26*32*b1db56a883cab5a22dd5fc390618a0f8e16cab8af14e67ccba5f90837aac898b", "123456"},
 	{NULL}
 };
 
@@ -142,7 +144,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* P */
 		goto err;
-	if (!isdec_negok(p)) goto err;
+	/* Somehow this can be signed or unsigned int; -2147483648 .. 4294967295 */
+	if (!isdec_negok(p) && !isdecu(p)) goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* encrypt_metadata */
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* length_id */
@@ -155,7 +158,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (strlen(p) != res * 2)
 		goto err;
-	if (!ishexlc(p))
+	/* id length can be 0 */
+	if (*p && !ishexlc(p))
 		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)	/* length_u */
 		goto err;
@@ -314,7 +318,7 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(NULL, "*");
 	cs.length = atoi(p);
 	p = strtokm(NULL, "*");
-	cs.P = atoi(p);
+	cs.P = (int)strtoll(p, (char **)NULL, 10);
 	p = strtokm(NULL, "*");
 	cs.encrypt_metadata = atoi(p);
 	p = strtokm(NULL, "*");

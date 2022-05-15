@@ -27,6 +27,7 @@
 #include <unistd.h>
 #endif
 
+#define NEED_OS_FORK
 #include "os.h"
 
 #if !AC_BUILT
@@ -46,6 +47,7 @@
 #endif
 
 #include <errno.h>
+#include <assert.h>
 
 #include "arch.h"
 #include "mem_map.h"
@@ -507,6 +509,8 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 #endif
 
 	length = options.eff_maxlength;
+	/* Nice message about truncation to length 0 is done by other mode. */
+	assert(length > 0);
 
 	/* If we did not give a name for loopback mode,
 	   we use the active pot file */
@@ -571,6 +575,14 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 
 		file_is_fifo = ((st.st_mode & S_IFMT) == S_IFIFO);
 
+#if OS_FORK
+		if (options.fork && file_is_fifo) {
+			if (john_main_process)
+				fprintf(stderr, "Error, cannot use --fork with FIFO as wordlist file.\n");
+			error();
+		}
+#endif
+
 		if (john_main_process)
 			log_event("- %s %s: %.100s", loopBack ? "Loopback pot" : "Wordlist",
 			          file_is_fifo ? "FIFO" : "file",
@@ -595,8 +607,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 		jtr_fseek64(word_file, 0, SEEK_SET);
 		if (file_len == 0 && !loopBack) {
 			if (john_main_process)
-				fprintf(stderr, "Error, dictionary file is "
-				        "empty\n");
+				fprintf(stderr, "Error, wordlist file is empty\n");
 			error();
 		}
 
@@ -632,12 +643,16 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 		}
 #endif
 
-		ourshare = options.node_count ?
-			(file_len / options.node_count) *
-			(options.node_max - options.node_min + 1)
-			: file_len;
+		ourshare = file_len;
 
-		if (ourshare < options.max_wordfile_memory &&
+		// Load only this node's share of words to memory
+		if (mem_map && options.node_count > 1 &&
+		    (file_len > options.node_count * (length * 100))) {
+			ourshare = (file_len / options.node_count) *
+				(options.node_max - options.node_min + 1);
+		}
+
+		if (ourshare <= options.max_wordfile_memory &&
 		    mem_saving_level < 2 &&
 		    (options.flags & FLG_RULES_CHK))
 			forceLoad = 1;
@@ -649,8 +664,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			char *aep;
 
 			// Load only this node's share of words to memory
-			if (mem_map && options.node_count > 1 &&
-			    (file_len > options.node_count * (length * 100))) {
+			if (ourshare < file_len) {
 				/* Check net size for our share. */
 				for (nWordFileLines = 0;; ++nWordFileLines) {
 					char *lp;

@@ -236,7 +236,7 @@ static void set_salt(void *salt)
 		HANDLE_CLERROR(clReleaseMemObject(cl_data), "Release mem data");
 		cl_data = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, datasize, NULL, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating buffer");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_data), &cl_data),
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_data), &cl_data),
 		               "Error while setting mem_salt kernel argument");
 	}
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, saltsize, &currentsalt, 0, NULL, NULL),
