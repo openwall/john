@@ -1639,9 +1639,8 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 {
 	char key_e[PLAINTEXT_BUFFER_SIZE];
 	char *key;
-	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
-	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps;
-	int start1, start2, start3, start4;
+	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR, ps;
+	int start1, start2;
 
 #ifdef MASK_DEBUG
 	fprintf(stderr, "%s(\"%s\")\n", __FUNCTION__, template_key);
@@ -1659,8 +1658,7 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 	ps2 = cpu_mask_ctx->ranges[ps1].next;
 
 	//if(cpu_mask_ctx->cpu_count < 2)
-	if(1)
-	{
+	if(1) {
 		int loop;
 		/* Initialize the placeholders */
 		ps = ps1;
@@ -1721,9 +1719,8 @@ done:
 static int bench_generate_keys(mask_cpu_context *cpu_mask_ctx,
                                uint64_t *my_candidates)
 {
-	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR,
-	    ps3 = MAX_NUM_MASK_PLHDR, ps4 = MAX_NUM_MASK_PLHDR, ps ;
-	int start1, start2, start3, start4;
+	int ps1 = MAX_NUM_MASK_PLHDR, ps2 = MAX_NUM_MASK_PLHDR, ps ;
+	int start1, start2;
 
 #define process_key(key)                                            \
     mask_fmt->methods.set_key(mask_cp_to_utf8(template_key),        \
@@ -1735,29 +1732,27 @@ static int bench_generate_keys(mask_cpu_context *cpu_mask_ctx,
 
 	ps1 = cpu_mask_ctx->ps1;
 	ps1 = cpu_mask_ctx->ranges[ps1].next;
-	if (cpu_mask_ctx->cpu_count < 2)
+	//if(cpu_mask_ctx->cpu_count < 2)
+	if(1)
 	{
 		ps = ps1;
-		int loop, bail = 0;
+		int loop;
 		/* Initialize the placeholders */
 		for(loop = 0; loop <= options.eff_maxlength - mask_cur_len; loop++)
 		    init_key(ps, loop);
-
+		ps = ps1;
 		while (1) {
 		    for(loop = 0; loop <= options.eff_maxlength - mask_cur_len; loop++) {
-				/*
-			    if (options.node_count &&
+				if (options.node_count &&
 			        !(options.flags & FLG_MASK_STACKED) &&
 			        !(*my_candidates)--)
 				    goto done;
-				*/
-			    process_key(template_key);
+				process_key(template_key);
 			    ps = ps1;
 			    next_state(ps, loop);
 		    }
 		}
 	}
-
 	else if(cpu_mask_ctx->cpu_count >= 2) {
 		ps = ranges(ps2).next;
 
@@ -1777,7 +1772,7 @@ static int bench_generate_keys(mask_cpu_context *cpu_mask_ctx,
 					        !(options.flags & FLG_MASK_STACKED) &&
 					        !(*my_candidates)--)
 						    goto done;
-		        		set_template_key(ps1, start2, loop);
+		        		set_template_key(ps1, start1, loop);
 		        		process_key(template_key);
 				    }
 			        ranges(ps1).iter[loop] = 0;

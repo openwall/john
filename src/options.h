@@ -128,6 +128,10 @@
  *		0x0000200000000000ULL
  */
 
+/* Subsets prefer finishing shorter lengths */
+#define FLG_SUBSETS_SHORT		0x0000000100000000ULL
+/* Subsets prefer finishing smaller sets */
+#define FLG_SUBSETS_SMALL		0x0000000200000000ULL
 /* Markov mode enabled */
 #define FLG_MKV_CHK			0x0000000400000000ULL
 #define FLG_MKV_SET			(FLG_MKV_CHK | FLG_CRACKING_SET)
@@ -170,9 +174,9 @@
 #define FLG_PRINCE_MMAP			0x0020000000000000ULL
 #define FLG_RULES_ALLOW			0x0040000000000000ULL
 #define FLG_REGEX_STACKED		0x0080000000000000ULL
-/* Rain cracking mode */
-#define FLG_RAIN_CHK			0x0100000000000000ULL
-#define FLG_RAIN_SET			(FLG_RAIN_CHK | FLG_CRACKING_SET)
+/* Subsets cracking mode */
+#define FLG_SUBSETS_CHK			0x0100000000000000ULL
+#define FLG_SUBSETS_SET			(FLG_SUBSETS_CHK | FLG_CRACKING_SET)
 #define FLG_RULES_STACK_CHK		0x0200000000000000ULL
 #define FLG_RULES_STACK_SET		(FLG_RULES_STACK_CHK | FLG_RULES_IN_USE)
 #define FLG_RULES_IN_USE		0x0400000000000000ULL
@@ -182,7 +186,7 @@
 /* Configure terminal for reading keystrokes even if we're not the foreground process */
 #define FLG_FORCE_TTY			0x2000000000000000ULL
 /* Turn off logging */
-#define FLG_NOLOG				0x4000000000000000ULL
+#define FLG_NOLOG			0x4000000000000000ULL
 
 /*
  * Macro for getting correct node number regardless of if MPI or not
@@ -437,14 +441,20 @@ struct options_main {
 	char *tune;
 /* Incremental CharCount override */
 	int charcount;
+/* Subsets full charset */
+	char *subset_full;
+/* Subsets, required first partition */
+	int subset_must;
+/* Subsets, min. diff */
+	int subset_min_diff;
+/* Subsets, max. diff */
+	int subset_max_diff;
 /* --[no-]keep-guessing tri-state option (vs. format's FMT_NOT_EXACT) */
 	int keep_guessing;
 /* --log-stderr */
 	int log_stderr;
 /* Emit a status line for every password cracked */
 	int crack_status;
-/* Inc2 full charsets */
-	char *posfreq_full;
 /* --catch-up=oldsession */
 	char *catchup;
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
