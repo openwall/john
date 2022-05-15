@@ -1,6 +1,15 @@
 Mask mode is a fast way to produce password candidates given a "mask" that
 describes what the words should look like.
 
+It has been modified to mangled the generation, beating entropy at almost no cost.  
+Does also loop on all lengths to avoid being 'stuck' into shorter lengths.  
+It has success on unfound hashes. Up to what ? I don't know,  
+but finding passwords that others don't is the aim.  
+Mangling is not human oriented, or oriented at all. It is really deep in the way that  
+patterns created are scattered accross the generation; one could be seen in the begining and  
+no reappear before the end. I.E it is far from being a dump algorithm, even if using the term algorithm  
+is not appropriate since it's merely a tweak, does 'shatter' the evolution in complex sequence.
+
 A mask may consist of:
 
 - Static letters.
