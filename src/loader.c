@@ -1933,7 +1933,9 @@ static void ldr_fill_user_words(struct db_main *db)
 	} else {
 		map_pos = mem_map;
 		map_end = mem_map + file_len;
+#if MGETL_HAS_SIMD
 		map_scan_end = map_end - VSCANSZ;
+#endif
 	}
 #endif /* HAVE_MMAP */
 

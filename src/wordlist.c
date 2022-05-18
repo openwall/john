@@ -13,14 +13,14 @@
 #if AC_BUILT
 #include "autoconfig.h"
 #else
-#ifndef sparc
-#undef _POSIX_SOURCE
-#define _POSIX_SOURCE /* for fileno(3) */
+#ifndef _XOPEN_SOURCE
+#define _XOPEN_SOURCE /* for fileno(3) and stat(2) */
 #endif
 #endif
 
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include <sys/stat.h>
 
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
@@ -638,7 +638,9 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			} else {
 				map_pos = mem_map;
 				map_end = mem_map + file_len;
+#if MGETL_HAS_SIMD
 				map_scan_end = map_end - VSCANSZ;
+#endif
 			}
 		}
 #endif
