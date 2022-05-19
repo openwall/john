@@ -66,7 +66,7 @@ def unwrap_pkcs8_data(blob):
         if data["encryption_algorithm"]["algorithm"] != "pbes2":
             sys.stderr.write("[%s] encryption_algorithm <%s> is not supported currently!\n" %
                              (sys.argv[0], data["encryption_algorithm"]["algorithm"]))
-            return False
+            return True
 
         # encryption data
         encrypted_data = data["encrypted_data"]
@@ -77,8 +77,13 @@ def unwrap_pkcs8_data(blob):
         if kdf["algorithm"] != "pbkdf2":
             sys.stderr.write("[%s] kdf algorithm <%s> is not supported currently!\n" %
                              (sys.argv[0], kdf["algorithm"]))
-            return False
+            return True
         kdf_params = kdf["parameters"]
+        if kdf_params["prf"]["algorithm"] != "sha1":
+            sys.stderr.write("[%s] prf algorithm <%s> is not supported currently!\n" %
+                             (sys.argv[0], kdf_params["prf"]["algorithm"]))
+            return True
+
         salt = kdf_params["salt"]
         iterations = kdf_params["iteration_count"]
 
