@@ -238,7 +238,7 @@ static const sph_u32 IV320[10] = {
  * One round of RIPEMD. The data must be aligned for 32-bit access.
  */
 static void
-ripemd_round(const unsigned char *data, sph_u32 r[5])
+ripemd_round(const unsigned char *data, sph_u32 r[4])
 {
 #if SPH_LITTLE_FAST
 
@@ -527,7 +527,7 @@ sph_ripemd_comp(const sph_u32 msg[16], sph_u32 val[4])
  * One round of RIPEMD-128. The data must be aligned for 32-bit access.
  */
 static void
-ripemd128_round(const unsigned char *data, sph_u32 r[5])
+ripemd128_round(const unsigned char *data, sph_u32 r[4])
 {
 #if SPH_LITTLE_FAST
 
@@ -576,7 +576,7 @@ void sph_ripemd256_init(void *cc)
 }
 
 static void
-ripemd256_round(const unsigned char *data, sph_u32 r[10])
+ripemd256_round(const unsigned char *data, sph_u32 r[8])
 {
 #if SPH_LITTLE_FAST
 
