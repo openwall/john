@@ -220,7 +220,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				lens[j] = saved_len[index+j];
 				keys[j] = (const unsigned char*)(saved_key[index+j]);
 			}
-			pkcs12_pbe_derive_key_simd(cur_salt->mac_algo, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key_simd_sha1(cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_MAC_KEY, keys,
 					lens, cur_salt->salt,
 					cur_salt->saltlen, mackey, mackeylen);
@@ -242,7 +242,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				lens[j] = saved_len[index+j];
 				keys[j] = (const unsigned char*)(saved_key[index+j]);
 			}
-			pkcs12_pbe_derive_key_simd(cur_salt->mac_algo, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key_simd_sha256(cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_MAC_KEY, keys,
 					lens, cur_salt->salt,
 					cur_salt->saltlen, mackey, mackeylen);
@@ -265,7 +265,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				lens[j] = saved_len[index+j];
 				keys[j] = (const unsigned char*)(saved_key[index+j]);
 			}
-			pkcs12_pbe_derive_key_simd(cur_salt->mac_algo, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key_simd_sha512(cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_MAC_KEY, keys,
 					lens, cur_salt->salt,
 					cur_salt->saltlen, mackey, mackeylen);

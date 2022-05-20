@@ -330,7 +330,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j)
 				mackey[j] = real_keys[j];
-			pkcs12_pbe_derive_key_simd(1, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key_simd_sha1(cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_MAC_KEY,
 					keys, lens, cur_salt->salt,
 					cur_salt->saltlen, mackey, mackeylen);
@@ -361,7 +361,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				iv[j] = iv_[j];
 				ckey[j] = ckey_[j];
 			}
-			pkcs12_pbe_derive_key_simd(1, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key_simd_sha1(cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_IV,
 					keys,
 					lens, cur_salt->salt,
@@ -369,7 +369,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// lengths get tromped on, so re-load them for the load keys call.
 			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j)
 				lens[j] = saved_len[index+j];
-			pkcs12_pbe_derive_key_simd(1, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key_simd_sha1(cur_salt->iteration_count,
 					MBEDTLS_PKCS12_DERIVE_KEY,
 					keys,
 					lens, cur_salt->salt,
