@@ -93,17 +93,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index;
 	const int count = *pcount;
 	int inc = 1;
+#if !defined(SIMD_COEF_32)
 	int algo = 0;
+#endif
 
 	if (cur_salt->algo == 21) {
-		algo = 1;
 #if defined(SIMD_COEF_32)
 		inc = SSE_GROUP_SZ_SHA1;
+#else
+		algo = 1;
 #endif
 	} else if (cur_salt->algo == 22) {
-		algo = 256;
 #if defined(SIMD_COEF_32)
 		inc = SSE_GROUP_SZ_SHA256;
+#else
+		algo = 256;
 #endif
 	}
 
@@ -132,7 +136,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				lens[j] = saved_len[index + j];
 				keys[j] = (const unsigned char*)(saved_key[index + j]);
 			}
-			pkcs12_pbe_derive_key_simd(algo, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key_simd_sha1(cur_salt->iteration_count,
 			                           MBEDTLS_PKCS12_DERIVE_MAC_KEY, keys,
 			                           lens, cur_salt->salt,
 			                           salt_len, mackey,
@@ -147,7 +151,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				lens[j] = saved_len[index + j];
 				keys[j] = (const unsigned char*)(saved_key[index + j]);
 			}
-			pkcs12_pbe_derive_key_simd(algo, cur_salt->iteration_count,
+			pkcs12_pbe_derive_key_simd_sha256(cur_salt->iteration_count,
 			                           MBEDTLS_PKCS12_DERIVE_MAC_KEY, keys,
 			                           lens, cur_salt->salt,
 			                           salt_len, mackey,
