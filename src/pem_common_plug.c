@@ -39,6 +39,7 @@ struct fmt_tests pem_tests[] = {
 
 int pem_valid(char *ciphertext, struct fmt_main *self)
 {
+	static int warned = 0;
 	char *ctcopy, *keeptr, *p;
 	int len, value, extra;
 
@@ -51,6 +52,20 @@ int pem_valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL) // type
 		goto err;
+	if (strcmp(p, "1") != 0 && !warned) {
+		if ((p = strtokm(NULL, "$")) == NULL)
+			goto err;
+		if (strcmp(p, "pbkdf2") != 0) {
+			fprintf(stderr, "Warning: %s kdf algorithm <%s> is not supported currently!\n", self->params.label, p);
+			warned = 1;
+			goto err;
+		}
+		if ((p = strtokm(NULL, "$")) == NULL)
+			goto err;
+		fprintf(stderr, "Warning: %s prf algorithm <%s> is not supported currently!\n", self->params.label, p);
+		warned = 1;
+		goto err;
+	}
 	if (!isdec(p))
 		goto err;
 	value = atoi(p);

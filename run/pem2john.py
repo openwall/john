@@ -79,11 +79,6 @@ def unwrap_pkcs8_data(blob):
                              (sys.argv[0], kdf["algorithm"]))
             return True
         kdf_params = kdf["parameters"]
-        if kdf_params["prf"]["algorithm"] != "sha1":
-            sys.stderr.write("[%s] prf algorithm <%s> is not supported currently!\n" %
-                             (sys.argv[0], kdf_params["prf"]["algorithm"]))
-            return True
-
         salt = kdf_params["salt"]
         iterations = kdf_params["iteration_count"]
 
@@ -102,13 +97,16 @@ def unwrap_pkcs8_data(blob):
             cid = 4
         else:
             sys.stderr.write("[%s] cipher <%s> is not supported currently!\n" % (sys.argv[0], cipher))
-            return False
+            return True
 
         salth = hexlify(salt).decode("ascii")
         encrypted_datah = hexlify(encrypted_data).decode("ascii")
         ivh = hexlify(iv).decode("ascii")
 
-        sys.stdout.write("$PEM$1$%d$%s$%s$%s$%d$%s\n" % (cid, salth, iterations, ivh, len(encrypted_data), encrypted_datah))
+        pem_version = "$PEM$1"
+        if kdf_params["prf"]["algorithm"] != "sha1":
+            pem_version = f'$PEM$2${kdf["algorithm"]}${kdf_params["prf"]["algorithm"]}${cipher}'
+        sys.stdout.write(pem_version+"$%d$%s$%s$%s$%d$%s\n" % (cid, salth, iterations, ivh, len(encrypted_data), encrypted_datah))
         return True
     except ValueError:
         return False
