@@ -536,7 +536,8 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 
 	static unsigned int prev_g;
 	static unsigned long long prev_p;
-	if (rules && cfg_get_bool(SECTION_OPTIONS, NULL, "PerRuleStats", 0)) {
+	if (rules && cfg_get_bool(SECTION_OPTIONS, NULL, "PerRuleStats", 0) && !(options.flags & FLG_MASK_CHK) &&
+	    (!(options.flags & FLG_NOLOG) || options.log_stderr)) {
 		rules = 2;
 		prev_g = status.guess_count;
 		prev_p = status.cands;
@@ -1399,7 +1400,7 @@ next_rule:
 			if (rules > 1 && prerule) {
 				unsigned long long p = status.cands, fake_p = 0;
 				if (!(options.flags & FLG_STDOUT)) do {
-					crk_process_key("injected wrong password");
+					crk_direct_process_key("injected wrong password");
 					fake_p++;
 				} while (p == status.cands);
 				unsigned int g = status.guess_count - prev_g;

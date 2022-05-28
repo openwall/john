@@ -101,7 +101,6 @@ int64_t crk_pot_pos;
 void (*crk_fix_state)(void);
 int (*crk_process_key)(char *key);
 
-static int process_key(char *key);
 static int process_key_stack_rules(char *key);
 
 /* Expose max_keys_per_crypt to the world (needed in recovery.c) */
@@ -260,7 +259,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	if (rules_stacked_after)
 		crk_process_key = process_key_stack_rules;
 	else
-		crk_process_key = process_key;
+		crk_process_key = crk_direct_process_key;
 
 	/*
 	 * Resetting crk_process_key above disables the suppressor, but it can
@@ -1157,7 +1156,7 @@ int crk_process_buffer(void)
  * All modes but Single call this function (as crk_process_key)
  * for each candidate.
  */
-static int process_key(char *key)
+int crk_direct_process_key(char *key)
 {
 	if (crk_key_index < crk_process_key_max_keys) {
 		crk_methods.set_key(key, crk_key_index++);
@@ -1236,7 +1235,7 @@ static int process_key_stack_rules(char *key)
 	char *word;
 
 	while ((word = rules_process_stack_all(key, &crk_rule_stack)))
-		if ((ret = process_key(word)))
+		if ((ret = crk_direct_process_key(word)))
 			break;
 
 	return ret;
