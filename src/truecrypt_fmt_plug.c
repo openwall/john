@@ -460,15 +460,17 @@ static int decrypt_and_verify(unsigned char *key, int algorithm)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int i, inner_batch_size = 1;
+	int i;
 	const int count = *pcount;
 
 #if SSE_GROUP_SZ_SHA512
 #define INNER_BATCH_MAX_SZ SSE_GROUP_SZ_SHA512
+	int inner_batch_size = 1;
 	if (psalt->hash_type == IS_SHA512)
 		inner_batch_size = SSE_GROUP_SZ_SHA512;
 #else
 #define INNER_BATCH_MAX_SZ 1
+#define inner_batch_size 1
 #endif
 
 	memset(cracked, 0, sizeof(cracked[0]) * count);
