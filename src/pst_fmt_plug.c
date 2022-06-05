@@ -102,7 +102,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 }
 
 static void set_key(char *key, int index) {
-	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static int cmp_all(void *binary, int count)
