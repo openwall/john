@@ -1400,7 +1400,7 @@ next_rule:
 			if (rules > 1 && prerule) {
 				unsigned long long p = status.cands, fake_p = 0;
 				if (!(options.flags & FLG_STDOUT)) do {
-					if (crk_direct_process_key("injected wrong password"))
+					if (crk_direct_process_key("PerRuleStats"))
 						goto done;
 					fake_p++;
 				} while (p == status.cands);
