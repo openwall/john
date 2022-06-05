@@ -1400,7 +1400,8 @@ next_rule:
 			if (rules > 1 && prerule) {
 				unsigned long long p = status.cands, fake_p = 0;
 				if (!(options.flags & FLG_STDOUT)) do {
-					crk_direct_process_key("injected wrong password");
+					if (crk_direct_process_key("injected wrong password"))
+						goto done;
 					fake_p++;
 				} while (p == status.cands);
 				unsigned int g = status.guess_count - prev_g;
@@ -1450,6 +1451,7 @@ next_rule:
 	if (pipe_input)
 		goto GRAB_NEXT_PIPE_LOAD;
 
+done:
 	crk_done();
 	rec_done(event_abort || (status.pass && db->salts));
 
