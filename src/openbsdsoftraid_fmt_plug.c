@@ -185,7 +185,7 @@ static int cmp_exact(char *source, int index)
 
 static void set_key(char* key, int index)
 {
-	strnzcpyn(key_buffer[index], key, sizeof(*key_buffer));
+	strnzcpy(key_buffer[index], key, sizeof(*key_buffer));
 }
 
 static char *get_key(int index)

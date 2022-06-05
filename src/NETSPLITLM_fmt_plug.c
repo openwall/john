@@ -263,7 +263,7 @@ static void netsplitlm_set_key(char *key, int index)
 	const unsigned char magic[] = {0x4b, 0x47, 0x53, 0x21, 0x40, 0x23, 0x24, 0x25};
 	DES_key_schedule ks;
 
-	strnzcpyn((char *)saved_plain[index], key, PLAINTEXT_LENGTH + 1);
+	strnzcpy((char *)saved_plain[index], key, PLAINTEXT_LENGTH + 1);
 
 	/* Upper-case password */
 	enc_strupper((char *)saved_plain[index]);

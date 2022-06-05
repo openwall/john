@@ -549,7 +549,7 @@ static int cmp_exact(char *source, int idx)
 
 static void set_key(char* key, int index)
 {
-	strnzcpyn((char*)key_buffer[index], key, sizeof(*key_buffer));
+	strnzcpy((char*)key_buffer[index], key, sizeof(*key_buffer));
 }
 
 static char *get_key(int index)

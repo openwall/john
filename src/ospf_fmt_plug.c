@@ -299,7 +299,7 @@ static int cmp_exact(char *source, int index)
 
 static void ospf_set_key(char *key, int index)
 {
-	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)
