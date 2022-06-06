@@ -710,7 +710,7 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 	current = format->params.tests;
 
 	init_status(format->params.label);
-	ldr_init_database(db, &options.loader); /* Leaks memory on second call and on */
+	ldr_init_database(db, &options.loader);
 	db->format = format;
 
 	while (!event_abort) {
@@ -726,6 +726,9 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 	}
 	if (fclose(s_file)) pexit("fclose");
 	remove(status_file_path);
+	fmt_done(format);
+	ldr_fix_database(db);
+	ldr_free_db(db, 0);
 	if (!event_abort)
 		printf("   Completed\n");
 }
