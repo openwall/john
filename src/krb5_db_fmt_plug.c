@@ -201,7 +201,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 		return ciphertext;
 
 	memcpy(out, FORMAT_TAG_18, TAG_LENGTH_18);
-	strnzcpyn(out + TAG_LENGTH_18, ciphertext, CIPHERTEXT_LENGTH_18 + SALT_SIZE + 1);
+	strnzcpy(out + TAG_LENGTH_18, ciphertext, CIPHERTEXT_LENGTH_18 + SALT_SIZE + 1);
 
 	return out;
 }

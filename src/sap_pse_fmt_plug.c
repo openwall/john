@@ -113,12 +113,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pout[i] = key[i];
 			iout[i] = iv[i];
 		}
-		pkcs12_pbe_derive_key_simd(1,
+		pkcs12_pbe_derive_key_simd_sha1(
 				cur_salt->iterations,
 				MBEDTLS_PKCS12_DERIVE_KEY, (const unsigned char **)pin, lens,
 				cur_salt->salt, cur_salt->salt_size, pout, 24);
 
-		pkcs12_pbe_derive_key_simd(1,
+		pkcs12_pbe_derive_key_simd_sha1(
 				cur_salt->iterations,
 				MBEDTLS_PKCS12_DERIVE_IV, (const unsigned char **)pin, clens,
 				cur_salt->salt, cur_salt->salt_size, iout, 8);

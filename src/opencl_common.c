@@ -1661,16 +1661,12 @@ void opencl_init_auto_setup(int p_default_value, int p_hash_loops,
 	ocl_autotune_db = db;
 	autotune_real_db = db && db->real && db->real == db;
 	autotune_salts = db ? db->salts : NULL;
+
+	/* We can't process more than 4G keys per crypt() */
+	if (mask_int_cand.num_int_cand > 1)
+		gws_limit = MIN(gws_limit, 0x100000000ULL / mask_int_cand.num_int_cand / ocl_v_width);
 }
 
-/*
- * Since opencl_find_best_gws() needs more event control (even more events) to
- * work properly, opencl_find_best_workgroup() cannot be used by formats that
- * are using it.  Therefore, despite the fact that opencl_find_best_lws() does
- * almost the same that opencl_find_best_workgroup() can do, it also handles
- * the necessary event(s) and can do a proper crypt_all() execution analysis
- * when shared GWS detection is used.
- */
 void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
                           cl_kernel crypt_kernel)
 {
@@ -1981,10 +1977,10 @@ void opencl_find_best_gws(int step, int max_duration,
 
 	if (have_lws) {
 		if (core_count > 2)
-			optimal_gws = lcm(core_count, optimal_gws);
+			optimal_gws = MIN(gws_limit, lcm(core_count, optimal_gws));
 		default_value = optimal_gws;
 	} else {
-		soft_limit = local_work_size * core_count * 128;
+		soft_limit = MIN(gws_limit, local_work_size * core_count * 128);
 	}
 
 	/* conf setting may override (decrease) code's max duration */
@@ -2030,7 +2026,7 @@ void opencl_find_best_gws(int step, int max_duration,
 				optimal_gws = num;
 
 			if (options.verbosity >= VERB_MAX)
-				fprintf(stderr, "Hardware resources exhausted\n");
+				fprintf(stderr, "Hardware resources exhausted for GWS=%zu\n", num);
 			break;
 		}
 
@@ -2389,6 +2385,7 @@ int opencl_prepare_dev(int sequential_id)
 		ocl_always_show_ws = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL,
 		                                  "AlwaysShowWorksizes", 0);
 
+#ifndef __APPLE__
 	if (gpu_nvidia(device_info[sequential_id])) {
 		opencl_avoid_busy_wait[sequential_id] = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_GPU,
 		                                                     "AvoidBusyWait", 1);
@@ -2401,6 +2398,7 @@ int opencl_prepare_dev(int sequential_id)
 			log_event("- Busy-wait reduction %sabled", opencl_avoid_busy_wait[sequential_id] ? "en" : "dis");
 		}
 	}
+#endif
 
 	return sequential_id;
 }

@@ -14,11 +14,12 @@
 #if defined(vcmpeq_epi8_mask) && !defined(_MSC_VER) && !VLOADU_EMULATED
 #define MGETL_HAS_SIMD          1
 #define VSCANSZ                 sizeof(vtype)
+static char *map_scan_end;
 #else
 #define VSCANSZ                 0
 #endif
 
-static char *mem_map, *map_pos, *map_end, *map_scan_end;
+static char *mem_map, *map_pos, *map_end;
 
 #define GET_LINE(line, file)	(mem_map ? mgetl(line) : fgetl(line, LINE_BUFFER_SIZE, file))
 

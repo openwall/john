@@ -1612,8 +1612,9 @@ static MAYBE_INLINE char* mask_utf8_to_cp(const char *in)
 
 #define init_key(ps)							\
 	while (ps < MAX_NUM_MASK_PLHDR) {				\
-		template_key[ranges(ps).pos + ranges(ps).offset] =	\
-		ranges(ps).chars[ranges(ps).iter];			\
+		if (!mask_increments_len || ranges(ps).pos + ranges(ps).offset < mask_cur_len) \
+			template_key[ranges(ps).pos + ranges(ps).offset] = \
+				ranges(ps).chars[ranges(ps).iter]; \
 		ps = ranges(ps).next;					\
 	}
 
@@ -1669,6 +1670,8 @@ static int generate_keys(mask_cpu_context *cpu_mask_ctx,
 			process_key(template_key);
 			ps = ps1;
 			next_state(ps);
+			if (mask_increments_len && ranges(ps).pos + ranges(ps).offset >= mask_cur_len)
+				break;
 		}
 	}
 
@@ -2147,6 +2150,15 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	mask_fmt = db->format;
 	mask_bench_index = 0;
 
+#if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
+	/* Disable internal mask */
+	if (options.req_int_cand_target == 0) {
+		if (mask_int_cand_target)
+			log_event("- Format's internal mask generation disabled by command-line option");
+		mask_fmt->params.flags &= ~FMT_MASK;
+		mask_int_cand_target = 0;
+	} else
+#endif
 	/* These formats are too wierd for magnum to get working */
 	if (!strcasecmp(mask_fmt->params.label, "descrypt-opencl") ||
 	    !strcasecmp(mask_fmt->params.label, "lm-opencl"))
@@ -2327,6 +2339,12 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 	if (format_cannot_reset && mask_increments_len && mask_skip_ranges[0] != -1) {
 		int inc_min =
 			mask_int_cand.int_cpu_mask_ctx->ranges[mask_max_skip_loc].pos + 1;
+		if (inc_min > options.eff_maxlength) {
+			if (john_main_process)
+				fprintf(stderr, "Error: %s cannot use internal mask under these premises,\n"
+				        "try using --mask-internal-target=0 option.\n", mask_fmt->params.label);
+			error();
+		}
 		if (options.eff_minlength < inc_min) {
 			mask_iter_warn = inc_min;
 			if (john_main_process)
@@ -2414,13 +2432,15 @@ static void finalize_mask(int len)
 
 	if ((mask_fmt->params.flags & FMT_MASK) && options.rule_stack) {
 		mask_int_cand_target = 0;
+		mask_fmt->params.flags &= ~FMT_MASK;
+		format_cannot_reset = 0;
 		if (john_main_process) {
 			fprintf(stderr, "Note: Disabling internal mask due to stacked rules\n");
 			log_event("- Disabling internal mask due to stacked rules");
 		}
 	}
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
-	else if ((mask_fmt->params.flags & FMT_MASK) && options.req_int_cand_target >= 0) {
+	else if ((mask_fmt->params.flags & FMT_MASK) && options.req_int_cand_target > 0) {
 		log_event("- Overriding format's target internal mask factor of %d with user requested %d",
 		          mask_int_cand_target, options.req_int_cand_target);
 		mask_int_cand_target = options.req_int_cand_target;
@@ -2443,6 +2463,11 @@ static void finalize_mask(int len)
 		        __FUNCTION__,
 		        options.eff_minlength, options.eff_maxlength, mask_num_qw, mask_add_len, options.eff_maxlength * mask_num_qw + mask_add_len);
 #endif
+		if (options.eff_maxlength == 0) {
+			if (john_main_process)
+				fprintf(stderr, "Error: Hybrid mask would truncate input to length 0!\n");
+			error();
+		}
 	}
 
 	template_key_offsets = mem_alloc((mask_num_qw + 1) * sizeof(int));
@@ -2466,9 +2491,10 @@ static void finalize_mask(int len)
 	fprintf(stderr, "\n");
 #endif
 	int_mask_sum = 0;
-	for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges; i++)
-		int_mask_sum |=
-			cpu_mask_ctx.ranges[mask_skip_ranges[i]].count << (8 * i);
+	if (mask_skip_ranges) {
+		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] >= 0; i++)
+			int_mask_sum |= cpu_mask_ctx.ranges[mask_skip_ranges[i]].count << (8 * i);
+	}
 
 	skip_position(&cpu_mask_ctx, mask_skip_ranges);
 

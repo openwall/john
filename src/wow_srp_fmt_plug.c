@@ -403,7 +403,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 	enc_strupper(saved_key[index]);
 }
 

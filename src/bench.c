@@ -382,6 +382,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #ifdef BENCH_BUILD
 	const char *where;
 	if ((where = fmt_self_test(format, test_db))) {
+		static char s_error[128];
 		snprintf(s_error, sizeof(s_error), "FAILED (%s)\n", where);
 		return s_error;
 	}
@@ -676,7 +677,6 @@ void gather_results(struct bench_results *results)
 int benchmark_all(void)
 {
 	struct fmt_main *format;
-	int i;
 #if defined(HAVE_OPENCL)
 	char s_gpu[16 * MAX_GPU_DEVICES] = "";
 	char s_gpu1[16 * MAX_GPU_DEVICES] = "";
@@ -685,6 +685,7 @@ int benchmark_all(void)
 	const char *s_gpu1 = "";
 #endif
 #ifndef BENCH_BUILD
+	int i;
 	unsigned int loop_fail = 0, loop_total = 1;
 	int nvidia_mem = 0;
 #endif
@@ -799,7 +800,7 @@ AGAIN:
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
 		int using_int_mask = (format->params.flags & FMT_MASK) && (options.flags & FLG_MASK_CHK) &&
 			options.req_int_cand_target != 0 && mask_int_cand_target;
-#else
+#elif !defined(BENCH_BUILD)
 		int using_int_mask = 0;
 #endif
 
