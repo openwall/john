@@ -471,8 +471,7 @@ static char * insert_chars(char *origin_ctext, int *is_insertchars_finish)
 // find length as digits, increment it and insert data after delimiter
 static char * update_length_data(char *origin_ctext, int *is_updatelengthdata_finish)
 {
-	static int times[5] = { 1, 10, 100, 1000, 10000 };
-	static int times_index = 0;
+	static int times = 1;
 	static int pos = 0;
 	/* Modes: 0 search, */
 	/* then insert 1 raw, 2 hex, 3 base64 threating length as decimal, */
@@ -496,7 +495,7 @@ static char * update_length_data(char *origin_ctext, int *is_updatelengthdata_fi
 			}
 		}
 		if (!origin_ctext[pos]) {
-			times_index = 0;
+			times = 1;
 			pos = 0;
 			mode = 0;
 			*is_updatelengthdata_finish = 1;
@@ -514,8 +513,8 @@ static char * update_length_data(char *origin_ctext, int *is_updatelengthdata_fi
 	hex_mode = mode >= 4;
 	len = strtoll(&origin_ctext[pos], &after, hex_mode ? 16 : 10);
 	/* Number of chars to be inserted: raw 1x, hex 2x, base64 4/3x. */
-	/* base64 gets times[]*3 chars to have full blocks. */
-	inc = times[times_index];
+	/* base64 gets times*3 chars to have full blocks. */
+	inc = times;
 	if (mode == 1 || mode == 4) {
 		len += inc;
 	} else if (mode == 2 || mode == 5) {
@@ -529,9 +528,11 @@ static char * update_length_data(char *origin_ctext, int *is_updatelengthdata_fi
 	         hex_mode ? "%.*s%llx%c%0*d%s"
 	                  : "%.*s%llu%c%0*d%s",
 	         pos, origin_ctext, len, *after, inc, 0, after + 1);
-	++times_index;
-	if (times_index == sizeof(times) / sizeof(times[0])) {
-		times_index = 0;
+	times += (times < 260 ? 1
+	          : times < 5000 ? 13
+	          : times < 10000 ? 29 : 113);
+	if (times > 20000) {
+		times = 1;
 		++mode;
 		if (mode > 6)
 			mode = 0;
