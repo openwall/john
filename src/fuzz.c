@@ -477,19 +477,17 @@ static char * update_length_data(char *origin_ctext, int *is_updatelengthdata_fi
 	/* then insert 1 raw, 2 hex, 3 base64 threating length as decimal, */
 	/*   or insert 4 raw, 5 hex, 6 base64 threating length as hex. */
 	static int mode = 0;
-	unsigned long long len = 0;
-	char *after;
-	int inc, hex_mode, c;
+	unsigned long long len = 0, as_decimal = 0, as_hex = 0;
+	int inc, hex_mode, digit, pos2;
 
 	if (mode == 0) {
 		for (; origin_ctext[pos] && !mode; ++pos) {
-			c = origin_ctext[pos];
-			if (!is_alnum_ascii(c)) {
-				strtoll(&origin_ctext[pos + 1], &after, 16);
-				c = *after;
-				if (!c
-				    || after == &origin_ctext[pos + 1]
-				    || is_alpha_ascii(c))
+			if (!is_alnum_ascii(origin_ctext[pos])) {
+				for (pos2 = pos + 1; atoi16[ARCH_INDEX(origin_ctext[pos2])] != 0x7f; ++pos2)
+					;
+				if (!origin_ctext[pos2]
+				    || pos2 == pos + 1
+				    || is_alpha_ascii(origin_ctext[pos2]))
 					continue;
 				mode = 1;
 			}
@@ -503,15 +501,17 @@ static char * update_length_data(char *origin_ctext, int *is_updatelengthdata_fi
 		}
 	}
 
-	if (mode < 4) {
-		/* Skip decimal modes if there is letter. */
-		len = strtoll(&origin_ctext[pos], &after, 10);
-		c = *after;
-		if (is_alpha_ascii(c))
+	for (pos2 = pos; (digit = atoi16[ARCH_INDEX(origin_ctext[pos2])]) != 0x7f; ++pos2) {
+		/* Skip decimal modes if there is a letter. */
+		if (digit > 9 && mode < 4)
 			mode = 4;
+		/* It may overflow. Side effect: truncation of long hex fields. */
+		as_decimal = as_decimal * 10 + digit;
+		as_hex = as_hex * 16 + digit;
 	}
+
 	hex_mode = mode >= 4;
-	len = strtoll(&origin_ctext[pos], &after, hex_mode ? 16 : 10);
+	len = hex_mode ? as_hex : as_decimal;
 	/* Number of chars to be inserted: raw 1x, hex 2x, base64 4/3x. */
 	/* base64 gets times*3 chars to have full blocks. */
 	inc = times;
@@ -527,7 +527,7 @@ static char * update_length_data(char *origin_ctext, int *is_updatelengthdata_fi
 	snprintf(fuzz_hash, FUZZ_LINE_BUFFER_SIZE,
 	         hex_mode ? "%.*s%llx%c%0*d%s"
 	                  : "%.*s%llu%c%0*d%s",
-	         pos, origin_ctext, len, *after, inc, 0, after + 1);
+	         pos, origin_ctext, len, origin_ctext[pos2], inc, 0, &origin_ctext[pos2 + 1]);
 	times += (times < 260 ? 1
 	          : times < 5000 ? 13
 	          : times < 10000 ? 29 : 113);
