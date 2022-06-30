@@ -152,6 +152,8 @@ static int bitlocker_common_valid(char *ciphertext, struct fmt_main *self)
 	value = atoi(p);
 	if ((p = strtokm(NULL, "$")) == NULL)   // data encrypted by aes_ccm key, contains encrypted volume master key (vmk)
 		goto err;
+	if (value > MAX_DATALEN)
+		goto err;
 	if (hexlenl(p, &extra) != value * 2 || extra)
 		goto err;
 

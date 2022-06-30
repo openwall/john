@@ -4,6 +4,7 @@
 
 #include "formats.h"
 
+#define MAX_DATALEN             256
 #define MACLEN                  16
 #define SALTLEN                 16
 #define IVLEN                   12  // nonce length
@@ -24,7 +25,7 @@ typedef struct {
 	int data_size;
 	unsigned char salt[SALTLEN];
 	unsigned int iterations;
-	unsigned char data[256];
+	unsigned char data[MAX_DATALEN];
 	unsigned char iv[IVLEN]; // nonce
 	unsigned char mac[MACLEN];
 } bitlocker_custom_salt;
