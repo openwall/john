@@ -174,6 +174,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
+	size_t user_len, realm_len, nonce_len, noncecount_len, clientnonce_len, qop_len;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
@@ -189,7 +190,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* user */
 		goto err;
+	user_len = strlen(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* realm */
+		goto err;
+	realm_len = strlen(p);
+	/* snprintf() later would truncate data making hash uncrackable. */
+	if (user_len + realm_len + 2 > HTMP - PLAINTEXT_LENGTH - 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* method */
 		goto err;
@@ -197,17 +203,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* nonce */
 		goto err;
+	nonce_len = strlen(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* End of legacy HDAA or noncecount */
 		goto end_hdaa_legacy;
+	noncecount_len = strlen(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* clientnonce */
 		goto err;
+	clientnonce_len = strlen(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* qop */
 		goto err;
+	qop_len = strlen(p);
 	if ((p = strtokm(NULL, "$")) != NULL)
+		goto err;
+	if (nonce_len + noncecount_len + clientnonce_len + qop_len + 32 + 5 > HTMP - CIPHERTEXT_LENGTH - 1)
 		goto err;
 
 end_hdaa_legacy:
 	MEM_FREE(keeptr);
+	if (nonce_len + 32 + 2 > HTMP - CIPHERTEXT_LENGTH - 1)
+		return 0;
 	return 1;
 
 err:
