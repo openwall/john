@@ -159,6 +159,11 @@ int sha512_common_valid_nsldap(char *ciphertext, struct fmt_main *self)
 	len = strspn(ciphertext, NSLDAP_BASE64_ALPHABET);
 	if (len < (DIGEST_SIZE+1+2)/3*4-2)
 		return 0;
+	if (len < strlen(ciphertext) - 2)
+		return 0;
+	/* Max length needs at least 1 =; assumes (DIGEST_SIZE + NSLDAP_SALT_LEN) % 2 == 2. */
+	if (len > NSLDAP_CIPHERTEXT_LENGTH - 1)
+		return 0;
 
 	len = strspn(ciphertext, NSLDAP_BASE64_ALPHABET "=");
 	if (len != strlen(ciphertext))
