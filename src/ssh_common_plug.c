@@ -44,9 +44,11 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
+	if (len > N)
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ciphertext */
 		goto err;
-	if (hexlen(p, &extra) / 2 != len || extra)
+	if (hexlen(p, &extra) != len * 2 || extra)
 		goto err;
 	if (cipher == 2 || cipher == 6) {
 		if ((p = strtokm(NULL, "$")) == NULL)	/* rounds */
@@ -83,7 +85,7 @@ err:
 
 char *ssh_split(char *ciphertext, int index, struct fmt_main *self)
 {
-	static char buf[sizeof(struct custom_salt)+100];
+	static char buf[sizeof(struct custom_salt) * 2 + 100];
 
 	if (strnlen(ciphertext, LINE_BUFFER_SIZE) < LINE_BUFFER_SIZE &&
 	    strstr(ciphertext, "$SOURCE_HASH$"))
