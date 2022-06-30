@@ -198,7 +198,7 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		//from: {"$ScryptKDF.pm$*16384*8*1*VHRuaXZOZ05INWJs*JjrOzA8pdPhLvLh8sY64fLLaAjFUwYCXMmS16NXcn0A=","password"},
 		//to:   {"$7$C6..../....TtnivNgNH5bl$acXnAzE8oVzGwW9Tlu6iw7fq021J/1sZmEKhcLBrT02","password"},
 		int N, r, p;
-		if (strlen(fields[1]) > sizeof(tmp)+FMT_SCRYPTKDF_LEN)
+		if (strlen(fields[1]) >= sizeof(tmp)+FMT_SCRYPTKDF_LEN)
 			return fields[1];
 		strcpy(tmp, &fields[1][FMT_SCRYPTKDF_LEN]);
 		cp = strtokm(tmp, "*");
@@ -225,6 +225,8 @@ static char *prepare(char *fields[10], struct fmt_main *self)
 		encode64_uint32_fixed((uint8_t*)tmp6, sizeof(tmp6), p, 30);
 		tmp6[5]=0;
 		memset(tmp4, 0, sizeof(tmp4));
+		if (strlen(cp) >= sizeof(tmp4))
+			return fields[1];
 		base64_convert_cp(cp, e_b64_mime, strlen(cp), tmp4, e_b64_raw, sizeof(tmp4), flg_Base64_NO_FLAGS, 0);
 		memset(tmp2, 0, sizeof(tmp2));
 		base64_convert_cp(cp2, e_b64_mime, strlen(cp2), tmp2, e_b64_cryptBS, sizeof(tmp2),flg_Base64_NO_FLAGS, 0);
@@ -245,6 +247,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	unsigned tmp;
 
 	if (strncmp(ciphertext, FMT_TAG7, FMT_TAG7_LEN))
+		return 0;
+
+	if (strlen(ciphertext) >= BINARY_SIZE)
 		return 0;
 
 	for (p = ciphertext + FMT_TAG7_LEN; p < ciphertext + (FMT_TAG7_LEN + 1 + 5 + 5); p++)
