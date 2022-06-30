@@ -566,7 +566,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (cp[cipherTextLen] && cp[cipherTextLen] != '$')
 		return 0;
 // NOTE if looking at this in the future, this was not my fix.
-	if (strlen(&cp[cipherTextLen]) > SALT_SIZE)
+	// dynamic_1552: $s1$$Uuser --> 6+len(s1)+1+len(user) <= SALT_SIZE
+	if (strlen(&cp[cipherTextLen]) > SALT_SIZE - 3)
 		return 0;
 // end NOTE.
 	if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && ciphertext[pPriv->dynamic_SALT_OFFSET-1] != '$')
