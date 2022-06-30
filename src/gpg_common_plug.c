@@ -368,6 +368,8 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self, int is_CPU_format)
 		if (!isdec(p))
 			goto err;
 		res = atoi(p);
+		if (res > sizeof(gpg_common_cur_salt->g))
+			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)
 			goto err;
 		if (hexlenl(p, &extra) != res*2 || extra)
