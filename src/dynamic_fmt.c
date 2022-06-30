@@ -613,7 +613,9 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 					return 0; // username is too long
 			} else {
 				/* salt and username */
-				char *t = strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET], "$$U");;
+				char *t = strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET], "$$U");
+				if (!t)
+					return 0; // no username
 				/* salt_external_to_internal_convert parses fields from right to left, but it may overwrite found fields */
 				if (strstr(t + 3, "$$U"))
 					return 0; // second $$U is prohibited (for simplicity)
