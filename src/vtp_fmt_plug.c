@@ -132,6 +132,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
+	if (res > sizeof(cur_salt->vlans_data))
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)  /* vlans data */
 		goto err;
 	if (strlen(p) / 2 != res)
@@ -144,6 +146,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
+	if (res > 72 + sizeof(cur_salt->trailer_data))
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)  /* salt */
 		goto err;
 	if (strlen(p) / 2 != res)
