@@ -245,9 +245,11 @@ int pbkdf2_hmac_md5_valid(char *ciphertext, struct fmt_main *self)
 	if (!(ptr = strtokm(NULL, delim)))
 		goto error;
 	len = strlen(ptr); // binary hex length
-	if (len < PBKDF2_MDx_BINARY_SIZE || len > PBKDF2_MDx_MAX_BINARY_SIZE || len & 1)
+	if (len < PBKDF2_MDx_BINARY_SIZE * 2 || len > PBKDF2_MDx_MAX_BINARY_SIZE * 2 || len & 1)
 		goto error;
 	if (!ishexlc(ptr))
+		goto error;
+	if (strtokm(NULL, delim)) // no more fields
 		goto error;
 	MEM_FREE(keeptr);
 	return 1;
