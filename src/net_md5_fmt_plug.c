@@ -275,6 +275,8 @@ static char *prepare(char *fields[10], struct fmt_main *self) {
 		get_ptr();
 		if (text_in_dynamic_format_already(pDynamicFmt, hash))
 			return hash;
+		if (strlen(hash) + TAG_LENGTH + 1 > sizeof(buf))
+			return hash;
 		sprintf(buf, "%s%s", FORMAT_TAG, hash);
 		return buf;
 	}
