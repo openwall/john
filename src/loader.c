@@ -1358,6 +1358,7 @@ void ldr_free_db(struct db_main *db, int base)
 					dyna_salt_remove(psalt->salt);
 				psalt = psalt->next;
 			}
+			db->salts = NULL;
 		}
 		MEM_FREE(db->salt_hash);
 		MEM_FREE(db->cracked_hash);
