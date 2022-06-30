@@ -68,6 +68,9 @@ john_register_one(&fmt_HDAA);
 // This is 8 x 64 bytes, so in MMX/SSE2 we support up to 9 limbs of MD5
 #define HTMP                    512
 
+// That's arbitrary because uri part is not limited by anything natural.
+#define MAX_CIPHERTEXT_LEN      8192
+
 typedef struct
 {
 	size_t h1tmplen;
@@ -174,6 +177,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
+	if (strlen(ciphertext) > MAX_CIPHERTEXT_LEN)
+		return 0;
 	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
@@ -216,6 +221,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	char *cp;
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
+	if (strlen(ciphertext) > MAX_CIPHERTEXT_LEN)
+		return ciphertext;
 	cp = ciphertext + TAG_LENGTH;
 	cp = strchr(cp, '$'); if (!cp) return ciphertext;
 	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
@@ -224,8 +231,10 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
 	// now if we have $binary_hash$ then we remove the last '$' char
 	if (strlen(cp) == 1 + BINARY_SIZE*2 + 1) {
-		static char out[256];
-		strnzcpy(out, ciphertext, sizeof(out));
+		static char *out;
+		if (!out)
+			out = mem_alloc_tiny(MAX_CIPHERTEXT_LEN + 1, MEM_ALIGN_NONE);
+		strnzcpy(out, ciphertext, MAX_CIPHERTEXT_LEN + 1);
 		out[strlen(out)-1] = 0;
 		return out;
 	}
