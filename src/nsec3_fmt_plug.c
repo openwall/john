@@ -61,7 +61,7 @@ struct salt_t {
 	size_t zone_length;
 	uint16_t iterations;
 	unsigned char salt[N3_MAX_SALT_SIZE];
-	unsigned char zone_wf[N3_MAX_ZONE_SIZE];
+	unsigned char zone_wf[N3_MAX_ZONE_SIZE + 1];
 };
 
 static struct fmt_tests tests[] = {
@@ -145,9 +145,9 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *p, *q;
 	int i;
-	unsigned char zone[N3_MAX_ZONE_SIZE];
+	unsigned char zone[N3_MAX_ZONE_SIZE + 1];
 	int iter;
-	char salt[N3_MAX_SALT_SIZE + 1];
+	char salt[N3_MAX_SALT_SIZE * 2 + 1];
 	char hash[HASH_LENGTH * 2 + 1];
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
