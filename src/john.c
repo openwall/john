@@ -881,9 +881,8 @@ static void john_load_conf_db(void)
 {
 	if (options.flags & FLG_STDOUT) {
 		/* john.conf alternative for --internal-codepage */
-		if (!options.internal_cp &&
-		    options.target_enc == UTF_8 && options.flags &
-		    (FLG_RULES_IN_USE | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
+		if (!options.internal_cp && options.target_enc == UTF_8 &&
+		    (options.flags & (FLG_RULES_IN_USE | FLG_BATCH_CHK | FLG_MASK_CHK)))
 			if (!(options.internal_cp =
 			      cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL, "DefaultInternalCodepage"), 1)))
 				options.internal_cp =
