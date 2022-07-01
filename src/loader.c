@@ -476,7 +476,7 @@ void ldr_set_encoding(struct fmt_main *format)
 	}
 
 	/* john.conf alternative for --internal-codepage */
-	if (options.flags & (FLG_RULES_IN_USE | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
+	if (options.flags & (FLG_RULES_IN_USE | FLG_BATCH_CHK | FLG_MASK_CHK))
 	if ((!options.target_enc || options.target_enc == UTF_8) && !options.internal_cp) {
 		if (!(options.internal_cp =
 		      cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL, "DefaultInternalCodepage"), 1)))
