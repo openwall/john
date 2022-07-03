@@ -237,6 +237,8 @@ int process_encrypted_image(char *image_path)
 				fprintf(stdout, "\n\n");
 				fflush(stdout);
 				recoveryPasswordFound = 1;
+				if (userPasswordFound)
+					break;
 			}
 			else if ((c == key_protection_password[0]) && (d == key_protection_password[1]) && userPasswordFound == 0) {
 				fprintf(stderr, "\nVMK encrypted with User Password found at %llx\n", (long long)fp_before_salt);
@@ -270,6 +272,8 @@ int process_encrypted_image(char *image_path)
 				fprintf(stdout, "\n\n");
 				fflush(stdout);
 				userPasswordFound = 1;
+				if (recoveryPasswordFound)
+					break;
 			}
 		}
 
