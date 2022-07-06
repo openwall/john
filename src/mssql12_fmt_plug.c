@@ -301,7 +301,7 @@ static void *get_binary(char *ciphertext)
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
-#define SSEi_REVERSE_STEPS 0
+#define SSEi_REVERSE_STEPS SSEi_NO_OP
 #endif
 
 static int crypt_all(int *pcount, struct db_salt *salt)
