@@ -8,6 +8,8 @@
 
 #include "arch.h"
 
+#if ARCH_LITTLE_ENDIAN
+
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_stribog_256;
 extern struct fmt_main fmt_stribog_512;
@@ -467,3 +469,13 @@ struct fmt_main fmt_stribog_512 = {
 };
 
 #endif /* plugin stanza */
+
+#else
+#if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
+#ifdef __GNUC__
+#warning Stribog-256 and Stribog-512 formats require little-endian, formats disabled
+#elif _MSC_VER
+#pragma message(": warning Stribog-256 and Stribog-512 formats require little-endian, formats disabled:")
+#endif
+#endif
+#endif /* ARCH_LITTLE_ENDIAN */
