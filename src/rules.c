@@ -1177,12 +1177,12 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 
 		case '%':
 			{
-				int count = 0, required, pos;
+				int count = 0, last = -1, required, pos;
 				POSITION(required)
 				CLASS_export_pos(0,
-				    if (++count >= required) break, {})
-				if (count < required) REJECT
-				rules_vars['p'] = pos;
+				    last = pos; if (++count >= required && required) break, {})
+				if (!count || count < required) REJECT
+				rules_vars['p'] = (last >= 0 ? last : pos);
 			}
 			break;
 
