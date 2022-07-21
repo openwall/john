@@ -7504,7 +7504,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		}
 	}
 
-	// Deal with depricated 1st functions.  Convert them to proper 'flags'
+	// Deal with deprecated 1st functions.  Convert them to proper 'flags'
 	if (Setup->pFuncs[0] == DynamicFunc__InitialLoadKeysToInput)
 		Setup->startFlags |= MGF_KEYS_INPUT;
 	if (Setup->pFuncs[0] == DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2)

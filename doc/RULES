@@ -279,8 +279,8 @@ s?CY	replace all characters of class C in the word with Y
 U	reject the word unless it is valid UTF-8 (use with -u rule reject)
 eC	title case, where C is the separation character
 e?C	title case, with chars from class C as separation characters.
-	NOTE, see hashcat specific 'E' rule which is generic title case for space
-	only characters.  The 'e' rule extendeded more powerful version.
+	NOTE, see hashcat specific 'E' rule which is generic title case for
+	space only characters.  The 'e' rule is its extended version.
 
 Note that U will accept plain ASCII. It will only reject words that contain
 8-bit characters but can't be parsed as UTF-8. It can be used to reject

@@ -100,7 +100,7 @@ john_register_one(&fmt_sunmd5);
 // it is salted, but very slow, AND there is no difference between 1 and multi salts, so simply turn off salt benchmarks
 #define BENCHMARK_LENGTH		0x107
 
-/* THIS one IS a depricated sun string, but for real:  $md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0: Sun MD5 "password"  */
+/* THIS one IS a deprecated sun string, but for real:  $md5$3UqYqndY$$6P.aaWOoucxxq.l00SS9k0: Sun MD5 "password"  */
 /* $md5,rounds=5000$GUBv0xjJ$$mSwgIswdjlTY0YxV7HBVm0   passwd  This one was the python code from http://packages.python.org/passlib/lib/passlib.hash.sun_md5_crypt.html, but the rounds are busted. */
 
 static struct fmt_tests tests[] = {
