@@ -2405,8 +2405,9 @@ static void finalize_mask(int len)
 			    mask_add_len >= (unsigned int)len &&
 			    mask_num_qw == 1) {
 				if (john_main_process)
-				fprintf(stderr, "Error: Hybrid mask must contain ?w/?W after truncation for max. length\n");
-				error();
+				fprintf(stderr, "Warning: Hybrid mask must contain ?w/?W after truncation for max. length, ignoring wordlist\n");
+				options.flags &= ~(FLG_MASK_STACKED|FLG_WORDLIST_CHK);
+				options.flags |= FLG_MASK_CHK;
 			}
 		} else {
 			i++;
@@ -2420,8 +2421,9 @@ static void finalize_mask(int len)
 
 		if (mask_num_qw == 0) {
 			if (john_main_process)
-				fprintf(stderr, "Error: Hybrid mask must contain ?w or ?W\n");
-			error();
+				fprintf(stderr, "Warning: Hybrid mask must contain ?w or ?W, ignoring wordlist\n");
+			options.flags &= ~(FLG_MASK_STACKED|FLG_WORDLIST_CHK);
+			options.flags |= FLG_MASK_CHK;
 		}
 	} else {
 		if (mask_num_qw && john_main_process)
