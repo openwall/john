@@ -67,6 +67,11 @@ struct salt_t {
 static struct fmt_tests tests[] = {
 	{ "$NSEC3$100$4141414141414141$8c2d583acbe22616c69bb457e0c2111ced0a6e77$example.com.", "www" },
 	{ "$NSEC3$100$42424242$8fb38d13720815ed5b5fcefd973e0d7c3906ab02$example.com.", "mx" },
+	{ "$NSEC3$0$$879ffda85c7cb08df1f93fb040b90a6869b205f1$example.com.", "ns1" },
+	{ "$NSEC3$0$$c5e4b4da1e5a620ddaa3635e55c3732a5b49c7f4$example.com.", "" },
+	{ "$NSEC3$1$$4ff4345669d70dc0ab7e76c230d97de3eff75059$example.com.", "" },
+	{ "$NSEC3$0$42$e2d9498245ee0768923c1cd523959f18acbf11e7$example.com.", "ns2" },
+	{ "$NSEC3$1$42$26d83a84e2dff76c714f4e76b60355adeb045bbe$example.com.", "cdn" },
 	{ NULL }
 };
 
