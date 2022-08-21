@@ -175,7 +175,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 				return 0;
 			strncpy(salt, p, q - p);
 			salt[q - p] = 0;
-			if (!ishexlc(salt))
+			if (q-p > 0 && !ishexlc(salt))
 				return 0;
 			break;
 		case 3:
