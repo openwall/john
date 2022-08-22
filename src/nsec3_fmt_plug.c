@@ -48,8 +48,9 @@ john_register_one(&fmt_nsec3);
 #define MAX_KEYS_PER_CRYPT              1
 #define BINARY_SIZE                     20
 #define BINARY_ALIGN                    sizeof(uint32_t)
-#define N3_MAX_SALT_SIZE                255
-#define N3_MAX_ZONE_SIZE                255
+#define NSEC3_MAX_SALT_SIZE             255
+// max total length of a domainname in wire format
+#define DOMAINNAME_MAX_SIZE             255
 #define HASH_LENGTH                     20
 #define SALT_SIZE                       sizeof(struct salt_t)
 #define SALT_ALIGN                      sizeof(size_t)
@@ -60,8 +61,8 @@ struct salt_t {
 	size_t salt_length;
 	size_t zone_length;
 	uint16_t iterations;
-	unsigned char salt[N3_MAX_SALT_SIZE];
-	unsigned char zone_wf[N3_MAX_ZONE_SIZE + 1];
+	unsigned char salt[NSEC3_MAX_SALT_SIZE];
+	unsigned char zone_wf[DOMAINNAME_MAX_SIZE + 1];
 };
 
 static struct fmt_tests tests[] = {
@@ -115,7 +116,7 @@ static size_t parse_zone(char *zone, unsigned char *zone_wf_out)
 	/* TODO: unvis */
 	if (zone_len == 0) {
 		return 0;
-	} else if (zone_len > N3_MAX_ZONE_SIZE) {
+	} else if (zone_len > DOMAINNAME_MAX_SIZE) {
 		return 0;
 	}
 
@@ -150,9 +151,9 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *p, *q;
 	int i;
-	unsigned char zone[N3_MAX_ZONE_SIZE + 1];
+	unsigned char zone[DOMAINNAME_MAX_SIZE + 1];
 	int iter;
-	char salt[N3_MAX_SALT_SIZE * 2 + 1];
+	char salt[NSEC3_MAX_SALT_SIZE * 2 + 1];
 	char hash[HASH_LENGTH * 2 + 1];
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
@@ -176,7 +177,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			q = p;
 			while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 				++q;
-			if (*q != '$' || q-p > N3_MAX_SALT_SIZE*2 || (q-p) % 2)
+			if (*q != '$' || q-p > NSEC3_MAX_SALT_SIZE*2 || (q-p) % 2)
 				return 0;
 			strncpy(salt, p, q - p);
 			salt[q - p] = 0;
@@ -199,7 +200,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 		}
 	}
 	/* zone */
-	if (*p== 0)
+	if (*p == 0)
 		return 0;
 	if (parse_zone(p, zone) == 0) {
 		return 0;
