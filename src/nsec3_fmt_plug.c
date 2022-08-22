@@ -51,6 +51,7 @@ john_register_one(&fmt_nsec3);
 #define NSEC3_MAX_SALT_SIZE             255
 // max total length of a domainname in wire format
 #define DOMAINNAME_MAX_SIZE             255
+#define LABEL_MAX_SIZE                  63
 #define HASH_LENGTH                     20
 #define SALT_SIZE                       sizeof(struct salt_t)
 #define SALT_ALIGN                      sizeof(size_t)
@@ -112,47 +113,53 @@ static void labels_to_wireformat(unsigned char *labels,
 	*(--out) = (unsigned char)(last_dot - i);
 }
 
+/*
+ * parses the DNS zone and converts it to wire format.
+ * Similar to labels_to_wireformat(), but expects a final '.' and checks for
+ * errors (such as labels longer than LABEL_MAX_SIZE octets)
+ * Writes at most DOMAINNAME_MAX_SIZE bytes to zone_wf_out
+ */
 static size_t parse_zone(char *zone, unsigned char *zone_wf_out)
 {
-	char *lbl_end, *lbl_start;
-	unsigned int lbl_len;
-	unsigned int index = 0;
-	unsigned int zone_len = strlen(zone);
+	int last_dot;
+	int i;
+	int len;
+	size_t zone_len = strlen(zone);
 
-	/* TODO: unvis */
-	if (zone_len == 0) {
+	if (zone_len == 0 || zone_len > DOMAINNAME_MAX_SIZE - 1)
 		return 0;
-	} else if (zone_len > DOMAINNAME_MAX_SIZE) {
-		return 0;
-	}
 
-	lbl_end = strchr(zone, '.');
-	lbl_start = zone;
-	while (lbl_end != NULL) {
-		lbl_len = lbl_end - lbl_start;
-		zone_wf_out[index] = (unsigned char) lbl_len;
-		if (lbl_len > 0) {
-			memcpy(&zone_wf_out[++index], lbl_start, lbl_len);
-		}
-		index += lbl_len;
-		lbl_start = lbl_end + 1;
-		if (lbl_start - zone == zone_len) {
-			zone_wf_out[index] = 0;
-			break;
+	last_dot = zone_len - 1;
+
+	// we always expect the final '.'
+	if (zone[last_dot] != '.')
+		return 0;
+
+	++zone_wf_out;
+	for (i = last_dot ; i >= 0;) {
+		if (zone[i] == '.') {
+			if ((len = last_dot - i) > LABEL_MAX_SIZE) {
+				return 0;
+			}
+			zone_wf_out[i] = (unsigned char)len;
+			last_dot = --i;
 		} else {
-			lbl_end = strchr(lbl_start, '.');
+			zone_wf_out[i] = tolower(zone[i]);
+			--i;
 		}
 	}
-	if (lbl_end == NULL)
+	if ((len = last_dot - i) > LABEL_MAX_SIZE) {
 		return 0;
-	return index + 1;
+	}
+	*(--zone_wf_out) = (unsigned char)len;
+
+	return zone_len == 1 ? 1 : zone_len + 1;
 }
 
 
 /* format:
  * $NSEC3$iter$salt$hash$zone
  */
-
 static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *p, *q;
