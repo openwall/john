@@ -60,10 +60,10 @@ john_register_one(&fmt_nsec3);
 
 struct salt_t {
 	size_t salt_length;
-	size_t zone_length;
+	size_t zone_wf_length;
 	uint16_t iterations;
 	unsigned char salt[NSEC3_MAX_SALT_SIZE];
-	unsigned char zone_wf[DOMAINNAME_MAX_SIZE + 1];
+	unsigned char zone_wf[DOMAINNAME_MAX_SIZE];
 };
 
 static struct fmt_tests tests[] = {
@@ -164,7 +164,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 {
 	char *p, *q;
 	int i;
-	unsigned char zone[DOMAINNAME_MAX_SIZE + 1];
+	unsigned char zone[DOMAINNAME_MAX_SIZE];
 	int iter;
 	char salt[NSEC3_MAX_SALT_SIZE * 2 + 1];
 	char hash[HASH_LENGTH * 2 + 1];
@@ -268,7 +268,7 @@ static void *salt(char *ciphertext)
 	out.salt_length = (unsigned char)((salt_length) / 2);
 
 	p = strchr(q + 1, '$') + 1;
-	out.zone_length =  parse_zone(p, out.zone_wf);
+	out.zone_wf_length =  parse_zone(p, out.zone_wf);
 
 	return &out;
 }
@@ -318,7 +318,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	SHA1_Init(&sha_ctx);
 	if (saved_key_length > 0)
 		SHA1_Update(&sha_ctx, saved_wf_label, saved_key_length + 1);
-	SHA1_Update(&sha_ctx, saved_salt.zone_wf, saved_salt.zone_length);
+	SHA1_Update(&sha_ctx, saved_salt.zone_wf, saved_salt.zone_wf_length);
 	SHA1_Update(&sha_ctx, saved_salt.salt, salt_length);
 	SHA1_Final((unsigned char *)crypt_out, &sha_ctx);
 	while (iterations--) {
