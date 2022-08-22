@@ -45,7 +45,7 @@ john_register_one(&fmt_nsec3);
 #define BENCHMARK_LENGTH                0x107
 #define PLAINTEXT_LENGTH                125
 #define MIN_KEYS_PER_CRYPT              1
-#define MAX_KEYS_PER_CRYPT              1
+#define MAX_KEYS_PER_CRYPT              128
 #define BINARY_SIZE                     20
 #define BINARY_ALIGN                    sizeof(uint32_t)
 #define NSEC3_MAX_SALT_SIZE             255
@@ -78,13 +78,32 @@ static struct fmt_tests tests[] = {
 
 
 static struct salt_t saved_salt;
-/* length of the saved label, without the length field */
-static int saved_key_length;
-static unsigned char saved_key[PLAINTEXT_LENGTH + 1];
-static unsigned char saved_wf_label[PLAINTEXT_LENGTH + 2];
+/* length of the saved label, without the first length field */
+static int (*saved_key_length);
+static unsigned char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static unsigned char (*saved_wf_label)[PLAINTEXT_LENGTH + 2];
 
-static SHA_CTX sha_ctx;
-static uint32_t crypt_out[5];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
+
+static void init(struct fmt_main *self)
+{
+	saved_key_length = mem_calloc(self->params.max_keys_per_crypt,
+	                              sizeof(*saved_key_length));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*saved_key));
+	saved_wf_label = mem_calloc(self->params.max_keys_per_crypt,
+	                            sizeof(*saved_wf_label));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
+	                       sizeof(*crypt_out));
+}
+
+static void done(void)
+{
+	MEM_FREE(saved_key_length);
+	MEM_FREE(saved_key);
+	MEM_FREE(saved_wf_label);
+	MEM_FREE(crypt_out);
+}
 
 /*
  * convert a sequence of DNS labels to wire format
@@ -298,41 +317,57 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	saved_key_length = strnzcpyn((char *)saved_key, key, sizeof(saved_key));
-	labels_to_wireformat(saved_key, saved_key_length, saved_wf_label);
+	saved_key_length[index] = strnzcpyn((char *)saved_key[index],
+	                                    key, sizeof(*saved_key));
+	labels_to_wireformat(saved_key[index],
+	                     saved_key_length[index], saved_wf_label[index]);
 }
 
 static  char *get_key(int index)
 {
-	saved_key[saved_key_length] = 0;
-	return (char *) saved_key;
+	saved_key[index][saved_key_length[index]] = 0;
+	return (char *) saved_key[index];
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int count = *pcount;
-	uint16_t iterations = saved_salt.iterations;
-	size_t salt_length =  saved_salt.salt_length;
+	int i;
 
-	SHA1_Init(&sha_ctx);
-	if (saved_key_length > 0)
-		SHA1_Update(&sha_ctx, saved_wf_label, saved_key_length + 1);
-	SHA1_Update(&sha_ctx, saved_salt.zone_wf, saved_salt.zone_wf_length);
-	SHA1_Update(&sha_ctx, saved_salt.salt, salt_length);
-	SHA1_Final((unsigned char *)crypt_out, &sha_ctx);
-	while (iterations--) {
-		SHA1_Init(&sha_ctx);
-		SHA1_Update(&sha_ctx, crypt_out, BINARY_SIZE);
-		SHA1_Update(&sha_ctx, saved_salt.salt, salt_length);
-		SHA1_Final((unsigned char *)crypt_out, &sha_ctx);
+	for (i = 0; i < count; ++i) {
+		uint16_t iterations = saved_salt.iterations;
+		SHA_CTX ctx;
+
+		SHA1_Init(&ctx);
+		if (saved_key_length[i] > 0)
+			SHA1_Update(&ctx, saved_wf_label[i], saved_key_length[i] + 1);
+		SHA1_Update(&ctx, saved_salt.zone_wf, saved_salt.zone_wf_length);
+		SHA1_Update(&ctx, saved_salt.salt, saved_salt.salt_length);
+		SHA1_Final((unsigned char *)crypt_out[i], &ctx);
+		while (iterations--) {
+			SHA1_Init(&ctx);
+			SHA1_Update(&ctx, crypt_out[i], BINARY_SIZE);
+			SHA1_Update(&ctx, saved_salt.salt, saved_salt.salt_length);
+			SHA1_Final((unsigned char *)crypt_out[i], &ctx);
+		}
 	}
-
 	return count;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	return !memcmp(binary, crypt_out, BINARY_SIZE);
+	int i;
+
+	for (i = 0; i < count; ++i) {
+		if (((uint32_t *)binary)[0] == crypt_out[i][0])
+			return 1;
+	}
+	return 0;
+}
+
+static int cmp_one(void *binary, int index)
+{
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -362,8 +397,8 @@ struct fmt_main fmt_nsec3 = {
 		{ FORMAT_TAG },
 		tests
 	}, {
-		fmt_default_init,
-		fmt_default_done,
+		init,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
@@ -388,7 +423,7 @@ struct fmt_main fmt_nsec3 = {
 			fmt_default_get_hash
 		},
 		cmp_all,
-		cmp_all,
+		cmp_one,
 		cmp_exact
 	}
 };
