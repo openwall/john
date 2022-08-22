@@ -81,7 +81,6 @@ static struct salt_t saved_salt;
 /* length of the saved label, without the first length field */
 static int (*saved_key_length);
 static unsigned char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static unsigned char (*saved_wf_label)[PLAINTEXT_LENGTH + 2];
 
 static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
@@ -91,8 +90,6 @@ static void init(struct fmt_main *self)
 	                              sizeof(*saved_key_length));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
-	saved_wf_label = mem_calloc(self->params.max_keys_per_crypt,
-	                            sizeof(*saved_wf_label));
 	crypt_out = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*crypt_out));
 }
@@ -101,7 +98,6 @@ static void done(void)
 {
 	MEM_FREE(saved_key_length);
 	MEM_FREE(saved_key);
-	MEM_FREE(saved_wf_label);
 	MEM_FREE(crypt_out);
 }
 
@@ -319,8 +315,6 @@ static void set_key(char *key, int index)
 {
 	saved_key_length[index] = strnzcpyn((char *)saved_key[index],
 	                                    key, sizeof(*saved_key));
-	labels_to_wireformat(saved_key[index],
-	                     saved_key_length[index], saved_wf_label[index]);
 }
 
 static  char *get_key(int index)
@@ -339,8 +333,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		SHA_CTX ctx;
 
 		SHA1_Init(&ctx);
-		if (saved_key_length[i] > 0)
-			SHA1_Update(&ctx, saved_wf_label[i], saved_key_length[i] + 1);
+		if (saved_key_length[i] > 0) {
+			unsigned char label_wf[PLAINTEXT_LENGTH + 2];
+			labels_to_wireformat(saved_key[i],
+			                     saved_key_length[i],
+			                     label_wf);
+			SHA1_Update(&ctx, label_wf, saved_key_length[i] + 1);
+		}
 		SHA1_Update(&ctx, saved_salt.zone_wf, saved_salt.zone_wf_length);
 		SHA1_Update(&ctx, saved_salt.salt, saved_salt.salt_length);
 		SHA1_Final((unsigned char *)crypt_out[i], &ctx);
