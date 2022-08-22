@@ -86,20 +86,26 @@ static unsigned char saved_wf_label[PLAINTEXT_LENGTH + 2];
 static SHA_CTX sha_ctx;
 static uint32_t crypt_out[5];
 
-static void convert_label_wf(void)
+/*
+ * convert a sequence of DNS labels to wire format
+ * out needs space for labels_length+1 bytes
+ * If labels_length == 0, out remains untouched
+ */
+static void labels_to_wireformat(unsigned char *labels,
+                                 int labels_length, unsigned char *out)
 {
-	int last_dot = saved_key_length - 1;
+	int last_dot;
 	int i;
-	unsigned char *out = saved_wf_label;
-	if (saved_key_length == 0)
+	if (labels_length == 0)
 		return;
 	++out;
+	last_dot = labels_length - 1;
 	for (i = last_dot ; i >= 0;) {
-		if (saved_key[i] == '.') {
+		if (labels[i] == '.') {
 			out[i] = (unsigned char)(last_dot - i);
 			last_dot = --i;
 		} else {
-			out[i] = tolower(saved_key[i]);
+			out[i] = tolower(labels[i]);
 			--i;
 		}
 	}
@@ -287,7 +293,7 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 	saved_key_length = strnzcpyn((char *)saved_key, key, sizeof(saved_key));
-	convert_label_wf();
+	labels_to_wireformat(saved_key, saved_key_length, saved_wf_label);
 }
 
 static  char *get_key(int index)
