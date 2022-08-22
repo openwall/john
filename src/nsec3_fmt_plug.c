@@ -52,7 +52,6 @@ john_register_one(&fmt_nsec3);
 // max total length of a domainname in wire format
 #define DOMAINNAME_MAX_SIZE             255
 #define LABEL_MAX_SIZE                  63
-#define HASH_LENGTH                     20
 #define SALT_SIZE                       sizeof(struct salt_t)
 #define SALT_ALIGN                      sizeof(size_t)
 #define FORMAT_TAG                      "$NSEC3$"
@@ -167,7 +166,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	unsigned char zone[DOMAINNAME_MAX_SIZE];
 	int iter;
 	char salt[NSEC3_MAX_SALT_SIZE * 2 + 1];
-	char hash[HASH_LENGTH * 2 + 1];
+	char hash[BINARY_SIZE * 2 + 1];
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		return 0;
@@ -202,7 +201,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			q = p;
 			while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 				++q;
-			if (*q != '$' || q - p > HASH_LENGTH * 2 || (q - p) % 2)
+			if (*q != '$' || q - p > BINARY_SIZE * 2 || (q - p) % 2)
 				return 0;
 			strncpy(hash, p, q - p);
 			hash[q - p] = 0;
