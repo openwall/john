@@ -94,7 +94,7 @@ static void convert_label_wf(void)
 	if (saved_key_length == 0)
 		return;
 	++out;
-	for (i = last_dot ; i >= 0; ) {
+	for (i = last_dot ; i >= 0;) {
 		if (saved_key[i] == '.') {
 			out[i] = (unsigned char)(last_dot - i);
 			last_dot = --i;
@@ -129,7 +129,7 @@ static size_t parse_zone(char *zone, unsigned char *zone_wf_out)
 			memcpy(&zone_wf_out[++index], lbl_start, lbl_len);
 		}
 		index += lbl_len;
-		lbl_start = lbl_end+1;
+		lbl_start = lbl_end + 1;
 		if (lbl_start - zone == zone_len) {
 			zone_wf_out[index] = 0;
 			break;
@@ -177,11 +177,11 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			q = p;
 			while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 				++q;
-			if (*q != '$' || q-p > NSEC3_MAX_SALT_SIZE*2 || (q-p) % 2)
+			if (*q != '$' || q - p > NSEC3_MAX_SALT_SIZE * 2 || (q - p) % 2)
 				return 0;
 			strncpy(salt, p, q - p);
 			salt[q - p] = 0;
-			if (q-p > 0 && !ishexlc(salt))
+			if (q - p > 0 && !ishexlc(salt))
 				return 0;
 			break;
 		case 3:
@@ -189,13 +189,13 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			q = p;
 			while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 				++q;
-			if (*q != '$' || q-p > HASH_LENGTH*2 || (q-p) % 2)
+			if (*q != '$' || q - p > HASH_LENGTH * 2 || (q - p) % 2)
 				return 0;
 			strncpy(hash, p, q - p);
 			hash[q - p] = 0;
 			if (!ishexlc(hash))
 				return 0;
-			p = q+1;
+			p = q + 1;
 			break;
 		}
 	}
@@ -225,7 +225,7 @@ static void *get_binary(char *ciphertext)
 
 	for (i = 0; i < BINARY_SIZE; ++i) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) |
-			atoi16[ARCH_INDEX(p[1])];
+		         atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
 	return out;
@@ -246,15 +246,15 @@ static void *salt(char *ciphertext)
 
 	p = strchr(p, '$') + 1;
 	q = strchr(p, '$');
-	salt_length = q-p;
+	salt_length = q - p;
 	for (i = 0; i < salt_length; i += 2) {
-		out.salt[i/2] = (atoi16[ARCH_INDEX(*p)] << 4 |
-				atoi16[ARCH_INDEX(p[1])]);
+		out.salt[i / 2] = (atoi16[ARCH_INDEX(*p)] << 4 |
+		                   atoi16[ARCH_INDEX(p[1])]);
 		p += 2;
 	}
-	out.salt_length = (unsigned char)((salt_length)/2);
+	out.salt_length = (unsigned char)((salt_length) / 2);
 
-	p = strchr(q+1, '$') + 1;
+	p = strchr(q + 1, '$') + 1;
 	out.zone_length =  parse_zone(p, out.zone_wf);
 
 	return &out;
@@ -286,7 +286,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	saved_key_length = strnzcpyn((char*)saved_key, key, sizeof(saved_key));
+	saved_key_length = strnzcpyn((char *)saved_key, key, sizeof(saved_key));
 	convert_label_wf();
 }
 
@@ -304,7 +304,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	SHA1_Init(&sha_ctx);
 	if (saved_key_length > 0)
-		SHA1_Update(&sha_ctx, saved_wf_label, saved_key_length+1);
+		SHA1_Update(&sha_ctx, saved_wf_label, saved_key_length + 1);
 	SHA1_Update(&sha_ctx, saved_salt.zone_wf, saved_salt.zone_length);
 	SHA1_Update(&sha_ctx, saved_salt.salt, salt_length);
 	SHA1_Final((unsigned char *)crypt_out, &sha_ctx);
