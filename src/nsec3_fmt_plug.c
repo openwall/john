@@ -32,6 +32,14 @@ john_register_one(&fmt_nsec3);
 #include <string.h>
 #include <stdint.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#ifndef OMP_SCALE
+#define OMP_SCALE           4
+#endif
+
 #include "sha.h"
 #include "arch.h"
 #include "params.h"
@@ -86,6 +94,8 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
+	omp_autotune(self, OMP_SCALE);
+
 	saved_key_length = mem_calloc(self->params.max_keys_per_crypt,
 	                              sizeof(*saved_key_length));
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
@@ -328,6 +338,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int count = *pcount;
 	int i;
 
+#ifdef _OPENMP
+#pragma omp parallel for private(i)
+#endif
 	for (i = 0; i < count; ++i) {
 		uint16_t iterations = saved_salt.iterations;
 		SHA_CTX ctx;
@@ -389,7 +402,7 @@ struct fmt_main fmt_nsec3 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_8_BIT | FMT_HUGE_INPUT,
+		FMT_8_BIT | FMT_HUGE_INPUT | FMT_OMP,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
