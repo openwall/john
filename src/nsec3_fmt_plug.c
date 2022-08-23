@@ -410,7 +410,7 @@ struct fmt_main fmt_nsec3 = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_8_BIT | FMT_OMP,
+		FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 #if FMT_MAIN_VERSION > 11
 		{ NULL },
 #endif
