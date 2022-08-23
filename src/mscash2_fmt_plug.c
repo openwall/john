@@ -513,11 +513,22 @@ static void pbkdf2(unsigned int _key[]) // key is also 'final' digest.
 	{
 		// we only need to copy the accumulator data from the CTX, since
 		// the original encryption was a full block of 64 bytes.
-		memcpy(&ctx1, &tmp_ctx1, sizeof(SHA_CTX)-(64+sizeof(unsigned int)));
+#if HAVE_LIBCRYPTO
+#define COPY_CTX(dst, src) \
+		memcpy(&dst, &src, sizeof(SHA_CTX)-(64+sizeof(unsigned int)));
+#elif SPH_64
+#define COPY_CTX(dst, src) \
+		memcpy(dst.val, src.val, 5 * sizeof(sph_u32)); \
+		dst.count = src.count;
+#else
+#define COPY_CTX(dst, src) \
+		memcpy(dst.val, src.val, 7 * sizeof(sph_u32));
+#endif
+		COPY_CTX(ctx1, tmp_ctx1)
 		SHA1_Update(&ctx1, (unsigned char*)tmp_hash, SHA_DIGEST_LENGTH);
 		SHA1_Final((unsigned char*)tmp_hash, &ctx1);
 
-		memcpy(&ctx2, &tmp_ctx2, sizeof(SHA_CTX)-(64+sizeof(unsigned int)));
+		COPY_CTX(ctx2, tmp_ctx2)
 		SHA1_Update(&ctx2, (unsigned char*)tmp_hash, SHA_DIGEST_LENGTH);
 		SHA1_Final((unsigned char*)tmp_hash, &ctx2);
 
