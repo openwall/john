@@ -41,18 +41,23 @@ ed25519_hram(hash_512bits hram, const ed25519_signature RS, const ed25519_public
 }
 
 void
-ED25519_FN(ed25519_publickey) (const ed25519_secret_key sk, ed25519_public_key pk) {
+ED25519_FN(ed25519ext_publickey)(const ed25519ext_secret_key extsk, ed25519_public_key pk) {
 	bignum256modm a;
 	ge25519 ALIGN(16) A;
-	hash_512bits extsk;
 
 	/* A = aB */
-	ed25519_extsk(extsk, sk);
 	expand256_modm(a, extsk, 32);
 	ge25519_scalarmult_base_niels(&A, ge25519_niels_base_multiples, a);
 	ge25519_pack(pk, &A);
 }
 
+void
+ED25519_FN(ed25519_publickey)(const ed25519_secret_key sk, ed25519_public_key pk) {
+	ed25519ext_secret_key extsk;
+
+	ed25519_extsk(extsk, sk);
+	ed25519ext_publickey(extsk, pk);
+}
 
 void
 ED25519_FN(ed25519_sign) (const unsigned char *m, size_t mlen, const ed25519_secret_key sk, const ed25519_public_key pk, ed25519_signature RS) {
