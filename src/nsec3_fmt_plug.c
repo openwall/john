@@ -2,7 +2,7 @@
  * DNSSEC NSEC3 hash cracker. Developed as part of the nsec3map DNS zone
  * enumerator project (https://github.com/anonion0/nsec3map).
  *
- * This software is Copyright (c) 2016 Ralf Sager <nsec3map at 3fnc.org>,
+ * This software is Copyright (c) 2016,2022 Ralf Sager <nsec3map at 3fnc.org>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -48,7 +48,7 @@ john_register_one(&fmt_nsec3);
 
 #define FORMAT_LABEL                    "nsec3"
 #define FORMAT_NAME                     "DNSSEC NSEC3"
-#define ALGORITHM_NAME                  "32/" ARCH_BITS_STR
+#define ALGORITHM_NAME                  "SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT               ""
 #define BENCHMARK_LENGTH                0x107
 #define PLAINTEXT_LENGTH                125
@@ -130,7 +130,7 @@ static void labels_to_wireformat(unsigned char *labels,
 			out[i] = (unsigned char)(last_dot - i);
 			last_dot = --i;
 		} else {
-			out[i] = tolower(labels[i]);
+			out[i] = tolower((int)(unsigned char)labels[i]);
 			--i;
 		}
 	}
@@ -168,7 +168,7 @@ static size_t parse_zone(char *zone, unsigned char *zone_wf_out)
 			zone_wf_out[i] = (unsigned char)len;
 			last_dot = --i;
 		} else {
-			zone_wf_out[i] = tolower(zone[i]);
+			zone_wf_out[i] = tolower((int)(unsigned char)zone[i]);
 			--i;
 		}
 	}
@@ -205,6 +205,11 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 			continue;
 		case 1:
 			/* iterations */
+			q = p;
+			while (*q >= '0' && *q <= '9')
+				q++;
+			if (*q != '$' || q - p < 1 || q - p > 5)
+				return 0;
 			iter = atoi(p);
 			if (iter < 0 || iter > UINT16_MAX)
 				return 0;
@@ -216,7 +221,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 				++q;
 			if (*q != '$' || q - p > NSEC3_MAX_SALT_SIZE * 2 || (q - p) % 2)
 				return 0;
-			strncpy(salt, p, q - p);
+			memcpy(salt, p, q - p);
 			salt[q - p] = 0;
 			if (q - p > 0 && !ishexlc(salt))
 				return 0;
@@ -228,7 +233,7 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 				++q;
 			if (*q != '$' || q - p > BINARY_SIZE * 2 || (q - p) % 2)
 				return 0;
-			strncpy(hash, p, q - p);
+			memcpy(hash, p, q - p);
 			hash[q - p] = 0;
 			if (!ishexlc(hash))
 				return 0;
@@ -297,6 +302,11 @@ static void *salt(char *ciphertext)
 	return &out;
 }
 
+static unsigned int iteration_count(void *salt)
+{
+	return ((struct salt_t *)salt)->iterations;
+}
+
 static int salt_hash(void *salt)
 {
 	unsigned int hash = 0;
@@ -327,7 +337,7 @@ static void set_key(char *key, int index)
 	                                    key, sizeof(*saved_key));
 }
 
-static  char *get_key(int index)
+static char *get_key(int index)
 {
 	saved_key[index][saved_key_length[index]] = 0;
 	return (char *) saved_key[index];
@@ -353,6 +363,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			                     label_wf);
 			SHA1_Update(&ctx, label_wf, saved_key_length[i] + 1);
 		}
+/* Minor optimization potential: the above can be performed in set_key() */
+/* Major optimization potential: use SIMD */
 		SHA1_Update(&ctx, saved_salt.zone_wf, saved_salt.zone_wf_length);
 		SHA1_Update(&ctx, saved_salt.salt, saved_salt.salt_length);
 		SHA1_Final((unsigned char *)crypt_out[i], &ctx);
@@ -412,7 +424,7 @@ struct fmt_main fmt_nsec3 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{ "iteration count" },
 #endif
 		{ FORMAT_TAG },
 		tests
@@ -426,7 +438,7 @@ struct fmt_main fmt_nsec3 = {
 		get_binary,
 		salt,
 #if FMT_MAIN_VERSION > 11
-		{ NULL },
+		{ iteration_count },
 #endif
 		fmt_default_source,
 		{
