@@ -35,9 +35,9 @@ john_register_one(&fmt_cardano);
 #define ALGORITHM_NAME      "PBKDF2-SHA512/BLAKE2b/ChaCha20 " SHA512_ALGORITHM_NAME
 #else
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME      "PBKDF2-SHA512/BLAKE2b/ChaCha20  64/" ARCH_BITS_STR
+#define ALGORITHM_NAME      "PBKDF2-SHA512/BLAKE2b/ChaCha20 64/" ARCH_BITS_STR
 #else
-#define ALGORITHM_NAME      "PBKDF2-SHA512/BLAKE2b/ChaCha20  32/" ARCH_BITS_STR
+#define ALGORITHM_NAME      "PBKDF2-SHA512/BLAKE2b/ChaCha20 32/" ARCH_BITS_STR
 #endif
 #endif
 #define BENCHMARK_COMMENT   ""
@@ -45,7 +45,7 @@ john_register_one(&fmt_cardano);
 #define BINARY_SIZE         0
 #define BINARY_ALIGN        1
 #define SALT_SIZE           sizeof(struct custom_salt)
-#define SALT_ALIGN          sizeof(uint32_t)
+#define SALT_ALIGN          1
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA512
 #define MAX_KEYS_PER_CRYPT  SSE_GROUP_SZ_SHA512
@@ -53,10 +53,7 @@ john_register_one(&fmt_cardano);
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 #endif
-#if !defined(PLAINTEXT_LENGTH) || PLAINTEXT_LENGTH > 64
-#undef PLAINTEXT_LENGTH
-#define PLAINTEXT_LENGTH    64
-#endif
+#define PLAINTEXT_LENGTH    125
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int any_cracked, *cracked;
@@ -104,6 +101,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memset(cracked, 0, cracked_size);
 		any_cracked = 0;
 	}
+
 	// KDF2 params
 	static const int kdf_rounds = 15000;
 	static const char kdf_salt[] = "encrypted wallet salt";
@@ -144,12 +142,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 #endif
 
-		ed25519ext_secret_key dsk;
-		ed25519_public_key pk;
-
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
-
 			struct chacha_ctx ckey;
+			ed25519ext_secret_key dsk;
+			ed25519_public_key pk;
 
 			// Decrypt the encrypted esk with the retrieved KDFs.
 			chacha_keysetup(&ckey, kdf_out[i], KEY_SIZE * 8);
@@ -203,7 +199,7 @@ struct fmt_main fmt_cardano = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL},
 		{ FORMAT_TAG},
 		cardano_tests
