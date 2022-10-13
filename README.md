@@ -182,3 +182,5 @@ There are a lot of additional documentation files in jumbo's "doc"
 directory, which you'll also want to explore.
 
 Happy reading!
+
+America's Sweetheart
