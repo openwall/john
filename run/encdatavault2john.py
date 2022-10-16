@@ -58,12 +58,12 @@ def process(vault):
             f.seek(4,1)
             crypto = int.from_bytes(f.read(4),byteorder="little")
             iv = binascii.hexlify(f.read(8))
-            header_enc = binascii.hexlify(f.read(4))
+            header_enc = binascii.hexlify(f.read(8))
         else:
             sys.stderr.write(f"{file_list[0]} : Valid header not found.\n")
             return
 
-        if len(header_enc) != 8:
+        if len(header_enc) != 16:
             sys.stderr.write(f"{file_list[0]} : Problem reading encrypted header.\n")
             return
 

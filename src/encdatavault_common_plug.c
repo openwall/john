@@ -104,7 +104,9 @@ int valid_common(char *ciphertext, struct fmt_main *self, int is_pbkdf2)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // Encrypted header
 		goto err;
-	if (hexlenl(p, &extra) != ENC_SIG_SIZE * 2 || extra)
+	if (hexlenl(p, &extra) > ENC_SIG_SIZE * 2 || extra)
+		goto err;
+	if (hexlenl(p, &extra) < (ENC_SIG_SIZE - 4) * 2 || extra)
 		goto err;
 	if (is_pbkdf2) {
 		if ((p = strtokm(NULL, "$")) == NULL)   // Salt length
@@ -147,6 +149,7 @@ void *get_salt_common(char *ciphertext, int is_pbkdf2)
 	int i;
 	char *p = ciphertext, *ctcopy, *keeptr;
 	static custom_salt cs;
+	int extra;
 
 	memset(&cs, 0, sizeof(cs));
 	ctcopy = xstrdup(ciphertext);
@@ -161,14 +164,15 @@ void *get_salt_common(char *ciphertext, int is_pbkdf2)
 	p = strtokm(NULL, "$");
 	cs.algo_id = atoi(p);
 	p = strtokm(NULL, "$");
-	for (i = 0; i < ENC_NONCE_SIZE; i++)
+	for (i = 0; i < ENC_IV_SIZE; i++)
 		cs.iv[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
 
 	// Init AES CTR counter
 	cs.iv[ENC_IV_SIZE - 1] = 1;
 
 	p = strtokm(NULL, "$");
-	for (i = 0; i < ENC_SIG_SIZE; i++)
+	cs.encrypted_data_length = hexlenl(p, &extra) / 2;
+	for (i = 0; i < cs.encrypted_data_length; i++)
 		cs.encrypted_data[i + 4] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
 
 	if (is_pbkdf2) {

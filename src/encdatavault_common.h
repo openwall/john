@@ -27,7 +27,7 @@
 #define ENC_BLOCK_SIZE 				16
 #define ENC_KEY_SIZE 				16
 #define ENC_NONCE_SIZE 				8
-#define ENC_SIG_SIZE 				4
+#define ENC_SIG_SIZE 				8
 #define ENC_MAX_KEY_NUM 			8
 #define ENC_KEYCHAIN_SIZE 			128
 
@@ -46,6 +46,7 @@ typedef struct {
 	unsigned char salt[PBKDF2_32_MAX_SALT_SIZE];
 	unsigned int iterations;
 	unsigned char encrypted_data[ENC_BLOCK_SIZE];
+	unsigned int encrypted_data_length;
 	unsigned char keychain[ENC_KEYCHAIN_SIZE];
 } custom_salt;
 
