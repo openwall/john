@@ -1148,8 +1148,16 @@ static char *get_build_opts(int sequential_id, const char *opts)
 			global_opts = OPENCLBUILDOPTIONS;
 
 	snprintf(build_opts, LINE_BUFFER_SIZE,
-	         "-I opencl %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
+	         "-I opencl %s %s%s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
 	        global_opts,
+	        get_device_version(sequential_id) >= 200 ? "-cl-std=CL1.2 " : "",
+#ifdef __APPLE__
+	        "-D__OS_X__ ",
+#else
+	        (options.verbosity >= VERB_MAX &&
+	         gpu_nvidia(device_info[sequential_id])) ?
+	         "-cl-nv-verbose " : "",
+#endif
 	        get_platform_vendor_id(get_platform_id(sequential_id)) ==
 	         PLATFORM_MESA ? "-D__MESA__ " :
 	        get_platform_vendor_id(get_platform_id(sequential_id)) ==
@@ -1158,13 +1166,6 @@ static char *get_build_opts(int sequential_id, const char *opts)
 	         PLATFORM_BEIGNET ?
 	         "-D__BEIGNET__ " :
 	        get_device_capability(sequential_id),
-#ifdef __APPLE__
-	        "-D__OS_X__ ",
-#else
-	        (options.verbosity >= VERB_MAX &&
-	         gpu_nvidia(device_info[sequential_id])) ?
-	         "-cl-nv-verbose " : "",
-#endif
 	        get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ? "-D__CPU__ "
 	        : get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU ? "-D__GPU__ " : "",
 	        "-DDEVICE_INFO=", device_info[sequential_id],
