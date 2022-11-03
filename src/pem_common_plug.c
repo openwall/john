@@ -39,7 +39,7 @@ struct fmt_tests pem_tests[] = {
 
 int pem_valid(char *ciphertext, struct fmt_main *self)
 {
-	static int warned = 0;
+	static int kdf_warned, prf_warned;
 	char *ctcopy, *keeptr, *p;
 	int len, value, extra;
 
@@ -52,18 +52,22 @@ int pem_valid(char *ciphertext, struct fmt_main *self)
 	ctcopy += TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL) // type
 		goto err;
-	if (strcmp(p, "1") != 0 && !warned) {
+	if (strcmp(p, "1") != 0) {
 		if ((p = strtokm(NULL, "$")) == NULL)
 			goto err;
 		if (strcmp(p, "pbkdf2") != 0) {
-			fprintf(stderr, "Warning: %s kdf algorithm <%s> is not supported currently!\n", self->params.label, p);
-			warned = 1;
+			if (!self_test_running && !kdf_warned) {
+				fprintf(stderr, "Warning: %s kdf algorithm <%s> is not supported currently!\n", self->params.label, p);
+				kdf_warned = 1;
+			}
 			goto err;
 		}
 		if ((p = strtokm(NULL, "$")) == NULL)
 			goto err;
-		fprintf(stderr, "Warning: %s prf algorithm <%s> is not supported currently!\n", self->params.label, p);
-		warned = 1;
+		if (!self_test_running && !prf_warned) {
+			fprintf(stderr, "Warning: %s prf algorithm <%s> is not supported currently!\n", self->params.label, p);
+			prf_warned = 1;
+		}
 		goto err;
 	}
 	if (!isdec(p))
