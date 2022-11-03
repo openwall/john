@@ -3019,7 +3019,10 @@ void opencl_list_devices(void)
 			if (strstr(dname, "OpenCL 1.0")) {
 				printf(" <the minimum REQUIRED is OpenCL 1.1>");
 			}
-			printf("\n    Driver version:         %s\n",
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_OPENCL_C_VERSION,
+			                sizeof(dname), dname, NULL);
+			printf("\n    OpenCL version support: %s\n", dname);
+			printf("    Driver version:         %s\n",
 			       opencl_driver_info(sequence_nr));
 
 			clGetDeviceInfo(devices[sequence_nr],
