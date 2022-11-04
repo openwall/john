@@ -93,7 +93,7 @@ void build_fake_salts_for_regen_lost(struct db_main *database)
 /* This is called from dynamic prepare() function when we are in regen salts mode */
 char *load_regen_lost_salt_Prepare(char *split_fields1)
 {
-	char *cp = split_fields1, *Prep, *pPrep;
+	char *cp = split_fields1, *Prep;
 	int len;
 
 	if (options.flags & FLG_SHOW_CHK)
@@ -108,13 +108,13 @@ char *load_regen_lost_salt_Prepare(char *split_fields1)
 		return NULL;
 
 	Prep = mem_alloc_tiny(DynaTypeLen+hash_len+1+salt_len+1, MEM_ALIGN_NONE);
-	pPrep = Prep;
+
 	/*
 	 * Add a the first possible salt.  So, once loaded, there will be only one salt,
 	 * but all candidates will use this salt.  We then load all remaining possible
 	 * salts and link all input candidates to all of them.
 	 */
-	pPrep += sprintf(Prep, "%s%s$%s", DynaType, cp, FirstSalt);
+	sprintf(Prep, "%s%s$%s", DynaType, cp, FirstSalt);
 
 	return Prep;
 }
