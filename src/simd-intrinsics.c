@@ -162,7 +162,9 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 #else
 		unsigned j, k;
 		uint32_t *p = uw.u32;
+#if !ARCH_LITTLE_ENDIAN
 		vtype *W = w;
+#endif
 		uint32_t *saved_key = (uint32_t*)_data;
 		MD5_PARA_DO(k)
 		{
@@ -191,8 +193,8 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 				W[14] = vswap32(W[14]);
 				W[15] = vswap32(W[15]);
 			}
-#endif
 			W += 16;
+#endif
 		}
 #endif
 		// now set our data pointer to point to this 'mixed' data.
@@ -851,7 +853,9 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 #else
 		unsigned j, k;
 		uint32_t *p = uw.u32;
+#if !ARCH_LITTLE_ENDIAN
 		vtype *W = w;
+#endif
 		uint32_t *saved_key = (uint32_t*)_data;
 		MD4_PARA_DO(k)
 		{
@@ -880,8 +884,8 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 				W[14] = vswap32(W[14]);
 				W[15] = vswap32(W[15]);
 			}
-#endif
 			W += 16;
+#endif
 		}
 #endif
 		// now set our data pointer to point to this 'mixed' data.

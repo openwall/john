@@ -413,8 +413,8 @@ int gpg2john(int argc, char **argv)
 		parse_packet(hash);
 		if (last_hash && *last_hash) {
 			char login[4096], *cp;
-			char *gecos_remains = gecos;
 			const char *ext[] = {".gpg", ".pgp"};
+
 			if (!gecos[0]) {
 				cp = strip_suffixes(jtr_basename(filename), ext, 2);
 				strnzcpy(gecos, cp, sizeof(gecos));
@@ -422,7 +422,6 @@ int gpg2john(int argc, char **argv)
 			strnzcpy(login, gecos, sizeof(login));
 			if ((cp = strchr(login, '('))) 	memset(cp, 0, 1);
 			if ((cp = strrchr(login, '<'))) memset(cp, 0, 1);
-			gecos_remains += strlen(login);
 			replace(login, ':', ' ');
 			cp = &login[strlen(login) - 1];
 			while (cp > login && *cp == ' ') *cp-- = 0;
@@ -2528,7 +2527,6 @@ encrypted_Secret_Key(int len, int sha1)
 	int used = 0;
 	char *cp;
 	char login[4096];
-	char *gecos_remains = gecos;
 	const char *ext[] = {".gpg", ".pgp"};
 
 	if (len < 0)
@@ -2549,9 +2547,6 @@ encrypted_Secret_Key(int len, int sha1)
 		memset(cp, 0, 1);
 	if ((cp = strrchr(login, '<')))
 		memset(cp, 0, 1);
-
-	/* gecos field is the rest of user data (comment, email) */
-	gecos_remains += strlen(login);
 
 	/* Don't allow our delimiter in there! */
 	replace(login, ':', ' ');
