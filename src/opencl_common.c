@@ -1977,11 +1977,18 @@ void opencl_find_best_gws(int step, int max_duration,
 	}
 
 	if (have_lws) {
-		if (core_count > 2)
-			optimal_gws = MIN(gws_limit, lcm(core_count, optimal_gws));
+		if (core_count > 2) {
+			if (gws_limit)
+				optimal_gws = MIN(gws_limit, lcm(core_count, optimal_gws));
+			else
+				optimal_gws = lcm(core_count, optimal_gws);
+		}
 		default_value = optimal_gws;
 	} else {
-		soft_limit = MIN(gws_limit, local_work_size * core_count * 128);
+		if (gws_limit)
+			soft_limit = MIN(gws_limit, local_work_size * core_count * 128);
+		else
+			soft_limit = local_work_size * core_count * 128;
 	}
 
 	/* conf setting may override (decrease) code's max duration */
