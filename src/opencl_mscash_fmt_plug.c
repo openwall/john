@@ -730,22 +730,16 @@ static int cmp_exact(char *source, int index)
 
 static void reset(struct db_main *db)
 {
-	static int last_int_cand;
+	release_base_clobj();
+	release_clobj();
 
-	if (!crypt_kernel || last_int_cand != mask_int_cand.num_int_cand) {
-		release_base_clobj();
-		release_clobj();
+	prepare_table(db);
+	init_kernel();
 
-		prepare_table(db);
-		init_kernel();
+	create_base_clobj();
 
-		create_base_clobj();
-
-		current_salt = 0;
-		hash_ids[0] = 0;
-
-		last_int_cand = mask_int_cand.num_int_cand;
-	}
+	current_salt = 0;
+	hash_ids[0] = 0;
 
 	size_t gws_limit = MIN((0xf << 21) * 4 / BUFSIZE,
 	                       get_max_mem_alloc_size(gpu_id) / BUFSIZE);
