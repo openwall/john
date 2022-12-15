@@ -591,36 +591,17 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 
 static void reset(struct db_main *db)
 {
-	static int initialized;
+	release_clobj();
+	release_clobj_kpc();
 
-	if (initialized) {
-		release_clobj();
-		release_clobj_kpc();
+	num_loaded_hashes = db->salts->count;
+	ocl_hc_128_prepare_table(db->salts);
+	init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
 
-		num_loaded_hashes = db->salts->count;
-		ocl_hc_128_prepare_table(db->salts);
-		init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
+	create_clobj();
+	set_kernel_args();
 
-		create_clobj();
-		set_kernel_args();
-
-		auto_tune(db, 100);
-	}
-	else {
-		int tune_time = (options.flags & FLG_MASK_CHK) ? 100 : 50;
-
-		ocl_hc_128_prepare_table_test();
-
-		init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
-
-		create_clobj();
-		set_kernel_args();
-
-		auto_tune(NULL, tune_time);
-		hash_ids[0] = 0;
-
-		initialized++;
-	}
+	auto_tune(db, 100);
 }
 
 struct fmt_main FMT_STRUCT = {

@@ -918,79 +918,21 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 
 static void reset(struct db_main *db)
 {
-	static int initialized;
+	release_clobj();
+	release_clobj_kpc();
 
-	if (initialized) {
-		release_clobj();
-		release_clobj_kpc();
+	num_loaded_hashes = db->password_count;
+	prepare_table(db);
+	init_kernel(num_loaded_hashes, select_bitmap(num_loaded_hashes));
 
-		num_loaded_hashes = db->password_count;
-		prepare_table(db);
-		init_kernel(num_loaded_hashes, select_bitmap(num_loaded_hashes));
+	create_clobj();
+	set_kernel_args();
 
-		create_clobj();
-		set_kernel_args();
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps, CL_TRUE, 0, (size_t)(bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps.");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
 
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps, CL_TRUE, 0, (size_t)(bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps.");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
-
-		auto_tune(db, 100);
-	}
-	else {
-		unsigned int *binary, i = 0;
-		char *ciphertext;
-		int tune_time = (options.flags & FLG_MASK_CHK) ? 100 : 50;
-
-		while (sl3_tests[num_loaded_hashes].ciphertext != NULL)
-			num_loaded_hashes++;
-
-		loaded_hashes = mem_alloc(6 * sizeof(cl_uint) * num_loaded_hashes);
-
-		while (sl3_tests[i].ciphertext != NULL) {
-			if (sl3_tests[i].fields[0])
-				ciphertext = sl3_prepare(sl3_tests[i].fields, self);
-			else
-				ciphertext = sl3_tests[i].ciphertext;
-			binary = (unsigned int*)get_binary(ciphertext);
-			loaded_hashes[6 * i] = binary[0];
-			loaded_hashes[6 * i + 1] = binary[1];
-			loaded_hashes[6 * i + 2] = binary[2];
-			loaded_hashes[6 * i + 3] = binary[3];
-			loaded_hashes[6 * i + 4] = binary[4];
-			loaded_hashes[6 * i + 5] = 0;
-			i++;
-		}
-
-		num_loaded_hashes = create_perfect_hash_table(192, (void*)loaded_hashes,
-				num_loaded_hashes,
-			        &offset_table,
-			        &offset_table_size,
-			        &hash_table_size, 0);
-
-		if (!num_loaded_hashes) {
-			MEM_FREE(hash_table_192);
-			MEM_FREE(offset_table);
-			fprintf(stderr, "Failed to create Hash Table for self test.\n");
-			error();
-		}
-
-		hash_ids = mem_calloc((3 * num_loaded_hashes + 1), sizeof(cl_uint));
-
-		init_kernel(num_loaded_hashes, select_bitmap(num_loaded_hashes));
-
-		create_clobj();
-		set_kernel_args();
-
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps, CL_TRUE, 0, (bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps.");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
-
-		auto_tune(NULL, tune_time);
-		hash_ids[0] = 0;
-
-		initialized++;
-	}
+	auto_tune(db, 100);
 }
 
 struct fmt_main FMT_STRUCT = {
