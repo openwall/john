@@ -80,51 +80,6 @@ void ocl_hc_128_prepare_table(struct db_salt *salt) {
 	}
 }
 
-void ocl_hc_128_prepare_table_test() {
-	unsigned int *binary, i;
-	char *ciphertext;
-
-	num_loaded_hashes = 0;
-	while (self->params.tests[num_loaded_hashes].ciphertext != NULL)
-			num_loaded_hashes++;
-
-	if (loaded_hashes)
-		MEM_FREE(loaded_hashes);
-	if (hash_ids)
-		MEM_FREE(hash_ids);
-	if (offset_table)
-		MEM_FREE(offset_table);
-	if (hash_table_128)
-		MEM_FREE(hash_table_128);
-
-	loaded_hashes = (cl_uint*) mem_alloc(4 * num_loaded_hashes * sizeof(cl_uint));
-	hash_ids = (cl_uint*) mem_calloc((3 * num_loaded_hashes + 1), sizeof(cl_uint));
-
-	i = 0;
-	while (self->params.tests[i].ciphertext != NULL) {
-			ciphertext = self->methods.split(self->params.tests[i].ciphertext, 0, self);
-			binary = (unsigned int*)self->methods.binary(ciphertext);
-			loaded_hashes[4 * i] = binary[0];
-			loaded_hashes[4 * i + 1] = binary[1];
-			loaded_hashes[4 * i + 2] = binary[2];
-			loaded_hashes[4 * i + 3] = binary[3];
-			i++;
-	}
-
-	num_loaded_hashes = create_perfect_hash_table(128, (void *)loaded_hashes,
-				num_loaded_hashes,
-			        &offset_table,
-			        &offset_table_size,
-			        &hash_table_size_128, 0);
-
-	if (!num_loaded_hashes) {
-		MEM_FREE(hash_table_128);
-		MEM_FREE(offset_table);
-		fprintf(stderr, "Failed to create Hash Table for cracking.\n");
-		error();
-	}
-}
-
 /* Use only for smaller bitmaps < 16MB */
 static void prepare_bitmap_8(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 {
