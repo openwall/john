@@ -11,13 +11,13 @@ use File::Basename;
 # magnum (added proper handling of BCJ et. al. and adapt to JtR use)
 
 # version:
-# 1.6
+# 1.9
 
 # date released:
 # April 2015
 
 # date last updated:
-# 3rd Dec 2021
+# July 13 2022
 
 # dependencies:
 # Compress::Raw::Lzma
@@ -104,12 +104,29 @@ use File::Basename;
 #   - 5 means that the data must be post-processed using ARM (little-endian)
 #   - 6 means that the data must be post-processed using ARMT (little-endian)
 #   - 7 means that the data must be post-processed using SPARC
-#   - 8 means that the data must be post-processed using DELTA
-#   - 9 .. 15 reserved (future use)
+#   - 8 unavailable since this indicates TRUNCATION (128 == 0x80 == 8 << 4)
+#   - 9 means that the data must be post-processed using DELTA
+#   - 10 .. 15 reserved (future use)
 
 # Truncated data can only be verified using the padding attack and therefore combinations between truncation + a compressor are not allowed.
 # Therefore, whenever the value is 128 or 0, neither coder attributes nor the length of the data for the CRC32 check is within the output.
 # On the other hand, for all values above or equal 1 and smaller than 128, both coder attributes and the length for CRC32 check is in the output.
+
+# Whenever the data needs to be either (pre)processed by multiple (2+) filters or whenever the data needs to be decompressed by multiple (2+) decompression algorithms,
+# the attribute list (the fields "preprocessor attributes" and "coder attributes" accordingly) will be a comma-separated list of fields with type, order/position and attribute indicators.
+#
+# The rules for this Multiple Compressor(s)/Preprocessor(s) list are as follows:
+#   - all (additional) methods/coders need to be specified in the output hash format (the fields "coder attributes" and "preprocessor attributes" accordingly), even if they have no attributes
+#   - the format is a comma-separated list of type and order indicator (for both fields: compressor and preprocessor attributes), followed by an underscore (_), followed by the attribute itself
+#   - the first attribute/item/codec for both fields (compressor and preprocessor attributes) needs no type and order indicator, only attributes
+#   - the type and position/order of the first decompressor/filter are implied (it's always the first decompressor/filter and the type is in the "data type indicator" field)
+#   - this also means that the field "data type indicator" (see format above) only indicates the first decompressor (if used) and (also, if used) the first preprocessing filter (this is also due to compatibility reasons with older formats)
+#   - for the additional (2+) decompressors/filters, the first number after the comma is the type and order indicator, after which follows an underscore (_) and the attributes themself (could be empty/no attribute value for some codecs)
+#   - special case: the "coder attributes" field could start with a comma (and has also a type and order indicator) in the unlikely case where during archive generation a filter was applied after the final compression of the data. Otherwise it's always the case that the decompressor needs to be applied first
+#
+# Multiple Compressor(s)/Preprocessor(s) type and order indicator (it is one combined field/number):
+#   - upper nibble (4 bits, indicator >> 4) indicates the compressor/preprocessor method/type/codec (LZMA2, Delta, BCJ etc)
+#   - lower nibble (4 bits, indicator & 0xf) indicates the order/position (the step at which the (de)compressor/(pre)processor needs to be applied). The values are incrementing, the counter starts with 1
 
 #
 # Constants
@@ -120,7 +137,7 @@ use File::Basename;
 my $ANALYZE_ALL_STREAMS_TO_FIND_SHORTEST_DATA_BUF = 1;
 
 my $SHOW_LIST_OF_ALL_STREAMS = 0; # $ANALYZE_ALL_STREAMS_TO_FIND_SHORTEST_DATA_BUF must be set to 1 to list/debug all streams
-my $SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING = 1;
+my $SHOW_UNSUPPORTED_CODER_WARNING = 1;
 
 my $SHORTEN_HASH_LENGTH_TO_CRC_LENGTH = 1; # only output the bytes needed for the checksum of the first file (plus a fixed length
                                            # header at the very beginning of the stream; plus additional +5% to cover the exception
@@ -140,6 +157,8 @@ my $PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK  = 1;      # does the cracker 
 my @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS = (1, 2, 6, 7); # within this list we only need values ranging from 1 to 7
                                                              # i.e. SEVEN_ZIP_LZMA1_COMPRESSED to SEVEN_ZIP_DEFLATE_COMPRESSED
 my @PASSWORD_RECOVERY_TOOL_SUPPORTED_PREPROCESSORS = (1, 2, 3, 4, 5, 6, 7, 8); # BCJ2 can be "supported" by ignoring CRC
+my $PASSWORD_RECOVERY_TOOL_SUPPORT_MULTIPLE_DECOMPRESSORS = 0; # does the cracker support more than one compressing algorithms for the same file (e.g. LZMA2 + LZMA1)
+my $PASSWORD_RECOVERY_TOOL_SUPPORT_MULTIPLE_PREPROCESSORS = 0; # does the cracker support more than one preprocessing filters for the same file (e.g. BCJ + Delta)
 
 # 7-zip specific stuff
 
@@ -201,6 +220,7 @@ my $SEVEN_ZIP_SPARC             = "\x03\x03\x08\x05";
 my $SEVEN_ZIP_BZIP2             = "\x04\x02\x02";
 my $SEVEN_ZIP_DEFLATE           = "\x04\x01\x08";
 my $SEVEN_ZIP_DELTA             = "\x03";
+my $SEVEN_ZIP_COPY              = "\x00";
 
 # hash format
 
@@ -222,13 +242,14 @@ my $SEVEN_ZIP_IA64_PREPROCESSED  =   4;
 my $SEVEN_ZIP_ARM_PREPROCESSED   =   5;
 my $SEVEN_ZIP_ARMT_PREPROCESSED  =   6;
 my $SEVEN_ZIP_SPARC_PREPROCESSED =   7;
-my $SEVEN_ZIP_DELTA_PREPROCESSED =   8;
+                                 #   8 conflicts with SEVEN_ZIP_TRUNCATED (128 == 0x80 == 8 << 4)
+my $SEVEN_ZIP_DELTA_PREPROCESSED =   9;
 
 my $SEVEN_ZIP_TRUNCATED          = 128; # (0x80 or 0b10000000)
 
 my %SEVEN_ZIP_COMPRESSOR_NAMES   = (1 => "LZMA1", 2 => "LZMA2", 3 => "PPMD", 6 => "BZIP2", 7 => "DEFLATE",
                                     (1 << 4) => "BCJ", (2 << 4) => "BCJ2", (3 << 4) => "PPC", (4 << 4) => "IA64",
-                                    (5 << 4) => "ARM", (6 << 4) => "ARMT", (7 << 4) => "SPARC", (8 << 4) => "DELTA");
+                                    (5 << 4) => "ARM", (6 << 4) => "ARMT", (7 << 4) => "SPARC", (9 << 4) => "DELTA");
 
 #
 # Helper functions
@@ -879,6 +900,344 @@ sub show_empty_streams_info_warning
   print STDERR "WARNING: the file '" . $file_path . "' does not contain any meaningful data (the so-called streams info), it might only contain a list of empty files.\n";
 }
 
+sub fill_additional_attribute_list
+{
+  my $coder            = shift;
+  my $file_path        = shift;
+  my $coder_attributes = shift;
+
+  my $error = 0;
+
+  my $codec_id = $$coder->{'codec_id'};
+
+  my $type = $SEVEN_ZIP_UNCOMPRESSED;
+
+  my $is_preprocessor = 0;
+
+  if ($codec_id eq $SEVEN_ZIP_LZMA1)
+  {
+    $type = $SEVEN_ZIP_LZMA1_COMPRESSED;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_LZMA2)
+  {
+    $type = $SEVEN_ZIP_LZMA2_COMPRESSED;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_PPMD)
+  {
+    $type = $SEVEN_ZIP_PPMD_COMPRESSED;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_BZIP2)
+  {
+    $type = $SEVEN_ZIP_BZIP2_COMPRESSED;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_DEFLATE)
+  {
+    $type = $SEVEN_ZIP_DEFLATE_COMPRESSED;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_COPY)
+  {
+    return 0; # don't add it to our coder_attributes list, it's a NO-OP
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_BCJ)
+  {
+    $type = $SEVEN_ZIP_BCJ_PREPROCESSED;
+
+    $is_preprocessor = 1;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_BCJ2)
+  {
+    $type = $SEVEN_ZIP_BCJ2_PREPROCESSED;
+
+    $is_preprocessor = 1;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_PPC)
+  {
+    $type = $SEVEN_ZIP_PPC_PREPROCESSED;
+
+    $is_preprocessor = 1;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_IA64)
+  {
+    $type = $SEVEN_ZIP_IA64_PREPROCESSED;
+
+    $is_preprocessor = 1;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_ARM)
+  {
+    $type = $SEVEN_ZIP_ARM_PREPROCESSED;
+
+    $is_preprocessor = 1;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_ARMT)
+  {
+    $type = $SEVEN_ZIP_ARMT_PREPROCESSED;
+
+    $is_preprocessor = 1;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_SPARC)
+  {
+    $type = $SEVEN_ZIP_SPARC_PREPROCESSED;
+
+    $is_preprocessor = 1;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_DELTA)
+  {
+    $type = $SEVEN_ZIP_DELTA_PREPROCESSED;
+
+    $is_preprocessor = 1;
+  }
+  else
+  {
+    print STDERR "WARNING: unsupported coder with codec id '0x" . unpack ("H*", $codec_id) . "' in file '" . $file_path . "' found.\n";
+
+    $error = 1;
+
+    return $error;
+  }
+
+  my $attributes = undef;
+
+  if ($type != $SEVEN_ZIP_UNCOMPRESSED)
+  {
+    if (defined ($$coder->{'attributes'}))
+    {
+      $attributes = unpack ("H*", $$coder->{'attributes'});
+    }
+  }
+
+  my %item = ('type'            => $type,
+              'is_preprocessor' => $is_preprocessor,
+              'attributes'      => $attributes);
+
+  push (@$coder_attributes, \%item);
+
+  return $error;
+}
+
+sub check_attributes
+{
+  my $attributes     = shift;
+  my $is_truncated   = shift;
+  my $file_path      = shift;
+  my $padding_attack = shift;
+  my $data_len       = shift;
+  my $warning_shown  = shift;
+
+  my $additional_attributes = "";
+  my $error = 0;
+
+  # Defaults:
+
+  my $type_of_compression  = $SEVEN_ZIP_UNCOMPRESSED;
+  my $type_of_preprocessor = $SEVEN_ZIP_UNCOMPRESSED;
+
+  my $compression_attributes  = "";
+  my $preprocessor_attributes = "";
+
+  my $codec_count        = 0;
+  my $compressor_count   = 0;
+  my $preprocessor_count = 0;
+
+  my $show_warning = 0;
+
+  my $steps_involved = "";
+
+  foreach my $attribute (@$attributes)
+  {
+    my $is_preprocessor = $attribute->{'is_preprocessor'};
+
+    my $cur_type = $attribute->{'type'};
+
+    my $attr = "";
+
+    if (defined ($attribute->{'attributes'}))
+    {
+      $attr = $attribute->{'attributes'};
+    }
+
+    if ($is_preprocessor == 0)
+    {
+      if (grep (/^$cur_type$/, @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS) == 0)
+      {
+        $show_warning = 1;
+      }
+
+      $compressor_count++;
+
+      if ($compressor_count == 1)
+      {
+        $type_of_compression = $cur_type;
+
+        if ($preprocessor_count == 0)
+        {
+          $compression_attributes = $attr;
+        }
+        else # special case: preprocessor after compressing (unlikely)
+        {
+          $compression_attributes = "," . (($cur_type << 4) + $codec_count) . "_" . $attr;
+        }
+      }
+      else
+      {
+        $compression_attributes .= "," . (($cur_type << 4) + $codec_count) . "_" . $attr;
+      }
+
+      # cosmetic (warning message):
+
+      if (length ($steps_involved) > 0)
+      {
+        $steps_involved .= ", ";
+      }
+
+      $steps_involved .= "decompressed using " . $SEVEN_ZIP_COMPRESSOR_NAMES{$cur_type};
+    }
+    else # if ($is_preprocessor == 1)
+    {
+      if (grep (/^$cur_type$/, @PASSWORD_RECOVERY_TOOL_SUPPORTED_PREPROCESSORS) == 0)
+      {
+        $show_warning = 1;
+      }
+
+      $preprocessor_count++;
+
+      if ($preprocessor_count == 1)
+      {
+        $type_of_preprocessor = $cur_type;
+
+        $preprocessor_attributes = $attr;
+      }
+      else
+      {
+        $preprocessor_attributes .= "," . (($cur_type << 4) + $codec_count) . "_" . $attr;
+      }
+
+      # cosmetic (warning message):
+
+      if (length ($steps_involved) > 0)
+      {
+        $steps_involved .= ", ";
+      }
+
+      $steps_involved .= "processed using " . $SEVEN_ZIP_COMPRESSOR_NAMES{$cur_type << 4};
+    }
+
+    $codec_count++;
+
+    if ($codec_count >= 16)
+    {
+      print STDERR "WARNING: unsupported amount of compression algorithms/preprocessing filters for the file '". $file_path . "',\n";
+
+      $error = 1;
+
+      last;
+    }
+  }
+
+  # cosmetic: replace the last "," with an "and"
+
+  my $last_comma_in_steps = rindex ($steps_involved, ",");
+
+  if ($last_comma_in_steps >= 0)
+  {
+    $steps_involved = substr ($steps_involved, 0, $last_comma_in_steps) . " and " .
+                      substr ($steps_involved, $last_comma_in_steps + 2);
+  }
+
+  # show a warning if the decompression algorithm is currently not supported by the cracker
+
+  if (($SHOW_UNSUPPORTED_CODER_WARNING == 0) ||
+      ($show_warning  == 0)                  ||
+      ($is_truncated  == 1)                  ||
+      ($warning_shown == 1))
+  {
+    # no warning(s) needed
+  }
+  else
+  {
+    print STDERR "WARNING: to correctly verify the CRC checksum of the data contained within the file '". $file_path . "',\n";
+    print STDERR "the data must be " . $steps_involved . ".\n";
+    print STDERR "\n";
+    print STDERR "$PASSWORD_RECOVERY_TOOL_NAME currently does not support this particular decompression algorithm(s) or preprocessing filter(s).\n";
+    print STDERR "\n";
+
+    if ($padding_attack == 1) # is padding attack even possible
+    {
+      print STDERR "INFO: However there is also some good news in this particular case.\n";
+      print STDERR "Since AES-CBC is used by the 7z algorithm and the data length of this file allows a padding attack,\n";
+      print STDERR "the password recovery tool might be able to use that to verify the correctness of password candidates.\n";
+      print STDERR "By using this attack there might of course be a higher probability of false positives.\n";
+      print STDERR "\n";
+
+      if ($PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK == 0)
+      {
+        print STDERR "$PASSWORD_RECOVERY_TOOL_NAME currently does not support padding attacks.\n";
+        print STDERR "\n";
+      }
+    }
+    elsif ($type_of_compression == $SEVEN_ZIP_LZMA2_COMPRESSED) # this special case should only work for LZMA2
+    {
+      if ($data_len <= $LZMA2_MIN_COMPRESSED_LEN)
+      {
+        print STDERR "INFO: it might still be possible to crack the password of this archive since the data part seems\n";
+        print STDERR "to be very short and therefore it might use the LZMA2 uncompressed chunk feature\n";
+        print STDERR "\n";
+      }
+    }
+  }
+
+  # special case: all compressors/filters are supported, but cracker does NOT support combinations:
+
+  if ($compressor_count > 1)
+  {
+    if ($PASSWORD_RECOVERY_TOOL_SUPPORT_MULTIPLE_DECOMPRESSORS == 0)
+    {
+      if (($warning_shown == 0) &&
+          ($show_warning  == 0))
+      {
+        print STDERR "WARNING: $PASSWORD_RECOVERY_TOOL_NAME does not currently support combining/cascading multiple decompression algorithms\n";
+        print STDERR "\n";
+      }
+
+      $show_warning = 1;
+    }
+  }
+
+  if ($preprocessor_count > 1)
+  {
+    if ($PASSWORD_RECOVERY_TOOL_SUPPORT_MULTIPLE_PREPROCESSORS == 0)
+    {
+      if (($warning_shown == 0) &&
+          ($show_warning  == 0))
+      {
+        print STDERR "WARNING: $PASSWORD_RECOVERY_TOOL_NAME does not currently support combining/cascading multiple preprocessing filters\n";
+        print STDERR "\n";
+      }
+
+      $show_warning = 1;
+    }
+  }
+
+  $additional_attributes = $compression_attributes;
+
+  if (length ($preprocessor_attributes) > 0) # special case: we need both attributes
+  {
+    $additional_attributes .= "\$" . $preprocessor_attributes;
+  }
+
+  my $type_of_data = $SEVEN_ZIP_UNCOMPRESSED; # this variable will hold the "number" after the "$7z$" hash signature
+
+  if ($is_truncated == 1)
+  {
+    $type_of_data = $SEVEN_ZIP_TRUNCATED; # note: this means that we neither need the crc_len, nor the coder attributes
+  }
+  else
+  {
+    $type_of_data = ($type_of_preprocessor << 4) | $type_of_compression;
+  }
+
+  return ($type_of_data, $additional_attributes, $show_warning, $error);
+}
+
 sub extract_hash_from_archive
 {
   my $fp = shift;
@@ -1246,180 +1605,35 @@ sub extract_hash_from_archive
     }
   }
 
-  my $type_of_compression     = $SEVEN_ZIP_UNCOMPRESSED;
-  my $type_of_preprocessor    = $SEVEN_ZIP_UNCOMPRESSED;
-  my $compression_attributes  = "";
-  my $preprocessor_attributes = "";
+  my @coder_attributes = (); # type, is_preprocessor, attributes
 
   for (my $coder_pos = $coder_id + 1; $coder_pos < $number_coders; $coder_pos++)
   {
     $coder = $folder->{'coders'}[$coder_pos];
     last unless (defined ($coder));
 
-    $codec_id = $coder->{'codec_id'};
+    my $is_error = fill_additional_attribute_list (\$coder, $file_path, \@coder_attributes);
 
-    my $is_preprocessor = 0;
-
-    if ($codec_id eq $SEVEN_ZIP_LZMA1)
-    {
-      $type_of_compression = $SEVEN_ZIP_LZMA1_COMPRESSED;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_LZMA2)
-    {
-      $type_of_compression = $SEVEN_ZIP_LZMA2_COMPRESSED;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_PPMD)
-    {
-      $type_of_compression = $SEVEN_ZIP_PPMD_COMPRESSED;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_BZIP2)
-    {
-      $type_of_compression = $SEVEN_ZIP_BZIP2_COMPRESSED;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_DEFLATE)
-    {
-      $type_of_compression = $SEVEN_ZIP_DEFLATE_COMPRESSED;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_BCJ)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_BCJ_PREPROCESSED;
-
-      $is_preprocessor = 1;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_BCJ2)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_BCJ2_PREPROCESSED;
-
-      $is_preprocessor = 1;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_PPC)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_PPC_PREPROCESSED;
-
-      $is_preprocessor = 1;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_IA64)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_IA64_PREPROCESSED;
-
-      $is_preprocessor = 1;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_ARM)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_ARM_PREPROCESSED;
-
-      $is_preprocessor = 1;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_ARMT)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_ARMT_PREPROCESSED;
-
-      $is_preprocessor = 1;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_SPARC)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_SPARC_PREPROCESSED;
-
-      $is_preprocessor = 1;
-    }
-    elsif ($codec_id eq $SEVEN_ZIP_DELTA)
-    {
-      $type_of_preprocessor = $SEVEN_ZIP_DELTA_PREPROCESSED;
-
-      $is_preprocessor = 1;
-    }
-    else
-    {
-      print STDERR "WARNING: unsupported coder with codec id '0x" . unpack ("H*", $codec_id) . "' in file '" . $file_path . "' found.\n";
-
-      return "";
-    }
-
-    if ($is_preprocessor == 0)
-    {
-      if ($type_of_compression != $SEVEN_ZIP_UNCOMPRESSED)
-      {
-        if (defined ($coder->{'attributes'}))
-        {
-          $compression_attributes = unpack ("H*", $coder->{'attributes'});
-        }
-      }
-    }
-    else
-    {
-      if ($type_of_preprocessor != $SEVEN_ZIP_UNCOMPRESSED)
-      {
-        if (defined ($coder->{'attributes'}))
-        {
-          $preprocessor_attributes = unpack ("H*", $coder->{'attributes'});
-        }
-      }
-    }
+    return "" if ($is_error == 1);
   }
 
-  if (length ($preprocessor_attributes) > 0) # special case: we need both attributes
+  my ($type_of_data,
+      $additional_attributes,
+      $codec_warning_shown,
+      $attribute_error) = check_attributes (\@coder_attributes,
+                                            $is_truncated,
+                                            $file_path,
+                                            $padding_attack_possible,
+                                            $data_len,
+                                            0);
+
+  return "" if ($attribute_error == 1);
+
+  my $found_stream_without_warning = 0;
+
+  if ($codec_warning_shown == 0)
   {
-    $compression_attributes .= "\$" . $preprocessor_attributes;
-  }
-
-  # show a warning if the decompression algorithm is currently not supported by the cracker
-
-  if ($SHOW_LZMA_DECOMPRESS_AFTER_DECRYPT_WARNING == 1)
-  {
-    if ($type_of_compression != $SEVEN_ZIP_UNCOMPRESSED)
-    {
-      if ($is_truncated == 0)
-      {
-
-        if (grep (/^$type_of_compression$/, @PASSWORD_RECOVERY_TOOL_SUPPORTED_DECOMPRESSORS) == 0 ||
-            ($type_of_preprocessor && grep (/^$type_of_preprocessor$/, @PASSWORD_RECOVERY_TOOL_SUPPORTED_PREPROCESSORS) == 0))
-        {
-          print STDERR "WARNING: to correctly verify the CRC checksum of the data contained within the file '". $file_path . "',\n";
-          print STDERR "the data must be decompressed using " . $SEVEN_ZIP_COMPRESSOR_NAMES{$type_of_compression};
-          print STDERR " and processed using " . $SEVEN_ZIP_COMPRESSOR_NAMES{$type_of_preprocessor << 4} if $type_of_preprocessor;
-          print STDERR " after the decryption step.\n";
-          print STDERR "\n";
-          print STDERR "$PASSWORD_RECOVERY_TOOL_NAME currently does not support this particular decompression algorithm(s).\n";
-          print STDERR "\n";
-
-          if ($padding_attack_possible == 1)
-          {
-            print STDERR "INFO: However there is also some good news in this particular case.\n";
-            print STDERR "Since AES-CBC is used by the 7z algorithm and the data length of this file allows a padding attack,\n";
-            print STDERR "the password recovery tool might be able to use that to verify the correctness of password candidates.\n";
-            print STDERR "By using this attack there might of course be a higher probability of false positives.\n";
-            print STDERR "\n";
-
-            if ($PASSWORD_RECOVERY_TOOL_SUPPORT_PADDING_ATTACK == 0)
-            {
-              print STDERR "$PASSWORD_RECOVERY_TOOL_NAME currently does not support padding attacks.\n";
-
-              return "";
-            }
-          }
-          elsif ($type_of_compression == $SEVEN_ZIP_LZMA2_COMPRESSED) # this special case should only work for LZMA2
-          {
-            if ($data_len <= $LZMA2_MIN_COMPRESSED_LEN)
-            {
-              print STDERR "INFO: it might still be possible to crack the password of this archive since the data part seems\n";
-              print STDERR "to be very short and therefore it might use the LZMA2 uncompressed chunk feature\n";
-              print STDERR "\n";
-            }
-          }
-        }
-      }
-    }
-  }
-
-  my $type_of_data = $SEVEN_ZIP_UNCOMPRESSED; # this variable will hold the "number" after the "$7z$" hash signature
-
-  if ($is_truncated == 1)
-  {
-    $type_of_data = $SEVEN_ZIP_TRUNCATED; # note: this means that we neither need the crc_len, nor the coder attributes
-  }
-  else
-  {
-    $type_of_data = ($type_of_preprocessor << 4) | $type_of_compression;
+    $found_stream_without_warning = 1;
   }
 
   my $crc_len = 0;
@@ -1486,14 +1700,19 @@ sub extract_hash_from_archive
 
             my $coders = @$folders[$stream_idx]->{'coders'};
 
+            my $number_coders = @$folders[$stream_idx]->{'number_coders'};
+
             my $aes_coder_idx   = 0;
             my $aes_coder_found = 0;
 
+            my @coder_attributes = ();
+
             for (my $coders_idx = 0; $coders_idx < $number_coders; $coders_idx++)
             {
-              next unless defined @$coders[$coders_idx];
+              my $coder = @$coders[$coders_idx];
+              last unless (defined ($coder));
 
-              my $codec_id = @$coders[$coders_idx]->{'codec_id'};
+              my $codec_id = $coder->{'codec_id'};
 
               if ($codec_id eq $SEVEN_ZIP_AES)
               {
@@ -1501,15 +1720,69 @@ sub extract_hash_from_archive
 
                 $aes_coder_found = 1;
               }
-              elsif (defined (@$coders[$coders_idx]->{'attributes'}))
+              else
               {
-                $compression_attributes = unpack ("H*", @$coders[$coders_idx]->{'attributes'});
+                my $is_error = fill_additional_attribute_list (\$coder, $file_path, \@coder_attributes);
+
+                return "" if ($is_error == 1);
               }
             }
 
             next unless ($aes_coder_found == 1);
 
+            if ($found_stream_without_warning == 1)
+            {
+              # special case: don't show any warnings if other streams worked, because we choose
+              # both the shortest stream AND the one that is supported by the cracker
+
+              $codec_warning_shown = 1;
+            }
+
+            my ($tmp_type_of_data,
+                $tmp_additional_attributes,
+                $tmp_codec_warning_shown,
+                $attribute_error) = check_attributes (\@coder_attributes,
+                                                   $is_truncated,
+                                                   $file_path,
+                                                   $padding_attack_possible,
+                                                   $data_len,
+                                                   $codec_warning_shown);
+
+            # very special case: *first* stream that has no codec errors after at least one
+            # stream/file with unsupported compression/filter settings/methods
+
+            if (($found_stream_without_warning == 0) &&
+                ($attribute_error              == 0) &&
+                ($tmp_codec_warning_shown      == 0) &&
+                ($codec_warning_shown          == 1))
+            {
+              print STDERR "INFO: However the archive '$file_path' contains another file/stream which is supported by $PASSWORD_RECOVERY_TOOL_NAME (this will be used)\n\n";
+            }
+
+            if ($codec_warning_shown == 0) # override old value only if no warning shown before
+            {
+              $codec_warning_shown = $tmp_codec_warning_shown;
+            }
+
+            next if ($attribute_error == 1);
+
+            # special case: longer (previous) stream has no codec warnings, but shorter one has:
+            # (therefore we still prefer the one that the cracker supports)
+
+            next if (($found_stream_without_warning == 1) &&
+                     ($tmp_codec_warning_shown      == 1));
+
+            # now it's save to override the non-tmp variables (we have a hit):
+
+            $type_of_data          = $tmp_type_of_data;
+            $additional_attributes = $tmp_additional_attributes;
+
             $attributes = @$coders[$aes_coder_idx]->{'attributes'};
+
+            if ($tmp_codec_warning_shown == 0)
+            {
+              $found_stream_without_warning = 1;
+            }
 
             #
             # set the "new" hash properties (for this specific/better stream with smaller first file):
@@ -1612,7 +1885,7 @@ sub extract_hash_from_archive
 
   $hash_buf .= sprintf ("\$%u\$%s",
     $crc_len,
-    $compression_attributes
+    $additional_attributes
   );
 
   return $hash_buf;
