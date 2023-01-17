@@ -68,6 +68,9 @@ john_register_one(&fmt_HDAA);
 // This is 8 x 64 bytes, so in MMX/SSE2 we support up to 9 limbs of MD5
 #define HTMP                    512
 
+// That's arbitrary because uri part is not limited by anything natural.
+#define MAX_CIPHERTEXT_LEN      8192
+
 typedef struct
 {
 	size_t h1tmplen;
@@ -171,8 +174,11 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
+	size_t user_len, realm_len, nonce_len, noncecount_len, clientnonce_len, qop_len;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
+		return 0;
+	if (strlen(ciphertext) > MAX_CIPHERTEXT_LEN)
 		return 0;
 	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
@@ -184,7 +190,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* user */
 		goto err;
+	user_len = strlen(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* realm */
+		goto err;
+	realm_len = strlen(p);
+	/* snprintf() later would truncate data making hash uncrackable. */
+	if (user_len + realm_len + 2 > HTMP - PLAINTEXT_LENGTH - 1)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* method */
 		goto err;
@@ -192,17 +203,25 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL) /* nonce */
 		goto err;
+	nonce_len = strlen(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* End of legacy HDAA or noncecount */
 		goto end_hdaa_legacy;
+	noncecount_len = strlen(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* clientnonce */
 		goto err;
+	clientnonce_len = strlen(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* qop */
 		goto err;
+	qop_len = strlen(p);
 	if ((p = strtokm(NULL, "$")) != NULL)
+		goto err;
+	if (nonce_len + noncecount_len + clientnonce_len + qop_len + 32 + 5 > HTMP - CIPHERTEXT_LENGTH - 1)
 		goto err;
 
 end_hdaa_legacy:
 	MEM_FREE(keeptr);
+	if (nonce_len + 32 + 2 > HTMP - CIPHERTEXT_LENGTH - 1)
+		return 0;
 	return 1;
 
 err:
@@ -216,6 +235,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	char *cp;
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
+	if (strlen(ciphertext) > MAX_CIPHERTEXT_LEN)
+		return ciphertext;
 	cp = ciphertext + TAG_LENGTH;
 	cp = strchr(cp, '$'); if (!cp) return ciphertext;
 	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
@@ -224,8 +245,10 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 	cp = strchr(cp+1, '$'); if (!cp) return ciphertext;
 	// now if we have $binary_hash$ then we remove the last '$' char
 	if (strlen(cp) == 1 + BINARY_SIZE*2 + 1) {
-		static char out[256];
-		strnzcpy(out, ciphertext, sizeof(out));
+		static char *out;
+		if (!out)
+			out = mem_alloc_tiny(MAX_CIPHERTEXT_LEN + 1, MEM_ALIGN_NONE);
+		strnzcpy(out, ciphertext, MAX_CIPHERTEXT_LEN + 1);
 		out[strlen(out)-1] = 0;
 		return out;
 	}

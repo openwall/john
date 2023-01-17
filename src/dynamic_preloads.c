@@ -113,7 +113,7 @@
 //dynamic_35 -->sha1(uc($u).:.$p) (ManGOS)
 //dynamic_36 -->sha1($u.:.$p) (ManGOS2)
 //dynamic_37 -->sha1(lc($u).$p) (SMF)
-//dynamic_38 -->sha1($s.sha1($s.sha1($p))) (Wolt3BB)
+//dynamic_38 -->sha1($s.sha1($s.sha1($p))) (Wolt3BB, OpenCart)
 //dynamic_39 -->md5($s.pad16($p))      (Net-md5 passed password, long salts)
 //dynamic_40 -->sha1($s.pad20($p))     (Net-sha1 passed password, long salts)
 
@@ -3315,7 +3315,7 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_35: sha1(uc($u).:.$p) (ManGOS)", _Funcs_35,_Preloads_35,_Const_35,     MGF_FLAT_BUFFERS|MGF_USERNAME_UPCASE, MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_FLAT_BUFFERS|MGF_USERNAME, MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault,MGF_FLAT_BUFFERS| MGF_USERNAME_LOCASE, MGF_INPUT_20_BYTE, -64, 110, 110 },
-	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_20_BYTE, -64, 110, 110 },
+	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB, OpenCart)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_39: md5($s.pad16($p)) (net-md5)",  _Funcs_39,_Preloads_39,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_NO_FLAG, -230, 16, 16 },
 	{ "dynamic_40: sha1($s.pad20($p)) (net-sha1)",  _Funcs_40,_Preloads_40,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_20_BYTE, -230, 20, 20 },
 

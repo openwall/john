@@ -102,9 +102,10 @@ john_register_one(&fmt_blizzard);
 #define BINARY_SIZE		4
 #define BINARY_ALIGN		4
 #define FULL_BINARY_SIZE	32
-#define SALT_SIZE		(64+3)
-#define SALT_ALIGN		1
 #define USERNAMELEN             32
+#define ONLY_SALT_SIZE		(64+3)
+#define SALT_SIZE		(1 + ONLY_SALT_SIZE + USERNAMELEN + 1)
+#define SALT_ALIGN		1
 
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -216,7 +217,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (((p - q) & 1))
 		return 0;
-	if (p - q >= 2 * SALT_SIZE)
+	if (p - q >= 2 * ONLY_SALT_SIZE)
 		return 0;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;

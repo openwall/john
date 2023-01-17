@@ -566,7 +566,8 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 	if (cp[cipherTextLen] && cp[cipherTextLen] != '$')
 		return 0;
 // NOTE if looking at this in the future, this was not my fix.
-	if (strlen(&cp[cipherTextLen]) > SALT_SIZE)
+	// dynamic_1552: $s1$$Uuser --> 6+len(s1)+1+len(user) <= SALT_SIZE
+	if (strlen(&cp[cipherTextLen]) > SALT_SIZE - 3)
 		return 0;
 // end NOTE.
 	if (pPriv->dynamic_FIXED_SALT_SIZE > 0 && ciphertext[pPriv->dynamic_SALT_OFFSET-1] != '$')
@@ -613,7 +614,9 @@ static int valid(char *ciphertext, struct fmt_main *pFmt)
 					return 0; // username is too long
 			} else {
 				/* salt and username */
-				char *t = strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET], "$$U");;
+				char *t = strstr(&ciphertext[pPriv->dynamic_SALT_OFFSET], "$$U");
+				if (!t)
+					return 0; // no username
 				/* salt_external_to_internal_convert parses fields from right to left, but it may overwrite found fields */
 				if (strstr(t + 3, "$$U"))
 					return 0; // second $$U is prohibited (for simplicity)
@@ -7501,7 +7504,7 @@ int dynamic_SETUP(DYNAMIC_Setup *Setup, struct fmt_main *pFmt)
 		}
 	}
 
-	// Deal with depricated 1st functions.  Convert them to proper 'flags'
+	// Deal with deprecated 1st functions.  Convert them to proper 'flags'
 	if (Setup->pFuncs[0] == DynamicFunc__InitialLoadKeysToInput)
 		Setup->startFlags |= MGF_KEYS_INPUT;
 	if (Setup->pFuncs[0] == DynamicFunc__InitialLoadKeys_md5crypt_ToOutput2)

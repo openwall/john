@@ -23,7 +23,7 @@
 #define BINARY_SIZE             sizeof(fmt_data)
 #define BINARY_ALIGN            sizeof(size_t)
 #define SALT_SIZE               sizeof(custom_salt)
-#define SALT_ALIGN              MEM_ALIGN_WORD
+#define SALT_ALIGN              sizeof(uint32_t)
 
 #define CIPHERTEXT_LENGTH       (TAG_LEN + 120 + 1 + 64)
 #define FORMAT_TAG              "$oldoffice$"

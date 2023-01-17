@@ -53,25 +53,25 @@ static const char *const default_salts[] = {
 
 static struct fmt_tests encdatavault_md5_tests[] = {
 	// Sandisk vaults
-	{ "$encdv$1$1$ae07a8354f6fe3ca$a6066363", "bbbb" },
-	{ "$encdv$1$1$7531d98593ea7b1d$d070650d", "openwall" },
+	{ "$encdv$1$1$ae07a8354f6fe3ca$a6066363d7cfc05e", "bbbb" },
+	{ "$encdv$1$1$04738b48de9d25d1$63cb5cd9ab06f1e1", "password" },
 	// Sony vault
-	{ "$encdv$1$2$e8a5d78fa5511fa2$b96a4747", "bbbb" },
-	{ "$encdv$1$2$4e277e5547b88f9c$eb0ed650", "openwallopenwall!" },
+	{ "$encdv$1$2$e8a5d78fa5511fa2$b96a4747332a022d", "bbbb" },
+	{ "$encdv$1$2$adcb666304eaf1bc$181c3ed7f5bb8cc7", "password" },
 	// ENCDataVault v7.1.1 512 bits user password
-	{ "$encdv$1$3$d6209d17c0a87818$77608f04", "123456789ABCDEf" },
-	{ "$encdv$1$3$3563390c4d66944d$2b0470f5", "openwallopenwall" },
+	{ "$encdv$1$3$d6209d17c0a87818$77608f044a4f113a", "123456789ABCDEf" },
+	{ "$encdv$1$3$cc727303f8cec41f$38537aac9d6bc873", "openwallopenwall" },
 	// ENCDataVault v7.1.1 128 bits vault
-	{ "$encdv$3$1$75c97f784cad5027$c58e34a9$6fa3c4085acadda7c94589fe3dd8209d59a79b0ea659c4af51861f659c2d6cc645dab7c821c2cc0e8da97ce66e9be779fcf8fc33c1250aee2cd46e08a3864763a5c7f790c9965376a36fbf3b1c8b944d096e3bbe586a952f9fab5ee2f1c1ca7d2cd06ff357bb397c3eb1da66c5562998411c0b2dff04860e6f6adf818c853941", "128vaultTest" },
-	{ "$encdv$3$1$af9479e81a896dbb$e643f5f6$8e8fd6ccf10cf651efcb561a167fa301849bef0a28718f67d31d53a1e7a8328b3aaa6c642d8a2483e8de5c3751fd0b81604ead7c6412e6197886735bcbd1dd50d23f293bf11856986bd07a7513275dea991968376703a643fc19c373c1d62a7779db88068e24752bb6761f42c8aec9cf7a80ef2b7f6384212ee6b670d8ba17a7", "OpenwallOpenwall" },
+	{ "$encdv$3$1$75c97f784cad5027$c58e34a9a3fcbf33$6fa3c4085acadda7c94589fe3dd8209d59a79b0ea659c4af51861f659c2d6cc645dab7c821c2cc0e8da97ce66e9be779fcf8fc33c1250aee2cd46e08a3864763a5c7f790c9965376a36fbf3b1c8b944d096e3bbe586a952f9fab5ee2f1c1ca7d2cd06ff357bb397c3eb1da66c5562998411c0b2dff04860e6f6adf818c853941", "128vaultTest" },
+	{ "$encdv$3$1$af9479e81a896dbb$e643f5f64c835501$8e8fd6ccf10cf651efcb561a167fa301849bef0a28718f67d31d53a1e7a8328b3aaa6c642d8a2483e8de5c3751fd0b81604ead7c6412e6197886735bcbd1dd50d23f293bf11856986bd07a7513275dea991968376703a643fc19c373c1d62a7779db88068e24752bb6761f42c8aec9cf7a80ef2b7f6384212ee6b670d8ba17a7", "OpenwallOpenwall" },
 	// ENCDataVault v7.1.1 256 bits vault
-	{ "$encdv$3$2$a44a9a62e131023e$d9fe5a04$0bc8c0c937cac8de5a226a9dc7ff5d2542bb8814973afdcc0e593fded8b337cac18acd60c1afea3550fdeabee339a36892eb99f0f502b9f74075e9cb26970e983189be1395ffbec8ebfb765a563db45c3e53d73040e41bcfe58dc211f03f1384c5080c298a5e4bdf7cf23b893b3d2dbe05c472180fdc3f7fd82d97ea0eec1e7e", "OpenwallOpenwall" },
-	{ "$encdv$3$2$85089cdde5cb099b$c3c98127$d96fd1e2709908e08994d1809e516985cf028cd73e2a829dee1ce7473c3c4d0ce35a2652b58ed7ad046641259b9a24a046c89d3251e1036e7117dd8221b07f5a45b6c215b3ad308e5f7b248ea8f1fabaa23da4840797c9052c3f8578187d514a92356b8138455db6424a41db6b0de2817d463f23d44f39537a6c28b2ba075a01", "Verylongbutstillfailpassword" },
+	{ "$encdv$3$2$a44a9a62e131023e$d9fe5a04b7d539c5$0bc8c0c937cac8de5a226a9dc7ff5d2542bb8814973afdcc0e593fded8b337cac18acd60c1afea3550fdeabee339a36892eb99f0f502b9f74075e9cb26970e983189be1395ffbec8ebfb765a563db45c3e53d73040e41bcfe58dc211f03f1384c5080c298a5e4bdf7cf23b893b3d2dbe05c472180fdc3f7fd82d97ea0eec1e7e", "OpenwallOpenwall" },
+	{ "$encdv$3$2$85089cdde5cb099b$c3c98127f85ff387$d96fd1e2709908e08994d1809e516985cf028cd73e2a829dee1ce7473c3c4d0ce35a2652b58ed7ad046641259b9a24a046c89d3251e1036e7117dd8221b07f5a45b6c215b3ad308e5f7b248ea8f1fabaa23da4840797c9052c3f8578187d514a92356b8138455db6424a41db6b0de2817d463f23d44f39537a6c28b2ba075a01", "Verylongbutstillfailpassword" },
 	// ENCDataVault v7.1.1 512 bits vault
-	{ "$encdv$3$3$bd837ac896f26983$15107b99$fb141e6db2cb586b2b445d6a6ca47f17d16947afa32298cc30c6fcdc4bfac7a874d53f2de4bcb196645e59e1c8e5883999875c9951d637e08f78d2bb16003c2abe8bfa1cb8b8d7b627828d61d775937308e7e119dea727da8af12490d50e8b8dc8f24daa7e101576112b52374f3ea4a73f7fa6bfb802bd6dfa845318a2884a9e", "123456789ABCDEf" },
-	{ "$encdv$3$3$ffd2a778b7f1304b$311893a8$5e48500065fc4138b134ce7858ac3b29d9f4b19c5f0d7ee1d07d8dd4dc3d5ae56b18e84d822087849573074a5776dee5309e5cb6bbd0d1470e0717463119bb080c96e24ebd563673060397803aebae5df7c59defcc8fa687b96c9a8245e540be699061c299a69830472e1a6a74ad72086dfac906a49e0ce84fc722da9715d675", "OpenwallOpenwall" },
+	{ "$encdv$3$3$bd837ac896f26983$15107b99273079ee$fb141e6db2cb586b2b445d6a6ca47f17d16947afa32298cc30c6fcdc4bfac7a874d53f2de4bcb196645e59e1c8e5883999875c9951d637e08f78d2bb16003c2abe8bfa1cb8b8d7b627828d61d775937308e7e119dea727da8af12490d50e8b8dc8f24daa7e101576112b52374f3ea4a73f7fa6bfb802bd6dfa845318a2884a9e", "123456789ABCDEf" },
+	{ "$encdv$3$3$ffd2a778b7f1304b$311893a8c058a53c$5e48500065fc4138b134ce7858ac3b29d9f4b19c5f0d7ee1d07d8dd4dc3d5ae56b18e84d822087849573074a5776dee5309e5cb6bbd0d1470e0717463119bb080c96e24ebd563673060397803aebae5df7c59defcc8fa687b96c9a8245e540be699061c299a69830472e1a6a74ad72086dfac906a49e0ce84fc722da9715d675", "OpenwallOpenwall" },
 	// ENCDataVault v7.1.1 1024 bits vault
-	{ "$encdv$3$4$bc93a92cf625e360$fe120bfb$739f9d85964cef2f63b927ff77f3328cc5192014ae21c29954c322f4e808fe5c8abe64cc150dbcb08cb334f3b5c28357f10d8d5c6a103e2c899402136c14633aaf8a5347959b33b80ade2e3f5698864605940dc1423704999e5da859d6584491bbe940f00f162c75d2766b868ef2b4c6bf599a2e8ccea3f7cdfab193744a8d10", "123456789ABCDEf" },
+	{ "$encdv$3$4$bc93a92cf625e360$fe120bfb658d27b6$739f9d85964cef2f63b927ff77f3328cc5192014ae21c29954c322f4e808fe5c8abe64cc150dbcb08cb334f3b5c28357f10d8d5c6a103e2c899402136c14633aaf8a5347959b33b80ade2e3f5698864605940dc1423704999e5da859d6584491bbe940f00f162c75d2766b868ef2b4c6bf599a2e8ccea3f7cdfab193744a8d10", "123456789ABCDEf" },
 	{ "$encdv$3$4$e9786d82101f30ef$d690010a$5748af61f246c1569cc72cbd6c97e0be46b1612842fd3c6284637af5351508a602c731739acb056b845dfa2b5befd40f14136b4336e0c8e98144555a90befbc85abfc4069fbb71709fa39e29f8c6a98d28e14251e50ffdd43d75252de2b0b14c386e72927c62ae39ba18ff8b32a339d882fdd0b15284af246fa50b7c6992f783", "Verylongbutstillfailpassword" },
 	{ NULL }
 };
@@ -172,7 +172,7 @@ static int crypt_all_md5(int *pcount, struct db_salt *salt)
 				// result buffer is used here to hold the decrypted data.
 				enc_aes_ctr_iterated(cur_salt->encrypted_data, result, kdf_out[i][0].u8, ivs, AES_BLOCK_SIZE,
 				                     nb_keys, 1);
-				if (!memcmp(result + 4, "\xd2\xc3\xb4\xa1", ENC_SIG_SIZE)) {
+				if (!memcmp(result + 4, "\xd2\xc3\xb4\xa1\x00\x00", MIN(cur_salt->encrypted_data_length, ENC_SIG_SIZE - 2))) {
 					cracked[index + i] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -198,7 +198,7 @@ static int crypt_all_md5(int *pcount, struct db_salt *salt)
 				}
 				// result buffer is reused here to hold the decrypted data.
 				enc_aes_ctr_iterated(cur_salt->encrypted_data, result, result, ivs, AES_BLOCK_SIZE, nb_keys, 1);
-				if (!memcmp(result + 4, "\xd2\xc3\xb4\xa1", ENC_SIG_SIZE)) {
+				if (!memcmp(result + 4, "\xd2\xc3\xb4\xa1\x00\x00", MIN(cur_salt->encrypted_data_length, ENC_SIG_SIZE - 2))) {
 					cracked[index + i] = 1;
 #ifdef _OPENMP
 					#pragma omp atomic

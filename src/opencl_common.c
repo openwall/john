@@ -1148,8 +1148,16 @@ static char *get_build_opts(int sequential_id, const char *opts)
 			global_opts = OPENCLBUILDOPTIONS;
 
 	snprintf(build_opts, LINE_BUFFER_SIZE,
-	         "-I opencl %s %s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
+	         "-I opencl %s %s%s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
 	        global_opts,
+	        get_device_version(sequential_id) >= 200 ? "-cl-std=CL1.2 " : "",
+#ifdef __APPLE__
+	        "-D__OS_X__ ",
+#else
+	        (options.verbosity >= VERB_MAX &&
+	         gpu_nvidia(device_info[sequential_id])) ?
+	         "-cl-nv-verbose " : "",
+#endif
 	        get_platform_vendor_id(get_platform_id(sequential_id)) ==
 	         PLATFORM_MESA ? "-D__MESA__ " :
 	        get_platform_vendor_id(get_platform_id(sequential_id)) ==
@@ -1158,13 +1166,6 @@ static char *get_build_opts(int sequential_id, const char *opts)
 	         PLATFORM_BEIGNET ?
 	         "-D__BEIGNET__ " :
 	        get_device_capability(sequential_id),
-#ifdef __APPLE__
-	        "-D__OS_X__ ",
-#else
-	        (options.verbosity >= VERB_MAX &&
-	         gpu_nvidia(device_info[sequential_id])) ?
-	         "-cl-nv-verbose " : "",
-#endif
 	        get_device_type(sequential_id) == CL_DEVICE_TYPE_CPU ? "-D__CPU__ "
 	        : get_device_type(sequential_id) == CL_DEVICE_TYPE_GPU ? "-D__GPU__ " : "",
 	        "-DDEVICE_INFO=", device_info[sequential_id],
@@ -1976,11 +1977,18 @@ void opencl_find_best_gws(int step, int max_duration,
 	}
 
 	if (have_lws) {
-		if (core_count > 2)
-			optimal_gws = MIN(gws_limit, lcm(core_count, optimal_gws));
+		if (core_count > 2) {
+			if (gws_limit)
+				optimal_gws = MIN(gws_limit, lcm(core_count, optimal_gws));
+			else
+				optimal_gws = lcm(core_count, optimal_gws);
+		}
 		default_value = optimal_gws;
 	} else {
-		soft_limit = MIN(gws_limit, local_work_size * core_count * 128);
+		if (gws_limit)
+			soft_limit = MIN(gws_limit, local_work_size * core_count * 128);
+		else
+			soft_limit = local_work_size * core_count * 128;
 	}
 
 	/* conf setting may override (decrease) code's max duration */
@@ -3018,7 +3026,10 @@ void opencl_list_devices(void)
 			if (strstr(dname, "OpenCL 1.0")) {
 				printf(" <the minimum REQUIRED is OpenCL 1.1>");
 			}
-			printf("\n    Driver version:         %s\n",
+			clGetDeviceInfo(devices[sequence_nr], CL_DEVICE_OPENCL_C_VERSION,
+			                sizeof(dname), dname, NULL);
+			printf("\n    OpenCL version support: %s\n", dname);
+			printf("    Driver version:         %s\n",
 			       opencl_driver_info(sequence_nr));
 
 			clGetDeviceInfo(devices[sequence_nr],

@@ -191,7 +191,6 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *strkeep;
-	int version;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return 0;
@@ -201,8 +200,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if ((p = strtokm(p, "$")) == NULL) /* version */
 		goto err;
-	version = atoi(p);
-	if (version != 1  && version != 2 && version != 3 && version != 4 && version != 5 && version != 6)
+	if (p[0] < '1' || p[0] > '6' || p[1])
 		goto err;
 
 	if ((p = strtokm(NULL, "$")) == NULL) /* salt */

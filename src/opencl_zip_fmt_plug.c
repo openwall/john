@@ -105,25 +105,37 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	datasize = MAX(datasize, 1024);
 
 	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, insize, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	if (ret_code == CL_SUCCESS) {
+		saved_key = clEnqueueMapBuffer(queue[gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error mapping saved_key");
+	} else {
+		/* Silent fallback to non-pinned memory */
+		saved_key = mem_alloc(insize);
+	}
 	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	saved_key = clEnqueueMapBuffer(queue[gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping saved_key");
 
 	pinned_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, idxsize, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	if (ret_code == CL_SUCCESS) {
+		saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, idxsize, 0, NULL, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error mapping saved_idx");
+	} else {
+		/* Silent fallback to non-pinned memory */
+		saved_idx = mem_alloc(idxsize);
+	}
 	cl_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, idxsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, idxsize, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping saved_idx");
 
 	pinned_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, outsize, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	if (ret_code == CL_SUCCESS) {
+		outbuffer = clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error mapping outbuffer");
+	} else {
+		/* Silent fallback to non-pinned memory */
+		outbuffer = mem_alloc(outsize);
+	}
 	cl_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, outsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	outbuffer = clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping outbuffer");
 
 	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
@@ -152,14 +164,26 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 static void release_clobj(void)
 {
 	if (outbuffer) {
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, outbuffer, 0, NULL, NULL), "Error Unmapping outbuffer");
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
+		if (pinned_result) {
+			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, outbuffer, 0, NULL, NULL), "Error Unmapping outbuffer");
+			HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Release pinned result buffer");
+		} else
+			MEM_FREE(outbuffer);
+
+		if (pinned_key) {
+			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+			HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release pinned key buffer");
+		} else
+			MEM_FREE(saved_key);
+
+		if (pinned_idx) {
+			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
+			HANDLE_CLERROR(clReleaseMemObject(pinned_idx), "Release pinned index buffer");
+		} else
+			MEM_FREE(saved_idx);
+
 		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-		HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Release pinned result buffer");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release pinned key buffer");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_idx), "Release pinned index buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_data), "Release salt datablob");
 		HANDLE_CLERROR(clReleaseMemObject(cl_crack_count_ret), "Release crack count buffer");

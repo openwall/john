@@ -254,6 +254,10 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Added suport for PBKDF2-SHA256 key derivation algorithm of PrivateAccess and 
   ENCDataVault. [sylvainpelissier; 2022]
 
+- Added support for Cardano legacy's encrypted secret keys. [ilap; 2022]
+
+- Added cardano2john.py: exports secret.key to john format. [ilap; 2022]
+
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
 - Updated to 1.9.0 core, which brought the following relevant major changes:

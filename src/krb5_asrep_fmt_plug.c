@@ -162,8 +162,8 @@ static void init(struct fmt_main *self)
 
 	omp_autotune(self, OMP_SCALE);
 
-	saved_key = mem_alloc_align(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt,
+	saved_key = mem_calloc_align(self->params.max_keys_per_crypt,
+			sizeof(*saved_key),
 			MEM_ALIGN_CACHE);
 	saved_K1 = mem_alloc_align(sizeof(*saved_K1) *
 			self->params.max_keys_per_crypt,

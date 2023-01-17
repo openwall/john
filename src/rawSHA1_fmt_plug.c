@@ -117,9 +117,9 @@ static void init(struct fmt_main *self)
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
-#define SSEi_REVERSE_STEPS 0
+#define SSEi_REVERSE_STEPS SSEi_NO_OP
 #undef SSEi_REVERSE_3STEPS
-#define SSEi_REVERSE_3STEPS 0
+#define SSEi_REVERSE_3STEPS SSEi_NO_OP
 #endif
 
 static void init_raw(struct fmt_main *self)

@@ -225,7 +225,7 @@ static int binary_hash_6(void *binary) { return ((uint64_t*)binary)[3] & PH_MASK
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
-#define SSEi_REVERSE_STEPS 0
+#define SSEi_REVERSE_STEPS SSEi_NO_OP
 #endif
 
 static int crypt_all(int *pcount, struct db_salt *salt)

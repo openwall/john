@@ -72,6 +72,14 @@
 /* Max file (path) name length, in characters */
 #define PATH_BUF_SIZE 256
 
+/* File magics */
+#define RAR_OLD_MAGIC      "\x52\x45\x7e\x5e"
+#define RAR3_MAGIC         "\x52\x61\x72\x21\x1a\x07\x00"
+#define RAR5_MAGIC         "\x52\x61\x72\x21\x1a\x07\x01\x00"
+#define RAR_OLD_MAGIC_SIZE (sizeof(RAR_OLD_MAGIC) - 1)
+#define RAR3_MAGIC_SIZE    (sizeof(RAR3_MAGIC) - 1)
+#define RAR5_MAGIC_SIZE    (sizeof(RAR5_MAGIC) - 1)
+
 static int verbose;
 static char *self_name;
 
@@ -185,7 +193,7 @@ static void DecodeFileName(unsigned char *Name, unsigned char *EncName,
 static void process_file(const char *archive_name)
 {
 	FILE *fp;
-	unsigned char marker_block[7];
+	unsigned char marker_block[RAR3_MAGIC_SIZE];
 	unsigned char archive_hdr_block[13];
 	unsigned char file_hdr_block[40];
 	int i, count, type;
@@ -209,42 +217,45 @@ static void process_file(const char *archive_name)
 
 	strnzcpy(path, archive_name, sizeof(path));
 	base_aname = basename(path);
-	errno = 0;
 
 	if (!(fp = fopen(archive_name, "rb"))) {
 		fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
 		goto err;
 	}
+
 	/* marker block */
-	memset(marker_block, 0, 7);
-	if (fread(marker_block, 7, 1, fp) != 1) {
-		fprintf(stderr, "%s: Error: read failed: %s.\n",
-			archive_name, strerror(errno));
+	if (fread(marker_block, RAR3_MAGIC_SIZE, 1, fp) != 1) {
+		fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
 		goto err;
 	}
 
-	if (memcmp(marker_block, "\x52\x61\x72\x21\x1a\x07\x00", 7)) {
-		/* handle SFX archives */
+	if (!memcmp(marker_block, RAR_OLD_MAGIC, RAR_OLD_MAGIC_SIZE)) {
+		fprintf(stderr, "! %s: Too old RAR file version (pre 1.50), not supported.\n", archive_name);
+		goto err;
+	}
+
+	if (memcmp(marker_block, RAR3_MAGIC, RAR3_MAGIC_SIZE)) {
 		if (memcmp(marker_block, "MZ", 2) == 0) {
-			/* jump to "Rar!" signature */
+			/* Handle SFX archive, find "Rar!" signature */
 			while (!feof(fp)) {
 				count = fread(buf, 1, CHUNK_SIZE, fp);
-				if ((pos =
-				     memmem(buf, count, "\x52\x61\x72\x21\x1a\x07\x00",7))) {
+				if (count < RAR3_MAGIC_SIZE)
+					break;
+				if ((pos = memmem(buf, count, RAR3_MAGIC, RAR3_MAGIC_SIZE))) {
 					diff = count - (pos - buf);
 					jtr_fseek64(fp, - diff, SEEK_CUR);
-					jtr_fseek64(fp, 7, SEEK_CUR);
+					jtr_fseek64(fp, RAR3_MAGIC_SIZE, SEEK_CUR);
 					found = 1;
 					break;
 				}
-				if (feof(fp)) //We shold examine the EOF before seek back
+				if (feof(fp)) /* We should examine the EOF before seek back */
 					break;
-				jtr_fseek64(fp, -6, SEEK_CUR);
+				jtr_fseek64(fp, 1 - RAR3_MAGIC_SIZE, SEEK_CUR);
 			}
 			if (!found) {
 				if (process_file5(archive_name))
 					return;
-				fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
+				/* The "Not a RAR file" message already printed by process_file5() at this point */
 				goto err;
 			}
 		}
@@ -256,7 +267,7 @@ static void process_file(const char *archive_name)
 			MEM_FREE(gecos);
 			if (process_file5(archive_name))
 				return;
-			fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
+			/* The "Not a RAR file" message already printed by process_file5() at this point */
 			goto err;
 		}
 	}
@@ -887,39 +898,45 @@ static size_t read_rar5_header(FILE *fp, size_t CurBlockPos, uint8_t *HeaderType
 
 /* handle rar5 files */
 static int process_file5(const char *archive_name) {
-	//fprintf(stderr, "! %s: Not a RAR 3.x file, try running rar5tojohn.py on me!\n", archive_name);
-	char Magic[8], buf[CHUNK_SIZE], *pos;
+	unsigned char Magic[RAR5_MAGIC_SIZE], buf[CHUNK_SIZE], *pos;
 	size_t count, NextBlockPos, CurBlockPos;
 	int diff, found = 0;
 	FILE *fp;
 
-	fp = fopen(archive_name, "rb");
-	if (!fp) { fprintf(stderr, "error opening file %s\n", archive_name); return 0; }
-	if (fread(Magic, 1, 8, fp) != 8) {
-        fclose(fp);
-        fprintf(stderr, "Error reading rar signature from file %s\n", archive_name);
-        return 0;
-    }
-	if (memcmp(Magic, "\x52\x61\x72\x21\x1a\x07\x01\x00", 8)) { /* handle SFX archives */
-		if (memcmp(Magic, "MZ", 2) == 0) {
-			/* jump to "Rar!" signature */
-			while (!feof(fp)) {
-				count = fread(buf, 1, CHUNK_SIZE, fp);
-				if ( (pos = (char*)memmem(buf, count, "\x52\x61\x72\x21\x1a\x07\x01\x00", 8))) {
-					diff = count - (pos - buf);
-					jtr_fseek64(fp, - diff, SEEK_CUR);
-					jtr_fseek64(fp, 8, SEEK_CUR);
-					found = 1;
-					break;
-				}
-				if (feof(fp)) //We shold examine the EOF before seek back
-					break;
-				jtr_fseek64(fp, -7, SEEK_CUR);
+	if (!(fp = fopen(archive_name, "rb"))) {
+		fprintf(stderr, "! %s: %s\n", archive_name, strerror(errno));
+		return 0;
+	}
+
+	if (fread(Magic, sizeof(Magic), 1, fp) != 1) {
+		fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
+		goto err;
+	}
+
+	if (memcmp(Magic, "MZ", 2) == 0) {
+		/* Handle SFX archive, find "Rar!" signature */
+		while (!feof(fp)) {
+			count = fread(buf, 1, CHUNK_SIZE, fp);
+			if (count < RAR5_MAGIC_SIZE)
+				break;
+			if ((pos = memmem(buf, count, RAR5_MAGIC, RAR5_MAGIC_SIZE))) {
+				diff = count - (pos - buf);
+				jtr_fseek64(fp, - diff, SEEK_CUR);
+				jtr_fseek64(fp, RAR5_MAGIC_SIZE, SEEK_CUR);
+				found = 1;
+				break;
 			}
-            if (!found)
-                goto err;
+			if (feof(fp)) /* We should examine the EOF before seek back */
+				break;
+			jtr_fseek64(fp, 1 - RAR5_MAGIC_SIZE, SEEK_CUR);
 		}
 	}
+
+	if (memcmp(Magic, RAR5_MAGIC, RAR5_MAGIC_SIZE) && !found) {
+		fprintf(stderr, "! %s: Not a RAR file\n", archive_name);
+		goto err;
+	}
+
 	found = 0;
 	while (1) {
 		uint8_t HeaderType;
@@ -931,14 +948,16 @@ static int process_file5(const char *archive_name) {
 		// fprintf(stderr, "NextBlockPos is %d Headertype=%d curblockpos=%d\n", NextBlockPos, HeaderType, CurBlockPos);
 		jtr_fseek64(fp, NextBlockPos, SEEK_SET);
 	}
-    if (fp) fclose(fp);
-    if (!found)
-	    fprintf(stderr, "! Did not find a valid encrypted candidate in %s\n", archive_name);
 
-    return 1;
-err:;
 	if (fp) fclose(fp);
-    return 0;
+	if (!found)
+		fprintf(stderr, "! Did not find a valid encrypted candidate in %s\n", archive_name);
+
+	return 1;
+
+err:
+	if (fp) fclose(fp);
+	return 0;
 }
 
 

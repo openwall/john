@@ -22,7 +22,7 @@
 
 Data needed for --regen_salts:
 
---regen_salts=#  (depricated.  valid values are 1, 2, 3, 4, 5, 6 and will get 'converted' into proper regen_salts= value)
+--regen_salts=#  (deprecated.  valid values are 1, 2, 3, 4, 5, 6 and will get 'converted' into proper regen_salts= value)
 or
 --regen_salts=type:hash_len:mask
 
