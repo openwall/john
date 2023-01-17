@@ -245,14 +245,44 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Revised regex mode's support for librexgen, to version >= 2.1.5  [Jan Starke,
   magnum; 2021]
 
-- Added support for ENCDataVault and encdatavault2john.py script [sylvainpelissier; 2021]
+- 7z2john.pl: Update from upstream.  [magnum; 2021-2022]
+
+- 7z formats: Added support for Delta encoding.  [magnum; 2021]
+
+- Added support for using a FIFO as a wordlist.  [magnum; 2021]
+
+- OpenCL: If building from a cached kernel fails, just build a new one instead
+  of bailing out.  [magnum; 2021]
+
+- cisco2john: Correction for decoding of "password 7".  It turned out what we
+  had was incomplete.  [magnum; 2021]
+
+- OpenCL on nvidia: Reduce the amount of CPU busy-wait in a number of OpenCL
+  formats.  [magnum; 2021]
+
+- OpenCL LM/DEScrypt: Override kernel selection with env. variable.  [magnum;
+  2021]
+
+- Added support for ENCDataVault and encdatavault2john.py script
+  [sylvainpelissier; 2021]
 
 - Optimize tezos-opencl by computing ed25519_publickey() and BLAKE2b on-device,
   removing the CPU bottleneck.  This work was funded by the Tezos Foundation.
   [Solar; 2021]
 
-- Added suport for PBKDF2-SHA256 key derivation algorithm of PrivateAccess and 
+- Added suport for PBKDF2-SHA256 key derivation algorithm of PrivateAccess and
   ENCDataVault. [sylvainpelissier; 2022]
+
+- Add NT-long (handles up to 110 characters), implemented as a thin dynamic.
+  [magnum; 2022]
+
+- Update the Streebog code (a.k.a. GOST R 34.11-2012).  The new version doesn't
+  require SIMD but currently doesn't support BE.  [magnum; 2022]
+
+- Various fixes for drivers that support OpenCL 2.0 (such as nvidia and macOS)
+  [magnum; 2022]
+
+- electrum2john (and the formats): Support at least version 18.  [magnum; 2022]
 
 - Added support for Cardano legacy's encrypted secret keys. [ilap; 2022]
 
