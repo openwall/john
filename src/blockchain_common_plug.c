@@ -111,6 +111,11 @@ int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 		return 0;
 	}
 
+	// v4, see https://github.com/openwall/john/issues/5078
+	if (memmem(out, 16, "\"tx_notes\"", 10)) {
+		return 0;
+	}
+
 	// "guid" will be found in the first block
 	if (memmem(out, 16, "\"guid\"", 6)) {
 		AES_cbc_encrypt(data + 32, out + 16, SAFETY_FACTOR - 16, &akey, iv,

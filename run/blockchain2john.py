@@ -42,7 +42,7 @@ if __name__ == '__main__':
                 # hack for version 2.0 and 3.0 wallets
                 try:
                     decoded_data = json.loads(data.decode("utf-8"))
-                    if "version" in decoded_data and (str(decoded_data["version"]) == "2" or str(decoded_data["version"]) == "3"):
+                    if "version" in decoded_data and (str(decoded_data["version"]) == "2" or str(decoded_data["version"]) == "3" or str(decoded_data["version"]) == "4"):
                         payload = base64.b64decode(decoded_data["payload"])
                         iterations = decoded_data["pbkdf2_iterations"]
                         print("%s:$blockchain$v2$%s$%s$%s" % (
