@@ -57,7 +57,7 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   new --no-mask option.  [magnum; 2019]
 
 - Add format match symbol '#' for searching in format_name. For example,
-  --format=#ipmi-opencl  will pick the RAKP-opencl format.  We already had
+  --format=#ipmi,+opencl  will pick the RAKP-opencl format.  We already had
   the '@' symbol for searching in alorithm name.  [magnum; 2019]
 
 - Reduce repeated log messages with fork/node/MPI.  [magnum; 2019]
@@ -289,6 +289,10 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Added cardano2john.py: exports secret.key to john format. [ilap; 2022]
 
 - Added support for cracking blockchain wallet v4. [Solar; 2022]
+
+- Added krb5tgs-opencl, with device-side mask acceleration.  This included
+  improvements to the shared RC4 OpenCL code, and changes to affected formats.
+  [magnum; 2023]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
