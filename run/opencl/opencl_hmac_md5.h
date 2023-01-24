@@ -34,7 +34,7 @@ inline void hmac_md5(HMAC_KEY_TYPE void *_key, uint key_len,
 	uint pW[16];
 	uchar *buf = (uchar*)pW;
 	uchar local_digest[16];
-	SHA_CTX ctx;
+	MD5_CTX ctx;
 	uint i;
 
 #if HMAC_KEY_GT_64

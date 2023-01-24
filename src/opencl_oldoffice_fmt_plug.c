@@ -129,8 +129,7 @@ static const char *warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return MIN(autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel),
-	           64);
+	return MIN(autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel), 32);
 }
 
 static void release_clobj(void);
@@ -305,7 +304,7 @@ static void reset(struct db_main *db)
 	                       2 * PLAINTEXT_LENGTH, gws_limit, db);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, 1, gws_limit, 100);
+	autotune_run(self, 1, gws_limit, 300);
 
 	new_keys = 1;
 }
@@ -519,8 +518,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	*pcount *= mask_int_cand.num_int_cand;
 
-	/* kernel is made for lws 64, using local memory */
-	lws = local_work_size ? local_work_size : 64;
+	/* kernel is made for lws 32, using local memory */
+	lws = local_work_size ? local_work_size : 32;
 
 	/* Don't do more than requested */
 	global_work_size = //count;

@@ -8,11 +8,10 @@
  * forms, with or without modification, are permitted.
  */
 
-#include "opencl_device_info.h"
 #define AMD_PUTCHAR_NOCAST
 #include "opencl_misc.h"
 #include "opencl_unicode.h"
-#define RC4_IN_PLACE
+#define RC4_IN_TYPE	__constant
 #include "opencl_rc4.h"
 #include "opencl_md4.h"
 #include "opencl_md5.h"
@@ -117,12 +116,15 @@ void prepare(const __global uint *key, uint length, uint *nt_buffer)
 
 #endif /* encodings */
 
+#define asciidigit(n)	((n) >= '0' && (n) <= '9')
+
 inline
 void krb5pa_md5_final(const uint *K,
                       MAYBE_CONSTANT uint *salts,
 #ifdef RC4_USE_LOCAL
-                      __local uint *state_l,
+              __local
 #endif
+                      RC4_CTX *rc4_ctx,
                       uint *K2)
 {
 	uint i;
@@ -164,7 +166,6 @@ void krb5pa_md5_final(const uint *K,
 	block[15] = 0;
 	md5_block(uint, block, K1); /* md5_update(ihash, 16), md5_final() */
 
-
 	/*
 	 * 2nd HMAC K3 = HMAC-MD5(K1, CHECKSUM)
 	 */
@@ -199,67 +200,61 @@ void krb5pa_md5_final(const uint *K,
 	md5_block(uint, block, K3); /* md5_update(ihash, 16), md5_final() */
 
 	/* Salts now point to encrypted timestamp. */
+	/* K3 is our RC4 key. */
+	rc4_set_key(rc4_ctx, K3);
+
+	/* First decrypt just one block for early rejection. */
+	rc4(rc4_ctx, salts, plain, 16);
+
+	/* Ensure old data isn't messing with early rejection */
+	K2[0] = 0;
+
+	/* Known-plain ASCII timestamp as in "20121123161534Z" for 2012-11-23 16:15:34 UTC */
+	if (cleartext[14] != '2' || cleartext[15] != '0')
+		return;
+
+	/* Decrypt rest of timestamp */
+	rc4(rc4_ctx, salts + 16/4, plain + 16/4, 36 - 16);
+
+	for (i = 16; i < 28; i++)
+		if (!asciidigit(cleartext[i]))
+			return;
+
+	if (cleartext[28] != 'Z')
+		return;
+
+	/*
+	 * 3rd HMAC K2 = HMAC-MD5(K1, timestamp)
+	 */
 	for (i = 0; i < 4; i++)
-		plain[i] = salts[i];
+		block[i] = 0x36363636 ^ K1[i];
+	for (i = 4; i < 16; i++)
+		block[i] = 0x36363636;
+	md5_single(uint, block, ihash); /* md5_update(ipad, 64) */
 
-	/* K3 is our RC4 key. First decrypt just one block for early rejection */
-#ifdef RC4_USE_LOCAL
-	rc4(state_l, K3, plain, 16);
-#else
-	rc4(K3, plain, 16);
-#endif
+	for (i = 0; i < 9; i++)
+		block[i] = plain[i]; /* timestamp, 36 bytes */
+	block[9] = 0x80;
+	for (i = 10; i < 14; i++)
+		block[i] = 0;
+	block[14] = (64 + 36) << 3;
+	block[15] = 0;
+	md5_block(uint, block, ihash); /* md5_update(cs, 16), md5_final() */
 
-	/* Known-plain UTC timestamp */
-	if (cleartext[14] == '2' && cleartext[15] == '0') {
-		for (i = 0; i < 9; i++)
-			plain[i] = salts[i];
+	for (i = 0; i < 4; i++)
+		block[i] = 0x5c5c5c5c ^ K1[i];
+	for (i = 4; i < 16; i++)
+		block[i] = 0x5c5c5c5c;
+	md5_single(uint, block, K2); /* md5_update(opad, 64) */
 
-#ifdef RC4_USE_LOCAL
-		rc4(state_l, K3, plain, 36);
-#else
-		rc4(K3, plain, 36);
-#endif
-		if (cleartext[28] == 'Z') {
-			/*
-			 * 3rd HMAC K2 = HMAC-MD5(K1, plaintext)
-			 */
-			for (i = 0; i < 4; i++)
-				block[i] = 0x36363636 ^ K1[i];
-			for (i = 4; i < 16; i++)
-				block[i] = 0x36363636;
-			md5_single(uint, block, ihash); /* md5_update(ipad, 64) */
-
-			for (i = 0; i < 9; i++)
-				block[i] = plain[i]; /* plaintext, 36 bytes */
-			block[9] = 0x80;
-			for (i = 10; i < 14; i++)
-				block[i] = 0;
-			block[14] = (64 + 36) << 3;
-			block[15] = 0;
-			md5_block(uint, block, ihash); /* md5_update(cs, 16), md5_final() */
-
-			for (i = 0; i < 4; i++)
-				block[i] = 0x5c5c5c5c ^ K1[i];
-			for (i = 4; i < 16; i++)
-				block[i] = 0x5c5c5c5c;
-			md5_single(uint, block, K2); /* md5_update(opad, 64) */
-
-			for (i = 0; i < 4; i++)
-				block[i] = ihash[i];
-			block[4] = 0x80;
-			for (i = 5; i < 14; i++)
-				block[i] = 0;
-			block[14] = (64 + 16) << 3;
-			block[15] = 0;
-			md5_block(uint, block, K2); /* md5_update(ihash, 16), md5_final() */
-		}
-		else {
-			K2[0] = 0;
-		}
-	}
-	else {
-		K2[0] = 0;
-	}
+	for (i = 0; i < 4; i++)
+		block[i] = ihash[i];
+	block[4] = 0x80;
+	for (i = 5; i < 14; i++)
+		block[i] = 0;
+	block[14] = (64 + 16) << 3;
+	block[15] = 0;
+	md5_block(uint, block, K2); /* md5_update(ihash, 16), md5_final() */
 }
 
 inline
@@ -335,7 +330,7 @@ void cmp(uint gid,
 }
 
 #ifdef RC4_USE_LOCAL
-__attribute__((work_group_size_hint(64,1,1)))
+__attribute__((work_group_size_hint(32,1,1)))
 #endif
 __kernel
 void krb5pa_md5(__global const uint *keys,
@@ -358,6 +353,11 @@ void krb5pa_md5(__global const uint *keys,
                 volatile __global uint *out_hash_ids,
                 volatile __global uint *bitmap_dupe)
 {
+#ifdef RC4_USE_LOCAL
+	__local RC4_CTX rc4_ctx[32];
+#else
+	RC4_CTX rc4_ctx;
+#endif
 	uint gid = get_global_id(0);
 	uint base = index[gid];
 	uint len = base & 127;
@@ -365,13 +365,6 @@ void krb5pa_md5(__global const uint *keys,
 	uint nt_hash[4];
 	uint final_hash[4];
 	uint i;
-#ifdef RC4_USE_LOCAL
-	/*
-	 * The "+ 1" extra element (actually never touched) give a huge boost
-	 * on Maxwell and GCN due to access patterns or whatever.
-	 */
-	__local uint state_l[64][256/4 + 1];
-#endif
 	uint bitmap_sz_bits = salts[SALT_PARAM_BASE] + 1;
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
@@ -436,7 +429,9 @@ void krb5pa_md5(__global const uint *keys,
 		/* Final krb5pa-md5 hash */
 		krb5pa_md5_final(nt_hash, salts,
 #ifdef RC4_USE_LOCAL
-		                 state_l[get_local_id(0)],
+		                 &rc4_ctx[get_local_id(0)],
+#else
+		                 &rc4_ctx,
 #endif
 		                 final_hash);
 

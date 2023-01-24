@@ -1,7 +1,7 @@
 /*
  * OpenCL RC4
  *
- * Copyright (c) 2014, magnum
+ * Copyright (c) 2014-2023, magnum
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
@@ -9,10 +9,23 @@
  * NOTICE: After changes in headers, you probably need to drop cached
  * kernels to ensure the changes take effect.
  *
+ * NOTE: These function assume 32-bit aligment - no assertions!
  */
 
 #ifndef _OPENCL_RC4_H
 #define _OPENCL_RC4_H
+
+#ifndef RC4_KEY_TYPE
+#define RC4_KEY_TYPE
+#endif
+
+#ifndef RC4_IN_TYPE
+#define RC4_IN_TYPE
+#endif
+
+#ifndef RC4_OUT_TYPE
+#define RC4_OUT_TYPE
+#endif
 
 #include "opencl_misc.h"
 
@@ -27,6 +40,12 @@
 #if !defined(__OS_X__) && __GPU__ /* Actually we want discrete GPUs */
 #define RC4_USE_LOCAL
 #endif
+
+typedef struct {
+	uint state[256/4];
+	uint x, y;
+	uint len;
+} RC4_CTX;
 
 #ifdef RC4_IV32
 __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
@@ -47,22 +66,31 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
                                0xf3f2f1f0, 0xf7f6f5f4, 0xfbfaf9f8, 0xfffefdfc };
 #endif
 
-#ifndef RC4_USE_LOCAL
-#undef GETCHAR_L
-#define GETCHAR_L GETCHAR
-#undef PUTCHAR_L
-#define PUTCHAR_L PUTCHAR
+#define GETCHAR_KEY(buf, index)	(((RC4_KEY_TYPE uchar*)(buf))[(index)])
+#define GETCHAR_IN(buf, index)	(((RC4_IN_TYPE uchar*)(buf))[(index)])
+
+#define PUTCHAR_OUT(buf, index, val)	PUTCHAR((RC4_OUT_TYPE uchar*)(buf), (index), (val))
+
+#ifdef RC4_USE_LOCAL
+#define GETSTATE	GETCHAR_L
+#define PUTSTATE	PUTCHAR_L
+#else
+#define GETSTATE	GETCHAR
+#define PUTSTATE	PUTCHAR
 #endif
+
+#define X8	(x & 255)
+#define state	ctx->state
 
 #undef swap_byte
 #define swap_byte(a, b) {	  \
-		uint tmp = GETCHAR_L(state, a); \
-		PUTCHAR_L(state, a, GETCHAR_L(state, b)); \
-		PUTCHAR_L(state, b, tmp); \
+		uint tmp = GETSTATE(state, a); \
+		PUTSTATE(state, a, GETSTATE(state, b)); \
+		PUTSTATE(state, b, tmp); \
 	}
 #undef swap_no_inc
 #define swap_no_inc(n) {	  \
-		index2 = (GETCHAR(key, index1) + GETCHAR_L(state, n) + index2) & 255; \
+		index2 = (GETCHAR_KEY(key, index1) + GETSTATE(state, n) + index2) & 255; \
 		swap_byte(n, index2); \
 	}
 #undef swap_state
@@ -77,18 +105,20 @@ __constant uint rc4_iv[64] = { 0x03020100, 0x07060504, 0x0b0a0908, 0x0f0e0d0c,
 	}
 
 /*
- * One-shot RC4 with fixed keylen of 16. No byte addressed stores.
+ * One-shot RC4 with fixed keylen of 16 but unlimited data length (len),
+ * expressed in bytes but must be multiple of 4).
  */
-inline void rc4(
+inline void rc4_oneshot(
 #ifdef RC4_USE_LOCAL
-                __local uint *restrict state,
+                __local
 #endif
+	                RC4_CTX *restrict ctx,
                 const uint *restrict key,
 #ifdef RC4_IN_PLACE
                 uint *buf,
 #else
-                MAYBE_CONSTANT uint *restrict in,
-                __global uint *restrict out,
+                RC4_IN_TYPE const uint *restrict in,
+                RC4_OUT_TYPE uint *restrict out,
 #endif
                 uint len)
 {
@@ -96,9 +126,6 @@ inline void rc4(
 	uint y = 0;
 	uint index1 = 0;
 	uint index2 = 0;
-#ifndef RC4_USE_LOCAL
-	uint state[256/4];
-#endif
 
 	/* RC4_init() */
 #ifdef RC4_IV32
@@ -106,7 +133,7 @@ inline void rc4(
 		state[x] = rc4_iv[x];
 #else
 	for (x = 0; x < 256; x++)
-		PUTCHAR_L(state, x, x);
+		PUTSTATE(state, x, x);
 #endif
 
 	/* RC4_set_key() */
@@ -142,24 +169,24 @@ inline void rc4(
 	for (x = 1; x <= len; x++) {
 		uint xor_word;
 
-		y = (GETCHAR_L(state, x) + y) & 255;
-		swap_byte(x, y);
-		xor_word = GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255);
+		y = (GETSTATE(state, X8) + y) & 255;
+		swap_byte(X8, y);
+		xor_word = GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255);
 		x++;
 
-		y = (GETCHAR_L(state, x) + y) & 255;
-		swap_byte(x, y);
-		xor_word += GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255) << 8;
+		y = (GETSTATE(state, X8) + y) & 255;
+		swap_byte(X8, y);
+		xor_word += GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255) << 8;
 		x++;
 
-		y = (GETCHAR_L(state, x) + y) & 255;
-		swap_byte(x, y);
-		xor_word += GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255) << 16;
+		y = (GETSTATE(state, X8) + y) & 255;
+		swap_byte(X8, y);
+		xor_word += GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255) << 16;
 		x++;
 
-		y = (GETCHAR_L(state, x) + y) & 255;
-		swap_byte(x, y);
-		xor_word += GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255) << 24;
+		y = (GETSTATE(state, X8) + y) & 255;
+		swap_byte(X8, y);
+		xor_word += GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255) << 24;
 
 #ifdef RC4_IN_PLACE
 		*buf++ ^= xor_word;
@@ -168,17 +195,153 @@ inline void rc4(
 #endif
 	}
 #else /* RC4_UNROLLED */
-#pragma unroll
 	for (x = 1; x <= len; x++) {
-		y = (GETCHAR_L(state, x) + y) & 255;
-		swap_byte(x, y);
+		y = (GETSTATE(state, X8) + y) & 255;
+		swap_byte(X8, y);
 #ifdef RC4_IN_PLACE
-		XORCHAR(buf, x - 1, GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255));
+		XORCHAR(buf, x - 1, GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255));
 #else
-		PUTCHAR_G(out, x - 1, GETCHAR_MC(in, x - 1) ^ (GETCHAR_L(state, (GETCHAR_L(state, x) + GETCHAR_L(state, y)) & 255)));
+		PUTCHAR_OUT(out, x - 1, GETCHAR_IN(in, x - 1) ^
+		          (GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255)));
 #endif
 	}
 #endif /* RC4_UNROLLED */
+	ctx->x = x;
+	ctx->y = y;
+	ctx->len = len;
 }
+
+/*
+ * Fixed keylen of 16.
+ */
+inline void rc4_set_key(
+#ifdef RC4_USE_LOCAL
+                __local
+#endif
+                RC4_CTX *restrict ctx,
+                const uint *restrict key)
+{
+	uint x;
+	uint index1 = 0;
+	uint index2 = 0;
+
+	/* RC4_init() */
+#ifdef RC4_IV32
+	for (x = 0; x < 256/4; x++)
+		state[x] = rc4_iv[x];
+#else
+	for (x = 0; x < 256; x++)
+		PUTSTATE(state, x, x);
+#endif
+
+	/* RC4_set_key() */
+#ifdef RC4_UNROLLED_KEY
+	/* Unrolled for hard-coded key length 16 */
+	for (x = 0; x < 256; x++) {
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_and_inc(x);
+		swap_no_inc(x);
+		index1 = 0;
+	}
+#else
+	for (x = 0; x < 256; x++)
+		swap_state(x);
+#endif
+
+	ctx->x = 1;
+	ctx->y = 0;
+	ctx->len = 0;
+}
+
+/*
+ * Used after rc4_set_key() *or* rc4_oneshot() and can be called multiple times for more data.
+ * Len is given in bytes but must be multiple of 4.
+ */
+inline void rc4(
+#ifdef RC4_USE_LOCAL
+                __local
+#endif
+	                RC4_CTX *restrict ctx,
+#ifdef RC4_IN_PLACE
+                uint *buf,
+#else
+                RC4_IN_TYPE const uint *restrict in,
+                RC4_OUT_TYPE uint *restrict out,
+#endif
+                uint len)
+{
+	uint x = ctx->x;
+	uint y = ctx->y;
+
+	len += ctx->len;
+
+#ifdef RC4_UNROLLED
+	/* Unrolled to 32-bit xor */
+	for (; x <= len; x++) {
+		uint xor_word;
+
+		y = (GETSTATE(state, X8) + y) & 255;
+		swap_byte(X8, y);
+		xor_word = GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255);
+		x++;
+
+		y = (GETSTATE(state, X8) + y) & 255;
+		swap_byte(X8, y);
+		xor_word += GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255) << 8;
+		x++;
+
+		y = (GETSTATE(state, X8) + y) & 255;
+		swap_byte(X8, y);
+		xor_word += GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255) << 16;
+		x++;
+
+		y = (GETSTATE(state, X8) + y) & 255;
+		swap_byte(X8, y);
+		xor_word += GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255) << 24;
+
+#ifdef RC4_IN_PLACE
+		*buf++ ^= xor_word;
+#else
+		*out++ = *in++ ^ xor_word;
+#endif
+	}
+#else /* RC4_UNROLLED */
+#ifdef RC4_IN_PLACE
+	buf -= x / 4;
+#else
+	out -= x / 4;
+	in -= x / 4;
+#endif
+	for (; x <= len; x++) {
+		y = (GETSTATE(state, X8) + y) & 255;
+		swap_byte(X8, y);
+#ifdef RC4_IN_PLACE
+		XORCHAR(buf, x - 1, GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255));
+#else
+		PUTCHAR_OUT(out, x - 1, GETCHAR_IN(in, x - 1) ^
+		          (GETSTATE(state, (GETSTATE(state, X8) + GETSTATE(state, y)) & 255)));
+#endif
+	}
+#endif /* RC4_UNROLLED */
+	ctx->x = x;
+	ctx->y = y;
+	ctx->len = len;
+}
+
+#undef state
+#undef X8
 
 #endif /* _OPENCL_RC4_H */
