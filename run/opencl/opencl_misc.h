@@ -625,7 +625,7 @@ inline int memmem_pc(const void *haystack, size_t haystack_len,
 		uint ii; \
 		printf("%s : ", msg); \
 		for (ii = 0; ii < (uint)(size)/2; ii++) { \
-			printf("%04x", (x)[ii]); \
+			printf("%04x", SWAP16((x)[ii])); \
 			if (ii % 2 == 1) \
 				printf(" "); \
 		} \
