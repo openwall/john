@@ -600,6 +600,14 @@ static char* is_key_right(struct fmt_main *format, int index,
 		return err_buf;
 	}
 
+	if (match == 0) {
+		if (options.verbosity > VERB_LEGACY)
+			snprintf(err_buf, sizeof(err_buf), "crypt_all(%d) zero return %s", index + 1, ciphertext);
+		else
+			sprintf(err_buf, "crypt_all(%d) zero return", index + 1);
+		return err_buf;
+	}
+
 	for (i = match - 1; i >= 0; i--) {
 		if (format->methods.cmp_one(binary, i))
 			break;
@@ -1319,7 +1327,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #if defined(HAVE_OPENCL)
 /* Jump straight to last index for GPU formats but always call set_key() */
 				if (strstr(format->params.label, "-opencl")) {
-					for (i = index + 1; i < max - 1; i++)
+					for (i = index; i < max - 1; i++)
 						fmt_set_key(longcand(format, i, sl), i);
 					index = max - 1;
 				}
