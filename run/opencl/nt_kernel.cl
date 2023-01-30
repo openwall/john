@@ -8,7 +8,7 @@
  * Copyright (c) 2010 Alain Espinosa
  * Copyright (c) 2011 Samuele Giovanni Tonon
  * Copyright (c) 2015 Sayantan Datta <sdatta at openwall.com>
- * Copyright (c) 2015 magnum
+ * Copyright (c) 2015-2023 magnum
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,8 @@
 
 inline void nt_crypt(uint *hash, uint *nt_buffer, uint md4_size) {
 	uint tmp;
+
+	md4_size <<= 4;
 
 	/* Round 1 */
 	hash[0] = 0xFFFFFFFF + nt_buffer[0]; hash[0]=rotate(hash[0], 3u);
@@ -109,6 +111,40 @@ inline void nt_crypt(uint *hash, uint *nt_buffer, uint md4_size) {
 	hash[3] += MD4_H2(hash[2], tmp, hash[0]) + nt_buffer[11] + SQRT_3; hash[3] = rotate(hash[3] , 9u );
 	hash[2] += MD4_H(tmp, hash[0], hash[3]) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
 }
+
+#if PLAINTEXT_LENGTH > 27
+inline void md4_reverse(uint *hash)
+{
+	hash[0] -= INIT_A;
+	hash[1] -= INIT_B;
+	hash[2] -= INIT_C;
+	hash[3] -= INIT_D;
+	hash[1]  = (hash[1] >> 15) | (hash[1] << 17);
+	hash[1] -= SQRT_3 + (hash[2] ^ hash[3] ^ hash[0]);
+	hash[1]  = (hash[1] >> 15) | (hash[1] << 17);
+	hash[1] -= SQRT_3;
+}
+
+inline void nt_crypt_long(uint *hash, uint *nt_buffer, uint md4_size)
+{
+	md4_init(hash);
+
+	uint blocks = (md4_size + 5 + 31) / 32;
+	while (--blocks) {
+		md4_block(uint, nt_buffer, hash);
+		nt_buffer += 16;
+	}
+
+	nt_buffer[14] = md4_size << 4;
+	md4_block(uint, nt_buffer, hash);
+
+	/*
+	 * This *adds* a little work to long crypts instead
+	 * of losing the real reverse for single block crypts.
+	 */
+	md4_reverse(hash);
+}
+#endif
 
 #if __OS_X__ && (cpu(DEVICE_INFO) || gpu_nvidia(DEVICE_INFO))
 /* This is a workaround for driver/runtime bugs */
@@ -316,9 +352,11 @@ inline void cmp(uint gid,
 #define USE_CONST_CACHE \
 	(CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4))
 
-/* OpenCL kernel entry point. Copy key to be hashed from
- * global to local (thread) memory. Break the key into 16 32-bit (uint)
- * words. MD4 hash of a key is 128 bit (uint4). */
+/*
+ * OpenCL kernel entry point. Break the key into 16 32-bit (uint)
+ * words. MD4 hash of a key is 128 bits but we only do 64 bits here, and
+ * reverse steps where possible.
+ */
 __kernel void nt(__global uint *keys,
 		  __global uint *index,
 		  __global uint *int_key_loc,
@@ -341,7 +379,7 @@ __kernel void nt(__global uint *keys,
 	uint i;
 	uint gid = get_global_id(0);
 	uint base = index[gid];
-	uint nt_buffer[14] = { 0 };
+	uint nt_buffer[(PLAINTEXT_LENGTH + 5 + 31) / 32  * 16] = { 0 };
 	uint md4_size = base & 127;
 	uint hash[4];
 
@@ -380,7 +418,7 @@ __kernel void nt(__global uint *keys,
 #if USE_LOCAL_BITMAPS
 	uint lid = get_local_id(0);
 	uint lws = get_local_size(0);
-	uint __local s_bitmaps[(BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS];
+	__local uint s_bitmaps[(BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS];
 
 	for (i = 0; i < (((BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS) / lws); i++)
 		s_bitmaps[i*lws + lid] = bitmaps[i*lws + lid];
@@ -390,7 +428,6 @@ __kernel void nt(__global uint *keys,
 
 	keys += base >> 7;
 	md4_size = prepare_key(keys, md4_size, nt_buffer);
-	md4_size = md4_size << 4;
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
@@ -411,7 +448,12 @@ __kernel void nt(__global uint *keys,
 #endif
 #endif
 #endif
-		nt_crypt(hash, nt_buffer, md4_size);
+#if PLAINTEXT_LENGTH > 27
+		if (md4_size > 27)
+			nt_crypt_long(hash, nt_buffer, md4_size);
+		else
+#endif
+			nt_crypt(hash, nt_buffer, md4_size);
 		cmp(gid, i, hash,
 #if USE_LOCAL_BITMAPS
 		    s_bitmaps
