@@ -280,6 +280,7 @@ static void crk_remove_salt(struct db_salt *salt)
 	struct db_salt **current;
 
 	crk_db->salt_count--;
+	status.salt_count = crk_db->salt_count;
 
 	current = &crk_db->salts;
 	while (*current != salt)
@@ -317,6 +318,7 @@ static void crk_remove_hash(struct db_salt *salt, struct db_password *pw)
 	assert(salt->count >= 1);
 
 	crk_db->password_count--;
+	status.password_count = crk_db->password_count;
 
 	BLOB_FREE(crk_db->format, pw->binary);
 
@@ -475,9 +477,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw, int i
 			event_pending = event_status = 1;
 
 		crk_db->guess_count++;
-		status.guess_count++;
-		status.salt_count = crk_db->salt_count;
-		status.password_count = crk_db->password_count;
+		status.guess_count = crk_db->guess_count;
 
 		if (crk_guesses && !dupe) {
 			strnfcpy(crk_guesses->ptr, key,
