@@ -106,7 +106,6 @@ static int john_omp_threads_new;
 #include "subsets.h"
 #include "external.h"
 #include "batch.h"
-#include "dynamic.h"
 #include "dynamic_compiler.h"
 #include "fake_salts.h"
 #include "listconf.h"
@@ -141,6 +140,8 @@ static int john_omp_threads_new;
 #endif
 #include "omp_autotune.h"
 
+extern int dynamic_Register_formats(struct fmt_main **ptr);
+	
 #if CPU_DETECT
 extern int CPU_detect(void);
 extern char CPU_req_name[];
