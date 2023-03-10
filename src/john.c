@@ -141,7 +141,7 @@ static int john_omp_threads_new;
 #include "omp_autotune.h"
 
 extern int dynamic_Register_formats(struct fmt_main **ptr);
-	
+
 #if CPU_DETECT
 extern int CPU_detect(void);
 extern char CPU_req_name[];
@@ -651,19 +651,22 @@ static void john_set_mpi(void)
 
 static void john_wait(void)
 {
+	log_flush();
+
+	/* Tell our friends there is nothing more to crack! */
+	if (!database.password_count && !options.reload_at_crack &&
+	    cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtDone", 1))
+		raise(SIGUSR2);
+
+	if (!john_main_process)
+		return;
+
 	int waiting_for = john_child_count;
 
 	log_event("Waiting for %d child%s to terminate",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
 	fprintf(stderr, "Waiting for %d child%s to terminate\n",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
-
-	log_flush();
-
-	/* Tell our friends there is nothing more to crack! */
-	if (!database.password_count && !options.reload_at_crack &&
-	    cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtDone", 0))
-		raise(SIGUSR2);
 
 /*
  * Although we may block on wait(2), we still have signal handlers and a timer
@@ -1849,7 +1852,7 @@ static void john_run(void)
 			mask_destroy();
 
 #if OS_FORK
-		if (options.fork && john_main_process)
+		if (options.fork)
 			john_wait();
 #endif
 
