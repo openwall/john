@@ -374,7 +374,7 @@ static void create_buffer(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *off
 	buffer_offset_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ot_size * sizeof(OFFSET_TABLE_WORD), offset_table, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_offset_table.");
 
-	buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ht_size * sizeof(unsigned int) * 2, hash_table_64, &ret_code);
+	buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ht_size * sizeof(unsigned int) * 2, bt_hash_table_64, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table.");
 
 	buffer_bitmaps = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bmp_size_bits >> 3, bitmaps, &ret_code);
@@ -557,7 +557,7 @@ static void clean_all_buffers()
 	release_buffer_gws();
 	release_buffer();
 	release_kernels();
-	MEM_FREE(hash_table_64);
+	MEM_FREE(bt_hash_table_64);
 	if (program[gpu_id]) {
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 			"Error releasing Program");
@@ -1109,14 +1109,14 @@ static char* prepare_table(struct db_salt *salt, OFFSET_TABLE_WORD **offset_tabl
 		error();
 	}
 
-	num_loaded_hashes = create_perfect_hash_table(64, (void *)loaded_hashes,
+	num_loaded_hashes = bt_create_perfect_hash_table(64, (void *)loaded_hashes,
 				num_loaded_hashes,
 			        offset_table_ptr,
 			        &offset_table_size,
 			        &hash_table_size, 0);
 
 	if (!num_loaded_hashes) {
-		MEM_FREE(hash_table_64);
+		MEM_FREE(bt_hash_table_64);
 		MEM_FREE((*offset_table_ptr));
 		fprintf(stderr, "Failed to create Hash Table for cracking.\n");
 		error();
@@ -1190,7 +1190,7 @@ static void reset(struct db_main *db)
 		release_buffer();
 		release_buffer_gws();
 		release_kernels();
-		MEM_FREE(hash_table_64);
+		MEM_FREE(bt_hash_table_64);
 
 		salt = db->salts;
 		bitmap_params = prepare_table(salt, &offset_table, &bitmap_size_bits, &bitmaps);
@@ -1233,14 +1233,14 @@ static void reset(struct db_main *db)
 			//fprintf(stderr, "C:%s B:%d %d %d\n", ciphertext, binary[0], binary[1], i == num_loaded_hashes );
 		}
 
-		num_loaded_hashes = create_perfect_hash_table(64, (void *)loaded_hashes,
+		num_loaded_hashes = bt_create_perfect_hash_table(64, (void *)loaded_hashes,
 				num_loaded_hashes,
 			        &offset_table,
 			        &offset_table_size,
 			        &hash_table_size, 0);
 
 		if (!num_loaded_hashes) {
-			MEM_FREE(hash_table_64);
+			MEM_FREE(bt_hash_table_64);
 			MEM_FREE(offset_table);
 			fprintf(stderr, "Failed to create Hash Table for self test.\n");
 			error();
@@ -1281,7 +1281,7 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 		release_buffer();
 		release_kernels();
-		MEM_FREE(hash_table_64);
+		MEM_FREE(bt_hash_table_64);
 
 		bitmap_params = prepare_table(salt, &offset_table, &bitmap_size_bits, &bitmaps);
 		release_buffer();
@@ -1324,42 +1324,42 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 int opencl_lm_get_hash_0(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_0;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_0;
 }
 
 int opencl_lm_get_hash_1(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_1;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_1;
 }
 
 int opencl_lm_get_hash_2(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_2;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_2;
 }
 
 int opencl_lm_get_hash_3(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_3;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_3;
 }
 
 int opencl_lm_get_hash_4(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_4;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_4;
 }
 
 int opencl_lm_get_hash_5(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_5;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_5;
 }
 
 int opencl_lm_get_hash_6(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_6;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_6;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	if (((int *)binary)[0] == hash_table_64[hash_ids[3 + 3 * index]])
+	if (((int *)binary)[0] == bt_hash_table_64[hash_ids[3 + 3 * index]])
 		return 1;
 	return 0;
 }
@@ -1368,7 +1368,7 @@ static int cmp_exact(char *source, int index)
 {
 	int *binary = opencl_lm_get_binary(source + 4);
 
-	if (binary[1] == hash_table_64[hash_ids[3 + 3 * index] + hash_table_size])
+	if (binary[1] == bt_hash_table_64[hash_ids[3 + 3 * index] + hash_table_size])
 		return 1;
 	return 0;
 }

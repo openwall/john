@@ -14,13 +14,13 @@
 #define bt_error(a) bt_error_fn(a, __FILE__, __LINE__)
 #define bt_warn(a) bt_warn_fn(a, __FILE__, __LINE__)
 
-extern uint64_t *loaded_hashes_64;
-extern uint128_t *loaded_hashes_128;
-extern uint192_t *loaded_hashes_192;
+extern uint64_t *bt_loaded_hashes_64;
+extern bt_uint128_t *bt_loaded_hashes_128;
+extern bt_uint192_t *bt_loaded_hashes_192;
 
-extern unsigned int hash_table_size;
+extern unsigned int bt_hash_table_size;
 extern unsigned int shift64_ht_sz, shift128_ht_sz;
-extern unsigned long long total_memory_in_bytes;
+extern unsigned long long bt_total_memory_in_bytes;
 
 extern int bt_malloc(void **ptr, size_t size);
 extern int bt_calloc(void **ptr, size_t num, size_t size);
@@ -39,7 +39,7 @@ extern unsigned int get_offset_64(unsigned int, unsigned int);
 extern int test_tables_64(unsigned int, OFFSET_TABLE_WORD *, unsigned int, unsigned int, unsigned int, unsigned int);
 extern unsigned int remove_duplicates_64(unsigned int, unsigned int, unsigned int);
 
-extern unsigned int modulo128_31b(uint128_t, unsigned int, uint64_t);
+extern unsigned int modulo128_31b(bt_uint128_t, unsigned int, uint64_t);
 extern void allocate_ht_128(unsigned int, unsigned int);
 extern unsigned int calc_ht_idx_128(unsigned int, unsigned int);
 extern unsigned int zero_check_ht_128(unsigned int);
@@ -49,7 +49,7 @@ extern unsigned int get_offset_128(unsigned int, unsigned int);
 extern int test_tables_128(unsigned int, OFFSET_TABLE_WORD *, unsigned int, unsigned int, unsigned int, unsigned int);
 extern unsigned int remove_duplicates_128(unsigned int, unsigned int, unsigned int);
 
-extern unsigned int modulo192_31b(uint192_t, unsigned int, uint64_t, uint64_t);
+extern unsigned int modulo192_31b(bt_uint192_t, unsigned int, uint64_t, uint64_t);
 extern void allocate_ht_192(unsigned int, unsigned int);
 extern unsigned int calc_ht_idx_192(unsigned int, unsigned int);
 extern unsigned int zero_check_ht_192(unsigned int);

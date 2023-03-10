@@ -29,7 +29,7 @@ john_register_one(&FMT_STRUCT);
 #include "config.h"
 #include "options.h"
 #include "mask_ext.h"
-#include "opencl_hash_check_128.h"
+#include "opencl_hash_check.h"
 
 #define PLAINTEXT_LENGTH    55 /* Max. is 55 with current kernel */
 #define BUFSIZE             ((PLAINTEXT_LENGTH+3)/4*4)
@@ -205,8 +205,8 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 		crypt_kernel = NULL;
 	}
 
-	shift64_ht_sz = (((1ULL << 63) % hash_table_size_128) * 2) % hash_table_size_128;
-	shift64_ot_sz = (((1ULL << 63) % offset_table_size) * 2) % offset_table_size;
+	shift64_ht_sz = (((1ULL << 63) % ocl_hc_hash_table_size) * 2) % ocl_hc_hash_table_size;
+	shift64_ot_sz = (((1ULL << 63) % ocl_hc_offset_table_size) * 2) % ocl_hc_offset_table_size;
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
@@ -230,7 +230,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 #if MASK_FMT_INT_PLHDR > 3
 	"-D LOC_3=%d"
 #endif
-	, offset_table_size, hash_table_size_128, shift64_ot_sz, shift64_ht_sz,
+	, ocl_hc_offset_table_size, ocl_hc_hash_table_size, shift64_ot_sz, shift64_ht_sz,
 	num_ld_hashes, mask_int_cand.num_int_cand, bitmap_para, mask_gpu_is_static,
 	(unsigned long long)const_cache_size, static_gpu_locations[0]
 #if MASK_FMT_INT_PLHDR > 1
@@ -252,7 +252,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 static void init(struct fmt_main *_self)
 {
 	self = _self;
-	num_loaded_hashes = 0;
+	ocl_hc_num_loaded_hashes = 0;
 
 	ocl_hc_128_init(_self);
 
@@ -302,13 +302,13 @@ static void *get_binary(char *ciphertext)
 	return out;
 }
 
-static int get_hash_0(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_0; }
-static int get_hash_1(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_1; }
-static int get_hash_2(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_2; }
-static int get_hash_3(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_3; }
-static int get_hash_4(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_4; }
-static int get_hash_5(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_5; }
-static int get_hash_6(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_6; }
+static int get_hash_0(int index) { return bt_hash_table_128[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_0; }
+static int get_hash_1(int index) { return bt_hash_table_128[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_1; }
+static int get_hash_2(int index) { return bt_hash_table_128[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_2; }
+static int get_hash_3(int index) { return bt_hash_table_128[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_3; }
+static int get_hash_4(int index) { return bt_hash_table_128[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_4; }
+static int get_hash_5(int index) { return bt_hash_table_128[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_5; }
+static int get_hash_6(int index) { return bt_hash_table_128[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_6; }
 
 static void clear_keys(void)
 {
@@ -352,14 +352,14 @@ static char *get_key(int index)
 	int i, len, int_index, t;
 	char *key;
 
-	if (hash_ids == NULL || hash_ids[0] == 0 ||
-	    index >= hash_ids[0] || hash_ids[0] > num_loaded_hashes) {
+	if (ocl_hc_hash_ids == NULL || ocl_hc_hash_ids[0] == 0 ||
+	    index >= ocl_hc_hash_ids[0] || ocl_hc_hash_ids[0] > ocl_hc_num_loaded_hashes) {
 		t = index;
 		int_index = 0;
 	}
 	else  {
-		t = hash_ids[1 + 3 * index];
-		int_index = hash_ids[2 + 3 * index];
+		t = ocl_hc_hash_ids[1 + 3 * index];
+		int_index = ocl_hc_hash_ids[2 + 3 * index];
 
 	}
 
@@ -594,9 +594,9 @@ static void reset(struct db_main *db)
 	release_clobj();
 	release_clobj_kpc();
 
-	num_loaded_hashes = db->salts->count;
+	ocl_hc_num_loaded_hashes = db->salts->count;
 	ocl_hc_128_prepare_table(db->salts);
-	init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
+	init_kernel(ocl_hc_num_loaded_hashes, ocl_hc_128_select_bitmap(ocl_hc_num_loaded_hashes));
 
 	create_clobj();
 	set_kernel_args();

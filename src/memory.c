@@ -372,6 +372,20 @@ void dump_text_msg(const void *msg, const void *in, int len)
 	fputc('\n', stdout);
 }
 
+void dump_stderr_msg(const void *msg, const void *x, unsigned int size)
+{
+	unsigned int i;
+
+	fprintf(stderr, "%s : ", (char *)msg);
+	for (i=0;i<size;i++)
+	{
+		fprintf(stderr, "%.2x", ((unsigned char*)x)[i]);
+		if ( (i%4)==3 )
+		fprintf(stderr, " ");
+	}
+	fputc('\n', stderr);
+}
+
 void dump_stuff_msg(const void *msg, const void *x, unsigned int size)
 {
 	unsigned int i;

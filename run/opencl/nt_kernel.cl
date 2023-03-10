@@ -207,110 +207,63 @@ inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
 #endif /* UTF_8 */
 
 inline void cmp_final(uint gid,
-		uint iter,
-		uint *hash,
-		__global uint *offset_table,
-		__global uint *hash_table,
-		__global uint *return_hashes,
-		volatile __global uint *output,
-		volatile __global uint *bitmap_dupe) {
+                      uint iter,
+                      uint *hash,
+                      __global uint *offset_table,
+                      __global uint *hash_table,
+                      volatile __global uint *output,
+                      volatile __global uint *bitmap_dupe)
+{
 
-	uint t, offset_table_index, hash_table_index;
-	unsigned long LO, HI;
-	unsigned long p;
+	uint t, hash_table_index;
+	ulong hash64;
 
-	HI = ((unsigned long)hash[3] << 32) | (unsigned long)hash[2];
-	LO = ((unsigned long)hash[1] << 32) | (unsigned long)hash[0];
+	hash64 = ((ulong)hash[1] << 32) | (ulong)hash[0];
+	hash64 += (ulong)offset_table[hash64 % OFFSET_TABLE_SIZE];
+	hash_table_index = hash64 % HASH_TABLE_SIZE;
 
-	p = (HI % OFFSET_TABLE_SIZE) * SHIFT64_OT_SZ;
-	p += LO % OFFSET_TABLE_SIZE;
-	p %= OFFSET_TABLE_SIZE;
-	offset_table_index = (unsigned int)p;
-
-	//error: chances of overflow is extremely low.
-	LO += (unsigned long)offset_table[offset_table_index];
-
-	p = (HI % HASH_TABLE_SIZE) * SHIFT64_HT_SZ;
-	p += LO % HASH_TABLE_SIZE;
-	p %= HASH_TABLE_SIZE;
-	hash_table_index = (unsigned int)p;
-
-	if (hash_table[hash_table_index] == hash[0])
-	if (hash_table[HASH_TABLE_SIZE + hash_table_index] == hash[1])
-	{
+	if (hash_table[hash_table_index] == hash[0] &&
+	    hash_table[hash_table_index + HASH_TABLE_SIZE] == hash[1]) {
 /*
  * Prevent duplicate keys from cracking same hash
  */
-		if (!(atomic_or(&bitmap_dupe[hash_table_index/32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
+		if (!(atomic_or(&bitmap_dupe[hash_table_index / 32], (1U << (hash_table_index % 32))) & (1U << (hash_table_index % 32)))) {
 			t = atomic_inc(&output[0]);
-			output[1 + 3 * t] = gid;
-			output[2 + 3 * t] = iter;
-			output[3 + 3 * t] = hash_table_index;
-			return_hashes[2 * t] = hash[2];
-			return_hashes[2 * t + 1] = hash[3];
+			output[3 * t + 1] = gid;
+			output[3 * t + 2] = iter;
+			output[3 * t + 3] = hash_table_index;
 		}
 	}
 }
 
 inline void cmp(uint gid,
-		uint iter,
-		uint *hash,
+                uint iter,
+                uint *hash,
 #if USE_LOCAL_BITMAPS
-		__local
+                __local
 #else
-		__global
+                __global
 #endif
-		uint *bitmaps,
-		__global uint *offset_table,
-		__global uint *hash_table,
-		__global uint *return_hashes,
-		volatile __global uint *output,
-		volatile __global uint *bitmap_dupe) {
-	uint bitmap_index, tmp = 1;
+                uint *bitmaps,
+                __global uint *offset_table,
+                __global uint *hash_table,
+                volatile __global uint *output,
+                volatile __global uint *bitmap_dupe)
+{
+	uint bitmap_index, tmp;
 
-/*	hash[0] += 0x67452301;
-	hash[1] += 0xefcdab89;
-	hash[2] += 0x98badcfe;
-	hash[3] += 0x10325476;*/
-
-#if SELECT_CMP_STEPS > 4
-	bitmap_index = hash[0] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[0] >> 16) & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+#if SELECT_CMP_STEPS > 1
 	bitmap_index = hash[1] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 4) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[1] >> 16) & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 3) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[2] >> 16) & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 5 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[3] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 6 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[3] >> 16) & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 7 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-#elif SELECT_CMP_STEPS > 2
-	bitmap_index = hash[3] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[1] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 4) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	tmp = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 	bitmap_index = hash[0] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-#elif SELECT_CMP_STEPS > 1
-	bitmap_index = hash[3] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
 	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
 #else
-	bitmap_index = hash[3] & BITMAP_SIZE_BITS_LESS_ONE;
-	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[1] & BITMAP_SIZE_BITS_LESS_ONE;
+	tmp = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 #endif
 
 	if (tmp)
-		cmp_final(gid, iter, hash, offset_table, hash_table, return_hashes, output, bitmap_dupe);
+		cmp_final(gid, iter, hash, offset_table, hash_table, output, bitmap_dupe);
 }
 
 #define USE_CONST_CACHE \
@@ -327,14 +280,10 @@ __kernel void nt(__global uint *keys,
 #else
 		  __global
 #endif
-		  uint *int_keys
-#if !defined(__OS_X__) && USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
-		__attribute__((max_constant_size (NUM_INT_KEYS * 4)))
-#endif
-		 , __global uint *bitmaps,
+		  uint *int_keys,
+		  __global uint *bitmaps,
 		  __global uint *offset_table,
 		  __global uint *hash_table,
-		  __global uint *return_hashes,
 		  volatile __global uint *out_hash_ids,
 		  volatile __global uint *bitmap_dupe)
 {
@@ -418,6 +367,6 @@ __kernel void nt(__global uint *keys,
 #else
 		    bitmaps
 #endif
-		    , offset_table, hash_table, return_hashes, out_hash_ids, bitmap_dupe);
+		    , offset_table, hash_table, out_hash_ids, bitmap_dupe);
 	}
 }
