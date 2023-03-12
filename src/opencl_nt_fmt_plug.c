@@ -747,9 +747,9 @@ struct fmt_main fmt_opencl_NT_long = {
 			get_hash_5,
 			get_hash_6
 		},
-		ocl_hc_128_cmp_all,
-		ocl_hc_128_cmp_one,
-		ocl_hc_128_cmp_exact
+		ocl_hc_64_cmp_all,
+		ocl_hc_64_cmp_one,
+		ocl_hc_64_cmp_exact
 	}
 };
 
