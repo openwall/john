@@ -1,4 +1,5 @@
-/* NTLM kernel (OpenCL 1.2 conformant)
+/*
+ * NTLM kernel (OpenCL 1.2 conformant)
  *
  * Written by Alain Espinosa <alainesp at gmail.com> in 2010 and modified by
  * Samuele Giovanni Tonon in 2011. No copyright is claimed, and
@@ -34,87 +35,204 @@
 #define SQRT_2 0x5a827999
 #define SQRT_3 0x6ed9eba1
 
+#if USE_LOCAL_BITMAPS
+#define BITMAPS_TYPE	__local
+#else
+#define BITMAPS_TYPE	__global
+#endif
+
+#define USE_CONST_CACHE \
+	(CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4))
+
+#if USE_CONST_CACHE
+#define CACHE_TYPE	__constant
+#else
+#define CACHE_TYPE	__global
+#endif
+
 #if BITMAP_SIZE_BITS_LESS_ONE < 0xffffffff
 #define BITMAP_SIZE_BITS (BITMAP_SIZE_BITS_LESS_ONE + 1)
 #else
 #error BITMAP_SIZE_BITS_LESS_ONE too large
 #endif
 
-inline void nt_crypt(uint *hash, uint *nt_buffer, uint md4_size) {
-	uint tmp;
-
-	md4_size <<= 4;
-
+inline void nt_crypt(uint *hash, uint *nt_buffer, uint md4_size)
+{
 	/* Round 1 */
-	hash[0] = 0xFFFFFFFF + nt_buffer[0]; hash[0]=rotate(hash[0], 3u);
-	hash[3] = INIT_D + (INIT_C ^ (hash[0] & 0x77777777)) + nt_buffer[1]; hash[3]=rotate(hash[3], 7u);
-	hash[2] = INIT_C + MD4_F(hash[3], hash[0], INIT_B)   + nt_buffer[2]; hash[2]=rotate(hash[2], 11u);
-	hash[1] = INIT_B + MD4_F(hash[2], hash[3], hash[0])  + nt_buffer[3]; hash[1]=rotate(hash[1], 19u);
+	hash[0] = 0xFFFFFFFF + nt_buffer[0] ; hash[0] = rotate(hash[0], 3u);
+	hash[3] = INIT_D + (INIT_C ^ (hash[0] & 0x77777777)) + nt_buffer[1] ; hash[3] = rotate(hash[3], 7u );
+	hash[2] = INIT_C + MD4_F(hash[3], hash[0], INIT_B)   + nt_buffer[2] ; hash[2] = rotate(hash[2], 11u);
+	hash[1] = INIT_B + MD4_F(hash[2], hash[3], hash[0])  + nt_buffer[3] ; hash[1] = rotate(hash[1], 19u);
 
-	hash[0] += MD4_F(hash[1], hash[2], hash[3])  +  nt_buffer[4] ; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += MD4_F(hash[0], hash[1], hash[2])  +  nt_buffer[5] ; hash[3] = rotate(hash[3] , 7u );
-	hash[2] += MD4_F(hash[3], hash[0], hash[1])  +  nt_buffer[6] ; hash[2] = rotate(hash[2] , 11u);
-	hash[1] += MD4_F(hash[2], hash[3], hash[0])  +  nt_buffer[7] ; hash[1] = rotate(hash[1] , 19u);
+	hash[0] += MD4_F(hash[1], hash[2], hash[3]) + nt_buffer[4]  ; hash[0] = rotate(hash[0], 3u );
+	hash[3] += MD4_F(hash[0], hash[1], hash[2]) + nt_buffer[5]  ; hash[3] = rotate(hash[3], 7u );
+	hash[2] += MD4_F(hash[3], hash[0], hash[1]) + nt_buffer[6]  ; hash[2] = rotate(hash[2], 11u);
+	hash[1] += MD4_F(hash[2], hash[3], hash[0]) + nt_buffer[7]  ; hash[1] = rotate(hash[1], 19u);
 
-	hash[0] += MD4_F(hash[1], hash[2], hash[3])  +  nt_buffer[8] ; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += MD4_F(hash[0], hash[1], hash[2])  +  nt_buffer[9] ; hash[3] = rotate(hash[3] , 7u );
-	hash[2] += MD4_F(hash[3], hash[0], hash[1])  +  nt_buffer[10]; hash[2] = rotate(hash[2] , 11u);
-	hash[1] += MD4_F(hash[2], hash[3], hash[0])  +  nt_buffer[11]; hash[1] = rotate(hash[1] , 19u);
+	hash[0] += MD4_F(hash[1], hash[2], hash[3]) + nt_buffer[8]  ; hash[0] = rotate(hash[0], 3u );
+	hash[3] += MD4_F(hash[0], hash[1], hash[2]) + nt_buffer[9]  ; hash[3] = rotate(hash[3], 7u );
+	hash[2] += MD4_F(hash[3], hash[0], hash[1]) + nt_buffer[10] ; hash[2] = rotate(hash[2], 11u);
+	hash[1] += MD4_F(hash[2], hash[3], hash[0]) + nt_buffer[11] ; hash[1] = rotate(hash[1], 19u);
 
-	hash[0] += MD4_F(hash[1], hash[2], hash[3])  +  nt_buffer[12]; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += MD4_F(hash[0], hash[1], hash[2])  +  nt_buffer[13]; hash[3] = rotate(hash[3] , 7u );
-	hash[2] += MD4_F(hash[3], hash[0], hash[1])  +    md4_size   ; hash[2] = rotate(hash[2] , 11u);
-	hash[1] += MD4_F(hash[2], hash[3], hash[0])                  ; hash[1] = rotate(hash[1] , 19u);
+	hash[0] += MD4_F(hash[1], hash[2], hash[3]) + nt_buffer[12] ; hash[0] = rotate(hash[0], 3u );
+	hash[3] += MD4_F(hash[0], hash[1], hash[2]) + nt_buffer[13] ; hash[3] = rotate(hash[3], 7u );
+#if PLAINTEXT_LENGTH > 27
+	hash[2] += MD4_F(hash[3], hash[0], hash[1]) + nt_buffer[14] ; hash[2] = rotate(hash[2], 11u);
+	hash[1] += MD4_F(hash[2], hash[3], hash[0]) + nt_buffer[15] ; hash[1] = rotate(hash[1], 19u);
+#else
+	hash[2] += MD4_F(hash[3], hash[0], hash[1]) + md4_size      ; hash[2] = rotate(hash[2], 11u);
+	hash[1] += MD4_F(hash[2], hash[3], hash[0])                 ; hash[1] = rotate(hash[1], 19u);
+#endif
 
 	/* Round 2 */
+	hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[0]  + SQRT_2; hash[0] = rotate(hash[0], 3u );
+	hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[4]  + SQRT_2; hash[3] = rotate(hash[3], 5u );
+	hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[8]  + SQRT_2; hash[2] = rotate(hash[2], 9u );
+	hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[12] + SQRT_2; hash[1] = rotate(hash[1], 13u);
 
-	hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[0] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[4] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
-	hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[8] + SQRT_2; hash[2] = rotate(hash[2] , 9u );
-	hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[12]+ SQRT_2; hash[1] = rotate(hash[1] , 13u);
+	hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[1]  + SQRT_2; hash[0] = rotate(hash[0], 3u );
+	hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[5]  + SQRT_2; hash[3] = rotate(hash[3], 5u );
+	hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[9]  + SQRT_2; hash[2] = rotate(hash[2], 9u );
+	hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[13] + SQRT_2; hash[1] = rotate(hash[1], 13u);
 
-	hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[1] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[5] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
-	hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[9] + SQRT_2; hash[2] = rotate(hash[2] , 9u );
-	hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[13]+ SQRT_2; hash[1] = rotate(hash[1] , 13u);
-
-	hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[2] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[6] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
-	hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[10]+ SQRT_2; hash[2] = rotate(hash[2] , 9u );
-	hash[1] += MD4_G(hash[2], hash[3], hash[0]) +   md4_size   + SQRT_2; hash[1] = rotate(hash[1] , 13u);
-
-	hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[3] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[7] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
-	hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[11]+ SQRT_2; hash[2] = rotate(hash[2] , 9u );
-	hash[1] += MD4_G(hash[2], hash[3], hash[0])                + SQRT_2; hash[1] = rotate(hash[1] , 13u);
+	hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[2]  + SQRT_2; hash[0] = rotate(hash[0], 3u );
+	hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[6]  + SQRT_2; hash[3] = rotate(hash[3], 5u );
+	hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[10] + SQRT_2; hash[2] = rotate(hash[2], 9u );
+#if PLAINTEXT_LENGTH > 27
+	hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[14] + SQRT_2; hash[1] = rotate(hash[1], 13u);
+#else
+	hash[1] += MD4_G(hash[2], hash[3], hash[0]) + md4_size      + SQRT_2; hash[1] = rotate(hash[1], 13u);
+#endif
+	hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[3]  + SQRT_2; hash[0] = rotate(hash[0], 3u );
+	hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[7]  + SQRT_2; hash[3] = rotate(hash[3], 5u );
+	hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[11] + SQRT_2; hash[2] = rotate(hash[2], 9u );
+#if PLAINTEXT_LENGTH > 27
+	hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[15] + SQRT_2; hash[1] = rotate(hash[1], 13u);
+#else
+	hash[1] += MD4_G(hash[2], hash[3], hash[0])                 + SQRT_2; hash[1] = rotate(hash[1], 13u);
+#endif
 
 	/* Round 3 */
-	hash[0] += MD4_H(hash[1], hash[2], hash[3]) + nt_buffer[0]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[8]  + SQRT_3; hash[3] = rotate(hash[3] , 9u );
-	hash[2] += MD4_H(hash[3], hash[0], hash[1]) + nt_buffer[4]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
-	hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[12] + SQRT_3; hash[1] = rotate(hash[1] , 15u);
+	hash[0] += MD4_H (hash[1], hash[2], hash[3]) + nt_buffer[0]  + SQRT_3; hash[0] = rotate(hash[0], 3u );
+	hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[8]  + SQRT_3; hash[3] = rotate(hash[3], 9u );
+	hash[2] += MD4_H (hash[3], hash[0], hash[1]) + nt_buffer[4]  + SQRT_3; hash[2] = rotate(hash[2], 11u);
+	hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[12] + SQRT_3; hash[1] = rotate(hash[1], 15u);
 
-	hash[0] += MD4_H(hash[1], hash[2], hash[3]) + nt_buffer[2]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[10] + SQRT_3; hash[3] = rotate(hash[3] , 9u );
-	hash[2] += MD4_H(hash[3], hash[0], hash[1]) + nt_buffer[6]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
-	hash[1] += MD4_H2(hash[2], hash[3], hash[0]) +   md4_size    + SQRT_3; hash[1] = rotate(hash[1] , 15u);
-
-	hash[0] += MD4_H(hash[1], hash[2], hash[3]) + nt_buffer[1]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[9]  + SQRT_3; hash[3] = rotate(hash[3] , 9u );
-	hash[2] += MD4_H(hash[3], hash[0], hash[1]) + nt_buffer[5]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
-	//It is better to calculate this remining steps that access global memory
+	hash[0] += MD4_H (hash[1], hash[2], hash[3]) + nt_buffer[2]  + SQRT_3; hash[0] = rotate(hash[0], 3u );
+	hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[10] + SQRT_3; hash[3] = rotate(hash[3], 9u );
+	hash[2] += MD4_H (hash[3], hash[0], hash[1]) + nt_buffer[6]  + SQRT_3; hash[2] = rotate(hash[2], 11u);
+#if PLAINTEXT_LENGTH > 27
+	hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[14] + SQRT_3; hash[1] = rotate(hash[1], 15u);
+#else
+	hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + md4_size      + SQRT_3; hash[1] = rotate(hash[1], 15u);
+#endif
+	hash[0] += MD4_H (hash[1], hash[2], hash[3]) + nt_buffer[1]  + SQRT_3; hash[0] = rotate(hash[0], 3u );
+	hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[9]  + SQRT_3; hash[3] = rotate(hash[3], 9u );
+	hash[2] += MD4_H (hash[3], hash[0], hash[1]) + nt_buffer[5]  + SQRT_3; hash[2] = rotate(hash[2], 11u);
 	hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[13];
-	tmp = hash[1];
-	tmp += SQRT_3; tmp = rotate(tmp , 15u);
+	uint hash1 = hash[1] + SQRT_3; hash1 = rotate(hash1, 15u);
 
-	hash[0] += MD4_H(hash[3], hash[2], tmp) + nt_buffer[3]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
-	hash[3] += MD4_H2(hash[2], tmp, hash[0]) + nt_buffer[11] + SQRT_3; hash[3] = rotate(hash[3] , 9u );
-	hash[2] += MD4_H(tmp, hash[0], hash[3]) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
-}
+	hash[0] += MD4_H (hash[3], hash[2], hash1  ) + nt_buffer[3]  + SQRT_3; hash[0] = rotate(hash[0], 3u );
+	hash[3] += MD4_H2(hash[2], hash1,   hash[0]) + nt_buffer[11] + SQRT_3; hash[3] = rotate(hash[3], 9u );
+	hash[2] += MD4_H (hash1,   hash[0], hash[3]) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2], 11u);
 
 #if PLAINTEXT_LENGTH > 27
-inline void md4_reverse(uint *hash)
-{
+	if (likely(md4_size <= (27 << 4)))
+		return;
+
+	/*
+	 * Complete the first of a multi-block MD4 (reversing steps not possible).
+	 */
+	hash[1] = hash1 + MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[15] + SQRT_3; hash[1] = rotate(hash[1], 15u);
+	hash[0] += INIT_A;
+	hash[1] += INIT_B;
+	hash[2] += INIT_C;
+	hash[3] += INIT_D;
+
+#if PLAINTEXT_LENGTH > 59
+	uint blocks = ((md4_size >> 4) + 5 + 31) / 32;
+	while (--blocks)
+#endif
+	{
+		nt_buffer += 16;
+
+		uint a = hash[0];
+		uint b = hash[1];
+		uint c = hash[2];
+		uint d = hash[3];
+
+		hash[0] += MD4_F(hash[1], hash[2], hash[3]) + nt_buffer[0]  ; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_F(hash[0], hash[1], hash[2]) + nt_buffer[1]  ; hash[3] = rotate(hash[3], 7u );
+		hash[2] += MD4_F(hash[3], hash[0], hash[1]) + nt_buffer[2]  ; hash[2] = rotate(hash[2], 11u);
+		hash[1] += MD4_F(hash[2], hash[3], hash[0]) + nt_buffer[3]  ; hash[1] = rotate(hash[1], 19u);
+
+		hash[0] += MD4_F(hash[1], hash[2], hash[3]) + nt_buffer[4]  ; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_F(hash[0], hash[1], hash[2]) + nt_buffer[5]  ; hash[3] = rotate(hash[3], 7u );
+		hash[2] += MD4_F(hash[3], hash[0], hash[1]) + nt_buffer[6]  ; hash[2] = rotate(hash[2], 11u);
+		hash[1] += MD4_F(hash[2], hash[3], hash[0]) + nt_buffer[7]  ; hash[1] = rotate(hash[1], 19u);
+
+		hash[0] += MD4_F(hash[1], hash[2], hash[3]) + nt_buffer[8]  ; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_F(hash[0], hash[1], hash[2]) + nt_buffer[9]  ; hash[3] = rotate(hash[3], 7u );
+		hash[2] += MD4_F(hash[3], hash[0], hash[1]) + nt_buffer[10] ; hash[2] = rotate(hash[2], 11u);
+		hash[1] += MD4_F(hash[2], hash[3], hash[0]) + nt_buffer[11] ; hash[1] = rotate(hash[1], 19u);
+
+		hash[0] += MD4_F(hash[1], hash[2], hash[3]) + nt_buffer[12] ; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_F(hash[0], hash[1], hash[2]) + nt_buffer[13] ; hash[3] = rotate(hash[3], 7u );
+		hash[2] += MD4_F(hash[3], hash[0], hash[1]) + nt_buffer[14] ; hash[2] = rotate(hash[2], 11u);
+		hash[1] += MD4_F(hash[2], hash[3], hash[0]) + nt_buffer[15] ; hash[1] = rotate(hash[1], 19u);
+
+		/* Round 2 */
+		hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[0]  + SQRT_2; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[4]  + SQRT_2; hash[3] = rotate(hash[3], 5u );
+		hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[8]  + SQRT_2; hash[2] = rotate(hash[2], 9u );
+		hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[12] + SQRT_2; hash[1] = rotate(hash[1], 13u);
+
+		hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[1]  + SQRT_2; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[5]  + SQRT_2; hash[3] = rotate(hash[3], 5u );
+		hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[9]  + SQRT_2; hash[2] = rotate(hash[2], 9u );
+		hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[13] + SQRT_2; hash[1] = rotate(hash[1], 13u);
+
+		hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[2]  + SQRT_2; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[6]  + SQRT_2; hash[3] = rotate(hash[3], 5u );
+		hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[10] + SQRT_2; hash[2] = rotate(hash[2], 9u );
+		hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[14] + SQRT_2; hash[1] = rotate(hash[1], 13u);
+
+		hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[3]  + SQRT_2; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[7]  + SQRT_2; hash[3] = rotate(hash[3], 5u );
+		hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[11] + SQRT_2; hash[2] = rotate(hash[2], 9u );
+		hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[15] + SQRT_2; hash[1] = rotate(hash[1], 13u);
+
+		/* Round 3 */
+		hash[0] += MD4_H (hash[1], hash[2], hash[3]) + nt_buffer[0]  + SQRT_3; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[8]  + SQRT_3; hash[3] = rotate(hash[3], 9u );
+		hash[2] += MD4_H (hash[3], hash[0], hash[1]) + nt_buffer[4]  + SQRT_3; hash[2] = rotate(hash[2], 11u);
+		hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[12] + SQRT_3; hash[1] = rotate(hash[1], 15u);
+
+		hash[0] += MD4_H (hash[1], hash[2], hash[3]) + nt_buffer[2]  + SQRT_3; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[10] + SQRT_3; hash[3] = rotate(hash[3], 9u );
+		hash[2] += MD4_H (hash[3], hash[0], hash[1]) + nt_buffer[6]  + SQRT_3; hash[2] = rotate(hash[2], 11u);
+		hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[14] + SQRT_3; hash[1] = rotate(hash[1], 15u);
+
+		hash[0] += MD4_H (hash[1], hash[2], hash[3]) + nt_buffer[1]  + SQRT_3; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[9]  + SQRT_3; hash[3] = rotate(hash[3], 9u );
+		hash[2] += MD4_H (hash[3], hash[0], hash[1]) + nt_buffer[5]  + SQRT_3; hash[2] = rotate(hash[2], 11u);
+		hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[13] + SQRT_3; hash[1] = rotate(hash[1], 15u);
+
+		hash[0] += MD4_H (hash[3], hash[2], hash[1]) + nt_buffer[3]  + SQRT_3; hash[0] = rotate(hash[0], 3u );
+		hash[3] += MD4_H2(hash[2], hash[1], hash[0]) + nt_buffer[11] + SQRT_3; hash[3] = rotate(hash[3], 9u );
+		hash[2] += MD4_H (hash[1], hash[0], hash[3]) + nt_buffer[7]  + SQRT_3; hash[2] = rotate(hash[2], 11u);
+		hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[15] + SQRT_3; hash[1] = rotate(hash[1], 15u);
+
+		hash[0] += a;
+		hash[1] += b;
+		hash[2] += c;
+		hash[3] += d;
+	}
+
+	/*
+	 * This bogus reverse adds a little work to long crypts instead
+	 * of losing the real reverse for single block crypts.
+	 */
 	hash[0] -= INIT_A;
 	hash[1] -= INIT_B;
 	hash[2] -= INIT_C;
@@ -123,28 +241,8 @@ inline void md4_reverse(uint *hash)
 	hash[1] -= SQRT_3 + (hash[2] ^ hash[3] ^ hash[0]);
 	hash[1]  = (hash[1] >> 15) | (hash[1] << 17);
 	hash[1] -= SQRT_3;
-}
-
-inline void nt_crypt_long(uint *hash, uint *nt_buffer, uint md4_size)
-{
-	md4_init(hash);
-
-	uint blocks = (md4_size + 5 + 31) / 32;
-	while (--blocks) {
-		md4_block(uint, nt_buffer, hash);
-		nt_buffer += 16;
-	}
-
-	nt_buffer[14] = md4_size << 4;
-	md4_block(uint, nt_buffer, hash);
-
-	/*
-	 * This *adds* a little work to long crypts instead
-	 * of losing the real reverse for single block crypts.
-	 */
-	md4_reverse(hash);
-}
 #endif
+}
 
 #if __OS_X__ && (cpu(DEVICE_INFO) || gpu_nvidia(DEVICE_INFO))
 /* This is a workaround for driver/runtime bugs */
@@ -289,19 +387,15 @@ inline void cmp_final(uint gid,
 }
 
 inline void cmp(uint gid,
-		uint iter,
-		uint *hash,
-#if USE_LOCAL_BITMAPS
-		__local
-#else
-		__global
-#endif
-		uint *bitmaps,
-		__global uint *offset_table,
-		__global uint *hash_table,
-		__global uint *return_hashes,
-		volatile __global uint *output,
-		volatile __global uint *bitmap_dupe) {
+                uint iter,
+                uint *hash,
+                BITMAPS_TYPE uint *bitmaps,
+                __global uint *offset_table,
+                __global uint *hash_table,
+                __global uint *return_hashes,
+                volatile __global uint *output,
+                volatile __global uint *bitmap_dupe)
+{
 	uint bitmap_index, tmp = 1;
 
 /*	hash[0] += 0x67452301;
@@ -349,37 +443,26 @@ inline void cmp(uint gid,
 		cmp_final(gid, iter, hash, offset_table, hash_table, return_hashes, output, bitmap_dupe);
 }
 
-#define USE_CONST_CACHE \
-	(CONST_CACHE_SIZE >= (NUM_INT_KEYS * 4))
-
 /*
  * OpenCL kernel entry point. Break the key into 16 32-bit (uint)
  * words. MD4 hash of a key is 128 bits but we only do 64 bits here, and
  * reverse steps where possible.
  */
 __kernel void nt(__global uint *keys,
-		  __global uint *index,
-		  __global uint *int_key_loc,
-#if USE_CONST_CACHE
-		  constant
-#else
-		  __global
-#endif
-		  uint *int_keys
-#if !defined(__OS_X__) && USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
-		__attribute__((max_constant_size (NUM_INT_KEYS * 4)))
-#endif
-		 , __global uint *bitmaps,
-		  __global uint *offset_table,
-		  __global uint *hash_table,
-		  __global uint *return_hashes,
-		  volatile __global uint *out_hash_ids,
-		  volatile __global uint *bitmap_dupe)
+                 __global uint *index,
+                 __global uint *int_key_loc,
+                 CACHE_TYPE uint *int_keys,
+                 __global uint *bitmaps,
+                 __global uint *offset_table,
+                 __global uint *hash_table,
+                 __global uint *return_hashes,
+                 volatile __global uint *out_hash_ids,
+                 volatile __global uint *bitmap_dupe)
 {
 	uint i;
 	uint gid = get_global_id(0);
 	uint base = index[gid];
-	uint nt_buffer[(PLAINTEXT_LENGTH + 5 + 31) / 32  * 16] = { 0 };
+	uint nt_buffer[(PLAINTEXT_LENGTH + 5 + 31) / 32 * 16] = { 0 };
 	uint md4_size = base & 127;
 	uint hash[4];
 
@@ -424,10 +507,19 @@ __kernel void nt(__global uint *keys,
 		s_bitmaps[i*lws + lid] = bitmaps[i*lws + lid];
 
 	barrier(CLK_LOCAL_MEM_FENCE);
+
+#define BITMAPS	s_bitmaps
+#else
+#define BITMAPS	bitmaps
 #endif
 
 	keys += base >> 7;
 	md4_size = prepare_key(keys, md4_size, nt_buffer);
+
+	/* Put the length word in the correct place in buffer, outside the loop */
+	uint size_idx = ((md4_size + 5 + 31) / 32 - 1) * 16 + 14;
+	md4_size <<= 4;
+	nt_buffer[size_idx] = md4_size;
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
@@ -448,18 +540,7 @@ __kernel void nt(__global uint *keys,
 #endif
 #endif
 #endif
-#if PLAINTEXT_LENGTH > 27
-		if (md4_size > 27)
-			nt_crypt_long(hash, nt_buffer, md4_size);
-		else
-#endif
-			nt_crypt(hash, nt_buffer, md4_size);
-		cmp(gid, i, hash,
-#if USE_LOCAL_BITMAPS
-		    s_bitmaps
-#else
-		    bitmaps
-#endif
-		    , offset_table, hash_table, return_hashes, out_hash_ids, bitmap_dupe);
+		nt_crypt(hash, nt_buffer, md4_size);
+		cmp(gid, i, hash, BITMAPS, offset_table, hash_table, return_hashes, out_hash_ids, bitmap_dupe);
 	}
 }
