@@ -38,6 +38,15 @@ typedef uint32_t host_size_t;
 #define NULL ((void*)0)
 #endif
 
+/* Change the below to '#if 0' if your platform can't handle __builtin_expect */
+#if 1
+#define likely(x)       __builtin_expect((x), 1)
+#define unlikely(x)     __builtin_expect((x), 0)
+#else
+#define likely(x)       (x)
+#define unlikely(x)     (x)
+#endif
+
 /*
  * Some runtimes/drivers breaks on using inline, others breaks on lack of it,
  * yet others require use of static as well.
