@@ -1,4 +1,5 @@
-/* NTLM kernel (OpenCL 1.2 conformant)
+/*
+ * NTLM kernel (OpenCL 1.2 conformant)
  *
  * Written by Alain Espinosa <alainesp at gmail.com> in 2010 and modified by
  * Samuele Giovanni Tonon in 2011. No copyright is claimed, and
@@ -41,6 +42,26 @@
 #endif
 
 inline void nt_crypt(uint *hash, uint *nt_buffer, uint md4_size) {
+#if PLAINTEXT_LENGTH > 27
+#if gpu_amd(DEVICE_INFO)
+	uint w14;
+	uint w15;
+
+	if (md4_size > (27 << 4)) {
+		w14 = nt_buffer[14];
+		w15 = nt_buffer[15];
+	} else {
+		w14 = md4_size;
+		w15 = 0;
+	}
+#else
+#define w14	nt_buffer[14]
+#define w15	nt_buffer[15]
+#endif /* AMD */
+#else
+#define w14	md4_size
+#define w15	0
+#endif /* LENGTH */
 
 	/* Round 1 */
 	hash[0] = 0xFFFFFFFF + nt_buffer[0]; hash[0]=rotate(hash[0], 3u);
@@ -60,9 +81,9 @@ inline void nt_crypt(uint *hash, uint *nt_buffer, uint md4_size) {
 
 	hash[0] += MD4_F(hash[1], hash[2], hash[3])  +  nt_buffer[12]; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += MD4_F(hash[0], hash[1], hash[2])  +  nt_buffer[13]; hash[3] = rotate(hash[3] , 7u );
-	hash[2] += MD4_F(hash[3], hash[0], hash[1])  +  nt_buffer[14]; hash[2] = rotate(hash[2] , 11u);
+	hash[2] += MD4_F(hash[3], hash[0], hash[1])  +  w14          ; hash[2] = rotate(hash[2] , 11u);
 #if PLAINTEXT_LENGTH > 27
-	hash[1] += MD4_F(hash[2], hash[3], hash[0])  +  nt_buffer[15]; hash[1] = rotate(hash[1] , 19u);
+	hash[1] += MD4_F(hash[2], hash[3], hash[0])  +  w15          ; hash[1] = rotate(hash[1] , 19u);
 #else
 	hash[1] += MD4_F(hash[2], hash[3], hash[0])                  ; hash[1] = rotate(hash[1] , 19u);
 #endif
@@ -81,13 +102,13 @@ inline void nt_crypt(uint *hash, uint *nt_buffer, uint md4_size) {
 	hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[2] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[6] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
 	hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[10]+ SQRT_2; hash[2] = rotate(hash[2] , 9u );
-	hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[14]+ SQRT_2; hash[1] = rotate(hash[1] , 13u);
+	hash[1] += MD4_G(hash[2], hash[3], hash[0]) + w14          + SQRT_2; hash[1] = rotate(hash[1] , 13u);
 
 	hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[3] + SQRT_2; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += MD4_G(hash[0], hash[1], hash[2]) + nt_buffer[7] + SQRT_2; hash[3] = rotate(hash[3] , 5u );
 	hash[2] += MD4_G(hash[3], hash[0], hash[1]) + nt_buffer[11]+ SQRT_2; hash[2] = rotate(hash[2] , 9u );
 #if PLAINTEXT_LENGTH > 27
-	hash[1] += MD4_G(hash[2], hash[3], hash[0]) + nt_buffer[15]+ SQRT_2; hash[1] = rotate(hash[1] , 13u);
+	hash[1] += MD4_G(hash[2], hash[3], hash[0]) + w15          + SQRT_2; hash[1] = rotate(hash[1] , 13u);
 #else
 	hash[1] += MD4_G(hash[2], hash[3], hash[0])                + SQRT_2; hash[1] = rotate(hash[1] , 13u);
 #endif
@@ -101,7 +122,7 @@ inline void nt_crypt(uint *hash, uint *nt_buffer, uint md4_size) {
 	hash[0] += MD4_H(hash[1], hash[2], hash[3]) + nt_buffer[2]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[10] + SQRT_3; hash[3] = rotate(hash[3] , 9u );
 	hash[2] += MD4_H(hash[3], hash[0], hash[1]) + nt_buffer[6]  + SQRT_3; hash[2] = rotate(hash[2] , 11u);
-	hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + nt_buffer[14] + SQRT_3; hash[1] = rotate(hash[1] , 15u);
+	hash[1] += MD4_H2(hash[2], hash[3], hash[0]) + w14           + SQRT_3; hash[1] = rotate(hash[1] , 15u);
 
 	hash[0] += MD4_H(hash[1], hash[2], hash[3]) + nt_buffer[1]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
 	hash[3] += MD4_H2(hash[0], hash[1], hash[2]) + nt_buffer[9]  + SQRT_3; hash[3] = rotate(hash[3] , 9u );
@@ -113,7 +134,7 @@ inline void nt_crypt(uint *hash, uint *nt_buffer, uint md4_size) {
 	hash[0] += MD4_H(hash[3], hash[2], hash1) + nt_buffer[3]  + SQRT_3; hash[0] = rotate(hash[0] , 3u );
 
 #if PLAINTEXT_LENGTH > 27
-	if (likely(md4_size <= 27))
+	if (likely(md4_size <= (27 << 4)))
 		return;
 
 	/*
@@ -129,7 +150,7 @@ inline void nt_crypt(uint *hash, uint *nt_buffer, uint md4_size) {
 	hash[3] += INIT_D;
 
 #if PLAINTEXT_LENGTH > 59
-	uint blocks = (md4_size + 5 + 31) / 32;
+	uint blocks = ((md4_size >> 4) + 5 + 31) / 32;
 	while (--blocks)
 #endif
 	{
@@ -452,9 +473,11 @@ __kernel void nt(__global uint *keys,
 
 	keys += base >> 7;
 	md4_size = prepare_key(keys, md4_size, nt_buffer);
+	uint size_idx = ((md4_size + 5 + 31) / 32 - 1) * 16 + 14;
+	md4_size <<= 4;
 
 	/* Put the length word in the correct place in buffer, outside the loop */
-	nt_buffer[((md4_size + 5 + 31) / 32 - 1) * 16 + 14] = md4_size << 4;
+	nt_buffer[size_idx] = md4_size;
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
