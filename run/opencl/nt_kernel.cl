@@ -1,4 +1,5 @@
-/* NTLM kernel (OpenCL 1.2 conformant)
+/*
+ * NTLM kernel (OpenCL 1.2 conformant)
  *
  * Written by Alain Espinosa <alainesp at gmail.com> in 2010 and modified by
  * Samuele Giovanni Tonon in 2011. No copyright is claimed, and
@@ -296,9 +297,13 @@ inline uint prepare_key(__global uint *key, uint length,
 		if (target >= targetEnd)
 			break;
 	}
-	*target = 0x80;	// Terminate
+	length = (uint)(target - (UTF16*)nt_buffer);
 
-	return (uint)(target - (UTF16*)nt_buffer);
+	*target = 0x80;	// Terminate
+	if ((length + 5) & 31)
+		*++target = 0x0000;
+
+	return length;
 }
 
 #else
@@ -313,8 +318,9 @@ inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
 		nt_buffer[nt_index++] = CP_LUT(keychars & 0x000000FF) | (CP_LUT((keychars & 0x0000FF00) >> 8) << 16);
 		nt_buffer[nt_index++] = CP_LUT((keychars & 0x00FF0000) >> 16) | (CP_LUT(keychars >> 24) << 16);
 	}
-	nt_index = length >> 1;
-	nt_buffer[nt_index] = (nt_buffer[nt_index] & 0xFFFF) | (0x80 << ((length & 1) << 4));
+	((UTF16*)nt_buffer)[length] = 0x80;
+	if ((length + 5) & 31)
+		((UTF16*)nt_buffer)[length + 1] = 0x0000;
 
 	return length;
 }
@@ -456,7 +462,7 @@ __kernel void nt(__global uint *keys,
 	uint i;
 	uint gid = get_global_id(0);
 	uint base = index[gid];
-	uint nt_buffer[(PLAINTEXT_LENGTH + 5 + 31) / 32  * 16 - 2] = { 0 };
+	uint nt_buffer[(PLAINTEXT_LENGTH + 5 + 31) / 32 * 16 - 2];
 	uint md4_size = base & 127;
 	uint hash[4];
 
@@ -505,7 +511,14 @@ __kernel void nt(__global uint *keys,
 
 	keys += base >> 7;
 	md4_size = prepare_key(keys, md4_size, nt_buffer);
-	md4_size = md4_size << 4;
+
+	/* Clear only what is required of the key buffer */
+	uint size_idx = ((md4_size + 5 + 31) / 32 - 1) * 16 + 14;
+	for (i = (md4_size + 2) / 2; i < size_idx; i++)
+		nt_buffer[i] = 0x00000000;
+
+
+	md4_size <<= 4;
 
 	for (i = 0; i < NUM_INT_KEYS; i++) {
 #if NUM_INT_KEYS > 1
