@@ -169,7 +169,7 @@ char* ocl_hc_128_select_bitmap(unsigned int num_ld_hashes)
 		sizeof(cl_ulong), &max_local_mem_sz_bytes, 0),
 		"failed to get CL_DEVICE_LOCAL_MEM_SIZE.");
 
-	if (num_loaded_hashes <= 5100) {
+	if (num_ld_hashes <= 5100) {
 		if (amd_gcn_10(device_info[gpu_id]) ||
 			amd_vliw4(device_info[gpu_id]))
 			bitmap_size_bits = 512 * 1024;
@@ -186,7 +186,7 @@ char* ocl_hc_128_select_bitmap(unsigned int num_ld_hashes)
 		}
 	}
 
-	else if (num_loaded_hashes <= 10100) {
+	else if (num_ld_hashes <= 10100) {
 		if (amd_gcn_10(device_info[gpu_id]) ||
 			amd_vliw4(device_info[gpu_id]))
 			bitmap_size_bits = 512 * 1024;
@@ -203,7 +203,7 @@ char* ocl_hc_128_select_bitmap(unsigned int num_ld_hashes)
 		}
 	}
 
-	else if (num_loaded_hashes <= 20100) {
+	else if (num_ld_hashes <= 20100) {
 		if (amd_gcn_10(device_info[gpu_id]))
 			bitmap_size_bits = 1024 * 1024;
 
@@ -224,29 +224,28 @@ char* ocl_hc_128_select_bitmap(unsigned int num_ld_hashes)
 		}
 	}
 
-	else if (num_loaded_hashes <= 250100)
+	else if (num_ld_hashes <= 250100)
 		bitmap_size_bits = 2048 * 1024;
 
-	else if (num_loaded_hashes <= 1100100) {
+	else if (num_ld_hashes <= 1100100) {
 		if (!amd_gcn_11(device_info[gpu_id]))
 			bitmap_size_bits = 4096 * 1024;
-
 		else
 			bitmap_size_bits = 2048 * 1024;
 	}
 
-	else if (num_loaded_hashes <= 1500100) {
+	else if (num_ld_hashes <= 1500100) {
 		bitmap_size_bits = 4096 * 1024 * 2;
 		cmp_steps = 1;
 	}
 
-	else if (num_loaded_hashes <= 2700100) {
+	else if (num_ld_hashes <= 2700100) {
 		bitmap_size_bits = 4096 * 1024 * 2 * 2;
 		cmp_steps = 1;
 	}
 
 	else {
-		cl_ulong mult = num_loaded_hashes / 2700100;
+		cl_ulong mult = num_ld_hashes / 2700100;
 		cl_ulong buf_sz;
 		bitmap_size_bits = 4096 * 4096;
 		get_power_of_two(mult);
