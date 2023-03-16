@@ -196,7 +196,9 @@ static int static_gpu_locations[MASK_FMT_INT_PLHDR];
 
 static unsigned int shift64_ht_sz, shift64_ot_sz;
 
-static unsigned int key_idx = 0;
+static size_t key_idx;
+static size_t key_offset, idx_offset;
+
 static struct fmt_main *self;
 
 #define STEP			0
@@ -530,6 +532,8 @@ static int get_hash_6(int index) { return hash_table_128[hash_ids[3 + 3 * index]
 static void clear_keys(void)
 {
 	key_idx = 0;
+	key_offset = 0;
+	idx_offset = 0;
 }
 
 static void set_key(char *_key, int index)
@@ -560,6 +564,20 @@ static void set_key(char *_key, int index)
 	}
 	if (len)
 		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
+
+	/* Early partial transfer to GPU every 2 MB */
+	if (4 * key_idx - key_offset > (2 << 20)) {
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, key_offset, 4 * key_idx - key_offset, saved_plain + key_offset / 4, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_keys.");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, idx_offset, 4 * (index + 1) - idx_offset, saved_idx + idx_offset / 4, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_idx.");
+
+		if (!mask_gpu_is_static)
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * (index + 1) - idx_offset, saved_int_key_loc + idx_offset / 4, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
+
+		HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+
+		key_offset = 4 * key_idx;
+		idx_offset = 4 * (index + 1);
+	}
 }
 
 static char *get_key(int index)
@@ -619,12 +637,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// copy keys to the device
 	if (key_idx)
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, key_offset, 4 * key_idx - key_offset, saved_plain + key_offset / 4, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, idx_offset, 4 * gws - idx_offset, saved_idx + idx_offset / 4, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
 
 	if (!mask_gpu_is_static)
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, 0, 4 * gws, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * gws - idx_offset, saved_int_key_loc + idx_offset / 4, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 
 	return ocl_hc_128_extract_info(salt, set_kernel_args, set_kernel_args_kpc, init_kernel, gws, lws, pcount);
 }
