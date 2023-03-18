@@ -364,6 +364,7 @@ static int submit(UTF32 *subset)
 		/* Nearly as quick conversion, from UTF-8-32[tm] to UTF-8 */
 		subset[word_len] = 0;
 		utf8_32_to_utf8(out, subset);
+		out[maxlength] = 0;
 	} else {
 		/* Slowest conversion, from real UTF-32 to some legacy codepage */
 		subset[word_len] = 0;
