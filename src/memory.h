@@ -212,6 +212,7 @@ extern void cleanup_tiny_memory();
 extern void dump_text_msg(const void *msg, const void *in, int len);
 
 extern void dump_stuff_msg(const void *msg, const void *x, unsigned int size);
+extern void dump_stderr_msg(const void *msg, const void *x, unsigned int size);
 extern void dump_stuff_be_msg(const void *msg, const void *x, unsigned int size);
 
 #if defined (SIMD_COEF_32) || defined(NT_X86_64) || defined (SIMD_PARA_MD5) || defined (SIMD_PARA_MD4) || defined (SIMD_PARA_SHA1)

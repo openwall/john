@@ -9,7 +9,7 @@
  * Copyright (c) 2010 Alain Espinosa
  * Copyright (c) 2011 Samuele Giovanni Tonon
  * Copyright (c) 2015 Sayantan Datta <sdatta at openwall.com>
- * Copyright (c) 2015 magnum
+ * Copyright (c) 2015-2023 magnum
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -42,8 +42,11 @@ john_register_one(&fmt_opencl_NT_long);
 #include "config.h"
 #include "options.h"
 #include "unicode.h"
+#include "md4.h" // for cmp_exact()
+#include "simd-intrinsics.h" // for md4_reverse()
+#include "johnswap.h" // for printing of false positives
 #include "mask_ext.h"
-#include "opencl_hash_check_128.h"
+#include "opencl_hash_check.h"
 
 #define FORMAT_LABEL        "NT-opencl"
 #define FORMAT_LABEL_LONG   "NT-long-opencl"
@@ -60,8 +63,8 @@ john_register_one(&fmt_opencl_NT_long);
 #define BUFSIZE             ((UTF8_MAX_LENGTH + 3) / 4 * 4)
 #define AUTOTUNE_LENGTH     8
 #define CIPHERTEXT_LENGTH   32
-#define BINARY_SIZE         16
-#define BINARY_ALIGN        MEM_ALIGN_WORD
+#define BINARY_SIZE         8
+#define BINARY_ALIGN        sizeof(cl_uint)
 #define SALT_SIZE           0
 #define SALT_ALIGN          1
 
@@ -194,8 +197,6 @@ static cl_mem buffer_keys, buffer_idx, buffer_int_keys, buffer_int_key_loc;
 static cl_uint *saved_plain, *saved_idx, *saved_int_key_loc;
 static int static_gpu_locations[MASK_FMT_INT_PLHDR];
 
-static unsigned int shift64_ht_sz, shift64_ot_sz;
-
 static size_t key_idx;
 static size_t key_offset, idx_offset;
 
@@ -279,7 +280,7 @@ static void create_base_clobj(void)
 	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand ? mask_int_cand.int_cand : (void *)&dummy, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys.");
 
-	ocl_hc_128_crobj(crypt_kernel);
+	ocl_hc_64_crobj(crypt_kernel);
 
 	set_kernel_args();
 }
@@ -311,7 +312,7 @@ static void release_base_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
 		buffer_int_keys = 0;
 	}
-	ocl_hc_128_rlobj();
+	ocl_hc_64_rlobj();
 }
 
 static void done(void)
@@ -340,9 +341,6 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 		crypt_kernel = NULL;
 	}
 
-	shift64_ht_sz = (((1ULL << 63) % hash_table_size_128) * 2) % hash_table_size_128;
-	shift64_ot_sz = (((1ULL << 63) % offset_table_size) * 2) % offset_table_size;
-
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
 			static_gpu_locations[i] = mask_int_cand.int_cpu_mask_ctx->
@@ -356,8 +354,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 #if !NT_FULL_UNICODE
 		" -DUCS_2"
 #endif
-		" -D SHIFT64_OT_SZ=%u -D SHIFT64_HT_SZ=%u -D NUM_LOADED_HASHES=%u"
-		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
+		" -D NUM_LOADED_HASHES=%u -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
 		" -D CONST_CACHE_SIZE=%llu -D%s -D%s -DPLAINTEXT_LENGTH=%d -D LOC_0=%d"
 #if MASK_FMT_INT_PLHDR > 1
 	" -D LOC_1=%d "
@@ -368,7 +365,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 #if MASK_FMT_INT_PLHDR > 3
 	"-D LOC_3=%d"
 #endif
-	,offset_table_size, hash_table_size_128, shift64_ot_sz, shift64_ht_sz,
+	,ocl_hc_offset_table_size, ocl_hc_hash_table_size,
 	num_ld_hashes, mask_int_cand.num_int_cand, bitmap_para, mask_gpu_is_static,
 	(unsigned long long)const_cache_size, cp_id2macro(options.target_enc),
 	options.internal_cp == UTF_8 ? cp_id2macro(ENC_RAW) :
@@ -396,9 +393,9 @@ static void init(struct fmt_main *_self)
 		utf16len = _self->params.plaintext_length;
 
 	self = _self;
-	num_loaded_hashes = 0;
+	ocl_hc_num_loaded_hashes = 0;
 
-	ocl_hc_128_init(_self);
+	ocl_hc_64_init(_self);
 
 	struct fmt_tests *tests = self->params.tests;
 
@@ -521,13 +518,13 @@ static int binary_hash_4(void *binary) { return ((unsigned int *)binary)[0] & PH
 static int binary_hash_5(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_5; }
 static int binary_hash_6(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_6; }
 
-static int get_hash_0(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_0; }
-static int get_hash_1(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_1; }
-static int get_hash_2(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_2; }
-static int get_hash_3(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_3; }
-static int get_hash_4(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_4; }
-static int get_hash_5(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_5; }
-static int get_hash_6(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_6; }
+static int get_hash_0(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_0; }
+static int get_hash_1(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_1; }
+static int get_hash_2(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_2; }
+static int get_hash_3(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_3; }
+static int get_hash_4(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_4; }
+static int get_hash_5(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_5; }
+static int get_hash_6(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_6; }
 
 static void clear_keys(void)
 {
@@ -586,14 +583,14 @@ static char *get_key(int index)
 	int i, len, int_index, t;
 	char *key;
 
-	if (hash_ids == NULL || hash_ids[0] == 0 ||
-	    index >= hash_ids[0] || hash_ids[0] > num_loaded_hashes) {
+	if (ocl_hc_hash_ids == NULL || ocl_hc_hash_ids[0] == 0 ||
+	    index >= ocl_hc_hash_ids[0] || ocl_hc_hash_ids[0] > ocl_hc_num_loaded_hashes) {
 		t = index;
 		int_index = 0;
 	}
 	else  {
-		t = hash_ids[1 + 3 * index];
-		int_index = hash_ids[2 + 3 * index];
+		t = ocl_hc_hash_ids[1 + 3 * index];
+		int_index = ocl_hc_hash_ids[2 + 3 * index];
 
 	}
 
@@ -644,7 +641,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (!mask_gpu_is_static)
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * gws - idx_offset, saved_int_key_loc + idx_offset / 4, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 
-	return ocl_hc_128_extract_info(salt, set_kernel_args, set_kernel_args_kpc, init_kernel, gws, lws, pcount);
+	return ocl_hc_64_extract_info(salt, set_kernel_args, set_kernel_args_kpc, init_kernel, gws, lws, pcount);
 }
 
 static void reset(struct db_main *db)
@@ -652,9 +649,9 @@ static void reset(struct db_main *db)
 	release_base_clobj();
 	release_clobj();
 
-	num_loaded_hashes = db->salts->count;
-	ocl_hc_128_prepare_table(db->salts);
-	init_kernel(num_loaded_hashes, ocl_hc_128_select_bitmap(num_loaded_hashes));
+	ocl_hc_num_loaded_hashes = db->salts->count;
+	ocl_hc_64_prepare_table(db->salts);
+	init_kernel(ocl_hc_num_loaded_hashes, ocl_hc_64_select_bitmap(ocl_hc_num_loaded_hashes));
 
 	create_base_clobj();
 
@@ -672,6 +669,35 @@ static void reset(struct db_main *db)
 
 	// Auto tune execution from shared/included code.
 	autotune_run_extra(self, 1, gws_limit, 200, CL_TRUE);
+}
+
+static int cmp_exact(char *source, int index)
+{
+	unsigned int *binary = self->methods.binary(source);
+	unsigned int hash[4];
+	char *password = self->methods.get_key(index);
+	UTF16 key[PLAINTEXT_BUFFER_SIZE];
+	int len = enc_to_utf16(key, PLAINTEXT_BUFFER_SIZE, (UTF8*)password, (unsigned int)strlen(password));
+	MD4_CTX ctx;
+
+	MD4_Init(&ctx);
+	MD4_Update(&ctx, key, 2 * len);
+	MD4_Final((unsigned char*)hash, &ctx);
+	md4_reverse(hash);
+	int result = !memcmp(hash, binary, 16);
+#if DEBUG
+	if (!result) {
+		fprintf(stderr, "\n64-bit collision detected by kernel and %s(%d)\n", __FUNCTION__, index);
+		dump_stderr_msg("             expected", binary, 16);
+		dump_stderr_msg("           calculated", hash, 16);
+		md4_unreverse(hash);
+		md4_unreverse(binary);
+		dump_stderr_msg("unreversed   expected", binary, 16);
+		dump_stderr_msg("unreversed calculated", hash, 16);
+		fprintf(stderr, "Plaintext  : %s\n\n", self->methods.get_key(index));
+	}
+#endif
+	return result;
 }
 
 struct fmt_main fmt_opencl_NT = {
@@ -729,9 +755,9 @@ struct fmt_main fmt_opencl_NT = {
 			get_hash_5,
 			get_hash_6
 		},
-		ocl_hc_128_cmp_all,
-		ocl_hc_128_cmp_one,
-		ocl_hc_128_cmp_exact
+		ocl_hc_64_cmp_all,
+		ocl_hc_64_cmp_one,
+		cmp_exact
 	}
 };
 
@@ -790,9 +816,9 @@ struct fmt_main fmt_opencl_NT_long = {
 			get_hash_5,
 			get_hash_6
 		},
-		ocl_hc_128_cmp_all,
-		ocl_hc_128_cmp_one,
-		ocl_hc_128_cmp_exact
+		ocl_hc_64_cmp_all,
+		ocl_hc_64_cmp_one,
+		cmp_exact
 	}
 };
 

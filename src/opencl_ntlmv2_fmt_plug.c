@@ -675,7 +675,6 @@ static char *get_key(int index)
 	return out;
 }
 
-/* Use only for smaller bitmaps < 16MB */
 static void prepare_bitmap_4(cl_ulong bmp_sz, cl_uint **bitmap_ptr, uint32_t num_loaded_hashes)
 {
 	unsigned int i;
@@ -834,24 +833,24 @@ static void prepare_table(struct db_main *db)
 		num_loaded_hashes = salt->count;
 		salt->sequential_id = seq_ids++;
 
-		num_loaded_hashes = create_perfect_hash_table(128, (void *)loaded_hashes,
+		num_loaded_hashes = bt_create_perfect_hash_table(128, (void *)loaded_hashes,
 				num_loaded_hashes,
 			        &offset_table,
 			        &offset_table_size,
 			        &hash_table_size, 0);
 
 		if (!num_loaded_hashes) {
-			MEM_FREE(hash_table_128);
+			MEM_FREE(bt_hash_table_128);
 			fprintf(stderr, "Failed to create Hash Table for cracking.\n");
 			error();
 		}
 
-		hash_tables[salt->sequential_id] = hash_table_128;
+		hash_tables[salt->sequential_id] = bt_hash_table_128;
 
 		buffer_offset_tables[salt->sequential_id] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, offset_table_size * sizeof(OFFSET_TABLE_WORD), offset_table, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_offset_tables[].");
 
-		buffer_hash_tables[salt->sequential_id] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, hash_table_size * sizeof(unsigned int) * 2, hash_table_128, &ret_code);
+		buffer_hash_tables[salt->sequential_id] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, hash_table_size * sizeof(unsigned int) * 2, bt_hash_table_128, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_tables[].");
 
 		if (max_hash_table_size < hash_table_size)
