@@ -218,7 +218,7 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	if (salt->count > *max_uncracked_hashes)
 		*max_uncracked_hashes = salt->count;
 
-	num_uncracked_hashes(salt_val) = create_perfect_hash_table(64, (void *)uncracked_hashes_t,
+	num_uncracked_hashes(salt_val) = bt_create_perfect_hash_table(64, (void *)uncracked_hashes_t,
 				num_uncracked_hashes(salt_val),
 			        &offset_table,
 			        &offset_table_size,
@@ -231,15 +231,15 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 		*max_hash_table_size = hash_table_size(salt_val);
 
 	if (!num_uncracked_hashes(salt_val)) {
-		MEM_FREE(hash_table_64);
+		MEM_FREE(bt_hash_table_64);
 		MEM_FREE(offset_table);
 		fprintf(stderr, "Failed to create Hash Table for cracking.\n");
 		error();
 	}
 
-	hash_tables[salt_val] = hash_table_64;
+	hash_tables[salt_val] = bt_hash_table_64;
 
-	/* uncracked_hashes_t is modified by create_perfect_hash_table. */
+	/* uncracked_hashes_t is modified by bt_create_perfect_hash_table. */
 	for (i = 0; i < num_uncracked_hashes(salt_val); i++) {
 		uncracked_hashes[i] = uncracked_hashes_t[2 * i];
 		uncracked_hashes[i + num_uncracked_hashes(salt_val)] = uncracked_hashes_t[2 * i + 1];
@@ -248,7 +248,7 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	buffer_offset_tables[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(OFFSET_TABLE_WORD) * offset_table_size , offset_table, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_offset_tables failed.\n");
 
-	buffer_hash_tables[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(unsigned int) * hash_table_size, hash_table_64, &ret_code);
+	buffer_hash_tables[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(unsigned int) * hash_table_size, bt_hash_table_64, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_hash_tables failed.\n");
 
 	if (num_uncracked_hashes(salt_val) <= LOW_THRESHOLD) {
@@ -302,7 +302,7 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 		i++;
 	}
 
-	*max_uncracked_hashes = create_perfect_hash_table(64, (void *)uncracked_hashes_t,
+	*max_uncracked_hashes = bt_create_perfect_hash_table(64, (void *)uncracked_hashes_t,
 				*max_uncracked_hashes,
 			        &offset_table,
 			        &offset_table_size,
@@ -310,13 +310,13 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 	*max_hash_table_size = hash_table_size;
 
 	if (!*max_uncracked_hashes) {
-		MEM_FREE(hash_table_64);
+		MEM_FREE(bt_hash_table_64);
 		MEM_FREE(offset_table);
 		fprintf(stderr, "Failed to create Hash Table for cracking.\n");
 		error();
 	}
 
-	/* uncracked_hashes_t is modified by create_perfect_hash_table. */
+	/* uncracked_hashes_t is modified by bt_create_perfect_hash_table. */
 	for (i = 0; i < *max_uncracked_hashes; i++) {
 		uncracked_hashes[i] = uncracked_hashes_t[2 * i];
 		uncracked_hashes[i + *max_uncracked_hashes] = uncracked_hashes_t[2 * i + 1];
@@ -331,10 +331,10 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 		hash_table_size(i) = hash_table_size;
 		offset_table_size(i) = offset_table_size;
 		hash_tables[i] = (unsigned int *) mem_alloc(2 * sizeof(unsigned int) * hash_table_size);
-		memcpy(hash_tables[i], hash_table_64, 2 * sizeof(unsigned int) * hash_table_size);
+		memcpy(hash_tables[i], bt_hash_table_64, 2 * sizeof(unsigned int) * hash_table_size);
 		buffer_offset_tables[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(OFFSET_TABLE_WORD) * offset_table_size , offset_table, &ret_code);
 		HANDLE_CLERROR(ret_code, "Create buffer_offset_tables failed.\n");
-		buffer_hash_tables[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(unsigned int) * hash_table_size, hash_table_64, &ret_code);
+		buffer_hash_tables[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(unsigned int) * hash_table_size, bt_hash_table_64, &ret_code);
 		HANDLE_CLERROR(ret_code, "Create buffer_hash_tables failed.\n");
 		buffer_bitmaps[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bitmap_size_bits >> 3, bitmaps, &ret_code);
 		HANDLE_CLERROR(ret_code, "Create buffer_bitmaps failed.\n");
@@ -345,7 +345,7 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 	MEM_FREE(uncracked_hashes);
 	MEM_FREE(uncracked_hashes_t);
 	MEM_FREE(offset_table);
-	MEM_FREE(hash_table_64);
+	MEM_FREE(bt_hash_table_64);
 	MEM_FREE(bitmaps);
 }
 

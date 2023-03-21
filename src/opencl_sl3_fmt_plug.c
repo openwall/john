@@ -225,7 +225,7 @@ static void done(void)
 	MEM_FREE(hash_ids);
 	MEM_FREE(bitmaps);
 	MEM_FREE(offset_table);
-	MEM_FREE(hash_table_192);
+	MEM_FREE(bt_hash_table_192);
 }
 
 static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
@@ -328,13 +328,13 @@ static void *get_binary(char *ciphertext) {
 	return (void*)out;
 }
 
-static int get_hash_0(int index) { return hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_0; }
-static int get_hash_1(int index) { return hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_1; }
-static int get_hash_2(int index) { return hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_2; }
-static int get_hash_3(int index) { return hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_3; }
-static int get_hash_4(int index) { return hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_4; }
-static int get_hash_5(int index) { return hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_5; }
-static int get_hash_6(int index) { return hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_6; }
+static int get_hash_0(int index) { return bt_hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_0; }
+static int get_hash_1(int index) { return bt_hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_1; }
+static int get_hash_2(int index) { return bt_hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_2; }
+static int get_hash_3(int index) { return bt_hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_3; }
+static int get_hash_4(int index) { return bt_hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_4; }
+static int get_hash_5(int index) { return bt_hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_5; }
+static int get_hash_6(int index) { return bt_hash_table_192[hash_ids[3 + 3 * index]] & PH_MASK_6; }
 
 static void clear_keys(void)
 {
@@ -426,7 +426,7 @@ static void prepare_table(struct db_main *db) {
 	MEM_FREE(loaded_hashes);
 	MEM_FREE(hash_ids);
 	MEM_FREE(offset_table);
-	MEM_FREE(hash_table_192);
+	MEM_FREE(bt_hash_table_192);
 
 	loaded_hashes = mem_alloc(6 * num_loaded_hashes * sizeof(cl_uint));
 	hash_ids = mem_calloc((3 * num_loaded_hashes + 1), sizeof(cl_uint));
@@ -461,26 +461,30 @@ static void prepare_table(struct db_main *db) {
 		error();
 	}
 
-	num_loaded_hashes = create_perfect_hash_table(192, (void*)loaded_hashes,
+	num_loaded_hashes = bt_create_perfect_hash_table(192, (void*)loaded_hashes,
 				num_loaded_hashes,
 			        &offset_table,
 			        &offset_table_size,
 			        &hash_table_size, 0);
 
 	if (!num_loaded_hashes) {
-		MEM_FREE(hash_table_192);
+		MEM_FREE(bt_hash_table_192);
 		MEM_FREE(offset_table);
 		fprintf(stderr, "Failed to create Hash Table for cracking.\n");
 		error();
 	}
 }
 
-/* Use only for smaller bitmaps < 16MB */
+/* Use only for bitmaps up to 64K (0xffff) */
 static void prepare_bitmap_8(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 {
 	unsigned int i;
 	MEM_FREE(*bitmap_ptr);
 	*bitmap_ptr = (cl_uint*)mem_calloc((bmp_sz >> 2), sizeof(cl_uint));
+
+	if ((bmp_sz - 1) > 0xffff)
+		fprintf(stderr, "Warning, %s() used with too large bitmap (0x%x) %s:%u\n",
+		        __FUNCTION__, (uint)bmp_sz - 1, __FILE__, __LINE__);
 
 	for (i = 0; i < num_loaded_hashes; i++) {
 		unsigned int bmp_idx =
@@ -517,7 +521,6 @@ static void prepare_bitmap_8(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 	}
 }
 
-/* Use only for smaller bitmaps < 16MB */
 static void prepare_bitmap_4(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 {
 	unsigned int i;
@@ -725,7 +728,7 @@ static int cmp_all(void *binary, int count)
 static int cmp_one(void *binary, int index)
 {
 	return (((unsigned int*)binary)[0] ==
-		hash_table_192[hash_ids[3 + 3 * index]]);
+		bt_hash_table_192[hash_ids[3 + 3 * index]]);
 }
 
 static int cmp_exact(char *source, int index)
@@ -930,7 +933,7 @@ static void reset(struct db_main *db)
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_bitmaps, CL_TRUE, 0, (size_t)(bitmap_size_bits >> 3), bitmaps, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_bitmaps.");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_offset_table, CL_TRUE, 0, sizeof(OFFSET_TABLE_WORD) * offset_table_size, offset_table, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_offset_table.");
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_hash_table, CL_TRUE, 0, sizeof(cl_uint) * hash_table_size * 2, bt_hash_table_192, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_hash_table.");
 
 	auto_tune(db, 100);
 }

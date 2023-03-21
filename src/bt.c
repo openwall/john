@@ -51,13 +51,13 @@ static unsigned int binary_size_actual;
 
 static unsigned int num_loaded_hashes;
 
-unsigned int hash_table_size, shift64_ht_sz, shift128_ht_sz;
+unsigned int bt_hash_table_size, shift64_ht_sz, shift128_ht_sz;
 
 static OFFSET_TABLE_WORD *offset_table;
 static unsigned int offset_table_size, shift64_ot_sz, shift128_ot_sz;
 static auxilliary_offset_data *offset_data;
 
-unsigned long long total_memory_in_bytes;
+unsigned long long bt_total_memory_in_bytes;
 
 static unsigned int verbosity;
 
@@ -126,9 +126,9 @@ static unsigned int modulo_op(void * hash, unsigned int N, uint64_t shift64, uin
 	if (hash_type == 64)
 		return  modulo64_31b(*(uint64_t *)hash, N);
 	else if (hash_type == 128)
-		return  modulo128_31b(*(uint128_t *)hash, N, shift64);
+		return  modulo128_31b(*(bt_uint128_t *)hash, N, shift64);
 	else if (hash_type == 192)
-		return  modulo192_31b(*(uint192_t *)hash, N, shift64, shift128);
+		return  modulo192_31b(*(bt_uint192_t *)hash, N, shift64, shift128);
 	else
 		fprintf(stderr, "modulo op error\n");
 	return 0;
@@ -188,7 +188,7 @@ static void init_tables(unsigned int approx_offset_table_sz, unsigned int approx
 	if (verbosity > 1)
 		fprintf(stdout, "\nInitialing Tables...");
 
-	total_memory_in_bytes = 0;
+	bt_total_memory_in_bytes = 0;
 
 	approx_hash_table_sz |= 1;
 	/* Repeat until two sizes are coprimes */
@@ -196,27 +196,27 @@ static void init_tables(unsigned int approx_offset_table_sz, unsigned int approx
 		approx_offset_table_sz++;
 
 	offset_table_size = approx_offset_table_sz;
-	hash_table_size = approx_hash_table_sz;
+	bt_hash_table_size = approx_hash_table_sz;
 
-	if (hash_table_size > 0x7fffffff || offset_table_size > 0x7fffffff)
+	if (bt_hash_table_size > 0x7fffffff || offset_table_size > 0x7fffffff)
 		bt_error("Reduce the number of loaded hashes to < 0x7fffffff.");
 
-	shift64_ht_sz = (((1ULL << 63) % hash_table_size) * 2) % hash_table_size;
+	shift64_ht_sz = (((1ULL << 63) % bt_hash_table_size) * 2) % bt_hash_table_size;
 	shift64_ot_sz = (((1ULL << 63) % offset_table_size) * 2) % offset_table_size;
 
 	shift128 = (uint64_t)shift64_ht_sz * shift64_ht_sz;
-	shift128_ht_sz = shift128 % hash_table_size;
+	shift128_ht_sz = shift128 % bt_hash_table_size;
 
 	shift128 = (uint64_t)shift64_ot_sz * shift64_ot_sz;
 	shift128_ot_sz = shift128 % offset_table_size;
 
 	if (bt_malloc((void **)&offset_table, offset_table_size * sizeof(OFFSET_TABLE_WORD)))
 		bt_error("Failed to allocate memory: offset_table.");
-	total_memory_in_bytes += offset_table_size * sizeof(OFFSET_TABLE_WORD);
+	bt_total_memory_in_bytes += offset_table_size * sizeof(OFFSET_TABLE_WORD);
 
 	if (bt_malloc((void **)&offset_data, offset_table_size * sizeof(auxilliary_offset_data)))
 		bt_error("Failed to allocate memory: offset_data.");
-	total_memory_in_bytes += offset_table_size * sizeof(auxilliary_offset_data);
+	bt_total_memory_in_bytes += offset_table_size * sizeof(auxilliary_offset_data);
 
 	max_collisions = 0;
 #if _OPENMP
@@ -280,7 +280,7 @@ MAYBE_ATOMIC_CAPTURE
 #pragma omp barrier
 #endif
 	}
-	total_memory_in_bytes += num_loaded_hashes * sizeof(unsigned int);
+	bt_total_memory_in_bytes += num_loaded_hashes * sizeof(unsigned int);
 
 	//qsort((void *)offset_data, offset_table_size, sizeof(auxilliary_offset_data), qsort_compare);
 	in_place_bucket_sort(max_collisions);
@@ -300,7 +300,7 @@ MAYBE_ATOMIC_CAPTURE
 			;
 		fprintf(stdout, "Unused Slots in Offset Table:%Lf %%\n", 100.00 * (long double)(offset_table_size - i) / (long double)(offset_table_size));
 
-		fprintf(stdout, "Total Memory Use(in GBs):%Lf\n", ((long double)total_memory_in_bytes) / ((long double) 1024 * 1024 * 1024));
+		fprintf(stdout, "Total Memory Use(in GBs):%Lf\n", ((long double)bt_total_memory_in_bytes) / ((long double) 1024 * 1024 * 1024));
 	}
 }
 
@@ -311,8 +311,8 @@ static unsigned int check_n_insert_into_hash_table(unsigned int offset, auxillia
 	i = 0;
 	while (i < ptr->collisions) {
 		hash_table_idxs[i] = store_hash_modulo_table_sz[i] + offset;
-		if (hash_table_idxs[i] >= hash_table_size)
-			hash_table_idxs[i] -= hash_table_size;
+		if (hash_table_idxs[i] >= bt_hash_table_size)
+			hash_table_idxs[i] -= bt_hash_table_size;
 		if (zero_check_ht(hash_table_idxs[i++]))
 			return 0;
 	}
@@ -335,7 +335,7 @@ static void calc_hash_mdoulo_table_size(unsigned int *store, auxilliary_offset_d
 	unsigned int i = 0;
 
 	while (i < ptr->collisions) {
-		store[i] =  modulo_op(loaded_hashes + (ptr->hash_location_list[i]) * binary_size_actual, hash_table_size, shift64_ht_sz, shift128_ht_sz);
+		store[i] =  modulo_op(loaded_hashes + (ptr->hash_location_list[i]) * binary_size_actual, bt_hash_table_size, shift64_ht_sz, shift128_ht_sz);
 		i++;
 	}
 }
@@ -344,7 +344,7 @@ static unsigned int create_tables()
 {
 	unsigned int i;
 	unsigned int bitmap = ((1ULL << (sizeof(OFFSET_TABLE_WORD) * 8)) - 1) & 0xFFFFFFFF;
-	unsigned int limit = bitmap % hash_table_size + 1;
+	unsigned int limit = bitmap % bt_hash_table_size + 1;
 	unsigned int hash_table_idx;
 	unsigned int *store_hash_modulo_table_sz;
 	unsigned int *hash_table_idxs;
@@ -377,11 +377,11 @@ static unsigned int create_tables()
 
 		calc_hash_mdoulo_table_size(store_hash_modulo_table_sz, &offset_data[i]);
 
-		offset = (OFFSET_TABLE_WORD)(randomMT() & bitmap) % hash_table_size;
+		offset = (OFFSET_TABLE_WORD)(randomMT() & bitmap) % bt_hash_table_size;
 
 #ifdef ENABLE_BACKTRACKING
 		if (backtracking) {
-			offset = (last_offset + 1) % hash_table_size;
+			offset = (last_offset + 1) % bt_hash_table_size;
 			backtracking = 0;
 		}
 #endif
@@ -390,7 +390,7 @@ static unsigned int create_tables()
 		num_iter = 0;
 		while (!check_n_insert_into_hash_table((unsigned int)offset, &offset_data[i], hash_table_idxs, store_hash_modulo_table_sz) && num_iter < limit) {
 			offset++;
-			if (offset >= hash_table_size) offset = 0;
+			if (offset >= bt_hash_table_size) offset = 0;
 			num_iter++;
 		}
 
@@ -454,7 +454,7 @@ static unsigned int create_tables()
 	while (i < offset_table_size && offset_data[i].collisions > 0) {
 		done++;
 
-		while (hash_table_idx < hash_table_size) {
+		while (hash_table_idx < bt_hash_table_size) {
 			if (!zero_check_ht(hash_table_idx)) {
 				assign_ht(hash_table_idx, offset_data[i].hash_location_list[0]);
 				break;
@@ -536,7 +536,7 @@ static unsigned int next_prime(unsigned int num)
 	return 1;
 }
 
-unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
+unsigned int bt_create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
                                        unsigned int num_ld_hashes,
                                        OFFSET_TABLE_WORD **offset_table_ptr,
                                        unsigned int *offset_table_sz_ptr,
@@ -546,7 +546,7 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 	long double multiplier_ht, multiplier_ot, inc_ht, inc_ot;
 	unsigned int approx_hash_table_sz, approx_offset_table_sz, i, dupe_remove_ht_sz;
 
-	total_memory_in_bytes = 0;
+	bt_total_memory_in_bytes = 0;
 
 	hash_type = htype;
 	loaded_hashes = loaded_hashes_ptr;
@@ -561,7 +561,7 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 		allocate_ht = allocate_ht_64;
 		test_tables = test_tables_64;
 		remove_duplicates = remove_duplicates_64;
-		loaded_hashes_64 = (uint64_t *)loaded_hashes;
+		bt_loaded_hashes_64 = (uint64_t *)loaded_hashes;
 		binary_size_actual = 8;
 		if (verbosity > 1)
 			fprintf(stdout, "Using Hash type 64.\n");
@@ -576,7 +576,7 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 		allocate_ht = allocate_ht_128;
 		test_tables = test_tables_128;
 		remove_duplicates = remove_duplicates_128;
-		loaded_hashes_128 = (uint128_t *)loaded_hashes;
+		bt_loaded_hashes_128 = (bt_uint128_t *)loaded_hashes;
 		binary_size_actual = 16;
 		if (verbosity > 1)
 			fprintf(stdout, "Using Hash type 128.\n");
@@ -591,7 +591,7 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 		allocate_ht = allocate_ht_192;
 		test_tables = test_tables_192;
 		remove_duplicates = remove_duplicates_192;
-		loaded_hashes_192 = (uint192_t *)loaded_hashes;
+		bt_loaded_hashes_192 = (bt_uint192_t *)loaded_hashes;
 		binary_size_actual = 24;
 		if (verbosity > 1)
 			fprintf(stdout, "Using Hash type 192.\n");
@@ -675,11 +675,11 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 		bt_free((void **)&offset_data);
 		bt_free((void **)&offset_table);
 		if (hash_type == 64)
-			bt_free((void **)&hash_table_64);
+			bt_free((void **)&bt_hash_table_64);
 		else if (hash_type == 128)
-			bt_free((void **)&hash_table_128);
+			bt_free((void **)&bt_hash_table_128);
 		else if (hash_type == 192)
-			bt_free((void **)&hash_table_192);
+			bt_free((void **)&bt_hash_table_192);
 
 		temp = next_prime(approx_offset_table_sz % 10);
 		approx_offset_table_sz /= 10;
@@ -701,7 +701,7 @@ unsigned int create_perfect_hash_table(int htype, void *loaded_hashes_ptr,
 	bt_free((void **)&offset_data);
 
 	*offset_table_ptr = offset_table;
-	*hash_table_sz_ptr = hash_table_size;
+	*hash_table_sz_ptr = bt_hash_table_size;
 	*offset_table_sz_ptr = offset_table_size;
 
 	if (!test_tables(num_loaded_hashes, offset_table, offset_table_size, shift64_ot_sz, shift128_ot_sz, verbosity))
