@@ -61,6 +61,8 @@
 
 inline int nt_crypt(uint *hash, uint *nt_buffer, uint md4_size, BITMAPS_TYPE uint *bitmaps)
 {
+	MD4_G_VARS
+
 	/* Round 1 */
 	hash[0] = 0xFFFFFFFF + nt_buffer[0] ; hash[0] = rotate(hash[0], 3u);
 	hash[3] = INIT_D + (INIT_C ^ (hash[0] & 0x77777777)) + nt_buffer[1] ; hash[3] = rotate(hash[3], 7u );
@@ -86,6 +88,8 @@ inline int nt_crypt(uint *hash, uint *nt_buffer, uint md4_size, BITMAPS_TYPE uin
 	hash[2] += MD4_F(hash[3], hash[0], hash[1]) + md4_size      ; hash[2] = rotate(hash[2], 11u);
 	hash[1] += MD4_F(hash[2], hash[3], hash[0])                 ; hash[1] = rotate(hash[1], 19u);
 #endif
+
+	MD4_G_CACHE_NT
 
 	/* Round 2 */
 	hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[0]  + SQRT_2; hash[0] = rotate(hash[0], 3u );
@@ -202,6 +206,8 @@ inline int nt_crypt(uint *hash, uint *nt_buffer, uint md4_size, BITMAPS_TYPE uin
 		hash[3] += MD4_F(hash[0], hash[1], hash[2]) + nt_buffer[13] ; hash[3] = rotate(hash[3], 7u );
 		hash[2] += MD4_F(hash[3], hash[0], hash[1]) + nt_buffer[14] ; hash[2] = rotate(hash[2], 11u);
 		hash[1] += MD4_F(hash[2], hash[3], hash[0]) + nt_buffer[15] ; hash[1] = rotate(hash[1], 19u);
+
+		MD4_G_CACHE_NT
 
 		/* Round 2 */
 		hash[0] += MD4_G(hash[1], hash[2], hash[3]) + nt_buffer[0]  + SQRT_2; hash[0] = rotate(hash[0], 3u );

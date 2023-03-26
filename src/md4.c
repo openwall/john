@@ -33,7 +33,13 @@
  * optimization for F borrowed from Colin Plumb's MD5 implementation.
  */
 #define F(x, y, z)			((z) ^ ((x) & ((y) ^ (z))))
+#if 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define G(x, y, z)			(y ^ ((x ^ y) & (y ^ z)))
+#elif 0
+#define G(x, y, z)			((x & y) ^ (x & z) ^ (y & z))
+#else
 #define G(x, y, z)			(((x) & ((y) | (z))) | ((y) & (z)))
+#endif
 #define H(x, y, z)			(((x) ^ (y)) ^ (z))
 #define H2(x, y, z)			((x) ^ ((y) ^ (z)))
 

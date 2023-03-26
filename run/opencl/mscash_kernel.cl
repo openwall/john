@@ -26,6 +26,7 @@ inline void md4_crypt_a(uint *hash, uint *nt_buffer)
 	unsigned int b = INIT_B;
 	unsigned int c = INIT_C;
 	unsigned int d = INIT_D;
+	MD4_G_VARS
 
 	/* Round 1 */
 	a += MD4_F(b, c, d) + nt_buffer[0];
@@ -65,6 +66,7 @@ inline void md4_crypt_a(uint *hash, uint *nt_buffer)
 	b = rotate(b, 19U);
 
 	/* Round 2 */
+	MD4_G_CACHE
 	a += MD4_G(b, c, d) + nt_buffer[0] + SQRT_2;
 	a = rotate(a, 3U);
 	d += MD4_G(a, b, c) + nt_buffer[4] + SQRT_2;
@@ -150,6 +152,7 @@ inline void md4_crypt_b(uint *hash, constant uint *salt)
 	unsigned int b = INIT_B;
 	unsigned int c = INIT_C;
 	unsigned int d = INIT_D;
+	MD4_G_VARS
 
 	/* Round 1 */
 	a += MD4_F(b, c, d) + hash[0];
@@ -189,6 +192,7 @@ inline void md4_crypt_b(uint *hash, constant uint *salt)
 	b = rotate(b, 19U);
 
 	/* Round 2 */
+	MD4_G_CACHE
 	a += MD4_G(b, c, d) + hash[0] + SQRT_2;
 	a = rotate(a, 3U);
 	d += MD4_G(a, b, c) + salt[0] + SQRT_2;

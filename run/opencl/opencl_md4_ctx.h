@@ -21,7 +21,7 @@ typedef struct {
 
 inline void _md4_process(MD4_CTX *ctx, const uchar data[64])
 {
-	uint W[16], A, B, C, D;
+	uint W[16], A, B, C, D MD4_G_VARS;
 
 #if ALLOW_ALIASING_VIOLATIONS
 	if (!((size_t)data & 0x03)) {
