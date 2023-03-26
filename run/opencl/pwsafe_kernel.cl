@@ -7,7 +7,10 @@
 #include "opencl_device_info.h"
 #include "opencl_misc.h"
 
-#if USE_BITSELECT
+#if HAVE_LUT3
+#define Ch(x, y, z) lut3(x, y, z, 0xca)
+#define Maj(x, y, z) lut3(x, y, z, 0xe8)
+#elif USE_BITSELECT
 #define Ch(x,y,z) bitselect(z, y, x)
 #define Maj(x, y, z) bitselect(x, y, z ^ x)
 #else
@@ -16,7 +19,13 @@
 #else
 #define Ch(x, y, z) (z ^ (x & (y ^ z)))
 #endif
+#if 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define Maj(x, y, z) (y ^ ((x ^ y) & (y ^ z)))
+#elif 0
+#define Maj(x, y, z) ((x & y) ^ (x & z) ^ (y & z))
+#else
 #define Maj(x, y, z) ((x & y) | (z & (x | y)))
+#endif
 #endif
 
 #define ror(x,n) rotate(x, 32U-n)

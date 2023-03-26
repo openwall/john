@@ -64,6 +64,10 @@
 #define F3(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define F3(x, y, z) bitselect(x, y, (z) ^ (x))
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define F3(x, y, z) (y ^ ((x ^ y) & (y ^ z)))
+#elif 0
+#define F3(x, y, z) ((x & y) ^ (x & z) ^ (y & z))
 #else
 #define F3(x, y, z) ((x & y) | (z & (x | y)))
 #endif

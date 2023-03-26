@@ -39,8 +39,21 @@
 #define Maj(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define Maj(x, y, z) bitselect(x, y, z ^ x)
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define Maj(x, y, z) (y ^ ((x ^ y) & (y ^ z)))
+#elif 0 /* Explicit caching/reuse of common subexpression between rounds */
+#define Maj(x, y, z) (y ^ ((x_xor_y = x ^ y) & y_xor_z))
+#define CACHEXY uint x_xor_y, y_xor_z = S[(65 - i) % 8] ^ S[(66 - i) % 8];
+#define CACHEYZ y_xor_z = x_xor_y;
+#elif 0
+#define Maj(x, y, z) ((x & y) ^ (x & z) ^ (y & z))
 #else
 #define Maj(x, y, z) ((x & y) | (z & (x | y)))
+#endif
+
+#ifndef CACHEXY
+#define CACHEXY
+#define CACHEYZ
 #endif
 
 #define ror(x, n)	rotate(x, 32U-(n))
@@ -374,6 +387,10 @@ __constant uint k[] = {
  ***************************************************************************
  */
 
+/*
+ * These macros are the same as for SHA-256 but we might end up with
+ * different ones being most effective as current GPU's aren't native 64-bit.
+ */
 #undef Maj
 #undef Ch
 
@@ -391,8 +408,21 @@ __constant uint k[] = {
 #define Maj(x, y, z) lut3_64(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define Maj(x, y, z) bitselect(x, y, z ^ x)
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define Maj(x, y, z) (y ^ ((x ^ y) & (y ^ z)))
+#elif 0 /* Explicit caching/reuse of common subexpression between rounds */
+#define Maj(x, y, z) (y ^ ((x_xor_y = x ^ y) & y_xor_z))
+#define CACHEXY uint x_xor_y, y_xor_z = S[(65 - i) % 8] ^ S[(66 - i) % 8];
+#define CACHEYZ y_xor_z = x_xor_y;
+#elif 0
+#define Maj(x, y, z) ((x & y) ^ (x & z) ^ (y & z))
 #else
 #define Maj(x, y, z) ((x & y) | (z & (x | y)))
+#endif
+
+#ifndef CACHEXY
+#define CACHEXY
+#define CACHEYZ
 #endif
 
 __constant ulong K[] = {

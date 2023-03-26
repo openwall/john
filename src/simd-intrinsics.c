@@ -713,12 +713,16 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 #define MD4_G(x,y,z)                            \
     tmp[i] = vxor((y[i]), (z[i]));              \
     tmp[i] = vcmov((x[i]), (z[i]), (tmp[i]));
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define MD4_G(x,y,z)                            \
+    tmp[i] = vxor((y[i]), vand(vxor((x[i]), (y[i])), vxor((y[i]), z[i])));
 #else
 #define MD4_G(x,y,z)                            \
     tmp[i] = vor((y[i]),(z[i]));                \
     tmp2[i] = vand((y[i]),(z[i]));              \
     tmp[i] = vand((tmp[i]),(x[i]));             \
     tmp[i] = vor((tmp[i]), (tmp2[i]) );
+#define MD4_TMP2_NEEDED	1
 #endif
 
 #ifdef vternarylogic
@@ -734,6 +738,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 
 #define MD4_H2(x,y,z)                           \
     tmp[i] = vxor((x[i]), tmp2[i]);
+#define MD4_TMP2_NEEDED	1
 #else
 #define MD4_H(x,y,z)                            \
     tmp[i] = vxor((x[i]),(y[i]));               \
@@ -773,7 +778,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 	vtype c[SIMD_PARA_MD4];
 	vtype d[SIMD_PARA_MD4];
 	vtype tmp[SIMD_PARA_MD4];
-#if (SIMD_PARA_MD4 < 3 || VCMOV_EMULATED) && !defined(vternarylogic)
+#if MD4_TMP2_NEEDED
 	vtype tmp2[SIMD_PARA_MD4];
 #endif
 	vtype cst;
@@ -1079,6 +1084,9 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 #define SHA1_H(x,y,z)                           \
     tmp[i] = vxor((z[i]), (y[i]));              \
     tmp[i] = vcmov((x[i]), (y[i]), tmp[i]);
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define SHA1_H(x,y,z)                           \
+    tmp[i] = vxor((y[i]), vand(vxor((x[i]), (y[i])), vxor((y[i]), z[i])));
 #else
 #define SHA1_H(x,y,z)                                       \
     tmp[i] = vand((x[i]),(y[i]));                           \
@@ -1707,6 +1715,8 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 #define Maj(x,y,z) vternarylogic(x, y, z, 0xE8)
 #elif !VCMOV_EMULATED
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define Maj(x,y,z) vxor(y, vand(vxor(x, y), vxor(y, z)))
 #else
 #define Maj(x,y,z) vor(vand(x, y), vand(vor(x, y), z))
 #endif
@@ -2251,16 +2261,6 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
     )                                           \
 )
 #endif
-
-#ifdef vternarylogic
-#define Maj(x,y,z) vternarylogic(x, y, z, 0xE8)
-#elif !VCMOV_EMULATED
-#define Maj(x,y,z) vcmov(x, y, vxor(z, y))
-#else
-#define Maj(x,y,z) vor(vand(x, y), vand(vor(x, y), z))
-#endif
-
-#define Ch(x,y,z) vcmov(y, z, x)
 
 #define SHA512_PARA_DO(x) for (x = 0; x < SIMD_PARA_SHA512; ++x)
 
