@@ -7,7 +7,7 @@
  * IMEI is 14 or 15 digits 0-9 (only 14 are used)
  * hash is hex lowercase (0-9, a-f)
  *
- * Copyright (c) 2017 magnum.
+ * Copyright (c) 2017-2023 magnum.
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
@@ -670,9 +670,8 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		prepare_bitmap_8(bitmap_size_bits, &bitmaps);
 
 	sprintf(kernel_params,
-		"-D SELECT_CMP_STEPS=%u"
-		" -D BITMAP_SIZE_BITS_LESS_ONE="LLu" -D USE_LOCAL_BITMAPS=%u",
-		cmp_steps, (unsigned long long)bitmap_size_bits - 1, use_local);
+		"-D SELECT_CMP_STEPS=%u -D BITMAP_MASK=0x%xU -D USE_LOCAL_BITMAPS=%u",
+		cmp_steps, (uint32_t)bitmap_size_bits - 1, use_local);
 
 	bitmap_size_bits *= cmp_steps;
 

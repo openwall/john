@@ -186,17 +186,6 @@ __kernel void krb5tgs_init(__global const uchar *password,
 #define GPU_LOC_3 LOC_3
 #endif
 
-#if USE_LOCAL_BITMAPS
-	uint lid = get_local_id(0);
-	uint lws = get_local_size(0);
-	uint __local s_bitmaps[(BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS];
-
-	for (uint i = 0; i < (((BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS) / lws); i++)
-		s_bitmaps[i*lws + lid] = bitmaps[i*lws + lid];
-
-	barrier(CLK_LOCAL_MEM_FENCE);
-#endif
-
 	/* Prepare base word */
 	prepare_utf16(password, index, &nt_buffer);
 

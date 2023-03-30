@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2016, magnum
+ * Copyright (c) 2012-2023, magnum
  * and Copyright (c) 2015, Sayantan Datta <sdatta@openwall.com>
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
@@ -707,9 +707,8 @@ static char* select_bitmap(unsigned int num_ld_hashes)
 		prepare_bitmap_8(bitmap_size_bits, &bitmaps);
 
 	sprintf(kernel_params,
-		"-DSELECT_CMP_STEPS=%u"
-		" -DBITMAP_SIZE_BITS_LESS_ONE="LLu" -DUSE_LOCAL_BITMAPS=%u",
-		cmp_steps, (unsigned long long)bitmap_size_bits - 1, use_local);
+	        "-DSELECT_CMP_STEPS=%u -DBITMAP_MASK=0x%xU -DUSE_LOCAL_BITMAPS=%u",
+	        cmp_steps, (uint32_t)(bitmap_size_bits - 1), use_local);
 
 	bitmap_size_bits *= cmp_steps;
 

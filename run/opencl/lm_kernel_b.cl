@@ -1,5 +1,6 @@
 /*
- * This software is Copyright (c) 2015 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2015 Sayantan Datta <std2048 at gmail dot com>,
+ * Copyright (c) 2021-2023 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -181,8 +182,8 @@ __kernel void lm_bs_b(__global opencl_lm_transfer *lm_raw_keys,
 #if USE_LOCAL_MEM
 		__local ushort s_key_idx[768];
 		unsigned int lws= get_local_size(0);
-		for (i = 0; i < 768; i += lws)
-			s_key_idx[(lid + i) % 768] = lm_key_idx[(lid + i) % 768];
+		for (i = lid; i < 768; i += lws)
+			s_key_idx[i] = lm_key_idx[i];
 #endif
 #if USE_LOCAL_MEM || WORK_GROUP_SIZE
 		barrier(CLK_LOCAL_MEM_FENCE);
