@@ -68,11 +68,8 @@ typedef unsigned WORD vtype;
 	lm_clear_block_8(48); 			\
 	lm_clear_block_8(56);
 
-#if BITMAP_SIZE_BITS_LESS_ONE < 0xffffffff
-#define BITMAP_SIZE_BITS (BITMAP_SIZE_BITS_LESS_ONE + 1)
-#else
-/*undefined, cause error.*/
-#endif
+/* This handles an input of 0xffffffffU correctly */
+#define BITMAP_SHIFT ((BITMAP_MASK >> 5) + 1)
 
 #define GET_HASH_0(hash, x, k, bits)			\
 	for (bit = bits; bit < k; bit++)		\
@@ -134,14 +131,14 @@ inline void cmp( unsigned lm_vector *B,
 	value[1] = 0;
 	GET_HASH_0(value[0], i, REQ_BITMAP_BITS, 0);
 	GET_HASH_1(value[1], i, REQ_BITMAP_BITS, 0);
-	bitmap_index = value[1] & (BITMAP_SIZE_BITS - 1);
+	bitmap_index = value[1] & BITMAP_MASK;
 	bit = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = value[0] & (BITMAP_SIZE_BITS - 1);
-	bit &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = value[0] & BITMAP_MASK;
+	bit &= (bitmaps[BITMAP_SHIFT + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
 #else
 	value[1] = 0;
 	GET_HASH_1(value[1], i, REQ_BITMAP_BITS, 0);
-	bitmap_index = value[1] & BITMAP_SIZE_BITS_LESS_ONE;
+	bitmap_index = value[1] & BITMAP_MASK;
 	bit = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 #endif
 	if (bit)

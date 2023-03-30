@@ -143,7 +143,7 @@ __kernel void DES_bs_25( constant uint *key_map
 		int lid = get_local_id(0);
 		int s_key_offset = 56 * lid;
 		for (i = 0; i < 56; i++)
-			s_des_bs_key[lid * 56 + i] = des_bs_key[section + i * gws];
+			s_des_bs_key[s_key_offset + i] = des_bs_key[section + i * gws];
 
 		barrier(CLK_LOCAL_MEM_FENCE);
 #endif

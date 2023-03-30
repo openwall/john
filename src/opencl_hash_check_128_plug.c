@@ -164,6 +164,26 @@ static void prepare_bitmap_1(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 	}
 }
 
+/*
+ * For example, 32 KB memory can be (up to):
+ * - a bitmap of  32K x 8 steps, effective mask (for single hash) 144 bits.
+ * - a bitmap of  64K x 4 steps, effective mask 72 bits.
+ * - a bitmap of 128K x 2 steps, effective mask 36 bits.
+ * - a bitmap of 256K, mask 0x3ffff (18 bits).
+ *
+ * Our limits are:
+ * - 32..64K x 8 steps, up to 16 (128) bits mask in 32 bytes.. 512 KB
+ * - 32.. 4G x 4 steps, up to 32 (128) bits mask in 16 bytes..   2 GB
+ * - 32.. 4G x 2 steps, up to 32  (64) bits mask in  8 bytes..   1 GB
+ * - 32.. 4G single,    up to 32       bits mask in  4 bytes.. 512 MB
+ *
+ * 8-step bitmask population limit starts at 32K (2**128 / 32K**8  == 256)
+ * 4-step bitmask population limit starts at 1G  (2**128 / 1G**4   == 256)
+ * 2-step bitmask population limit starts at 256M (2**64 / 256M**2 == 256)
+ * 1-step bitmask population limit starts at 16M  (2**32 / 16M     == 256)
+ *
+ * Performance is still surprisingly good at 4x or even 8x those limits.
+ */
 char* ocl_hc_128_select_bitmap(unsigned int num_ld_hashes)
 {
 	static char kernel_params[200];
@@ -284,9 +304,8 @@ char* ocl_hc_128_select_bitmap(unsigned int num_ld_hashes)
 		use_local = 0;
 
 	sprintf(kernel_params,
-		"-D SELECT_CMP_STEPS=%u"
-		" -D BITMAP_SIZE_BITS_LESS_ONE=0x"LLx" -D USE_LOCAL_BITMAPS=%u",
-		cmp_steps, (unsigned long long)bitmap_size_bits - 1, use_local);
+	        "-D SELECT_CMP_STEPS=%u -D BITMAP_MASK=0x%xU -D USE_LOCAL_BITMAPS=%u",
+	        cmp_steps, (uint32_t)(bitmap_size_bits - 1), use_local);
 
 	bitmap_size_bits *= cmp_steps;
 

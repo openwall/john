@@ -3,7 +3,7 @@
  * http://openwall.info/wiki/people/solar/software/public-domain-source-code/md5
  *
  * This software is Copyright (c) 2010, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012, magnum
+ * and Copyright (c) 2012-2023, magnum
  * and Copyright (c) 2015, Sayantan Datta <std2048@gmail.com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
@@ -59,11 +59,8 @@
 	    (a) = rotate((a), (uint)(s)); \
 	    (a) += (b)
 
-#if BITMAP_SIZE_BITS_LESS_ONE < 0xffffffff
-#define BITMAP_SIZE_BITS (BITMAP_SIZE_BITS_LESS_ONE + 1)
-#else
-/*undefined, cause error.*/
-#endif
+/* This handles an input of 0xffffffffU correctly */
+#define BITMAP_SHIFT ((BITMAP_MASK >> 5) + 1)
 
 inline void md5_encrypt(uint *hash, uint *W, uint len)
 {
@@ -213,38 +210,38 @@ inline void cmp(uint gid,
 	hash[3] += 0x10325476;
 
 #if SELECT_CMP_STEPS > 4
-	bitmap_index = hash[0] & (BITMAP_SIZE_BITS - 1);
+	bitmap_index = hash[0] & BITMAP_MASK;
 	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[0] >> 16) & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[1] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 4) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[1] >> 16) & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 3) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[2] >> 16) & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 5 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[3] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 6 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = (hash[3] >> 16) & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 7 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = (hash[0] >> 16) & BITMAP_MASK;
+	tmp &= (bitmaps[BITMAP_SHIFT + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[1] & BITMAP_MASK;
+	tmp &= (bitmaps[BITMAP_SHIFT * 2 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = (hash[1] >> 16) & BITMAP_MASK;
+	tmp &= (bitmaps[BITMAP_SHIFT * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[2] & BITMAP_MASK;
+	tmp &= (bitmaps[BITMAP_SHIFT * 4 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = (hash[2] >> 16) & BITMAP_MASK;
+	tmp &= (bitmaps[BITMAP_SHIFT * 5 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[3] & BITMAP_MASK;
+	tmp &= (bitmaps[BITMAP_SHIFT * 6 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = (hash[3] >> 16) & BITMAP_MASK;
+	tmp &= (bitmaps[BITMAP_SHIFT * 7 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
 #elif SELECT_CMP_STEPS > 2
-	bitmap_index = hash[3] & (BITMAP_SIZE_BITS - 1);
+	bitmap_index = hash[3] & BITMAP_MASK;
 	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[1] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 4) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[0] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[2] & BITMAP_MASK;
+	tmp &= (bitmaps[BITMAP_SHIFT + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[1] & BITMAP_MASK;
+	tmp &= (bitmaps[BITMAP_SHIFT * 2 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[0] & BITMAP_MASK;
+	tmp &= (bitmaps[BITMAP_SHIFT * 3 + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
 #elif SELECT_CMP_STEPS > 1
-	bitmap_index = hash[3] & (BITMAP_SIZE_BITS - 1);
+	bitmap_index = hash[3] & BITMAP_MASK;
 	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = hash[2] & (BITMAP_SIZE_BITS - 1);
-	tmp &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = hash[2] & BITMAP_MASK;
+	tmp &= (bitmaps[BITMAP_SHIFT + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
 #else
-	bitmap_index = hash[3] & BITMAP_SIZE_BITS_LESS_ONE;
+	bitmap_index = hash[3] & BITMAP_MASK;
 	tmp &= (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 #endif
 
@@ -319,10 +316,10 @@ __kernel void md5(__global uint *keys,
 #if USE_LOCAL_BITMAPS
 	uint lid = get_local_id(0);
 	uint lws = get_local_size(0);
-	uint __local s_bitmaps[(BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS];
+	__local uint s_bitmaps[BITMAP_SHIFT * SELECT_CMP_STEPS];
 
-	for (i = 0; i < (((BITMAP_SIZE_BITS >> 5) * SELECT_CMP_STEPS) / lws); i++)
-		s_bitmaps[i*lws + lid] = bitmaps[i*lws + lid];
+	for (i = lid; i < BITMAP_SHIFT * SELECT_CMP_STEPS; i+= lws)
+		s_bitmaps[i] = bitmaps[i];
 
 	barrier(CLK_LOCAL_MEM_FENCE);
 #endif

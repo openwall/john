@@ -1,5 +1,6 @@
 /*
- * This software is Copyright (c) 2015 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2015 Sayantan Datta <std2048 at gmail dot com>,
+ * Copyright (c) 2015-2023 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
@@ -1066,9 +1067,8 @@ static char* select_bitmap(unsigned int num_ld_hashes, int *loaded_hashes, unsig
 	get_num_bits(bits_req, (*bitmap_size_bits));
 
 	sprintf(kernel_params,
-		"-D SELECT_CMP_STEPS=%u"
-		" -D BITMAP_SIZE_BITS_LESS_ONE="LLu" -D REQ_BITMAP_BITS=%u",
-		cmp_steps, (unsigned long long)(*bitmap_size_bits) - 1, bits_req);
+	        "-D SELECT_CMP_STEPS=%u -D BITMAP_MASK=0x%xU -D REQ_BITMAP_BITS=%u",
+	        cmp_steps, (uint32_t)((*bitmap_size_bits) - 1), bits_req);
 
 	*bitmap_size_bits *= cmp_steps;
 
