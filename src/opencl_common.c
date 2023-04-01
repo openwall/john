@@ -1589,19 +1589,23 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 			fprintf(stderr, " [%lu, %lu, %lu, %u, %d]", startTime, endTime,
 			        submitTime, rounds, hash_loops);
 
+		/* Work around OSX bug with HD4000 driver */
+		if (endTime == 0)
+			endTime = startTime;
+
 		/*
 		 * Work around driver bugs. Problems seen with old AMD and Apple M1.
 		 * If startTime looks b0rken we use submitTime instead
+		 *
+		 * If the difference of submitTime and startTime is greater than 5s,
+		 * submitTime is b0rken
 		 */
-		if (i == main_opencl_event && (endTime - submitTime) > 10 * (endTime - startTime)) {
+		if (i == main_opencl_event && (startTime - submitTime < 5000000000ULL) &&
+		   (endTime - submitTime) > 10 * (endTime - startTime)) {
 			prof_bug = 1;
 
 			startTime = submitTime;
 		}
-
-		/* Work around OSX bug with HD4000 driver */
-		if (endTime == 0)
-			endTime = startTime;
 
 		if ((split_events) && (i == split_events[0] ||
 		                       i == split_events[1] || i == split_events[2])) {
