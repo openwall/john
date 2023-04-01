@@ -1585,6 +1585,10 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 		                                       NULL),
 		               "clGetEventProfilingInfo end");
 
+		if (i == main_opencl_event && options.verbosity > VERB_MAX)
+			fprintf(stderr, " [%lu, %lu, %lu, %u, %d]", startTime, endTime,
+			        submitTime, rounds, hash_loops);
+
 		/*
 		 * Work around driver bugs. Problems seen with old AMD and Apple M1.
 		 * If startTime looks b0rken we use submitTime instead
