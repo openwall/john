@@ -158,10 +158,10 @@ static void listconf_list_build_info(void)
 #if CPU_REQ
 	printf("CPU tests: %s\n", CPU_req_name);
 #endif
-#if CPU_FALLBACK
+#if CPU_FALLBACK || defined(CPU_FALLBACK_BINARY)
 	puts("CPU fallback binary: " CPU_FALLBACK_BINARY);
 #endif
-#if OMP_FALLBACK
+#if OMP_FALLBACK || defined(OMP_FALLBACK_BINARY)
 	puts("OMP fallback binary: " OMP_FALLBACK_BINARY);
 #endif
 	printf("$JOHN is %s\n", path_expand("$JOHN/"));

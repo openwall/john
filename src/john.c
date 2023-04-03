@@ -354,7 +354,7 @@ static void john_omp_init(void)
 		john_omp_threads_orig = john_omp_threads_new;
 }
 
-#if OMP_FALLBACK
+#if OMP_FALLBACK || defined(OMP_FALLBACK_BINARY)
 #if defined(__DJGPP__)
 #error OMP_FALLBACK is incompatible with the current DOS code
 #endif
@@ -1442,7 +1442,7 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 	if (!getenv("CPUID_DISABLE"))
 	if (!CPU_detect()) {
 #if CPU_REQ
-#if CPU_FALLBACK
+#if CPU_FALLBACK || defined(CPU_FALLBACK_BINARY)
 #if defined(__DJGPP__)
 #error CPU_FALLBACK is incompatible with the current DOS code
 #endif
@@ -2016,7 +2016,7 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#if CPU_FALLBACK || OMP_FALLBACK
+#if CPU_FALLBACK || OMP_FALLBACK || defined(CPU_FALLBACK_BINARY) || defined(OMP_FALLBACK_BINARY)
 	/* Needed before CPU fallback */
 	path_init(argv);
 #endif
@@ -2061,7 +2061,7 @@ int main(int argc, char **argv)
 		return base64conv(argc, argv);
 	}
 
-#if !(CPU_FALLBACK || OMP_FALLBACK)
+#if !(CPU_FALLBACK || OMP_FALLBACK || defined(CPU_FALLBACK_BINARY) || defined(OMP_FALLBACK_BINARY))
 	path_init(argv);
 #endif
 
