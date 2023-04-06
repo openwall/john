@@ -312,24 +312,22 @@ char* ocl_hc_64_select_bitmap(unsigned int num_ld_hashes)
 		uint128_t step_mask = pow128i(num_ld_hashes, cmp_steps);
 		uint128_t expected_fp = pow128i(bitmap_size_bits, cmp_steps) / step_mask;
 		uint32_t bits = expected_fp ? log2_128(expected_fp) : 64;
+		uint128_t mask = ((uint128_t)1 << bits) - 1;
 
 #define print_stats	  \
 			"%u hashes: bitmap %ux%"PRIu64" bits, mask 0x%x, effectively %s%u%s bits (0x%.x%"PRIx64"), %sB%s", \
 				(uint32_t)num_ld_hashes, cmp_steps, bitmap_size_bits, (uint32_t)(bitmap_size_bits - 1), \
 				(expected_fp & (expected_fp - 1)) ? "~" : "", bits, expected_fp ? "" : "+", \
-				bits ? (uint32_t)((expected_fp - 1ULL) >> 64ULL) : 0, bits ? (uint64_t)(expected_fp - 1) : 0, \
+				bits ? (uint32_t)(mask >> 64ULL) : 0, bits ? (uint64_t)mask : 0, \
 				human_prefix((bitmap_size_bits >> 3) * cmp_steps), use_local ? " (local)": ""
 
-		if (options.verbosity > VERB_DEFAULT) {
+		if (options.verbosity >= VERB_DEBUG) {
 			if (bits > 33)
 				fprintf(stderr, "Expecting \"no\" false positives\n");
 			else if (bits == 0)
 				fprintf(stderr, "Expecting all false positives\n");
 			else
 				fprintf(stderr, "Expecting 1/%"PRIu64" false positives\n", (uint64_t)expected_fp);
-
-			if (expected_fp & (expected_fp - 1))
-				expected_fp = (uint128_t)1 << bits;
 
 			fprintf(stderr, print_stats);
 			fputc('\n', stderr);
