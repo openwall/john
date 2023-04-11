@@ -509,6 +509,13 @@ next_file_header:
 		if (gecos_len + strlen((char*)file_name) < LINE_BUFFER_SIZE)
 			gecos_len += snprintf(&gecos[gecos_len], LINE_BUFFER_SIZE - gecos_len - 1, "%s ", (char*)file_name);
 
+		/* try to detect if the file is >= RAR 3
+		   - best try: LHD_SALT is not set and UnpVer <= 20
+		*/
+		if (file_hdr_block[24] <= 20 && !(file_hdr_head_flags & 0x400)) {
+			fprintf(stderr, "Probably this file was NOT created using RAR 3 or higher, bailing out.\n");
+			goto BailOut;
+		}
 		/* salt processing */
 		if (file_hdr_head_flags & 0x400) {
 			ext_time_size -= 8;
