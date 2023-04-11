@@ -562,6 +562,11 @@ next_file_header:
 			fprintf(stderr, "! not encrypted, skipping\n");
 			jtr_fseek64(fp, file_hdr_pack_size, SEEK_CUR);
 			goto next_file_header;
+		} else if (file_hdr_block[24] < 29) {
+			fprintf(stderr, "! %s: Too old RAR file version (v%u.%u encryption), not supported.\n",
+			        archive_name, file_hdr_block[24] / 10, file_hdr_block[24] % 10);
+			jtr_fseek64(fp, file_hdr_pack_size, SEEK_CUR);
+			goto next_file_header;
 		}
 
 		method = file_hdr_block[25];
