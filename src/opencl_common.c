@@ -1586,8 +1586,8 @@ static cl_ulong gws_test(size_t gws, unsigned int rounds, int sequential_id)
 		               "clGetEventProfilingInfo end");
 
 		if (i == main_opencl_event && options.verbosity > VERB_MAX)
-			fprintf(stderr, " [%lu, %lu, %lu, %u, %d]", startTime, endTime,
-			        submitTime, rounds, hash_loops);
+			fprintf(stderr, " [%lu, %lu, %lu, %u, %d]", (unsigned long)startTime,
+			        (unsigned long)endTime, (unsigned long)submitTime, rounds, hash_loops);
 
 		/* Work around OSX bug with HD4000 driver */
 		if (endTime == 0)
