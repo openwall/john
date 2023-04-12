@@ -5,7 +5,7 @@
  * ==========================(LICENSE BEGIN)============================
  *
  * Copyright (c) 2007-2010  Projet RNRT SAPHIR
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -13,10 +13,10 @@
  * distribute, sublicense, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be
  * included in all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
@@ -29,6 +29,8 @@
  *
  * @author   Thomas Pornin <thomas.pornin@cryptolog.com>
  */
+
+#include "sha.h"
 
 #if !HAVE_LIBCRYPTO
 
@@ -384,3 +386,32 @@ sph_sha1_comp(const sph_u32 msg[16], sph_u32 val[5])
 #endif /* dead code */
 
 #endif /* HAVE_LIBCRYPTO */
+
+#undef INIT_D
+#undef INIT_E
+#define INIT_D 0x10325476
+#define INIT_E 0xC3D2E1F0
+
+void sha1_reverse(uint32_t *hash)
+{
+	hash[4] -= INIT_E;
+	hash[4]  = (hash[4] << 2) | (hash[4] >> 30);
+}
+
+void sha1_unreverse(uint32_t *hash)
+{
+	hash[4]  = (hash[4] << 30) | (hash[4] >> 2);
+	hash[4] += INIT_E;
+}
+
+void sha1_reverse3(uint32_t *hash)
+{
+	hash[3] -= INIT_D;
+	hash[3]  = (hash[3] << 2) | (hash[3] >> 30);
+}
+
+void sha1_unreverse3(uint32_t *hash)
+{
+	hash[3]  = (hash[3] << 30) | (hash[3] >> 2);
+	hash[3] += INIT_D;
+}

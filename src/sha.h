@@ -1,6 +1,8 @@
 #ifndef JOHN_SHA_H
 #define JOHN_SHA_H
 
+#include <stdint.h>
+
 #if AC_BUILT
 #include "autoconfig.h"
 #endif
@@ -30,10 +32,16 @@
 #define SHA_H2 val[2]
 #define SHA_H3 val[3]
 #define SHA_H4 val[4]
-#endif
+
+#endif /* HAVE_LIBCRYPTO */
 
 #ifndef SHA_DIGEST_LENGTH
 #define SHA_DIGEST_LENGTH 20
 #endif
 
-#endif
+extern void sha1_reverse(uint32_t *hash);
+extern void sha1_unreverse(uint32_t *hash);
+extern void sha1_reverse3(uint32_t *hash);
+extern void sha1_unreverse3(uint32_t *hash);
+
+#endif /* JOHN_SHA_H */

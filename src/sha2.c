@@ -1,19 +1,11 @@
 /*
+ * This software is
+ * Copyright (c) 2012 JimF,
+ * Copyright (c) 2012-2023 magnum,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  *
- * This software was written by JimF jfoug AT cox dot net
- * in 2012. No copyright is claimed, and the software is hereby
- * placed in the public domain. In case this attempt to disclaim
- * copyright and place the software in the public domain is deemed
- * null and void, then the software is Copyright (c) 2012 JimF
- * and it is hereby released to the general public under the following
- * terms:
- *
- * This software may be modified, redistributed, and used for any
- * purpose, in source and binary forms, with or without modification.
- */
-
-
-/*
  *  FIPS-180-2 compliant SHA-256 implementation
  *  The SHA-256 Secure Hash Standard was published by NIST in 2002.
  *
@@ -289,11 +281,89 @@ void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 #endif
 }
 
-/*********************************************************************/
-/*********************************************************************/
-/*** Here is code for SHA386 and SHA512                            ***/
-/*********************************************************************/
-/*********************************************************************/
+#define INIT_D 0xf70e5939
+
+void sha224_reverse(uint32_t *hash)
+{
+	hash[3] -= INIT_D;
+}
+
+void sha224_unreverse(uint32_t *hash)
+{
+	hash[3] += INIT_D;
+}
+
+#undef INIT_D
+
+#define INIT_A 0x6a09e667
+#define INIT_B 0xbb67ae85
+#define INIT_C 0x3c6ef372
+#define INIT_D 0xa54ff53a
+#define INIT_E 0x510e527f
+#define INIT_F 0x9b05688c
+#define INIT_G 0x1f83d9ab
+#define INIT_H 0x5be0cd19
+
+#define ror(x, n)       ((x >> n) | (x << (32 - n)))
+
+void sha256_reverse(uint32_t *hash)
+{
+	uint32_t a, b, c, d, e, f, g, h, s0, maj, tmp;
+
+	a = hash[0] - INIT_A;
+	b = hash[1] - INIT_B;
+	c = hash[2] - INIT_C;
+	d = hash[3] - INIT_D;
+	e = hash[4] - INIT_E;
+	f = hash[5] - INIT_F;
+	g = hash[6] - INIT_G;
+	h = hash[7] - INIT_H;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	f = g;
+	g = h;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	f = g;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+	tmp = d;
+	d = e - (a - (s0 + maj));
+	e = f;
+	a = b;
+	b = c;
+	c = tmp;
+
+	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
+	maj = (b & c) ^ (b & d) ^ (c & d);
+
+	hash[0] = e - (a - (s0 + maj));
+}
+
+#undef ror
+#undef INIT_H
+#undef INIT_G
+#undef INIT_F
+#undef INIT_E
+#undef INIT_D
+#undef INIT_C
+#undef INIT_B
+#undef INIT_A
 #undef S0
 #undef S1
 #undef R0
@@ -301,6 +371,12 @@ void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 #undef F0
 #undef F1
 #undef R
+
+/*********************************************************************/
+/*********************************************************************/
+/*** Here is code for SHA386 and SHA512                            ***/
+/*********************************************************************/
+/*********************************************************************/
 
 #define INIT_A 0x6a09e667f3bcc908ULL
 #define INIT_B 0xbb67ae8584caa73bULL
@@ -310,7 +386,6 @@ void jtr_sha256_final(void *_output, jtr_sha256_ctx *ctx)
 #define INIT_F 0x9b05688c2b3e6c1fULL
 #define INIT_G 0x1f83d9abfb41bd6bULL
 #define INIT_H 0x5be0cd19137e2179ULL
-
 
 #define S0(x) (ROR64(x,28) ^ ROR64(x,34) ^ ROR64(x,39))
 #define S1(x) (ROR64(x,14) ^ ROR64(x,18) ^ ROR64(x,41))
@@ -648,13 +723,6 @@ void jtr_sha512_final(void *_output, jtr_sha512_ctx *ctx)
 #endif
 }
 
-/*********************************************************************/
-/*********************************************************************/
-/*** Reverse SHA512 rounds. The function can be used on OpenCL.    ***/
-/*** - It must be available for a SIMD or non-SIMD build.          ***/
-/*********************************************************************/
-/*********************************************************************/
-#if defined(SIMD_COEF_64) || defined(HAVE_OPENCL)
 void sha512_reverse(uint64_t *hash)
 {
 	uint64_t a, b, c, d, e, f, g, h, s0, maj, tmp;
@@ -703,4 +771,3 @@ void sha512_reverse(uint64_t *hash)
 
 	hash[0] = e - (a - (s0 + maj));
 }
-#endif
