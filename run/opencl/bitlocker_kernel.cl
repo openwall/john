@@ -286,40 +286,32 @@ __constant unsigned int TS3[256] = {
 	0x5454FCA8U, 0xBBBBD66DU, 0x16163A2CU
 };
 
-inline unsigned int LOP3LUT_XOR(unsigned int a, unsigned int b, unsigned int c)
+inline unsigned int OPT3_XOR(unsigned int a, unsigned int b, unsigned int c)
 {
 #if HAVE_LUT3
-	unsigned int d;
-
-	asm("lop3.b32 %0, %1, %2, %3, 0x96;": "=r"(d):"r"(a), "r"(b), "r"(c));
-	return d;
+	return lut3(a, b, c, 0x96);
 #else
 	return a ^ b ^ c;
 #endif
 }
 
-inline unsigned int LOP3LUT_XORAND(unsigned int a, unsigned int b, unsigned int c)
+inline unsigned int OPT3_XORAND(unsigned int a, unsigned int b, unsigned int c)
 {
 #if HAVE_LUT3
-	unsigned int d;
-
-	asm("lop3.b32 %0, %1, %2, %3, 0xb8;": "=r"(d):"r"(a), "r"(b), "r"(c));
-	return d;
+	return lut3(a, b, c, 0xb8);
 #else
 	return (a ^ (b & (c ^ a)));
 #endif
 }
 
-inline unsigned int LOP3LUT_ANDOR(unsigned int a, unsigned int b, unsigned int c)
+inline unsigned int OPT3_ANDOR(unsigned int a, unsigned int b, unsigned int c)
 {
 #if HAVE_LUT3
-	unsigned int d;
-
-	asm("lop3.b32 %0, %1, %2, %3, 0xe8;": "=r"(d):"r"(a), "r"(b), "r"(c));
-	return d;
+	return lut3(a, b, c, 0xe8);
+#elif USE_BITSELECT
+	return bitselect(a, b, c ^ a);
 #else
 	return ((a & (b | c)) | (b & c));
-
 #endif
 }
 
@@ -383,21 +375,21 @@ void encrypt(
         enc_schedule3=(unsigned int )(((unsigned int )(m3 & 0xff000000)) >> 24) | (unsigned int )((unsigned int )(m3 & 0x00ff0000) >> 8) | (unsigned int )((unsigned int )(m3 & 0x0000ff00) << 8) | (unsigned int )((unsigned int )(m3 & 0x000000ff) << 24);
         enc_schedule3 = enc_schedule3 ^ local_key3;
 
-        enc_schedule4 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
-        enc_schedule5 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
-        enc_schedule6 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
-        enc_schedule7 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
+        enc_schedule4 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
+        enc_schedule5 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
+        enc_schedule6 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
+        enc_schedule7 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
 
-        local_key0 ^= LOP3LUT_XOR(
-                                        LOP3LUT_XOR( (TS2[(local_key7 >> 24) ] & 0x000000FF), (TS3[(local_key7 >> 16) & 0xFF] & 0xFF000000), (TS0[(local_key7 >>  8) & 0xFF] & 0x00FF0000)),
+        local_key0 ^= OPT3_XOR(
+                                        OPT3_XOR( (TS2[(local_key7 >> 24) ] & 0x000000FF), (TS3[(local_key7 >> 16) & 0xFF] & 0xFF000000), (TS0[(local_key7 >>  8) & 0xFF] & 0x00FF0000)),
                                                 (TS1[(local_key7 ) & 0xFF] & 0x0000FF00), 0x01000000
                                 ); //RCON[0];
         local_key1 ^= local_key0; local_key2 ^= local_key1; local_key3 ^= local_key2;
 
-        enc_schedule0 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
-        enc_schedule1 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
-        enc_schedule2 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
-        enc_schedule3 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
+        enc_schedule0 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
+        enc_schedule1 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
+        enc_schedule2 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
+        enc_schedule3 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
 
         local_key4 ^= (TS3[(local_key3 >> 24)       ] & 0xFF000000) ^
                           (TS0[(local_key3 >> 16) & 0xFF] & 0x00FF0000) ^
@@ -407,10 +399,10 @@ void encrypt(
         local_key6 ^= local_key5;
         local_key7 ^= local_key6;
 
-        enc_schedule4 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
-        enc_schedule5 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
-        enc_schedule6 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
-        enc_schedule7 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
+        enc_schedule4 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
+        enc_schedule5 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
+        enc_schedule6 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
+        enc_schedule7 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
 
         local_key0 ^= (TS2[(local_key7 >> 24)       ] & 0x000000FF) ^
                           (TS3[(local_key7 >> 16) & 0xFF] & 0xFF000000) ^
@@ -418,10 +410,10 @@ void encrypt(
                           (TS1[(local_key7      ) & 0xFF] & 0x0000FF00) ^ 0x02000000; //RCON[1];
         local_key1 ^= local_key0; local_key2 ^= local_key1; local_key3 ^= local_key2;
 
-        enc_schedule0 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
-        enc_schedule1 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
-        enc_schedule2 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
-        enc_schedule3 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
+        enc_schedule0 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
+        enc_schedule1 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
+        enc_schedule2 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
+        enc_schedule3 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
 
         local_key4 ^= (TS3[(local_key3 >> 24)       ] & 0xFF000000) ^
                           (TS0[(local_key3 >> 16) & 0xFF] & 0x00FF0000) ^
@@ -431,10 +423,10 @@ void encrypt(
         local_key6 ^= local_key5;
         local_key7 ^= local_key6;
 
-        enc_schedule4 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
-        enc_schedule5 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
-        enc_schedule6 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
-        enc_schedule7 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
+        enc_schedule4 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
+        enc_schedule5 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
+        enc_schedule6 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
+        enc_schedule7 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
 
 
         local_key0 ^= (TS2[(local_key7 >> 24)       ] & 0x000000FF) ^
@@ -443,10 +435,10 @@ void encrypt(
                           (TS1[(local_key7      ) & 0xFF] & 0x0000FF00) ^ 0x04000000; //RCON[2];
         local_key1 ^= local_key0; local_key2 ^= local_key1; local_key3 ^= local_key2;
 
-        enc_schedule0 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
-        enc_schedule1 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
-        enc_schedule2 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
-        enc_schedule3 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
+        enc_schedule0 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
+        enc_schedule1 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
+        enc_schedule2 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
+        enc_schedule3 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
 
 
         local_key4 ^= (TS3[(local_key3 >> 24)       ] & 0xFF000000) ^
@@ -457,10 +449,10 @@ void encrypt(
         local_key6 ^= local_key5;
         local_key7 ^= local_key6;
 
-        enc_schedule4 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
-        enc_schedule5 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
-        enc_schedule6 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
-        enc_schedule7 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
+        enc_schedule4 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
+        enc_schedule5 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
+        enc_schedule6 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
+        enc_schedule7 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
 
         local_key0 ^= (TS2[(local_key7 >> 24)       ] & 0x000000FF) ^
                           (TS3[(local_key7 >> 16) & 0xFF] & 0xFF000000) ^
@@ -468,10 +460,10 @@ void encrypt(
                           (TS1[(local_key7      ) & 0xFF] & 0x0000FF00) ^ 0x08000000; //RCON[3];
         local_key1 ^= local_key0; local_key2 ^= local_key1; local_key3 ^= local_key2;
 
-        enc_schedule0 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
-        enc_schedule1 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
-        enc_schedule2 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
-        enc_schedule3 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
+        enc_schedule0 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
+        enc_schedule1 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
+        enc_schedule2 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
+        enc_schedule3 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
 
         local_key4 ^= (TS3[(local_key3 >> 24)       ] & 0xFF000000) ^
                           (TS0[(local_key3 >> 16) & 0xFF] & 0x00FF0000) ^
@@ -481,10 +473,10 @@ void encrypt(
         local_key6 ^= local_key5;
         local_key7 ^= local_key6;
 
-        enc_schedule4 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
-        enc_schedule5 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
-        enc_schedule6 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
-        enc_schedule7 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
+        enc_schedule4 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
+        enc_schedule5 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
+        enc_schedule6 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
+        enc_schedule7 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
 
         local_key0 ^= (TS2[(local_key7 >> 24)       ] & 0x000000FF) ^
                           (TS3[(local_key7 >> 16) & 0xFF] & 0xFF000000) ^
@@ -492,10 +484,10 @@ void encrypt(
                           (TS1[(local_key7      ) & 0xFF] & 0x0000FF00) ^ 0x10000000; //RCON[4];
         local_key1 ^= local_key0; local_key2 ^= local_key1; local_key3 ^= local_key2;
 
-        enc_schedule0 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
-        enc_schedule1 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
-        enc_schedule2 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
-        enc_schedule3 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
+        enc_schedule0 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
+        enc_schedule1 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
+        enc_schedule2 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
+        enc_schedule3 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
 
         local_key4 ^= (TS3[(local_key3 >> 24)       ] & 0xFF000000) ^
                           (TS0[(local_key3 >> 16) & 0xFF] & 0x00FF0000) ^
@@ -505,10 +497,10 @@ void encrypt(
         local_key6 ^= local_key5;
         local_key7 ^= local_key6;
 
-        enc_schedule4 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
-        enc_schedule5 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
-        enc_schedule6 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
-        enc_schedule7 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
+        enc_schedule4 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
+        enc_schedule5 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
+        enc_schedule6 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
+        enc_schedule7 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
 
 
         local_key0 ^= (TS2[(local_key7 >> 24)       ] & 0x000000FF) ^
@@ -517,10 +509,10 @@ void encrypt(
                           (TS1[(local_key7      ) & 0xFF] & 0x0000FF00) ^ 0x20000000; //RCON[5];
         local_key1 ^= local_key0; local_key2 ^= local_key1; local_key3 ^= local_key2;
 
-        enc_schedule0 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
-        enc_schedule1 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
-        enc_schedule2 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
-        enc_schedule3 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
+        enc_schedule0 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule4 >> 24], TS1[(enc_schedule5 >> 16) & 0xFF], TS2[(enc_schedule6 >> 8) & 0xFF]) , TS3[enc_schedule7 & 0xFF] , local_key0);
+        enc_schedule1 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule5 >> 24], TS1[(enc_schedule6 >> 16) & 0xFF], TS2[(enc_schedule7 >> 8) & 0xFF]) , TS3[enc_schedule4 & 0xFF] , local_key1);
+        enc_schedule2 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule6 >> 24], TS1[(enc_schedule7 >> 16) & 0xFF], TS2[(enc_schedule4 >> 8) & 0xFF]) , TS3[enc_schedule5 & 0xFF] , local_key2);
+        enc_schedule3 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule7 >> 24], TS1[(enc_schedule4 >> 16) & 0xFF], TS2[(enc_schedule5 >> 8) & 0xFF]) , TS3[enc_schedule6 & 0xFF] , local_key3);
 
         local_key4 ^= (TS3[(local_key3 >> 24)] & 0xFF000000) ^
                           (TS0[(local_key3 >> 16) & 0xFF] & 0x00FF0000) ^
@@ -530,10 +522,10 @@ void encrypt(
         local_key6 ^= local_key5;
         local_key7 ^= local_key6;
 
-        enc_schedule4 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
-        enc_schedule5 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
-        enc_schedule6 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
-        enc_schedule7 = LOP3LUT_XOR(LOP3LUT_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
+        enc_schedule4 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule0 >> 24], TS1[(enc_schedule1 >> 16) & 0xFF], TS2[(enc_schedule2 >> 8) & 0xFF]) , TS3[enc_schedule3 & 0xFF] , local_key4);
+        enc_schedule5 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule1 >> 24], TS1[(enc_schedule2 >> 16) & 0xFF], TS2[(enc_schedule3 >> 8) & 0xFF]) , TS3[enc_schedule0 & 0xFF] , local_key5);
+        enc_schedule6 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule2 >> 24], TS1[(enc_schedule3 >> 16) & 0xFF], TS2[(enc_schedule0 >> 8) & 0xFF]) , TS3[enc_schedule1 & 0xFF] , local_key6);
+        enc_schedule7 = OPT3_XOR(OPT3_XOR(TS0[enc_schedule3 >> 24], TS1[(enc_schedule0 >> 16) & 0xFF], TS2[(enc_schedule1 >> 8) & 0xFF]) , TS3[enc_schedule2 & 0xFF] , local_key7);
 
         local_key0 ^= (TS2[(local_key7 >> 24)] & 0x000000FF) ^
                   (TS3[(local_key7 >> 16) & 0xFF] & 0xFF000000) ^
@@ -1579,24 +1571,24 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 	                ) ^ hash3;
 
 			schedule4 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule0 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule0 >> 24],
 			                            TS1[(schedule1 >> 16) & 0xFF], TS2[(schedule2 >> 8) & 0xFF]),
 			                TS3[schedule3 & 0xFF], hash4);
 			schedule5 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule1 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule1 >> 24],
 			                            TS1[(schedule2 >> 16) & 0xFF], TS2[(schedule3 >> 8) & 0xFF]),
 			                TS3[schedule0 & 0xFF], hash5);
 			schedule6 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule2 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule2 >> 24],
 			                            TS1[(schedule3 >> 16) & 0xFF], TS2[(schedule0 >> 8) & 0xFF]),
 			                TS3[schedule1 & 0xFF], hash6);
 			schedule7 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule3 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule3 >> 24],
 			                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 			                TS3[schedule2 & 0xFF], hash7);
 
 			hash0 ^=
-			    LOP3LUT_XOR(LOP3LUT_XOR((TS2[(hash7 >> 24)] & 0x000000FF),
+			    OPT3_XOR(OPT3_XOR((TS2[(hash7 >> 24)] & 0x000000FF),
 			                            (TS3[(hash7 >> 16) & 0xFF] & 0xFF000000),
 			                            (TS0[(hash7 >> 8) & 0xFF] & 0x00FF0000)),
 			                (TS1[(hash7) & 0xFF] & 0x0000FF00), 0x01000000);
@@ -1605,19 +1597,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash3 ^= hash2;
 
 			schedule0 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule4 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule4 >> 24],
 			                            TS1[(schedule5 >> 16) & 0xFF], TS2[(schedule6 >> 8) & 0xFF]),
 			                TS3[schedule7 & 0xFF], hash0);
 			schedule1 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule5 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule5 >> 24],
 			                            TS1[(schedule6 >> 16) & 0xFF], TS2[(schedule7 >> 8) & 0xFF]),
 			                TS3[schedule4 & 0xFF], hash1);
 			schedule2 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule6 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule6 >> 24],
 			                            TS1[(schedule7 >> 16) & 0xFF], TS2[(schedule4 >> 8) & 0xFF]),
 			                TS3[schedule5 & 0xFF], hash2);
 			schedule3 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule7 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule7 >> 24],
 			                            TS1[(schedule4 >> 16) & 0xFF], TS2[(schedule5 >> 8) & 0xFF]),
 			                TS3[schedule6 & 0xFF], hash3);
 
@@ -1630,19 +1622,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash7 ^= hash6;
 
 			schedule4 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule0 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule0 >> 24],
 			                            TS1[(schedule1 >> 16) & 0xFF], TS2[(schedule2 >> 8) & 0xFF]),
 			                TS3[schedule3 & 0xFF], hash4);
 			schedule5 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule1 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule1 >> 24],
 			                            TS1[(schedule2 >> 16) & 0xFF], TS2[(schedule3 >> 8) & 0xFF]),
 			                TS3[schedule0 & 0xFF], hash5);
 			schedule6 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule2 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule2 >> 24],
 			                            TS1[(schedule3 >> 16) & 0xFF], TS2[(schedule0 >> 8) & 0xFF]),
 			                TS3[schedule1 & 0xFF], hash6);
 			schedule7 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule3 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule3 >> 24],
 			                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 			                TS3[schedule2 & 0xFF], hash7);
 
@@ -1655,19 +1647,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash3 ^= hash2;
 
 			schedule0 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule4 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule4 >> 24],
 			                            TS1[(schedule5 >> 16) & 0xFF], TS2[(schedule6 >> 8) & 0xFF]),
 			                TS3[schedule7 & 0xFF], hash0);
 			schedule1 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule5 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule5 >> 24],
 			                            TS1[(schedule6 >> 16) & 0xFF], TS2[(schedule7 >> 8) & 0xFF]),
 			                TS3[schedule4 & 0xFF], hash1);
 			schedule2 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule6 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule6 >> 24],
 			                            TS1[(schedule7 >> 16) & 0xFF], TS2[(schedule4 >> 8) & 0xFF]),
 			                TS3[schedule5 & 0xFF], hash2);
 			schedule3 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule7 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule7 >> 24],
 			                            TS1[(schedule4 >> 16) & 0xFF], TS2[(schedule5 >> 8) & 0xFF]),
 			                TS3[schedule6 & 0xFF], hash3);
 
@@ -1680,19 +1672,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash7 ^= hash6;
 
 			schedule4 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule0 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule0 >> 24],
 			                            TS1[(schedule1 >> 16) & 0xFF], TS2[(schedule2 >> 8) & 0xFF]),
 			                TS3[schedule3 & 0xFF], hash4);
 			schedule5 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule1 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule1 >> 24],
 			                            TS1[(schedule2 >> 16) & 0xFF], TS2[(schedule3 >> 8) & 0xFF]),
 			                TS3[schedule0 & 0xFF], hash5);
 			schedule6 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule2 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule2 >> 24],
 			                            TS1[(schedule3 >> 16) & 0xFF], TS2[(schedule0 >> 8) & 0xFF]),
 			                TS3[schedule1 & 0xFF], hash6);
 			schedule7 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule3 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule3 >> 24],
 			                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 			                TS3[schedule2 & 0xFF], hash7);
 
@@ -1706,19 +1698,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash3 ^= hash2;
 
 			schedule0 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule4 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule4 >> 24],
 			                            TS1[(schedule5 >> 16) & 0xFF], TS2[(schedule6 >> 8) & 0xFF]),
 			                TS3[schedule7 & 0xFF], hash0);
 			schedule1 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule5 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule5 >> 24],
 			                            TS1[(schedule6 >> 16) & 0xFF], TS2[(schedule7 >> 8) & 0xFF]),
 			                TS3[schedule4 & 0xFF], hash1);
 			schedule2 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule6 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule6 >> 24],
 			                            TS1[(schedule7 >> 16) & 0xFF], TS2[(schedule4 >> 8) & 0xFF]),
 			                TS3[schedule5 & 0xFF], hash2);
 			schedule3 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule7 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule7 >> 24],
 			                            TS1[(schedule4 >> 16) & 0xFF], TS2[(schedule5 >> 8) & 0xFF]),
 			                TS3[schedule6 & 0xFF], hash3);
 
@@ -1732,19 +1724,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash7 ^= hash6;
 
 			schedule4 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule0 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule0 >> 24],
 			                            TS1[(schedule1 >> 16) & 0xFF], TS2[(schedule2 >> 8) & 0xFF]),
 			                TS3[schedule3 & 0xFF], hash4);
 			schedule5 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule1 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule1 >> 24],
 			                            TS1[(schedule2 >> 16) & 0xFF], TS2[(schedule3 >> 8) & 0xFF]),
 			                TS3[schedule0 & 0xFF], hash5);
 			schedule6 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule2 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule2 >> 24],
 			                            TS1[(schedule3 >> 16) & 0xFF], TS2[(schedule0 >> 8) & 0xFF]),
 			                TS3[schedule1 & 0xFF], hash6);
 			schedule7 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule3 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule3 >> 24],
 			                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 			                TS3[schedule2 & 0xFF], hash7);
 
@@ -1757,19 +1749,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash3 ^= hash2;
 
 			schedule0 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule4 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule4 >> 24],
 			                            TS1[(schedule5 >> 16) & 0xFF], TS2[(schedule6 >> 8) & 0xFF]),
 			                TS3[schedule7 & 0xFF], hash0);
 			schedule1 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule5 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule5 >> 24],
 			                            TS1[(schedule6 >> 16) & 0xFF], TS2[(schedule7 >> 8) & 0xFF]),
 			                TS3[schedule4 & 0xFF], hash1);
 			schedule2 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule6 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule6 >> 24],
 			                            TS1[(schedule7 >> 16) & 0xFF], TS2[(schedule4 >> 8) & 0xFF]),
 			                TS3[schedule5 & 0xFF], hash2);
 			schedule3 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule7 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule7 >> 24],
 			                            TS1[(schedule4 >> 16) & 0xFF], TS2[(schedule5 >> 8) & 0xFF]),
 			                TS3[schedule6 & 0xFF], hash3);
 
@@ -1782,19 +1774,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash7 ^= hash6;
 
 			schedule4 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule0 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule0 >> 24],
 			                            TS1[(schedule1 >> 16) & 0xFF], TS2[(schedule2 >> 8) & 0xFF]),
 			                TS3[schedule3 & 0xFF], hash4);
 			schedule5 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule1 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule1 >> 24],
 			                            TS1[(schedule2 >> 16) & 0xFF], TS2[(schedule3 >> 8) & 0xFF]),
 			                TS3[schedule0 & 0xFF], hash5);
 			schedule6 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule2 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule2 >> 24],
 			                            TS1[(schedule3 >> 16) & 0xFF], TS2[(schedule0 >> 8) & 0xFF]),
 			                TS3[schedule1 & 0xFF], hash6);
 			schedule7 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule3 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule3 >> 24],
 			                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 			                TS3[schedule2 & 0xFF], hash7);
 
@@ -1807,19 +1799,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash3 ^= hash2;
 
 			schedule0 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule4 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule4 >> 24],
 			                            TS1[(schedule5 >> 16) & 0xFF], TS2[(schedule6 >> 8) & 0xFF]),
 			                TS3[schedule7 & 0xFF], hash0);
 			schedule1 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule5 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule5 >> 24],
 			                            TS1[(schedule6 >> 16) & 0xFF], TS2[(schedule7 >> 8) & 0xFF]),
 			                TS3[schedule4 & 0xFF], hash1);
 			schedule2 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule6 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule6 >> 24],
 			                            TS1[(schedule7 >> 16) & 0xFF], TS2[(schedule4 >> 8) & 0xFF]),
 			                TS3[schedule5 & 0xFF], hash2);
 			schedule3 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule7 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule7 >> 24],
 			                            TS1[(schedule4 >> 16) & 0xFF], TS2[(schedule5 >> 8) & 0xFF]),
 			                TS3[schedule6 & 0xFF], hash3);
 
@@ -1832,19 +1824,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash7 ^= hash6;
 
 			schedule4 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule0 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule0 >> 24],
 			                            TS1[(schedule1 >> 16) & 0xFF], TS2[(schedule2 >> 8) & 0xFF]),
 			                TS3[schedule3 & 0xFF], hash4);
 			schedule5 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule1 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule1 >> 24],
 			                            TS1[(schedule2 >> 16) & 0xFF], TS2[(schedule3 >> 8) & 0xFF]),
 			                TS3[schedule0 & 0xFF], hash5);
 			schedule6 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule2 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule2 >> 24],
 			                            TS1[(schedule3 >> 16) & 0xFF], TS2[(schedule0 >> 8) & 0xFF]),
 			                TS3[schedule1 & 0xFF], hash6);
 			schedule7 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule3 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule3 >> 24],
 			                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 			                TS3[schedule2 & 0xFF], hash7);
 
@@ -1857,19 +1849,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash3 ^= hash2;
 
 			schedule0 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule4 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule4 >> 24],
 			                            TS1[(schedule5 >> 16) & 0xFF], TS2[(schedule6 >> 8) & 0xFF]),
 			                TS3[schedule7 & 0xFF], hash0);
 			schedule1 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule5 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule5 >> 24],
 			                            TS1[(schedule6 >> 16) & 0xFF], TS2[(schedule7 >> 8) & 0xFF]),
 			                TS3[schedule4 & 0xFF], hash1);
 			schedule2 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule6 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule6 >> 24],
 			                            TS1[(schedule7 >> 16) & 0xFF], TS2[(schedule4 >> 8) & 0xFF]),
 			                TS3[schedule5 & 0xFF], hash2);
 			schedule3 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule7 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule7 >> 24],
 			                            TS1[(schedule4 >> 16) & 0xFF], TS2[(schedule5 >> 8) & 0xFF]),
 			                TS3[schedule6 & 0xFF], hash3);
 
@@ -1882,19 +1874,19 @@ __kernel void opencl_bitlocker_attack_final(__global int *nPswPtr,
 			hash7 ^= hash6;
 
 			schedule4 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule0 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule0 >> 24],
 			                            TS1[(schedule1 >> 16) & 0xFF], TS2[(schedule2 >> 8) & 0xFF]),
 			                TS3[schedule3 & 0xFF], hash4);
 			schedule5 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule1 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule1 >> 24],
 			                            TS1[(schedule2 >> 16) & 0xFF], TS2[(schedule3 >> 8) & 0xFF]),
 			                TS3[schedule0 & 0xFF], hash5);
 			schedule6 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule2 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule2 >> 24],
 			                            TS1[(schedule3 >> 16) & 0xFF], TS2[(schedule0 >> 8) & 0xFF]),
 			                TS3[schedule1 & 0xFF], hash6);
 			schedule7 =
-			    LOP3LUT_XOR(LOP3LUT_XOR(TS0[schedule3 >> 24],
+			    OPT3_XOR(OPT3_XOR(TS0[schedule3 >> 24],
 			                            TS1[(schedule0 >> 16) & 0xFF], TS2[(schedule1 >> 8) & 0xFF]),
 			                TS3[schedule2 & 0xFF], hash7);
 
