@@ -46,7 +46,7 @@
 #ifndef CPU_FALLBACK
 #define CPU_FALLBACK			0
 #endif
-#ifndef CPU_FALLBACK_BINARY
+#if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
 #define CPU_FALLBACK_BINARY		"john-non-mmx"
 #endif
 
