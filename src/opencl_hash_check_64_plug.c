@@ -139,13 +139,13 @@ static void prepare_bitmap_4(uint64_t bmp_sz, cl_uint **bitmap_ptr)
 		unsigned int a = loaded_hashes[2 * i];
 		unsigned int b = loaded_hashes[2 * i + 1];
 
-		bmp_idx = (b & 0x0000ffff) & (bmp_sz - 1);
+		bmp_idx = b & (bmp_sz - 1);
 		(*bitmap_ptr)[bmp_idx >> 5] |= (1U << (bmp_idx & 31));
 
 		bmp_idx = (b >> 16) & (bmp_sz - 1);
 		(*bitmap_ptr)[(bmp_sz >> 5) + (bmp_idx >> 5)] |= (1U << (bmp_idx & 31));
 
-		bmp_idx = (a & 0x0000ffff) & (bmp_sz - 1);
+		bmp_idx = a & (bmp_sz - 1);
 		(*bitmap_ptr)[(bmp_sz >> 5) * 2 + (bmp_idx >> 5)] |= (1U << (bmp_idx & 31));
 
 		bmp_idx = (a >> 16) & (bmp_sz - 1);

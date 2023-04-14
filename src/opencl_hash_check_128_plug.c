@@ -94,15 +94,14 @@ static void prepare_bitmap_8(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 	*bitmap_ptr = (cl_uint*) mem_calloc((bmp_sz >> 2), sizeof(cl_uint));
 
 	for (i = 0; i < ocl_hc_num_loaded_hashes; i++) {
-		unsigned int bmp_idx =
-			(loaded_hashes[4 * i] & 0x0000ffff) & (bmp_sz - 1);
+		unsigned int bmp_idx = (loaded_hashes[4 * i]) & (bmp_sz - 1);
 		(*bitmap_ptr)[bmp_idx >> 5] |= (1U << (bmp_idx & 31));
 
 		bmp_idx = (loaded_hashes[4 * i] >> 16) & (bmp_sz - 1);
 		(*bitmap_ptr)[(bmp_sz >> 5) + (bmp_idx >> 5)] |=
 			(1U << (bmp_idx & 31));
 
-		bmp_idx = (loaded_hashes[4 * i + 1] & 0x0000ffff) & (bmp_sz - 1);
+		bmp_idx = (loaded_hashes[4 * i + 1]) & (bmp_sz - 1);
 		(*bitmap_ptr)[(bmp_sz >> 4) + (bmp_idx >> 5)] |=
 			(1U << (bmp_idx & 31));
 
@@ -110,7 +109,7 @@ static void prepare_bitmap_8(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 		(*bitmap_ptr)[(bmp_sz >> 5) * 3 + (bmp_idx >> 5)] |=
 			(1U << (bmp_idx & 31));
 
-		bmp_idx = (loaded_hashes[4 * i + 2] & 0x0000ffff) & (bmp_sz - 1);
+		bmp_idx = (loaded_hashes[4 * i + 2]) & (bmp_sz - 1);
 		(*bitmap_ptr)[(bmp_sz >> 3) + (bmp_idx >> 5)] |=
 			(1U << (bmp_idx & 31));
 
@@ -118,7 +117,7 @@ static void prepare_bitmap_8(cl_ulong bmp_sz, cl_uint **bitmap_ptr)
 		(*bitmap_ptr)[(bmp_sz >> 5) * 5 + (bmp_idx >> 5)] |=
 			(1U << (bmp_idx & 31));
 
-		bmp_idx = (loaded_hashes[4 * i + 3] & 0x0000ffff) & (bmp_sz - 1);
+		bmp_idx = (loaded_hashes[4 * i + 3]) & (bmp_sz - 1);
 		(*bitmap_ptr)[(bmp_sz >> 5) * 6 + (bmp_idx >> 5)] |=
 			(1U << (bmp_idx & 31));
 
