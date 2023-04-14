@@ -521,7 +521,7 @@ linux-x86-64-32-native:
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl -march=native" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	@echo "All done"
 
 linux-x86-64-32-sse2:
@@ -534,7 +534,7 @@ linux-x86-64-32-sse2:
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	@echo "All done"
 
 linux-x86-64-32-sse2asm:
@@ -547,7 +547,7 @@ linux-x86-64-32-sse2asm:
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	@echo "All done"
 
 linux-x86-64-32-mmx:
@@ -560,7 +560,7 @@ linux-x86-64-32-mmx:
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	@echo "All done"
 
 linux-x86-64-32-any:
@@ -573,7 +573,7 @@ linux-x86-64-32-any:
 		LDFLAGS="$(LDFLAGS) -m32 -lcrypt -ldl" \
 		AESNI_ARCH=86 YASM_FORMAT="elf32"
 	@echo "Failing after this point just means some helper tools did not build:"
-	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32"
+	$(MAKE_ORIG) $(PROJ_PCAP) CFLAGS="$(CFLAGS) -m32" LDFLAGS="$(LDFLAGS) -m32"
 	@echo "All done"
 
 linux-x86-avx512:
@@ -1904,7 +1904,7 @@ john.com: john.asm
 	$(LD) SIPdump.o $(LDFLAGS) -lpcap $(OMPFLAGS) -o ../run/SIPdump
 
 ../run/vncpcap2john: vncpcap2john.o
-	$(CC) $(JOHN_CFLAGS) -Wall vncpcap2john.o -lpcap $(OMPFLAGS) -o ../run/vncpcap2john
+	$(LD) vncpcap2john.o $(LDFLAGS) -lpcap $(OMPFLAGS) -o ../run/vncpcap2john
 
 ../run/uaf2john: uaf2john.o uaf_encode.o
 	$(LD) $(LDFLAGS) uaf2john.o uaf_encode.o $(OMPFLAGS) -o ../run/uaf2john
