@@ -45,10 +45,6 @@
 #include "autoconfig.h"
 #endif
 
-#if !AC_BUILT && !__MIC__
-#define HAVE_LIBGMP 1 /* legacy build uses libgmp by default, except for MIC */
-#endif
-
 #if HAVE_LIBGMP || HAVE_LIBCRYPTO /* we need one of these for bignum */
 
 #if FMT_EXTERNS_H
