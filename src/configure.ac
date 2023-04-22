@@ -332,6 +332,7 @@ dnl AC_PROG_EGREP Do not trust this one
 AC_PROG_SED
 dnl AC_PROG_CXX
 AX_CHECK_GNU_MAKE()
+MAKE=$_cv_gnu_make_command
 AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_PROG_MKDIR_P
