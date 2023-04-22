@@ -301,6 +301,8 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - NT-opencl: 64-bit binary size.  Some good performance boost depending on
   number of hashes loaded.  [magnum; 2023]
 
+- Add Coinomi wallet support (coinomi2john.py).  [Solar; 2023]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
