@@ -15,6 +15,7 @@
 #else
 #ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE /* for fileno(3) and stat(2) */
+#define _XPG6
 #endif
 #endif
 

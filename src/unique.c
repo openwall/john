@@ -14,6 +14,7 @@
 #include "autoconfig.h"
 #else
 #define _POSIX_SOURCE /* for fdopen(3) */
+#define _XPG6
 #endif
 
 #include <stdio.h>
