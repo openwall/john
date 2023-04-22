@@ -94,7 +94,7 @@ typedef uint32x2_t vtype;
 	(dst) = vshr_n_u32((src), (shift))
 
 #elif defined(__ALTIVEC__) && DES_BS_DEPTH == 128
-#ifdef __linux__
+#ifndef __APPLE__
 #include <altivec.h>
 #endif
 
