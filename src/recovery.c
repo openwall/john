@@ -13,9 +13,10 @@
 #if !(__FreeBSD__ || __APPLE__)
 /* On FreeBSD, defining this precludes the declaration of u_int, which
  * FreeBSD's own <sys/file.h> needs. */
-#if _XOPEN_SOURCE < 500
+#if !AC_BUILT && _XOPEN_SOURCE < 500
 #undef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 500 /* for fdopen(3), fileno(3), fsync(2), ftruncate(2) */
+#define _XPG6
 #endif
 #endif
 

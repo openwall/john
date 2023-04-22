@@ -10,8 +10,9 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#ifndef _XOPEN_SOURCE
+#if !AC_BUILT && !defined(_XOPEN_SOURCE)
 #define _XOPEN_SOURCE /* for nice(2) */
+#define _XPG6
 #endif
 
 #include "os.h"

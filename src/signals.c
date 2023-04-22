@@ -10,9 +10,10 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#if _XOPEN_SOURCE < 500
+#if !AC_BUILT && _XOPEN_SOURCE < 500
 #undef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 500 /* for setitimer(2) and siginterrupt(3) */
+#define _XPG6
 #endif
 
 #define NEED_OS_TIMER

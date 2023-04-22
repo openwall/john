@@ -10,8 +10,9 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE /* for fileno(3) and fsync(2) */
+#if !AC_BUILT && !defined(_XOPEN_SOURCE)
+#define _XOPEN_SOURCE 500 /* for fileno(3) and fsync(2) */
+#define _XPG6
 #endif
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE /* for strcasestr */
@@ -35,6 +36,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <sys/time.h> /* for struct timeval */
 #include <time.h>
 #include <stdarg.h>
 #include <string.h>
