@@ -7800,20 +7800,23 @@ if test -z "$AR"; then :
 set dummy ${ac_tool_prefix}ar; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_AR+:} false; then :
+if ${ac_cv_path_AR+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  if test -n "$AR"; then
-  ac_cv_prog_AR="$AR" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
+  case $AR in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_AR="$AR" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$PATH:/usr/ccs/bin"
+for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
     for ac_exec_ext in '' $ac_executable_extensions; do
   if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_AR="${ac_tool_prefix}ar"
+    ac_cv_path_AR="$as_dir/$ac_word$ac_exec_ext"
     $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
@@ -7821,9 +7824,10 @@ done
   done
 IFS=$as_save_IFS
 
+  ;;
+esac
 fi
-fi
-AR=$ac_cv_prog_AR
+AR=$ac_cv_path_AR
 if test -n "$AR"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $AR" >&5
 $as_echo "$AR" >&6; }
@@ -7834,26 +7838,29 @@ fi
 
 
 fi
-if test -z "$ac_cv_prog_AR"; then
-  ac_ct_AR=$AR
+if test -z "$ac_cv_path_AR"; then
+  ac_pt_AR=$AR
   # Extract the first word of "ar", so it can be a program name with args.
 set dummy ar; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_ac_ct_AR+:} false; then :
+if ${ac_cv_path_ac_pt_AR+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  if test -n "$ac_ct_AR"; then
-  ac_cv_prog_ac_ct_AR="$ac_ct_AR" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
+  case $ac_pt_AR in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_ac_pt_AR="$ac_pt_AR" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+as_dummy="$PATH:/usr/ccs/bin"
+for as_dir in $as_dummy
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
     for ac_exec_ext in '' $ac_executable_extensions; do
   if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_ac_ct_AR="ar"
+    ac_cv_path_ac_pt_AR="$as_dir/$ac_word$ac_exec_ext"
     $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
@@ -7861,19 +7868,20 @@ done
   done
 IFS=$as_save_IFS
 
+  ;;
+esac
 fi
-fi
-ac_ct_AR=$ac_cv_prog_ac_ct_AR
-if test -n "$ac_ct_AR"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_ct_AR" >&5
-$as_echo "$ac_ct_AR" >&6; }
+ac_pt_AR=$ac_cv_path_ac_pt_AR
+if test -n "$ac_pt_AR"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_pt_AR" >&5
+$as_echo "$ac_pt_AR" >&6; }
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 fi
 
-  if test "x$ac_ct_AR" = x; then
-    AR=""
+  if test "x$ac_pt_AR" = x; then
+    AR="ar"
   else
     case $cross_compiling:$ac_tool_warned in
 yes:)
@@ -7881,10 +7889,10 @@ yes:)
 $as_echo "$as_me: WARNING: using cross tools not prefixed with host triplet" >&2;}
 ac_tool_warned=yes ;;
 esac
-    AR=$ac_ct_AR
+    AR=$ac_pt_AR
   fi
 else
-  AR="$ac_cv_prog_AR"
+  AR="$ac_cv_path_AR"
 fi
 
 fi
@@ -7967,7 +7975,7 @@ $as_echo "no" >&6; }
 fi
 
   if test "x$ac_ct_STRIP" = x; then
-    STRIP=""
+    STRIP="strip"
   else
     case $cross_compiling:$ac_tool_warned in
 yes:)
@@ -8061,7 +8069,7 @@ $as_echo "no" >&6; }
 fi
 
   if test "x$ac_ct_STRINGS" = x; then
-    STRINGS=""
+    STRINGS="strings"
   else
     case $cross_compiling:$ac_tool_warned in
 yes:)

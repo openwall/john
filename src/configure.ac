@@ -345,9 +345,9 @@ if test "x$PERL" = x ; then
 fi
 AS_IF([test -z "$AS"], [AS="$CC"])
 AS_IF([test -z "$LD"], [LD="$CC"])
-AS_IF([test -z "$AR"], [AC_CHECK_TOOL([AR], [ar])])
-AS_IF([test -z "$STRIP"], [AC_CHECK_TOOL([STRIP], [strip])])
-AS_IF([test -z "$STRINGS"], [AC_CHECK_TOOL([STRINGS], [strings])])
+AS_IF([test -z "$AR"], [AC_PATH_TOOL([AR], [ar], [ar], [$PATH:/usr/ccs/bin])])
+AS_IF([test -z "$STRIP"], [AC_CHECK_TOOL([STRIP], [strip], [strip])])
+AS_IF([test -z "$STRINGS"], [AC_CHECK_TOOL([STRINGS], [strings], [strings])])
 
 dnl Check if we have this at all
 PKG_PROG_PKG_CONFIG
