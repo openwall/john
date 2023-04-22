@@ -35,7 +35,7 @@ john_register_one(&fmt_multibit);
 #include "jumbo.h"
 #include "unicode.h"
 
-#define FORMAT_NAME             "MultiBit Wallet"
+#define FORMAT_NAME             "MultiBit or Coinomi Wallet"
 #define FORMAT_LABEL            "multibit"
 #define FORMAT_TAG              "$multibit$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
