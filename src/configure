@@ -7366,6 +7366,7 @@ $as_echo "\"Not found\"" >&6; };
         fi
 
 
+MAKE=$_cv_gnu_make_command
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ${MAKE-make} sets \$(MAKE)" >&5
 $as_echo_n "checking whether ${MAKE-make} sets \$(MAKE)... " >&6; }
 set x ${MAKE-make}
