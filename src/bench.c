@@ -620,21 +620,19 @@ void benchmark_cps(uint64_t crypts, clock_t time, char *buffer)
 		return;
 	}
 
-	unsigned int cps = crypts * clk_tck / time;
-	uint64_t cpsl = crypts * clk_tck / time;
+	uint64_t cps = crypts * clk_tck / time;
 
-	if (cpsl >= 1000000000000ULL) {
-		sprintf(buffer, "%uG", (uint32_t)(cpsl / 1000000000ULL));
-	} else if (cpsl >= 1000000000) {
-		sprintf(buffer, "%uM", (uint32_t)(cpsl / 1000000));
-	} else
-	if (cps >= 1000000) {
-		sprintf(buffer, "%uK", cps / 1000);
+	if (cps >= 1000000000000ULL) {
+		sprintf(buffer, "%uG", (unsigned int)(cps / 1000000000ULL));
+	} else if (cps >= 1000000000) {
+		sprintf(buffer, "%uM", (unsigned int)(cps / 1000000));
+	} else if (cps >= 1000000) {
+		sprintf(buffer, "%uK", (unsigned int)cps / 1000);
 	} else if (cps >= 100) {
-		sprintf(buffer, "%u", cps);
+		sprintf(buffer, "%u", (unsigned int)cps);
 	} else {
 		unsigned int frac = crypts * clk_tck * 10 / time % 10;
-		sprintf(buffer, "%u.%u", cps, frac);
+		sprintf(buffer, "%u.%u", (unsigned int)cps, frac);
 	}
 }
 
