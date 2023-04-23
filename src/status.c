@@ -124,71 +124,46 @@ void status_update_cands(unsigned int cands)
 
 unsigned int status_get_time(void)
 {
-	return status_restored_time +
-		(status_get_raw_time() - status.start_time) / clk_tck;
+	return status_restored_time + (status_get_raw_time() - status.start_time) / clk_tck;
 }
 
-static char *status_get_cps(char *buffer, uint64_t c, unsigned int c_ehi, unsigned long time_override, clock_t ticks_override)
+static double status_get_timef(void)
 {
-	int use_ticks;
-	clock_t ticks;
-	unsigned long time;
-	uint64_t cps;
+	return status_restored_time + (double)(status_get_raw_time() - status.start_time) / clk_tck;
+}
 
-	if (!c && !c_ehi)
-		return "0";
-
-	use_ticks = (c <= 0xffffffffU && !c_ehi && !status_restored_time);
-
-	ticks = ticks_override ? ticks_override : status_get_raw_time() - status.start_time;
-	if (use_ticks)
-		time = ticks;
-	else
-		time = time_override ? time_override : status_restored_time + ticks / clk_tck;
+static char *status_get_cps(char *buffer, uint64_t c, unsigned int c_ehi, double time_override)
+{
+	double time = time_override ? time_override : status_get_timef();
 	if (!time)
-		time = 1;
+		time = 1.0 / clk_tck;
 
-	cps = c;
-	if (c_ehi)
-		cps = ((uint64_t)c_ehi << 32) | (c >> 32);
-	if (use_ticks)
-		cps *= clk_tck;
-	cps /= time;
-	if (c_ehi)
-		cps <<= 32;
+	double cpsf = (((double)2 * (1ULL << 63)) * c_ehi + c) / time;
+	uint64_t cps = cpsf;
 
 	if (cps >= 1000000000000000ULL) {
 		sprintf(buffer, "%uT", (unsigned int)(cps / 1000000000000ULL));
-	} else
-	if (cps >= (uint64_t)1000000 * 1000000) {
+	} else if (cps >= (uint64_t)1000000 * 1000000) {
 		sprintf(buffer, "%uG", (unsigned int)(cps / 1000000000));
 	} else if (cps >= 1000000000) {
 		sprintf(buffer, "%uM", (unsigned int)(cps / 1000000));
 	} else if (cps >= 1000000) {
 		sprintf(buffer, "%uK", (unsigned int)(cps / 1000));
-	} else if (cps >= 1000) {
+	} else if (cps >= 1000 || !cps) {
 		sprintf(buffer, "%u", (unsigned int)cps);
 	} else {
-		const char *fmt;
-		unsigned int div, frac;
-		fmt = "%u.%06u"; div = 1000000;
-		if (cps >= 100) {
-			fmt = "%u.%u"; div = 10;
-		} else if (cps >= 10) {
-			fmt = "%u.%02u"; div = 100;
-		} else if (cps >= 1) {
-			fmt = "%u.%03u"; div = 1000;
-		}
-		frac = (use_ticks ? (c * clk_tck) : c) * div / time;
-		if (div == 1000000) {
-			if (frac >= 100000) {
-				fmt = "%u.%04u"; div = 10000; frac /= 100;
-			} else if (frac >= 10000) {
-				fmt = "%u.%05u"; div = 100000; frac /= 10;
-			}
-		}
-		frac %= div;
-		sprintf(buffer, fmt, (unsigned int)cps, frac);
+		int width = 6;
+		if (cpsf >= 100)
+			width = 1;
+		else if (cpsf >= 10)
+			width = 2;
+		else if (cpsf >= 1)
+			width = 3;
+		else if (cpsf >= 0.1)
+			width = 4;
+		else if (cpsf >= 0.01)
+			width = 5;
+		sprintf(buffer, "%.*f", width, cpsf);
 	}
 
 	return buffer;
@@ -328,27 +303,27 @@ static void status_print_cracking(double percent)
 	    showcand ? sc : "",
 	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
 	    progress_string,
-	    status_get_cps(s_gps, status.guess_count, 0, 0, 0));
+	    status_get_cps(s_gps, status.guess_count, 0, 0));
 	if (n > 0)
 		p += n;
 
 	if (!status.compat) {
 		n = sprintf(p,
 		    "%.31sp/s %.31sc/s ",
-		    status_get_cps(s_pps, status.cands, 0, 0, 0),
-		    status_get_cps(s_crypts_ps, status.crypts, 0, 0, 0));
+		    status_get_cps(s_pps, status.cands, 0, 0),
+		    status_get_cps(s_crypts_ps, status.crypts, 0, 0));
 		if (n > 0)
 			p += n;
 	}
 
 #if defined(HAVE_OPENCL)
 	n = sprintf(p, "%.31sC/s%s%s%.200s%s%.200s\n",
-	    status_get_cps(s_combs_ps, status.combs, status.combs_ehi, 0, 0),
+	    status_get_cps(s_combs_ps, status.combs, status.combs_ehi, 0),
 	    gpustat,
 	    key1 ? " " : "", key1 ? key1 : "", key2[0] ? ".." : "", key2);
 #else
 	n = sprintf(p, "%.31sC/s%s%.200s%s%.200s\n",
-	    status_get_cps(s_combs_ps, status.combs, status.combs_ehi, 0, 0),
+	    status_get_cps(s_combs_ps, status.combs, status.combs_ehi, 0),
 	    key1 ? " " : "", key1 ? key1 : "", key2[0] ? ".." : "", key2);
 #endif
 	if (n > 0)
@@ -397,7 +372,7 @@ static void status_print_stdout(double percent)
 	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
 	        percent < 0 ? 0 : percent,
 	    status_get_ETA(percent, time),
-	    status_get_cps(s_pps, status.cands, 0, 0, 0),
+	    status_get_cps(s_pps, status.cands, 0, 0),
 	    key ? " " : "", key ? key : "");
 }
 
@@ -407,6 +382,8 @@ void status_print(int level)
 		level = event_status;
 		event_status = 0;
 	}
+
+	emms();
 
 	double percent_value;
 #if defined(HAVE_OPENCL)
@@ -479,12 +456,9 @@ void status_print(int level)
 		return;
 
 	static struct status_main prev;
-	static clock_t prev_raw_time;
-	static unsigned int prev_time;
-	clock_t raw_time = status_get_raw_time() - status.start_time;
-	unsigned int time = status_restored_time + raw_time / clk_tck;
-	unsigned int new_time = time - prev_time;
-	clock_t new_raw_time = raw_time - prev_raw_time;
+	static double prev_time;
+	double time = status_get_timef();
+	double new_time = time - prev_time;
 	char s_gps[32], s_pps[32], s_crypts_ps[32], s_combs_ps[32];
 	char s_combs[32], s_combs_new[32];
 	char s_when[64], s_mps[32], s_hps[32], s_tps[32];
@@ -504,7 +478,7 @@ void status_print(int level)
 	fprintf(stderr,
 	    "Remaining hashes    %u (%u removed)\n"
 	    "Remaining salts     %u (%u removed)\n"
-	    "Time in seconds     %u (%.*f new)\n"
+	    "Time in seconds     %.2f (%.2f new)\n"
 	    "Successful guesses  %u (%u new, %s g/s)\n"
 	    "Passwords tested    %llu (%llu new, %s p/s)\n"
 	    " dupe suppressor    %ss %sabled%s\n"
@@ -515,26 +489,23 @@ void status_print(int level)
 	    "Hash combinations   %s (%s new, %s C/s)\n",
 	    status.password_count, prev.password_count ? prev.password_count - status.password_count : 0,
 	    status.salt_count, prev.salt_count ? prev.salt_count - status.salt_count : 0,
-	    time,
-	    status_restored_time ? 0 : 2,
-	    status_restored_time ? new_time : (double)new_raw_time / clk_tck,
+	    time, new_time,
 	    status.guess_count, status.guess_count - prev.guess_count,
-	    status_get_cps(s_gps, status.guess_count - prev.guess_count, 0, new_time, new_raw_time),
+	    status_get_cps(s_gps, status.guess_count - prev.guess_count, 0, new_time),
 	    (unsigned long long)status.cands, (unsigned long long)(status.cands - prev.cands),
-	    status_get_cps(s_pps, status.cands - prev.cands, 0, new_time, new_raw_time),
+	    status_get_cps(s_pps, status.cands - prev.cands, 0, new_time),
 	    status.suppressor_end ? "wa" : "i", (status.suppressor_start | status.suppressor_end) ? "en" : "dis", s_when,
 	    status.suppressor_miss, 100.0 * status.suppressor_miss / (suppressor_total ? suppressor_total : 1),
-	    status_get_cps(s_mps, status.suppressor_miss, 0, suppressor_time, suppressor_time * clk_tck),
+	    status_get_cps(s_mps, status.suppressor_miss, 0, suppressor_time),
 	    status.suppressor_hit, 100.0 * status.suppressor_hit / (suppressor_total ? suppressor_total : 1),
-	    status_get_cps(s_hps, status.suppressor_hit, 0, suppressor_time, suppressor_time * clk_tck),
+	    status_get_cps(s_hps, status.suppressor_hit, 0, suppressor_time),
 	    suppressor_total,
-	    status_get_cps(s_tps, suppressor_total, 0, suppressor_time, suppressor_time * clk_tck),
+	    status_get_cps(s_tps, suppressor_total, 0, suppressor_time),
 	    (unsigned long long)status.crypts, (unsigned long long)(status.crypts - prev.crypts),
-	    status_get_cps(s_crypts_ps, status.crypts - prev.crypts, 0, new_time, new_raw_time),
+	    status_get_cps(s_crypts_ps, status.crypts - prev.crypts, 0, new_time),
 	    status_get_c(s_combs, status.combs, status.combs_ehi),
 	    status.combs_ehi ? "N/A" : status_get_c(s_combs_new, status.combs - prev.combs, 0),
-	    status.combs_ehi ? "N/A" : status_get_cps(s_combs_ps, status.combs - prev.combs, 0, new_time, new_raw_time));
+	    status.combs_ehi ? "N/A" : status_get_cps(s_combs_ps, status.combs - prev.combs, 0, new_time));
 	prev = status;
-	prev_raw_time = raw_time;
 	prev_time = time;
 }
