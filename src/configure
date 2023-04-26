@@ -7022,7 +7022,7 @@ $as_echo "$as_me: Unable to validate $CC command line arguments. Using standard 
 fi
 
 case "$host_cpu" in
-  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64)
+  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64)
     CFLAGS_EX=""
     if test 1 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -m64 w/ linking" >&5

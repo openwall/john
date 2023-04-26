@@ -281,7 +281,7 @@ fi
 
 dnl early check of 64 bit systems.
 case "$host_cpu" in
-  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64)
+  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64)
     CFLAGS_EX=""
     JTR_FLAG_CHECK_LINK([-m64], 1)
     if test "x${CFLAGS_EX}" != x ; then
