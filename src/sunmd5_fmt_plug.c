@@ -1,19 +1,11 @@
 /*
- * First cut, which was oSSL only, and done in 2 source files, by
- * Bartavelle  (please change to proper cite).
- * Corrections, and re-write into SSE2, JimF.
- *
- * This software was written by Bartavelle <cite> and JimF
- * jfoug AT cox dot net, in 2012 for CMIYC-12. No copyright is claimed,
- * and the software is hereby placed in the public domain. In case this
- * attempt to disclaim copyright and place the software in the public
- * domain is deemed null and void, then the software is:
+ * This file is
+ * Copyright (c) 2023 magnum,
  * Copyright (c) 2012 Bartavelle and JimF and it is hereby released to
  * the general public under the following terms:
  *
  * This software may be modified, redistributed, and used for any
  * purpose, in source and binary forms, with or without modification.
- *
  */
 
 #if FMT_EXTERNS_H
@@ -149,16 +141,16 @@ static struct fmt_tests tests[] = {
 /* output buffer for para is only 16 bytes per COEF, vs 64, so it's fewer bytes to jumbo to the next PARA start */
 #define PARAGETOUTPOS(i, index)		( (((index)&(SIMD_COEF_32-1))<<2) + (((i)&(0xffffffff-3))*SIMD_COEF_32) + ((i)&3) + (((unsigned int)index/SIMD_COEF_32*SIMD_COEF_32)<<4) )
 
-static unsigned char (*input_buf)[BLK_CNT*MD5_CBLOCK];
-static unsigned char (*out_buf)[BLK_CNT*MD5_DIGEST_LENGTH];
-static unsigned char (*input_buf_big)[25][BLK_CNT*MD5_CBLOCK];
+static uint32_t (*input_buf)[BLK_CNT * MD5_CBLOCK / sizeof(uint32_t)];
+static uint32_t (*out_buf)[BLK_CNT * MD5_DIGEST_LENGTH / sizeof(uint32_t)];
+static uint32_t (*input_buf_big)[25][BLK_CNT * MD5_CBLOCK / sizeof(uint32_t)];
 
 #else
 #define COEF 1
 #endif
 
 /* allocated in init() */
-static char (*crypt_out)[FULL_BINARY_SIZE];
+static uint32_t (*crypt_out)[FULL_BINARY_SIZE / sizeof(uint32_t)];
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static char *saved_salt;
 
@@ -172,7 +164,7 @@ static char *saved_salt;
 
 typedef struct {
 	MD5_CTX context;	/* working buffer for MD5 algorithm */
-	unsigned char digest[DIGEST_LEN]; /* where the MD5 digest is stored */
+	uint32_t digest[DIGEST_LEN / sizeof(uint32_t)]; /* where the MD5 digest is stored */
 } JTR_ALIGN(MEM_ALIGN_CACHE) Contx, *pConx;
 static Contx *data;
 
@@ -247,7 +239,7 @@ static void init(struct fmt_main *self)
 	for (k = 0; k < ngroups; ++k) {
 		for (i = 0; i < constant_phrase_size; ++i) {
 			for (j = 0; j < BLK_CNT; ++j)
-				input_buf_big[k][(i+16)/64][PARAGETPOS((16+i)%64,j)] = constant_phrase[i];
+				((unsigned char*)input_buf_big[k][(i+16)/64])[PARAGETPOS((16+i)%64,j)] = constant_phrase[i];
 		}
 	}
 #endif
@@ -379,7 +371,7 @@ static void *get_salt(char *ciphertext)
 static int salt_hash(void *salt)
 {
 	int h;
-	char *sp = (char *)salt;
+	char *sp = (char*)salt;
 	char *cp = strrchr(sp, '$');
 	if (cp) --cp;
 	else cp = &sp[strlen(sp)-1];
@@ -412,7 +404,7 @@ static int cmp_all(void *binary, int count)
 	int index;
 
 	for (index = 0; index < count; index++)
-		if (*((uint32_t*)binary) == *((uint32_t*)crypt_out[index]))
+		if (((uint32_t*)binary)[0] == crypt_out[index][0])
 			return 1;
 
 	return 0;
@@ -420,7 +412,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return *((uint32_t*)binary) == *((uint32_t*)crypt_out[index]);
+	return ((uint32_t*)binary)[0] == crypt_out[index][0];
 }
 
 static int cmp_exact(char *source, int index)
@@ -501,25 +493,25 @@ getrounds(const char *s)
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
-	int idx, group_idx;
+	unsigned int k, group_idx;
 	int group_sz = (count + ngroups - 1) / ngroups;
 
-	for (idx = 0; idx < count; ++idx) {
+	for (k = 0; k < count; ++k) {
 		/* initialise the context */
 
-		MD5_Init(&data[idx].context);
+		MD5_Init(&data[k].context);
 
 		/* update with the (hopefully entropic) plaintext */
 
-		MD5_Update(&data[idx].context, (unsigned char *)saved_key[idx], strlen(saved_key[idx]));
+		MD5_Update(&data[k].context, (unsigned char*)saved_key[k], strlen(saved_key[k]));
 
 		/* update with the (publicly known) salt */
 
-		MD5_Update(&data[idx].context, (unsigned char *)saved_salt, strlen(saved_salt));
+		MD5_Update(&data[k].context, (unsigned char*)saved_salt, strlen(saved_salt));
 
 		/* compute the digest */
 
-		MD5_Final(data[idx].digest, &data[idx].context);
+		MD5_Final((unsigned char*)data[k].digest, &data[k].context);
 	}
 
 /*
@@ -532,7 +524,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
  * simply dropping the const from there.)
  */
 #ifdef _OPENMP
-#pragma omp parallel for private(idx)
+#pragma omp parallel for
 #endif
 	for (group_idx = 0; group_idx < ngroups; ++group_idx) {
 		int roundasciilen;
@@ -574,47 +566,47 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			 *    ** code replaced**
 			 *  roundasciilen = sprintf(roundascii, "%d", round);
 			 */
-
+			unsigned int idx;
 			for (idx = idx_begin; idx < idx_end; ++idx) {
 				pConx px = &data[idx];
 
-							int indirect_a =
-							  md5bit(px->digest, round) ?
-							  coin_step(px->digest, 1,  4,  0) |
-							  coin_step(px->digest, 2,  5,  1) |
-							  coin_step(px->digest, 3,  6,  2) |
-							  coin_step(px->digest, 4,  7,  3) |
-							  coin_step(px->digest, 5,  8,  4) |
-							  coin_step(px->digest, 6,  9,  5) |
-							  coin_step(px->digest, 7, 10,  6)
-							  :
-							  coin_step(px->digest, 0,  3,  0) |
-							  coin_step(px->digest, 1,  4,  1) |
-							  coin_step(px->digest, 2,  5,  2) |
-							  coin_step(px->digest, 3,  6,  3) |
-							  coin_step(px->digest, 4,  7,  4) |
-							  coin_step(px->digest, 5,  8,  5) |
-							  coin_step(px->digest, 6,  9,  6);
+				int indirect_a =
+					md5bit((unsigned char*)px->digest, round) ?
+					coin_step((unsigned char*)px->digest, 1,  4,  0) |
+					coin_step((unsigned char*)px->digest, 2,  5,  1) |
+					coin_step((unsigned char*)px->digest, 3,  6,  2) |
+					coin_step((unsigned char*)px->digest, 4,  7,  3) |
+					coin_step((unsigned char*)px->digest, 5,  8,  4) |
+					coin_step((unsigned char*)px->digest, 6,  9,  5) |
+					coin_step((unsigned char*)px->digest, 7, 10,  6)
+					:
+					coin_step((unsigned char*)px->digest, 0,  3,  0) |
+					coin_step((unsigned char*)px->digest, 1,  4,  1) |
+					coin_step((unsigned char*)px->digest, 2,  5,  2) |
+					coin_step((unsigned char*)px->digest, 3,  6,  3) |
+					coin_step((unsigned char*)px->digest, 4,  7,  4) |
+					coin_step((unsigned char*)px->digest, 5,  8,  5) |
+					coin_step((unsigned char*)px->digest, 6,  9,  6);
 
-							int indirect_b =
-							  md5bit(px->digest, round + 64) ?
-							  coin_step(px->digest,  9, 12,  0) |
-							  coin_step(px->digest, 10, 13,  1) |
-							  coin_step(px->digest, 11, 14,  2) |
-							  coin_step(px->digest, 12, 15,  3) |
-							  coin_step(px->digest, 13,  0,  4) |
-							  coin_step(px->digest, 14,  1,  5) |
-							  coin_step(px->digest, 15,  2,  6)
-							  :
-							  coin_step(px->digest,  8, 11,  0) |
-							  coin_step(px->digest,  9, 12,  1) |
-							  coin_step(px->digest, 10, 13,  2) |
-							  coin_step(px->digest, 11, 14,  3) |
-							  coin_step(px->digest, 12, 15,  4) |
-							  coin_step(px->digest, 13,  0,  5) |
-							  coin_step(px->digest, 14,  1,  6);
+				int indirect_b =
+					md5bit((unsigned char*)px->digest, round + 64) ?
+					coin_step((unsigned char*)px->digest,  9, 12,  0) |
+					coin_step((unsigned char*)px->digest, 10, 13,  1) |
+					coin_step((unsigned char*)px->digest, 11, 14,  2) |
+					coin_step((unsigned char*)px->digest, 12, 15,  3) |
+					coin_step((unsigned char*)px->digest, 13,  0,  4) |
+					coin_step((unsigned char*)px->digest, 14,  1,  5) |
+					coin_step((unsigned char*)px->digest, 15,  2,  6)
+					:
+					coin_step((unsigned char*)px->digest,  8, 11,  0) |
+					coin_step((unsigned char*)px->digest,  9, 12,  1) |
+					coin_step((unsigned char*)px->digest, 10, 13,  2) |
+					coin_step((unsigned char*)px->digest, 11, 14,  3) |
+					coin_step((unsigned char*)px->digest, 12, 15,  4) |
+					coin_step((unsigned char*)px->digest, 13,  0,  5) |
+					coin_step((unsigned char*)px->digest, 14,  1,  6);
 
-				int bit = md5bit(px->digest, indirect_a) ^ md5bit(px->digest, indirect_b);
+				int bit = md5bit((unsigned char*)px->digest, indirect_a) ^ md5bit((unsigned char*)px->digest, indirect_b);
 
 				/* xor a coin-toss; if true, mix-in the constant phrase */
 
@@ -629,14 +621,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				MD5_Init(&px->context);
 
 				/* update with the previous digest */
-				MD5_Update(&px->context, px->digest, sizeof (px->digest));
+				MD5_Update(&px->context, (unsigned char*)px->digest, sizeof(px->digest));
 
 				/* optional, add a constant string. This is what makes the 'long' crypt loops */
 				if (bit)
-					MD5_Update(&px->context, (unsigned char *) constant_phrase, constant_phrase_size);
+					MD5_Update(&px->context, (unsigned char*)constant_phrase, constant_phrase_size);
 				/* Add a decimal current roundcount */
-				MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
-				MD5_Final(px->digest, &px->context);
+				MD5_Update(&px->context, (unsigned char*)roundascii, roundasciilen);
+				MD5_Final((unsigned char*)px->digest, &px->context);
 #else
 				/*
 				 * we do not actually perform the work here. We run through all of the
@@ -674,7 +666,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			/* first, put the length text, 0x80, and buffer length into the buffer 1 time, not in the loop */
 			for (j = 0; j < BLK_CNT; ++j) {
-				unsigned char *cpo = &input_buf[group_idx][PARAGETPOS(0, j)];
+				unsigned char *cpo = &((unsigned char*)input_buf[group_idx])[PARAGETPOS(0, j)];
 				int k;
 				for (k = 0; k < roundasciilen; ++k) {
 					cpo[GETPOS0(k+16)] = roundascii[k];
@@ -688,8 +680,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < nsmall-MIN_DROP_BACK; i += BLK_CNT) {
 				for (j = 0; j < BLK_CNT && zs < nsmall; ++j) {
 					pConx px = &data[smalls[zs++]];
-					uint32_t *pi = (uint32_t*)px->digest;
-					uint32_t *po = (uint32_t*)&input_buf[group_idx][PARAGETPOS(0, j)];
+					uint32_t *pi = px->digest;
+					uint32_t *po = (uint32_t*)&((unsigned char*)input_buf[group_idx])[PARAGETPOS(0, j)];
 					/*
 					 * digest is flat, input buf is SSE_COEF.
 					 * input_buf is po (output) here, we are writing to it.
@@ -699,7 +691,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					po[COEF+COEF] = pi[2];
 					po[COEF+COEF+COEF] = pi[3];
 				}
-				SIMDmd5body(input_buf[group_idx], (unsigned int *)out_buf[group_idx], NULL, SSEi_MIXED_IN);
+				SIMDmd5body(input_buf[group_idx], out_buf[group_idx], NULL, SSEi_MIXED_IN);
 				/*
 				 * we convert from COEF back to flat. since this data will later be used
 				 * in non linear order, there is no gain trying to keep it in COEF order
@@ -707,8 +699,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				for (j = 0; j < BLK_CNT && zs0 < nsmall; ++j) {
 					uint32_t *pi, *po;
 					pConx px = &data[smalls[zs0++]];
-					pi = (uint32_t*)&out_buf[group_idx][PARAGETOUTPOS(0, j)];
-					po = (uint32_t*)px->digest;
+					pi = (uint32_t*)&((unsigned char*)out_buf[group_idx])[PARAGETOUTPOS(0, j)];
+					po = px->digest;
 					po[0] = pi[0];
 					po[1] = pi[COEF];
 					po[2] = pi[COEF+COEF];
@@ -719,9 +711,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			while (zs < nsmall) {
 				pConx px = &data[smalls[zs++]];
 				MD5_Init(&px->context);
-				MD5_Update(&px->context, px->digest, sizeof (px->digest));
-				MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
-				MD5_Final(px->digest, &px->context);
+				MD5_Update(&px->context, (unsigned char*)px->digest, sizeof(px->digest));
+				MD5_Update(&px->context, (unsigned char*)roundascii, roundasciilen);
+				MD5_Final((unsigned char*)px->digest, &px->context);
 			}
 			/*****************************************************************************
 			 * Now do the big ones.  These are more complex that the little ones
@@ -737,9 +729,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			/* first, put the length text, 0x80, and buffer length into the buffer 1 time, not in the loop */
 			for (j = 0; j < BLK_CNT; ++j) {
-				unsigned char *cpo23 = &(input_buf_big[group_idx][23][PARAGETPOS(0, j)]);
-				unsigned char *cpo24 = &(input_buf_big[group_idx][24][PARAGETPOS(0, j)]);
-				*((uint32_t*)cpo24) = 0; /* key clean */
+				unsigned char *cpo23 = &((unsigned char*)input_buf_big[group_idx][23])[PARAGETPOS(0, j)];
+				unsigned char *cpo24 = &((unsigned char*)input_buf_big[group_idx][24])[PARAGETPOS(0, j)];
+				uint32_t *po24 = (uint32_t*)cpo24;
+				*po24 = 0; /* key clean */
 				cpo23[GETPOS0(61)] = roundascii[0];
 				switch(roundasciilen) {
 					case 1:
@@ -777,13 +770,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						cpo24[3] = 0x80;
 						break;
 				}
-				((uint32_t*)cpo24)[14*SIMD_COEF_32]=((16+constant_phrase_size+roundasciilen)<<3);
+				po24[14*SIMD_COEF_32]=((16+constant_phrase_size+roundasciilen)<<3);
 			}
 			for (i = 0; i < nbig-MIN_DROP_BACK; i += BLK_CNT) {
 				for (j = 0; j < BLK_CNT && zb < nbig; ++j) {
 					pConx px = &data[bigs[zb++]];
-					uint32_t *pi = (uint32_t *)px->digest;
-					uint32_t *po = (uint32_t*)&input_buf_big[group_idx][0][PARAGETPOS(0, j)];
+					uint32_t *pi = px->digest;
+					uint32_t *po = (uint32_t*)&((unsigned char*)input_buf_big[group_idx][0])[PARAGETPOS(0, j)];
 					/*
 					 * digest is flat, input buf is SSE_COEF.
 					 * input_buf is po (output) here, we are writing to it.
@@ -793,15 +786,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					po[COEF+COEF] = pi[2];
 					po[COEF+COEF+COEF] = pi[3];
 				}
-				SIMDmd5body(input_buf_big[group_idx][0], (unsigned int *)out_buf[group_idx], NULL, SSEi_MIXED_IN);
+				SIMDmd5body(input_buf_big[group_idx][0], out_buf[group_idx], NULL, SSEi_MIXED_IN);
 				for (j = 1; j < 25; ++j)
-					SIMDmd5body(input_buf_big[group_idx][j], (unsigned int *)out_buf[group_idx], (unsigned int *)out_buf[group_idx], SSEi_RELOAD|SSEi_MIXED_IN);
+					SIMDmd5body(input_buf_big[group_idx][j], out_buf[group_idx], out_buf[group_idx], SSEi_RELOAD|SSEi_MIXED_IN);
 
 				for (j = 0; j < BLK_CNT && zb0 < nbig; ++j) {
 					uint32_t *pi, *po;
 					pConx px = &data[bigs[zb0++]];
-					pi = (uint32_t*)&out_buf[group_idx][PARAGETOUTPOS(0, j)];
-					po = (uint32_t*)px->digest;
+					pi = (uint32_t*)&((unsigned char*)out_buf[group_idx])[PARAGETOUTPOS(0, j)];
+					po = px->digest;
 					po[0] = pi[0];
 					po[1] = pi[COEF];
 					po[2] = pi[COEF+COEF];
@@ -812,10 +805,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			while (zb < nbig) {
 				pConx px = &data[bigs[zb++]];
 				MD5_Init(&px->context);
-				MD5_Update(&px->context, px->digest, sizeof (px->digest));
-				MD5_Update(&px->context, (unsigned char *) constant_phrase, constant_phrase_size);
-				MD5_Update(&px->context, (unsigned char *) roundascii, roundasciilen);
-				MD5_Final(px->digest, &px->context);
+				MD5_Update(&px->context, (unsigned char*)px->digest, sizeof(px->digest));
+				MD5_Update(&px->context, (unsigned char*)constant_phrase, constant_phrase_size);
+				MD5_Update(&px->context, (unsigned char*)roundascii, roundasciilen);
+				MD5_Final((unsigned char*)px->digest, &px->context);
 			}
 #endif
 			/*
@@ -848,9 +841,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 	}
 
-	for (idx = 0; idx < count; ++idx) {
-		pConx px = &data[idx];
-		memcpy(crypt_out[idx], px->digest, FULL_BINARY_SIZE);
+	for (k = 0; k < count; ++k) {
+		pConx px = &data[k];
+		memcpy(crypt_out[k], px->digest, FULL_BINARY_SIZE);
 	}
 	return count;
 }
