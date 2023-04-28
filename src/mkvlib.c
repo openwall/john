@@ -159,7 +159,6 @@ void init_probatables(const char *filename)
 	unsigned int i;
 	unsigned int j;
 	unsigned int k;
-	unsigned int nb_lignes;
 
 	if (!(fichier = fopen(filename, "r"))) {
 		static char fpath[PATH_BUFFER_SIZE] = "$JOHN/";
@@ -190,7 +189,6 @@ void init_probatables(const char *filename)
 		}
 	}
 
-	nb_lignes = 0;
 	while (fgets(ligne, 4096, fichier)) {
 		if (ligne[0] == 0)
 			continue;
@@ -209,7 +207,6 @@ void init_probatables(const char *filename)
 		} else {
 			goto error;
 		}
-		nb_lignes++;
 	}
 	MEM_FREE(ligne);
 	fclose(fichier);
