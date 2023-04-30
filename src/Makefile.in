@@ -855,6 +855,10 @@ clean:
 	@for exe in ${PROJ}; do \
 	  ($(RM) $$exe.exe) \
 	done
+	@for object in ${JOHN_OBJS}; do \
+	  ($(RM) $$object) \
+	done
+	$(RM) fmt_externs.tmp fmt_registers.tmp
 	$(RM) ../run/unit-tests@EXE_EXT@
 	$(RM) john-macosx-* *.o yescrypt/*.o *.bak core
 	$(RM) lzma/*.o

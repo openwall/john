@@ -3576,6 +3576,8 @@ else
 fi
 
 
+CPPFLAGS="$CPPFLAGS -iquote $(pwd)"
+PLUGINS="./ "
 
 if test -f GNU?akefile; then
    as_fn_error $? "Stray GNUmakefile (or GNUMakefile) detected. Please remove it" "$LINENO" 5
@@ -11054,8 +11056,6 @@ CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
 
 
-CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
-
   case $host_os in #(
   darwin*) :
     CC="$CC_BACKUP"
@@ -11116,6 +11116,7 @@ fi
   *) :
      ;;
 esac
+CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
 
 if test "x$simd" != xno; then
  if test "x$enable_native_tests" != xno && test "x$simd" = xyes; then
@@ -16568,7 +16569,7 @@ else
 $as_echo "$as_me: creating *_plug.c rules" >&6;}
 fi
 if test "`echo *_plug.c`" != "*_plug.c"; then
-   PLUGFORMATS_OBJS=`echo *_plug.c | sed 's/opencl[A-Za-z0-9_\-]*\.c //g;s/\.c/.o/g'`
+   PLUGFORMATS_OBJS=`for i in ${PLUGINS}; do echo $i*_plug.c " "; done | tr -d '\n' | sed 's,\./,,g' | sed 's/opencl[A-Za-z0-9_\-]*\.c //g;s/\.c/.o/g'`
 
    OPENCL_PLUGFORMATS_OBJS=`echo opencl*_plug.c | sed 's/\.c/.o/g'`
 
@@ -17971,7 +17972,7 @@ CFLAGS_EXTRA=$CFLAGS_EXTRA_BACKUP
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: creating ./fmt_externs.h" >&5
 $as_echo "$as_me: creating ./fmt_externs.h" >&6;}
-rm -f fmt_externs.h
+rm -f fmt_externs.h fmt_externs.tmp
 
 CFLAGS_EX2=
 if test "x$simd" = xno ; then
@@ -17979,7 +17980,10 @@ if test "x$simd" = xno ; then
 fi
 
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
+   for i in ${PLUGINS}; do
+      $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H $i*_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" >> fmt_externs.tmp
+   done
+   cat fmt_externs.tmp | LC_ALL=C $SORT -f >> fmt_externs.h
 fi
 if test -f fmt_externs.h -a ! -s fmt_externs.h; then
   cp Makefile.stub Makefile
@@ -17990,9 +17994,12 @@ if test ! -f fmt_externs.h; then
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: creating ./fmt_registers.h" >&5
 $as_echo "$as_me: creating ./fmt_registers.h" >&6;}
-rm -f fmt_registers.h
+rm -f fmt_registers.h fmt_registers.tmp
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
+   for i in ${PLUGINS}; do
+      $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H $i*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" >> fmt_registers.tmp
+   done
+   cat fmt_registers.tmp | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
 if test -f fmt_registers.h -a ! -s fmt_registers.h; then
   cp Makefile.stub Makefile

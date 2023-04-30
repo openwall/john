@@ -87,6 +87,9 @@ AC_ARG_ENABLE([fuzz], [AC_HELP_STRING([--enable-fuzz], [Fuzzing prepare(), valid
 AC_ARG_ENABLE([libfuzzer], [AC_HELP_STRING([--enable-libfuzzer], [Fuzzing using libFuzzer])], [libfuzzer=$enableval], [libfuzzer=no])
 
 dnl ===================== Actual tests start here ========================
+dnl Add the modules (folders inside src). Add the headers search path (the includes folder)
+CPPFLAGS="$CPPFLAGS -iquote $(pwd)"
+PLUGINS="./ "
 
 dnl Assert that we don't have a stray GNUmakefile left in the tree :-(
 if test -f GNU?akefile; then
@@ -1092,7 +1095,7 @@ else
   AC_MSG_NOTICE([creating *_plug.c rules])
 fi
 if test "`echo *_plug.c`" != "*_plug.c"; then
-   AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/opencl[[A-Za-z0-9_\-]]*\.c //g;s/\.c/.o/g'`])
+   AC_SUBST([PLUGFORMATS_OBJS],[`for i in ${PLUGINS}; do echo $i*_plug.c " "; done | tr -d '\n' | sed 's,\./,,g' | sed 's/opencl[[A-Za-z0-9_\-]]*\.c //g;s/\.c/.o/g'`])
    AC_SUBST([OPENCL_PLUGFORMATS_OBJS],[`echo opencl*_plug.c | sed 's/\.c/.o/g'`])
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       AC_MSG_NOTICE([creating Makefile dependencies])
@@ -1129,7 +1132,7 @@ dnl This needs arch.h to be linked so can't happen before
 dnl AC_OUTPUT
 dnl ======================================================================
 AC_MSG_NOTICE([creating ./fmt_externs.h])
-rm -f fmt_externs.h
+rm -f fmt_externs.h fmt_externs.tmp
 
 CFLAGS_EX2=
 if test "x$simd" = xno ; then
@@ -1137,7 +1140,10 @@ if test "x$simd" = xno ; then
 fi
 
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
+   for i in ${PLUGINS}; do
+      $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H $i*_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" >> fmt_externs.tmp
+   done
+   cat fmt_externs.tmp | LC_ALL=C $SORT -f >> fmt_externs.h
 fi
 dnl if the file was not created, then bail.
 if test -f fmt_externs.h -a ! -s fmt_externs.h; then
@@ -1149,9 +1155,12 @@ if test ! -f fmt_externs.h; then
   echo >fmt_externs.h
 fi
 AC_MSG_NOTICE([creating ./fmt_registers.h])
-rm -f fmt_registers.h
+rm -f fmt_registers.h fmt_registers.tmp
 if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
+   for i in ${PLUGINS}; do
+      $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H $i*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" >> fmt_registers.tmp
+   done
+   cat fmt_registers.tmp | LC_ALL=C $SORT -f >> fmt_registers.h
 fi
 dnl if the file was not created, then bail.
 if test -f fmt_registers.h -a ! -s fmt_registers.h; then
