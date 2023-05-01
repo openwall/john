@@ -17,14 +17,14 @@ john_register_one(&fmt_rawSHA1_axcrypt);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 
-#include "sha.h"
-#include "common.h"
-#include "formats.h"
-#include "base64_convert.h"
-#include "rawSHA1_common.h"
-#include "johnswap.h"
+#include "../sha.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../base64_convert.h"
+#include "../rawSHA1_common.h"
+#include "../johnswap.h"
 
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
@@ -51,7 +51,7 @@ john_register_one(&fmt_rawSHA1_axcrypt);
 #endif
 #include <omp.h>
 #endif
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 
 #define AX_FORMAT			1
 #define RAW_FORMAT			2
@@ -76,7 +76,7 @@ john_register_one(&fmt_rawSHA1_axcrypt);
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define FMT_IS_BE
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -176,7 +176,7 @@ static int binary_hash_4(void *binary) { return ((uint32_t*)binary)[pos] & PH_MA
 static int binary_hash_5(void *binary) { return ((uint32_t*)binary)[pos] & PH_MASK_5; }
 static int binary_hash_6(void *binary) { return ((uint32_t*)binary)[pos] & PH_MASK_6; }
 
-#include "common-simd-setkey32.h"
+#include "../common-simd-setkey32.h"
 
 static void *get_binary(char *ciphertext)
 {

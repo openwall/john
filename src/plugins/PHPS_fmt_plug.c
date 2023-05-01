@@ -31,7 +31,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 #ifndef DYNAMIC_DISABLED
 
@@ -43,10 +43,10 @@ john_register_one(&fmt_PHPS);
 
 #include <string.h>
 
-#include "common.h"
-#include "formats.h"
-#include "dynamic.h"
-#include "options.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../dynamic.h"
+#include "../options.h"
 
 #define FORMAT_LABEL		"PHPS"
 #define FORMAT_NAME		"" /* md5(md5($pass).$salt) */

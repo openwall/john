@@ -8,7 +8,7 @@
  * modification, are permitted.
  */
 
-#include "arch.h"
+#include "../arch.h"
 #if !AC_BUILT && !__MIC__
 #define HAVE_LIBZ 1 /* legacy build has -lz in LDFLAGS */
 #endif
@@ -28,13 +28,13 @@ john_register_one(&fmt_pkzip);
 #include <omp.h>
 #endif
 
-#include "common.h"
-#include "misc.h"
-#include "formats.h"
+#include "../common.h"
+#include "../misc.h"
+#include "../formats.h"
 #define USE_PKZIP_MAGIC 1
-#include "pkzip.h"
-#include "pkzip_inffixed.h"  // This file is a data file, taken from zlib
-#include "loader.h"
+#include "../pkzip.h"
+#include "../pkzip_inffixed.h"  // This file is a data file, taken from zlib
+#include "../loader.h"
 
 #define FORMAT_LABEL        "PKZIP"
 #define FORMAT_NAME         ""

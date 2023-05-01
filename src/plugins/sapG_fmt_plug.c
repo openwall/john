@@ -27,16 +27,16 @@ john_register_one(&fmt_sapG);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "simd-intrinsics.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "sha.h"
-#include "options.h"
-#include "unicode.h"
-#include "johnswap.h"
-#include "config.h"
+#include "../arch.h"
+#include "../simd-intrinsics.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../sha.h"
+#include "../options.h"
+#include "../unicode.h"
+#include "../johnswap.h"
+#include "../config.h"
 
 #define FORMAT_LABEL            "sapg"
 #define FORMAT_NAME             "SAP CODVN F/G (PASSCODE)"
@@ -747,7 +747,7 @@ static char *source(struct db_password *pw, char Buf[LINE_BUFFER_SIZE] )
 
 #define COMMON_GET_HASH_SIMD32 5
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 // Here, we remove any salt padding and trim it to 44 bytes
 static char *split(char *ciphertext, int index, struct fmt_main *self)
@@ -834,7 +834,7 @@ struct fmt_main fmt_sapG = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

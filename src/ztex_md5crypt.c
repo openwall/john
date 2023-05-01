@@ -27,7 +27,7 @@
 #include "config.h"
 #include "options.h"
 #include "MD5_std.h"
-#include "md5crypt_common.h"
+#include "formats/md5crypt_common.h"
 
 #include "ztex/device_bitstream.h"
 #include "ztex/device_format.h"

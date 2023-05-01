@@ -100,7 +100,7 @@ static int john_omp_threads_new;
 #include "single.h"
 #include "wordlist.h"
 #include "prince.h"
-#include "inc.h"
+#include "modes/inc.h"
 #include "mask.h"
 #include "mkv.h"
 #include "subsets.h"
@@ -115,7 +115,7 @@ static int john_omp_threads_new;
 
 #include "unicode.h"
 #include "gpu_common.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #ifdef HAVE_ZTEX
 #include "ztex_common.h"
 #endif

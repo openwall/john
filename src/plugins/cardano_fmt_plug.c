@@ -23,11 +23,11 @@ john_register_one(&fmt_cardano);
 
 #define OMP_SCALE 1
 
-#include "cardano_common.h"
-#include "blake2.h"
-#include "pbkdf2_hmac_sha512.h"
-#include "chacha.h"
-#include "ed25519.h"
+#include "../cardano_common.h"
+#include "../blake2.h"
+#include "../pbkdf2_hmac_sha512.h"
+#include "../chacha.h"
+#include "../ed25519.h"
 
 #define FORMAT_NAME         "Cardano Encrypted 128-byte Secret Key (a.k.a XPrv)"
 #define FORMAT_LABEL        "cardano"

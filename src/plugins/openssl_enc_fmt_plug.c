@@ -26,7 +26,7 @@ john_register_one(&fmt_openssl);
 #else
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #ifdef __CYGWIN__
@@ -46,16 +46,16 @@ john_register_one(&fmt_openssl);
 #include <omp.h>
 #endif
 
-#include "aes.h"
-#include "md5.h"
-#include "sha.h"
-#include "openssl_code.h"
-#include "arch.h"
-#include "misc.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "jumbo.h"
+#include "../aes.h"
+#include "../md5.h"
+#include "../sha.h"
+#include "../openssl_code.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../jumbo.h"
 
 #define FORMAT_LABEL        "openssl-enc"
 #define FORMAT_NAME         "OpenSSL \"enc\" encryption"

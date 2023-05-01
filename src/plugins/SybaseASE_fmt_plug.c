@@ -33,21 +33,21 @@ extern struct fmt_main fmt_SybaseASE;
 john_register_one(&fmt_SybaseASE);
 #else
 
-#include "arch.h"
+#include "../arch.h"
 
 //#undef _OPENMP
 //#undef SIMD_COEF_32
 //#undef SIMD_PARA_SHA256
 //
 //#define FORCE_GENERIC_SHA2 2
-#include "sha2.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "unicode.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
+#include "../sha2.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../unicode.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -214,7 +214,7 @@ static void *get_salt(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -422,7 +422,7 @@ struct fmt_main fmt_SybaseASE = {
         crypt_all,
         {
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
         },
         cmp_all,
         cmp_one,

@@ -23,17 +23,17 @@ john_register_one(&fmt_multibit);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "aes.h"
-#include "md5.h"
-#include "yescrypt/yescrypt.h"
-#include "jumbo.h"
-#include "unicode.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../aes.h"
+#include "../md5.h"
+#include "../yescrypt/yescrypt.h"
+#include "../jumbo.h"
+#include "../unicode.h"
 
 #define FORMAT_NAME             "MultiBit or Coinomi Wallet"
 #define FORMAT_LABEL            "multibit"

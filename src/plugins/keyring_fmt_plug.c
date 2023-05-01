@@ -20,17 +20,17 @@ john_register_one(&fmt_keyring);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "md5.h"
-#include "sha2.h"
-#include "aes.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../md5.h"
+#include "../sha2.h"
+#include "../aes.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_LABEL            "keyring"
 #define FORMAT_NAME             "GNOME Keyring"

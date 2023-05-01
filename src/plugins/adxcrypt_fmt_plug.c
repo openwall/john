@@ -25,13 +25,13 @@ john_register_one(&fmt_adxcrypt);
 
 #define OMP_SCALE               512  // tuned on i7-7820HQ
 
-#include "formats.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "johnswap.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../johnswap.h"
 
 #define FORMAT_LABEL            "adxcrypt"
 #define FORMAT_NAME             "IBM/Toshiba 4690"
@@ -110,7 +110,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 /*
  * This code looks weird as it is actually cleaned-up decompiled code.
@@ -267,7 +267,7 @@ struct fmt_main fmt_adxcrypt = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

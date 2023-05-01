@@ -46,7 +46,7 @@ john_register_one(&fmt_opencl_bitcoin);
 #include "sha2.h"
 #include "aes.h"
 #include "johnswap.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 
 #define FORMAT_LABEL            "Bitcoin-opencl"
 #define FORMAT_NAME             "Bitcoin Core"
@@ -136,7 +136,7 @@ static size_t in_size, salt_size, state_size, cracked_size;
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 /*
  * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should

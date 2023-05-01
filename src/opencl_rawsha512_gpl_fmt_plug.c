@@ -27,7 +27,7 @@ john_register_one(&fmt_opencl_xsha512_gpl);
 
 #include "sha2.h"
 #include "johnswap.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "config.h"
 #include "options.h"
 #include "../run/opencl/opencl_rawsha512.h"
@@ -99,7 +99,7 @@ static void release_kernel();
 static void release_mask_buffers(void);
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()

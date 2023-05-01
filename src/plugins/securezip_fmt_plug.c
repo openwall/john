@@ -28,16 +28,16 @@ john_register_one(&fmt_securezip);
 
 #define OMP_SCALE               32  // MKPC and OMP_SCALE tuned on Core i7-6600U
 
-#include "arch.h"
-#include "misc.h"
-#include "sha.h"
-#include "aes.h"
-#include "jumbo.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "securezip_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../sha.h"
+#include "../aes.h"
+#include "../jumbo.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../securezip_common.h"
 
 #define FORMAT_LABEL            "securezip"
 #define FORMAT_NAME             "PKWARE SecureZIP"

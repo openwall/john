@@ -21,18 +21,18 @@ john_register_one(&fmt_zip);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "crc32.h"
-#include "misc.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "memory.h"
-#include "pkzip.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "dyna_salt.h"
-#include "hmac_sha.h"
+#include "../arch.h"
+#include "../crc32.h"
+#include "../misc.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../memory.h"
+#include "../pkzip.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../dyna_salt.h"
+#include "../hmac_sha.h"
 
 #define KEY_LENGTH(mode)        (8 * ((mode) & 3) + 8)
 #define SALT_LENGTH(mode)       (4 * ((mode) & 3) + 4)

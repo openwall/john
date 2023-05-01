@@ -18,15 +18,15 @@ john_register_one(&fmt__hmacMD5);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "md5.h"
-#include "aligned.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
-#include "base64_convert.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../md5.h"
+#include "../aligned.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
+#include "../base64_convert.h"
 
 #define FORMAT_LABEL            "HMAC-MD5"
 #define FORMAT_NAME             ""

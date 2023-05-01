@@ -24,7 +24,7 @@ john_register_one(&FMT_STRUCT);
 #include <omp.h>
 #endif
 
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "misc.h"
 #include "formats.h"
 #include "common.h"
@@ -68,7 +68,7 @@ static size_t outsize, saltsize, idxsize, intkeysize;
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static const char *warn[] = {
 	"key xfer: ",  ", idx xfer: ",  ", init: ",  ", crypt: ",  ", xfer: "

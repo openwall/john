@@ -20,15 +20,15 @@ john_register_one(&fmt__hmacSHA384);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha2.h"
-#include "misc.h"
-#include "common.h"
-#include "base64_convert.h"
-#include "formats.h"
-#include "aligned.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
+#include "../arch.h"
+#include "../sha2.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../base64_convert.h"
+#include "../formats.h"
+#include "../aligned.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_LABEL			"HMAC-SHA512"
 #define FORMAT_LABEL_384		"HMAC-SHA384"

@@ -15,7 +15,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -33,16 +33,16 @@ john_register_one(&fmt_keychain);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "johnswap.h"
-#include "keychain_common.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "jumbo.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../keychain_common.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../jumbo.h"
 
 #define FORMAT_LABEL            "keychain"
 

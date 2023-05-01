@@ -19,16 +19,16 @@ john_register_one(&fmt_saltedsha);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "formats.h"
-#include "options.h"
-#include "johnswap.h"
-#include "salted_sha1_common.h"
-#include "simd-intrinsics.h"
-#include "common.h"
-#include "sha.h"
-#include "base64_convert.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../salted_sha1_common.h"
+#include "../simd-intrinsics.h"
+#include "../common.h"
+#include "../sha.h"
+#include "../base64_convert.h"
 
 #define FORMAT_LABEL			"Salted-SHA1"
 #define FORMAT_NAME			""
@@ -47,7 +47,7 @@ john_register_one(&fmt_saltedsha);
 #ifdef SIMD_COEF_32
 #define NBKEYS  (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #define FMT_IS_BE
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 #define MIN_KEYS_PER_CRYPT      NBKEYS
 #define MAX_KEYS_PER_CRYPT      (NBKEYS * 512)
 #else
@@ -123,7 +123,7 @@ static void * get_binary(char *ciphertext) {
 }
 
 #define SET_SAVED_LEN
-#include "common-simd-setkey32.h"
+#include "../common-simd-setkey32.h"
 
 static void * get_salt(char * ciphertext)
 {
@@ -230,7 +230,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #define COMMON_GET_HASH_SIMD32 5
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -287,7 +287,7 @@ struct fmt_main fmt_saltedsha = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

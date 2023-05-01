@@ -22,16 +22,16 @@ john_register_one(&fmt_sapB);
 #include <string.h>
 #include <ctype.h>
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "memory.h"
-#include "johnswap.h"
-#include "options.h"
-#include "unicode.h"
-#include "md5.h"
-#include "config.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../memory.h"
+#include "../johnswap.h"
+#include "../options.h"
+#include "../unicode.h"
+#include "../md5.h"
+#include "../config.h"
 
 #define FORMAT_LABEL			"sapb"
 #define FORMAT_NAME			"SAP CODVN B (BCODE)"
@@ -39,7 +39,7 @@ john_register_one(&fmt_sapB);
 #ifdef SIMD_COEF_32
 #define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD5)
 #endif
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 #define ALGORITHM_NAME			"MD5 " MD5_ALGORITHM_NAME
 
 #if defined(_OPENMP)
@@ -757,7 +757,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 #define COMMON_GET_HASH_SIMD32 4
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 // Public domain hash function by DJ Bernstein
 static int salt_hash(void *salt)
@@ -820,7 +820,7 @@ struct fmt_main fmt_sapB = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

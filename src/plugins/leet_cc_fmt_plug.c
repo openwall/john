@@ -20,13 +20,13 @@ john_register_one(&fmt_leet);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
-#include "openssl_local_overrides.h"
+#include "../openssl_local_overrides.h"
 #if HAVE_LIBCRYPTO
 #include <openssl/opensslv.h>
 #endif
@@ -40,21 +40,21 @@ john_register_one(&fmt_leet);
 #define sph_whirlpool_close(b,a) WHIRLPOOL_Final(a,b)
 #else
 #define WP_TYPE "SPH"
-#include "sph_whirlpool.h"
+#include "../sph_whirlpool.h"
 #endif
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
-#include "sha2.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
+#include "../sha2.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
 
 #ifdef SIMD_COEF_64
 #define SHA512_TYPE          SHA512_ALGORITHM_NAME
@@ -218,7 +218,7 @@ static int binary_hash_6(void *binary) { return *((uint64_t *)binary) & PH_MASK_
 
 #define COMMON_GET_HASH_64BIT_HASH
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -402,7 +402,7 @@ struct fmt_main fmt_leet = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

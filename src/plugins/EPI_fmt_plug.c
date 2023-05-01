@@ -26,11 +26,11 @@ john_register_one(&fmt_EPI);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "sha.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../sha.h"
 
 #define CIPHERTEXT_LENGTH  105
 #define PLAINTEXT_LENGTH   125
@@ -198,7 +198,7 @@ static int cmp_exact(char *source, int index)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -256,7 +256,7 @@ struct fmt_main fmt_EPI =
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -14,7 +14,7 @@
  * format but raw-sha1.
  */
 
-#include "arch.h"
+#include "../arch.h"
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_rawSHA1_LI;
@@ -27,16 +27,16 @@ john_register_one(&fmt_rawSHA1_LI);
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "sha.h"
-#include "johnswap.h"
-#include "loader.h"
-#include "rawSHA1_common.h"
-#include "base64_convert.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../sha.h"
+#include "../johnswap.h"
+#include "../loader.h"
+#include "../rawSHA1_common.h"
+#include "../base64_convert.h"
 
 #define FORMAT_LABEL			"Raw-SHA1-Linkedin"
 #define FORMAT_NAME			""
@@ -59,7 +59,7 @@ john_register_one(&fmt_rawSHA1_LI);
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define FMT_IS_BE
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -102,7 +102,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 }
 
 #define NON_SIMD_SINGLE_SAVED_KEY
-#include "common-simd-setkey32.h"
+#include "../common-simd-setkey32.h"
 
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32

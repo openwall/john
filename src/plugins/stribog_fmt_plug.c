@@ -6,7 +6,7 @@
  * code. See "LICENSE.gost" for licensing details of the original code.
  */
 
-#include "arch.h"
+#include "../arch.h"
 
 #if ARCH_LITTLE_ENDIAN
 
@@ -25,12 +25,12 @@ john_register_one(&fmt_stribog_512);
 #include <omp.h>
 #endif
 
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "gost3411-2012-core.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../gost3411-2012-core.h"
 
 #define FORMAT_LABEL_256        "Stribog-256"
 #define FORMAT_LABEL_512        "Stribog-512"

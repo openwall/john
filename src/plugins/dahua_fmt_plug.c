@@ -28,14 +28,14 @@ john_register_one(&fmt_dahua);
 #include <omp.h>
 #endif // _OPENMP
 
-#include "arch.h"
-#include "md5.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "params.h"
-#include "options.h"
+#include "../arch.h"
+#include "../md5.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../params.h"
+#include "../options.h"
 
 #define FORMAT_LABEL            "dahua"
 #define FORMAT_NAME             "\"MD5 based authentication\" Dahua"
@@ -131,7 +131,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 // from hashcat.net (alxchk)
 static void compressor(unsigned char *in, unsigned char *out)
@@ -255,7 +255,7 @@ struct fmt_main fmt_dahua = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -21,12 +21,12 @@ john_register_one(&fmt_rawKeccak_256);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "KeccakHash.h"
+#include "../arch.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../KeccakHash.h"
 
 #define FORMAT_TAG		"$keccak256$"
 #define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
@@ -134,7 +134,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_key(char *key, int index)
 {
@@ -231,7 +231,7 @@ struct fmt_main fmt_rawKeccak_256 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

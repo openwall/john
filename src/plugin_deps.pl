@@ -26,11 +26,7 @@ sub find_deps {
 		if (/^\s*#\s*include\s+"([^"]+)"/) {
 			my $object = $base_dir . $1;
 			while ($object =~ s/([^\/]+)\/..\///g) {}
-			if ($object eq "arch.h" || $object eq "autoconfig.h" || -f $object || -f "opencl/$object") {
-				if (-f "opencl/$object") {
-					my $objetc = "opencl/$object"
-				}
-
+			if ($object eq "arch.h" || $object eq "autoconfig.h" || -f $object) {
 				if (!($uniqdep_ref->{$object}++)) {
 					#print "src $src_file obj $object\n";
 					$deps .= " " . $object;

@@ -27,16 +27,16 @@ john_register_one(&fmt_rsvp);
 #define OMP_SCALE               32  // MKPC and OMP_SCALE hand-tuned on Core i5-6500
 #endif
 
-#include "arch.h"
-#include "md5.h"
-#include "sha.h"
-#include "sha2.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "params.h"
-#include "options.h"
+#include "../arch.h"
+#include "../md5.h"
+#include "../sha.h"
+#include "../sha2.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../params.h"
+#include "../options.h"
 
 #define FORMAT_LABEL            "rsvp"
 #define FORMAT_NAME             "HMAC-MD5 / HMAC-SHA1, RSVP, IS-IS, OMAPI, RNDC, TSIG"

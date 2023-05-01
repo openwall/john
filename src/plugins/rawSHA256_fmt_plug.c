@@ -28,18 +28,18 @@ john_register_one(&fmt_rawSHA256);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha2.h"
-#include "params.h"
-#include "common.h"
-#include "johnswap.h"
-#include "formats.h"
+#include "../arch.h"
+#include "../sha2.h"
+#include "../params.h"
+#include "../common.h"
+#include "../johnswap.h"
+#include "../formats.h"
 /*
  * Only effective for SIMD.
  * Undef to disable reversing steps for benchmarking.
  */
 #define REVERSE_STEPS
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_LABEL            "Raw-SHA256"
 #define FORMAT_NAME             ""
@@ -57,7 +57,7 @@ john_register_one(&fmt_rawSHA256);
 #define PLAINTEXT_LENGTH        125
 #endif
 #define _RAWSHA256_H
-#include "rawSHA256_common.h"
+#include "../rawSHA256_common.h"
 #undef _RAWSHA256_H
 
 #define BINARY_SIZE             4
@@ -78,7 +78,7 @@ john_register_one(&fmt_rawSHA256);
 
 #ifdef SIMD_COEF_32
 #define FMT_IS_BE
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 static uint32_t (*saved_key);
 static uint32_t (*crypt_out);
 #else
@@ -151,12 +151,12 @@ static void *get_binary(char *ciphertext)
 
 #define COMMON_GET_HASH_SIMD32 8
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 #define HASH_IDX ((((unsigned int)index)&(SIMD_COEF_32-1))+(((unsigned int)index)/SIMD_COEF_32)*SIMD_COEF_32*8)
 
 #define NON_SIMD_SET_SAVED_LEN
-#include "common-simd-setkey32.h"
+#include "../common-simd-setkey32.h"
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
@@ -284,7 +284,7 @@ struct fmt_main fmt_rawSHA256 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

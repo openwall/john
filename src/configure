@@ -3576,7 +3576,6 @@ else
 fi
 
 
-CPPFLAGS="$CPPFLAGS -iquote $(pwd) -iquote $(pwd)/modes -iquote $(pwd)/formats -iquote $(pwd)/opencl"
 PLUGINS="./ plugins/"
 
 if test -f GNU?akefile; then

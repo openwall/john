@@ -23,11 +23,11 @@ john_register_one(&fmt_dragonfly4_64);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "sha2.h"
+#include "../arch.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../sha2.h"
 
 #define FORMAT_LABEL_32			"dragonfly4-32"
 #define FORMAT_LABEL_64			"dragonfly4-64"
@@ -161,7 +161,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_key(char *key, int index)
 {
@@ -323,7 +323,7 @@ struct fmt_main fmt_dragonfly4_32 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,
@@ -379,7 +379,7 @@ struct fmt_main fmt_dragonfly4_64 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

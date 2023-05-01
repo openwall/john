@@ -28,7 +28,7 @@
 #include "john.h"
 #include "unicode.h"
 #include "config.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 
 /* List with optional global words to add for every salt */
 struct list_main *single_seed;

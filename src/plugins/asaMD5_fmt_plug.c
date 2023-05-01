@@ -6,7 +6,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 #ifndef DYNAMIC_DISABLED
 
@@ -18,9 +18,9 @@ john_register_one(&fmt_asaMD5);
 
 #include <string.h>
 
-#include "common.h"
-#include "formats.h"
-#include "dynamic.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../dynamic.h"
 
 #define FORMAT_LABEL            "asa-md5"
 #define FORMAT_NAME             "Cisco ASA"

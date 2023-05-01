@@ -33,7 +33,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -51,11 +51,11 @@ john_register_one(&fmt_NETLM);
 #include <omp.h>
 #endif
 
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "memory.h"
-#include "unicode.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../memory.h"
+#include "../unicode.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE            128 // core i7
@@ -326,7 +326,7 @@ static int salt_hash(void *salt)
 }
 
 #define COMMON_GET_HASH_VAR output
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_NETLM = {
 	{
@@ -376,7 +376,7 @@ struct fmt_main fmt_NETLM = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

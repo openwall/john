@@ -19,10 +19,10 @@ john_register_one(&fmt_BFEgg);
 #include <omp.h>
 #endif
 
-#include "misc.h"
-#include "formats.h"
-#include "common.h"
-#include "blowfish.c"
+#include "../misc.h"
+#include "../formats.h"
+#include "../common.h"
+#include "../blowfish.c"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE               256	// MKPC and OMP_SCALE tuned for core i7
@@ -161,7 +161,7 @@ static int cmp_exact(char *source, int index)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -227,7 +227,7 @@ struct fmt_main fmt_BFEgg = {
 	crypt_all,
 	{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 	},
 	    cmp_all,
 	    cmp_one,

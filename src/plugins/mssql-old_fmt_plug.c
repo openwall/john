@@ -16,7 +16,7 @@ john_register_one(&fmt_mssql);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 
 //#undef SIMD_COEF_32
 //#undef SIMD_PARA_SHA1
@@ -30,16 +30,16 @@ john_register_one(&fmt_mssql);
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 
-#include "misc.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "unicode.h"
-#include "sha.h"
-#include "johnswap.h"
+#include "../misc.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../unicode.h"
+#include "../sha.h"
+#include "../johnswap.h"
 
 #define FORMAT_LABEL			"mssql"
 #define FORMAT_NAME			"MS SQL"

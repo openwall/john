@@ -25,7 +25,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -46,17 +46,17 @@ john_register_one(&fmt_krb5_3);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "params.h"
-#include "options.h"
-#include "simd-intrinsics.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "aes.h"
-#include "krb5_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../params.h"
+#include "../options.h"
+#include "../simd-intrinsics.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../aes.h"
+#include "../krb5_common.h"
 
 #define FORMAT_LABEL            "krb5-18"
 #define FORMAT_LABEL_17         "krb5-17"

@@ -33,7 +33,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -50,18 +50,18 @@ john_register_one(&fmt_krb5pa);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "formats.h"
-#include "options.h"
-#include "common.h"
-#include "loader.h"
-#include "unicode.h"
-#include "johnswap.h"
-#include "aes.h"
-#include "hmac_sha.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "krb5_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../common.h"
+#include "../loader.h"
+#include "../unicode.h"
+#include "../johnswap.h"
+#include "../aes.h"
+#include "../hmac_sha.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../krb5_common.h"
 
 #define FORMAT_LABEL       "krb5pa-sha1"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 17/18" /* aes-cts-hmac-sha1-96 */
@@ -319,7 +319,7 @@ static char *get_key(int index)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -478,7 +478,7 @@ struct fmt_main fmt_krb5pa = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

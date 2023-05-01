@@ -21,15 +21,15 @@ john_register_one(&fmt_encfs);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "options.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "misc.h"
-#include "johnswap.h"
-#include "encfs_common.h"
-#include "pbkdf2_hmac_sha1.h"
+#include "../arch.h"
+#include "../options.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../misc.h"
+#include "../johnswap.h"
+#include "../encfs_common.h"
+#include "../pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL        "EncFS"
 #define FORMAT_NAME         ""

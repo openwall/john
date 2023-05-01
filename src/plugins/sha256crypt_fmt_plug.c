@@ -92,13 +92,13 @@ john_register_one(&fmt_cryptsha256);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha2.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
+#include "../arch.h"
+#include "../sha2.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE			2 // This and MKPC tuned for core i7
@@ -157,7 +157,7 @@ john_register_one(&fmt_cryptsha256);
 #endif
 
 #define __CRYPTSHA256_CREATE_PROPER_TESTS_ARRAY__
-#include "sha256crypt_common.h"
+#include "../sha256crypt_common.h"
 
 #define BLKS MIN_KEYS_PER_CRYPT
 
@@ -239,7 +239,7 @@ static void done(void)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_key(char *key, int index)
 {
@@ -936,7 +936,7 @@ struct fmt_main fmt_cryptsha256 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

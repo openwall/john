@@ -27,7 +27,7 @@ john_register_one(&fmt_opencl_solarwinds);
 #include "solarwinds_common.h"
 #include "options.h"
 #include "jumbo.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "misc.h"
 #define OUTLEN                  1024
 #define PLAINTEXT_LENGTH        28
@@ -94,7 +94,7 @@ static const char *warn[] = {
 static int split_events[] = { 2, -1, -1 };
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()

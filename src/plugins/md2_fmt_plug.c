@@ -21,13 +21,13 @@ john_register_one(&fmt_md2_);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sph_md2.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+#include "../arch.h"
+#include "../sph_md2.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
 
 #define FORMAT_LABEL		"MD2"
 #define FORMAT_NAME		""
@@ -124,7 +124,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -223,7 +223,7 @@ struct fmt_main fmt_md2_ = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

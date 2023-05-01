@@ -36,17 +36,17 @@ john_register_one(&fmt_mssql12);
 #include <omp.h>
 #endif
 
-#include "arch.h"
+#include "../arch.h"
 #define REVERSE_STEPS
-#include "misc.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "unicode.h"
-#include "sha2.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
+#include "../misc.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../unicode.h"
+#include "../sha2.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_LABEL            "mssql12"
 #define FORMAT_NAME             "MS SQL 2012/2014"
@@ -344,7 +344,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #define COMMON_GET_HASH_64BIT_HASH
 #define COMMON_GET_HASH_SIMD64 8
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 #define HASH_IDX (((unsigned int)index&(SIMD_COEF_64-1))+(unsigned int)index/SIMD_COEF_64*8*SIMD_COEF_64)
 
@@ -470,7 +470,7 @@ struct fmt_main fmt_mssql12 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

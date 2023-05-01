@@ -18,16 +18,16 @@ john_register_one(&fmt_saltedsha2);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "formats.h"
-#include "options.h"
-#include "johnswap.h"
-#include "common.h"
-#include "sha2.h"
-#include "base64_convert.h"
-#include "simd-intrinsics.h"
-#include "rawSHA512_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../common.h"
+#include "../sha2.h"
+#include "../base64_convert.h"
+#include "../simd-intrinsics.h"
+#include "../rawSHA512_common.h"
 
 #define FORMAT_LABEL                    "SSHA512"
 #define FORMAT_NAME                     "LDAP"
@@ -71,7 +71,7 @@ static struct s_salt *saved_salt;
 #ifdef SIMD_COEF_64
 #define FMT_IS_64BIT
 #define FMT_IS_BE
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 static uint64_t (*saved_key)[SHA_BUF_SIZ*SIMD_COEF_64];
 static uint64_t (*crypt_out)[8*SIMD_COEF_64];
 static uint64_t (**len_ptr64);
@@ -128,7 +128,7 @@ static void done(void)
 }
 
 #define SET_SAVED_LEN
-#include "common-simd-setkey64.h"
+#include "../common-simd-setkey64.h"
 
 static void * get_salt(char * ciphertext)
 {

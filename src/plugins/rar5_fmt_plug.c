@@ -27,16 +27,16 @@ john_register_one(&fmt_rar5);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "johnswap.h"
-#include "sha2.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "rar5_common.h"
-#include "pbkdf2_hmac_sha256.h"
+#include "../arch.h"
+#include "../johnswap.h"
+#include "../sha2.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../rar5_common.h"
+#include "../pbkdf2_hmac_sha256.h"
 
 #define FORMAT_LABEL            "RAR5"
 #define FORMAT_NAME             ""

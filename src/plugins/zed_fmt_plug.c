@@ -18,17 +18,17 @@ john_register_one(&fmt_zed);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "loader.h"
-#include "options.h"
-#include "simd-intrinsics.h"
-#include "pkcs12.h"
-#include "zed_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../loader.h"
+#include "../options.h"
+#include "../simd-intrinsics.h"
+#include "../pkcs12.h"
+#include "../zed_common.h"
 
 #define FORMAT_LABEL            "zed"
 #define FORMAT_NAME             "Prim'X Zed! encrypted archives"

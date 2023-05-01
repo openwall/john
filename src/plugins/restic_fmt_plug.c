@@ -18,14 +18,14 @@ john_register_one(&fmt_restic);
 #include <omp.h>
 #endif
 
-#include "aes.h"
-#include "arch.h"
-#include "base64_convert.h"
-#include "common.h"
-#include "formats.h"
-#include "misc.h"
-#include "poly1305-donna/poly1305-donna.h"
-#include "yescrypt/yescrypt.h"
+#include "../aes.h"
+#include "../arch.h"
+#include "../base64_convert.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../poly1305-donna/poly1305-donna.h"
+#include "../yescrypt/yescrypt.h"
 
 #define FORMAT_NAME "Restic Repository"
 #define FORMAT_LABEL "restic"

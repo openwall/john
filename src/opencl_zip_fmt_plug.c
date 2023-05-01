@@ -23,7 +23,7 @@ john_register_one(&fmt_opencl_zip);
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "pkzip.h"
 #include "dyna_salt.h"
 #include "options.h"
@@ -76,7 +76,7 @@ static size_t saltsize, datasize;
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static const char *warn[] = {
 	"xfer: ",  ", crypt: ",  ", final: ",  ", xfer: "

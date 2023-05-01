@@ -49,7 +49,7 @@
 #include "unicode.h"
 #include "config.h"
 #include "gpu_common.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "mask.h"
 #include "mask_ext.h"
 #include "aligned.h"

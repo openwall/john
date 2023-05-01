@@ -27,7 +27,7 @@ john_register_one(&fmt_opencl_axcrypt);
 #include "params.h"
 #include "common.h"
 #include "formats.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "options.h"
 #include "axcrypt_common.h"
 #define VERSION_1_SUPPORT 1
@@ -81,7 +81,7 @@ static size_t insize, outsize, settingsize;
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static const char *warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "

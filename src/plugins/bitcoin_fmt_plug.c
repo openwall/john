@@ -31,17 +31,17 @@ john_register_one(&fmt_bitcoin);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "sha2.h"
-#include "aes.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
-#include "jumbo.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sha2.h"
+#include "../aes.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
+#include "../jumbo.h"
 
 #define FORMAT_LABEL            "Bitcoin"
 #define FORMAT_NAME             "Bitcoin Core"

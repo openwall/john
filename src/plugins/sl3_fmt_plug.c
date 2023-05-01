@@ -24,16 +24,16 @@ john_register_one(&fmt_sl3);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "formats.h"
-#include "options.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
-#include "common.h"
-#include "sha.h"
-#include "sl3_common.h"
-#include "base64_convert.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
+#include "../common.h"
+#include "../sha.h"
+#include "../sl3_common.h"
+#include "../base64_convert.h"
 
 #define FORMAT_LABEL        "SL3"
 #define ALGORITHM_NAME      "SHA1 " SHA1_ALGORITHM_NAME
@@ -264,7 +264,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #define COMMON_GET_HASH_SIMD32 5
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_sl3 = {
 	{
@@ -314,7 +314,7 @@ struct fmt_main fmt_sl3 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

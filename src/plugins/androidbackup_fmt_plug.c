@@ -25,15 +25,15 @@ john_register_one(&fmt_ab);
 
 #define OMP_SCALE               4  // tuned on i7-7820HQ
 
-#include "formats.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
-#include "sha2.h"
-#include "aes.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "androidbackup_common.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sha2.h"
+#include "../aes.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../androidbackup_common.h"
 
 #define FORMAT_LABEL            "AndroidBackup"
 #define FORMAT_NAME             ""

@@ -27,21 +27,21 @@ john_register_one(&fmt_bitlocker);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "unicode.h"
-#include "options.h"
-#include "johnswap.h"
-#include "aes.h"
-#include "aes_ccm.h"
-#include "sha2.h"
-#include "jumbo.h"
-#include "bitlocker_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../unicode.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../aes.h"
+#include "../aes_ccm.h"
+#include "../sha2.h"
+#include "../jumbo.h"
+#include "../bitlocker_common.h"
 #define CPU_FORMAT              1
-#include "bitlocker_variable_code.h"
+#include "../bitlocker_variable_code.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE               1	// MKPC and OMP_SCALE tuned for core i7

@@ -18,7 +18,7 @@ john_register_one(&fmt_rawMD4);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 
 
 #if !FAST_FORMATS_OMP
@@ -28,12 +28,12 @@ john_register_one(&fmt_rawMD4);
 #include <omp.h>
 #endif
 
-#include "md4.h"
-#include "common.h"
-#include "johnswap.h"
-#include "formats.h"
+#include "../md4.h"
+#include "../common.h"
+#include "../johnswap.h"
+#include "../formats.h"
 #define REVERSE_STEPS
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE				16
@@ -92,7 +92,7 @@ static struct fmt_tests tests[] = {
 #define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		(NBKEYS * 32)
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -226,7 +226,7 @@ static char *source(char *source, void *binary)
 }
 
 #define NON_SIMD_SET_SAVED_LEN
-#include "common-simd-setkey32.h"
+#include "../common-simd-setkey32.h"
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS

@@ -21,19 +21,19 @@ john_register_one(&fmt_ethereum);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
 #define PBKDF2_HMAC_SHA256_VARYING_SALT 1
-#include "pbkdf2_hmac_sha256.h"
-#include "ethereum_common.h"
-#include "yescrypt/yescrypt.h"
-#include "KeccakHash.h"
-#include "aes.h"
-#include "jumbo.h"
+#include "../pbkdf2_hmac_sha256.h"
+#include "../ethereum_common.h"
+#include "../yescrypt/yescrypt.h"
+#include "../KeccakHash.h"
+#include "../aes.h"
+#include "../jumbo.h"
 
 #define FORMAT_NAME             "Ethereum Wallet"
 #define FORMAT_LABEL            "ethereum"

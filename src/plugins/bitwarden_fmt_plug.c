@@ -24,16 +24,16 @@ john_register_one(&fmt_bitwarden);
 
 #define OMP_SCALE               1  // MKPC and OMP_SCALE tuned on Core i7-6600U
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "jumbo.h"
-#include "aes.h"
-#include "pbkdf2_hmac_sha256.h"
-#include "bitwarden_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../jumbo.h"
+#include "../aes.h"
+#include "../pbkdf2_hmac_sha256.h"
+#include "../bitwarden_common.h"
 
 #define FORMAT_LABEL            "Bitwarden"
 #ifdef SIMD_COEF_32

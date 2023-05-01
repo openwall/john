@@ -18,7 +18,7 @@
  *
  */
 
-#include "arch.h"
+#include "../arch.h"
 
 #if defined(SIMD_COEF_32) && !ARCH_LITTLE_ENDIAN
 	#undef SIMD_COEF_32
@@ -41,12 +41,12 @@ john_register_one(&fmt_CompiledDynamic);
 
 #include <string.h>
 
-#include "common.h"
-#include "formats.h"
-#include "dynamic.h"
-#include "dynamic_compiler.h"
-#include "dynamic_types.h"
-#include "options.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../dynamic.h"
+#include "../dynamic_compiler.h"
+#include "../dynamic_types.h"
+#include "../options.h"
 
 #define FORMAT_LABEL		"dynamic="
 #define FORMAT_NAME			""

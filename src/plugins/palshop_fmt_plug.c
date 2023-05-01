@@ -20,15 +20,15 @@ john_register_one(&fmt_palshop);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha.h"
-#include "md5.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "base64_convert.h"
+#include "../arch.h"
+#include "../sha.h"
+#include "../md5.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../base64_convert.h"
 
 #define FORMAT_LABEL            "Palshop"
 #define FORMAT_NAME             "MD5(Palshop)"
@@ -129,7 +129,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -269,7 +269,7 @@ struct fmt_main fmt_palshop = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

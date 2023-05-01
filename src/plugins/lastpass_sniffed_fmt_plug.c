@@ -25,16 +25,16 @@ john_register_one(&fmt_sniffed_lastpass);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "johnswap.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "aes.h"
-#include "base64_convert.h"
-#include "pbkdf2_hmac_sha256.h"
+#include "../arch.h"
+#include "../johnswap.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../aes.h"
+#include "../base64_convert.h"
+#include "../pbkdf2_hmac_sha256.h"
 
 #define FORMAT_LABEL            "LastPass"
 #define FORMAT_NAME             "sniffed sessions"
@@ -219,7 +219,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 }
 
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int cmp_all(void *binary, int count) {
 	int index;
@@ -309,7 +309,7 @@ struct fmt_main fmt_sniffed_lastpass = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

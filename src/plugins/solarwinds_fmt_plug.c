@@ -31,18 +31,18 @@ john_register_one(&fmt_solarwinds);
 
 #define OMP_SCALE               1  // MKPC and OMP_SCALE tuned on Core i5-6500
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "sha.h"
-#include "sha2.h"
-#include "jumbo.h"
-#include "johnswap.h"
-#include "solarwinds_common.h"
-#include "pbkdf2_hmac_sha1.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sha.h"
+#include "../sha2.h"
+#include "../jumbo.h"
+#include "../johnswap.h"
+#include "../solarwinds_common.h"
+#include "../pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL         "solarwinds"
 #ifdef SIMD_COEF_32

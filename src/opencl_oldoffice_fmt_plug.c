@@ -21,7 +21,7 @@ john_register_one(&FORMAT_STRUCT);
 #include <string.h>
 
 #include "arch.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -120,7 +120,7 @@ static struct fmt_main *self;
 #define SEED			1024
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static const char *warn[] = {
 	"xP: ",  ", xI: ",  ", crypt: ",  ", xR: "

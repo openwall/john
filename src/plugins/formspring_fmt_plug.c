@@ -18,7 +18,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 #ifndef DYNAMIC_DISABLED
 
@@ -30,10 +30,10 @@ john_register_one(&fmt_FORMSPRING);
 
 #include <string.h>
 
-#include "common.h"
-#include "formats.h"
-#include "dynamic.h"
-#include "options.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../dynamic.h"
+#include "../options.h"
 
 #define FORMAT_LABEL		"FormSpring"
 #define FORMAT_NAME		"" /* sha256($salt.$pass) */

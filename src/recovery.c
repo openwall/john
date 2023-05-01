@@ -59,7 +59,7 @@
 #include "john_mpi.h"
 #include "signals.h"
 #include "jumbo.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 
 char *rec_name = RECOVERY_NAME;
 int rec_name_completed = 0;

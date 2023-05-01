@@ -12,7 +12,7 @@
 #include <fcntl.h>
 
 #include "arch.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "../run/opencl/opencl_DES_hst_dev_shared.h"
 #include "loader.h"
 

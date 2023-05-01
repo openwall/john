@@ -51,15 +51,15 @@ john_register_one(&fmt_NETLMv2);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "unicode.h"
-#include "md5.h"
-#include "hmacmd5.h"
-#include "byteorder.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../unicode.h"
+#include "../md5.h"
+#include "../hmacmd5.h"
+#include "../byteorder.h"
 
 #define FORMAT_LABEL         "netlmv2"
 #define FORMAT_NAME          "LMv2 C/R"
@@ -386,7 +386,7 @@ static int salt_hash(void *salt)
 }
 
 #define COMMON_GET_HASH_VAR output
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_NETLMv2 = {
 	{
@@ -436,7 +436,7 @@ struct fmt_main fmt_NETLMv2 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

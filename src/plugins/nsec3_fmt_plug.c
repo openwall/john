@@ -40,11 +40,11 @@ john_register_one(&fmt_nsec3);
 #define OMP_SCALE           4
 #endif
 
-#include "sha.h"
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
+#include "../sha.h"
+#include "../arch.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
 
 #define FORMAT_LABEL                    "nsec3"
 #define FORMAT_NAME                     "DNSSEC NSEC3"

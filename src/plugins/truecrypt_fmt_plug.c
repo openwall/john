@@ -34,7 +34,7 @@
 #include <omp.h>
 #endif
 
-#include "arch.h"
+#include "../arch.h"
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_truecrypt;
@@ -50,18 +50,18 @@ john_register_one(&fmt_truecrypt_sha512);
 john_register_one(&fmt_truecrypt_whirlpool);
 #else
 
-#include "xts.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "crc32.h"
-#include "johnswap.h"
-#include "loader.h"
-#include "pbkdf2_hmac_sha512.h"
-#include "pbkdf2_hmac_ripemd160.h"
-#include "pbkdf2_hmac_whirlpool.h"
-#include "john.h"
+#include "../xts.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../crc32.h"
+#include "../johnswap.h"
+#include "../loader.h"
+#include "../pbkdf2_hmac_sha512.h"
+#include "../pbkdf2_hmac_ripemd160.h"
+#include "../pbkdf2_hmac_whirlpool.h"
+#include "../john.h"
 
 /* 64 is the actual maximum used by Truecrypt software as of version 7.1a */
 #define PLAINTEXT_LENGTH        64

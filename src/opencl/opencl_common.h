@@ -35,15 +35,15 @@
 #error We need minimum OpenCL 1.2 to build with OpenCL support. The headers currently used does not comply.
 #endif
 
-#include "gpu_common.h"
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "path.h"
-#include "timer.h"
-#include "../run/opencl/opencl_device_info.h"
+#include "../gpu_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../path.h"
+#include "../timer.h"
+#include "../../run/opencl/opencl_device_info.h"
 
 #define MAX_PLATFORMS   8
 #define MAX_EVENTS      0x3f

@@ -22,12 +22,12 @@ john_register_one(&fmt_netah);
 
 #define OMP_SCALE               128  // MKPC and OMP_SCALE tuned on Core i5-6500
 
-#include "formats.h"
-#include "hmacmd5.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
+#include "../formats.h"
+#include "../hmacmd5.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
 
 #define FORMAT_LABEL            "net-ah"
 #define FORMAT_NAME             "IPsec AH HMAC-MD5-96"

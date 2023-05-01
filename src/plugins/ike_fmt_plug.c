@@ -59,13 +59,13 @@ john_register_one(&fmt_ike);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "ike-crack.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../ike-crack.h"
 
 #define FORMAT_LABEL            "IKE"
 #define FORMAT_NAME             "PSK"

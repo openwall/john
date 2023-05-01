@@ -8,7 +8,7 @@
  *
  */
 
-#include "arch.h" /* Needed for USE_EXPERIMENTAL as well as FAST_FORMATS_OMP */
+#include "../arch.h" /* Needed for USE_EXPERIMENTAL as well as FAST_FORMATS_OMP */
 #if USE_EXPERIMENTAL
 
 #if FMT_EXTERNS_H
@@ -26,10 +26,10 @@ john_register_one(&fmt_rawMD5f);
 #include <omp.h>
 #endif
 
-#include "md5.h"
-#include "common.h"
-#include "formats.h"
-#include "simd-intrinsics.h"
+#include "../md5.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../simd-intrinsics.h"
 
 #ifndef OMP_SCALE
 #ifdef SIMD_COEF_32

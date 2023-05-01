@@ -37,7 +37,7 @@ john_register_one(&FMT_STRUCT);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "config.h"
 #include "unicode.h"
 #include "loader.h"
@@ -130,7 +130,7 @@ static const char *warn[] = {
 };
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()

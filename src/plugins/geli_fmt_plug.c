@@ -20,17 +20,17 @@ john_register_one(&fmt_geli);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "hmac_sha.h"
-#include "aes.h"
-#include "pbkdf2_hmac_sha512.h"
-#include "jumbo.h"
-#include "geli_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../hmac_sha.h"
+#include "../aes.h"
+#include "../pbkdf2_hmac_sha512.h"
+#include "../jumbo.h"
+#include "../geli_common.h"
 
 #define FORMAT_LABEL            "geli"
 #define FORMAT_NAME             "FreeBSD GELI"

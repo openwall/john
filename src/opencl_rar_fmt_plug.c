@@ -73,7 +73,7 @@ john_register_one(&fmt_opencl_rar);
 #include "unicode.h"
 #include "johnswap.h"
 #include "unrar.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "config.h"
 #include "jumbo.h"
 
@@ -113,7 +113,7 @@ static int split_events[] = { 3, -1, -1 };
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 #define ITERATIONS		0x40000
 #define HASH_LOOPS		0x4000 // Max. 0x4000

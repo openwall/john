@@ -31,7 +31,7 @@ john_register_one(&fmt_opencl_odf_aes);
 #include "options.h"
 #include "aes.h"
 #include "odf_common.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 
 #define FORMAT_LABEL            "ODF-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA1 BF/AES OpenCL"
@@ -82,7 +82,7 @@ static struct custom_salt *cur_salt;
 static struct fmt_main *self;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static const char * warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "

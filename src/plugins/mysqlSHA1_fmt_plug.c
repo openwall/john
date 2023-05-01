@@ -34,18 +34,18 @@ john_register_one(&fmt_mysqlSHA1);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "sha.h"
-#include "johnswap.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../sha.h"
+#include "../johnswap.h"
 
 #define FORMAT_LABEL			"mysql-sha1"
 #define FORMAT_NAME			"MySQL 4.1+"
@@ -68,7 +68,7 @@ john_register_one(&fmt_mysqlSHA1);
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define FMT_IS_BE
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 
 #else
 
@@ -154,7 +154,7 @@ static void init(struct fmt_main *self)
 }
 
 #define NON_SIMD_SINGLE_SAVED_KEY
-#include "common-simd-setkey32.h"
+#include "../common-simd-setkey32.h"
 
 static int cmp_all(void *binary, int count) {
 #ifdef SIMD_COEF_32
@@ -249,7 +249,7 @@ static void *get_binary(char *ciphertext)
 
 #define COMMON_GET_HASH_SIMD32 5
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_mysqlSHA1 = {
 	{
@@ -299,7 +299,7 @@ struct fmt_main fmt_mysqlSHA1 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

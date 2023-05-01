@@ -33,7 +33,7 @@ john_register_one(&fmt_opencl_sspr);
 #include "formats.h"
 #include "misc.h"
 #include "options.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "sspr_common.h"
 
 #define FORMAT_LABEL            "sspr-opencl"
@@ -92,7 +92,7 @@ static int new_keys;
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 /*
  * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should

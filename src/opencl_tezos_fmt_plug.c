@@ -29,7 +29,7 @@ john_register_one(&fmt_opencl_tezos);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "tezos_common.h"
 #include "johnswap.h"
 #include "pbkdf2_hmac_common.h"
@@ -106,7 +106,7 @@ static const char *warn[] = {
 static int split_events[] = { 2, -1, -1 };
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static size_t final_kernel_max_lws;
 

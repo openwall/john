@@ -22,14 +22,14 @@ john_register_one(&fmt_pgpwde);
 
 #define OMP_SCALE               16  // MKPC and OMP_SCALE tuned on Core i7-6600U
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "loader.h"
-#include "pgpwde_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../loader.h"
+#include "../pgpwde_common.h"
 
 #define FORMAT_LABEL            "pgpwde"
 #define ALGORITHM_NAME          "S2K-SHA1 " ARCH_BITS_STR

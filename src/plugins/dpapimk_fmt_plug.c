@@ -15,7 +15,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -35,24 +35,24 @@ john_register_one(&fmt_DPAPImk);
 
 #include <assert.h>
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "unicode.h"
-#include "aes.h"
-#include "sha.h"
-#include "md4.h"
-#include "hmac_sha.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../unicode.h"
+#include "../aes.h"
+#include "../sha.h"
+#include "../md4.h"
+#include "../hmac_sha.h"
 
 #define DPAPI_CRAP_LOGIC
 
-#include "pbkdf2_hmac_sha512.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "pbkdf2_hmac_sha256.h"
+#include "../pbkdf2_hmac_sha512.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../pbkdf2_hmac_sha256.h"
 
 #define FORMAT_LABEL            "DPAPImk"
 #define FORMAT_TAG              "$DPAPImk$"

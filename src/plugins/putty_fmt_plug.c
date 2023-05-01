@@ -23,15 +23,15 @@ john_register_one(&fmt_putty);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "misc.h"
-#include "aes.h"
-#include "sha.h"
-#include "hmac_sha.h"
-#include "loader.h"
+#include "../arch.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../aes.h"
+#include "../sha.h"
+#include "../hmac_sha.h"
+#include "../loader.h"
 
 #define FORMAT_LABEL        "PuTTY"
 #define FORMAT_NAME         "Private Key (RSA/DSA/ECDSA/ED25519)"

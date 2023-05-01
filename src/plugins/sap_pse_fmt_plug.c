@@ -12,7 +12,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -32,15 +32,15 @@ john_register_one(&fmt_sappse);
 
 #define OMP_SCALE               2  // tuned on i7-7820HQ
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "loader.h"
-#include "sap_pse_common.h"
-#include "simd-intrinsics.h"
-#include "pkcs12.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../loader.h"
+#include "../sap_pse_common.h"
+#include "../simd-intrinsics.h"
+#include "../pkcs12.h"
 
 #define FORMAT_LABEL            "sappse"
 #define FORMAT_NAME             "SAP PSE"

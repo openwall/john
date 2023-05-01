@@ -26,15 +26,15 @@ john_register_one(&fmt_snmp);
 
 #define OMP_SCALE               2  // Tuned w/ MKPC for core i7
 
-#include "formats.h"
-#include "md5.h"
-#include "hmacmd5.h"
-#include "sha.h"
-#include "hmac_sha.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
+#include "../formats.h"
+#include "../md5.h"
+#include "../hmacmd5.h"
+#include "../sha.h"
+#include "../hmac_sha.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
 
 #define FORMAT_LABEL            "SNMP"
 #define FORMAT_NAME             "SNMPv3 USM"

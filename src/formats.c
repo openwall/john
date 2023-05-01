@@ -29,7 +29,7 @@
 #include "john.h"
 
 /* this is just for advance_cursor() */
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "jumbo.h"
 #include "bench.h"
 #include "omp_autotune.h"

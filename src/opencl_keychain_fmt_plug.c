@@ -25,7 +25,7 @@ john_register_one(&fmt_opencl_keychain);
 #include "options.h"
 #include "jumbo.h"
 #include "keychain_common.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 
 #define FORMAT_LABEL            "keychain-opencl"
 #define FORMAT_TAG              "$keychain$*"
@@ -85,7 +85,7 @@ static int new_keys;
 #define SEED                    256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static const char * warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "

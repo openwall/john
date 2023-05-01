@@ -15,7 +15,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 #ifndef DYNAMIC_DISABLED
 
@@ -33,13 +33,13 @@ john_register_one(&fmt_netmd5);
 #endif
 #endif
 
-#include "formats.h"
-#include "dynamic.h"
-#include "md5.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
+#include "../formats.h"
+#include "../dynamic.h"
+#include "../md5.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
 
 
 #define FORMAT_LABEL            "net-md5"

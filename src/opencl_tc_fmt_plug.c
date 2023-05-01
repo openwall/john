@@ -30,7 +30,7 @@ john_register_one(&FMT_STRUCT);
 #include "aes.h"
 #include "pbkdf2_hmac_ripemd160.h"
 #include "loader.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 
 #define FORMAT_LABEL            "TrueCrypt-opencl"
 #define FORMAT_NAME             ""
@@ -105,7 +105,7 @@ static size_t insize, outsize, settingsize;
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static const char * warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "

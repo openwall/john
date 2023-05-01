@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_o5logon);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 
 #define FORMAT_LABEL            "o5logon-opencl"
 #define FORMAT_NAME             "Oracle O5LOGON protocol"
@@ -93,7 +93,7 @@ static unsigned int *saved_plain, *saved_idx;
 static unsigned int key_idx;
 static struct fmt_main *self;
 
-#include "opencl_autotune.h" // Must come after auto-tune definitions
+#include "opencl/opencl_autotune.h" // Must come after auto-tune definitions
 
 static size_t get_task_max_work_group_size()
 {

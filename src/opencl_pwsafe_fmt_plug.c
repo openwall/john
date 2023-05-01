@@ -31,7 +31,7 @@ john_register_one(&fmt_opencl_pwsafe);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "pwsafe_common.h"
 #include "memory.h"
 
@@ -58,7 +58,7 @@ static const char * warn[] = {
 	", final: "  ,  ", result xfer: "
 };
 
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 cl_kernel init_kernel;
 cl_kernel finish_kernel;

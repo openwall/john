@@ -10,7 +10,7 @@
 #ifndef _JOHN_INC_H
 #define _JOHN_INC_H
 
-#include "loader.h"
+#include "../loader.h"
 
 /*
  * Runs the incremental mode cracker.

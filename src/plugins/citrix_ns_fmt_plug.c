@@ -42,18 +42,18 @@ john_register_one(&fmt_ctrxns);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "formats.h"
-#include "options.h"
-#include "johnswap.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../johnswap.h"
 
 #ifdef SIMD_COEF_32
 #define NBKEYS  (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "simd-intrinsics.h"
-#include "common.h"
-#include "sha.h"
+#include "../simd-intrinsics.h"
+#include "../common.h"
+#include "../sha.h"
 
 #define FORMAT_LABEL                    "Citrix_NS10"
 #define FORMAT_NAME                     "Netscaler 10"
@@ -74,7 +74,7 @@ john_register_one(&fmt_ctrxns);
 #define MIN_KEYS_PER_CRYPT              NBKEYS
 #define MAX_KEYS_PER_CRYPT              (NBKEYS * 256)
 #define FMT_IS_BE
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 #else
 #define MIN_KEYS_PER_CRYPT              1
 #define MAX_KEYS_PER_CRYPT              256
@@ -174,7 +174,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 // this is a salt appended format. It also 'keeps' the trailing null byte.
 #define SALT_PREPENDED SALT_SIZE
 #define INCLUDE_TRAILING_NULL
-#include "common-simd-setkey32.h"
+#include "../common-simd-setkey32.h"
 
 static void *get_salt(char *ciphertext)
 {
@@ -285,7 +285,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #define COMMON_GET_HASH_SIMD32 5
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -340,7 +340,7 @@ struct fmt_main fmt_ctrxns = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

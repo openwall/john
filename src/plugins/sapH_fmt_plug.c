@@ -30,14 +30,14 @@ john_register_one(&fmt_sapH);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "base64_convert.h"
-#include "sha.h"
-#include "sha2.h"
-#include "johnswap.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../base64_convert.h"
+#include "../sha.h"
+#include "../sha2.h"
+#include "../johnswap.h"
 
 /*
  * Assumption is made that SIMD_COEF_32*SIMD_PARA_SHA1 is >= than
@@ -67,7 +67,7 @@ john_register_one(&fmt_sapH);
 // the least common multiple of the NBKEYS* above
 #define NBKEYS (SIMD_COEF_32*SIMD_PARA_SHA1*SIMD_PARA_SHA256*SIMD_PARA_SHA512)
 
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_LABEL            "saph"
 #define FORMAT_NAME             "SAP CODVN H (PWDSALTEDHASH)"
@@ -690,7 +690,7 @@ static void *get_salt(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -772,7 +772,7 @@ struct fmt_main fmt_sapH = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -31,11 +31,11 @@ john_register_one(&fmt_PO);
 
 #include <string.h>
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "md5.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../md5.h"
 
 #define FORMAT_LABEL			"po"
 #define FORMAT_NAME			"Post.Office"
@@ -82,7 +82,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 }
 
 #define COMMON_GET_HASH_VAR MD5_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -214,7 +214,7 @@ struct fmt_main fmt_PO = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

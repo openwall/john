@@ -19,15 +19,15 @@ john_register_one(&fmt_zipmonster);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha.h"
-#include "md5.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "simd-intrinsics.h"
+#include "../arch.h"
+#include "../sha.h"
+#include "../md5.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_LABEL            "ZipMonster"
 #define FORMAT_NAME             "MD5(ZipMonster)"
@@ -156,7 +156,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 #ifndef SIMD_COEF_32
 inline static void hex_encode_uppercase(unsigned char *str, unsigned char *_out)
@@ -365,7 +365,7 @@ struct fmt_main fmt_zipmonster = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

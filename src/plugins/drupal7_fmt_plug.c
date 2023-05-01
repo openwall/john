@@ -25,14 +25,14 @@ john_register_one(&fmt_drupal7);
 #include <omp.h>
 #endif
 
-#include "sha2.h"
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
-#include "drupal7_common.h"
+#include "../sha2.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
+#include "../drupal7_common.h"
 
 #define FORMAT_LABEL			"Drupal7"
 #define ALGORITHM_NAME			"SHA512 " SHA512_ALGORITHM_NAME
@@ -196,7 +196,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 }
 
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_drupal7 = {
 	{
@@ -251,7 +251,7 @@ struct fmt_main fmt_drupal7 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

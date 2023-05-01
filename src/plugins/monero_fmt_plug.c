@@ -13,7 +13,7 @@
 #define ARCH_LITTLE_ENDIAN 1
 #endif
 #endif
-#include "arch.h"
+#include "../arch.h"
 #if ARCH_LITTLE_ENDIAN
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_monero;
@@ -29,13 +29,13 @@ john_register_one(&fmt_monero);
 
 #define OMP_SCALE               1  // MKPC and OMP_SCALE tuned on i5-6500 CPU
 
-#include "formats.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
-#include "chacha.h"
-#include "slow_hash.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
+#include "../chacha.h"
+#include "../slow_hash.h"
 
 #define FORMAT_LABEL            "monero"
 #define FORMAT_NAME             "monero Wallet"

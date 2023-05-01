@@ -28,7 +28,7 @@ john_register_one(&fmt_MYSQL_fast);
 #include <stdlib.h>
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
@@ -36,9 +36,9 @@ john_register_one(&fmt_MYSQL_fast);
 #include <omp.h>
 #endif
 
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
 
 #ifdef __MIC__
 #ifndef OMP_SCALE
@@ -249,7 +249,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 }
 
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_MYSQL_fast =
 {
@@ -303,7 +303,7 @@ struct fmt_main fmt_MYSQL_fast =
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -16,7 +16,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -32,11 +32,11 @@ john_register_one(&fmt_KRB5);
 #include <string.h>
 #include <openssl/des.h>
 
-#include "arch.h"
-#include "misc.h"
-#include "formats.h"
-#include "memory.h"
-#include "KRB5_std.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../formats.h"
+#include "../memory.h"
+#include "../KRB5_std.h"
 
 #define MAGIC_PREFIX        "$krb5$"
 #define MAGIC_PREFIX_LEN    (sizeof(MAGIC_PREFIX)-1)

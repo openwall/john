@@ -25,7 +25,7 @@ john_register_one(&fmt_opencl_ethereum);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 
 #define FORMAT_NAME             "Ethereum Wallet"
 #define FORMAT_LABEL            "ethereum-opencl"
@@ -84,7 +84,7 @@ static const char * warn[] = {
 static int split_events[] = { 2, -1, -1 };
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static void release_clobj(void);
 

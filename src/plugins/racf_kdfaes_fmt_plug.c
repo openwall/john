@@ -10,7 +10,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -30,16 +30,16 @@ john_register_one(&fmt_racf_kdfaes);
 
 #define OMP_SCALE               1
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "aes.h"
-#include "sha2.h"
-#include "hmac_sha.h"
-#include "memory.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../aes.h"
+#include "../sha2.h"
+#include "../hmac_sha.h"
+#include "../memory.h"
 
 #define FORMAT_LABEL            "RACF-KDFAES"
 #define FORMAT_NAME             ""
@@ -276,7 +276,7 @@ static int salt_hash(void *salt)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -476,7 +476,7 @@ struct fmt_main fmt_racf_kdfaes = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

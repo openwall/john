@@ -15,21 +15,21 @@ john_register_one(&fmt_rawmd5uthick);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 
 #ifdef SIMD_COEF_32
 #define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD5)
 #endif
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 
-#include "md5.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "unicode.h"
-#include "memory.h"
-#include "johnswap.h"
+#include "../md5.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../unicode.h"
+#include "../memory.h"
+#include "../johnswap.h"
 
 #define FORMAT_LABEL			"Raw-MD5u"
 #define FORMAT_NAME			""
@@ -541,7 +541,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #define COMMON_GET_HASH_SIMD32 4
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_rawmd5uthick = {
 	{
@@ -594,7 +594,7 @@ struct fmt_main fmt_rawmd5uthick = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

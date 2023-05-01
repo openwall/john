@@ -19,14 +19,14 @@ john_register_one(&fmt_argon2);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "argon2.h"
-#include "argon2_core.h"
-#include "argon2_encoding.h"
+#include "../arch.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../argon2.h"
+#include "../argon2_core.h"
+#include "../argon2_encoding.h"
 
 #define FORMAT_LABEL            "argon2"
 #define FORMAT_NAME             ""
@@ -364,7 +364,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 }
 
 #define COMMON_GET_HASH_VAR crypted
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *_salt)
 {
@@ -477,7 +477,7 @@ struct fmt_main fmt_argon2 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -20,17 +20,17 @@ john_register_one(&fmt_pdf);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "misc.h"
-#include "md5.h"
-#include "aes.h"
-#include "sha2.h"
-#include "rc4.h"
-#include "pdfcrack_md5.h"
-#include "loader.h"
+#include "../arch.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../md5.h"
+#include "../aes.h"
+#include "../sha2.h"
+#include "../rc4.h"
+#include "../pdfcrack_md5.h"
+#include "../loader.h"
 
 #define FORMAT_LABEL        "PDF"
 #define FORMAT_NAME         ""

@@ -29,14 +29,14 @@ john_register_one(&fmt_pbkdf2_hmac_sha512);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "sha2.h"
-#include "johnswap.h"
-#include "pbkdf2_hmac_common.h"
-#include "pbkdf2_hmac_sha512.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../sha2.h"
+#include "../johnswap.h"
+#include "../pbkdf2_hmac_common.h"
+#include "../pbkdf2_hmac_sha512.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-SHA512"
 #define FORMAT_NAME             "GRUB2 / OS X 10.8+"
@@ -124,7 +124,7 @@ static void set_salt(void *salt)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -252,7 +252,7 @@ struct fmt_main fmt_pbkdf2_hmac_sha512 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

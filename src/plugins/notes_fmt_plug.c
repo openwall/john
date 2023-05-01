@@ -20,17 +20,17 @@ john_register_one(&fmt_notes);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "aes.h"
-#include "jumbo.h"
-#include "johnswap.h"
-#include "notes_common.h"
-#include "pbkdf2_hmac_sha256.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../aes.h"
+#include "../jumbo.h"
+#include "../johnswap.h"
+#include "../notes_common.h"
+#include "../pbkdf2_hmac_sha256.h"
 
 #define FORMAT_LABEL            "notes"
 #ifdef SIMD_COEF_32

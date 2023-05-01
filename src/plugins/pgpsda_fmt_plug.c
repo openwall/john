@@ -9,7 +9,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -29,15 +29,15 @@ john_register_one(&fmt_pgpsda);
 
 #define OMP_SCALE               16  // MKPC and OMP_SCALE tuned on Core i7-6600U
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "sha.h"
-#include "loader.h"
-#include "pgpsda_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../sha.h"
+#include "../loader.h"
+#include "../pgpsda_common.h"
 
 #define FORMAT_LABEL            "pgpsda"
 #define ALGORITHM_NAME          "SHA1 " ARCH_BITS_STR

@@ -10,7 +10,7 @@
  * Special thanks goes to Robin Lambertz for making this work possible.
  */
 
-#include "arch.h"
+#include "../arch.h"
 #if !AC_BUILT && !__MIC__
 #define HAVE_LIBZ 1 /* legacy build has -lz in LDFLAGS */
 #endif
@@ -29,18 +29,18 @@ john_register_one(&fmt_dashlane);
 #include <omp.h>
 #endif
 
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "aes.h"
-#include "sha2.h"
-#include "jumbo.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "dashlane_common.h"
-#include "openssl_code.h"
-#include "hmac_sha.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../aes.h"
+#include "../sha2.h"
+#include "../jumbo.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../dashlane_common.h"
+#include "../openssl_code.h"
+#include "../hmac_sha.h"
 
 #define FORMAT_NAME             "Dashlane Password Manager"
 #define FORMAT_LABEL            "dashlane"

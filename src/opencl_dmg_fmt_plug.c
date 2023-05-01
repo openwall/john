@@ -23,7 +23,7 @@ john_register_one(&fmt_opencl_dmg);
 #include "jumbo.h"
 #include "loader.h"
 #include "dmg_common.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "sha.h"
 #define OUTLEN 32
 #define PLAINTEXT_LENGTH	125
@@ -96,7 +96,7 @@ static const char * warn[] = {
 static int split_events[] = { 2, -1, -1 };
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()

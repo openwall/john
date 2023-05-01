@@ -26,7 +26,7 @@ john_register_one(&fmt_luks);
 #else
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #else
 #define _LARGEFILE64_SOURCE 1
 #endif
@@ -40,22 +40,22 @@ john_register_one(&fmt_luks);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "johnswap.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "memory.h"
-#include "jumbo.h" // large file support
-#include "os.h"
-#include "aes.h"
-#include "sha.h"
-#include "sha2.h"
-#include "base64_convert.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "dyna_salt.h"
+#include "../arch.h"
+#include "../johnswap.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../memory.h"
+#include "../jumbo.h" // large file support
+#include "../os.h"
+#include "../aes.h"
+#include "../sha.h"
+#include "../sha2.h"
+#include "../base64_convert.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../dyna_salt.h"
 
 #define LUKS_MAGIC_L        6
 #define LUKS_CIPHERNAME_L   32
@@ -96,7 +96,7 @@ john_register_one(&fmt_luks);
 #define MAX_KEYS_PER_CRYPT  1
 #endif
 
-#include "luks_insane_tests.h"
+#include "../luks_insane_tests.h"
 
 /* taken from LUKS on disk format specification */
 struct luks_phdr {

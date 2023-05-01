@@ -23,17 +23,17 @@ john_register_one(&fmt_fvde);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "johnswap.h"
-#include "aes.h"
-#include "pbkdf2_hmac_sha256.h"
-#include "jumbo.h"
-#include "fvde_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../aes.h"
+#include "../pbkdf2_hmac_sha256.h"
+#include "../jumbo.h"
+#include "../fvde_common.h"
 
 #define FORMAT_LABEL            "FVDE"
 #define FORMAT_NAME             "FileVault 2"

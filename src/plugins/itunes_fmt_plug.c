@@ -23,17 +23,17 @@ john_register_one(&fmt_itunes);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "johnswap.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "pbkdf2_hmac_sha256.h"
-#include "jumbo.h"
-#include "itunes_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../pbkdf2_hmac_sha256.h"
+#include "../jumbo.h"
+#include "../itunes_common.h"
 
 #define FORMAT_LABEL            "itunes-backup"
 #ifdef SIMD_COEF_32

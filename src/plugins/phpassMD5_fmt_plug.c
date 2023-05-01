@@ -40,14 +40,14 @@ john_register_one(&fmt_phpassmd5);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "johnswap.h"
-#include "formats.h"
-#include "md5.h"
-#include "phpass_common.h"
-#include "simd-intrinsics.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../johnswap.h"
+#include "../formats.h"
+#include "../md5.h"
+#include "../phpass_common.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_LABEL            "phpass"
 #define FORMAT_NAME             ""
@@ -318,7 +318,7 @@ static void *get_salt(char *ciphertext)
 
 #define COMMON_GET_HASH_SIMD32 4
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -380,7 +380,7 @@ struct fmt_main fmt_phpassmd5 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

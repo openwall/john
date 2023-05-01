@@ -27,15 +27,15 @@ john_register_one(&fmt_o5logon);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "aes.h"
-#include "md5.h"
+#include "../arch.h"
+#include "../sha.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../aes.h"
+#include "../md5.h"
 
 #define FORMAT_LABEL            "o5logon"
 #define FORMAT_NAME             "Oracle O5LOGON protocol"

@@ -17,7 +17,7 @@ john_register_one(&fmt_opencl_pbkdf2_md5);
 #include <ctype.h>
 #include <string.h>
 
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
@@ -63,7 +63,7 @@ static int split_events[] = { 2, -1, -1 };
 static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final;
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()

@@ -28,18 +28,18 @@ john_register_one(&fmt_openbsd_softraid);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "common.h"
-#include "formats.h"
-#include "loader.h"
-#include "aes.h"
-#include "sha.h"
-#include "hmac_sha.h"
-#include "bcrypt_pbkdf.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "openbsdsoftraid_common.h"
+#include "../arch.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../loader.h"
+#include "../aes.h"
+#include "../sha.h"
+#include "../hmac_sha.h"
+#include "../bcrypt_pbkdf.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../openbsdsoftraid_common.h"
 #define CPU_FORMAT                  1
-#include "openbsdsoftraid_variable_code.h"
+#include "../openbsdsoftraid_variable_code.h"
 
 #define FORMAT_LABEL                "OpenBSD-SoftRAID"
 #ifdef SIMD_COEF_32

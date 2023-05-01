@@ -29,12 +29,12 @@ john_register_one(&fmt_radius);
 
 #define OMP_SCALE               16  // tuned on i7-7820HQ (varies wildly)
 
-#include "formats.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
-#include "md5.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
+#include "../md5.h"
 
 #define FORMAT_LABEL            "radius"
 #define FORMAT_NAME             "RADIUS authentication"

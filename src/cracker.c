@@ -61,7 +61,7 @@
 #include "john_mpi.h"
 #include "path.h"
 #include "jumbo.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #if HAVE_LIBDL && defined(HAVE_OPENCL)
 #include "gpu_common.h"
 #endif

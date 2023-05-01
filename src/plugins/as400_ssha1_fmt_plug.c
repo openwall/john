@@ -28,7 +28,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 #ifndef DYNAMIC_DISABLED
 
@@ -40,12 +40,12 @@ john_register_one(&fmt_AS400_ssha1);
 
 #include <string.h>
 
-#include "common.h"
-#include "formats.h"
-#include "dynamic.h"
-#include "options.h"
-#include "unicode.h"
-#include "base64_convert.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../dynamic.h"
+#include "../options.h"
+#include "../unicode.h"
+#include "../base64_convert.h"
 
 #define FORMAT_LABEL            "as400-ssha1"
 #define FORMAT_NAME             "AS400-SaltedSHA1"

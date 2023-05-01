@@ -20,14 +20,14 @@ john_register_one(&fmt__hmacSHA256);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha2.h"
-#include "misc.h"
-#include "common.h"
-#include "base64_convert.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
+#include "../arch.h"
+#include "../sha2.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../base64_convert.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_LABEL			"HMAC-SHA256"
 #define FORMAT_LABEL_224		"HMAC-SHA224"

@@ -18,9 +18,9 @@ john_register_one(&fmt_encdadatavault_md5);
 #include <omp.h>
 #endif
 
-#include "md5.h"
-#include "formats.h"
-#include "encdatavault_common.h"
+#include "../md5.h"
+#include "../formats.h"
+#include "../encdatavault_common.h"
 
 #define FORMAT_LABEL_MD5          	"ENCDataVault-MD5"
 #define FORMAT_NAME               	""

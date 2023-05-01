@@ -46,17 +46,17 @@ john_register_one(&fmt_episerver);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha.h"
-#include "sha2.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "base64_convert.h"
-#include "unicode.h"
+#include "../arch.h"
+#include "../sha.h"
+#include "../sha2.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../base64_convert.h"
+#include "../unicode.h"
 
 #define FORMAT_LABEL            "EPiServer"
 #define FORMAT_NAME             ""
@@ -71,8 +71,8 @@ john_register_one(&fmt_episerver);
 #define SALT_ALIGN              4
 
 #ifdef SIMD_COEF_32
-#include "simd-intrinsics.h"
-#include "johnswap.h"
+#include "../simd-intrinsics.h"
+#include "../johnswap.h"
 
 #define NBKEYS_SHA1             (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #define NBKEYS_SHA256           (SIMD_COEF_32 * SIMD_PARA_SHA256)

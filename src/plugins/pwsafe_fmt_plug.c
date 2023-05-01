@@ -23,16 +23,16 @@ john_register_one(&fmt_pwsafe);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha2.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "johnswap.h"
-#include "pwsafe_common.h"
-#include "simd-intrinsics.h"
+#include "../arch.h"
+#include "../sha2.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../pwsafe_common.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_LABEL            "pwsafe"
 #define FORMAT_NAME             "Password Safe"
@@ -128,7 +128,7 @@ static void *get_salt(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -615,7 +615,7 @@ struct fmt_main fmt_pwsafe = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

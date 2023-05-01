@@ -17,7 +17,7 @@
 #include "arch.h"
 #include "common.h"
 #include "MD5_std.h"
-#include "md5crypt_common.h"
+#include "formats/md5crypt_common.h"
 
 #if MD5_std_mt
 #include <omp.h>

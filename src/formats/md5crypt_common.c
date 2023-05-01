@@ -3,10 +3,10 @@
  * This file takes replicated but common code, shared between the CPU
  * and the GPU formats, and places it into one common location
  */
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
 #include "md5crypt_common.h"
 
 int cryptmd5_common_valid(char *ciphertext, struct fmt_main *self)

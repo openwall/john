@@ -21,7 +21,7 @@ john_register_one(&fmt_opencl_lotus5);
 #include "misc.h"
 #include "formats.h"
 #include "common.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "../run/opencl/opencl_lotus5_fmt.h"
 #include "options.h"
 
@@ -59,7 +59,7 @@ static cl_mem cl_tx_keys, cl_tx_binary;
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static const char *warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "

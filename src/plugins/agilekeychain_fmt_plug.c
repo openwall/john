@@ -24,17 +24,17 @@ john_register_one(&fmt_agile_keychain);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "aes.h"
-#include "jumbo.h"
-#include "johnswap.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "agilekeychain_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../aes.h"
+#include "../jumbo.h"
+#include "../johnswap.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../agilekeychain_common.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE               4	// MKPC and OMP_SCALE tuned for core i7

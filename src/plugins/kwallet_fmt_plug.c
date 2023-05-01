@@ -12,7 +12,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -30,15 +30,15 @@ john_register_one(&fmt_kwallet);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "sha.h"
-#include "pbkdf2_hmac_sha512.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sha.h"
+#include "../pbkdf2_hmac_sha512.h"
 
 #define FORMAT_LABEL            "kwallet"
 #define FORMAT_NAME             "KDE KWallet"

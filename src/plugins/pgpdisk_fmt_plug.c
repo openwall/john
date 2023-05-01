@@ -9,7 +9,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -29,17 +29,17 @@ john_register_one(&fmt_pgpdisk);
 
 #define OMP_SCALE               8  // MKPC and OMP_SCALE tuned on Core i7-6600U
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "sha.h"
-#include "loader.h"
-#include "aes.h"
-#include "twofish.h"
-#include "pgpdisk_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../sha.h"
+#include "../loader.h"
+#include "../aes.h"
+#include "../twofish.h"
+#include "../pgpdisk_common.h"
 
 #define FORMAT_LABEL            "pgpdisk"
 #define ALGORITHM_NAME          "SHA1 " ARCH_BITS_STR

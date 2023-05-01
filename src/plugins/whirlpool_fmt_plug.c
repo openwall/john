@@ -25,16 +25,16 @@ john_register_one(&fmt_whirlpool);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "sph_whirlpool.h"
-#include "openssl_local_overrides.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sph_whirlpool.h"
+#include "../openssl_local_overrides.h"
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 #if HAVE_LIBCRYPTO
 #include <openssl/opensslv.h>
@@ -158,7 +158,7 @@ static void *get_binary(char *ciphertext)
 
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int crypt_0(int *pcount, struct db_salt *salt)
 {
@@ -305,7 +305,7 @@ struct fmt_main fmt_whirlpool_0 = {
 		crypt_0,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,
@@ -364,7 +364,7 @@ struct fmt_main fmt_whirlpool_1 = {
 		crypt_1,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,
@@ -421,7 +421,7 @@ struct fmt_main fmt_whirlpool = {
 		crypt_2,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

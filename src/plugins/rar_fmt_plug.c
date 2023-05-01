@@ -41,9 +41,9 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
-#include "arch.h"
+#include "../arch.h"
 
 #if ARCH_ALLOWS_UNALIGNED || __ARM_FEATURE_UNALIGNED
 
@@ -55,19 +55,19 @@ john_register_one(&fmt_rar);
 
 #include <string.h>
 
-#include "sha.h"
-#include "crc32.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "memory.h"
-#include "params.h"
-#include "options.h"
-#include "unicode.h"
-#include "johnswap.h"
-#include "unrar.h"
-#include "config.h"
-#include "jumbo.h"
+#include "../sha.h"
+#include "../crc32.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../memory.h"
+#include "../params.h"
+#include "../options.h"
+#include "../unicode.h"
+#include "../johnswap.h"
+#include "../unrar.h"
+#include "../config.h"
+#include "../jumbo.h"
 
 #define FORMAT_LABEL		"rar"
 #define FORMAT_NAME		"RAR3"
@@ -83,7 +83,7 @@ john_register_one(&fmt_rar);
 #define UNICODE_LENGTH		(2 * PLAINTEXT_LENGTH)
 
 #ifdef SIMD_COEF_32
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 #define NBKEYS (SIMD_COEF_32*SIMD_PARA_SHA1)
 #if ARCH_LITTLE_ENDIAN==1
 #define GETPOS(i,idx) ( (idx&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 + (3-((i)&3)) + (unsigned int)idx/SIMD_COEF_32*SHA_BUF_SIZ*4*SIMD_COEF_32 )
@@ -114,7 +114,7 @@ john_register_one(&fmt_rar);
 #include <omp.h>
 #endif
 
-#include "rar_common.c"
+#include "../rar_common.c"
 
 // these are supposed to be stack arrays; however gcc cannot correctly align
 // stack arrays so we have to use global arrays; we may switch back to stack

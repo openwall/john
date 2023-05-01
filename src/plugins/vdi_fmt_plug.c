@@ -29,16 +29,16 @@ john_register_one(&fmt_vdi);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "xts.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "crc32.h"
-#include "johnswap.h"
-#include "base64_convert.h"
-#include "pbkdf2_hmac_sha256.h"
+#include "../arch.h"
+#include "../xts.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../crc32.h"
+#include "../johnswap.h"
+#include "../base64_convert.h"
+#include "../pbkdf2_hmac_sha256.h"
 
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(struct vdi_salt)

@@ -45,7 +45,7 @@
 #else
 #define _PER_NODE ""
 #endif
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #if HAVE_LIBGMP || HAVE_INT128 || HAVE___INT128 || HAVE___INT128_T
 #include "prince.h"
 #endif

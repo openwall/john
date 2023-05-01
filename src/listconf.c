@@ -82,7 +82,7 @@
 #include "timer.h"
 #include "misc.h"
 #include "regex.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "mask_ext.h"
 #include "john.h"
 #include "version.h"

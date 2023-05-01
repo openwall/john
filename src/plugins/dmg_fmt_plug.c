@@ -42,7 +42,7 @@
 //#define DMG_DEBUG		2
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -54,7 +54,7 @@ john_register_one(&fmt_dmg);
 #else
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #include <string.h>
@@ -75,18 +75,18 @@ john_register_one(&fmt_dmg);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "aes.h"
-#include "hmac_sha.h"
-#include "jumbo.h"
-#include "params.h"
-#include "johnswap.h"
-#include "common.h"
-#include "formats.h"
-#include "dmg_common.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "loader.h"
-#include "logger.h"
+#include "../arch.h"
+#include "../aes.h"
+#include "../hmac_sha.h"
+#include "../jumbo.h"
+#include "../params.h"
+#include "../johnswap.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../dmg_common.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../loader.h"
+#include "../logger.h"
 
 #define FORMAT_LABEL        "dmg"
 #define FORMAT_NAME         "Apple DMG"

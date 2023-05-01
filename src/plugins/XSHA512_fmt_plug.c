@@ -13,14 +13,14 @@ john_register_one(&fmt_XSHA512);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha2.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
-#include "rawSHA512_common.h"
+#include "../arch.h"
+#include "../sha2.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
+#include "../rawSHA512_common.h"
 
 #define FORMAT_LABEL			"xsha512"
 #define FORMAT_NAME			"Mac OS X 10.7"
@@ -55,7 +55,7 @@ john_register_one(&fmt_XSHA512);
 #ifdef SIMD_COEF_64
 #define FMT_IS_64BIT
 #define FMT_IS_BE
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 static uint64_t (*saved_key)[SHA_BUF_SIZ*SIMD_COEF_64*SIMD_PARA_SHA512];
 static uint64_t (*crypt_out);
 static int max_keys;
@@ -176,7 +176,7 @@ static void set_salt(void *salt)
 
 #define SALT_PREPENDED SALT_SIZE
 #define NON_SIMD_SET_SAVED_LEN
-#include "common-simd-setkey64.h"
+#include "../common-simd-setkey64.h"
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {

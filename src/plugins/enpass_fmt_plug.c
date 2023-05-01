@@ -23,17 +23,17 @@ john_register_one(&fmt_enpass);
 #include <omp.h>
 #endif
 
-#include "aes.h"
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "johnswap.h"
-#include "enpass_common.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "pbkdf2_hmac_sha512.h"
+#include "../aes.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../enpass_common.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../pbkdf2_hmac_sha512.h"
 
 #define FORMAT_LABEL         "enpass"
 #define FORMAT_NAME          "Enpass Password Manager"

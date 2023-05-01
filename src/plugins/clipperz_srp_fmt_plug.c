@@ -50,7 +50,7 @@
  * g = 2 */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBGMP || HAVE_LIBCRYPTO /* we need one of these for bignum */
@@ -78,12 +78,12 @@ john_register_one(&fmt_clipperz);
 #include <omp.h>
 #endif
 
-#include "sha2.h"
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
+#include "../sha2.h"
+#include "../arch.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
 
 #define FORMAT_LABEL		"Clipperz"
 #define FORMAT_NAME		"SRP"
@@ -312,7 +312,7 @@ static void *get_salt(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -501,7 +501,7 @@ struct fmt_main fmt_clipperz = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

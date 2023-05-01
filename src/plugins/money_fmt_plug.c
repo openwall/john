@@ -24,17 +24,17 @@ john_register_one(&fmt_money);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "sha.h"
-#include "md5.h"
-#include "rc4.h"
-#include "jumbo.h"
-#include "unicode.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sha.h"
+#include "../md5.h"
+#include "../rc4.h"
+#include "../jumbo.h"
+#include "../unicode.h"
 
 #define FORMAT_NAME             "Microsoft Money (2002 to Money Plus)"
 #define FORMAT_LABEL            "money"

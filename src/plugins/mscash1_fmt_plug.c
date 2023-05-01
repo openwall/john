@@ -29,16 +29,16 @@ john_register_one(&fmt_mscash);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "unicode.h"
-#include "options.h"
-#include "loader.h"
-#include "johnswap.h"
-#include "mscash_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../unicode.h"
+#include "../options.h"
+#include "../loader.h"
+#include "../johnswap.h"
+#include "../mscash_common.h"
 
 #define FORMAT_LABEL			"mscash"
 #define FORMAT_NAME			"MS Cache Hash (DCC)"

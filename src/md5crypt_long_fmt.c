@@ -28,7 +28,7 @@
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "md5crypt_common.h"
+#include "formats/md5crypt_common.h"
 
 #define FORMAT_LABEL            "md5crypt-long"
 #define FORMAT_NAME             "crypt(3) $1$ (and variants)"

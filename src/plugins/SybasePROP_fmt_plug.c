@@ -26,12 +26,12 @@ john_register_one(&fmt_sybaseprop);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "syb-prop_repro.h"
+#include "../arch.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../syb-prop_repro.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE           4	// MKPC and OMP_SCALE tuned for core i7
@@ -183,7 +183,7 @@ static int cmp_exact(char *source, int index)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_sybaseprop = {
 	{
@@ -233,7 +233,7 @@ struct fmt_main fmt_sybaseprop = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

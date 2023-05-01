@@ -23,13 +23,13 @@ john_register_one(&fmt_skein_512);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "sph_skein.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sph_skein.h"
 
 // Skein-256 or Skein-512 are the real format labels.
 #define FORMAT_LABEL            "Skein"
@@ -179,7 +179,7 @@ static void *get_binary_512(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int crypt_256(int *pcount, struct db_salt *salt)
 {
@@ -298,7 +298,7 @@ struct fmt_main fmt_skein_256 = {
 		crypt_256,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,
@@ -355,7 +355,7 @@ struct fmt_main fmt_skein_512 = {
 		crypt_512,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

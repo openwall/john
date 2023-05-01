@@ -29,7 +29,7 @@ john_register_one(&fmt_opencl_rar5);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "rar5_common.h"
 
 #define SIZE_SALT50             16
@@ -74,7 +74,7 @@ static const char * warn[] = {
 static int split_events[] = { 2, -1, -1 };
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static void release_clobj(void);
 

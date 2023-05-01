@@ -22,14 +22,14 @@ john_register_one(&fmt_sip);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "md5.h"
-#include "crc32.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+#include "../arch.h"
+#include "../md5.h"
+#include "../crc32.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
 #include "sip_fmt_plug.h"
 
 typedef struct sip_salt_t {

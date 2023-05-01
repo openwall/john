@@ -36,17 +36,17 @@ john_register_one(&fmt_fde);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "johnswap.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "memory.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "aes.h"
-#include "sha2.h"
+#include "../arch.h"
+#include "../johnswap.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../memory.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../aes.h"
+#include "../sha2.h"
 
 #define FORMAT_TAG          "$fde$"
 #define TAG_LENGTH          (sizeof(FORMAT_TAG)-1)

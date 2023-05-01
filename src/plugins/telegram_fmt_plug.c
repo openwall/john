@@ -25,16 +25,16 @@ john_register_one(&fmt_telegram);
 
 #define OMP_SCALE               1  // tuned on Intel Xeon E5-2670
 
-#include "arch.h"
-#include "formats.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
-#include "sha.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "pbkdf2_hmac_sha512.h"
-#include "telegram_common.h"
+#include "../arch.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sha.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../pbkdf2_hmac_sha512.h"
+#include "../telegram_common.h"
 
 #define FORMAT_LABEL            "telegram"
 #define FORMAT_NAME             ""

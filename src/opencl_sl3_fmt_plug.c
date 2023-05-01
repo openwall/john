@@ -29,7 +29,7 @@ john_register_one(&FMT_STRUCT);
 #include "path.h"
 #include "common.h"
 #include "formats.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "config.h"
 #include "options.h"
 #include "mask_ext.h"

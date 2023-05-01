@@ -32,11 +32,11 @@ john_register_one(&fmt_FGT);
 #include <omp.h>
 #endif
 
-#include "common.h"
-#include "formats.h"
-#include "misc.h"
-#include "sha.h"
-#include "base64_convert.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../sha.h"
+#include "../base64_convert.h"
 
 #define FORMAT_LABEL		"Fortigate"
 #define FORMAT_NAME             "FortiOS"
@@ -214,7 +214,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -270,7 +270,7 @@ struct fmt_main fmt_FGT = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -19,7 +19,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -36,18 +36,18 @@ john_register_one(&fmt_odf);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "johnswap.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "sha.h"
-#include "sha2.h"
-#include "aes.h"
-#include "odf_common.h"
-#include "pbkdf2_hmac_sha1.h"
+#include "../arch.h"
+#include "../johnswap.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sha.h"
+#include "../sha2.h"
+#include "../aes.h"
+#include "../odf_common.h"
+#include "../pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL            "ODF"
 #ifdef SIMD_COEF_32

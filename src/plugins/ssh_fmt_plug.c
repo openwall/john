@@ -21,7 +21,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -43,19 +43,19 @@ john_register_one(&fmt_ssh);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "aes.h"
-#include "jumbo.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "md5.h"
-#include "bcrypt_pbkdf.h"
-#include "asn1.h"
+#include "../arch.h"
+#include "../aes.h"
+#include "../jumbo.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../md5.h"
+#include "../bcrypt_pbkdf.h"
+#include "../asn1.h"
 #define CPU_FORMAT          1
-#include "ssh_common.h"
-#include "ssh_variable_code.h"
+#include "../ssh_common.h"
+#include "../ssh_variable_code.h"
 
 #define FORMAT_LABEL        "SSH"
 #define FORMAT_NAME         "SSH private key"

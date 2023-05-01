@@ -88,7 +88,6 @@ AC_ARG_ENABLE([libfuzzer], [AC_HELP_STRING([--enable-libfuzzer], [Fuzzing using 
 
 dnl ===================== Actual tests start here ========================
 dnl Add the modules (folders inside src). Add the headers search path (the includes folder)
-CPPFLAGS="$CPPFLAGS -iquote $(pwd) -iquote $(pwd)/modes -iquote $(pwd)/formats -iquote $(pwd)/opencl"
 PLUGINS="./ plugins/"
 
 dnl Assert that we don't have a stray GNUmakefile left in the tree :-(

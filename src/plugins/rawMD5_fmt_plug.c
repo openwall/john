@@ -16,7 +16,7 @@ john_register_one(&fmt_rawMD5);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
@@ -24,13 +24,13 @@ john_register_one(&fmt_rawMD5);
 #include <omp.h>
 #endif
 
-#include "md5.h"
-#include "common.h"
-#include "johnswap.h"
-#include "formats.h"
-#include "base64_convert.h"
+#include "../md5.h"
+#include "../common.h"
+#include "../johnswap.h"
+#include "../formats.h"
+#include "../base64_convert.h"
 #define REVERSE_STEPS
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE				16 // Tuned after MKPC for core i7 incl non-SIMD
@@ -90,7 +90,7 @@ static struct fmt_tests tests[] = {
 #define PLAINTEXT_LENGTH		55
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		(NBKEYS * 16)
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 #else
 #define PLAINTEXT_LENGTH		125
 #define MIN_KEYS_PER_CRYPT		1
@@ -243,7 +243,7 @@ static char *source(char *source, void *binary)
 }
 
 #define NON_SIMD_SET_SAVED_LEN
-#include "common-simd-setkey32.h"
+#include "../common-simd-setkey32.h"
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS
@@ -331,7 +331,7 @@ static int cmp_exact(char *source, int index)
 
 #define COMMON_GET_HASH_SIMD32 4
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_rawMD5 = {
 	{
@@ -384,7 +384,7 @@ struct fmt_main fmt_rawMD5 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

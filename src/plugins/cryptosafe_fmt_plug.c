@@ -9,7 +9,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -21,7 +21,7 @@ john_register_one(&fmt_cryptosafe);
 #else
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #include <string.h>
@@ -35,15 +35,15 @@ john_register_one(&fmt_cryptosafe);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "aes.h"
-#include "jumbo.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "cryptosafe_common.h"
-#include "loader.h"
-#include "jumbo.h"
+#include "../arch.h"
+#include "../aes.h"
+#include "../jumbo.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../cryptosafe_common.h"
+#include "../loader.h"
+#include "../jumbo.h"
 
 #define FORMAT_LABEL        "cryptoSafe"
 #define ALGORITHM_NAME      "AES-256-CBC"

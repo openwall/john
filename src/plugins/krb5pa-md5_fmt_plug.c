@@ -53,16 +53,16 @@ john_register_one(&fmt_krb5pa_md5);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "formats.h"
-#include "options.h"
-#include "common.h"
-#include "unicode.h"
-#include "md5.h"
-#include "hmacmd5.h"
-#include "md4.h"
-#include "rc4.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../common.h"
+#include "../unicode.h"
+#include "../md5.h"
+#include "../hmacmd5.h"
+#include "../md4.h"
+#include "../rc4.h"
 
 #define FORMAT_LABEL       "krb5pa-md5"
 #define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 23"
@@ -403,7 +403,7 @@ static int cmp_exact(char *source, int index)
 }
 
 #define COMMON_GET_HASH_VAR output
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -458,7 +458,7 @@ struct fmt_main fmt_krb5pa_md5 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

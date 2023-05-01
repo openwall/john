@@ -55,7 +55,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -73,18 +73,18 @@ john_register_one(&fmt_krb5asrep);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "formats.h"
-#include "common.h"
-#include "md4.h"
-#include "hmacmd5.h"
-#include "hmac_sha.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "unicode.h"
-#include "krb5_common.h"
-#include "krb5_asrep_common.h"
-#include "rc4.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../formats.h"
+#include "../common.h"
+#include "../md4.h"
+#include "../hmacmd5.h"
+#include "../hmac_sha.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../unicode.h"
+#include "../krb5_common.h"
+#include "../krb5_asrep_common.h"
+#include "../rc4.h"
 
 #define FORMAT_LABEL            "krb5asrep"
 #define FORMAT_NAME             "Kerberos 5 AS-REP etype 17/18/23"

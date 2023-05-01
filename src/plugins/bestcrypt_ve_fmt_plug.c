@@ -12,7 +12,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -30,16 +30,16 @@ john_register_one(&fmt_bestcrypt_ve);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "yescrypt/yescrypt.h"
-#include "aes.h"
-#include "twofish.h"
-#include "serpent.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../yescrypt/yescrypt.h"
+#include "../aes.h"
+#include "../twofish.h"
+#include "../serpent.h"
 #include <openssl/camellia.h>
-#include "sha.h"
+#include "../sha.h"
 
 #define FORMAT_NAME             "BestCrypt Volume Encryption v4"
 #define FORMAT_LABEL            "BestCryptVE4"

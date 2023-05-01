@@ -42,7 +42,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBGMP || HAVE_LIBCRYPTO /* we need one of these for bignum */
@@ -69,14 +69,14 @@ john_register_one(&fmt_blizzard);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha.h"
-#include "sha2.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "unicode.h" /* For encoding-aware uppercasing */
-#include "johnswap.h"
+#include "../arch.h"
+#include "../sha.h"
+#include "../sha2.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../unicode.h" /* For encoding-aware uppercasing */
+#include "../johnswap.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE          256	// MKPC and OMP_SCALE tuned for core i7
@@ -368,7 +368,7 @@ static void *get_salt(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -559,7 +559,7 @@ struct fmt_main fmt_blizzard = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

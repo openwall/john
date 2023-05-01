@@ -26,14 +26,14 @@ john_register_one(&fmt_rawSHA224);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "sha2.h"
-#include "params.h"
-#include "common.h"
-#include "johnswap.h"
-#include "formats.h"
+#include "../arch.h"
+#include "../sha2.h"
+#include "../params.h"
+#include "../common.h"
+#include "../johnswap.h"
+#include "../formats.h"
 #define REVERSE_STEPS
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_LABEL            "Raw-SHA224"
 #define FORMAT_NAME             ""
@@ -86,7 +86,7 @@ static struct fmt_tests tests[] = {
 
 #ifdef SIMD_COEF_32
 #define FMT_IS_BE
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 static uint32_t (*saved_key);
 static uint32_t (*crypt_out);
 #else
@@ -212,7 +212,7 @@ static int binary_hash_5(void *binary) { return ((uint32_t*)binary)[3] & PH_MASK
 static int binary_hash_6(void *binary) { return ((uint32_t*)binary)[3] & PH_MASK_6; }
 
 #define NON_SIMD_SET_SAVED_LEN
-#include "common-simd-setkey32.h"
+#include "../common-simd-setkey32.h"
 
 #ifndef REVERSE_STEPS
 #undef SSEi_REVERSE_STEPS

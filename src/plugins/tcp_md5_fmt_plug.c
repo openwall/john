@@ -22,13 +22,13 @@ john_register_one(&fmt_tcpmd5);
 
 #define OMP_SCALE               16  // MKPC and OMP_SCALE tuned on Core i5-6500
 
-#include "arch.h"
-#include "md5.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+#include "../arch.h"
+#include "../md5.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
 
 #define FORMAT_LABEL            "tcp-md5"
 #define FORMAT_NAME             "TCP MD5 Signatures, BGP, MSDP"

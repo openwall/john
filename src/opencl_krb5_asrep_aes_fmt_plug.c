@@ -30,7 +30,7 @@ john_register_one(&fmt_opencl_krb5_asrep_aes);
 #include "aes.h"
 #include "krb5_common.h"
 #include "krb5_asrep_common.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #define MAX_OUTLEN 32
 #include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 #include "hmac_sha.h"
@@ -98,7 +98,7 @@ static const char * warn[] = {
 static int split_events[] = { 2, -1, -1 };
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()

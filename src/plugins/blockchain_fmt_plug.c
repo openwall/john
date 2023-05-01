@@ -28,15 +28,15 @@ john_register_one(&fmt_blockchain);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "jumbo.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "johnswap.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "blockchain_common.h"
+#include "../arch.h"
+#include "../jumbo.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../blockchain_common.h"
 
 #define FORMAT_LABEL            "Blockchain"
 #define FORMAT_NAME             "My Wallet"

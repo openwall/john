@@ -27,17 +27,17 @@ john_register_one(&fmt_keystore);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "simd-intrinsics.h"
-#include "sha.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "dyna_salt.h"
-#include "johnswap.h"
-#include "keystore_common.h"
+#include "../arch.h"
+#include "../simd-intrinsics.h"
+#include "../sha.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../dyna_salt.h"
+#include "../johnswap.h"
+#include "../keystore_common.h"
 
 #ifdef SIMD_COEF_32
 #define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_SHA1)

@@ -19,16 +19,16 @@ john_register_one(&fmt_vmx);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "jumbo.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "vmx_common.h"
-#include "aes.h"
-#include "pbkdf2_hmac_sha1.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../jumbo.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../vmx_common.h"
+#include "../aes.h"
+#include "../pbkdf2_hmac_sha1.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE               1	// MKPC and OMP_SCALE tuned for core i7

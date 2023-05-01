@@ -21,7 +21,7 @@ john_register_one(&fmt_opencl_keyring);
 #include "formats.h"
 #include "common.h"
 #include "misc.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "options.h"
 #include "aes.h"
 #include "sha2.h"
@@ -101,7 +101,7 @@ static const char * warn[] = {
 };
 
 // This file contains auto-tuning routine(s). It has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()

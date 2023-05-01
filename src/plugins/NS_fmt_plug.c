@@ -32,7 +32,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 #ifndef DYNAMIC_DISABLED
 
@@ -44,13 +44,13 @@ john_register_one(&fmt_NS);
 
 #include <string.h>
 
-#include "misc.h"
-#include "md5.h"
-#include "common.h"
-#include "formats.h"
-#include "dynamic.h"
-#include "base64_convert.h"
-#include "johnswap.h"
+#include "../misc.h"
+#include "../md5.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../dynamic.h"
+#include "../base64_convert.h"
+#include "../johnswap.h"
 
 #define FORMAT_LABEL			"md5ns"
 #define FORMAT_NAME			"Netscreen"

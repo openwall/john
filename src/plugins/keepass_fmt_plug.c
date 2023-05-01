@@ -31,17 +31,17 @@ john_register_one(&fmt_KeePass);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "keepass_common.h"
-#include "sha2.h"
-#include "aes.h"
-#include "twofish.h"
-#include "chacha.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../keepass_common.h"
+#include "../sha2.h"
+#include "../aes.h"
+#include "../twofish.h"
+#include "../chacha.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE               4 // This and MKPC tuned for core i7

@@ -43,7 +43,7 @@ extern struct fmt_main fmt_SKEY;
 john_register_one(&fmt_SKEY);
 #else
 
-#include "arch.h"
+#include "../arch.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,12 +52,12 @@ john_register_one(&fmt_SKEY);
 #ifdef HAVE_SKEY
 #include <skey.h>
 #else
-#include "SKEY_jtr.h"
+#include "../SKEY_jtr.h"
 #endif
 
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
 
 #define FORMAT_LABEL		"skey"
 #define FORMAT_NAME		"S/Key"
@@ -303,7 +303,7 @@ static unsigned int skey_hash_type(void *salt)
 }
 
 #define COMMON_GET_HASH_VAR saved_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 /* iteration count as 2nd tunable cost */
 static unsigned int skey_iteration_count(void *salt)
@@ -369,7 +369,7 @@ struct fmt_main fmt_SKEY = {
 		skey_crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		skey_cmp_all,
 		skey_cmp_one,

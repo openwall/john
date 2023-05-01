@@ -18,14 +18,14 @@ john_register_one(&fmt_pbkdf2_hmac_sha1);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "base64_convert.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "pbkdf2_hmac_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../base64_convert.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../pbkdf2_hmac_common.h"
 
 #define FORMAT_LABEL            "PBKDF2-HMAC-SHA1"
 #define FORMAT_NAME             ""
@@ -113,7 +113,7 @@ static void set_salt(void *salt)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -247,7 +247,7 @@ struct fmt_main fmt_pbkdf2_hmac_sha1 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

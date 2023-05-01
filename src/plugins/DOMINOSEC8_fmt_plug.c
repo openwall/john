@@ -45,11 +45,11 @@ john_register_one(&fmt_DOMINOSEC8);
 #include <omp.h>
 #endif
 
-#include "misc.h"
-#include "formats.h"
-#include "common.h"
+#include "../misc.h"
+#include "../formats.h"
+#include "../common.h"
 #undef SIMD_COEF_32
-#include "pbkdf2_hmac_sha1.h"
+#include "../pbkdf2_hmac_sha1.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE           1	// MKPC and OMP_SCALE tuned for core i7
@@ -738,7 +738,7 @@ static int cmp_exact(char *source, int index)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out_real
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -795,7 +795,7 @@ struct fmt_main fmt_DOMINOSEC8 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -25,16 +25,16 @@ john_register_one(&fmt_iwork);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "jumbo.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "johnswap.h"
-#include "iwork_common.h"
-#include "pbkdf2_hmac_sha1.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../jumbo.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../iwork_common.h"
+#include "../pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL            "iwork"
 #ifdef SIMD_COEF_32

@@ -23,14 +23,14 @@ john_register_one(&fmt_HDAA);
 #include <mmintrin.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "md5.h"
-#include "johnswap.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../md5.h"
+#include "../johnswap.h"
 
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 #define ALGORITHM_NAME          "MD5 " MD5_ALGORITHM_NAME
 
 #define FORMAT_LABEL            "hdaa"
@@ -723,7 +723,7 @@ static void *get_binary(char *ciphertext)
 
 #define COMMON_GET_HASH_SIMD32 4
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_HDAA = {
 	{
@@ -773,7 +773,7 @@ struct fmt_main fmt_HDAA = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

@@ -30,15 +30,15 @@ john_register_one(&fmt_krb5tgs);
 #include <omp.h>
 #endif
 
-#include "misc.h"
-#include "formats.h"
-#include "common.h"
-#include "dyna_salt.h"
-#include "krb5_tgs_common.h"
-#include "md4.h"
-#include "hmacmd5.h"
-#include "rc4.h"
-#include "unicode.h"
+#include "../misc.h"
+#include "../formats.h"
+#include "../common.h"
+#include "../dyna_salt.h"
+#include "../krb5_tgs_common.h"
+#include "../md4.h"
+#include "../hmacmd5.h"
+#include "../rc4.h"
+#include "../unicode.h"
 
 #define FORMAT_LABEL         "krb5tgs"
 #define ALGORITHM_NAME       "MD4 HMAC-MD5 RC4"

@@ -16,9 +16,9 @@ john_register_one(&fmt_lotus5);
 #include <omp.h>
 #endif
 
-#include "misc.h"
-#include "formats.h"
-#include "common.h"
+#include "../misc.h"
+#include "../formats.h"
+#include "../common.h"
 
 #ifdef __x86_64__
 #define LOTUS_N 3
@@ -346,7 +346,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 }
 
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 /* C's version of a class specifier */
 struct fmt_main fmt_lotus5 = {
@@ -397,7 +397,7 @@ struct fmt_main fmt_lotus5 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

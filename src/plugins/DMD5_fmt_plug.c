@@ -31,11 +31,11 @@ john_register_one(&fmt_DMD5);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "md5.h"
-#include "common.h"
-#include "formats.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../md5.h"
+#include "../common.h"
+#include "../formats.h"
 
 #define FORMAT_LABEL            "dmd5"
 #define FORMAT_NAME             "DIGEST-MD5 C/R"
@@ -393,7 +393,7 @@ static int cmp_exact(char *source, int index)
 }
 
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_DMD5 = {
 	{
@@ -444,7 +444,7 @@ struct fmt_main fmt_DMD5 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

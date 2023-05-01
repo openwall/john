@@ -40,11 +40,11 @@ john_register_one(&fmt_FG2);
 
 #define OMP_SCALE               256 // tuned on E5-2670 (varies widely)
 
-#include "common.h"
-#include "formats.h"
-#include "misc.h"
-#include "sha2.h"
-#include "base64_convert.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../sha2.h"
+#include "../base64_convert.h"
 
 #define FORMAT_LABEL            "Fortigate256"
 #define FORMAT_NAME             "FortiOS256"
@@ -204,7 +204,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 }
 
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -261,7 +261,7 @@ struct fmt_main fmt_FG2 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

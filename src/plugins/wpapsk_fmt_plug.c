@@ -25,16 +25,16 @@ john_register_one(&fmt_wpapsk);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "simd-intrinsics.h"
-#include "formats.h"
-#include "common.h"
-#include "misc.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "wpapsk.h"
-#include "sha.h"
-#include "options.h"
-#include "unicode.h"
+#include "../arch.h"
+#include "../simd-intrinsics.h"
+#include "../formats.h"
+#include "../common.h"
+#include "../misc.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../wpapsk.h"
+#include "../sha.h"
+#include "../options.h"
+#include "../unicode.h"
 
 #define FORMAT_LABEL		"wpapsk"
 #if !HAVE_OPENSSL_CMAC_H

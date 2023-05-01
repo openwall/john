@@ -19,13 +19,13 @@ john_register_one(&fmt_IPB2);
 
 #include <string.h>
 
-#include "arch.h"
-#include "misc.h"
-#include "md5.h"
-#include "johnswap.h"
-#include "common.h"
-#include "formats.h"
-#include "simd-intrinsics.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../md5.h"
+#include "../johnswap.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../simd-intrinsics.h"
 
 #if defined(_OPENMP)
 #include <omp.h>
@@ -480,7 +480,7 @@ static int cmp_one(void * binary, int index)
 
 #define COMMON_GET_HASH_SIMD32 4
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -536,7 +536,7 @@ struct fmt_main fmt_IPB2 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

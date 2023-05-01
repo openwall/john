@@ -16,12 +16,12 @@ john_register_one(&fmt_signal);
 
 #include <string.h>
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -29,9 +29,9 @@ john_register_one(&fmt_signal);
 
 #define OMP_SCALE               1  // this is a slow format
 
-#include "loader.h"
-#include "pkcs12.h"
-#include "hmac_sha.h"
+#include "../loader.h"
+#include "../pkcs12.h"
+#include "../hmac_sha.h"
 
 #define FORMAT_LABEL            "Signal"
 #define FORMAT_NAME             "Signal Android"

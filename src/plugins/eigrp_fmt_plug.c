@@ -23,14 +23,14 @@ john_register_one(&fmt_eigrp);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "md5.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "yescrypt/sha256.h"
+#include "../arch.h"
+#include "../md5.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../yescrypt/sha256.h"
 
 #define FORMAT_LABEL            "eigrp"
 #define FORMAT_NAME             "EIGRP MD5 / HMAC-SHA-256 authentication"

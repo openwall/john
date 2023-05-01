@@ -19,10 +19,10 @@ john_register_one(&fmt_oldoffice);
 #include <omp.h>
 #endif
 
-#include "oldoffice_common.h"
-#include "md5.h"
-#include "rc4.h"
-#include "sha.h"
+#include "../oldoffice_common.h"
+#include "../md5.h"
+#include "../rc4.h"
+#include "../sha.h"
 
 #define FORMAT_LABEL            "oldoffice"
 #define FORMAT_NAME             "MS Office <= 2003"

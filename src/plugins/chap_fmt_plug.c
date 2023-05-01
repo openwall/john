@@ -34,13 +34,13 @@ john_register_one(&fmt_chap);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "md5.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../md5.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
 
 #define FORMAT_LABEL            "chap"
 #define FORMAT_NAME             "iSCSI CHAP authentication / EAP-MD5"
@@ -183,7 +183,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -287,7 +287,7 @@ struct fmt_main fmt_chap = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

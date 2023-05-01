@@ -9,7 +9,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 #ifndef DYNAMIC_DISABLED
 
@@ -21,9 +21,9 @@ john_register_one(&fmt_NT_long);
 
 #include <string.h>
 
-#include "common.h"
-#include "formats.h"
-#include "dynamic.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../dynamic.h"
 
 #define FORMAT_LABEL        "NT-long"
 #define FORMAT_NAME         ""

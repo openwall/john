@@ -32,7 +32,7 @@ john_register_one(&fmt_opencl_bitlocker);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "bitlocker_common.h"
 #include "bitlocker_variable_code.h"
 
@@ -108,7 +108,7 @@ static unsigned char *h_pswC, *h_vmkIV, *h_mac, *h_macIV, *h_cMacIV;
 
 static int w_block_precomputed(unsigned char *salt);
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static void release_clobj(void);
 

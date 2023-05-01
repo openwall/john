@@ -13,7 +13,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -30,15 +30,15 @@ john_register_one(&fmt_pem);
 
 #define OMP_SCALE               2  // MKPC and OMP_SCALE tuned on Core i5-6500
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "pem_common.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "jumbo.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../pem_common.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../jumbo.h"
 
 #define FORMAT_LABEL            "PEM"
 #ifdef SIMD_COEF_32

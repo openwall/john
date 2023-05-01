@@ -38,7 +38,7 @@ john_register_one(&fmt_opencl_keystore);
 #include "arch.h"
 #include "sha.h"
 #include "misc.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "formats.h"
 #include "params.h"
 #include "options.h"
@@ -89,7 +89,7 @@ static cl_mem mem_out, mem_salt;
 static cl_int cl_err;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static const char *warn[] = {
 	"key xfer: ",  ", idx xfer: ",  ", crypt: ",  ", xfer: "

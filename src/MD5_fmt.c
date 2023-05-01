@@ -18,7 +18,7 @@
 #include "MD5_std.h"
 #include "common.h"
 #include "formats.h"
-#include "md5crypt_common.h"
+#include "formats/md5crypt_common.h"
 
 #if defined(_OPENMP) && defined(SIMD_PARA_MD5)
 #ifndef OMP_SCALE

@@ -25,7 +25,7 @@ john_register_one(&fmt_opencl_pgpsda);
 #include "common.h"
 #include "formats.h"
 #include "misc.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "options.h"
 #include "pgpsda_common.h"
 
@@ -68,7 +68,7 @@ static size_t insize, outsize, settingsize;
 static int new_keys;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static const char *warn[] = {
 	"xfer: ",  ", crypt: ",  ", xfer: "

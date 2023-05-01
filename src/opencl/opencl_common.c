@@ -20,7 +20,7 @@
 #define _DEFAULT_SOURCE 1       // setenv()
 #define NEED_OS_TIMER
 #define NEED_OS_FORK
-#include "os.h"
+#include "../os.h"
 
 #include <assert.h>
 #include <string.h>
@@ -36,25 +36,25 @@
 #ifdef NO_JOHN_BLD
 #define JOHN_BLD "unk-build-type"
 #else
-#include "john_build_rule.h"
+#include "../john_build_rule.h"
 #endif
 
-#include "jumbo.h"
-#include "options.h"
-#include "config.h"
-#include "common.h"
-#include "logger.h"
+#include "../jumbo.h"
+#include "../options.h"
+#include "../config.h"
+#include "../common.h"
+#include "../logger.h"
 #include "opencl_common.h"
-#include "mask_ext.h"
-#include "dyna_salt.h"
-#include "signals.h"
-#include "recovery.h"
-#include "status.h"
-#include "john.h"
-#include "md4.h"
-#include "misc.h"
-#include "john_mpi.h"
-#include "timer.h"
+#include "../mask_ext.h"
+#include "../dyna_salt.h"
+#include "../signals.h"
+#include "../recovery.h"
+#include "../status.h"
+#include "../john.h"
+#include "../md4.h"
+#include "../misc.h"
+#include "../john_mpi.h"
+#include "../timer.h"
 
 /* Set this to eg. 3 for some added debug and retry stuff */
 #define RACE_CONDITION_DEBUG 0

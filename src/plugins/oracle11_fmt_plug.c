@@ -57,19 +57,19 @@ john_register_one(&fmt_oracle11);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 
 #ifdef SIMD_COEF_32
 #define NBKEYS	(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
-#include "simd-intrinsics.h"
+#include "../simd-intrinsics.h"
 
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "unicode.h"
-#include "sha.h"
-#include "johnswap.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../unicode.h"
+#include "../sha.h"
+#include "../johnswap.h"
 #include <ctype.h>
 
 #define FORMAT_LABEL			"oracle11"
@@ -105,7 +105,7 @@ john_register_one(&fmt_oracle11);
 #define MIN_KEYS_PER_CRYPT		NBKEYS
 #define MAX_KEYS_PER_CRYPT		NBKEYS
 #define FMT_IS_BE
-#include "common-simd-getpos.h"
+#include "../common-simd-getpos.h"
 #define GETPOS_WORD(i, index)		( (index&(SIMD_COEF_32-1))*4 + ((i)&(0xffffffff-3))*SIMD_COEF_32 +               (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32*4)
 #else
 #define MIN_KEYS_PER_CRYPT		1
@@ -243,7 +243,7 @@ static void clear_keys(void)
 #define SALT_APPENDED SALT_SIZE
 #define NON_SIMD_SINGLE_SAVED_KEY
 #define NON_SIMD_SET_SAVED_LEN
-#include "common-simd-setkey32.h"
+#include "../common-simd-setkey32.h"
 
 static int cmp_all(void *binary, int count)
 {
@@ -394,7 +394,7 @@ static void * get_binary(char *ciphertext)
 
 #define COMMON_GET_HASH_SIMD32 5
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -449,7 +449,7 @@ struct fmt_main fmt_oracle11 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

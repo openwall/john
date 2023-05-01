@@ -24,14 +24,14 @@ john_register_one(&fmt_ospf);
 #include <omp.h>
 #endif
 
-#include "formats.h"
-#include "sha.h"
-#include "sha2.h"
-#include "hmac_sha.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
+#include "../formats.h"
+#include "../sha.h"
+#include "../sha2.h"
+#include "../hmac_sha.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
 
 #define FORMAT_LABEL            "ospf"
 #define FORMAT_NAME             "OSPF / IS-IS"

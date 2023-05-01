@@ -18,7 +18,7 @@ john_register_one(&fmt_sevenzip);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 #if !AC_BUILT && !__MIC__
 #define HAVE_LIBZ 1 /* legacy build has -lz in LDFLAGS */
 #endif
@@ -35,20 +35,20 @@ john_register_one(&fmt_sevenzip);
 #undef SIMD_PARA_SHA256
 #endif
 
-#include "johnswap.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "sha2.h"
-#include "unicode.h"
-#include "dyna_salt.h"
-#include "config.h"
-#include "john.h"
-#include "crc32.h"
-#include "simd-intrinsics.h"
-#include "logger.h"
+#include "../johnswap.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sha2.h"
+#include "../unicode.h"
+#include "../dyna_salt.h"
+#include "../config.h"
+#include "../john.h"
+#include "../crc32.h"
+#include "../simd-intrinsics.h"
+#include "../logger.h"
 
 #define FORMAT_LABEL            "7z"
 
@@ -70,7 +70,7 @@ john_register_one(&fmt_sevenzip);
 #define MAX_KEYS_PER_CRYPT	1
 #endif
 
-#include "7z_common.h"
+#include "../7z_common.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE           1 // tuned w/ MKPC for core i7

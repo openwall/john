@@ -26,7 +26,7 @@ john_register_one(&fmt_opencl_ansible);
 #include "options.h"
 #include "hmac_sha.h"
 #include "ansible_common.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "../run/opencl/opencl_pbkdf2_hmac_sha256.h"
 
 #define FORMAT_LABEL            "ansible-opencl"
@@ -69,7 +69,7 @@ static const char * warn[] = {
 static int split_events[] = { 2, -1, -1 };
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static void release_clobj(void);
 

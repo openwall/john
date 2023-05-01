@@ -26,15 +26,15 @@ john_register_one(&fmt_blackberry1);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "sha2.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sha2.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_TAG              "$bbes10$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG)-1)
@@ -163,7 +163,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_salt(void *salt)
 {
@@ -306,7 +306,7 @@ struct fmt_main fmt_blackberry1 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

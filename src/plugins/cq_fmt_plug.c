@@ -17,12 +17,12 @@ john_register_one(&fmt_cq);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
 
 #define FORMAT_LABEL        "cq"
 #define FORMAT_NAME         "ClearQuest"
@@ -467,7 +467,7 @@ static int cmp_exact(char *source, int index)
 }
 
 #define COMMON_GET_HASH_VAR crypt_key
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_cq = {
 	{
@@ -517,7 +517,7 @@ struct fmt_main fmt_cq = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

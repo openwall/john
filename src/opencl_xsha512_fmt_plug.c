@@ -24,7 +24,7 @@ john_register_one(&fmt_opencl_xsha512);
 #include <string.h>
 
 #include "arch.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "params.h"
 #include "options.h"
 #include "common.h"
@@ -96,7 +96,7 @@ static struct fmt_main *self;
 #define SEED			256
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static const char * warn[] = {
 	"xfer: ",  ", crypt: ", ", vrf_xfer: ", ", verify: ", ", res_xfer: "

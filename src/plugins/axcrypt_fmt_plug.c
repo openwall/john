@@ -23,20 +23,20 @@ john_register_one(&fmt_axcrypt);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "dyna_salt.h"
-#include "sha.h"
-#include "aes.h"
-#include "axcrypt_common.h"
-#include "pbkdf2_hmac_sha512.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../dyna_salt.h"
+#include "../sha.h"
+#include "../aes.h"
+#include "../axcrypt_common.h"
+#include "../pbkdf2_hmac_sha512.h"
 #define VERSION_1_SUPPORT 1
 #define VERSION_2_SUPPORT 1
-#include "axcrypt_variable_code.h"
+#include "../axcrypt_variable_code.h"
 
 #define FORMAT_LABEL            "AxCrypt"
 #define FORMAT_NAME             ""

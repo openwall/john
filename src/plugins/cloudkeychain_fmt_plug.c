@@ -29,17 +29,17 @@ john_register_one(&fmt_cloud_keychain);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "johnswap.h"
-#include "sha2.h"
-#include "hmac_sha.h"
-#include "pbkdf2_hmac_sha512.h"
-#include "cloudkeychain_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../johnswap.h"
+#include "../sha2.h"
+#include "../hmac_sha.h"
+#include "../pbkdf2_hmac_sha512.h"
+#include "../cloudkeychain_common.h"
 
 #define FORMAT_LABEL            "cloudkeychain"
 #define FORMAT_NAME             "1Password Cloud Keychain"

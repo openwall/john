@@ -18,11 +18,11 @@ john_register_one(&fmt_rawBLAKE2);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "blake2.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
+#include "../arch.h"
+#include "../blake2.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
 
 #define FORMAT_LABEL            "Raw-Blake2"
 #define FORMAT_NAME             ""
@@ -139,7 +139,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_key(char *key, int index)
 {
@@ -235,7 +235,7 @@ struct fmt_main fmt_rawBLAKE2 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

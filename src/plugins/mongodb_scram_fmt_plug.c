@@ -18,18 +18,18 @@ john_register_one(&fmt_mongodb_scram);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "sha.h"
-#include "base64_convert.h"
-#include "hmac_sha.h"
-#include "simd-intrinsics.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "md5.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../sha.h"
+#include "../base64_convert.h"
+#include "../hmac_sha.h"
+#include "../simd-intrinsics.h"
+#include "../pbkdf2_hmac_sha1.h"
+#include "../md5.h"
 
 #if defined SIMD_COEF_32
 #define SIMD_KEYS		(SIMD_COEF_32 * SIMD_PARA_SHA1)
@@ -168,7 +168,7 @@ static void set_salt(void *salt)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 inline static void hex_encode(unsigned char *str, int len, unsigned char *out)
 {
@@ -323,7 +323,7 @@ struct fmt_main fmt_mongodb_scram = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

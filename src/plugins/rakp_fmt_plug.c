@@ -16,13 +16,13 @@ john_register_one(&fmt_rakp);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "sha.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../sha.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
 
 #define FORMAT_LABEL            "RAKP"
 #define FORMAT_NAME             "IPMI 2.0 RAKP (RMCP+)"

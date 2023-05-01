@@ -19,7 +19,7 @@ john_register_one(&fmt_haval_128_4);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
@@ -28,13 +28,13 @@ john_register_one(&fmt_haval_128_4);
 #include <omp.h>
 #endif // _OPENMP
 
-#include "arch.h"
-#include "sph_haval.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+#include "../arch.h"
+#include "../sph_haval.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
 
 #define FORMAT_TAG		"$haval$"
 #define TAG_LENGTH		(sizeof(FORMAT_TAG)-1)
@@ -190,7 +190,7 @@ static void *get_binary_128(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int crypt_256_3(int *pcount, struct db_salt *salt)
 {
@@ -330,7 +330,7 @@ struct fmt_main fmt_haval_256_3 = {
 		crypt_256_3,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one256,
@@ -390,7 +390,7 @@ struct fmt_main fmt_haval_128_4 = {
 		crypt_128_4,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one128,

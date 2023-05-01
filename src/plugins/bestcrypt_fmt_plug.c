@@ -16,12 +16,12 @@ john_register_one(&fmt_bestcrypt);
 
 #include <string.h>
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -29,12 +29,12 @@ john_register_one(&fmt_bestcrypt);
 
 #define OMP_SCALE               1 // this is a slow format
 
-#include "sha2.h"
-#include "loader.h"
-#include "pkcs12.h"
-#include "aes.h"
-#include "xts.h"
-#include "sph_whirlpool.h"
+#include "../sha2.h"
+#include "../loader.h"
+#include "../pkcs12.h"
+#include "../aes.h"
+#include "../xts.h"
+#include "../sph_whirlpool.h"
 
 #define FORMAT_LABEL            "BestCrypt"
 #define FORMAT_NAME             "Jetico BestCrypt (.jbc)"

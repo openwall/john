@@ -9,7 +9,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -24,15 +24,15 @@ john_register_one(&fmt_lotus_85);
 #include <string.h>
 #include <stdint.h>
 
-#include "sha.h"
+#include "../sha.h"
 #include <openssl/rc2.h>
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
-#include "formats.h"
-#include "common.h"
+#include "../formats.h"
+#include "../common.h"
 
 /* Plugin definition */
 #define FORMAT_LABEL          "lotus85"

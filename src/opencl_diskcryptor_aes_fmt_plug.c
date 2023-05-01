@@ -27,7 +27,7 @@ john_register_one(&fmt_opencl_diskcryptor_aes);
 #include "formats.h"
 #include "options.h"
 #include "unicode.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "diskcryptor_common.h"
 #include "pbkdf2_hmac_common.h"
 
@@ -106,7 +106,7 @@ static const char *warn[] = {
 static int split_events[] = { 2, -1, -1 };
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 struct fmt_tests diskcryptor_aes_tests[] = {
 	/* AES XTS test vectors */

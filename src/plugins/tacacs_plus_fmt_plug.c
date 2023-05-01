@@ -25,12 +25,12 @@ john_register_one(&fmt_tacacsplus);
 
 #define OMP_SCALE               8  // tuned on i5-6500 CPU
 
-#include "formats.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
-#include "md5.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
+#include "../md5.h"
 
 #define FORMAT_LABEL            "tacacs-plus"
 #define FORMAT_NAME             "TACACS+"

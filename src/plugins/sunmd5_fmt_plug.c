@@ -23,7 +23,7 @@ john_register_one(&fmt_sunmd5);
 #else
 
 #include <string.h>
-#include "os.h"
+#include "../os.h"
 #if (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h>
 #endif
@@ -34,7 +34,7 @@ john_register_one(&fmt_sunmd5);
 #include <omp.h>
 #endif
 
-#include "arch.h"
+#include "../arch.h"
 
 #if !ARCH_LITTLE_ENDIAN
 // For now, neuter this format from SIMD building.
@@ -43,15 +43,15 @@ john_register_one(&fmt_sunmd5);
 #undef SIMD_PARA_MD5
 #endif
 
-#include "misc.h"
-#include "options.h"
-#include "params.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "loader.h"
-#include "md5.h"
-#include "simd-intrinsics.h"
+#include "../misc.h"
+#include "../options.h"
+#include "../params.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../loader.h"
+#include "../md5.h"
+#include "../simd-intrinsics.h"
 
 #ifndef OMP_SCALE
 #if SIMD_COEF_32
@@ -374,7 +374,7 @@ static void *get_salt(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int salt_hash(void *salt)
 {
@@ -919,7 +919,7 @@ struct fmt_main fmt_sunmd5 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

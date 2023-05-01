@@ -14,7 +14,7 @@ john_register_one(&fmt__HAS160);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
@@ -22,11 +22,11 @@ john_register_one(&fmt__HAS160);
 #include <omp.h>
 #endif
 
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "has160.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../has160.h"
 
 #define FORMAT_LABEL                    "has-160"
 #define FORMAT_NAME                     ""
@@ -110,7 +110,7 @@ static void *get_binary(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_key(char *key, int index)
 {
@@ -212,7 +212,7 @@ struct fmt_main fmt__HAS160 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

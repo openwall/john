@@ -26,7 +26,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 #ifndef DYNAMIC_DISABLED
 
@@ -36,12 +36,12 @@ extern struct fmt_main fmt_hmailserver;
 john_register_one(&fmt_hmailserver);
 #else
 
-#include "sha2.h"
+#include "../sha2.h"
 
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "dynamic.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../dynamic.h"
 
 #define FORMAT_LABEL        "hMailServer"
 #define FORMAT_NAME         ""

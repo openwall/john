@@ -22,14 +22,14 @@ john_register_one(&fmt_andotp);
 
 #define OMP_SCALE               256  // tuned on i7-7820HQ (fluctuates a lot)
 
-#include "formats.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
-#include "sha2.h"
-#include "aes_gcm.h"
-#include "memory.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sha2.h"
+#include "../aes_gcm.h"
+#include "../memory.h"
 
 #define FORMAT_LABEL            "andOTP"
 #define FORMAT_NAME             ""

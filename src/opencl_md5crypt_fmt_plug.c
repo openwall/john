@@ -20,9 +20,9 @@ john_register_one(&fmt_opencl_cryptMD5);
 #include "misc.h"
 #include "path.h"
 #include "config.h"
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "options.h"
-#include "md5crypt_common.h"
+#include "formats/md5crypt_common.h"
 
 #define PLAINTEXT_LENGTH	15 /* max. due to optimizations */
 
@@ -52,7 +52,7 @@ static const char * warn[] = {
 };
 
 //This file contains auto-tuning routine(s). Has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()

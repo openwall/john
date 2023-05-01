@@ -25,7 +25,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -43,18 +43,18 @@ john_register_one(&fmt_gpg);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "misc.h"
-#include "twofish.h"
-#include "md5.h"
-#include "rc4.h"
-#include "pdfcrack_md5.h"
-#include "sha.h"
-#include "sha2.h"
-#include "gpg_common.h"
+#include "../arch.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../twofish.h"
+#include "../md5.h"
+#include "../rc4.h"
+#include "../pdfcrack_md5.h"
+#include "../sha.h"
+#include "../sha2.h"
+#include "../gpg_common.h"
 
 #define FORMAT_LABEL        "gpg"
 #define FORMAT_NAME         "OpenPGP / GnuPG Secret Key"

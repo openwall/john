@@ -13,7 +13,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #include <stdarg.h>
@@ -23,14 +23,14 @@
 #include <errno.h>
 
 #ifdef _MSC_VER
-#include "missing_getopt.h"
+#include "../missing_getopt.h"
 #endif
-#include "jumbo.h"
+#include "../jumbo.h"
 #if  (!AC_BUILT || HAVE_UNISTD_H) && !_MSC_VER
 #include <unistd.h> // getopt defined here for unix
 #endif
-#include "params.h"
-#include "memory.h"
+#include "../params.h"
+#include "../memory.h"
 
 #define HASH_UP                  0
 #define HASH_UP_MAC              1

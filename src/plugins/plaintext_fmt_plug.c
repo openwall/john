@@ -31,9 +31,9 @@ john_register_one(&FMT_STRUCT);
 
 #include <string.h>
 
-#include "common.h"
-#include "formats.h"
-#include "options.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
 
 #define FORMAT_LABEL			"plaintext"
 #define FORMAT_TAG			"$0$"

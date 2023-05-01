@@ -18,16 +18,16 @@ john_register_one(&fmt_wpapsk_pmk);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "formats.h"
-#include "common.h"
-#include "misc.h"
+#include "../arch.h"
+#include "../formats.h"
+#include "../common.h"
+#include "../misc.h"
 #define WPAPMK
-#include "wpapsk.h"
-#include "sha.h"
-#include "base64_convert.h"
-#include "options.h"
-#include "john.h"
+#include "../wpapsk.h"
+#include "../sha.h"
+#include "../base64_convert.h"
+#include "../options.h"
+#include "../john.h"
 
 #define FORMAT_LABEL		"wpapsk-pmk"
 #if !HAVE_OPENSSL_CMAC_H

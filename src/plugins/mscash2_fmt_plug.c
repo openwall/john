@@ -62,18 +62,18 @@ john_register_one(&fmt_mscash2);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "unicode.h"
-#include "options.h"
-#include "sha.h"
-#include "md4.h"
-#include "simd-intrinsics.h"
-#include "loader.h"
-#include "mscash_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../unicode.h"
+#include "../options.h"
+#include "../sha.h"
+#include "../md4.h"
+#include "../simd-intrinsics.h"
+#include "../loader.h"
+#include "../mscash_common.h"
 
 #ifndef OMP_SCALE
 #define OMP_SCALE			2 // Tuned on core i7 w/ MKPC

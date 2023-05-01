@@ -13,7 +13,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -31,13 +31,13 @@ john_register_one(&fmt_o3logon);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "sha.h"
-#include "unicode.h"
-#include "base64_convert.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../sha.h"
+#include "../unicode.h"
+#include "../base64_convert.h"
 
 
 #define FORMAT_LABEL                    "o3logon"

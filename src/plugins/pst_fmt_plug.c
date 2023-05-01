@@ -20,7 +20,7 @@ john_register_one(&fmt_pst);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
@@ -28,10 +28,10 @@ john_register_one(&fmt_pst);
 #include <omp.h>
 #endif
 
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "crc32.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../crc32.h"
 
 #define FORMAT_LABEL            "PST"
 #define FORMAT_NAME             "custom CRC-32"
@@ -159,7 +159,7 @@ static char *get_key(int index)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 struct fmt_main fmt_pst = {
 	{
@@ -212,7 +212,7 @@ struct fmt_main fmt_pst = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

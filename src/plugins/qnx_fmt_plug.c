@@ -15,7 +15,7 @@ extern struct fmt_main fmt_qnx;
 john_register_one(&fmt_qnx);
 #else
 
-#include "arch.h"
+#include "../arch.h"
 
 #define _GNU_SOURCE 1
 #include <string.h>
@@ -26,15 +26,15 @@ john_register_one(&fmt_qnx);
 
 #undef SIMD_COEF_32
 #define FORCE_GENERIC_SHA2 1
-#include "sha2.h"
-#include "md5.h"
+#include "../sha2.h"
+#include "../md5.h"
 
-#include "params.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
-#include "misc.h"
+#include "../params.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
+#include "../misc.h"
 
 // NOTE, in SSE mode, even if NOT in OMP, we may need to scale, quite a bit, due to needing
 // to 'group' passwords based upon length of password.
@@ -73,7 +73,7 @@ john_register_one(&fmt_qnx);
 #endif
 
 #define __QNX_CREATE_PROPER_TESTS_ARRAY__
-#include "qnx_common.h"
+#include "../qnx_common.h"
 
 static int (*saved_len);
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -125,7 +125,7 @@ static void clear_keys(void) {
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void set_key(char *key, int index)
 {
@@ -386,7 +386,7 @@ struct fmt_main fmt_qnx = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

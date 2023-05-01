@@ -22,14 +22,14 @@ john_register_one(&fmt_bitshares);
 
 #define OMP_SCALE               32  // MKPC and OMP_SCALE tuned on i5-6500 CPU
 
-#include "formats.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
-#include "sha2.h"
-#include "aes.h"
-#include "secp256k1.h"
+#include "../formats.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sha2.h"
+#include "../aes.h"
+#include "../secp256k1.h"
 
 #define FORMAT_LABEL            "bitshares"
 #define FORMAT_NAME             "BitShares Wallet"

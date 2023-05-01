@@ -22,16 +22,16 @@ john_register_one(&fmt_ansible);
 
 #define OMP_SCALE               1  // MKPC and OMP_SCALE tuned on Core i5-6500
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "jumbo.h"
-#include "hmac_sha.h"
-#include "pbkdf2_hmac_sha256.h"
-#include "ansible_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../jumbo.h"
+#include "../hmac_sha.h"
+#include "../pbkdf2_hmac_sha256.h"
+#include "../ansible_common.h"
 
 #define FORMAT_LABEL            "ansible"
 #ifdef SIMD_COEF_32

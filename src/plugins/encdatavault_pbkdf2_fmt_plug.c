@@ -18,9 +18,9 @@ john_register_one(&fmt_encdadatavault_pbkdf2);
 #include <omp.h>
 #endif
 
-#include "md5.h"
-#include "pbkdf2_hmac_sha256.h"
-#include "encdatavault_common.h"
+#include "../md5.h"
+#include "../pbkdf2_hmac_sha256.h"
+#include "../encdatavault_common.h"
 
 #define FORMAT_LABEL_PBKDF2       	"ENCDataVault-PBKDF2"
 #define FORMAT_NAME               	""

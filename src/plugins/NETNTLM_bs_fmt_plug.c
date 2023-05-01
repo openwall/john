@@ -53,15 +53,15 @@ john_register_one(&fmt_NETNTLM_old);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "DES_std.h"
-#include "DES_bs.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "md5.h"
-#include "unicode.h"
+#include "../arch.h"
+#include "../DES_std.h"
+#include "../DES_bs.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../md5.h"
+#include "../unicode.h"
 
 #ifndef uchar
 #define uchar unsigned char

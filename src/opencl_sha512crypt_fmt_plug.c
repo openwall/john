@@ -22,7 +22,7 @@ john_register_one(&fmt_opencl_cryptsha512);
 
 #include <string.h>
 
-#include "opencl_common.h"
+#include "opencl/opencl_common.h"
 #include "config.h"
 #include "options.h"
 #include "../run/opencl/opencl_sha512crypt.h"
@@ -63,7 +63,7 @@ static int new_keys, source_in_use;
 static int split_events[3] = { 1, 6, 7 };
 
 //This file contains auto-tuning routine(s). It has to be included after formats definitions.
-#include "opencl_autotune.h"
+#include "opencl/opencl_autotune.h"
 
 static void release_kernel();
 

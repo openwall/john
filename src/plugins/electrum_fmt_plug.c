@@ -11,12 +11,12 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
 
-#include "arch.h"
+#include "../arch.h"
 #if !AC_BUILT
 #define HAVE_LIBZ 1
 #endif
@@ -36,17 +36,17 @@ john_register_one(&fmt_electrum);
 #include <omp.h>
 #endif
 
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "aes.h"
-#include "sha2.h"
-#include "jumbo.h"
-#include "secp256k1.h"
-#include "pbkdf2_hmac_sha512.h"
-#include "hmac_sha.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../aes.h"
+#include "../sha2.h"
+#include "../jumbo.h"
+#include "../secp256k1.h"
+#include "../pbkdf2_hmac_sha512.h"
+#include "../hmac_sha.h"
 
 #define FORMAT_NAME             "Electrum Wallet"
 #define FORMAT_LABEL            "electrum"

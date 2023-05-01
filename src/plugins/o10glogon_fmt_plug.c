@@ -17,7 +17,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -35,14 +35,14 @@ john_register_one(&fmt_o10glogon);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "aes.h"
-#include "md5.h"
-#include "unicode.h"
-#include "base64_convert.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../aes.h"
+#include "../md5.h"
+#include "../unicode.h"
+#include "../base64_convert.h"
 
 #define FORMAT_LABEL                    "o10glogon"
 #define FORMAT_NAME                     "Oracle 10g-logon protocol"

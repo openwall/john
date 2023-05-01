@@ -20,17 +20,17 @@ john_register_one(&fmt_lastpass_cli);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "johnswap.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "aes.h"
-#include "sha2.h"
-#include "pbkdf2_hmac_sha256.h"
-#include "lastpass_cli_common.h"
+#include "../arch.h"
+#include "../johnswap.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../aes.h"
+#include "../sha2.h"
+#include "../pbkdf2_hmac_sha256.h"
+#include "../lastpass_cli_common.h"
 
 #define FORMAT_LABEL            "lpcli"
 #define FORMAT_TAG              "$lpcli$"

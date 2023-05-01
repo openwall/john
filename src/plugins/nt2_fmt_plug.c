@@ -18,7 +18,7 @@ john_register_one(&fmt_NT2);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
@@ -27,15 +27,15 @@ john_register_one(&fmt_NT2);
 #endif
 
 #define REVERSE_STEPS
-#include "md4.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "unicode.h"
-#include "memory.h"
-#include "johnswap.h"
-#include "simd-intrinsics.h"
+#include "../md4.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../unicode.h"
+#include "../memory.h"
+#include "../johnswap.h"
+#include "../simd-intrinsics.h"
 
 #ifdef SIMD_COEF_32
 #define NBKEYS				(SIMD_COEF_32 * SIMD_PARA_MD4)

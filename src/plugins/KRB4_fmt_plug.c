@@ -33,7 +33,7 @@
 */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -48,12 +48,12 @@ john_register_one(&fmt_KRB4);
 #include <ctype.h>
 #include <openssl/des.h>
 
-#include "arch.h"
-#include "DES_std.h"
-#include "KRB4_std.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
+#include "../arch.h"
+#include "../DES_std.h"
+#include "../KRB4_std.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
 
 #define TGT_LENGTH		16	/* 2 des_cblock's */
 

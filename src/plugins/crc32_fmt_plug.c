@@ -32,7 +32,7 @@ john_register_one(&fmt_crc32);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
@@ -40,10 +40,10 @@ john_register_one(&fmt_crc32);
 #include <omp.h>
 #endif
 
-#include "common.h"
-#include "formats.h"
-#include "crc32.h"
-#include "loader.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../crc32.h"
+#include "../loader.h"
 
 #define FORMAT_LABEL			"CRC32"
 #define FORMAT_NAME			""
@@ -135,7 +135,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 }
 
 #define COMMON_GET_HASH_VAR crcs
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static void *get_binary(char *ciphertext)
 {
@@ -310,7 +310,7 @@ struct fmt_main fmt_crc32 = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

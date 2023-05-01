@@ -22,16 +22,16 @@ john_register_one(&fmt_lastpass);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "johnswap.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "aes.h"
-#include "lastpass_common.h"
-#include "pbkdf2_hmac_sha256.h"
+#include "../arch.h"
+#include "../johnswap.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../aes.h"
+#include "../lastpass_common.h"
+#include "../pbkdf2_hmac_sha256.h"
 
 #define FORMAT_LABEL            "lp"
 #define FORMAT_TAG              "$lp$"

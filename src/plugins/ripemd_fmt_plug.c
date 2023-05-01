@@ -18,7 +18,7 @@ john_register_one(&fmt_ripemd_128);
 
 #include <string.h>
 
-#include "arch.h"
+#include "../arch.h"
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
@@ -26,12 +26,12 @@ john_register_one(&fmt_ripemd_128);
 #include <omp.h>
 #endif
 
-#include "sph_ripemd.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+#include "../sph_ripemd.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
 
 #ifndef OMP_SCALE
 #ifdef __MIC__
@@ -180,7 +180,7 @@ static void *get_binary_128(char *ciphertext)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int crypt_160(int *pcount, struct db_salt *salt)
 {
@@ -320,7 +320,7 @@ struct fmt_main fmt_ripemd_160 = {
 		crypt_160,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one160,
@@ -380,7 +380,7 @@ struct fmt_main fmt_ripemd_128 = {
 		crypt_128,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one128,

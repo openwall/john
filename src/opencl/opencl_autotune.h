@@ -13,11 +13,11 @@
 #ifndef _COMMON_TUNE_H
 #define _COMMON_TUNE_H
 
-#include "config.h"
-#include "logger.h"
-#include "mask_ext.h"
-#include "john.h"
-#include "recovery.h"
+#include "../config.h"
+#include "../logger.h"
+#include "../mask_ext.h"
+#include "../john.h"
+#include "../recovery.h"
 #include "opencl_common.h"
 
 /* Step size for work size enumeration. Zero will double. */

@@ -25,19 +25,19 @@ john_register_one(&fmt_tezos);
 
 #define OMP_SCALE               1
 
-#include "arch.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
-#include "jumbo.h"
-#include "ed25519.h"
-#include "blake2.h"
-#include "tezos_common.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../params.h"
+#include "../options.h"
+#include "../jumbo.h"
+#include "../ed25519.h"
+#include "../blake2.h"
+#include "../tezos_common.h"
 #define PBKDF2_HMAC_SHA512_VARYING_SALT 1
-#include "pbkdf2_hmac_common.h"
-#include "pbkdf2_hmac_sha512.h"
+#include "../pbkdf2_hmac_common.h"
+#include "../pbkdf2_hmac_sha512.h"
 
 #define FORMAT_NAME             "Tezos Key"
 #define FORMAT_LABEL            "tezos"

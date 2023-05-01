@@ -69,7 +69,7 @@
  */
 
 #if AC_BUILT
-#include "autoconfig.h"
+#include "../autoconfig.h"
 #endif
 
 #if HAVE_LIBCRYPTO
@@ -85,8 +85,8 @@ john_register_one(&fmt_NETNTLM_new);
 #include <string.h>
 #include <openssl/des.h>
 
-#include "arch.h"
-#include "simd-intrinsics.h"
+#include "../arch.h"
+#include "../simd-intrinsics.h"
 #ifdef SIMD_COEF_32
 #define NBKEYS                  (SIMD_COEF_32 * SIMD_PARA_MD4)
 #else
@@ -98,17 +98,17 @@ john_register_one(&fmt_NETNTLM_new);
 #endif
 #endif
 
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "options.h"
-#include "memory.h"
-#include "johnswap.h"
-#include "sha.h"
-#include "md4.h"
-#include "md5.h"
-#include "unicode.h"
-#include "john.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../options.h"
+#include "../memory.h"
+#include "../johnswap.h"
+#include "../sha.h"
+#include "../md4.h"
+#include "../md5.h"
+#include "../unicode.h"
+#include "../john.h"
 
 #ifndef uchar
 #define uchar unsigned char

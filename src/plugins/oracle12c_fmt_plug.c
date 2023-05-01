@@ -20,14 +20,14 @@ john_register_one(&fmt_oracle12c);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "memory.h"
-#include "common.h"
-#include "formats.h"
-#include "johnswap.h"
-#include "sha2.h"
-#include "pbkdf2_hmac_sha512.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../memory.h"
+#include "../common.h"
+#include "../formats.h"
+#include "../johnswap.h"
+#include "../sha2.h"
+#include "../pbkdf2_hmac_sha512.h"
 
 #define FORMAT_LABEL		"Oracle12C"
 #define FORMAT_NAME		""
@@ -165,7 +165,7 @@ static void set_salt(void *salt)
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
@@ -286,7 +286,7 @@ struct fmt_main fmt_oracle12c = {
 		crypt_all,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,

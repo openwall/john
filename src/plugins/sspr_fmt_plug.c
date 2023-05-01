@@ -25,15 +25,15 @@ john_register_one(&fmt_sspr);
 
 #define OMP_SCALE               1  // MKPC and OMP_SCALE tuned on Core i7-6600U
 
-#include "formats.h"
-#include "md5.h"
-#include "sha.h"
-#include "sha2.h"
-#include "misc.h"
-#include "common.h"
-#include "params.h"
-#include "options.h"
-#include "sspr_common.h"
+#include "../formats.h"
+#include "../md5.h"
+#include "../sha.h"
+#include "../sha2.h"
+#include "../misc.h"
+#include "../common.h"
+#include "../params.h"
+#include "../options.h"
+#include "../sspr_common.h"
 
 #define FORMAT_LABEL            "sspr"
 #define ALGORITHM_NAME          "MD5/SHA1/SHA256/SHA512 32/" ARCH_BITS_STR

@@ -17,7 +17,7 @@
 #define ARCH_LITTLE_ENDIAN 1
 #endif
 #endif
-#include "arch.h"
+#include "../arch.h"
 #if ARCH_LITTLE_ENDIAN
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_VMS;
@@ -32,11 +32,11 @@ john_register_one(&fmt_VMS);
 #include <omp.h>
 #endif
 
-#include "arch.h"
-#include "misc.h"
-#include "vms_std.h"
-#include "common.h"
-#include "formats.h"
+#include "../arch.h"
+#include "../misc.h"
+#include "../vms_std.h"
+#include "../common.h"
+#include "../formats.h"
 #ifdef VMS
 #include <ssdef.h>
 #define UAIsM_PWDMIX UAI$M_PWDMIX
@@ -188,7 +188,7 @@ void VMS_std_set_salt ( void *salt )
 }
 
 #define COMMON_GET_HASH_VAR crypt_out
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 
 /*
  * Hash the password and salt saved with VMS_std_set_key and VMS_std_set_salt,
@@ -296,7 +296,7 @@ struct fmt_main fmt_VMS = {
 		VMS_std_crypt,
 		{
 #define COMMON_GET_HASH_LINK
-#include "common-get-hash.h"
+#include "../common-get-hash.h"
 		},
 		cmp_all,
 		cmp_one,
