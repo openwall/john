@@ -55,6 +55,10 @@ JTR_GIT_HEAD_TS = \" $(shell git show -s --format=%ci HEAD 2>/dev/null)\"
 JTR_GIT_VERSION = JUMBO_VERSION "$(JTR_GIT_COMMIT) $(JTR_GIT_HEAD_TS)"
 endif
 
+ifdef JTR_RAW_BINARY
+JTR_GIT_VERSION = JUMBO_VERSION \"-stabilized\"
+endif
+
 CPPFLAGS = @CPPFLAGS@
 CFLAGSX = -c @CFLAGS@ @JOHN_NO_SIMD@ @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ $(CPPFLAGS)
 # CFLAGS for use on the main john.c file only
