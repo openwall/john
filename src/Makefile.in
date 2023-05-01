@@ -153,7 +153,7 @@ JOHN_OBJS += $(OCL_OBJS) $(OPENCL_PLUGFORMATS_OBJS)
 
 # core OpenCL dependencies
 CL_DEVICE_HEADER = ../run/opencl/opencl_device_info.h
-CL_COMMON_HEADER = opencl_common.h gpu_common.h gpu_sensors.h
+CL_COMMON_HEADER = opencl/opencl_common.h gpu_common.h gpu_sensors.h
 endif
 
 WITH_ZTEX=@ZTEX_LIBS@
@@ -242,7 +242,7 @@ lzma/LzmaDec.o:	lzma/LzmaDec.c lzma/Precomp.h lzma/Compiler.h lzma/LzmaDec.h lzm
 
 base64_convert.o:	base64_convert.c missing_getopt.h memory.h arch.h misc.h jumbo.h autoconfig.h common.h base64_convert.h os.h os-autoconf.h
 
-batch.o:	batch.c params.h arch.h os.h os-autoconf.h autoconfig.h jumbo.h signals.h loader.h list.h formats.h misc.h status.h config.h single.h wordlist.h inc.h memory.h
+batch.o:	batch.c params.h arch.h os.h os-autoconf.h autoconfig.h jumbo.h signals.h loader.h list.h formats.h misc.h status.h config.h single.h wordlist.h modes/inc.h memory.h
 
 bench.o:	bench.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h times.h misc.h params.h memory.h signals.h formats.h dyna_salt.h bench.h john.h unicode.h options.h list.h loader.h getopt.h common.h config.h gpu_common.h gpu_sensors.h john_mpi.h
 
@@ -277,11 +277,11 @@ charset.o:	charset.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h param
 common.o:	common.c arch.h common.h memory.h os.h os-autoconf.h autoconfig.h jumbo.h misc.h base64_convert.h
 
 ifdef WITH_OPENCL
-opencl_autotune.o:	opencl_autotune.c $(CL_COMMON_HEADER) arch.h misc.h jumbo.h autoconfig.h memory.h common.h formats.h params.h path.h $(CL_DEVICE_HEADER) os.h os-autoconf.h
+opencl_autotune.o:	opencl/opencl_autotune.c $(CL_COMMON_HEADER) arch.h misc.h jumbo.h autoconfig.h memory.h common.h formats.h params.h path.h $(CL_DEVICE_HEADER) os.h os-autoconf.h
 
 gpu_common.o:	gpu_common.c autoconfig.h Win32-dlfcn-port.h gpu_common.h gpu_sensors.h john.h os.h os-autoconf.h jumbo.h arch.h memory.h params.h logger.h config.h signals.h
 
-opencl_common.o:	opencl_common.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h $(CL_COMMON_HEADER) path.h $(CL_DEVICE_HEADER) mask_ext.h mask.h dyna_salt.h signals.h recovery.h status.h john.h md5.h john_mpi.h
+opencl_common.o:	opencl/opencl_common.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h $(CL_COMMON_HEADER) path.h $(CL_DEVICE_HEADER) mask_ext.h mask.h dyna_salt.h signals.h recovery.h status.h john.h md5.h john_mpi.h
 endif
 
 compiler.o:	compiler.c arch.h params.h memory.h compiler.h os.h os-autoconf.h autoconfig.h jumbo.h
@@ -294,7 +294,7 @@ cracker.o:	cracker.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h misc.h param
 
 crc32.o:	crc32.c memory.h arch.h crc32.h os.h os-autoconf.h autoconfig.h jumbo.h
 
-md5crypt_common.o:	md5crypt_common.c arch.h misc.h jumbo.h autoconfig.h common.h memory.h formats.h params.h md5crypt_common.h os.h os-autoconf.h
+md5crypt_common.o:	formats/md5crypt_common.c arch.h misc.h jumbo.h autoconfig.h common.h memory.h formats.h params.h formats/md5crypt_common.h os.h os-autoconf.h
 
 DES_bs.o:	DES_bs.c arch.h common.h memory.h DES_std.h DES_bs.h loader.h params.h list.h formats.h misc.h jumbo.h autoconfig.h unicode.h options.h getopt.h os.h os-autoconf.h
 
@@ -350,7 +350,7 @@ hmacmd5.o:	hmacmd5.c arch.h common.h memory.h md5.h hmacmd5.h aligned.h os.h os-
 
 idle.o:	idle.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h params.h config.h options.h list.h loader.h formats.h misc.h getopt.h common.h memory.h signals.h bench.h
 
-inc.o:	inc.c arch.h misc.h jumbo.h autoconfig.h params.h path.h memory.h os.h os-autoconf.h signals.h formats.h loader.h list.h logger.h status.h recovery.h options.h getopt.h common.h config.h charset.h external.h compiler.h cracker.h john.h unicode.h mask.h
+inc.o:	modes/inc.c arch.h misc.h jumbo.h autoconfig.h params.h path.h memory.h os.h os-autoconf.h signals.h formats.h loader.h list.h logger.h status.h recovery.h options.h getopt.h common.h config.h charset.h external.h compiler.h cracker.h john.h unicode.h mask.h
 
 john_mpi.o:	john_mpi.c autoconfig.h john_mpi.h john.h os.h os-autoconf.h jumbo.h arch.h memory.h
 
@@ -368,7 +368,7 @@ KeccakSponge.o:	KeccakSponge.c KeccakSponge.h KeccakF-1600-interface.h os.h os-a
 
 keepass2john.o:	keepass2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h os.h os-autoconf.h base64.h sha2.h
 
-bitlocker2john.o:	bitlocker2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h os.h os-autoconf.h
+bitlocker2john.o:	formats/bitlocker2john.c autoconfig.h arch.h missing_getopt.h jumbo.h params.h memory.h os.h os-autoconf.h
 
 list.o:	list.c memory.h arch.h list.h os.h os-autoconf.h autoconfig.h jumbo.h
 
@@ -390,11 +390,11 @@ md4.o:	md4.c md4.h arch.h os.h os-autoconf.h autoconfig.h jumbo.h memory.h
 
 md5.o:	md5.c md5.h arch.h os.h os-autoconf.h autoconfig.h jumbo.h memory.h
 
-MD5_fmt.o:	MD5_fmt.c arch.h misc.h jumbo.h autoconfig.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h MD5_std.h formats.h params.h md5crypt_common.h os.h os-autoconf.h
+MD5_fmt.o:	MD5_fmt.c arch.h misc.h jumbo.h autoconfig.h simd-intrinsics.h common.h memory.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h MD5_std.h formats.h params.h formats/md5crypt_common.h os.h os-autoconf.h
 
 MD5_std.o:	MD5_std.c arch.h common.h memory.h MD5_std.h os.h os-autoconf.h autoconfig.h jumbo.h
 
-md5crypt_long_fmt.o:	md5crypt_long_fmt.c md5crypt_common.h md5.h arch.h misc.h jumbo.h autoconfig.h common.h memory.h formats.h params.h omp_autotune.h options.h list.h loader.h getopt.h john_mpi.h common-get-hash.h
+md5crypt_long_fmt.o:	md5crypt_long_fmt.c formats/md5crypt_common.h md5.h arch.h misc.h jumbo.h autoconfig.h common.h memory.h formats.h params.h omp_autotune.h options.h list.h loader.h getopt.h john_mpi.h common-get-hash.h
 
 md_helper.o:	md_helper.c
 
@@ -703,8 +703,8 @@ poly1305-donna/poly1305-donna.a:
 ../run/dmg2john@EXE_EXT@: dmg2john.o jumbo.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ dmg2john.o jumbo.o @OPENMP_CFLAGS@ -o $@
 
-../run/bitlocker2john@EXE_EXT@: bitlocker2john.c jumbo.c base64_convert.c misc.c common.o memory.c
-	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@ @OPENSSL_CFLAGS@ @CFLAGS_EXTRA@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ bitlocker2john.c jumbo.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c  $(LDFLAGS) @OPENMP_CFLAGS@ @OPENSSL_LIBS@ -o $@
+../run/bitlocker2john@EXE_EXT@: formats/bitlocker2john.c jumbo.c base64_convert.c misc.c common.o memory.c
+	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @CFLAGS@ @OPENSSL_CFLAGS@ @CFLAGS_EXTRA@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ formats/bitlocker2john.c jumbo.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c  $(LDFLAGS) @OPENMP_CFLAGS@ @OPENSSL_LIBS@ -o $@
 
 ../run/racf2john@EXE_EXT@: racf2john.o jumbo.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ racf2john.o jumbo.o @OPENMP_CFLAGS@ -o $@
@@ -729,7 +729,7 @@ poly1305-donna/poly1305-donna.a:
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) @OPENMP_CFLAGS@ -o $@
 
-john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john_mpi.h regex.h unicode.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) john_build_rule.h fmt_externs.h fmt_registers.h subsets.h
+john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h modes/inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john_mpi.h regex.h unicode.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) john_build_rule.h fmt_externs.h fmt_registers.h subsets.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O1 $*.c
 
 # Workaround for gcc 3.4.6 (seen on Sparc32) (do not use -funroll-loops)
@@ -741,6 +741,15 @@ unrarppm.o:	unrarppm.c arch.h aes.h autoconfig.h aes/aes_func.h unrar.h unrarhlp
 
 .S.o:
 	$(AS) $(ASFLAGS) $*.S
+
+%.o : formats/%.c
+	$(CC) $(CFLAGS) $(OPT_NORMAL) $< -o $@
+
+%.o : opencl/%.c
+	$(CC) $(CFLAGS) $(OPT_NORMAL) $< -o $@
+
+%.o : modes/%.c
+	$(CC) $(CFLAGS) $(OPT_NORMAL) $< -o $@
 
 ../run/oui.txt:
 	cd ../run && wget http://standards-oui.ieee.org/oui.txt

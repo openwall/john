@@ -3576,8 +3576,8 @@ else
 fi
 
 
-CPPFLAGS="$CPPFLAGS -iquote $(pwd)"
-PLUGINS="./ "
+CPPFLAGS="$CPPFLAGS -iquote $(pwd) -iquote $(pwd)/modes -iquote $(pwd)/formats -iquote $(pwd)/opencl"
+PLUGINS="./ plugins/"
 
 if test -f GNU?akefile; then
    as_fn_error $? "Stray GNUmakefile (or GNUMakefile) detected. Please remove it" "$LINENO" 5
