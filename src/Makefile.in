@@ -45,7 +45,7 @@ srcdir = @srcdir@
 prefix = @prefix@
 F = ""
 
-JTR_GIT_COMMIT = \"-$(shell git rev-parse --short HEAD 2>/dev/null)\"
+JTR_GIT_COMMIT = \"-$(shell git rev-parse --short=10 HEAD 2>/dev/null)\"
 ifeq ($(JTR_GIT_COMMIT), \"-\")
 # this format string will be replaced by git archive:
 JTR_ARCHIVE_VERSION_STRING = $Format:-%h %ci$
