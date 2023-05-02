@@ -1094,7 +1094,7 @@ else
   AC_MSG_NOTICE([creating *_plug.c rules])
 fi
 if test "`echo *_plug.c`" != "*_plug.c"; then
-   AC_SUBST([PLUGFORMATS_OBJS],[`for i in ${PLUGINS}; do echo $i*_plug.c " "; done | tr -d '\n' | sed 's,\./,,g' | sed 's/opencl[[A-Za-z0-9_\-]]*\.c //g;s/\.c/.o/g'`])
+   AC_SUBST([PLUGFORMATS_OBJS],[`for i in ${PLUGINS}; do echo ${i}*_plug.c; done | sed 's/opencl[A-Za-z0-9_\-]*\.c //g;s/\.c/.o/g;s,\./,,g' | tr '\n' ' '`])
    AC_SUBST([OPENCL_PLUGFORMATS_OBJS],[`echo opencl*_plug.c | sed 's/\.c/.o/g'`])
    if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
       AC_MSG_NOTICE([creating Makefile dependencies])

@@ -16568,7 +16568,7 @@ else
 $as_echo "$as_me: creating *_plug.c rules" >&6;}
 fi
 if test "`echo *_plug.c`" != "*_plug.c"; then
-   PLUGFORMATS_OBJS=`for i in ${PLUGINS}; do echo $i*_plug.c " "; done | tr -d '\n' | sed 's,\./,,g' | sed 's/opencl[A-Za-z0-9_\-]*\.c //g;s/\.c/.o/g'`
+   PLUGFORMATS_OBJS=`for i in ${PLUGINS}; do echo ${i}*_plug.c; done | sed 's/opencl[A-Za-z0-9_\-]*\.c //g;s/\.c/.o/g;s,\./,,g' | tr '\n' ' '`
 
    OPENCL_PLUGFORMATS_OBJS=`echo opencl*_plug.c | sed 's/\.c/.o/g'`
 
