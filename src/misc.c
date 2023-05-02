@@ -212,6 +212,9 @@ char *fgetll(char *s, size_t size, FILE *stream)
 			if (increase < 0x10000)
 				pexit("realloc");
 			new_cp = realloc(cp, len + increase);
+			/* Reference the relocated pointer to avoid GCC -Wuse-after-free */
+			if (new_cp)
+				cp = new_cp;
 		}
 
 		cp = new_cp;
