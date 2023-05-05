@@ -1,24 +1,19 @@
 /*
- * JtR format to crack "AS-REP" messages.
+ * JtR format to crack etype 17 and 18 "TGS-REP" messages.
  *
- * This software is
- * Copyright (c) 2017 Dhiru Kholia (dhiru at openwall.com),
- * Copyright (c) 2018 magnum,
+ * This software is Copyright (c) 2023 magnum,
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
- *
- * This file is based on krb5_asrep_fmt_plug.c and opencl_krb5pa-sha1_fmt_plug.c
- * files.
  */
 
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_krb5_asrep_aes;
+extern struct fmt_main fmt_opencl_krb5_tgs_aes;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_krb5_asrep_aes);
+john_register_one(&fmt_opencl_krb5_tgs_aes);
 #else
 
 #include "arch.h"
@@ -27,39 +22,27 @@ john_register_one(&fmt_opencl_krb5_asrep_aes);
 #include "options.h"
 #include "common.h"
 #include "config.h"
-#include "aes.h"
 #include "krb5_common.h"
-#include "krb5_asrep_common.h"
+#include "krb5_tgsrep_common.h"
 #include "opencl_common.h"
 #define MAX_OUTLEN 32
 #include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
-#include "hmac_sha.h"
 
-#define FORMAT_LABEL            "krb5asrep-aes-opencl"
-#define FORMAT_NAME             "Kerberos 5 AS-REP etype 17/18"
-#define ALGORITHM_NAME          "PBKDF2-SHA1 OpenCL"
+#define FORMAT_LABEL            "krb5tgs-sha1-opencl"
+#define FORMAT_NAME             "Kerberos 5 TGS-REP etype 17/18"
+#define ALGORITHM_NAME          "PBKDF2-SHA1 AES-CTS OpenCL"
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
 #define GETPOS(i, index)        (((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 
-static struct fmt_tests tests[] = {
-	// hero-17-abcd.pcap
-	{"$krb5asrep$17$EXAMPLE.COMhero$4e7c79214fd330b2e505a4c75e257e4686029136d54f92ce91bb69d5ffc064e64e925b3ae8bc1df431c74ccaf2075cb4a1a32151b0848964e147bf6f8e4a50caa7931faad50433991e016e312c70ad9007e38166f8df39eda3edd2445cce757e062d0919e663a67eb9fdb472b2a840cf521f18bd794947bcc0c0c6394cc5a60b860c963640867e623732206e7bf904d3b066a17b6f4ea3fd6d74f110ee80052e5297f7a19aaec22e22d582d183d43d6ca1792da187a3a182d1f479c5b4692841ccd701a63735d64584c4f8d199d67876dae5181f4eadfe75e454d0587d0953d7e16cb1b63265da6188b10c1746a2e83c41707bd03fcb2d460d1c6802826a0347b5ee7cdbe5384acad139b4395928bd$7ed0277ba9b853008cc62abe", "abcd"},
-	// AS-REP-with-PA-unsupported-openwall.pcap
-	{"$krb5asrep$18$EXAMPLE.COMlulu$b49aa3de9314e2d8daafe323f2e84b9a4ddc361d99bf3bf3a99102f8bff5368bdefc9d7ae090532fdad2a508ac1271bfbd17363b3a1da23bf9db324a24c238634e3ab28d7f4eca009b4c3953c882f5a4206458a0b4238f3e538308d7339382f38412bbfe7b71e269274526edf7b802ea1ecdf7b8c17f9502b7a6750313329a68b8f8a2d039c8dfe74b9ead98684cfc86e5d0f77c18ba05718b01c33831db17191a0e77f9cef998bbb66a794915b03c94725aceabe9e2b5e25b665a37b5dd3a59a5552bd779dd5f0ae7295d232194eec1ca1ba0324bdc836ba623117e59fcfedab45a86d76d2c768341d327c035a1f5c756cfc06d76b6f7ea31c7a8e782eb48de0aab2fb373ffc2352c4192838323f8$a5245c7f39480a840da0e4c6", "openwall"},
-	// luser-18-12345678.pcap
-	{"$krb5asrep$18$EXAMPLE.COMluser$42e34732112be6cec1532177a6c93af5ec3b2fc7da106c004d6d89ddcb4131092aecbead3e9f30d07b593f4c7adc6478ab50b80fee07db3531471f5f1986c8882c45fef784258f9d43195108b83a74f6dcae1beed179c356c0da4e2d69f122efc579fd207d2b2b241a6c275997f2ec6fec95573a7518cb8b8528d932cc14186e4c5d46cef1eed4f2924ea316d80a62b0bcd98592a11eb69c04ef43b63aeae35e9f8bd8f842d0c9c33d768cd33c55914c2a1fb2f7c640b7270cf2274993c0ce4f413aac8e9d7a231c70dd0c6f8b9c16b47a90fae8d68982a66aa58e2eb8dde93d3504e87b5d4e33827c2aa501ed63544c0578032f395205c63b030cccc699aafb9132692c79a154d645fe83927b0eda$420973360c2e907b9053f1db", "12345678"},
-	{NULL}
-};
-
 static cl_mem mem_in, mem_dk, mem_out, mem_salt, mem_state, mem_plaintext, mem_edata2;
 static cl_mem pinned_in, pinned_out;
-static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final, asrep_final;
+static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final, tgsrep_final;
 static struct fmt_main *self;
 
-static struct custom_salt *cur_salt;
+static krb5tgsrep_salt *cur_salt;
 
 typedef struct {
 	pbkdf2_salt pbkdf2;
@@ -67,17 +50,17 @@ typedef struct {
 	uint32_t edata2len;
 	uint8_t  edata1[16];
 	// edata2 is a separate __global buffer of variable size
-} asrep_salt;
+} tgsrep_salt;
 
 typedef struct {
 	unsigned int cracked;
-} asrep_out;
+} tgsrep_out;
 
 static size_t key_buf_size;
 static unsigned int *inbuffer;
-static asrep_salt currentsalt;
-static asrep_out *output;
-static int edata_size = 4096;
+static tgsrep_salt currentsalt;
+static tgsrep_out *output;
+static int biggest_edata_size = 4096;
 static int new_keys;
 
 #define ITERATIONS		(4096 - 1)
@@ -86,7 +69,7 @@ static int new_keys;
 #define SEED			128
 
 static const char * warn[] = {
-	"xfer: ",  ", init: ",  ", loop: ",  ", final: ",  ", asrep: ",  ", res xfer: "
+	"xfer: ",  ", init: ",  ", loop: ",  ", final: ",  ", tgsrep: ",  ", res xfer: "
 };
 
 static int split_events[] = { 2, -1, -1 };
@@ -102,7 +85,7 @@ static size_t get_task_max_work_group_size()
 	s = autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_init);
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_loop));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_final));
-	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, asrep_final));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, tgsrep_final));
 	return s;
 }
 
@@ -124,11 +107,11 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	inbuffer = clEnqueueMapBuffer(queue[gpu_id], pinned_in, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, key_buf_size, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
-	pinned_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(asrep_out) * gws, NULL, &ret_code);
+	pinned_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(tgsrep_out) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating pinned out");
-	mem_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(asrep_out) * gws, NULL, &ret_code);
+	mem_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(tgsrep_out) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem out");
-	output = clEnqueueMapBuffer(queue[gpu_id], pinned_out, CL_TRUE, CL_MAP_READ, 0, sizeof(asrep_out) * gws, 0, NULL, NULL, &ret_code);
+	output = clEnqueueMapBuffer(queue[gpu_id], pinned_out, CL_TRUE, CL_MAP_READ, 0, sizeof(tgsrep_out) * gws, 0, NULL, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory");
 
 	mem_dk = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_out) * gws, NULL, &ret_code);
@@ -137,13 +120,13 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	mem_state = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(pbkdf2_state) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem_state");
 
-	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(asrep_salt), &currentsalt, &ret_code);
+	mem_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(tgsrep_salt), &currentsalt, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem setting");
 
-	mem_edata2 = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, edata_size, NULL, &ret_code);
+	mem_edata2 = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, biggest_edata_size, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem edata2");
 
-	mem_plaintext = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, edata_size * gws, NULL, &ret_code);
+	mem_plaintext = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, biggest_edata_size * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error allocating mem plaintext");
 
 	HANDLE_CLERROR(clSetKernelArg(pbkdf2_init, 0, sizeof(mem_in), &mem_in), "Error while setting mem_in kernel argument");
@@ -156,11 +139,11 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	HANDLE_CLERROR(clSetKernelArg(pbkdf2_final, 1, sizeof(mem_dk), &mem_dk), "Error while setting mem_dk kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(pbkdf2_final, 2, sizeof(mem_state), &mem_state), "Error while setting mem_state kernel argument");
 
-	HANDLE_CLERROR(clSetKernelArg(asrep_final, 0, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(asrep_final, 1, sizeof(mem_dk), &mem_dk), "Error while setting mem_dk kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(asrep_final, 2, sizeof(mem_edata2), &mem_edata2), "Error while setting mem_edata2 kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(asrep_final, 3, sizeof(mem_plaintext), &mem_plaintext), "Error while setting mem_plaintext kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(asrep_final, 4, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(tgsrep_final, 0, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(tgsrep_final, 1, sizeof(mem_dk), &mem_dk), "Error while setting mem_dk kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(tgsrep_final, 2, sizeof(mem_edata2), &mem_edata2), "Error while setting mem_edata2 kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(tgsrep_final, 3, sizeof(mem_plaintext), &mem_plaintext), "Error while setting mem_plaintext kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(tgsrep_final, 4, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 }
 
 static void release_clobj(void)
@@ -191,7 +174,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(pbkdf2_init), "Release Kernel");
 		HANDLE_CLERROR(clReleaseKernel(pbkdf2_loop), "Release Kernel");
 		HANDLE_CLERROR(clReleaseKernel(pbkdf2_final), "Release Kernel");
-		HANDLE_CLERROR(clReleaseKernel(asrep_final), "Release Kernel");
+		HANDLE_CLERROR(clReleaseKernel(tgsrep_final), "Release Kernel");
 
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
@@ -239,7 +222,7 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 		pbkdf2_final = clCreateKernel(program[gpu_id], "pbkdf2_final", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
-		asrep_final = clCreateKernel(program[gpu_id], "asrep_final", &ret_code);
+		tgsrep_final = clCreateKernel(program[gpu_id], "tgsrep_final", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 	}
 
@@ -247,15 +230,10 @@ static void reset(struct db_main *db)
 	opencl_init_auto_setup(SEED, 2 * HASH_LOOPS, split_events,
 	                       warn, 2, self, create_clobj,
 	                       release_clobj,
-	                       edata_size, 0, db);
+	                       biggest_edata_size, 0, db);
 
 	//Auto tune execution from shared/included code.
 	autotune_run(self, 4 * ITERATIONS + 4, 0, 200);
-}
-
-static int valid(char *ciphertext, struct fmt_main *self)
-{
-	return krb5_asrep_valid(ciphertext, self, 0);
 }
 
 static void clear_keys(void) {
@@ -290,21 +268,21 @@ static void set_salt(void *salt)
 {
 	size_t buf_size;
 
-	cur_salt = *((struct custom_salt **)salt);
+	cur_salt = *((krb5tgsrep_salt **)salt);
 	buf_size = (cur_salt->edata2len + 31) / 32 * 32;
 
-	if (buf_size > edata_size) {
-		edata_size = buf_size;
+	if (buf_size > biggest_edata_size) {
+		biggest_edata_size = buf_size;
 		HANDLE_CLERROR(clReleaseMemObject(mem_plaintext), "Release mem_plaintext");
 		HANDLE_CLERROR(clReleaseMemObject(mem_edata2), "Release mem_edata2");
-		mem_plaintext = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, edata_size * global_work_size, NULL, &ret_code);
+		mem_plaintext = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, biggest_edata_size * global_work_size, NULL, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error allocating mem plaintext");
 
-		mem_edata2 = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, edata_size, NULL, &ret_code);
+		mem_edata2 = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, biggest_edata_size, NULL, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error allocating mem edata2");
 
-		HANDLE_CLERROR(clSetKernelArg(asrep_final, 2, sizeof(mem_edata2), &mem_edata2), "Error while setting mem_edata2 kernel argument");
-		HANDLE_CLERROR(clSetKernelArg(asrep_final, 3, sizeof(mem_plaintext), &mem_plaintext), "Error while setting mem_plaintext kernel argument");
+		HANDLE_CLERROR(clSetKernelArg(tgsrep_final, 2, sizeof(mem_edata2), &mem_edata2), "Error while setting mem_edata2 kernel argument");
+		HANDLE_CLERROR(clSetKernelArg(tgsrep_final, 3, sizeof(mem_plaintext), &mem_plaintext), "Error while setting mem_plaintext kernel argument");
 	}
 	currentsalt.pbkdf2.length = strlen((char*)cur_salt->salt);
 	currentsalt.pbkdf2.iterations = 4096;
@@ -314,7 +292,7 @@ static void set_salt(void *salt)
 
 	memcpy(currentsalt.pbkdf2.salt, cur_salt->salt, currentsalt.pbkdf2.length);
 	memcpy(currentsalt.edata1, cur_salt->edata1, sizeof(currentsalt.edata1));
-	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(asrep_salt), &currentsalt, 0, NULL, NULL), "Salt transfer");
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_FALSE, 0, sizeof(tgsrep_salt), &currentsalt, 0, NULL, NULL), "Salt transfer");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_edata2, CL_FALSE, 0, currentsalt.edata2len, cur_salt->edata2, 0, NULL, NULL), "Copy edata2 to gpu");
 	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }
@@ -348,11 +326,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pbkdf2_final, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "Run final pbkdf2 kernel");
 	}
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], asrep_final, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (SHA1)");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], tgsrep_final, 1, NULL, &scalar_gws, lws, 0, NULL, multi_profilingEvent[4]), "Run final kernel (SHA1)");
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "Failed running final kernel");
 
 	// Read the result back
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(asrep_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[5]), "Copy result back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, sizeof(tgsrep_out) * scalar_gws, output, 0, NULL, multi_profilingEvent[5]), "Copy result back");
 
 	return count;
 }
@@ -377,7 +355,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-struct fmt_main fmt_opencl_krb5_asrep_aes = {
+struct fmt_main fmt_opencl_krb5_tgs_aes = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -397,18 +375,18 @@ struct fmt_main fmt_opencl_krb5_asrep_aes = {
 			"etype"
 		},
 		{ FORMAT_TAG },
-		tests
+		krb5_tgsrep_tests
 	}, {
 		init,
 		done,
 		reset,
 		fmt_default_prepare,
-		valid,
-		krb5_asrep_split,
+		krb5_tgsrep_valid,
+		fmt_default_split,
 		fmt_default_binary,
-		krb5_asrep_get_salt,
+		krb5_tgsrep_get_salt,
 		{
-			krb5_asrep_etype
+			krb5_tgsrep_etype
 		},
 		fmt_default_source,
 		{
