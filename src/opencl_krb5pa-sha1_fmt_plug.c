@@ -60,7 +60,7 @@ john_register_one(&fmt_opencl_krb5pa_sha1);
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define ALGORITHM_NAME          "PBKDF2-SHA1 OpenCL"
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH        0x507
 #define BINARY_SIZE             12
 #define BINARY_ALIGN            4
 #define SALT_SIZE               sizeof(struct custom_salt)
@@ -81,14 +81,14 @@ john_register_one(&fmt_opencl_krb5pa_sha1);
 //#define GETPOS(i, index)      (((index) & (ocl_v_width - 1)) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 
 static struct fmt_tests tests[] = {
+	/* etype 17 hash obtained using MiTM etype downgrade attack */
+	{"$krb5pa$17$user1$EXAMPLE.COM$$c5461873dc13665771b98ba80be53939e906d90ae1ba79cf2e21f0395e50ee56379fbef4d0298cfccfd6cf8f907329120048fd05e8ae5df4", "openwall"},
 	{"$krb5pa$18$user1$EXAMPLE.COM$$2a0e68168d1eac344da458599c3a2b33ff326a061449fcbc242b212504e484d45903c6a16e2d593912f56c93883bf697b325193d62a8be9c", "openwall"},
 	{"$krb5pa$18$user1$EXAMPLE.COM$$a3918bd0381107feedec8db0022bdf3ac56e534ed54d13c62a7013a47713cfc31ef4e7e572f912fa4164f76b335e588bf29c2d17b11c5caa", "openwall"},
 	{"$krb5pa$18$l33t$EXAMPLE.COM$$98f732b309a1d7ef2355a974842a32894d911e97150f5d57f248e1c2632fbd3735c5f156532ccae0341e6a2d779ca83a06021fe57dafa464", "openwall"},
 	{"$krb5pa$18$aduser$AD.EXAMPLE.COM$$64dfeee04be2b2e0423814e0df4d0f960885aca4efffe6cb5694c4d34690406071c4968abd2c153ee42d258c5e09a41269bbcd7799f478d3", "password@123"},
 	{"$krb5pa$18$aduser$AD.EXAMPLE.COM$$f94f755a8b4493d925094a4eb1cec630ac40411a14c9733a853516fe426637d9daefdedc0567e2bb5a83d4f89a0ad1a4b178662b6106c0ff", "password@12345678"},
 	{"$krb5pa$18$aduser$AD.EXAMPLE.COM$AD.EXAMPLE.COMaduser$f94f755a8b4493d925094a4eb1cec630ac40411a14c9733a853516fe426637d9daefdedc0567e2bb5a83d4f89a0ad1a4b178662b6106c0ff", "password@12345678"},
-	/* etype 17 hash obtained using MiTM etype downgrade attack */
-	{"$krb5pa$17$user1$EXAMPLE.COM$$c5461873dc13665771b98ba80be53939e906d90ae1ba79cf2e21f0395e50ee56379fbef4d0298cfccfd6cf8f907329120048fd05e8ae5df4", "openwall"},
 	{NULL},
 };
 
@@ -551,6 +551,11 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+static unsigned int etype(void *salt)
+{
+	return ((struct custom_salt *)salt)->etype;
+}
+
 struct fmt_main fmt_opencl_krb5pa_sha1 = {
 	{
 		FORMAT_LABEL,
@@ -567,7 +572,9 @@ struct fmt_main fmt_opencl_krb5pa_sha1 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
-		{ NULL },
+		{
+			"etype"
+		},
 		{ FORMAT_TAG },
 		tests
 	}, {
@@ -579,7 +586,9 @@ struct fmt_main fmt_opencl_krb5pa_sha1 = {
 		split,
 		get_binary,
 		get_salt,
-		{ NULL },
+		{
+			etype
+		},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,

@@ -208,3 +208,8 @@ void *krb5_asrep_get_salt(char *ciphertext)
 
 	return (void *) &ptr;
 }
+
+unsigned int krb5_asrep_etype(void *salt)
+{
+	return (*(struct custom_salt**)salt)->etype;
+}
