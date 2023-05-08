@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script extracts hashes from AIX /etc/security/passwd
 # cat /etc/security/passwd

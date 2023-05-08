@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # The staroffice2john.py utility processes StarOffice files into a format
 # suitable for use with JtR.

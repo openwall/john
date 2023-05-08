@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 # This software is Copyright (c) 2015, Dhiru Kholia <dhiru.kholia at gmail.com>

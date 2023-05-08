@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 #
 # Kdcdump patch output translation for JtR
 # August of 2012 by Mougey Camille

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # AxCrypt 1.x and 2.x encrypted file parser for JtR.
 #

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Helper for cracking Mozilla's password database (key3.db master password).
 #

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # JtR utility to convert native Adobe AEM (Adobe Experience Manager) hashes to
 # an existing JtR hash format.

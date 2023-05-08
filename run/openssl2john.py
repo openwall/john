@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This utility helps in cracking files encrypted using "openssl enc" command.
 # It does not help in cracking encrypted private key files. Use pem2john.py instead.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This scripts converts input LastPass data into a format suitable for use with
 # JtR.
