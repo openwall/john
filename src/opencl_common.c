@@ -350,12 +350,13 @@ static char *opencl_driver_info(int sequential_id)
 	if (gpu_amd(device_info[sequential_id]) &&
 	    get_platform_vendor_id(get_platform_id(sequential_id)) == DEV_AMD) {
 
+		//The buffer may not be NULL terminated, avoid this using the macro.
 		if (major < 1912)
-			snprintf(buf, sizeof(buf), "%s - Catalyst %s", dname, name);
+			SNPRINTF(buf, sizeof(buf), "%s - Catalyst %s", dname, name);
 		else if (major < 2500)
-			snprintf(buf, sizeof(buf), "%s - Crimson %s", dname, name);
+			SNPRINTF(buf, sizeof(buf), "%s - Crimson %s", dname, name);
 		else
-			snprintf(buf, sizeof(buf), "%s - AMDGPU-Pro %s", dname, name);
+			SNPRINTF(buf, sizeof(buf), "%s - AMDGPU-Pro %s", dname, name);
 		snprintf(tmp, sizeof(tmp), "%s", buf);
 	} else
 		snprintf(tmp, sizeof(tmp), "%s", dname);

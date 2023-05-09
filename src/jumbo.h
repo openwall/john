@@ -440,4 +440,9 @@ extern int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize);
  */
 extern char *replace(char *string, char c, char n);
 
+#define SNPRINTF(buffer, sizeof, format, ...)	  \
+	do { \
+		snprintf(buffer, sizeof, format, __VA_ARGS__) < 0 ? buffer[sizeof - 1] = '\0': (void)0; \
+	} while (0)
+
 #endif /* _JTR_JUMBO_H */
