@@ -81,6 +81,9 @@ int krb5_tgsrep_valid(char *ciphertext, struct fmt_main *self)
 		if (strlen(u) + strlen(p) > sizeof(((krb5tgsrep_salt*)NULL)->salt))
 			goto err;
 	}
+	if (num_seps > 6)
+		if ((p = strtokm(NULL, "$")) == NULL) // spn (not used)
+			goto err;
 	if (((p = strtokm(NULL, "$")) == NULL)) // checksum/edata1
 		goto err;
 	if (!ishex(p) || hexlen(p, &extra) != 24 || extra)
@@ -122,6 +125,10 @@ void *krb5_tgsrep_get_salt(char *ciphertext)
 	else
 		realm = "";
 	snprintf(cs.salt, sizeof(cs.salt), "%s%s", realm, user);
+
+	// spn (not used)
+	if (num_seps > 6)
+		p = strtokm(NULL, "$");
 
 	// checksum
 	p = strtokm(NULL, "$");
