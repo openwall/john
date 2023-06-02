@@ -231,7 +231,7 @@ def process_file(filename, options):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s [Ethereum Wallet files (default_wallet)]\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s [Electrum Wallet files (default_wallet)]\n" % sys.argv[0])
         sys.exit(1)
 
     parser = optparse.OptionParser()
