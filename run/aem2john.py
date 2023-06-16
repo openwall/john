@@ -1,74 +1,110 @@
 #!/usr/bin/env python
 
-# JtR utility to convert native Adobe AEM (Adobe Experience Manager) hashes to
-# an existing JtR hash format.
+"""
+This script is designed to transform Adobe Experience Manager (AEM) hash formats into the hash format used by the John the Ripper (JtR) password-cracking tool. It primarily serves as a conversion utility, enabling testing AEM hashes with tools that can handle JtR's hash format.
 
-# This software is Copyright (c) 2018, Dhiru Kholia <kholia at kth.se> and it
-# is hereby released to the general public under the following terms:
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted.
-#
-# See "generateHash" in PasswordUtil.java from the following project,
-# https://github.com/apache/jackrabbit-oak.
+The script reads the original AEM hashes from input files, where each hash is expected to be either in the SHA-256 or SHA-512 format and may optionally be prefixed with a username separated by a colon. The script determines its algorithm for each hash, extracts the relevant components (salt, iterations, and the hash itself), and reassembles these components into the JtR format. 
 
+The JtR hash format is then printed to the standard output. In case of any unrecognized or malformed hashes in the input, the script logs a warning and skips to the next hash. 
+
+Usage:
+    python aem2john.py <file1> [<file2> ...]
+
+Each argument should be a file path pointing to a text file containing AEM hashes, one per line.
+
+The script is compatible with both Python 2 and Python 3.
+
+Originally authored by Dhiru Kholia <kholia at kth.se> in 2018 and released to the general public under a permissive license allowing free redistribution and modification.
+
+For more details about the original AEM hash generation algorithm, see the "generateHash" method in PasswordUtil.java from the Apache Jackrabbit Oak project: https://github.com/apache/jackrabbit-oak.
+"""
+
+# Use the print function for Python 2 and 3 compatibility
+from __future__ import print_function
 
 import sys
+import logging
+from argparse import ArgumentParser
 
-PY3 = sys.version_info[0] == 3
+# Map algorithm tags to their respective algorithm numbers
+ALGO_TAGS = {
+    "{SHA-256}": 3,  # SHA-256
+    "{SHA-512}": 4  # SHA-512
+}
 
-if not PY3:
-    reload(sys)
-    sys.setdefaultencoding('utf8')
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
-# Input,
-#   {SHA-256}a9d4b340cb43807b-1000-33b8875ff3f9619e6ae984add262fb6b6f043e8ff9b065f4fb0863021aada275
-#   jsmith:{SHA-256}fe90d85cdcd7e79c-1000-ef182cdc47e60b472784e42a6e167d26242648c6b2e063dfd9e27eec9aa38912
-#   admin:{SHA-512}fe90d85cdcd7e79c-1000-4c29a0ac964e7bbc5380797f294d15928288cbcde3d501eb8746296de8d6c06b2b5ff27b56ae174744fe69ee157614ad126c1315ee3b67c891e42753e01a3e37
-#
-# Output,
-#   $sspr$3$1000$a9d4b340cb43807b$33b8875ff3f9619e6ae984add262fb6b6f043e8ff9b065f4fb0863021aada275
-#   jsmith:$sspr$3$1000$fe90d85cdcd7e79c$ef182cdc47e60b472784e42a6e167d26242648c6b2e063dfd9e27eec9aa38912
-#   admin:$sspr$4$1000$fe90d85cdcd7e79c$4c29a0ac964e7bbc5380797f294d15928288cbcde3d501eb8746296de8d6c06b2b5ff27b56ae174744fe69ee157614ad126c1315ee3b67c891e42753e01a3e37
-#
-# Passwords -> admin, Aa12345678!@
+# Python 2 and 3 compatibility for file paths
+if sys.version_info.major == 2:
+    Path = str
+else:
+    from pathlib import Path
 
-tag = "{SHA-256}"
-tag_length = len(tag)
+
+def split_user_and_hash(line):
+    """Split username and hash from the line."""
+    if ':' in line:
+        return line.split(':', 1)
+    return '', line
+
+
+def extract_algo_and_hash(line):
+    """Extract algorithm number and hash from the line."""
+    for tag, algo in ALGO_TAGS.items():
+        if tag in line:
+            return algo, line[len(tag):]
+    return None, line
+
+
+def split_hash_parts(line):
+    """Split hash into salt, iterations, and actual hash."""
+    parts = line.split('-')
+    if len(parts) != 3:
+        return None
+    return tuple(parts)
+
+
+def process_line(line):
+    """Process a single line from the input file."""
+    line = line.rstrip()
+    user, hash_with_algo = split_user_and_hash(line)
+    algo, hash_without_algo = extract_algo_and_hash(hash_with_algo)
+
+    if algo is None:
+        logging.warning(f"Unknown hash format in line: {line[:8]}")
+        return None
+
+    hash_parts = split_hash_parts(hash_without_algo)
+    if hash_parts is None:
+        logging.warning(f"Invalid hash format in line: {line[:8]}")
+        return None
+
+    salt, iterations, hash_value = hash_parts
+
+    return f"{user}:$sspr${algo}${iterations}${salt}${hash_value}"
+
 
 def process_file(filename):
-    with open(filename, "r") as f:
-        for line in f.readlines():
-            line = line.rstrip()
-            if tag in line:
-                algo = 3  # SHA-256
-            elif "{SHA-512}" in line:
-                algo = 4  # SHA-512
-            else:
-                sys.stderr.write("[!] Unknown hash format -> %s\n" % line[0:8])
-                continue
-            # Parse username
-            user = ''
-            if ':' in line:
-                parts = line.split(':')
-                user = parts[0] + ':'
-                line = parts[1]
-            # Split up hashing algo, salt, iterations, digest values
-            line = line[tag_length:]
-            data = line.split('-')
-            try:
-                salt, iterations, h = data
-            except ValueError:
-                import traceback
-                traceback.print_exc()
-                continue
-            # Print out results $$$
-            sys.stdout.write("%s$sspr$%s$%s$%s$%s\n" % (user, algo, iterations, salt, h))
-
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s <File(s)-with-Adobe-AEM-hashes>\n" % sys.argv[0])
+    """Process the given input file."""
+    try:
+        with open(filename, "r") as f:
+            for line in f:
+                result = process_line(line)
+                if result is not None:
+                    print(result)
+    except IOError as e:
+        logging.error(f"Error reading file {filename}: {str(e)}")
         sys.exit(1)
 
-    for i in range(1, len(sys.argv)):
-        process_file(sys.argv[i])
+
+def main():
+    parser = ArgumentParser(description="Process Adobe AEM hashes.")
+    parser.add_argument("files", metavar="F", type=Path, nargs='+', help="Files with Adobe AEM hashes")
+    args = parser.parse_args()
+
+    for filename in args.files:
+        process_file(filename)
+
+
+if __name__ == "__main__":
+    main()
