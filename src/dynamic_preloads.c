@@ -850,6 +850,30 @@ MTL({"$dynamic_25$1b8cde0e3ecaed9abfa4deaf37addc7adcb8a932$123456789012345678901
 	{NULL}
 };
 
+static DYNAMIC_primitive_funcp _Funcs_41[] =
+{
+	//MGF_UTF8
+	//MGF_INPUT_20_BYTE
+	//MGF_SALTED
+	//MGF_FLAT_BUFFERS
+	DynamicFunc__clean_input_kwik,
+	DynamicFunc__append_salt,
+	DynamicFunc__setmode_unicode,
+	DynamicFunc__append_keys,
+	DynamicFunc__SHA1_crypt_input1_to_output1_FINAL,
+	NULL
+};
+
+static struct fmt_tests _Preloads_41[] =
+{
+	// Inno Setup (Unicode version)
+	{"$dynamic_41$d91d81ffd3ce0a64b4687391e2ce9b5055ee2680$HEX$50617373776f7264436865636b48617368a10cfd998d3442a8", "openwall"},
+	{"$dynamic_41$b6a8b8ba9078d05a0ff1e26043e3ef21278095bf$HEX$50617373776f7264436865636b486173680011223344556677", "HelloWorld!"},
+	{"$dynamic_41$97305bbc2f279dcd243450387d7aba5239d85165$HEX$50617373776f7264436865636b48617368AABBCCDDEEFF1122", "FooBar123"},
+	{NULL}
+};
+
+
 // dynamic_26  raw-sha1
 static DYNAMIC_primitive_funcp _Funcs_26[] =
 {
@@ -3302,6 +3326,7 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_23: sha1(md5($p))",              _Funcs_23,_Preloads_23,_ConstDefault, MGF_NO_FLAG, MGF_INPUT_20_BYTE|MGF_KEYS_INPUT },
 	{ "dynamic_24: sha1($p.$s)",                _Funcs_24,_Preloads_24,_ConstDefault, MGF_FLAT_BUFFERS|MGF_SALTED, MGF_NO_FLAG|MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_25: sha1($s.$p)",                _Funcs_25,_Preloads_25,_ConstDefault, MGF_FLAT_BUFFERS|MGF_SALTED, MGF_NO_FLAG|MGF_INPUT_20_BYTE, -64, 110, 110 },
+	{ "dynamic_41: sha1($s.utf16($p))",         _Funcs_41,_Preloads_41,_ConstDefault, MGF_UTF8|MGF_FLAT_BUFFERS|MGF_SALTED, MGF_NO_FLAG|MGF_INPUT_20_BYTE, -64, 55, 55 },
 	{ "dynamic_26: sha1($p) raw-sha1",          _Funcs_26,_Preloads_26,_ConstDefault, MGF_FLAT_BUFFERS, MGF_KEYS_INPUT|MGF_INPUT_20_BYTE },
 // Dyna 27/28 have been removed, Spring of 2013.  These dyna numbers should NOT be reused for any purpose.
 //dynamic_27 --> FreeBSD MD5
