@@ -269,8 +269,6 @@ fi
    JTR_FLAG_CHECK([-Wunused-but-set-variable], 1)
    dnl JTR_NOWARN_CHECK([unneeded-internal-declaration], 1)
    AS_IF([test "x$JTR_FLAG_Q_CHECK_WORKS" = xyes], [JTR_FLAG_CHECK([-Qunused-arguments],1)])
-   dnl Justified and Ancient (see issue 1093)
-   JTR_FLAG_CHECK([-std=gnu89], 1)
    dnl We like reproducible builds
    JTR_FLAG_CHECK([-Wdate-time], 1)
    JTR_LIST_ADD(CFLAGS_EXTRA, ["$CFLAGS_EX"])
