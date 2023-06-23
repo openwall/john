@@ -11054,8 +11054,6 @@ CC_BACKUP=$CC
 CFLAGS_BACKUP=$CFLAGS
 
 
-CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
-
   case $host_os in #(
   darwin*) :
     CC="$CC_BACKUP"
@@ -11116,6 +11114,7 @@ fi
   *) :
      ;;
 esac
+CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
 
 if test "x$simd" != xno; then
  if test "x$enable_native_tests" != xno && test "x$simd" = xyes; then
