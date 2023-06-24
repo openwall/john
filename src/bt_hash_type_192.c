@@ -24,7 +24,7 @@ inline unsigned int modulo192_31b(bt_uint192_t a, unsigned int N, uint64_t shift
 	return (unsigned int)p;
 }
 
-inline bt_uint192_t add192(bt_uint192_t a, unsigned int b)
+static inline bt_uint192_t add192(bt_uint192_t a, unsigned int b)
 {
 	bt_uint192_t result;
 	result.LO = a.LO + b;

@@ -23,7 +23,7 @@ inline unsigned int modulo128_31b(bt_uint128_t a, unsigned int N, uint64_t shift
 	return (unsigned int)p;
 }
 
-inline bt_uint128_t add128(bt_uint128_t a, unsigned int b)
+static inline bt_uint128_t add128(bt_uint128_t a, unsigned int b)
 {
 	bt_uint128_t result;
 	result.LO64 = a.LO64 + b;
