@@ -39,19 +39,19 @@ use English '-no_match_vars';
 my ($current_user, $current_password);
 
 while (<>) {
-    chomp;
-    if (/^\s*([^:]+):\s*$/) {
-        output_user($current_user, $current_password) if defined $current_user;
-        ($current_user, $current_password) = ($1, undef);
-    } elsif (/^\s*password\s+=\s*(\S+)\s*$/) {
-        $current_password = $1;
-    }
+	chomp;
+	if (/^\s*([^:]+):\s*$/) {
+		output_user($current_user, $current_password) if defined $current_user;
+		($current_user, $current_password) = ($1, undef);
+	} elsif (/^\s*password\s+=\s*(\S+)\s*$/) {
+		$current_password = $1;
+	}
 }
 
 output_user($current_user, $current_password) if defined $current_user;
 
 sub output_user {
-    my ($user, $password) = @_;
-    $password = 'NoPassword' if !defined $password || $password eq '*';
-    say "$user:$password";
+	my ($user, $password) = @_;
+	$password = 'NoPassword' if !defined $password || $password eq '*';
+	say "$user:$password";
 }
