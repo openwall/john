@@ -201,7 +201,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 		return ciphertext;
 
 	memcpy(out, FORMAT_TAG_18, TAG_LENGTH_18);
-	strnzcpyn(out + TAG_LENGTH_18, ciphertext, CIPHERTEXT_LENGTH_18 + SALT_SIZE + 1);
+	strnzcpy(out + TAG_LENGTH_18, ciphertext, CIPHERTEXT_LENGTH_18 + SALT_SIZE + 1);
 
 	return out;
 }
@@ -253,7 +253,8 @@ static void *get_binary(char *ciphertext)
 		p = ciphertext + TAG_LENGTH_3;
 	}
 
-	if (!out) out = mem_alloc_tiny(binary_size, MEM_ALIGN_WORD);
+	/* 32 is max possible binary_size above */
+	if (!out) out = mem_alloc_tiny(32, MEM_ALIGN_WORD);
 	p = strstr(p, "$") + 1;
 
 	for (; i < binary_size; i++) {

@@ -126,7 +126,7 @@ int pgpwde_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "*")) == NULL) // version
@@ -153,11 +153,11 @@ int pgpwde_valid(char *ciphertext, struct fmt_main *self)
 		goto bail;
 	if ((p = strtokm(NULL, "*")) == NULL) // salt
 		goto bail;
-	if (hexlenl(p, &extra) > 16 * 2 || extra)
+	if (hexlenl(p, &extra) != 16 * 2 || extra)
 		goto bail;
 	if ((p = strtokm(NULL, "*")) == NULL) // ESK
 		goto bail;
-	if (hexlenl(p, &extra) > 128 * 2 || extra)
+	if (hexlenl(p, &extra) != 128 * 2 || extra)
 		goto bail;
 	if (!ishexlc(p))
 		goto bail;
@@ -177,7 +177,7 @@ void *pgpwde_get_salt(char *ciphertext)
 	char *p = ciphertext, *ctcopy, *keeptr;
 
 	memset(&cs, 0, sizeof(cs));
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LENGTH;
 	p = strtokm(ctcopy, "*");

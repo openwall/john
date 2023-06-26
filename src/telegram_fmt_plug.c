@@ -51,7 +51,7 @@ john_register_one(&fmt_telegram);
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt)
-#define SALT_ALIGN              sizeof(uint64_t)
+#define SALT_ALIGN              sizeof(uint32_t)
 #ifdef SIMD_COEF_32
 #define SHA1_LOOP_CNT            (SIMD_COEF_32 * SIMD_PARA_SHA1)
 #define SHA512_LOOP_CNT          (SIMD_COEF_64 * SIMD_PARA_SHA512)

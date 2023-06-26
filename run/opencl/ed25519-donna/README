@@ -1,0 +1,10 @@
+This is portions of Andrew M.'s ed25519-donna implementing ed25519_publickey()
+ported over from C (generic 32-bit code) to OpenCL by Solar Designer.  Here we
+use JtR-specific memcpy_*() for copying between address spaces, which we assume
+come from a previously #include'ed file before a #include of ed25519-donna.c.
+
+The filenames of original ed25519-donna have been preserved to allow for easy
+"diff -ur" against the original.
+
+The porting to OpenCL was funded by the Tezos Foundation, and the code stays in
+the public domain.

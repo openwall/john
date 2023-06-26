@@ -45,10 +45,6 @@
 #include "autoconfig.h"
 #endif
 
-#if !AC_BUILT && !__MIC__
-#define HAVE_LIBGMP 1 /* legacy build uses libgmp by default, except for MIC */
-#endif
-
 #if HAVE_LIBGMP || HAVE_LIBCRYPTO /* we need one of these for bignum */
 
 #if FMT_EXTERNS_H
@@ -102,9 +98,10 @@ john_register_one(&fmt_blizzard);
 #define BINARY_SIZE		4
 #define BINARY_ALIGN		4
 #define FULL_BINARY_SIZE	32
-#define SALT_SIZE		(64+3)
-#define SALT_ALIGN		1
 #define USERNAMELEN             32
+#define ONLY_SALT_SIZE		(64+3)
+#define SALT_SIZE		(1 + ONLY_SALT_SIZE + USERNAMELEN + 1)
+#define SALT_ALIGN		1
 
 #define MIN_KEYS_PER_CRYPT	1
 #define MAX_KEYS_PER_CRYPT	1
@@ -216,7 +213,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 	if (((p - q) & 1))
 		return 0;
-	if (p - q >= 2 * SALT_SIZE)
+	if (p - q >= 2 * ONLY_SALT_SIZE)
 		return 0;
 	while (atoi16[ARCH_INDEX(*q)] != 0x7F)
 		q++;
@@ -403,7 +400,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 	enc_strupper(saved_key[index]);
 }
 

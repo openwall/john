@@ -8,7 +8,7 @@
 
 #include "arch.h"
 
-#if !defined(JOHN_NO_SIMD) && __SSE4_1__
+#if ARCH_LITTLE_ENDIAN
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_stribog_256;
@@ -30,27 +30,27 @@ john_register_one(&fmt_stribog_512);
 #include "formats.h"
 #include "params.h"
 #include "options.h"
-#include "gost3411-2012-sse41.h"
+#include "gost3411-2012-core.h"
 
-#define FORMAT_LABEL            "stribog"
-#define FORMAT_NAME             ""
+#define FORMAT_LABEL_256        "Stribog-256"
+#define FORMAT_LABEL_512        "Stribog-512"
+#define FORMAT_NAME             "raw Streebog"
 #define TAG256                  "$stribog256$"
 #define TAG256_LENGTH           (sizeof(TAG256)-1)
 #define TAG512                  "$stribog512$"
 #define TAG512_LENGTH           (sizeof(TAG512)-1)
-#define TAG_LENGTH              TAG256_LENGTH
-#define FORMAT_TAG              TAG256
-#if __AVX__
+#if !JOHN_NO_SIMD && __AVX__
 #define ALGORITHM_NAME          "GOST R 34.11-2012 128/128 AVX 1x"
+#elif !JOHN_NO_SIMD && __SSE2__
+#define ALGORITHM_NAME          "GOST R 34.11-2012 128/128 SSE2 1x"
 #else
-#define ALGORITHM_NAME          "GOST R 34.11-2012 128/128 SSE4.1 1x"
+#define ALGORITHM_NAME          "GOST R 34.11-2012 64/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        64 - 1
 #define CIPHERTEXT256_LENGTH    64
 #define CIPHERTEXT512_LENGTH    128
-#define CIPHERTEXT_LENGTH       CIPHERTEXT256_LENGTH
 #define BINARY_SIZE_256         32
 #define BINARY_SIZE_512         64
 #define SALT_SIZE               0
@@ -114,6 +114,10 @@ static void done(void)
 	MEM_FREE(saved_key);
 }
 
+#define FORMAT_TAG              TAG256
+#define TAG_LENGTH              TAG256_LENGTH
+#define CIPHERTEXT_LENGTH       CIPHERTEXT256_LENGTH
+
 static char *split_256(char *ciphertext, int index, struct fmt_main *self)
 {
 	make_static_buf(char, out, TAG_LENGTH + CIPHERTEXT_LENGTH + 1);
@@ -159,12 +163,12 @@ static void *get_binary_256(char *ciphertext)
 	return out;
 }
 
-#undef TAG_LENGTH
 #undef FORMAT_TAG
+#undef TAG_LENGTH
 #undef CIPHERTEXT_LENGTH
 
-#define TAG_LENGTH TAG512_LENGTH
 #define FORMAT_TAG TAG512
+#define TAG_LENGTH TAG512_LENGTH
 #define CIPHERTEXT_LENGTH CIPHERTEXT512_LENGTH
 
 static char *split_512(char *ciphertext, int index, struct fmt_main *self)
@@ -344,7 +348,7 @@ static char *get_key(int index)
 
 struct fmt_main fmt_stribog_256 = {
 	{
-		"Stribog-256",
+		FORMAT_LABEL_256,
 		FORMAT_NAME,
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
@@ -405,7 +409,7 @@ struct fmt_main fmt_stribog_256 = {
 
 struct fmt_main fmt_stribog_512 = {
 	{
-		"Stribog-512",
+		FORMAT_LABEL_512,
 		FORMAT_NAME,
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
@@ -469,9 +473,9 @@ struct fmt_main fmt_stribog_512 = {
 #else
 #if !defined(FMT_EXTERNS_H) && !defined(FMT_REGISTERS_H)
 #ifdef __GNUC__
-#warning Stribog-256 and Stribog-512 formats require SSE 4.1, formats disabled
+#warning Stribog-256 and Stribog-512 formats require little-endian, formats disabled
 #elif _MSC_VER
-#pragma message(": warning Stribog-256 and Stribog-512 formats require SSE 4.1, formats disabled:")
+#pragma message(": warning Stribog-256 and Stribog-512 formats require little-endian, formats disabled:")
 #endif
 #endif
-#endif /* __SSE4_1__ */
+#endif /* ARCH_LITTLE_ENDIAN */

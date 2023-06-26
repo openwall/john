@@ -19,192 +19,181 @@
 #ifndef _BITCRACKER_H
 #define _BITCRACKER_H
 
-#define ROR(x, i) (((x) << (32 - (i))) | ((x) >> (i)))
-#define ROR7(x) (((x) << 25) | ((x) >> 7))
-#define ROR18(x) (((x) << 14) | ((x) >> 18))
-#define ROR17(x) (((x) << 15) | ((x) >> 17))
-#define ROR19(x) (((x) << 13) | ((x) >> 19))
-#define ROR6(x) (((x) << 26) | ((x) >> 6))
-#define ROR11(x) (((x) << 21) | ((x) >> 11))
-#define ROR25(x) (((x) << 7) | ((x) >> 25))
-#define ROR2(x) (((x) << 30) | ((x) >> 2))
-#define ROR13(x) (((x) << 19) | ((x) >> 13))
-#define ROR22(x) (((x) << 10) | ((x) >> 22))
-
+#define ROR(x, i)	(rotate((x), 32U - (i)))
 
 #define SCHEDULE0()  \
         schedule0 = schedule16 + schedule25 \
-            + LOP3LUT_XOR(ROR7(schedule17) , ROR18(schedule17) , (schedule17 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule30) , ROR19(schedule30) , (schedule30 >> 10));
+            + OPT3_XOR(ROR(schedule17, 7) , ROR(schedule17, 18) , (schedule17 >> 3)) \
+            + OPT3_XOR(ROR(schedule30, 17) , ROR(schedule30, 19) , (schedule30 >> 10));
 
 
 #define SCHEDULE1()  \
         schedule1 = schedule17 + schedule26 \
-            + LOP3LUT_XOR(ROR7(schedule18) , ROR18(schedule18) , (schedule18 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule31) , ROR19(schedule31) , (schedule31 >> 10));
+            + OPT3_XOR(ROR(schedule18, 7) , ROR(schedule18, 18) , (schedule18 >> 3)) \
+            + OPT3_XOR(ROR(schedule31, 17) , ROR(schedule31, 19) , (schedule31 >> 10));
 
 
 #define SCHEDULE2()  \
         schedule2 = schedule18 + schedule27 \
-            + LOP3LUT_XOR(ROR7(schedule19) , ROR18(schedule19) , (schedule19 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule0) , ROR19(schedule0) , (schedule0 >> 10));
+            + OPT3_XOR(ROR(schedule19, 7) , ROR(schedule19, 18) , (schedule19 >> 3)) \
+            + OPT3_XOR(ROR(schedule0, 17) , ROR(schedule0, 19) , (schedule0 >> 10));
 
 
 #define SCHEDULE3()  \
         schedule3 = schedule19 + schedule28 \
-            + LOP3LUT_XOR(ROR7(schedule20) , ROR18(schedule20) , (schedule20 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule1) , ROR19(schedule1) , (schedule1 >> 10));
+            + OPT3_XOR(ROR(schedule20, 7) , ROR(schedule20, 18) , (schedule20 >> 3)) \
+            + OPT3_XOR(ROR(schedule1, 17) , ROR(schedule1, 19) , (schedule1 >> 10));
 
 
 #define SCHEDULE4()  \
         schedule4 = schedule20 + schedule29 \
-            + LOP3LUT_XOR(ROR7(schedule21) , ROR18(schedule21) , (schedule21 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule2) , ROR19(schedule2) , (schedule2 >> 10));
+            + OPT3_XOR(ROR(schedule21, 7) , ROR(schedule21, 18) , (schedule21 >> 3)) \
+            + OPT3_XOR(ROR(schedule2, 17) , ROR(schedule2, 19) , (schedule2 >> 10));
 
 
 #define SCHEDULE5()  \
         schedule5 = schedule21 + schedule30 \
-            + LOP3LUT_XOR(ROR7(schedule22) , ROR18(schedule22) , (schedule22 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule3) , ROR19(schedule3) , (schedule3 >> 10));
+            + OPT3_XOR(ROR(schedule22, 7) , ROR(schedule22, 18) , (schedule22 >> 3)) \
+            + OPT3_XOR(ROR(schedule3, 17) , ROR(schedule3, 19) , (schedule3 >> 10));
 
 
 #define SCHEDULE6()  \
         schedule6 = schedule22 + schedule31 \
-            + LOP3LUT_XOR(ROR7(schedule23) , ROR18(schedule23) , (schedule23 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule4) , ROR19(schedule4) , (schedule4 >> 10));
+            + OPT3_XOR(ROR(schedule23, 7) , ROR(schedule23, 18) , (schedule23 >> 3)) \
+            + OPT3_XOR(ROR(schedule4, 17) , ROR(schedule4, 19) , (schedule4 >> 10));
 
 
 #define SCHEDULE7()  \
         schedule7 = schedule23 + schedule0 \
-            + LOP3LUT_XOR(ROR7(schedule24) , ROR18(schedule24) , (schedule24 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule5) , ROR19(schedule5) , (schedule5 >> 10));
+            + OPT3_XOR(ROR(schedule24, 7) , ROR(schedule24, 18) , (schedule24 >> 3)) \
+            + OPT3_XOR(ROR(schedule5, 17) , ROR(schedule5, 19) , (schedule5 >> 10));
 
 
 #define SCHEDULE8()  \
         schedule8 = schedule24 + schedule1 \
-            + LOP3LUT_XOR(ROR7(schedule25) , ROR18(schedule25) , (schedule25 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule6) , ROR19(schedule6) , (schedule6 >> 10));
+            + OPT3_XOR(ROR(schedule25, 7) , ROR(schedule25, 18) , (schedule25 >> 3)) \
+            + OPT3_XOR(ROR(schedule6, 17) , ROR(schedule6, 19) , (schedule6 >> 10));
 
 
 #define SCHEDULE9()  \
         schedule9 = schedule25 + schedule2 \
-            + LOP3LUT_XOR(ROR7(schedule26) , ROR18(schedule26) , (schedule26 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule7) , ROR19(schedule7) , (schedule7 >> 10));
+            + OPT3_XOR(ROR(schedule26, 7) , ROR(schedule26, 18) , (schedule26 >> 3)) \
+            + OPT3_XOR(ROR(schedule7, 17) , ROR(schedule7, 19) , (schedule7 >> 10));
 
 
 #define SCHEDULE10()  \
         schedule10 = schedule26 + schedule3 \
-            + LOP3LUT_XOR(ROR7(schedule27) , ROR18(schedule27) , (schedule27 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule8) , ROR19(schedule8) , (schedule8 >> 10));
+            + OPT3_XOR(ROR(schedule27, 7) , ROR(schedule27, 18) , (schedule27 >> 3)) \
+            + OPT3_XOR(ROR(schedule8, 17) , ROR(schedule8, 19) , (schedule8 >> 10));
 
 
 #define SCHEDULE11()  \
         schedule11 = schedule27 + schedule4 \
-            + LOP3LUT_XOR(ROR7(schedule28) , ROR18(schedule28) , (schedule28 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule9) , ROR19(schedule9) , (schedule9 >> 10));
+            + OPT3_XOR(ROR(schedule28, 7) , ROR(schedule28, 18) , (schedule28 >> 3)) \
+            + OPT3_XOR(ROR(schedule9, 17) , ROR(schedule9, 19) , (schedule9 >> 10));
 
 
 #define SCHEDULE12()  \
         schedule12 = schedule28 + schedule5 \
-            + LOP3LUT_XOR(ROR7(schedule29) , ROR18(schedule29) , (schedule29 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule10) , ROR19(schedule10) , (schedule10 >> 10));
+            + OPT3_XOR(ROR(schedule29, 7) , ROR(schedule29, 18) , (schedule29 >> 3)) \
+            + OPT3_XOR(ROR(schedule10, 17) , ROR(schedule10, 19) , (schedule10 >> 10));
 
 
 #define SCHEDULE13()  \
         schedule13 = schedule29 + schedule6 \
-            + LOP3LUT_XOR(ROR7(schedule30) , ROR18(schedule30) , (schedule30 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule11) , ROR19(schedule11) , (schedule11 >> 10));
+            + OPT3_XOR(ROR(schedule30, 7) , ROR(schedule30, 18) , (schedule30 >> 3)) \
+            + OPT3_XOR(ROR(schedule11, 17) , ROR(schedule11, 19) , (schedule11 >> 10));
 
 
 #define SCHEDULE14()  \
         schedule14 = schedule30 + schedule7 \
-            + LOP3LUT_XOR(ROR7(schedule31) , ROR18(schedule31) , (schedule31 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule12) , ROR19(schedule12) , (schedule12 >> 10));
+            + OPT3_XOR(ROR(schedule31, 7) , ROR(schedule31, 18) , (schedule31 >> 3)) \
+            + OPT3_XOR(ROR(schedule12, 17) , ROR(schedule12, 19) , (schedule12 >> 10));
 
 
 #define SCHEDULE15()  \
         schedule15 = schedule31 + schedule8 \
-            + LOP3LUT_XOR(ROR7(schedule0) , ROR18(schedule0) , (schedule0 >> 3)) \
-            + LOP3LUT_XOR(ROR17(schedule13) , ROR19(schedule13) , (schedule13 >> 10));
+            + OPT3_XOR(ROR(schedule0, 7) , ROR(schedule0, 18) , (schedule0 >> 3)) \
+            + OPT3_XOR(ROR(schedule13, 17) , ROR(schedule13, 19) , (schedule13 >> 10));
 
 #define SCHEDULE16()  \
         schedule16 = schedule0 + schedule9  \
-            + LOP3LUT_XOR( ROR7(schedule1), ROR18(schedule1), (schedule1 >> 3))  \
-            + LOP3LUT_XOR( ROR17(schedule14), ROR19(schedule14), (schedule14 >> 10));
+            + OPT3_XOR( ROR(schedule1, 7), ROR(schedule1, 18), (schedule1 >> 3))  \
+            + OPT3_XOR( ROR(schedule14, 17), ROR(schedule14, 19), (schedule14 >> 10));
 
 #define SCHEDULE17()  \
         schedule17 = schedule1 + schedule10  \
-            + LOP3LUT_XOR(ROR7(schedule2) , ROR18(schedule2) , (schedule2 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule15) , ROR19(schedule15) , (schedule15 >> 10));
+            + OPT3_XOR(ROR(schedule2, 7) , ROR(schedule2, 18) , (schedule2 >> 3))  \
+            + OPT3_XOR(ROR(schedule15, 17) , ROR(schedule15, 19) , (schedule15 >> 10));
 
 #define SCHEDULE18()  \
         schedule18 = schedule2 + schedule11  \
-            + LOP3LUT_XOR(ROR7(schedule3) ,ROR18(schedule3) ,(schedule3 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule16), ROR19(schedule16), (schedule16 >> 10));
+            + OPT3_XOR(ROR(schedule3, 7) ,ROR(schedule3, 18) ,(schedule3 >> 3))  \
+            + OPT3_XOR(ROR(schedule16, 17), ROR(schedule16, 19), (schedule16 >> 10));
 #define SCHEDULE19()  \
         schedule19 = schedule3 + schedule12  \
-            + LOP3LUT_XOR(ROR7(schedule4) , ROR18(schedule4) , (schedule4 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule17) , ROR19(schedule17) , (schedule17 >> 10));
+            + OPT3_XOR(ROR(schedule4, 7) , ROR(schedule4, 18) , (schedule4 >> 3))  \
+            + OPT3_XOR(ROR(schedule17, 17) , ROR(schedule17, 19) , (schedule17 >> 10));
 
 #define SCHEDULE20()  \
         schedule20 = schedule4 + schedule13  \
-            + LOP3LUT_XOR(ROR7(schedule5) , ROR18(schedule5) , (schedule5 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule18) , ROR19(schedule18) , (schedule18 >> 10));
+            + OPT3_XOR(ROR(schedule5, 7) , ROR(schedule5, 18) , (schedule5 >> 3))  \
+            + OPT3_XOR(ROR(schedule18, 17) , ROR(schedule18, 19) , (schedule18 >> 10));
 
 #define SCHEDULE21()  \
         schedule21 = schedule5 + schedule14  \
-            + LOP3LUT_XOR(ROR7(schedule6) , ROR18(schedule6) , (schedule6 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule19) , ROR19(schedule19) , (schedule19 >> 10));
+            + OPT3_XOR(ROR(schedule6, 7) , ROR(schedule6, 18) , (schedule6 >> 3))  \
+            + OPT3_XOR(ROR(schedule19, 17) , ROR(schedule19, 19) , (schedule19 >> 10));
 
 #define SCHEDULE22()  \
         schedule22 = schedule6 + schedule15  \
-            + LOP3LUT_XOR(ROR7(schedule7) , ROR18(schedule7) , (schedule7 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule20) , ROR19(schedule20) , (schedule20 >> 10));
+            + OPT3_XOR(ROR(schedule7, 7) , ROR(schedule7, 18) , (schedule7 >> 3))  \
+            + OPT3_XOR(ROR(schedule20, 17) , ROR(schedule20, 19) , (schedule20 >> 10));
 
 #define SCHEDULE23()  \
         schedule23 = schedule7 + schedule16  \
-            + LOP3LUT_XOR(ROR7(schedule8) , ROR18(schedule8) , (schedule8 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule21) , ROR19(schedule21) , (schedule21 >> 10));
+            + OPT3_XOR(ROR(schedule8, 7) , ROR(schedule8, 18) , (schedule8 >> 3))  \
+            + OPT3_XOR(ROR(schedule21, 17) , ROR(schedule21, 19) , (schedule21 >> 10));
 
 #define SCHEDULE24()  \
         schedule24 = schedule8 + schedule17  \
-            + LOP3LUT_XOR(ROR7(schedule9) , ROR18(schedule9) , (schedule9 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule22) , ROR19(schedule22) , (schedule22 >> 10));
+            + OPT3_XOR(ROR(schedule9, 7) , ROR(schedule9, 18) , (schedule9 >> 3))  \
+            + OPT3_XOR(ROR(schedule22, 17) , ROR(schedule22, 19) , (schedule22 >> 10));
 
 #define SCHEDULE25()  \
         schedule25 = schedule9 + schedule18  \
-            + LOP3LUT_XOR(ROR7(schedule10) , ROR18(schedule10) , (schedule10 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule23) , ROR19(schedule23) , (schedule23 >> 10));
+            + OPT3_XOR(ROR(schedule10, 7) , ROR(schedule10, 18) , (schedule10 >> 3))  \
+            + OPT3_XOR(ROR(schedule23, 17) , ROR(schedule23, 19) , (schedule23 >> 10));
 
 #define SCHEDULE26()  \
         schedule26 = schedule10 + schedule19  \
-            + LOP3LUT_XOR(ROR7(schedule11) , ROR18(schedule11) , (schedule11 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule24) , ROR19(schedule24) , (schedule24 >> 10));
+            + OPT3_XOR(ROR(schedule11, 7) , ROR(schedule11, 18) , (schedule11 >> 3))  \
+            + OPT3_XOR(ROR(schedule24, 17) , ROR(schedule24, 19) , (schedule24 >> 10));
 
 #define SCHEDULE27()  \
         schedule27 = schedule11 + schedule20  \
-            + LOP3LUT_XOR(ROR7(schedule12) , ROR18(schedule12) , (schedule12 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule25) , ROR19(schedule25) , (schedule25 >> 10));
+            + OPT3_XOR(ROR(schedule12, 7) , ROR(schedule12, 18) , (schedule12 >> 3))  \
+            + OPT3_XOR(ROR(schedule25, 17) , ROR(schedule25, 19) , (schedule25 >> 10));
 
 #define SCHEDULE28()  \
         schedule28 = schedule12 + schedule21  \
-            + LOP3LUT_XOR(ROR7(schedule13) , ROR18(schedule13) , (schedule13 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule26) , ROR19(schedule26) , (schedule26 >> 10));
+            + OPT3_XOR(ROR(schedule13, 7) , ROR(schedule13, 18) , (schedule13 >> 3))  \
+            + OPT3_XOR(ROR(schedule26, 17) , ROR(schedule26, 19) , (schedule26 >> 10));
 
 #define SCHEDULE29()  \
         schedule29 = schedule13 + schedule22  \
-            + LOP3LUT_XOR(ROR7(schedule14) , ROR18(schedule14) , (schedule14 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule27) , ROR19(schedule27) , (schedule27 >> 10));
+            + OPT3_XOR(ROR(schedule14, 7) , ROR(schedule14, 18) , (schedule14 >> 3))  \
+            + OPT3_XOR(ROR(schedule27, 17) , ROR(schedule27, 19) , (schedule27 >> 10));
 
 #define SCHEDULE30()  \
         schedule30 = schedule14 + schedule23  \
-            + LOP3LUT_XOR(ROR7(schedule15) , ROR18(schedule15) , (schedule15 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule28) , ROR19(schedule28) , (schedule28 >> 10));
+            + OPT3_XOR(ROR(schedule15, 7) , ROR(schedule15, 18) , (schedule15 >> 3))  \
+            + OPT3_XOR(ROR(schedule28, 17) , ROR(schedule28, 19) , (schedule28 >> 10));
 
 #define SCHEDULE31()  \
         schedule31 = schedule15 + schedule24  \
-            + LOP3LUT_XOR(ROR7(schedule16) , ROR18(schedule16) , (schedule16 >> 3))  \
-            + LOP3LUT_XOR(ROR17(schedule29) , ROR19(schedule29) , (schedule29 >> 10));
+            + OPT3_XOR(ROR(schedule16, 7) , ROR(schedule16, 18) , (schedule16 >> 3))  \
+            + OPT3_XOR(ROR(schedule29, 17) , ROR(schedule29, 19) , (schedule29 >> 10));
 
 #define ALL_SCHEDULE32() \
         SCHEDULE0() \
@@ -259,14 +248,14 @@
         SCHEDULE31()
 
 #define ROUND(a, b, c, d, e, f, g, h, W, k) \
-        h += LOP3LUT_XOR(ROR6(e), ROR11(e), ROR25(e)) + LOP3LUT_XORAND(g,e,f) + k + W; \
+        h += OPT3_XOR(ROR(e, 6), ROR(e, 11), ROR(e, 25)) + OPT3_XORAND(g,e,f) + k + W; \
         d += h;  \
-        h += LOP3LUT_XOR(ROR2(a), ROR13(a), ROR22(a)) + LOP3LUT_ANDOR(a,b,c);   /*((a & (b | c)) | (b & c)); */
+        h += OPT3_XOR(ROR(a, 2), ROR(a, 13), ROR(a, 22)) + OPT3_ANDOR(a,b,c);   /*((a & (b | c)) | (b & c)); */
 
 #define ROUND_SECOND_BLOCK(a, b, c, d, e, f, g, h, i, k, indexW) \
-        h += LOP3LUT_XOR(ROR6(e), ROR11(e), ROR25(e)) + LOP3LUT_XORAND(g,e,f) + k +  d_wblocks[indexW+i]; \
+        h += OPT3_XOR(ROR(e, 6), ROR(e, 11), ROR(e, 25)) + OPT3_XORAND(g,e,f) + k +  d_wblocks[indexW+i]; \
         d += h;  \
-        h += LOP3LUT_XOR(ROR2(a), ROR13(a), ROR22(a)) + LOP3LUT_ANDOR(a,b,c);
+        h += OPT3_XOR(ROR(a, 2), ROR(a, 13), ROR(a, 22)) + OPT3_ANDOR(a,b,c);
 
 //W-block evaluate
 #define LOADSCHEDULE_WPRE(i, j)  \

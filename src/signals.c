@@ -10,9 +10,10 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#if _XOPEN_SOURCE < 500
+#if !AC_BUILT && _XOPEN_SOURCE < 500
 #undef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 500 /* for setitimer(2) and siginterrupt(3) */
+#define _XPG6
 #endif
 
 #define NEED_OS_TIMER
@@ -58,7 +59,7 @@
 #endif
 
 volatile int event_pending = 0, event_reload = 0;
-volatile int event_abort = 0, event_save = 0, event_status = 0, event_delayed_status = 0;
+volatile int event_abort = 0, event_help = 0, event_save = 0, event_status = 0, event_delayed_status = 0;
 volatile int event_ticksafety = 0;
 volatile int event_mpiprobe = 0, event_poll_files = 0;
 volatile int event_fix_state = 0, event_refresh_salt = 0;
@@ -424,6 +425,8 @@ static void sig_handle_timer(int signum)
 #endif
 				sig_handle_abort(0);
 #ifndef BENCH_BUILD
+			} else if (c == 'h') {
+				event_help = event_pending = 1;
 			} else if (c == '>' && options.verbosity < VERB_DEBUG) {
 				options.verbosity++;
 				if (john_main_process) {
@@ -436,8 +439,8 @@ static void sig_handle_timer(int signum)
 					verb_msg[14] += options.verbosity;
 					write_loop(2, verb_msg, sizeof(verb_msg) - 1);
 				}
-			} else if (c == 'd') {
-				event_delayed_status = 1;
+			} else if (c == 'd' || c == 'D') {
+				event_delayed_status = 1 + (c == 'D');
 				write_loop(2, "Delayed status pending...\r", 26);
 #endif
 			} else {
@@ -445,6 +448,8 @@ static void sig_handle_timer(int signum)
 				new_status = 1;
 #endif
 				event_status = event_pending = 1;
+				if (c == 's' || c == 'S')
+					event_status = 2;
 			}
 		}
 
@@ -642,4 +647,17 @@ static void sig_done(void)
 #ifdef SIGUSR2
 	sig_remove_reload();
 #endif
+}
+
+void sig_help(void)
+{
+	fprintf(stderr, "The following keypresses are recognized:\n"
+	    "'q' or Ctrl-C to abort\n"
+	    "'h' for help (this message)\n"
+	    "'>' and '<' to increase or decrease verbosity, respectively\n"
+	    "'s' for detailed status (and changes since its previous display)\n"
+	    "'d' for delayed status (right upon completion of current batch)\n"
+	    "'D' for delayed detailed status\n"
+	    "Almost any other key for simple status\n");
+	event_help = 0;
 }

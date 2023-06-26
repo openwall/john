@@ -29,7 +29,7 @@ int cloudkeychain_valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* salt length */
@@ -37,6 +37,8 @@ int cloudkeychain_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
+	if (len > SALTLEN)
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
 	if (hexlenl(p, &extra)/2 != len || extra)
@@ -50,6 +52,8 @@ int cloudkeychain_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
+	if (len > CTLEN)
+		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* masterkey */
 		goto err;
 	if (hexlenl(p, &extra)/2 != len || extra)

@@ -22,6 +22,7 @@
  */
 
 #include "md4.h"
+
 #if !HAVE_LIBCRYPTO
 #include <string.h>
 
@@ -32,7 +33,13 @@
  * optimization for F borrowed from Colin Plumb's MD5 implementation.
  */
 #define F(x, y, z)			((z) ^ ((x) & ((y) ^ (z))))
+#if 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define G(x, y, z)			(y ^ ((x ^ y) & (y ^ z)))
+#elif 0
+#define G(x, y, z)			((x & y) ^ (x & z) ^ (y & z))
+#else
 #define G(x, y, z)			(((x) & ((y) | (z))) | ((y) & (z)))
+#endif
 #define H(x, y, z)			(((x) ^ (y)) ^ (z))
 #define H2(x, y, z)			((x) ^ ((y) ^ (z)))
 
@@ -258,4 +265,39 @@ void MD4_Final(unsigned char *result, MD4_CTX *ctx)
 #endif
 }
 
-#endif
+#endif /* !HAVE_LIBCRYPTO */
+
+#undef INIT_A
+#undef INIT_B
+#undef INIT_C
+#undef INIT_D
+#undef SQRT_3
+#define INIT_A 0x67452301
+#define INIT_B 0xefcdab89
+#define INIT_C 0x98badcfe
+#define INIT_D 0x10325476
+#define SQRT_3 0x6ed9eba1
+
+void md4_reverse(uint32_t *hash)
+{
+	hash[0] -= INIT_A;
+	hash[1] -= INIT_B;
+	hash[2] -= INIT_C;
+	hash[3] -= INIT_D;
+	hash[1]  = (hash[1] >> 15) | (hash[1] << 17);
+	hash[1] -= SQRT_3 + (hash[2] ^ hash[3] ^ hash[0]);
+	hash[1]  = (hash[1] >> 15) | (hash[1] << 17);
+	hash[1] -= SQRT_3;
+}
+
+void md4_unreverse(uint32_t *hash)
+{
+	hash[1] += SQRT_3;
+	hash[1]  = (hash[1] >> 17) | (hash[1] << 15);
+	hash[1] += SQRT_3 + (hash[2] ^ hash[3] ^ hash[0]);
+	hash[1]  = (hash[1] >> 17) | (hash[1] << 15);
+	hash[3] += INIT_D;
+	hash[2] += INIT_C;
+	hash[1] += INIT_B;
+	hash[0] += INIT_A;
+}

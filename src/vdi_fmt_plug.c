@@ -119,7 +119,7 @@ static int valid(char* ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	ctcopy = strdup(ciphertext + FORMAT_TAG_LEN);
+	ctcopy = xstrdup(ciphertext + FORMAT_TAG_LEN);
 	keeptr = ctcopy;
 
 	if ((p = strtokm(ctcopy, "$")) == NULL)	/* decr type*/
@@ -202,7 +202,7 @@ static void* get_salt(char *ciphertext)
 	char *p;
 
 	memset(buf, 0, sizeof(buf));
-	ctcopy = strdup(ciphertext + FORMAT_TAG_LEN);
+	ctcopy = xstrdup(ciphertext + FORMAT_TAG_LEN);
 	keeptr = ctcopy;
 	p = strtokm(ctcopy, "$");	/* decr type*/
 	s->evp_type = !strcmp(p, "aes-xts128") ? 128 : 256;
@@ -306,7 +306,7 @@ static int cmp_exact(char *source, int index)
 
 static void set_key(char* key, int index)
 {
-	strnzcpyn((char*)key_buffer[index], key, sizeof(*key_buffer));
+	strnzcpy((char*)key_buffer[index], key, sizeof(*key_buffer));
 }
 
 static char *get_key(int index)

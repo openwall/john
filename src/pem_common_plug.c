@@ -39,18 +39,37 @@ struct fmt_tests pem_tests[] = {
 
 int pem_valid(char *ciphertext, struct fmt_main *self)
 {
+	static int kdf_warned, prf_warned;
 	char *ctcopy, *keeptr, *p;
 	int len, value, extra;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 
 	ctcopy += TAG_LENGTH;
 	if ((p = strtokm(ctcopy, "$")) == NULL) // type
 		goto err;
+	if (strcmp(p, "1") != 0) {
+		if ((p = strtokm(NULL, "$")) == NULL)
+			goto err;
+		if (strcmp(p, "pbkdf2") != 0) {
+			if (!self_test_running && !kdf_warned) {
+				fprintf(stderr, "Warning: %s kdf algorithm <%s> is not supported currently!\n", self->params.label, p);
+				kdf_warned = 1;
+			}
+			goto err;
+		}
+		if ((p = strtokm(NULL, "$")) == NULL)
+			goto err;
+		if (!self_test_running && !prf_warned) {
+			fprintf(stderr, "Warning: %s prf algorithm <%s> is not supported currently!\n", self->params.label, p);
+			prf_warned = 1;
+		}
+		goto err;
+	}
 	if (!isdec(p))
 		goto err;
 	value = atoi(p);
@@ -65,7 +84,7 @@ int pem_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // salt
 		goto err;
-	if (hexlenl(p, &extra) != 16 || extra)
+	if (hexlenl(p, &extra) != SALTLEN * 2 || extra)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)   // iterations
 		goto err;
@@ -81,6 +100,8 @@ int pem_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
+	if (len > CTLEN)
+		goto err;
 	if ((p = strtokm(NULL, "*")) == NULL)   // ciphertext
 		goto err;
 	if (hexlenl(p, &extra) != len*2 || extra)
@@ -96,7 +117,7 @@ err:
 
 void *pem_get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;

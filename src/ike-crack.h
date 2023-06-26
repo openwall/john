@@ -349,14 +349,14 @@ load_psk_params(const char *ciphertext, const char *nortel_user,
 	size_t skeyid_data_len;	/* Length of skeyid data */
 	unsigned char *hash_r_data;	/* Data for HASH_R hash */
 	size_t hash_r_data_len;	/* Length of hash_r */
-	char g_xr_hex[MAXLEN];	/* Individual PSK params as hex */
-	char g_xi_hex[MAXLEN];
-	char cky_r_hex[MAXLEN];
-	char cky_i_hex[MAXLEN];
-	char sai_b_hex[MAXLEN];
-	char idir_b_hex[MAXLEN];
-	char ni_b_hex[MAXLEN];
-	char nr_b_hex[MAXLEN];
+	char g_xr_hex[MAXLEN + 1];	/* Individual PSK params as hex */
+	char g_xi_hex[MAXLEN + 1];
+	char cky_r_hex[MAXLEN + 1];
+	char cky_i_hex[MAXLEN + 1];
+	char sai_b_hex[MAXLEN + 1];
+	char idir_b_hex[MAXLEN + 1];
+	char ni_b_hex[MAXLEN + 1];
+	char nr_b_hex[MAXLEN + 1];
 	char hash_r_hex[44];
 	unsigned char *g_xr;	/* Individual PSK params as binary */
 	unsigned char *g_xi;

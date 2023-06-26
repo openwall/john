@@ -9,7 +9,7 @@
  * Copyright (c) 2010 Alain Espinosa
  * Copyright (c) 2011 Samuele Giovanni Tonon
  * Copyright (c) 2015 Sayantan Datta <sdatta at openwall.com>
- * Copyright (c) 2015 magnum
+ * Copyright (c) 2015-2023 magnum
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,8 +24,10 @@
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_opencl_NT;
+extern struct fmt_main fmt_opencl_NT_long;
 #elif FMT_REGISTERS_H
 john_register_one(&fmt_opencl_NT);
+john_register_one(&fmt_opencl_NT_long);
 #else
 
 #include <string.h>
@@ -40,10 +42,14 @@ john_register_one(&fmt_opencl_NT);
 #include "config.h"
 #include "options.h"
 #include "unicode.h"
+#include "md4.h" // for cmp_exact()
+#include "simd-intrinsics.h" // for md4_reverse()
+#include "johnswap.h" // for printing of false positives
 #include "mask_ext.h"
-#include "opencl_hash_check_128.h"
+#include "opencl_hash_check.h"
 
 #define FORMAT_LABEL        "NT-opencl"
+#define FORMAT_LABEL_LONG   "NT-long-opencl"
 #define FORMAT_NAME         ""
 #define FORMAT_TAG          "$NT$"
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
@@ -51,13 +57,14 @@ john_register_one(&fmt_opencl_NT);
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0x107
 #define PLAINTEXT_LENGTH    27
+#define PLAINTEXT_LEN_LONG  125 /* 59, 91, 123, 125 are supported */
 /* At most 3 bytes of UTF-8 needed per character */
-#define UTF8_MAX_LENGTH     (3 * PLAINTEXT_LENGTH)
+#define UTF8_MAX_LENGTH     MIN(125, 3 * utf16len)
 #define BUFSIZE             ((UTF8_MAX_LENGTH + 3) / 4 * 4)
 #define AUTOTUNE_LENGTH     8
 #define CIPHERTEXT_LENGTH   32
-#define BINARY_SIZE         16
-#define BINARY_ALIGN        MEM_ALIGN_WORD
+#define BINARY_SIZE         8
+#define BINARY_ALIGN        sizeof(cl_uint)
 #define SALT_SIZE           0
 #define SALT_ALIGN          1
 
@@ -110,8 +117,71 @@ static struct fmt_tests tests[] = {
 	{"$NT$dd555241a4321657e8b827a40b67dd4a", "jordan"},
 	{"$NT$bb53a477af18526ada697ce2e51f76b3", "michael"},
 	{"$NT$92b7b06bb313bf666640c5a1e75e0c18", "michelle"},
+	{"$NT$0ae2ac07ba42fb76e0d9e5852d00e83f", "xxxxxxxxxxxxxxxxxxxxxxxxxxx"},
 	{NULL}
 };
+
+static struct fmt_tests tests_long[] = {
+	{"8846f7eaee8fb117ad06bdd830b7586c", "password"},
+	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
+	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
+	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
+	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
+	{"$NT$31d6cfe0d16ae931b73c59d7e0c089c0", ""},
+	{"$NT$7a21990fcd3d759941e45c490f143d5f", "12345"},
+	{"$NT$0ae2ac07ba42fb76e0d9e5852d00e83f", "xxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$f9e37e83b83c47a93c2f09f66408631b", "abc123"},
+	{"$NT$b7e4b9022cd45f275334bbdb83bb5be5", "John the Ripper"},
+	{"$NT$2b2ac2d1c7c8fda6cea80b5fad7563aa", "computer"},
+	{"$NT$32ed87bdb5fdc5e9cba88547376818d4", "123456"},
+	{"$NT$b7e0ea9fbffcf6dd83086e905089effd", "tigger"},
+	{"$NT$7ce21f17c0aee7fb9ceba532d0546ad6", "1234"},
+	{"$NT$b23a90d0aad9da3615fafc27a1b8baeb", "a1b2c3"},
+	{"$NT$2d20d252a479f485cdf5e171d93985bf", "qwerty"},
+	{"$NT$3dbde697d71690a769204beb12283678", "123"},
+	{"$NT$c889c75b7c1aae1f7150c5681136e70e", "xxx"},
+	{"$NT$d5173c778e0f56d9fc47e3b3c829aca7", "money"},
+	{"$NT$0cb6948805f797bf2a82807973b89537", "test"},
+	{"$NT$0569fcf2b14b9c7f3d3b5f080cbd85e5", "carmen"},
+	{"$NT$f09ab1733a528f430353834152c8a90e", "mickey"},
+	{"$NT$878d8014606cda29677a44efa1353fc7", "secret"},
+	{"$NT$85ac333bbfcbaa62ba9f8afb76f06268", "summer"},
+	{"$NT$5962cc080506d90be8943118f968e164", "internet"},
+#if PLAINTEXT_LEN_LONG > 27
+	{"$NT$e4e10a22597efd64ad85ec18c948cbf2", "xxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$ea1be9a74e6a7ca800ba932293aa2d6d", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$ec1814e21f7f5bed537fbab2e357bb60", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$59c7fe1adebc59dcb0f513cbed87eb92", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$59c1f6430d9d1aea6d9212f4cb6ea3ea", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$ce4e33c64e8fa0084ef3974a8c8ece59", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$4ccdaf5b8534ffc158b96e55669314a3", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+#endif /* 28..59 */
+#if PLAINTEXT_LEN_LONG > 59
+	{"$NT$889359447c0a6a784f8736e76326ce51", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$9774270d26d6ff5539326a7a39ae4b7a", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$15f9da1d28df9e7088bba11c0977a201", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$f99dddb5d218f258fe041d3a9079ff2a", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$b1b3356e5e05046ffe6d3f87ae2f8c12", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$5a4880f7cfcaa3bbfc7c6b4ca920970d", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$6c68a921eba1cce568cbe543ecf106ad", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+#endif /* 60..91 */
+#if PLAINTEXT_LEN_LONG > 91
+	{"$NT$2e99a04f4626ca16d1e40879ece1977e", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$8f83db5a44550b592b7de15b16939a30", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$d756304967ef98371509fa3150b018aa", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$6a66155ad4ebaab10267ddffca3cf2d3", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$01d3b7a7958e26e914ea851a2a3e882c", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$8924aa73dd0ce16a37bdec6edb3c8802", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$afb0648a73bd1e9662ff672251f80f63", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+#endif /* 92..123 */
+#if PLAINTEXT_LEN_LONG > 123
+	{"$NT$8f637d62e1d14cb97ca150c89222937a", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+	{"$NT$9d10efd08eb95db46f9a2badb2a71fcb", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"},
+#endif /* 124..125 */
+	{NULL}
+};
+
+static int utf16len;    /* We mess with plaintext_length in case of UTF-8 so have to keep track of the original */
 
 //Init values
 #define INIT_A 0x67452301
@@ -127,9 +197,9 @@ static cl_mem buffer_keys, buffer_idx, buffer_int_keys, buffer_int_key_loc;
 static cl_uint *saved_plain, *saved_idx, *saved_int_key_loc;
 static int static_gpu_locations[MASK_FMT_INT_PLHDR];
 
-static unsigned int shift64_ht_sz, shift64_ot_sz;
+static size_t key_idx;
+static size_t key_offset, idx_offset;
 
-static unsigned int key_idx = 0;
 static struct fmt_main *self;
 
 #define STEP			0
@@ -210,7 +280,7 @@ static void create_base_clobj(void)
 	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand ? mask_int_cand.int_cand : (void *)&dummy, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys.");
 
-	ocl_hc_128_crobj(crypt_kernel);
+	ocl_hc_64_crobj(crypt_kernel);
 
 	set_kernel_args();
 }
@@ -242,7 +312,7 @@ static void release_base_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
 		buffer_int_keys = 0;
 	}
-	ocl_hc_128_rlobj();
+	ocl_hc_64_rlobj();
 }
 
 static void done(void)
@@ -271,9 +341,6 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 		crypt_kernel = NULL;
 	}
 
-	shift64_ht_sz = (((1ULL << 63) % hash_table_size_128) * 2) % hash_table_size_128;
-	shift64_ot_sz = (((1ULL << 63) % offset_table_size) * 2) % offset_table_size;
-
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
 			static_gpu_locations[i] = mask_int_cand.int_cpu_mask_ctx->
@@ -287,8 +354,7 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 #if !NT_FULL_UNICODE
 		" -DUCS_2"
 #endif
-		" -D SHIFT64_OT_SZ=%u -D SHIFT64_HT_SZ=%u -D NUM_LOADED_HASHES=%u"
-		" -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
+		" -D NUM_LOADED_HASHES=%u -D NUM_INT_KEYS=%u %s -D IS_STATIC_GPU_MASK=%d"
 		" -D CONST_CACHE_SIZE=%llu -D%s -D%s -DPLAINTEXT_LENGTH=%d -D LOC_0=%d"
 #if MASK_FMT_INT_PLHDR > 1
 	" -D LOC_1=%d "
@@ -299,11 +365,11 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 #if MASK_FMT_INT_PLHDR > 3
 	"-D LOC_3=%d"
 #endif
-	,offset_table_size, hash_table_size_128, shift64_ot_sz, shift64_ht_sz,
+	,ocl_hc_offset_table_size, ocl_hc_hash_table_size,
 	num_ld_hashes, mask_int_cand.num_int_cand, bitmap_para, mask_gpu_is_static,
 	(unsigned long long)const_cache_size, cp_id2macro(options.target_enc),
 	options.internal_cp == UTF_8 ? cp_id2macro(ENC_RAW) :
-	cp_id2macro(options.internal_cp), PLAINTEXT_LENGTH,
+	cp_id2macro(options.internal_cp), utf16len,
 	static_gpu_locations[0]
 #if MASK_FMT_INT_PLHDR > 1
 	, static_gpu_locations[1]
@@ -323,15 +389,20 @@ static void init_kernel(unsigned int num_ld_hashes, char *bitmap_para)
 
 static void init(struct fmt_main *_self)
 {
-	self = _self;
-	num_loaded_hashes = 0;
+	if (!utf16len || _self != self)
+		utf16len = _self->params.plaintext_length;
 
-	ocl_hc_128_init(_self);
+	self = _self;
+	ocl_hc_num_loaded_hashes = 0;
+
+	ocl_hc_64_init(_self);
+
+	struct fmt_tests *tests = self->params.tests;
 
 	opencl_prepare_dev(gpu_id);
 	mask_int_cand_target = opencl_speed_index(gpu_id) / 300;
 	if (options.target_enc == UTF_8) {
-		self->params.plaintext_length = MIN(125, UTF8_MAX_LENGTH);
+		self->params.plaintext_length = UTF8_MAX_LENGTH;
 		tests[1].plaintext = "\xC3\xBC";	// German u-umlaut in UTF-8
 		tests[1].ciphertext = "$NT$8bd6e4fb88e01009818749c5443ea712";
 		tests[2].plaintext = "\xC3\xBC\xC3\xBC"; // two of them
@@ -341,7 +412,7 @@ static void init(struct fmt_main *_self)
 		tests[4].plaintext = "\xE2\x82\xAC\xE2\x82\xAC";
 		tests[4].ciphertext = "$NT$682467b963bb4e61943e170a04f7db46";
 	} else if (CP_to_Unicode[0xfc] == 0x00fc) {
-		tests[1].plaintext = "\xFC";	// German u-umlaut in UTF-8
+		tests[1].plaintext = "\xFC";	// u-umlaut in many Latin codepages
 		tests[1].ciphertext = "$NT$8bd6e4fb88e01009818749c5443ea712";
 		tests[2].plaintext = "\xFC\xFC"; // two of them
 		tests[2].ciphertext = "$NT$cc1260adb6985ca749f150c7e0b22063";
@@ -425,6 +496,7 @@ static void *get_binary(char *ciphertext)
 		out[i]=temp;
 	}
 
+	/* Reverse MD4 steps */
 	out[0] -= INIT_A;
 	out[1] -= INIT_B;
 	out[2] -= INIT_C;
@@ -446,17 +518,19 @@ static int binary_hash_4(void *binary) { return ((unsigned int *)binary)[0] & PH
 static int binary_hash_5(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_5; }
 static int binary_hash_6(void *binary) { return ((unsigned int *)binary)[0] & PH_MASK_6; }
 
-static int get_hash_0(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_0; }
-static int get_hash_1(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_1; }
-static int get_hash_2(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_2; }
-static int get_hash_3(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_3; }
-static int get_hash_4(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_4; }
-static int get_hash_5(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_5; }
-static int get_hash_6(int index) { return hash_table_128[hash_ids[3 + 3 * index]] & PH_MASK_6; }
+static int get_hash_0(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_0; }
+static int get_hash_1(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_1; }
+static int get_hash_2(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_2; }
+static int get_hash_3(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_3; }
+static int get_hash_4(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_4; }
+static int get_hash_5(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_5; }
+static int get_hash_6(int index) { return bt_hash_table_64[ocl_hc_hash_ids[3 + 3 * index]] & PH_MASK_6; }
 
 static void clear_keys(void)
 {
 	key_idx = 0;
+	key_offset = 0;
+	idx_offset = 0;
 }
 
 static void set_key(char *_key, int index)
@@ -487,22 +561,36 @@ static void set_key(char *_key, int index)
 	}
 	if (len)
 		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
+
+	/* Early partial transfer to GPU every 2 MB */
+	if (4 * key_idx - key_offset > (2 << 20)) {
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, key_offset, 4 * key_idx - key_offset, saved_plain + key_offset / 4, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_keys.");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, idx_offset, 4 * (index + 1) - idx_offset, saved_idx + idx_offset / 4, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_idx.");
+
+		if (!mask_gpu_is_static)
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * (index + 1) - idx_offset, saved_int_key_loc + idx_offset / 4, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
+
+		HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+
+		key_offset = 4 * key_idx;
+		idx_offset = 4 * (index + 1);
+	}
 }
 
 static char *get_key(int index)
 {
-	static char out[UTF8_MAX_LENGTH + 1];
+	static char out[PLAINTEXT_BUFFER_SIZE];
 	int i, len, int_index, t;
 	char *key;
 
-	if (hash_ids == NULL || hash_ids[0] == 0 ||
-	    index >= hash_ids[0] || hash_ids[0] > num_loaded_hashes) {
+	if (ocl_hc_hash_ids == NULL || ocl_hc_hash_ids[0] == 0 ||
+	    index >= ocl_hc_hash_ids[0] || ocl_hc_hash_ids[0] > ocl_hc_num_loaded_hashes) {
 		t = index;
 		int_index = 0;
 	}
 	else  {
-		t = hash_ids[1 + 3 * index];
-		int_index = hash_ids[2 + 3 * index];
+		t = ocl_hc_hash_ids[1 + 3 * index];
+		int_index = ocl_hc_hash_ids[2 + 3 * index];
 
 	}
 
@@ -528,6 +616,10 @@ static char *get_key(int index)
 				mask_int_cand.int_cand[int_index].x[i];
 	}
 
+	/* Ensure truncation due to over-length or invalid UTF-8 is made like in GPU code. */
+	if (options.target_enc == UTF_8)
+		truncate_utf8((UTF8*)out, utf16len);
+
 	return out;
 }
 
@@ -542,33 +634,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// copy keys to the device
 	if (key_idx)
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, key_offset, 4 * key_idx - key_offset, saved_plain + key_offset / 4, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, idx_offset, 4 * gws - idx_offset, saved_idx + idx_offset / 4, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
 
 	if (!mask_gpu_is_static)
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, 0, 4 * gws, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * gws - idx_offset, saved_int_key_loc + idx_offset / 4, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
 
-	return ocl_hc_128_extract_info(salt, set_kernel_args, set_kernel_args_kpc, init_kernel, gws, lws, pcount);
+	return ocl_hc_64_extract_info(salt, set_kernel_args, set_kernel_args_kpc, init_kernel, gws, lws, pcount);
 }
 
 static void reset(struct db_main *db)
 {
-	static int last_int_cand;
+	release_base_clobj();
+	release_clobj();
 
-	if (!crypt_kernel || last_int_cand != mask_int_cand.num_int_cand) {
-		release_base_clobj();
-		release_clobj();
+	ocl_hc_num_loaded_hashes = db->salts->count;
+	ocl_hc_64_prepare_table(db->salts);
+	init_kernel(ocl_hc_num_loaded_hashes, ocl_hc_64_select_bitmap(ocl_hc_num_loaded_hashes));
 
-		num_loaded_hashes = db->salts->count;
-		ocl_hc_128_prepare_table(db->salts);
-		init_kernel(num_loaded_hashes,
-		            ocl_hc_128_select_bitmap(num_loaded_hashes));
-
-		create_base_clobj();
-
-		last_int_cand = mask_int_cand.num_int_cand;
-	}
+	create_base_clobj();
 
 	size_t gws_limit = MIN((0xf << 21) * 4 / BUFSIZE,
 	                       get_max_mem_alloc_size(gpu_id) / BUFSIZE);
@@ -584,6 +669,35 @@ static void reset(struct db_main *db)
 
 	// Auto tune execution from shared/included code.
 	autotune_run_extra(self, 1, gws_limit, 200, CL_TRUE);
+}
+
+static int cmp_exact(char *source, int index)
+{
+	unsigned int *binary = self->methods.binary(source);
+	unsigned int hash[4];
+	char *password = self->methods.get_key(index);
+	UTF16 key[PLAINTEXT_BUFFER_SIZE];
+	int len = enc_to_utf16(key, PLAINTEXT_BUFFER_SIZE, (UTF8*)password, (unsigned int)strlen(password));
+	MD4_CTX ctx;
+
+	MD4_Init(&ctx);
+	MD4_Update(&ctx, key, 2 * len);
+	MD4_Final((unsigned char*)hash, &ctx);
+	md4_reverse(hash);
+	int result = !memcmp(hash, binary, 16);
+#if DEBUG
+	if (!result) {
+		fprintf(stderr, "\n64-bit collision detected by kernel and %s(%d)\n", __FUNCTION__, index);
+		dump_stderr_msg("             expected", binary, 16);
+		dump_stderr_msg("           calculated", hash, 16);
+		md4_unreverse(hash);
+		md4_unreverse(binary);
+		dump_stderr_msg("unreversed   expected", binary, 16);
+		dump_stderr_msg("unreversed calculated", hash, 16);
+		fprintf(stderr, "Plaintext  : %s\n\n", self->methods.get_key(index));
+	}
+#endif
+	return result;
 }
 
 struct fmt_main fmt_opencl_NT = {
@@ -641,9 +755,70 @@ struct fmt_main fmt_opencl_NT = {
 			get_hash_5,
 			get_hash_6
 		},
-		ocl_hc_128_cmp_all,
-		ocl_hc_128_cmp_one,
-		ocl_hc_128_cmp_exact
+		ocl_hc_64_cmp_all,
+		ocl_hc_64_cmp_one,
+		cmp_exact
+	}
+};
+
+struct fmt_main fmt_opencl_NT_long = {
+	{
+		FORMAT_LABEL_LONG,
+		FORMAT_NAME,
+		ALGORITHM_NAME,
+		BENCHMARK_COMMENT,
+		BENCHMARK_LENGTH,
+		0,
+		PLAINTEXT_LEN_LONG,
+		BINARY_SIZE,
+		BINARY_ALIGN,
+		SALT_SIZE,
+		SALT_ALIGN,
+		MIN_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT,
+		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_UNICODE | FMT_ENC | FMT_REMOVE | FMT_MASK,
+		{ NULL },
+		{ FORMAT_TAG },
+		tests_long
+	}, {
+		init,
+		done,
+		reset,
+		prepare,
+		valid,
+		split,
+		get_binary,
+		fmt_default_salt,
+		{ NULL },
+		fmt_default_source,
+		{
+			binary_hash_0,
+			binary_hash_1,
+			binary_hash_2,
+			binary_hash_3,
+			binary_hash_4,
+			binary_hash_5,
+			binary_hash_6
+		},
+		fmt_default_salt_hash,
+		NULL,
+		fmt_default_set_salt,
+		set_key,
+		get_key,
+		clear_keys,
+		crypt_all,
+		{
+			get_hash_0,
+			get_hash_1,
+			get_hash_2,
+			get_hash_3,
+			get_hash_4,
+			get_hash_5,
+			get_hash_6
+		},
+		ocl_hc_64_cmp_all,
+		ocl_hc_64_cmp_one,
+		cmp_exact
 	}
 };
 

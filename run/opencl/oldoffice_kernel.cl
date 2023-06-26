@@ -154,8 +154,9 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
                    __global salt_t *cs,
                    __global uint *result,
 #ifdef RC4_USE_LOCAL
-                   __local uint *state_l,
+           __local
 #endif
+                   RC4_CTX *rc4_ctx,
                    __global uint *benchmark)
 {
 	uint i;
@@ -331,11 +332,9 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 
 		for (i = 0; i < 32/4; i++)
 			verifier[i] = cs->verifier[i];
-#ifdef RC4_USE_LOCAL
-		rc4(state_l, md5, verifier, 32);
-#else
-		rc4(md5, verifier, 32);
-#endif
+
+		/* md5 is our key */
+		rc4_oneshot(rc4_ctx, md5, verifier, 32);
 
 		for (i = 0; i < 4; i++)
 			W[i] = verifier[i];
@@ -367,8 +366,9 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
                     __global salt_t *cs,
                     __global uint *result,
 #ifdef RC4_USE_LOCAL
-                    __local uint *state_l,
+            __local
 #endif
+                    RC4_CTX *rc4_ctx,
                     __global uint *benchmark)
 {
 	uint i;
@@ -476,11 +476,8 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 
 		for (i = 0; i < 32/4; i++)
 			verifier.w[i] = cs->verifier[i];
-#ifdef RC4_USE_LOCAL
-		rc4(state_l, key, verifier.w, 32);
-#else
-		rc4(key, verifier.w, 32);
-#endif
+
+		rc4_oneshot(rc4_ctx, key, verifier.w, 32);
 
 		for (i = 0; i < 4; i++)
 			W[i] = SWAP32(verifier.w[i]);
@@ -518,11 +515,9 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 			key2[3] = 0;
 			for (i = 0; i < 32/4; i++)
 				verifier.w[i] = cs->extra[i];
-#ifdef RC4_USE_LOCAL
-			rc4(state_l, key2, verifier.w, 32);
-#else
-			rc4(key2, verifier.w, 32);
-#endif
+
+			rc4_oneshot(rc4_ctx, key2, verifier.w, 32);
+
 			uint num_zero = 0;
 
 			for (i = 0; i < 32; i++)
@@ -542,7 +537,7 @@ void oldoffice_sha1(const nt_buffer_t *nt_buffer,
 }
 
 #ifdef RC4_USE_LOCAL
-__attribute__((work_group_size_hint(64,1,1)))
+__attribute__((work_group_size_hint(32,1,1)))
 #endif
 __kernel
 void oldoffice(__global const uchar *password,
@@ -563,11 +558,9 @@ void oldoffice(__global const uchar *password,
                )
 {
 #ifdef RC4_USE_LOCAL
-	/*
-	 * The "+ 1" extra element (actually never touched) give a huge boost
-	 * on Maxwell and GCN due to access patterns or whatever.
-	 */
-	__local uint state_l[64][256/4 + 1];
+	__local RC4_CTX rc4_ctx[32];
+#else
+	RC4_CTX rc4_ctx;
 #endif
 	nt_buffer_t nt_buffer;
 	uint i;
@@ -631,13 +624,17 @@ void oldoffice(__global const uchar *password,
 		if (cs->type < 3)
 			oldoffice_md5(&nt_buffer, cs, &result[gid * NUM_INT_KEYS + i],
 #ifdef RC4_USE_LOCAL
-			              state_l[get_local_id(0)],
+			              &rc4_ctx[get_local_id(0)],
+#else
+			              &rc4_ctx,
 #endif
 			              benchmark);
 		else
 			oldoffice_sha1(&nt_buffer, cs, &result[gid * NUM_INT_KEYS + i],
 #ifdef RC4_USE_LOCAL
-			               state_l[get_local_id(0)],
+			               &rc4_ctx[get_local_id(0)],
+#else
+			               &rc4_ctx,
 #endif
 			               benchmark);
 	}

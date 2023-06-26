@@ -10,8 +10,9 @@
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
-#ifndef _XOPEN_SOURCE
-#define _XOPEN_SOURCE /* for fileno(3) and fsync(2) */
+#if !AC_BUILT && !defined(_XOPEN_SOURCE)
+#define _XOPEN_SOURCE 500 /* for fileno(3) and fsync(2) */
+#define _XPG6
 #endif
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE /* for strcasestr */
@@ -35,6 +36,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <sys/time.h> /* for struct timeval */
 #include <time.h>
 #include <stdarg.h>
 #include <string.h>
@@ -562,10 +564,6 @@ void log_guess(char *login, char *uid, char *ciphertext, char *rep_plain,
 	in_logger = 1;
 
 	if (pot.fd >= 0 && ciphertext ) {
-#ifndef DYNAMIC_DISABLED
-		if (!strncmp(ciphertext, "$dynamic_", 9))
-			ciphertext = dynamic_FIX_SALT_TO_HEX(ciphertext);
-#endif
 		if (options.secure) {
 			secret = components(store_plain, len);
 			count1 = (int)sprintf(pot.ptr,

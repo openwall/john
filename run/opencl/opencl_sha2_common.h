@@ -72,6 +72,10 @@ __constant int generator_index[] = {
 
 #if HAVE_LUT3 && BITS_32
 #define Maj(x, y, z) lut3(x, y, z, 0xe8)
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define Maj(x, y, z) (y ^ ((x ^ y) & (y ^ z)))
+#elif 0
+#define Maj(x, y, z) ((x & y) ^ (x & z) ^ (y & z))
 #else
 #define Maj(x, y, z) ((x & y) | (z & (x | y)))
 #endif

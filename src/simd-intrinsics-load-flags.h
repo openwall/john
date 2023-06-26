@@ -82,6 +82,7 @@
  */
 
 typedef enum {
+	SSEi_NO_OP                   = 0x0, /* No-op */
 	SSEi_MIXED_IN                = 0x0,
 	SSEi_FLAT_IN                 = 0x1,
 /*	SSEi_CSTRING_IN              = 0x2,	NOT IMPLEMENTED YET*/

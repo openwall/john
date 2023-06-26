@@ -23,6 +23,7 @@
  */
 
 #include "md5.h"
+
 #if !HAVE_LIBCRYPTO
 #include <string.h>
 
@@ -285,4 +286,17 @@ void MD5_Final(unsigned char *result, MD5_CTX *ctx)
 #endif
 }
 
-#endif
+#endif /* !HAVE_LIBCRYPTO */
+
+#undef INIT_A
+#define INIT_A 0x67452301
+
+void md5_reverse(uint32_t *hash)
+{
+	hash[0] -= INIT_A;
+}
+
+void md5_unreverse(uint32_t *hash)
+{
+	hash[0] += INIT_A;
+}

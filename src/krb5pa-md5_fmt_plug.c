@@ -41,9 +41,9 @@
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_mskrb5;
+extern struct fmt_main fmt_krb5pa_md5;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_mskrb5);
+john_register_one(&fmt_krb5pa_md5);
 #else
 
 #include <string.h>
@@ -65,12 +65,12 @@ john_register_one(&fmt_mskrb5);
 #include "rc4.h"
 
 #define FORMAT_LABEL       "krb5pa-md5"
-#define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 23" /* md4 rc4-hmac-md5 */
+#define FORMAT_NAME        "Kerberos 5 AS-REQ Pre-Auth etype 23"
 #define FORMAT_TAG         "$krb5pa$"
 #define FORMAT_TAG2        "$mskrb5$"
 #define FORMAT_TAG_LEN     (sizeof(FORMAT_TAG)-1)
 
-#define ALGORITHM_NAME     "32/" ARCH_BITS_STR
+#define ALGORITHM_NAME     "MD4 HMAC-MD5 RC4 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   7
 #define PLAINTEXT_LENGTH   125
@@ -410,7 +410,7 @@ static int salt_hash(void *salt)
 	return (((struct salt_t*)salt)->checksum[0]) & (SALT_HASH_SIZE - 1);
 }
 
-struct fmt_main fmt_mskrb5 = {
+struct fmt_main fmt_krb5pa_md5 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

@@ -14,8 +14,8 @@ Please refer to `doc/README.coding-style` for information on the subject.
 
 For Jumbo, The maintainer recommends to format code using the following commands:
 ```
-$ indent -kr -i4 -ts4 -nlp -nbbo -ncs -l79 -lc79 -bad -il0
-$ astyle --style=kr -t4 -U -H -p -xC79 -c -k3 -z2
+$ indent -kr -i4 -ts4 -nlp -nbbo -ncs -l119 -lc119 -bad -il0
+$ astyle --style=kr -t4 -U -H -p -xC119 -c -k3 -z2
 ```
 
 ## License
@@ -25,10 +25,10 @@ John the Ripper is released under GNU GPL v2 "or later", with portions also avai
 Solar Designer's current preference is that new code contributions be licensed under very liberal terms:
 ```
 /*
- * This software is Copyright (c) YEAR YOUR NAME <your at e-mail.address>,<br>
- * and it is hereby released to the general public under the following terms:<br>
- * Redistribution and use in source and binary forms, with or without<br>
- * modification, are permitted.<br>
+ * This software is Copyright (c) YEAR YOUR NAME <your at e-mail.address>,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 ```
 This is a heavily cut-down “BSD license”. You may also include the warranty disclaimer.

@@ -874,8 +874,9 @@ static void single_run(void)
 
 			if (event_delayed_status || (single_db->salt_count < sc && john_main_process &&
 			                             cfg_get_bool(SECTION_OPTIONS, NULL, "ShowSaltProgress", 0))) {
+				event_status = event_delayed_status ? event_delayed_status : 1;
 				event_delayed_status = 0;
-				event_status = event_pending = 1;
+				event_pending = 1;
 			}
 
 			if (event_reload && single_db->salts)

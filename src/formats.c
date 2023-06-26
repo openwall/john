@@ -80,12 +80,23 @@ char fmt_class_list[] = "all, enabled, disabled"
 	", ztex"
 #endif
 #if HAVE_OPENCL
-	", opencl"
+	", opencl, vector"
 #endif
 #ifndef DYNAMIC_DISABLED
 	", dynamic"
 #endif
 	", cpu";
+
+int fmt_is_class(char *name)
+{
+	return (name && (!strcasecmp(name, "all") || !strcasecmp(name, "enabled") || !strcasecmp(name, "disabled") ||
+	                 !strcasecmp(name , "omp") ||
+	                 !strcasecmp(name , "mask") ||
+	                 !strcasecmp(name , "ztex") ||
+	                 !strcasecmp(name , "opencl") || !strcasecmp(name , "vector") ||
+	                 !strcasecmp(name , "dynamic") ||
+	                 !strcasecmp(name , "cpu")));
+}
 
 /*
  * Does req_format match format?
@@ -130,32 +141,37 @@ int fmt_match(const char *req_format, struct fmt_main *format, int override_disa
 	if (strncasecmp(req_format, "dynamic=", 8) && (pos = strchr(req_format, '*'))) {
 		if (pos != strrchr(req_format, '*')) {
 			if (john_main_process)
-				fprintf(stderr, "Error: Only one wildcard allowed in a format name\n");
+				fprintf(stderr, "Error: '%s': Only one wildcard allowed in a format name\n", req_format);
 			error();
 		}
 
-		/* Match anything before wildcard */
-		if (strncasecmp(format->params.label, req_format, (int)(pos - req_format)))
+		int pre_len = (pos - req_format);
+
+		/* Match anything before wildcard, as in office*, if applicable */
+		if (pre_len && strncasecmp(format->params.label, req_format, pre_len))
 			return 0;
 
-		/* If anything after wildcard, as in *office or raw*ng, does this also match? */
+		/* Match anything after wildcard, as in *office or raw*ng, if applicable */
 		if (*(++pos)) {
-			int wild_len = strlen(pos);
+			int trail_len = strlen(pos);
 			int label_len = strlen(format->params.label);
 
-			if (strcasecmp(&format->params.label[label_len - wild_len], pos))
+			if (label_len - pre_len < trail_len)
+				return 0;
+
+			if (strcasecmp(&format->params.label[label_len - trail_len], pos))
 				return 0;
 		}
 		return enabled;
 	}
 
 	/* Algo match, eg. --format=@xop or --format=@sha384 */
-	if (strncasecmp(req_format, "dynamic=", 8) && (pos = strchr(req_format, '@')))
-		return enabled && strcasestr(format->params.algorithm_name, ++pos);
+	if (req_format[0] == '@' && req_format[1])
+		return enabled && strcasestr(format->params.algorithm_name, ++req_format);
 
 	/* Long-name match, eg. --format=#ipmi or --format=#1password */
-	if (strncasecmp(req_format, "dynamic=", 8) && (pos = strchr(req_format, '#')))
-		return enabled && strcasestr(format->params.format_name, ++pos);
+	if (req_format[0] == '#' && req_format[1])
+		return enabled && strcasestr(format->params.format_name, ++req_format);
 
 	/* Format classes */
 	if (!strcasecmp(req_format, "dynamic"))
@@ -172,6 +188,20 @@ int fmt_match(const char *req_format, struct fmt_main *format, int override_disa
 
 	if (!strcasecmp(req_format, "mask"))
 		return enabled && (format->params.flags & FMT_MASK);
+
+#if HAVE_OPENCL
+	if (!strcasecmp(req_format, "vector") && strstr(format->params.label, "-opencl")) {
+		int vectorized;
+		const char *orig_algo = format->params.algorithm_name;
+
+		fmt_init(format);
+		vectorized = (ocl_v_width > 1);
+		fmt_done(format);
+		format->params.algorithm_name = orig_algo;
+
+		return enabled && vectorized;
+	}
+#endif
 
 	if (!strcasecmp(req_format, "omp"))
 		return enabled && (format->params.flags & FMT_OMP);
@@ -265,7 +295,7 @@ static void comma_split(struct list_main *dst, const char *src)
 {
 	char *word, *pos;
 	char c;
-	char *src_cpy = strdup(src);
+	char *src_cpy = xstrdup(src);
 
 	strlwr(src_cpy);
 
@@ -293,6 +323,20 @@ static void comma_split(struct list_main *dst, const char *src)
 	} while (c);
 
 	MEM_FREE(src_cpy);
+}
+
+char* fmt_type(char *name)
+{
+	if (name[1] && (name[0] == '+' || name[0] == '-'))
+		name++;
+
+	if (fmt_is_class(name))
+		return "class";
+
+	if (strchr(name, '*') || name[0] == '@' || name[0] == '#')
+		return "wildcard";
+
+	return "name";
 }
 
 int fmt_check_custom_list(void)
@@ -329,7 +373,9 @@ int fmt_check_custom_list(void)
 					had_i = 1;
 					if (!include_formats(req_format->data, &full_fmt_list) && !is_in_fmt_list(req_format->data)) {
 						if (john_main_process)
-							fprintf(stderr, "Error: No format matched '%s'%s\n", req_format->data,
+							fprintf(stderr, "Error: No format matched requested %s '%s'%s\n",
+							        fmt_type(req_format->data),
+							        req_format->data,
 							        num_e ? " after exclusions" : "");
 						error();
 					}
@@ -348,13 +394,19 @@ int fmt_check_custom_list(void)
 					if (!require_fmt[0])
 						error_msg("Error: '%s' in format list doesn't make sense\n", req_format->data);
 					prune_formats(require_fmt, had_i);
+
+					if (!fmt_list) {
+						if (john_main_process)
+							fprintf(stderr, "Error: No format matched requested '%s' after processing '%s'\n",
+							        options.format_list, req_format->data);
+						error();
+					}
 				}
 			} while ((req_format = req_format->next));
 
 			if (!fmt_list) {
 				if (john_main_process)
-					fprintf(stderr, "Error: No format matched '%s' after processing final requirements\n",
-					        options.format_list);
+					fprintf(stderr, "Error: No format matched requested criteria '%s'\n", options.format_list);
 				error();
 			}
 
@@ -545,6 +597,14 @@ static char* is_key_right(struct fmt_main *format, int index,
 			snprintf(err_buf, sizeof(err_buf), "cmp_all(%d) %s", match, ciphertext);
 		else
 			sprintf(err_buf, "cmp_all(%d)", match);
+		return err_buf;
+	}
+
+	if (match == 0) {
+		if (options.verbosity > VERB_LEGACY)
+			snprintf(err_buf, sizeof(err_buf), "crypt_all(%d) zero return %s", index + 1, ciphertext);
+		else
+			sprintf(err_buf, "crypt_all(%d) zero return", index + 1);
 		return err_buf;
 	}
 
@@ -933,7 +993,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		    strcmp(format->params.label, "dummy") &&
 		    strcmp(format->params.label, "crypt")) {
 			if (*ciphertext == '$') {
-				char *p, *k = strdup(ciphertext);
+				char *p, *k = xstrdup(ciphertext);
 
 				p = k + 1;
 				while (*p) {
@@ -1267,7 +1327,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 #if defined(HAVE_OPENCL)
 /* Jump straight to last index for GPU formats but always call set_key() */
 				if (strstr(format->params.label, "-opencl")) {
-					for (i = index + 1; i < max - 1; i++)
+					for (i = index; i < max - 1; i++)
 						fmt_set_key(longcand(format, i, sl), i);
 					index = max - 1;
 				}
@@ -1406,7 +1466,7 @@ static void test_fmt_case(struct fmt_main *format, void *binary,
 	if (*plaintext == 0)
 		return;
 
-	plain_copy = strdup(plaintext);
+	plain_copy = xstrdup(plaintext);
 	pk = plain_copy;
 
 	while (*pk) {
@@ -1442,7 +1502,7 @@ static void test_fmt_8_bit(struct fmt_main *format, void *binary,
 		return;
 
 	*plaintext_is_blank = 0;
-	plain_copy = strdup(plaintext);
+	plain_copy = xstrdup(plaintext);
 
 	// All OR '\x80'
 	pk = plain_copy;
@@ -1550,7 +1610,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 
 	if (*is_split_unifies_case>2) return; /* already know all we need to know. */
 
-	cipher_copy = strdup(ciphertext);
+	cipher_copy = xstrdup(ciphertext);
 
 	/*
 	 * check for common case problem.  hash is HEX, so find it, change it,
@@ -1564,7 +1624,7 @@ static void test_fmt_split_unifies_case(struct fmt_main *format, char *ciphertex
 		char *cp;
 		int do_test=0;
 		ret = format->methods.split(ret, 0, format);
-		ret_copy = strdup(ret);
+		ret_copy = xstrdup(ret);
 		bin = format->methods.binary(ret_copy);
 		if (BLOB_SIZE(format, bin) > 4) {
 			bin_hex = mem_alloc(BLOB_SIZE(format, bin) * 2 + 1);
@@ -1724,7 +1784,7 @@ static void test_fmt_split_unifies_case_3(struct fmt_main *format,
 	void *orig_binary, *orig_salt;
 	void *binary, *salt;
 
-	cipher_copy = strdup(ciphertext);
+	cipher_copy = xstrdup(ciphertext);
 	split_ret = format->methods.split(cipher_copy, 0, format);
 
 	orig_binary = NULL;
@@ -1845,7 +1905,7 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 
 	if (*is_split_unifies_case>2) return; /* already know all we need to know. */
 
-	cipher_copy = strdup(ciphertext);
+	cipher_copy = xstrdup(ciphertext);
 
 	/*
 	 * check for common case problem, but in a 'generic' manner. Here, we find sets of
@@ -1861,7 +1921,7 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 	if (format->methods.valid(ret, format)) {
 		char *cp;
 		ret = format->methods.split(ret, 0, format);
-		ret_copy = strdup(ret);
+		ret_copy = xstrdup(ret);
 		// Ok, now walk the string, LOOKING for hex string or known lengths which are all 1 case, and NOT pure numeric
 		cp = ret_copy;
 		while (strlen(cp) > 16) {
@@ -1892,7 +1952,7 @@ static void test_fmt_split_unifies_case_4(struct fmt_main *format, char *ciphert
 						good = 1;
 					if (!good) {
 						// white list.
-						if (!strncmp(ret, "@dynamic=", 9) ||
+						if (!strncmp(ret, "@dynamic=", 9) || strstr(ret, "$HEX$") ||
 						    (ret[0]=='$'&&ret[1]=='2'&&ret[3]=='$'&& (ret[2]=='a'||ret[2]=='b'||ret[2]=='x'||ret[2]=='y') ) )
 						{
 						} else

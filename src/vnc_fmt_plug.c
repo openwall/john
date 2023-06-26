@@ -161,7 +161,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;	/* skip leading $vnc$* */
@@ -186,7 +186,7 @@ static void *get_salt(char *ciphertext)
 {
 	int i;
 	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *p, *keeptr = ctcopy;
 
 	memset(&cs, 0, sizeof(cs));

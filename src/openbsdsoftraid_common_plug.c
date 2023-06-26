@@ -19,7 +19,7 @@ int openbsdsoftraid_valid(char* ciphertext, struct fmt_main *self, int is_cpu)
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 
@@ -56,6 +56,8 @@ int openbsdsoftraid_valid(char* ciphertext, struct fmt_main *self, int is_cpu)
 		if (!is_cpu && kdf_type != 1)
 			goto err;
 	}
+	if (strtokm(NULL, "$")) /* no more fields */
+		goto err;
 
 	MEM_FREE(keeptr);
 	return 1;
@@ -68,7 +70,7 @@ err:
 void *openbsdsoftraid_get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
@@ -104,24 +106,19 @@ void *openbsdsoftraid_get_binary(char *ciphertext)
 		ARCH_WORD dummy;
 	} buf;
 	unsigned char *out = buf.c;
-	char *p, *cc = NULL;
+	char *p;
 	int i;
 
 	p = strrchr(ciphertext, '$') + 1;
 
 	if (strlen(p) == 1) { // hack, last field is kdf type
-		cc = strdup(ciphertext);
-		cc[strlen(ciphertext) - 2] = 0;
-		p = strrchr(cc, '$') + 1;
-
+		p -= 2 * BINARY_SIZE + 1;
 	}
 	for (i = 0; i < BINARY_SIZE; i++) {
 		out[i] = (atoi16[ARCH_INDEX(*p)] << 4) |
 			atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	if (cc)
-		MEM_FREE(cc);
 
 	return out;
 }

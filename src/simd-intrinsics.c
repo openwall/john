@@ -3,7 +3,7 @@
  * Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>,
  * Copyright (c) 2012 Solar Designer,
  * Copyright (c) 2011-2015 JimF,
- * Copyright (c) 2011-2021 magnum,
+ * Copyright (c) 2011-2023 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -101,20 +101,6 @@
         a[i] = vadd_epi32( a[i], b[i] );            \
     }
 
-#define INIT_A 0x67452301
-
-void md5_reverse(uint32_t *hash)
-{
-	hash[0] -= INIT_A;
-}
-
-void md5_unreverse(uint32_t *hash)
-{
-	hash[0] += INIT_A;
-}
-
-#undef INIT_A
-
 void SIMDmd5body(vtype* _data, unsigned int *out,
                 uint32_t *reload_state, unsigned SSEi_flags)
 {
@@ -162,7 +148,9 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 #else
 		unsigned j, k;
 		uint32_t *p = uw.u32;
+#if !ARCH_LITTLE_ENDIAN
 		vtype *W = w;
+#endif
 		uint32_t *saved_key = (uint32_t*)_data;
 		MD5_PARA_DO(k)
 		{
@@ -191,8 +179,8 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 				W[14] = vswap32(W[14]);
 				W[15] = vswap32(W[15]);
 			}
-#endif
 			W += 16;
+#endif
 		}
 #endif
 		// now set our data pointer to point to this 'mixed' data.
@@ -725,12 +713,16 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 #define MD4_G(x,y,z)                            \
     tmp[i] = vxor((y[i]), (z[i]));              \
     tmp[i] = vcmov((x[i]), (z[i]), (tmp[i]));
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define MD4_G(x,y,z)                            \
+    tmp[i] = vxor((y[i]), vand(vxor((x[i]), (y[i])), vxor((y[i]), z[i])));
 #else
 #define MD4_G(x,y,z)                            \
     tmp[i] = vor((y[i]),(z[i]));                \
     tmp2[i] = vand((y[i]),(z[i]));              \
     tmp[i] = vand((tmp[i]),(x[i]));             \
     tmp[i] = vor((tmp[i]), (tmp2[i]) );
+#define MD4_TMP2_NEEDED	1
 #endif
 
 #ifdef vternarylogic
@@ -746,6 +738,7 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
 
 #define MD4_H2(x,y,z)                           \
     tmp[i] = vxor((x[i]), tmp2[i]);
+#define MD4_TMP2_NEEDED	1
 #else
 #define MD4_H(x,y,z)                            \
     tmp[i] = vxor((x[i]),(y[i]));               \
@@ -772,42 +765,6 @@ void md5cryptsse(unsigned char pwd[MD5_SSE_NUM_KEYS][16], unsigned char *salt,
         a[i] = vadd_epi32( a[i], data[i*16+x] );    \
     }
 
-#define INIT_A 0x67452301
-#define INIT_B 0xefcdab89
-#define INIT_C 0x98badcfe
-#define INIT_D 0x10325476
-#define SQRT_3 0x6ed9eba1
-
-void md4_reverse(uint32_t *hash)
-{
-	hash[0] -= INIT_A;
-	hash[1] -= INIT_B;
-	hash[2] -= INIT_C;
-	hash[3] -= INIT_D;
-	hash[1]  = (hash[1] >> 15) | (hash[1] << 17);
-	hash[1] -= SQRT_3 + (hash[2] ^ hash[3] ^ hash[0]);
-	hash[1]  = (hash[1] >> 15) | (hash[1] << 17);
-	hash[1] -= SQRT_3;
-}
-
-void md4_unreverse(uint32_t *hash)
-{
-	hash[1] += SQRT_3;
-	hash[1]  = (hash[1] >> 17) | (hash[1] << 15);
-	hash[1] += SQRT_3 + (hash[2] ^ hash[3] ^ hash[0]);
-	hash[1]  = (hash[1] >> 17) | (hash[1] << 15);
-	hash[3] += INIT_D;
-	hash[2] += INIT_C;
-	hash[1] += INIT_B;
-	hash[0] += INIT_A;
-}
-
-#undef SQRT_3
-#undef INIT_D
-#undef INIT_C
-#undef INIT_B
-#undef INIT_A
-
 void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
                 unsigned SSEi_flags)
 {
@@ -821,7 +778,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 	vtype c[SIMD_PARA_MD4];
 	vtype d[SIMD_PARA_MD4];
 	vtype tmp[SIMD_PARA_MD4];
-#if (SIMD_PARA_MD4 < 3 || VCMOV_EMULATED) && !defined(vternarylogic)
+#if MD4_TMP2_NEEDED
 	vtype tmp2[SIMD_PARA_MD4];
 #endif
 	vtype cst;
@@ -851,7 +808,9 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 #else
 		unsigned j, k;
 		uint32_t *p = uw.u32;
+#if !ARCH_LITTLE_ENDIAN
 		vtype *W = w;
+#endif
 		uint32_t *saved_key = (uint32_t*)_data;
 		MD4_PARA_DO(k)
 		{
@@ -880,8 +839,8 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 				W[14] = vswap32(W[14]);
 				W[15] = vswap32(W[15]);
 			}
-#endif
 			W += 16;
+#endif
 		}
 #endif
 		// now set our data pointer to point to this 'mixed' data.
@@ -1125,6 +1084,9 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 #define SHA1_H(x,y,z)                           \
     tmp[i] = vxor((z[i]), (y[i]));              \
     tmp[i] = vcmov((x[i]), (y[i]), tmp[i]);
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define SHA1_H(x,y,z)                           \
+    tmp[i] = vxor((y[i]), vand(vxor((x[i]), (y[i])), vxor((y[i]), z[i])));
 #else
 #define SHA1_H(x,y,z)                                       \
     tmp[i] = vand((x[i]),(y[i]));                           \
@@ -1278,35 +1240,6 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
         e[i] = vadd_epi32( e[i], w[i*16+(t&0xF)] ); \
         b[i] = vroti_epi32(b[i], 30);               \
     }
-#define INIT_D 0x10325476
-#define INIT_E 0xC3D2E1F0
-
-void sha1_reverse(uint32_t *hash)
-{
-	hash[4] -= INIT_E;
-	hash[4]  = (hash[4] << 2) | (hash[4] >> 30);
-}
-
-void sha1_unreverse(uint32_t *hash)
-{
-	hash[4]  = (hash[4] << 30) | (hash[4] >> 2);
-	hash[4] += INIT_E;
-}
-
-void sha1_reverse3(uint32_t *hash)
-{
-	hash[3] -= INIT_D;
-	hash[3]  = (hash[3] << 2) | (hash[3] >> 30);
-}
-
-void sha1_unreverse3(uint32_t *hash)
-{
-	hash[3]  = (hash[3] << 30) | (hash[3] >> 2);
-	hash[3] += INIT_D;
-}
-
-#undef INIT_D
-#undef INIT_E
 
 void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
                  unsigned SSEi_flags)
@@ -1782,6 +1715,8 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 #define Maj(x,y,z) vternarylogic(x, y, z, 0xE8)
 #elif !VCMOV_EMULATED
 #define Maj(x,y,z) vcmov(x, y, vxor(z, y))
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define Maj(x,y,z) vxor(y, vand(vxor(x, y), vxor(y, z)))
 #else
 #define Maj(x,y,z) vor(vand(x, y), vand(vor(x, y), z))
 #endif
@@ -1813,97 +1748,6 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
         if (x < 48) R(x);                                   \
     }                                                       \
 }
-
-#define INIT_A 0x6a09e667
-#define INIT_B 0xbb67ae85
-#define INIT_C 0x3c6ef372
-#define INIT_D 0xa54ff53a
-#define INIT_E 0x510e527f
-#define INIT_F 0x9b05688c
-#define INIT_G 0x1f83d9ab
-#define INIT_H 0x5be0cd19
-
-#define ror(x, n)       ((x >> n) | (x << (32 - n)))
-
-void sha256_reverse(uint32_t *hash)
-{
-	uint32_t a, b, c, d, e, f, g, h, s0, maj, tmp;
-
-	a = hash[0] - INIT_A;
-	b = hash[1] - INIT_B;
-	c = hash[2] - INIT_C;
-	d = hash[3] - INIT_D;
-	e = hash[4] - INIT_E;
-	f = hash[5] - INIT_F;
-	g = hash[6] - INIT_G;
-	h = hash[7] - INIT_H;
-
-	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
-	maj = (b & c) ^ (b & d) ^ (c & d);
-	tmp = d;
-	d = e - (a - (s0 + maj));
-	e = f;
-	f = g;
-	g = h;
-	a = b;
-	b = c;
-	c = tmp;
-
-	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
-	maj = (b & c) ^ (b & d) ^ (c & d);
-	tmp = d;
-	d = e - (a - (s0 + maj));
-	e = f;
-	f = g;
-	a = b;
-	b = c;
-	c = tmp;
-
-	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
-	maj = (b & c) ^ (b & d) ^ (c & d);
-	tmp = d;
-	d = e - (a - (s0 + maj));
-	e = f;
-	a = b;
-	b = c;
-	c = tmp;
-
-	s0 = ror(b, 2) ^ ror(b, 13) ^ ror(b, 22);
-	maj = (b & c) ^ (b & d) ^ (c & d);
-
-	hash[0] = e - (a - (s0 + maj));
-}
-
-void sha256_unreverse(uint32_t *hash)
-{
-	fprintf(stderr, "sha256_unreverse() not implemented\n");
-	error();
-}
-
-#undef ror
-
-#undef INIT_H
-#undef INIT_G
-#undef INIT_F
-#undef INIT_E
-#undef INIT_D
-#undef INIT_C
-#undef INIT_B
-#undef INIT_A
-
-#define INIT_D 0xf70e5939
-
-void sha224_reverse(uint32_t *hash)
-{
-	hash[3] -= INIT_D;
-}
-
-void sha224_unreverse(uint32_t *hash)
-{
-	hash[3] += INIT_D;
-}
-
-#undef INIT_D
 
 void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned SSEi_flags)
 {
@@ -2417,16 +2261,6 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
     )                                           \
 )
 #endif
-
-#ifdef vternarylogic
-#define Maj(x,y,z) vternarylogic(x, y, z, 0xE8)
-#elif !VCMOV_EMULATED
-#define Maj(x,y,z) vcmov(x, y, vxor(z, y))
-#else
-#define Maj(x,y,z) vor(vand(x, y), vand(vor(x, y), z))
-#endif
-
-#define Ch(x,y,z) vcmov(y, z, x)
 
 #define SHA512_PARA_DO(x) for (x = 0; x < SIMD_PARA_SHA512; ++x)
 

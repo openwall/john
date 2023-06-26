@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 1996-2021 by Solar Designer
+ * Copyright (c) 1996-2022 by Solar Designer
  *
  * ...with changes in the jumbo patch, by JimF and magnum (and various others?)
  *
@@ -50,7 +50,7 @@
 #include "prince.h"
 #endif
 #include "version.h"
-#include "listconf.h" /* must be included after version.h */
+#include "listconf.h" /* must be included after version.h and misc.h */
 #include "jumbo.h"
 
 struct options_main options;
@@ -161,15 +161,15 @@ static struct opt_entry opt_list[] = {
 	{"format", FLG_FORMAT, FLG_FORMAT, 0, FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.format},
 	{"subformat", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.subformat},
 	{"list", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.listconf},
-	{"mem-file-size", FLG_ONCE, 0, FLG_WORDLIST_CHK, FLG_DUPESUPP | FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM, Zu, &options.max_wordfile_memory},
-	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_WORDLIST_CHK, FLG_STDIN_CHK | FLG_PIPE_CHK},
+	{"mem-file-size", FLG_ONCE, 0, FLG_WORDLIST_CHK, FLG_STDIN_CHK | FLG_PIPE_CHK | OPT_REQ_PARAM, Zu, &options.max_wordfile_memory},
+	{"dupe-suppression", FLG_DUPESUPP, FLG_DUPESUPP, FLG_RULES_ALLOW, 0, "%d", &options.suppressor_size},
 /*
  * --fix-state-delay=N is deprecated and ignored, drop support after releasing 1.9.0-Jumbo-2
  */
 	{"fix-state-delay", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_REQ_PARAM, "%u", &options.max_fix_state_delay},
 	{"field-separator-char", FLG_ONCE, 0, FLG_PWD_SUP, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &field_sep_char_str},
 	{"config", FLG_ONCE, 0, 0, USUAL_REQ_CLR | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.config},
-	{"loader-dupecheck", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_TRISTATE, NULL, &options.loader_dupecheck},
+	{"loader-dupe-check", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_TRISTATE, NULL, &options.loader_dupecheck},
 	{"no-log", FLG_NOLOG, FLG_NOLOG, 0, FLG_TEST_CHK},
 	{"log-stderr", FLG_ONCE, 0, 0, USUAL_REQ_CLR | OPT_BOOL, NULL, &options.log_stderr},
 	{"crack-status", FLG_ONCE, 0, FLG_CRACKING_CHK, OPT_TRISTATE, NULL, &options.crack_status},
@@ -191,7 +191,7 @@ static struct opt_entry opt_list[] = {
 	{"gws", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, Zu, &options.gws},
 #endif
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
-	{"mask-internal-target", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, "%d", &options.req_int_cand_target},
+	{"mask-internal-target", FLG_ONCE, 0, 0, FLG_RULES_STACK_CHK | USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, "%d", &options.req_int_cand_target},
 	{"devices", FLG_ONCE, 0, 0, USUAL_REQ_CLR | FLG_STDOUT | OPT_REQ_PARAM, OPT_FMT_ADD_LIST_MULTI, &options.acc_devices},
 #endif
 	{"skip-self-tests", FLG_NOTESTS, FLG_NOTESTS, 0, USUAL_REQ_CLR | FLG_STDOUT},
@@ -257,7 +257,7 @@ static struct opt_entry opt_list[] = {
 
 #define JOHN_BANNER	  \
 "John the Ripper " JTR_GIT_VERSION _MP_VERSION DEBUG_STRING ASAN_STRING UBSAN_STRING " [" JOHN_BLD "]\n" \
-"Copyright (c) 1996-2021 by " JOHN_COPYRIGHT "\n" \
+"Copyright (c) 1996-2022 by " JOHN_COPYRIGHT "\n" \
 "Homepage: https://www.openwall.com/john/\n" \
 "\n" \
 "Usage: %s [OPTIONS] [PASSWORD-FILES]\n\n"
@@ -284,7 +284,7 @@ static struct opt_entry opt_list[] = {
 "--rules-skip-nop           Skip any NOP \":\" rules (you already ran w/o rules)\n" \
 "--loopback[=FILE]          Like --wordlist, but extract words from a .pot file\n" \
 "--mem-file-size=SIZE       Size threshold for wordlist preload (default %u MB)\n" \
-"--dupe-suppression         Suppress all dupes in wordlist (and force preload)\n" \
+"--dupe-suppression[=SIZE]  Opportunistic dupe suppression for wordlist+rules\n" \
 "--incremental[=MODE]       \"Incremental\" mode [using section MODE]\n" \
 "--incremental-charcount=N  Override CharCount for incremental mode\n" \
 "--external=MODE            External mode or word filter\n" \
@@ -352,7 +352,7 @@ FUZZ_USAGE \
 "--max-run-time=[-]N        Gracefully exit after this many seconds (if negative,\n" \
 "                           reset timer on each crack)\n" \
 "--mkpc=N                   Request a lower max. keys per crypt\n" \
-"--no-loader-dupecheck      Disable the dupe checking when loading hashes\n" \
+"--no-loader-dupe-check     Disable the dupe checking when loading hashes\n" \
 "--pot=NAME                 Pot file to use\n" \
 "--regen-lost-salts=N       Brute force unknown salts (see doc/OPTIONS)\n" \
 "--reject-printable         Reject printable binaries\n" \
@@ -389,7 +389,7 @@ static void opt_banner(char *name)
 
 void opt_usage()
 {
-	printf(JOHN_USAGE, SINGLE_WORDS_PAIR_MAX, WORDLIST_BUFFER_DEFAULT >> 20,
+	printf(JOHN_USAGE, SINGLE_WORDS_PAIR_MAX, WORDLIST_BUFFER_DEFAULT / 1000000,
 		   VERB_MAX, VERB_DEBUG, VERB_DEFAULT);
 #if defined(HAVE_OPENCL)
 	printf("%s", JOHN_USAGE_GPU);
@@ -418,6 +418,10 @@ void opt_init(char *name, int argc, char **argv)
 			printf("Use --help to list all available options.\n");
 		}
 		exit(0);
+	} else if (argc > 10000000 && !rec_restored) {
+		if (john_main_process)
+			fprintf(stderr, "Too many command-line arguments\n");
+		error();
 	}
 
 	/*
@@ -448,6 +452,7 @@ void opt_init(char *name, int argc, char **argv)
 #endif
 
 	options.length = -1;
+	options.suppressor_size = -1;
 
 	opt_process(opt_list, &options.flags, argv);
 
@@ -625,7 +630,7 @@ void opt_init(char *name, int argc, char **argv)
 		rec_restore_args(0);
 		options.flags |= FLG_STATUS_SET;
 		status_init(NULL, 1);
-		status_print();
+		status_print(0);
 #if OS_FORK
 		if (options.fork) {
 			unsigned int node_max = options.node_max;
@@ -643,7 +648,7 @@ void opt_init(char *name, int argc, char **argv)
 				options.node_min = options.node_max = i;
 				options.flags |= FLG_STATUS_SET;
 				if (rec_restoring_now)
-					status_print();
+					status_print(0);
 			}
 		}
 #endif

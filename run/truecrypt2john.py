@@ -88,7 +88,7 @@ if __name__ == "__main__":
     options, remainder = parser.parse_args()
 
     keyfiles = []
-    if len(remainder) > 2:
+    if len(remainder) >= 2:
         keyfiles = remainder[1:]
 
     process_file(remainder[0], keyfiles, options)

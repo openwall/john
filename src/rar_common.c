@@ -25,6 +25,7 @@ static unsigned char *saved_salt;
 static unsigned char *saved_key;
 static int (*cracked);
 static unpack_data_t (*unpack_data);
+static int new_keys;
 
 static unsigned int *saved_len;
 #ifndef RAR_OPENCL_FORMAT
@@ -167,6 +168,8 @@ static void set_key(char *key, int index)
 	memcpy(&saved_key[UNICODE_LENGTH * index], buf, UNICODE_LENGTH);
 
 	saved_len[index] = plen << 1;
+
+	new_keys = 1;
 }
 
 static void *get_binary(char *ciphertext)
@@ -174,7 +177,7 @@ static void *get_binary(char *ciphertext)
 	static fmt_data out;
 	rar_file *file = NULL;
 	unsigned int i, type, ex_len;
-	char *saltcopy = strdup(ciphertext);
+	char *saltcopy = xstrdup(ciphertext);
 	char *keep_ptr = saltcopy;
 	int inlined = 1;
 
@@ -348,7 +351,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	if (!(ctcopy = strdup(ciphertext))) {
+	if (!(ctcopy = xstrdup(ciphertext))) {
 		fprintf(stderr, "Memory allocation failed in %s, unable to check if hash is valid!", FORMAT_LABEL);
 		return 0;
 	}

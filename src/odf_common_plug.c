@@ -52,7 +52,7 @@ int odf_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* cipher type */
@@ -134,7 +134,7 @@ err:
 
 void *odf_get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;
@@ -187,7 +187,7 @@ void *odf_get_binary(char *ciphertext)
 	unsigned char *out = buf.c;
 	char *p;
 	int i, type, len;
-	char *ctcopy = strdup(ciphertext + FORMAT_TAG_LEN);
+	char *ctcopy = xstrdup(ciphertext + FORMAT_TAG_LEN);
 
 	memset(&buf, 0, sizeof(buf));
 	p = strtokm(ctcopy, "*");
@@ -214,25 +214,36 @@ void *odf_get_binary(char *ciphertext)
 char *odf_prepare(char *fields[10], struct fmt_main *self) {
 	if (!strncmp(fields[1], "$sxc$*", 6)) {
 		static char *buf = NULL;
-		char *cp1, *cp2, *cp3;
+		char *cp, *part1, *part2;
+		size_t len1, len2;
 		int i;
+		const size_t max_len = 3*1024;
 		if (!buf)
-			buf = mem_alloc_tiny(3*1024, 4);
-		cp1 = buf;
-		cp2 = fields[1];
-		cp2 += 6;
-		strcpy(cp1, FORMAT_TAG);
-		cp1 += strlen(FORMAT_TAG);
-		cp3 = cp2;
+			buf = mem_alloc_tiny(max_len, 4);
+		/* $sxc$*1*2*3*4*5*6*7*8*9*10*11*12 */
+		/* ^^^^^^ replace tag; remove ^^^ field #11. */
+		part1 = cp = fields[1] + 6;
 		for (i = 0; i < 10; ++i) {
-			cp3 = strchr(cp3, '*');
-			++cp3;
+			cp = strchr(cp, '*');
+			if (!cp)
+				return fields[1];
+			++cp;
 		}
-		strncpy(cp1, cp2, cp3-cp2);
-		cp1 += cp3-cp2;
-		cp3 = strchr(cp3, '*');
-		cp3++;
-		strcpy(cp1, cp3);
+		len1 = cp - part1;
+		cp = strchr(cp, '*');
+		if (!cp)
+			return fields[1];
+		++cp;
+		part2 = cp;
+		len2 = strlen(part2) + 1;
+		if (FORMAT_TAG_LEN + len1 + len2 > max_len)
+			return fields[1];
+		cp = buf;
+		memcpy(cp, FORMAT_TAG, FORMAT_TAG_LEN);
+		cp += FORMAT_TAG_LEN;
+		memcpy(cp, part1, len1);
+		cp += len1;
+		memcpy(cp, part2, len2);
 		return buf;
 	}
 	return fields[1];

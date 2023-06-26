@@ -249,9 +249,6 @@ __kernel void zip(__global const uchar *pwbuf,
 	uchar password[PLAINTEXT_LENGTH];
 	uchar pwd_ver[BLK_SZ];
 
-	if (gid == 0)
-		*crack_count_ret = 0;
-
 	/* Fetch password from packed buffer */
 	const uint len = prepare(pwbuf, buf_idx, gid, password);
 
@@ -275,9 +272,10 @@ kernel void zip_final(__global const uchar *pwbuf,
                       __global zip_hash *result)
 {
 	const uint gid = get_global_id(0);
-	const int early_skip = 2 * salt->key_len / BLK_SZ * BLK_SZ;
-	const int late_skip = salt->key_len / BLK_SZ * BLK_SZ;
-	const int late_size = early_skip - late_skip;
+	const uint early_skip = 2 * salt->key_len / BLK_SZ * BLK_SZ;
+	const uint late_skip = salt->key_len / BLK_SZ * BLK_SZ;
+	const uint late_size = early_skip - late_skip;
+	const uint comp_len = salt->autotune ? MIN(salt->comp_len, 0x1000000) : salt->comp_len;
 	uchar password[PLAINTEXT_LENGTH];
 	uchar pwd_ver[3 * BLK_SZ];
 
@@ -291,6 +289,6 @@ kernel void zip_final(__global const uchar *pwbuf,
 
 	pbkdf2_hmac_sha1(password, len, salt->salt, salt->length, ITERATIONS, pwd_ver, late_size, late_skip);
 
-	hmac_sha1(pwd_ver + salt->key_len - late_skip, salt->key_len, saltdata, salt->comp_len,
+	hmac_sha1(pwd_ver + salt->key_len - late_skip, salt->key_len, saltdata, comp_len,
 	          result[gid].v, WINZIP_BINARY_SIZE);
 }

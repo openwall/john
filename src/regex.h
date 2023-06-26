@@ -41,8 +41,8 @@
 extern int vc_fixed_snprintf(char *Dest, size_t max_cnt, const char *Fmt, ...);
 #endif
 
-/* require at least version 2.0.9 of rexgen */
-#if (JS_REGEX_MAJOR_VERSION > 2) || ((JS_REGEX_MAJOR_VERSION == 2) && ((JS_REGEX_MINOR_VERSION > 0) || (JS_REGEX_BUILD_VERSION >= 9)))
+/* require at least version 2.1.5 of rexgen */
+#if (JS_REGEX_MAJOR_VERSION > 2) || ((JS_REGEX_MAJOR_VERSION == 2) && ((JS_REGEX_MINOR_VERSION > 1) || (JS_REGEX_BUILD_VERSION >= 5)))
 
 #include "loader.h"
 /*
@@ -60,6 +60,7 @@ int rexgen_restore_state_hybrid(const char *sig, FILE *file);
 #define prepare_regex(a,b,c)
 #ifndef _MSC_VER
 #warning Notice: rexgen cracking mode disabled, Library is installed, it is too old.
+#warning         At least version 2.1.5 is required!
 #endif
 #endif
 #else

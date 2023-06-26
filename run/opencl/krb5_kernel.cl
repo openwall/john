@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2018 magnum,
+ * This software is Copyright (c) 2018-2023 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -145,4 +145,46 @@ __kernel void pa_sha1_final(MAYBE_CONSTANT pa_sha1_salt *salt,
 	hmac_sha1(Ki, key_size, plaintext, TIMESTAMP_SIZE, checksum, 20);
 
 	memcpy_pg(out[gid].hash, checksum, BINARY_SIZE);
+}
+
+typedef asrep_salt tgsrep_salt;
+typedef asrep_out tgsrep_out;
+
+__constant uchar ke2input[] = {0xb5, 0xb0, 0x58, 0x2c, 0x14, 0xb6, 0x50, 0x0a,
+                               0xad, 0x56, 0xab, 0x55, 0xaa, 0x80, 0x55, 0x6a};
+__constant uchar ki2input[] = {0x62, 0xdc, 0x6e, 0x37, 0x1a, 0x63, 0xa8, 0x09,
+                               0x58, 0xac, 0x56, 0x2b, 0x15, 0x40, 0x4a, 0xc5};
+
+__kernel void tgsrep_final(MAYBE_CONSTANT tgsrep_salt *salt,
+                           __global pbkdf2_out *pbkdf2,
+                           MAYBE_CONSTANT uchar *edata2,
+                           __global uchar *plaintext,
+                           __global tgsrep_out *out)
+{
+	uint gid = get_global_id(0);
+	const int key_size = (salt->etype == 17) ? 16 : 32;
+#if HAVE_LUT3
+	/*
+	 * Bug workaround for some nvidias. An alternative workaround is
+	 * forcing vector width 2 but that's slower.
+	 */
+	volatile
+#endif
+	uchar base_key[32];
+	uchar Ke[32];
+	uchar Ki[32];
+	uchar checksum[20];
+
+	plaintext += (salt->edata2len + 31) / 32 * 32 * gid;
+
+	memcpy_macro(base_key, ((__global uchar*)pbkdf2[gid].dk), key_size);
+	dk((uchar*)base_key, (uchar*)base_key, key_size, co_input, 16);
+
+	dk(Ke, (uchar*)base_key, key_size, ke2input, 16);
+	krb_decrypt(edata2, salt->edata2len, plaintext, Ke, key_size);
+
+	dk(Ki, (uchar*)base_key, key_size, ki2input, 16);
+	hmac_sha1(Ki, key_size, plaintext, salt->edata2len, checksum, 20);
+
+	out[gid].cracked = !memcmp_pmc(checksum, salt->edata1, 12);
 }

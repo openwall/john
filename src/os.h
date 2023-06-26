@@ -28,6 +28,7 @@
 #else
 #ifndef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 500 /* for ITIMER_REAL */
+#define _XPG6
 #endif
 #include <sys/time.h>
 #ifdef ITIMER_REAL

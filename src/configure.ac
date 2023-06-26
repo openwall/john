@@ -269,8 +269,6 @@ fi
    JTR_FLAG_CHECK([-Wunused-but-set-variable], 1)
    dnl JTR_NOWARN_CHECK([unneeded-internal-declaration], 1)
    AS_IF([test "x$JTR_FLAG_Q_CHECK_WORKS" = xyes], [JTR_FLAG_CHECK([-Qunused-arguments],1)])
-   dnl Justified and Ancient (see issue 1093)
-   JTR_FLAG_CHECK([-std=gnu89], 1)
    dnl We like reproducible builds
    JTR_FLAG_CHECK([-Wdate-time], 1)
    JTR_LIST_ADD(CFLAGS_EXTRA, ["$CFLAGS_EX"])
@@ -281,7 +279,7 @@ fi
 
 dnl early check of 64 bit systems.
 case "$host_cpu" in
-  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64|x86_64)
+  ia64|mips64|mips64eb|mipseb64|mips64el|mipsel64|mips64*|powerpc64*|sparc64)
     CFLAGS_EX=""
     JTR_FLAG_CHECK_LINK([-m64], 1)
     if test "x${CFLAGS_EX}" != x ; then
@@ -332,6 +330,7 @@ dnl AC_PROG_EGREP Do not trust this one
 AC_PROG_SED
 dnl AC_PROG_CXX
 AX_CHECK_GNU_MAKE()
+MAKE=$_cv_gnu_make_command
 AC_PROG_MAKE_SET
 AC_PROG_CPP
 AC_PROG_MKDIR_P
@@ -339,13 +338,14 @@ AC_CACHE_SAVE
 AC_PATH_PROG([SORT], [sort])
 AC_PATH_PROG([FIND], [find])
 AC_PATH_PROG([PERL], [perl])
-if test "x$PERL" == x ; then
+if test "x$PERL" = x ; then
   AC_MSG_FAILURE([No perl executable found])
 fi
 AS_IF([test -z "$AS"], [AS="$CC"])
 AS_IF([test -z "$LD"], [LD="$CC"])
-AS_IF([test -z "$AR"], [AC_CHECK_TOOL([AR], [ar])])
-AS_IF([test -z "$STRIP"], [AC_CHECK_TOOL([STRIP], [strip])])
+AS_IF([test -z "$AR"], [AC_PATH_TOOL([AR], [ar], [ar], [$PATH:/usr/ccs/bin])])
+AS_IF([test -z "$STRIP"], [AC_CHECK_TOOL([STRIP], [strip], [strip])])
+AS_IF([test -z "$STRINGS"], [AC_CHECK_TOOL([STRINGS], [strings], [strings])])
 
 dnl Check if we have this at all
 PKG_PROG_PKG_CONFIG
@@ -369,7 +369,7 @@ dnl to succeeed.
 dnl
 if ( test -e ../run/john.pot ) ; then
 AC_MSG_CHECKING([if potcheck.pl succeeds])
-if test "x$PERL" == x ; then
+if test "x$PERL" = x ; then
    AC_MSG_RESULT([no Perl (unable to check)])
 else
    $PERL ../run/potcheck.pl -validate < ../run/john.pot
@@ -671,15 +671,15 @@ dnl Check for rexgen only if rexgen wanted
 if test "x$enable_rexgen" != xno ; then
   AC_CHECK_HEADER([librexgen/version.h],
     [AC_SEARCH_LIBS([rexgen_version_int],[rexgen librexgen],
-      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([int main() { return ! (rexgen_version_int() >= 0x020009); }],
+      [AC_MSG_CHECKING([librexgen minimum version])] && [AC_TRY_RUN([unsigned int rexgen_version_int();int main() { return ! (rexgen_version_int() >= 0x020105); }],
         AC_MSG_RESULT([usable]) && [using_rexgen=yes],
         AC_MSG_RESULT([TOO old. Rexgen not usable!]))]
     )]
   )
-  if test "x$using_rexgen" == "xyes" ; then
+  if test "x$using_rexgen" = "xyes" ; then
     AC_DEFINE(HAVE_LIBREXGEN,1,[Define to 1 if you have the `rexgen' library (-lrexgen).])
   else
-    if test "x$enable_rexgen" == "xyes" ; then
+    if test "x$enable_rexgen" = "xyes" ; then
       AC_MSG_FAILURE([rexgen not installed, or unusable version])
     fi
   fi
@@ -1266,41 +1266,39 @@ dnl ======================================================================
 
 Configured for building John the Ripper ${PACKAGE_VERSION}:
 
-Target CPU ................................. ${CPU_NAME}, ${CPU_BIT_STR}-bit ${using_endian}${using_x32}
-AES-NI support ............................. ${using_aesni}
-Target OS .................................. ${host_os}
-Cross compiling ............................ ${cross_compiling}
-Legacy arch header ......................... ${ARCH_LINK}
+Target CPU ......................................... ${CPU_NAME}, ${CPU_BIT_STR}-bit ${using_endian}${using_x32}
+AES-NI support ..................................... ${using_aesni}
+Target OS .......................................... ${host_os}
+Cross compiling .................................... ${cross_compiling}
+Legacy arch header ................................. ${ARCH_LINK}
 
 Optional libraries/features found:
-Memory map (share/page large files) ........ ${using_mmap}
-Fork support ............................... ${ac_cv_func_fork_works}
-OpenMP support ............................. ${using_omp}
-OpenCL support ............................. ${using_cl}
-Generic crypt(3) format .................... ${using_crypt}
-OpenSSL (many additional formats) .......... ${with_openssl}
-libgmp (PRINCE mode and faster SRP formats)  ${ac_cv_lib_gmp___gmpz_init}
-128-bit integer (faster PRINCE mode) ....... ${have_int128}
-libz (7z, pkzip and some other formats) .... ${using_zlib}
-libbz2 (7z and gpg2john bz2 support) ....... ${using_bz2}
-libpcap (vncpcap2john and SIPdump) ......... ${using_pcap}
-Non-free unrar code (complete RAR support) . ${unrar_files}
-OpenMPI support (default disabled) ......... ${using_mpi}
-ZTEX USB-FPGA module 1.15y support ......... ${ztex}
+Memory map (share/page large files) ................ ${using_mmap}
+Fork support ....................................... ${ac_cv_func_fork_works}
+OpenMP support ..................................... ${using_omp}
+OpenCL support ..................................... ${using_cl}
+Generic crypt(3) format ............................ ${using_crypt}
+OpenSSL (many additional formats) .................. ${with_openssl}
+libgmp (PRINCE mode and faster SRP formats) ........ ${ac_cv_lib_gmp___gmpz_init}
+128-bit integer (faster PRINCE mode) ............... ${have_int128}
+libz (7z, pkzip and some other formats) ............ ${using_zlib}
+libbz2 (7z and gpg2john bz2 support) ............... ${using_bz2}
+libpcap (vncpcap2john and SIPdump) ................. ${using_pcap}
+Non-free unrar code (complete RAR support) ......... ${unrar_files}
+librexgen (regex mode, see doc/README.librexgen) ... ${using_rexgen}
+OpenMPI support (default disabled) ................. ${using_mpi}
+Experimental code (default disabled) ............... ${experimental}
+ZTEX USB-FPGA module 1.15y support ................. ${ztex}
 
 EOF
-
 dnl === this section is NOT output, unless there is some debugging flag enabled.
 if test "$ubsan" != "disabled" || test "$asan" != "disabled" ||
-   test "$fuzz" != "no" || test "$experimental" != "no" ||
-   test "$using_rexgen" != "no" ; then
+   test "$fuzz" != "no" ; then
 cat <<EOF
 Development options (these may hurt performance when enabled):
-AddressSanitizer ("ASan") .................. ${asan}
-UndefinedBehaviorSanitizer ("UbSan") ....... ${ubsan}
-Fuzzing test ............................... ${fuzz}
-Experimental code .......................... ${experimental}
- - librexgen (regex mode) .................. ${using_rexgen}
+AddressSanitizer ("ASan") .......................... ${asan}
+UndefinedBehaviorSanitizer ("UbSan") ............... ${ubsan}
+Fuzzing test ....................................... ${fuzz}
 
 EOF
 fi

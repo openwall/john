@@ -14,7 +14,7 @@
 #include "common.h"
 #include "opencl_DES_bs.h"
 #include "../run/opencl/opencl_DES_hst_dev_shared.h"
-#include "unicode.h"
+#include "options.h"
 #include "bt_interface.h"
 #include "mask_ext.h"
 #include "logger.h"
@@ -34,7 +34,7 @@ static WORD current_salt;
 
 static cl_kernel keys_kernel;
 static cl_mem buffer_raw_keys, buffer_int_des_keys, buffer_int_key_loc;
-static int keys_changed = 1;
+static int new_keys = 1;
 static des_combined *des_all;
 static opencl_DES_bs_transfer *des_raw_keys;
 static unsigned int *des_int_key_loc;
@@ -218,7 +218,7 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	if (salt->count > *max_uncracked_hashes)
 		*max_uncracked_hashes = salt->count;
 
-	num_uncracked_hashes(salt_val) = create_perfect_hash_table(64, (void *)uncracked_hashes_t,
+	num_uncracked_hashes(salt_val) = bt_create_perfect_hash_table(64, (void *)uncracked_hashes_t,
 				num_uncracked_hashes(salt_val),
 			        &offset_table,
 			        &offset_table_size,
@@ -231,15 +231,15 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 		*max_hash_table_size = hash_table_size(salt_val);
 
 	if (!num_uncracked_hashes(salt_val)) {
-		MEM_FREE(hash_table_64);
+		MEM_FREE(bt_hash_table_64);
 		MEM_FREE(offset_table);
 		fprintf(stderr, "Failed to create Hash Table for cracking.\n");
 		error();
 	}
 
-	hash_tables[salt_val] = hash_table_64;
+	hash_tables[salt_val] = bt_hash_table_64;
 
-	/* uncracked_hashes_t is modified by create_perfect_hash_table. */
+	/* uncracked_hashes_t is modified by bt_create_perfect_hash_table. */
 	for (i = 0; i < num_uncracked_hashes(salt_val); i++) {
 		uncracked_hashes[i] = uncracked_hashes_t[2 * i];
 		uncracked_hashes[i + num_uncracked_hashes(salt_val)] = uncracked_hashes_t[2 * i + 1];
@@ -248,7 +248,7 @@ static void fill_buffer(struct db_salt *salt, unsigned int *max_uncracked_hashes
 	buffer_offset_tables[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(OFFSET_TABLE_WORD) * offset_table_size , offset_table, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_offset_tables failed.\n");
 
-	buffer_hash_tables[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(unsigned int) * hash_table_size, hash_table_64, &ret_code);
+	buffer_hash_tables[salt_val] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(unsigned int) * hash_table_size, bt_hash_table_64, &ret_code);
 	HANDLE_CLERROR(ret_code, "Create buffer_hash_tables failed.\n");
 
 	if (num_uncracked_hashes(salt_val) <= LOW_THRESHOLD) {
@@ -302,7 +302,7 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 		i++;
 	}
 
-	*max_uncracked_hashes = create_perfect_hash_table(64, (void *)uncracked_hashes_t,
+	*max_uncracked_hashes = bt_create_perfect_hash_table(64, (void *)uncracked_hashes_t,
 				*max_uncracked_hashes,
 			        &offset_table,
 			        &offset_table_size,
@@ -310,13 +310,13 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 	*max_hash_table_size = hash_table_size;
 
 	if (!*max_uncracked_hashes) {
-		MEM_FREE(hash_table_64);
+		MEM_FREE(bt_hash_table_64);
 		MEM_FREE(offset_table);
 		fprintf(stderr, "Failed to create Hash Table for cracking.\n");
 		error();
 	}
 
-	/* uncracked_hashes_t is modified by create_perfect_hash_table. */
+	/* uncracked_hashes_t is modified by bt_create_perfect_hash_table. */
 	for (i = 0; i < *max_uncracked_hashes; i++) {
 		uncracked_hashes[i] = uncracked_hashes_t[2 * i];
 		uncracked_hashes[i + *max_uncracked_hashes] = uncracked_hashes_t[2 * i + 1];
@@ -331,10 +331,10 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 		hash_table_size(i) = hash_table_size;
 		offset_table_size(i) = offset_table_size;
 		hash_tables[i] = (unsigned int *) mem_alloc(2 * sizeof(unsigned int) * hash_table_size);
-		memcpy(hash_tables[i], hash_table_64, 2 * sizeof(unsigned int) * hash_table_size);
+		memcpy(hash_tables[i], bt_hash_table_64, 2 * sizeof(unsigned int) * hash_table_size);
 		buffer_offset_tables[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(OFFSET_TABLE_WORD) * offset_table_size , offset_table, &ret_code);
 		HANDLE_CLERROR(ret_code, "Create buffer_offset_tables failed.\n");
-		buffer_hash_tables[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(unsigned int) * hash_table_size, hash_table_64, &ret_code);
+		buffer_hash_tables[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 2 * sizeof(unsigned int) * hash_table_size, bt_hash_table_64, &ret_code);
 		HANDLE_CLERROR(ret_code, "Create buffer_hash_tables failed.\n");
 		buffer_bitmaps[i] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bitmap_size_bits >> 3, bitmaps, &ret_code);
 		HANDLE_CLERROR(ret_code, "Create buffer_bitmaps failed.\n");
@@ -345,7 +345,7 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 	MEM_FREE(uncracked_hashes);
 	MEM_FREE(uncracked_hashes_t);
 	MEM_FREE(offset_table);
-	MEM_FREE(hash_table_64);
+	MEM_FREE(bt_hash_table_64);
 	MEM_FREE(bitmaps);
 }
 
@@ -541,7 +541,7 @@ int extract_info(size_t current_gws, size_t *lws, WORD salt_val)
 		HANDLE_CLERROR(clSetKernelArg(cmp_kernel[gpu_id][current_salt], 6, sizeof(cl_mem), &buffer_bitmaps[current_salt]), "Failed setting kernel argument buffer_bitmaps, kernel DES_bs_cmp_high.\n");
 
 	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], cmp_kernel[gpu_id][current_salt], 1, NULL, &current_gws, lws, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_cmp failed.\n");
+	HANDLE_CLERROR(ret_code, "Enqueue kernel DES_bs_cmp failed.\n");
 
 	HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(unsigned int), hash_ids, 0, NULL, NULL), "Failed to read buffer buffer_hash_ids.\n");
 
@@ -964,7 +964,7 @@ void opencl_DES_bs_set_key(char *key, int index)
 	key_index = index & (DES_BS_DEPTH - 1);
 	dst = des_all[sector].pxkeys[key_index];
 
-	keys_changed = 1;
+	new_keys = 1;
 
 	dst[0] = 				(!flag) ? 0 : key[0];
 	dst[sizeof(DES_bs_vector) * 8]      =	(!flag) ? 0 : key[1];
@@ -1075,7 +1075,7 @@ static void set_key_mm(char *key, int index)
 		}
 	}
 
-	keys_changed = 1;
+	new_keys = 1;
 }
 
 /* des_bs_key arrangement.
@@ -1198,16 +1198,16 @@ void process_keys(size_t current_gws, size_t *lws)
 {
 	process_key_gws = current_gws;
 
-	if (keys_changed) {
+	if (new_keys) {
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_raw_keys, CL_TRUE, 0, current_gws * sizeof(opencl_DES_bs_transfer), des_raw_keys, 0, NULL, NULL ), "Failed to write buffer buffer_raw_keys.\n");
 
 		if (!mask_gpu_is_static)
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_TRUE, 0, current_gws * sizeof(unsigned int), des_int_key_loc, 0, NULL, NULL ), "Failed Copy data to gpu");
 
 		ret_code = clEnqueueNDRangeKernel(queue[gpu_id], keys_kernel, 1, NULL, &current_gws, lws, 0, NULL, NULL);
-		HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_finalize_keys failed.\n");
+		HANDLE_CLERROR(ret_code, "Enqueue kernel DES_bs_finalize_keys failed.\n");
 
-		keys_changed = 0;
+		new_keys = 0;
 	}
 }
 

@@ -42,17 +42,12 @@ john_register_one(&FMT_STRUCT);
 #include "unicode.h"
 #include "loader.h"
 
-#include "md5.h"
-#include "hmacmd5.h"
 #include "md4.h"
+#include "hmacmd5.h"
 #include "rc4.h"
 #include "mask_ext.h"
 #include "bt_interface.h"
 
-#define PLAINTEXT_LENGTH        27
-#define UTF8_MAX_LENGTH         (3 * PLAINTEXT_LENGTH)
-#define BUFSIZE                 ((UTF8_MAX_LENGTH + 3) / 4 * 4)
-#define AUTOTUNE_LENGTH         8
 #define FORMAT_LABEL            "krb5pa-md5-opencl"
 #define FORMAT_NAME             "Kerberos 5 AS-REQ Pre-Auth etype 23"
 #define FORMAT_TAG              "$krb5pa$23$"
@@ -62,7 +57,10 @@ john_register_one(&FMT_STRUCT);
 #define ALGORITHM_NAME          "MD4 HMAC-MD5 RC4 OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
-#define PLAINTEXT_LENGTH        27 /* Bumped 3x for UTF-8 */
+#define PLAINTEXT_LENGTH        27
+#define UTF8_MAX_LENGTH         (3 * PLAINTEXT_LENGTH)
+#define BUFSIZE                 ((UTF8_MAX_LENGTH + 3) / 4 * 4)
+#define AUTOTUNE_LENGTH         8
 #define MAX_REALMLEN            64
 #define MAX_USERLEN             64
 #define MAX_SALTLEN             128
@@ -120,7 +118,7 @@ static cl_uint *loaded_hashes, max_num_loaded_hashes, *hash_ids, *bitmaps, max_h
 static cl_ulong bitmap_size_bits;
 
 static unsigned int key_idx;
-static unsigned int set_new_keys = 1;
+static unsigned int new_keys;
 static struct fmt_main *self;
 static cl_uint *zero_buffer;
 
@@ -137,8 +135,7 @@ static const char *warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return MIN(64,
-	           autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel));
+	return MIN(autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel), 32);
 }
 
 struct fmt_main FMT_STRUCT;
@@ -388,7 +385,7 @@ static void init(struct fmt_main *_self)
 	max_num_loaded_hashes = 0;
 
 	opencl_prepare_dev(gpu_id);
-	mask_int_cand_target = 95;
+	mask_int_cand_target = opencl_speed_index(gpu_id) >> 16;
 
 	if (options.target_enc == UTF_8) {
 		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH;
@@ -586,7 +583,7 @@ static void set_key(char *_key, int index)
 	}
 	if (len)
 		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
-	set_new_keys = 1;
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -628,10 +625,13 @@ static char *get_key(int index)
 				mask_int_cand.int_cand[int_index].x[i];
 	}
 
+	/* Ensure truncation due to over-length or invalid UTF-8 is made like in GPU code. */
+	if (options.target_enc == UTF_8)
+		truncate_utf8((UTF8*)out, PLAINTEXT_LENGTH);
+
 	return out;
 }
 
-/* Use only for smaller bitmaps < 16MB */
 static void prepare_bitmap_4(cl_ulong bmp_sz, cl_uint **bitmap_ptr, uint32_t num_loaded_hashes)
 {
 	unsigned int i;
@@ -790,24 +790,24 @@ static void prepare_table(struct db_main *db)
 		num_loaded_hashes = salt->count;
 		salt->sequential_id = seq_ids++;
 
-		num_loaded_hashes = create_perfect_hash_table(128, (void*)loaded_hashes,
+		num_loaded_hashes = bt_create_perfect_hash_table(128, (void*)loaded_hashes,
 		                                              num_loaded_hashes,
 		                                              &offset_table,
 		                                              &offset_table_size,
 		                                              &hash_table_size, 0);
 
 		if (!num_loaded_hashes) {
-			MEM_FREE(hash_table_128);
+			MEM_FREE(bt_hash_table_128);
 			fprintf(stderr, "Failed to create Hash Table for cracking.\n");
 			error();
 		}
 
-		hash_tables[salt->sequential_id] = hash_table_128;
+		hash_tables[salt->sequential_id] = bt_hash_table_128;
 
 		buffer_offset_tables[salt->sequential_id] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, offset_table_size * sizeof(OFFSET_TABLE_WORD), offset_table, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_offset_tables[].");
 
-		buffer_hash_tables[salt->sequential_id] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, hash_table_size * sizeof(unsigned int) * 2, hash_table_128, &ret_code);
+		buffer_hash_tables[salt->sequential_id] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, hash_table_size * sizeof(unsigned int) * 2, bt_hash_table_128, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_tables[].");
 
 		if (max_hash_table_size < hash_table_size)
@@ -841,19 +841,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 
-	size_t *lws = local_work_size ? &local_work_size : NULL;
+	/* kernel is made for lws 32, using local memory */
+	size_t lws = local_work_size ? local_work_size : 32;
 	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand %d\n", __FUNCTION__, count, local_work_size, gws, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
-	if (set_new_keys || ocl_autotune_running) {
+	if (new_keys) {
 		if (key_idx)
 			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
 		if (!mask_gpu_is_static)
 			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, 0, 4 * gws, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
-		set_new_keys = 0;
+		new_keys = 0;
 	}
 
 	current_salt = salt->sequential_id;
@@ -862,7 +863,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	BENCH_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_offset_tables[current_salt]), (void *) &buffer_offset_tables[current_salt]), "Error setting argument 7.");
 	BENCH_CLERROR(clSetKernelArg(crypt_kernel, 7, sizeof(buffer_hash_tables[current_salt]), (void *) &buffer_hash_tables[current_salt]), "Error setting argument 8.");
 
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, &lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
 
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], buffer_hash_ids, CL_TRUE, 0, sizeof(cl_uint), hash_ids, 0, NULL, multi_profilingEvent[3]), "failed in reading back num cracked hashes.");
 

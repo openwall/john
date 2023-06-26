@@ -67,7 +67,7 @@ int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, WINZIP_FORMAT_TAG, WINZIP_TAG_LENGTH) || ciphertext[WINZIP_TAG_LENGTH] != '*')
 		return 0;
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 
@@ -176,7 +176,6 @@ char *winzip_common_split(char *ciphertext, int index, struct fmt_main *self)
 	if (!cp) return ciphertext;
 	if (!strncmp(cp, "*0*", 3)) return ciphertext;
 	if (!buf || len < strlen(ciphertext)+1) {
-		MEM_FREE(buf);
 		len = strlen(ciphertext)+1;
 		buf = mem_alloc_tiny(len, 1);
 	}
@@ -191,7 +190,7 @@ void *winzip_common_get_salt(char *ciphertext)
 	uint64_t i;
 	winzip_salt salt, *psalt;
 	static unsigned char *ptr;
-	c8 *copy_mem = strdup(ciphertext);
+	c8 *copy_mem = xstrdup(ciphertext);
 	c8 *cp, *p;
 
 	if (!ptr)

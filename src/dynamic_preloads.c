@@ -113,7 +113,7 @@
 //dynamic_35 -->sha1(uc($u).:.$p) (ManGOS)
 //dynamic_36 -->sha1($u.:.$p) (ManGOS2)
 //dynamic_37 -->sha1(lc($u).$p) (SMF)
-//dynamic_38 -->sha1($s.sha1($s.sha1($p))) (Wolt3BB)
+//dynamic_38 -->sha1($s.sha1($s.sha1($p))) (Wolt3BB, OpenCart)
 //dynamic_39 -->md5($s.pad16($p))      (Net-md5 passed password, long salts)
 //dynamic_40 -->sha1($s.pad20($p))     (Net-sha1 passed password, long salts)
 
@@ -3256,7 +3256,7 @@ static DYNAMIC_Setup Setups[] =
 #if 0
 	// this format is deprecated. If someone WANTS it to work, then it can be uncommented.
 	// however it is MUCH better to use dyanamic_6, and if there are any bad characters in
-	// the salts (like ':'), then use %HEX$ for that candidate's salt value.
+	// the salts (like ':'), then use $HEX$ for that candidate's salt value.
 	{ "dynamic_7: md5(md5($p).$s) (vBulletin)", _Funcs_7, _Preloads_7, _ConstDefault, MGF_SALTED|MGF_ColonNOTValid, MGF_KEYS_BASE16_IN1_MD5, 3, 52 },
 #endif
 	{ "dynamic_8: md5(md5($s).$p)",             _Funcs_8, _Preloads_8, _ConstDefault, MGF_SALTED|MGF_SALT_AS_HEX, MGF_NO_FLAG, -32,  23},
@@ -3287,8 +3287,8 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_17: phpass ($P$ or $H$)",        _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_phpassSetup, 9, 38, 38 },
 	#else
 	{ "dynamic_17: phpass ($P$ or $H$)",        _Funcs_17,_Preloads_17,_ConstDefault, MGF_SALTED|MGF_INPBASE64, MGF_phpassSetup, 9, 38 },
-#endif
 	#endif
+#endif
 	{ "dynamic_18: md5($s.Y.$p.0xF7.$s) (Post.Office MD5)",  _Funcs_18,_Preloads_18,_Const_18,     MGF_SALTED|MGF_NOTSSE2Safe, MGF_POSetup, 32, 110, 110 },
 	{ "dynamic_19: md5($p) (Cisco PIX)",        _Funcs_19,_Preloads_19,_ConstDefault, MGF_INPBASE64_4x6, MGF_NO_FLAG, 0, 16, 16 },
 	{ "dynamic_20: md5($p.$s) (Cisco ASA)",     _Funcs_20,_Preloads_20,_ConstDefault, MGF_INPBASE64_4x6|MGF_SALTED, MGF_NO_FLAG, -4, 12, 12 },
@@ -3315,7 +3315,7 @@ static DYNAMIC_Setup Setups[] =
 	{ "dynamic_35: sha1(uc($u).:.$p) (ManGOS)", _Funcs_35,_Preloads_35,_Const_35,     MGF_FLAT_BUFFERS|MGF_USERNAME_UPCASE, MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_36: sha1($u.:.$p) (ManGOS2)",    _Funcs_36,_Preloads_36,_Const_36,     MGF_FLAT_BUFFERS|MGF_USERNAME, MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_37: sha1(lc($u).$p) (SMF)",      _Funcs_37,_Preloads_37,_ConstDefault,MGF_FLAT_BUFFERS| MGF_USERNAME_LOCASE, MGF_INPUT_20_BYTE, -64, 110, 110 },
-	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_20_BYTE, -64, 110, 110 },
+	{ "dynamic_38: sha1($s.sha1($s.sha1($p))) (Wolt3BB, OpenCart)",  _Funcs_38,_Preloads_38,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_20_BYTE, -64, 110, 110 },
 	{ "dynamic_39: md5($s.pad16($p)) (net-md5)",  _Funcs_39,_Preloads_39,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_NO_FLAG, -230, 16, 16 },
 	{ "dynamic_40: sha1($s.pad20($p)) (net-sha1)",  _Funcs_40,_Preloads_40,_ConstDefault, MGF_SALTED|MGF_FLAT_BUFFERS, MGF_INPUT_20_BYTE, -230, 20, 20 },
 

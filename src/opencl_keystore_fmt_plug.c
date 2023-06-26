@@ -236,7 +236,7 @@ static void *get_salt(char *ciphertext)
 {
 	/* NOTE: do we need dynamic allocation because of underlying large object size? */
 	static struct custom_salt *cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
@@ -316,7 +316,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
-	if (new_keys || ocl_autotune_running) {
+	if (new_keys) {
 		if (key_idx)
 			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys,
 				CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL,

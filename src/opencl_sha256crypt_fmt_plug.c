@@ -607,10 +607,17 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		                                   CL_FALSE, 0, sizeof(sha256_password) * gws, input_candidates, 0,
 		                                   NULL, multi_profilingEvent[0]),
 		              "failed in clEnqueueWriteBuffer pass_buffer");
+		WAIT_INIT(gws)
+		HANDLE_CLERROR(clFlush(queue[gpu_id]), "Error running clFlush");
+		WAIT_SLEEP
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running clFinish");
+		WAIT_UPDATE
+		WAIT_DONE
 	}
 
 	//Enqueue the kernel
 	if (_SPLIT_KERNEL_IN_USE) {
+		WAIT_INIT(gws)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], prepare_kernel, 1,
 		                                     NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]),
 		              "failed in clEnqueueNDRangeKernel I");
@@ -618,35 +625,59 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], preproc_kernel, 1,
 		                                     NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]),
 		              "failed in clEnqueueNDRangeKernel II");
+		WAIT_SLEEP
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running prep kernels");
+		WAIT_UPDATE
+		WAIT_DONE
 
 		unsigned int i, iterations;
 		iterations = ocl_autotune_running ? 3 : (salt->rounds / HASH_LOOPS);
 
+		WAIT_INIT(gws)
 		for (i = 0; i < iterations; i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL,
 			                                     &gws, lws, 0, NULL, (ocl_autotune_running ?
 			                                             multi_profilingEvent[split_events[i]] : NULL)),  //1, 5, 6
 			              "failed in clEnqueueNDRangeKernel");
 
-			HANDLE_CLERROR(clFinish(queue[gpu_id]),
-			               "Error running loop kernel");
+			WAIT_SLEEP
+			HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+			WAIT_UPDATE
 			opencl_process_event();
 		}
+		WAIT_DONE
+
+		WAIT_INIT(gws)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1,
 		                                     NULL, &gws, lws, 0, NULL, multi_profilingEvent[5]),
 		              "failed in clEnqueueNDRangeKernel III");
-	} else
+		WAIT_SLEEP
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running final kernel");
+		WAIT_UPDATE
+		WAIT_DONE
+	} else {
+		WAIT_INIT(gws)
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
 		                                     NULL, &gws, lws, 0, NULL, multi_profilingEvent[1]),
 		              "failed in clEnqueueNDRangeKernel");
+		WAIT_SLEEP
+		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error running crypt kernel");
+		WAIT_UPDATE
+		WAIT_DONE
+	}
 
 	//Read back hashes
+	WAIT_INIT(gws)
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], hash_buffer, CL_FALSE, 0,
 	                                  sizeof(sha256_hash) * gws, output_hashes, 0, NULL,
 	                                  multi_profilingEvent[2]), "failed in reading data back");
 
 	//Do the work
+	BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+	WAIT_SLEEP
 	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+	WAIT_UPDATE
+	WAIT_DONE
 
 	if (bitmap_of_lens & (bitmap_of_lens - 1))
 		//Build calculated hash list according to original plaintext list order.

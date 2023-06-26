@@ -143,9 +143,11 @@ static int our_valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	if (hexlenu(&ciphertext[FORMAT_TAG_LEN], 0) != BINARY_SIZE*2)
+	if (hexlenu(&ciphertext[FORMAT_TAG_LEN], 0) != BINARY_SIZE * 2)
 		return 0;
-	if (strlen(&ciphertext[FORMAT_TAG_LEN+2*BINARY_SIZE]) > 10)
+	if (ciphertext[FORMAT_TAG_LEN + 2 * BINARY_SIZE] != '$')
+		return 0;
+	if (strlen(&ciphertext[FORMAT_TAG_LEN + 2 * BINARY_SIZE + 1]) > 10)
 		return 0;
 	if (options.input_enc == UTF_8 && !valid_utf8((UTF8*)ciphertext)) {
 		static int error_shown = 0;

@@ -15,6 +15,8 @@
 #if !defined(_MD5_H)
 #define _MD5_H
 
+#include <stdint.h>
+
 /* Any 32-bit or wider unsigned integer data type will do */
 /* this needs to be defined no matter if building with HAVE_LIBCRYPTO or not */
 typedef unsigned int MD5_u32plus;
@@ -45,4 +47,8 @@ extern void MD5_PreFinal(MD5_CTX *ctx);
 extern void MD5_Final(unsigned char *result, MD5_CTX *ctx);
 
 #endif /* HAVE_LIBCRYPTO */
+
+extern void md5_reverse(uint32_t *hash);
+extern void md5_unreverse(uint32_t *hash);
+
 #endif /* _MD5_H */

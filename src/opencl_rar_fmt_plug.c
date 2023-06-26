@@ -50,9 +50,9 @@
 #if ARCH_ALLOWS_UNALIGNED || __ARM_FEATURE_UNALIGNED
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_ocl_rar;
+extern struct fmt_main fmt_opencl_rar;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_ocl_rar);
+john_register_one(&fmt_opencl_rar);
 #else
 
 #include <string.h>
@@ -314,15 +314,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	salt_single = (salt->count == 1);
 
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer saved_len");
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, 0, UNICODE_LENGTH * gws, saved_key, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer saved_key");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_len, CL_FALSE, 0, sizeof(int) * gws, saved_len, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer saved_len");
+
+		new_keys = 0;
+	}
 
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarInit, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+
+	WAIT_INIT(gws)
 	for (k = 0; k < (ocl_autotune_running ? 1 : (ITERATIONS / HASH_LOOPS)); k++) {
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
+		WAIT_SLEEP
 		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		WAIT_UPDATE
 		opencl_process_event();
 	}
+	WAIT_DONE
+
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarFinal, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[4]), "failed in clEnqueueNDRangeKernel");
 
 	/*
@@ -333,14 +344,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		fmt_data *blob = pw->binary;
 		rar_file *file = blob->blob;
 
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_FileBuf, CL_TRUE, 0,
+		WAIT_INIT(gws)
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_FileBuf, CL_FALSE, 0,
 		                                    sizeof(rar_file) + file->gpu_size, file, 0, NULL, NULL),
 		               "failed in reading result");
+		BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarCheck, 1, NULL, &gws, lws, 0, NULL,
 		                                      multi_profilingEvent[5]),
 		               "failed in clEnqueueNDRangeKernel");
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_OutputBuf, CL_TRUE, 0, sizeof(rar_out) * gws, output, 0,
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_OutputBuf, CL_FALSE, 0, sizeof(rar_out) * gws, output, 0,
 		                                   NULL, NULL), "failed in reading result");
+		WAIT_SLEEP
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+		WAIT_UPDATE
+		WAIT_DONE
 
 		for (k = 0; k < count; k++)
 			if (output[k].key.w[4])
@@ -359,13 +376,19 @@ static int cmp_all(void *binary, int count)
 	int index;
 
 	if (count && !salt_single) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_FileBuf, CL_TRUE, 0,
+		WAIT_INIT(gws)
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_FileBuf, CL_FALSE, 0,
 		                                    sizeof(rar_file) + file->gpu_size, file, 0, NULL, NULL),
 		               "failed in reading result");
+		BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
 		HANDLE_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], RarCheck, 1, NULL, &gws, lws, 0, NULL, NULL),
 		               "failed in clEnqueueNDRangeKernel");
-		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_OutputBuf, CL_TRUE, 0, sizeof(rar_out) * gws, output, 0,
+		HANDLE_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_OutputBuf, CL_FALSE, 0, sizeof(rar_out) * gws, output, 0,
 		                                   NULL, NULL), "failed in reading result");
+		WAIT_SLEEP
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+		WAIT_UPDATE
+		WAIT_DONE
 	}
 
 #ifdef _OPENMP
@@ -384,7 +407,7 @@ static int cmp_all(void *binary, int count)
 	return 0;
 }
 
-struct fmt_main fmt_ocl_rar = {
+struct fmt_main fmt_opencl_rar = {
 {
 		FORMAT_LABEL,
 		FORMAT_NAME,

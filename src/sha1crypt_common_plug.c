@@ -31,7 +31,7 @@ int sha1crypt_common_valid(char * ciphertext, struct fmt_main * self) {
 		return 0;
 
 	// validate rounds
-	keeptr = strdup(ciphertext);
+	keeptr = xstrdup(ciphertext);
 	p = &keeptr[SHA1_MAGIC_LEN];
 	if ((p = strtokm(p, "$")) == NULL)	/* rounds */
 		goto err;

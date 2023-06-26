@@ -38,6 +38,19 @@ typedef uint32_t host_size_t;
 #define NULL ((void*)0)
 #endif
 
+/* Compatibility with non-clang compilers. */
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
+#if __llvm__ || __has_builtin(__builtin_expect)
+#define likely(x)        __builtin_expect(!!(x), 1)
+#define unlikely(x)      __builtin_expect(!!(x), 0)
+#else
+#define likely(x)        (x)
+#define unlikely(x)      (x)
+#endif
+
 /*
  * Some runtimes/drivers breaks on using inline, others breaks on lack of it,
  * yet others require use of static as well.
@@ -625,7 +638,7 @@ inline int memmem_pc(const void *haystack, size_t haystack_len,
 		uint ii; \
 		printf("%s : ", msg); \
 		for (ii = 0; ii < (uint)(size)/2; ii++) { \
-			printf("%04x", (x)[ii]); \
+			printf("%04x", SWAP16((x)[ii])); \
 			if (ii % 2 == 1) \
 				printf(" "); \
 		} \

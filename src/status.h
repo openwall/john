@@ -42,6 +42,10 @@ struct status_main {
 	int progress;
 	int resume_salt;
 	uint32_t *resume_salt_md5;
+	unsigned int salt_count, password_count;
+	unsigned long long suppressor_start, suppressor_end;
+	unsigned int suppressor_start_time, suppressor_end_time;
+	unsigned long long suppressor_hit, suppressor_miss;
 };
 
 extern struct status_main status;
@@ -93,9 +97,10 @@ extern unsigned int status_get_time(void);
 extern clock_t status_get_raw_time(void);
 
 /*
- * Prints current status to stdout.
+ * Prints current status to stdout.  The requested detail level can be 1 or 2,
+ * or the special value of 0 to use and reset event_status.
  */
-extern void status_print(void);
+extern void status_print(int level);
 
 /*
  * Keep tracks of what "Remaining" figures we've already printed.

@@ -105,25 +105,37 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	datasize = MAX(datasize, 1024);
 
 	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, insize, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	if (ret_code == CL_SUCCESS) {
+		saved_key = clEnqueueMapBuffer(queue[gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error mapping saved_key");
+	} else {
+		/* Silent fallback to non-pinned memory */
+		saved_key = mem_alloc(insize);
+	}
 	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, insize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	saved_key = clEnqueueMapBuffer(queue[gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, insize, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping saved_key");
 
 	pinned_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, idxsize, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	if (ret_code == CL_SUCCESS) {
+		saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, idxsize, 0, NULL, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error mapping saved_idx");
+	} else {
+		/* Silent fallback to non-pinned memory */
+		saved_idx = mem_alloc(idxsize);
+	}
 	cl_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, idxsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, idxsize, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping saved_idx");
 
 	pinned_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, outsize, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
+	if (ret_code == CL_SUCCESS) {
+		outbuffer = clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error mapping outbuffer");
+	} else {
+		/* Silent fallback to non-pinned memory */
+		outbuffer = mem_alloc(outsize);
+	}
 	cl_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, outsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	outbuffer = clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, outsize, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping outbuffer");
 
 	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, saltsize, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
@@ -132,6 +144,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	cl_crack_count_ret = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(cl_uint), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	crack_count_ret = 0;
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &crack_count_ret, 0, NULL, NULL), "Failed resetting crack return");
 
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), &cl_saved_key), "Error setting argument 0");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), &cl_saved_idx), "Error setting argument 1");
@@ -150,14 +164,26 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 static void release_clobj(void)
 {
 	if (outbuffer) {
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, outbuffer, 0, NULL, NULL), "Error Unmapping outbuffer");
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
+		if (pinned_result) {
+			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, outbuffer, 0, NULL, NULL), "Error Unmapping outbuffer");
+			HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Release pinned result buffer");
+		} else
+			MEM_FREE(outbuffer);
+
+		if (pinned_key) {
+			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
+			HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release pinned key buffer");
+		} else
+			MEM_FREE(saved_key);
+
+		if (pinned_idx) {
+			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
+			HANDLE_CLERROR(clReleaseMemObject(pinned_idx), "Release pinned index buffer");
+		} else
+			MEM_FREE(saved_idx);
+
 		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
 
-		HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Release pinned result buffer");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release pinned key buffer");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_idx), "Release pinned index buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_data), "Release salt datablob");
 		HANDLE_CLERROR(clReleaseMemObject(cl_crack_count_ret), "Release crack count buffer");
@@ -234,7 +260,7 @@ static void set_salt(void *salt)
 		HANDLE_CLERROR(clReleaseMemObject(cl_data), "Release mem data");
 		cl_data = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, datasize, NULL, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating buffer");
-		HANDLE_CLERROR(clSetKernelArg(final_kernel, 1, sizeof(cl_data), &cl_data),
+		HANDLE_CLERROR(clSetKernelArg(final_kernel, 3, sizeof(cl_data), &cl_data),
 		               "Error while setting mem_salt kernel argument");
 	}
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0, saltsize, &currentsalt, 0, NULL, NULL),
@@ -277,7 +303,7 @@ static char *get_key(int out_index)
 	static char out[PLAINTEXT_LENGTH + 1];
 	char *key;
 	int i, len;
-	int index = crack_count_ret ? outbuffer[out_index].in_idx : out_index; /* Self-test kludge */
+	int index = crack_count_ret ? outbuffer[out_index].in_idx : out_index; /* Self-test & status kludge */
 
 	len = saved_idx[index + 1] - saved_idx[index];
 	key = (char*)&saved_key[saved_idx[index]];
@@ -295,24 +321,38 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
-	if (new_keys || ocl_autotune_running) {
+	if (new_keys) {
 		if (idx_offset > 4 * (gws + 1))
 			idx_offset = 0;	/* Self-test kludge */
 
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[0]), "Failed transferring index");
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
 
 		new_keys = 0;
 	}
 
+	WAIT_INIT(gws)
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[1]), "Failed running crypt kernel");
 
-	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_crack_count_ret, CL_TRUE, 0, sizeof(cl_uint), &crack_count_ret, 0, NULL, NULL), "failed reading results back");
+	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &crack_count_ret, 0, NULL, NULL), "failed reading results back");
+
+	BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+	WAIT_SLEEP
+	BENCH_CLERROR(clFinish(queue[gpu_id]), "failed in clFinish");
+	WAIT_UPDATE
+	WAIT_DONE
 
 	if (crack_count_ret) {
+		if (crack_count_ret > count)
+			error_msg("Corrupt return: Got a claimed %u cracks out of %d\n", crack_count_ret, count);
+
 		gws = GET_NEXT_MULTIPLE(crack_count_ret, local_work_size);
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "Failed running crypt kernel");
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(zip_hash) * crack_count_ret, outbuffer, 0, NULL, multi_profilingEvent[3]), "failed reading results back");
+
+		static const cl_uint zero = 0;
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &zero, 0, NULL, NULL), "Failed resetting crack return");
 	}
 
 	return crack_count_ret;

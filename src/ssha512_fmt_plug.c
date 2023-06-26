@@ -143,7 +143,7 @@ static void * get_salt(char * ciphertext)
 	len = strlen(ciphertext);
 	base64_convert(ciphertext, e_b64_mime, len, realcipher, e_b64_raw, sizeof(realcipher), flg_Base64_DONOT_NULL_TERMINATE, 0);
 
-	// We now support any salt length up to NSLDAP_SALT_SIZE
+	// We now support any salt length up to NSLDAP_SALT_LEN
 	cursalt.len = (len + 3) / 4 * 3 - DIGEST_SIZE;
 	p = &ciphertext[len];
 	while (*--p == '=')

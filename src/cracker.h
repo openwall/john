@@ -40,6 +40,12 @@ extern int crk_stacked_rule_count;
  * The return value is non-zero if aborted or everything got cracked (the
  * event_abort flag can be used to find out which of these has happened).
  */
+extern int crk_direct_process_key(char *key);
+
+/*
+ * Indirect way to call either crk_direct_process_key() or sometimes a wrapper
+ * around it implementing stacked rules or/and dupe suppression.
+ */
 extern int (*crk_process_key)(char *key);
 
 /*

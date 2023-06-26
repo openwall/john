@@ -99,6 +99,13 @@ extern void *mem_alloc_align(size_t size, size_t align);
 extern void *mem_calloc_align(size_t count, size_t size, size_t align);
 
 /*
+ * Creates a new NUL-terminated copy of the given string using strdup() and
+ * returns a pointer to it.  The allocation is done using malloc().
+ * If an error occurs, the function does not return.
+ */
+extern char *xstrdup(const char *str);
+
+/*
  * Frees memory allocated with mem_alloc() and sets the pointer to NULL.
  * Does nothing if the pointer is already NULL.
  */
@@ -205,6 +212,7 @@ extern void cleanup_tiny_memory();
 extern void dump_text_msg(const void *msg, const void *in, int len);
 
 extern void dump_stuff_msg(const void *msg, const void *x, unsigned int size);
+extern void dump_stderr_msg(const void *msg, const void *x, unsigned int size);
 extern void dump_stuff_be_msg(const void *msg, const void *x, unsigned int size);
 
 #if defined (SIMD_COEF_32) || defined(NT_X86_64) || defined (SIMD_PARA_MD5) || defined (SIMD_PARA_MD4) || defined (SIMD_PARA_SHA1)

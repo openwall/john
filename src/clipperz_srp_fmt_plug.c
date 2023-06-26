@@ -53,10 +53,6 @@
 #include "autoconfig.h"
 #endif
 
-#if !AC_BUILT && !__MIC__
-#define HAVE_LIBGMP 1 /* legacy build uses libgmp by default, except for MIC */
-#endif
-
 #if HAVE_LIBGMP || HAVE_LIBCRYPTO /* we need one of these for bignum */
 
 #if FMT_EXTERNS_H
@@ -213,7 +209,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p = NULL;
 	if (strncmp(ciphertext, CLIPPERZSIG, CLIPPERZSIGLEN))
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += CLIPPERZSIGLEN;
 	if ((p = strtokm(ctcopy, "$")) == NULL)

@@ -1,5 +1,6 @@
 /*
- * This software is Copyright (c) 2012-2015 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2012-2015 Sayantan Datta <std2048 at gmail dot com>,
+ * Copyright (c) 2023 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -150,15 +151,15 @@ __kernel void DES_bs_25_b(constant uint *key_map
 	__local DES_bs_vector s_des_bs_key[56 * WORK_GROUP_SIZE];
 	int s_key_offset = lid * 56;
 	for (i = 0; i < 56; i++)
-		s_des_bs_key[lid * 56 + i] = des_bs_key[section + i * gws];
+		s_des_bs_key[s_key_offset + i] = des_bs_key[section + i * gws];
 #endif
 
 #if USE_LOCAL_MEM
 	__local ushort s_key_map[768];
 	int lws = get_local_size(0);
 
-	for (i = 0; i < 768; i += lws)
-		s_key_map[(lid + i) % 768] = key_map[(lid + i) % 768];
+	for (i = lid; i < 768; i += lws)
+		s_key_map[i] = key_map[i];
 #endif
 
 #if USE_LOCAL_MEM || WORK_GROUP_SIZE > 0

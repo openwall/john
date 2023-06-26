@@ -44,8 +44,8 @@ char *stpcpy(char *dst, const char *src) {
 #endif
 
 char *rexgen_alphabets[256];
-static c_iterator_ptr iter = NULL;
-static c_regex_ptr regex_ptr = NULL;
+static c_iterator_ptr iter = c_iterator_none;
+static c_regex_ptr regex_ptr = c_regex_none;
 static char *save_str;
 static const char *cur_regex, *save_regex;
 static char *restore_str, *restore_regex;

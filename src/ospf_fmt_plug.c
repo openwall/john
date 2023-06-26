@@ -96,7 +96,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 
 	ctcopy += TAG_LENGTH;
@@ -140,7 +140,7 @@ static const char ospf_apad[] = {
 static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
@@ -299,7 +299,7 @@ static int cmp_exact(char *source, int index)
 
 static void ospf_set_key(char *key, int index)
 {
-	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

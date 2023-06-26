@@ -380,6 +380,10 @@ inline void SHA1(uint *A, uint *W) {
 #define F(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define F(x, y, z) bitselect(x, y, (z) ^ (x))
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define F(x, y, z) (y ^ ((x ^ y) & (y ^ z)))
+#elif 0
+#define F(x, y, z) ((x & y) ^ (x & z) ^ (y & z))
 #else
 #define F(x, y, z) ((x & y) | (z & (x | y)))
 #endif
@@ -428,6 +432,10 @@ inline void SHA1_digest(uint *A, uint *W) {
 #define F(x, y, z) lut3(x, y, z, 0xe8)
 #elif USE_BITSELECT
 #define F(x, y, z) bitselect(x, y, (z) ^ (x))
+#elif 0 /* Wei Dai's trick, but we let the compiler cache/reuse or not */
+#define F(x, y, z) (y ^ ((x ^ y) & (y ^ z)))
+#elif 0
+#define F(x, y, z) ((x & y) ^ (x & z) ^ (y & z))
 #else
 #define F(x, y, z) ((x & y) | (z & (x | y)))
 #endif

@@ -10,16 +10,14 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "arch.h"
+
 #if !AC_BUILT || HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
 
 #if defined(_MSC_VER)
 #include <stdlib.h>
-// VC has no sys/parm.h   These defines were taken from defines found on cygwin
-#define LITTLE_ENDIAN 4321
-#define BIG_ENDIAN 1234
-#define BYTE_ORDER LITTLE_ENDIAN
 
 static inline uint32_t rol32(uint32_t x, int r) {
   static_assert(sizeof(uint32_t) == sizeof(unsigned int), "this code assumes 32-bit integers");
@@ -175,11 +173,7 @@ static inline void memcpy_swap64(void *dst, const void *src, size_t n) {
   }
 }
 
-#if !defined(BYTE_ORDER) || !defined(LITTLE_ENDIAN) || !defined(BIG_ENDIAN)
-static_assert(false, "BYTE_ORDER is undefined. Perhaps, GNU extensions are not enabled");
-#endif
-
-#if BYTE_ORDER == LITTLE_ENDIAN
+#if ARCH_LITTLE_ENDIAN
 #define SWAP32LE IDENT32
 #define SWAP32BE SWAP32
 #define swap32le ident32
@@ -196,9 +190,7 @@ static_assert(false, "BYTE_ORDER is undefined. Perhaps, GNU extensions are not e
 #define mem_inplace_swap64be mem_inplace_swap64
 #define memcpy_swap64le memcpy_ident64
 #define memcpy_swap64be memcpy_swap64
-#endif
-
-#if BYTE_ORDER == BIG_ENDIAN
+#else
 #define SWAP32BE IDENT32
 #define SWAP32LE SWAP32
 #define swap32be ident32

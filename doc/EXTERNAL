@@ -57,7 +57,8 @@ current cracking session to be aborted or the status line to be
 displayed (just like on a keypress), respectively.  These actions are
 taken after having tested at least all of the candidate passwords that
 were in external mode's "word" so far.  In other words, the actions may
-be delayed in order to process any buffered candidate passwords.
+be delayed in order to process any buffered candidate passwords.  Setting
+"status" to 2 results in printing of detailed multi-line status.
 
 "cipher_limit" contains the maximum password length in bytes, either from
 the format definition or from --stdout[=LENGTH].  This variable should

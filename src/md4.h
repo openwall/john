@@ -8,12 +8,17 @@
  * See md4.c for more information.
  */
 
+#if !defined(_MD4_H)
+#define _MD4_H
+
+#include <stdint.h>
+
 #include "arch.h" /* also includes autoconfig.h for HAVE_LIBCRYPTO */
 
 #if HAVE_LIBCRYPTO
 #include <openssl/md4.h>
-#elif !defined(_MD4_H)
-#define _MD4_H
+
+#else
 
 #define MD4_Init john_MD4_Init
 #define MD4_Update john_MD4_Update
@@ -34,5 +39,10 @@ typedef struct {
 extern void MD4_Init(MD4_CTX *ctx);
 extern void MD4_Update(MD4_CTX *ctx, const void *data, unsigned long size);
 extern void MD4_Final(unsigned char *result, MD4_CTX *ctx);
+
+#endif /* HAVE_LIBCRYPTO */
+
+extern void md4_reverse(uint32_t *hash);
+extern void md4_unreverse(uint32_t *hash);
 
 #endif /* _MD4_H */

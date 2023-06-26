@@ -155,7 +155,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			return ret;
 	}
 
-	cpkeep = strdup(ciphertext);
+	cpkeep = xstrdup(ciphertext);
 	cp = cpkeep;
 
 	p = &cp[FORMAT_TAG_LEN];
@@ -232,7 +232,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		if ((cp = strtokm(NULL, "*")) == NULL) goto Bail;
 		if (type > 1) {
 			if (type == 3) {
-				if ( strlen(cp) != data_len) {
+				if (strlen(cp) != data_len) {
 					sFailStr = "invalid checksum value";
 					goto Bail;
 				}
@@ -1456,7 +1456,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 			C = PKZ_MULT(*b++,key2);
 			SigChecked = 0;
-			if ( salt->H[cur_hash_idx].compType == 0) {
+			if (salt->H[cur_hash_idx].compType == 0) {
 				// handle a stored file.
 				// We can ONLY deal with these IF we are handling 'magic' testing.
 
@@ -1490,10 +1490,10 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 			// https://github.com/openwall/john/issues/467
 			// Ok, if this is a code 3, we are done.
 			// Code moved to after the check for stored type.  (FIXED)  This check was INVALID for a stored type file.
-			if ( (C & 6) == 6)
+			if ((C & 6) == 6)
 				goto Failed_Bailout;
 #endif
-			if ( (C & 6) == 0) {
+			if ((C & 6) == 0) {
 				// Check that checksum2 is 0 or 1.  If not, I 'think' we can be done
 				if (C > 1)
 					goto Failed_Bailout;
@@ -1501,7 +1501,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 				// these 2 values are checksumed, so it is easy to tell if the data is WRONG.
 				// correct data is u16_1 == (u16_2^0xFFFF)
 				curDecryBuf[0] = C;
-				for (e = 0; e <= 4; ) {
+				for (e = 0; e <= 4;) {
 					key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
 					key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
 					key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
@@ -1541,7 +1541,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 				curDecryBuf[0] = C;
 
-				if ((C&6) == 4) { // inflate 'code' 2  (variable table)
+				if ((C & 6) == 4) { // inflate 'code' 2  (variable table)
 #if (ZIP_DEBUG==2)
 					static unsigned count, found;
 					++count;

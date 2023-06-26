@@ -8,7 +8,7 @@
  * Vault file is loaded as-is; there's no "cryptosafe2john" or such involved.
  */
 
-#define FORMAT_STRUCT fmt_ocl_cryptosafe
+#define FORMAT_STRUCT fmt_opencl_cryptosafe
 
 #ifdef HAVE_OPENCL
 
@@ -103,6 +103,8 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	cl_crack_count_ret = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(int), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
+	crack_count_ret = 0;
+	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &crack_count_ret, 0, NULL, NULL), "Failed resetting crack return");
 
 	pinned_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * gws, NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_int_key_loc.");
@@ -339,9 +341,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	*pcount *= mask_int_cand.num_int_cand;
 
-	//printf("%s(%d) lws "Zu" gws "Zu" kidx %u k %d mult %u\n", __FUNCTION__, count, *lws, gws, key_idx, new_keys, mask_int_cand.num_int_cand);
-
-	if (new_keys || ocl_autotune_running) {
+	if (new_keys) {
 		/* Self-test kludge */
 		if (idx_offset > 4 * (gws + 1))
 			idx_offset = 0;
@@ -359,8 +359,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_crack_count_ret, CL_TRUE, 0, sizeof(int), &crack_count_ret, 0, NULL, NULL), "failed reading results back");
 
-	if (crack_count_ret)
+	if (crack_count_ret) {
+		if (crack_count_ret > *pcount)
+			error_msg("Corrupt return: Got a claimed %u cracks out of %d\n", crack_count_ret, *pcount);
+
 		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * crack_count_ret, cracked, 0, NULL, NULL), "failed reading results back");
+
+		static const cl_uint zero = 0;
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &zero, 0, NULL, NULL), "Failed resetting crack return");
+	}
 
 	return crack_count_ret;
 }

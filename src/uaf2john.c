@@ -285,7 +285,7 @@ static void single_user(char *infile, char *username)
 
 static void process_file(char *infile)
 {
-	int i, status, lnum, is_raw;
+	int i, status, is_raw;
 	FILE *listf, *rawf;
 	char line[4096], *lf, *username, *suffix, *directory, *prefix;
 	char encoded[UAF_ENCODE_SIZE], *result;
@@ -327,7 +327,7 @@ static void process_file(char *infile)
 	 */
 	uaf_init();
 	UAF_QW_SET(null_hash, 0);
-	lnum = 0;
+
 	while (1) {
 		char *priv_summary;
 		if (is_raw) {
@@ -349,7 +349,6 @@ static void process_file(char *infile)
 			lf = strchr(line, '\n');
 			if (lf)
 				*lf = '\0';
-			lnum++;
 			if (strlen(line) < 21)
 				continue;	/* line too short, ignore */
 			/*

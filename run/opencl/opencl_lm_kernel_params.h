@@ -3,26 +3,6 @@
 
 typedef unsigned WORD vtype;
 
-/*
- * Some devices/drivers has problems with the optimized 'goto' program flow.
- * Some AMD driver versions can't build the "fast goto" version but those who
- * can runs faster. Hawaii on 14.9 fails, Tahiti on 14.9 does not (!?).
- *
- * Nvidia can build either kernel but GTX980 is significantly faster with the
- * "safe goto" version (7% faster for one salt, 16% for many salts).
- *
- * OSX' Intel HD4000 driver [1.2(Sep25 2014 22:26:04)] fails building the
- * "fast goto" version.
- */
-#if nvidia_sm_5x(DEVICE_INFO) || gpu_intel(DEVICE_INFO) ||	  \
-	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1573 && !defined(__Tahiti__)) || \
-	(gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR >= 1702)
-//#warning Using 'safe goto' kernel
-#define SAFE_GOTO
-#else
-//#warning Using 'fast goto' kernel
-#endif
-
 #if no_byte_addressable(DEVICE_INFO)
 #define RV7xx
 #endif
@@ -88,11 +68,8 @@ typedef unsigned WORD vtype;
 	lm_clear_block_8(48); 			\
 	lm_clear_block_8(56);
 
-#if BITMAP_SIZE_BITS_LESS_ONE < 0xffffffff
-#define BITMAP_SIZE_BITS (BITMAP_SIZE_BITS_LESS_ONE + 1)
-#else
-/*undefined, cause error.*/
-#endif
+/* This handles an input of 0xffffffffU correctly */
+#define BITMAP_SHIFT ((BITMAP_MASK >> 5) + 1)
 
 #define GET_HASH_0(hash, x, k, bits)			\
 	for (bit = bits; bit < k; bit++)		\
@@ -154,14 +131,14 @@ inline void cmp( unsigned lm_vector *B,
 	value[1] = 0;
 	GET_HASH_0(value[0], i, REQ_BITMAP_BITS, 0);
 	GET_HASH_1(value[1], i, REQ_BITMAP_BITS, 0);
-	bitmap_index = value[1] & (BITMAP_SIZE_BITS - 1);
+	bitmap_index = value[1] & BITMAP_MASK;
 	bit = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
-	bitmap_index = value[0] & (BITMAP_SIZE_BITS - 1);
-	bit &= (bitmaps[(BITMAP_SIZE_BITS >> 5) + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
+	bitmap_index = value[0] & BITMAP_MASK;
+	bit &= (bitmaps[BITMAP_SHIFT + (bitmap_index >> 5)] >> (bitmap_index & 31)) & 1U;
 #else
 	value[1] = 0;
 	GET_HASH_1(value[1], i, REQ_BITMAP_BITS, 0);
-	bitmap_index = value[1] & BITMAP_SIZE_BITS_LESS_ONE;
+	bitmap_index = value[1] & BITMAP_MASK;
 	bit = (bitmaps[bitmap_index >> 5] >> (bitmap_index & 31)) & 1U;
 #endif
 	if (bit)

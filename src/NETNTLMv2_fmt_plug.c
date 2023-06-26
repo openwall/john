@@ -453,7 +453,7 @@ static char *get_key(int index)
 static int salt_hash(void *salt)
 {
 	// Hash the client challenge (in case server salt was spoofed)
-	int identity_length = ((char *)salt)[0];
+	int identity_length = ((unsigned char *)salt)[0];
 	unsigned int hash;
 	char *chal = ((char*)salt)+1+identity_length+1+2+8;
 

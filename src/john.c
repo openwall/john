@@ -106,7 +106,6 @@ static int john_omp_threads_new;
 #include "subsets.h"
 #include "external.h"
 #include "batch.h"
-#include "dynamic.h"
 #include "dynamic_compiler.h"
 #include "fake_salts.h"
 #include "listconf.h"
@@ -140,6 +139,8 @@ static int john_omp_threads_new;
 #endif
 #endif
 #include "omp_autotune.h"
+
+extern int dynamic_Register_formats(struct fmt_main **ptr);
 
 #if CPU_DETECT
 extern int CPU_detect(void);
@@ -225,7 +226,7 @@ static void john_register_all(void)
 		if (strncasecmp(options.format, "dynamic=", 8)) {
 			strlwr(options.format);
 
-			if (strchr(options.format, ',')) {
+			if (options.format[0] != ',' && strchr(options.format, ',')) {
 				options.format_list = options.format;
 				options.format = NULL;
 			}
@@ -273,8 +274,9 @@ static void john_register_all(void)
 		error_msg("Could not parse format list '%s'\n", options.format_list);
 
 	if (!fmt_list) {
-		if (john_main_process)
-		fprintf(stderr, "Unknown ciphertext format name requested\n");
+		if (john_main_process) {
+			fprintf(stderr, "Error: No format matched requested %s '%s'\n", fmt_type(options.format), options.format);
+		}
 		error();
 	}
 }
@@ -352,7 +354,7 @@ static void john_omp_init(void)
 		john_omp_threads_orig = john_omp_threads_new;
 }
 
-#if OMP_FALLBACK
+#if OMP_FALLBACK || defined(OMP_FALLBACK_BINARY)
 #if defined(__DJGPP__)
 #error OMP_FALLBACK is incompatible with the current DOS code
 #endif
@@ -649,19 +651,22 @@ static void john_set_mpi(void)
 
 static void john_wait(void)
 {
+	log_flush();
+
+	/* Tell our friends there is nothing more to crack! */
+	if (!database.password_count && !options.reload_at_crack &&
+	    cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtDone", 1))
+		raise(SIGUSR2);
+
+	if (!john_main_process)
+		return;
+
 	int waiting_for = john_child_count;
 
 	log_event("Waiting for %d child%s to terminate",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
 	fprintf(stderr, "Waiting for %d child%s to terminate\n",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
-
-	log_flush();
-
-	/* Tell our friends there is nothing more to crack! */
-	if (!database.password_count && !options.reload_at_crack &&
-	    cfg_get_bool(SECTION_OPTIONS, NULL, "ReloadAtDone", 0))
-		raise(SIGUSR2);
 
 /*
  * Although we may block on wait(2), we still have signal handlers and a timer
@@ -880,9 +885,8 @@ static void john_load_conf_db(void)
 {
 	if (options.flags & FLG_STDOUT) {
 		/* john.conf alternative for --internal-codepage */
-		if (!options.internal_cp &&
-		    options.target_enc == UTF_8 && options.flags &
-		    (FLG_RULES_IN_USE | FLG_SINGLE_CHK | FLG_BATCH_CHK | FLG_MASK_CHK))
+		if (!options.internal_cp && options.target_enc == UTF_8 &&
+		    (options.flags & (FLG_RULES_IN_USE | FLG_BATCH_CHK | FLG_MASK_CHK)))
 			if (!(options.internal_cp =
 			      cp_name2id(cfg_get_param(SECTION_OPTIONS, NULL, "DefaultInternalCodepage"), 1)))
 				options.internal_cp =
@@ -1438,7 +1442,7 @@ static void CPU_detect_or_fallback(char **argv, int make_check)
 	if (!getenv("CPUID_DISABLE"))
 	if (!CPU_detect()) {
 #if CPU_REQ
-#if CPU_FALLBACK
+#if CPU_FALLBACK || defined(CPU_FALLBACK_BINARY)
 #if defined(__DJGPP__)
 #error CPU_FALLBACK is incompatible with the current DOS code
 #endif
@@ -1668,7 +1672,6 @@ static void john_run(void)
 		options.loader.flags |= DB_WORDS;
 		list_init(&single_seed); /* Required for DB_WORDS */
 
-		ldr_init_database(&database, &options.loader);
 		exit_status = fuzz(&database);
 	}
 #endif
@@ -1843,13 +1846,13 @@ static void john_run(void)
 		if (options.flags & FLG_MASK_CHK)
 			mask_done();
 
-		status_print();
+		status_print(0);
 
 		if (options.flags & FLG_MASK_CHK)
 			mask_destroy();
 
 #if OS_FORK
-		if (options.fork && john_main_process)
+		if (options.fork)
 			john_wait();
 #endif
 
@@ -2013,7 +2016,7 @@ int main(int argc, char **argv)
 	}
 #endif
 
-#if CPU_FALLBACK || OMP_FALLBACK
+#if CPU_FALLBACK || OMP_FALLBACK || defined(CPU_FALLBACK_BINARY) || defined(OMP_FALLBACK_BINARY)
 	/* Needed before CPU fallback */
 	path_init(argv);
 #endif
@@ -2058,7 +2061,7 @@ int main(int argc, char **argv)
 		return base64conv(argc, argv);
 	}
 
-#if !(CPU_FALLBACK || OMP_FALLBACK)
+#if !(CPU_FALLBACK || OMP_FALLBACK || defined(CPU_FALLBACK_BINARY) || defined(OMP_FALLBACK_BINARY))
 	path_init(argv);
 #endif
 

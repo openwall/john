@@ -345,7 +345,6 @@ char *benchmark_format(struct fmt_main *format, int salts,
 {
 	static void *binary = NULL;
 	static int binary_size = 0;
-	static char s_error[128];
 	static int wait_salts = 0;
 	struct fmt_tests *current;
 	int pass;
@@ -363,7 +362,7 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #ifndef BENCH_BUILD
 	struct db_salt *two_salts_db[2];
 	unsigned int t_cost[2][FMT_TUNABLE_COSTS];
-	int ntests, pruned, i;
+	int i;
 #endif
 	int salts_done = 0;
 	int wait = 0;
@@ -378,48 +377,12 @@ char *benchmark_format(struct fmt_main *format, int salts,
 #ifndef BENCH_BUILD
 	dyna_salt_init(format);
 
-	pruned = 0;
-	for (i = 0; i < FMT_TUNABLE_COSTS; i++)
-	if (options.loader.min_cost[i] > 0 ||
-	    options.loader.max_cost[i] < UINT_MAX) {
-		unsigned int cost;
-
-		if (format->methods.tunable_cost_value[i] == NULL) {
-			sprintf(s_error,
-			        "FAILED (cost %d not defined for format)\n", i);
-			return s_error;
-		}
-
-		ntests = 0;
-		current = format->params.tests;
-		while ((current++)->ciphertext)
-			ntests++;
-
-		current = format->params.tests;
-		for (index = 0; index < ntests; index++) {
-			cost = get_cost(format, index, i);
-			if (cost >= options.loader.min_cost[i] &&
-			    cost <= options.loader.max_cost[i])
-				memcpy(current++,
-				       &format->params.tests[index],
-				       sizeof(struct fmt_tests));
-			else
-				pruned++;
-		}
-		memset(current, 0, sizeof(struct fmt_tests));
-	}
-
-	if (pruned && !format->params.tests->ciphertext) {
-		sprintf(s_error, "FAILED (--cost pruned all %d test vectors)\n",
-		        pruned);
-		return s_error;
-	}
-
 	current = format->params.tests;
 #endif
 #ifdef BENCH_BUILD
 	const char *where;
 	if ((where = fmt_self_test(format, test_db))) {
+		static char s_error[128];
 		snprintf(s_error, sizeof(s_error), "FAILED (%s)\n", where);
 		return s_error;
 	}
@@ -657,21 +620,19 @@ void benchmark_cps(uint64_t crypts, clock_t time, char *buffer)
 		return;
 	}
 
-	unsigned int cps = crypts * clk_tck / time;
-	uint64_t cpsl = crypts * clk_tck / time;
+	uint64_t cps = crypts * clk_tck / time;
 
-	if (cpsl >= 1000000000000ULL) {
-		sprintf(buffer, "%uG", (uint32_t)(cpsl / 1000000000ULL));
-	} else if (cpsl >= 1000000000) {
-		sprintf(buffer, "%uM", (uint32_t)(cpsl / 1000000));
-	} else
-	if (cps >= 1000000) {
-		sprintf(buffer, "%uK", cps / 1000);
+	if (cps >= 1000000000000ULL) {
+		sprintf(buffer, "%uG", (unsigned int)(cps / 1000000000ULL));
+	} else if (cps >= 1000000000) {
+		sprintf(buffer, "%uM", (unsigned int)(cps / 1000000));
+	} else if (cps >= 1000000) {
+		sprintf(buffer, "%uK", (unsigned int)cps / 1000);
 	} else if (cps >= 100) {
-		sprintf(buffer, "%u", cps);
+		sprintf(buffer, "%u", (unsigned int)cps);
 	} else {
 		unsigned int frac = crypts * clk_tck * 10 / time % 10;
-		sprintf(buffer, "%u.%u", cps, frac);
+		sprintf(buffer, "%u.%u", (unsigned int)cps, frac);
 	}
 }
 
@@ -717,12 +678,12 @@ int benchmark_all(void)
 #if defined(HAVE_OPENCL)
 	char s_gpu[16 * MAX_GPU_DEVICES] = "";
 	char s_gpu1[16 * MAX_GPU_DEVICES] = "";
-	int i;
 #else
 	const char *s_gpu = "";
 	const char *s_gpu1 = "";
 #endif
 #ifndef BENCH_BUILD
+	int i;
 	unsigned int loop_fail = 0, loop_total = 1;
 	int nvidia_mem = 0;
 #endif
@@ -837,7 +798,7 @@ AGAIN:
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
 		int using_int_mask = (format->params.flags & FMT_MASK) && (options.flags & FLG_MASK_CHK) &&
 			options.req_int_cand_target != 0 && mask_int_cand_target;
-#else
+#elif !defined(BENCH_BUILD)
 		int using_int_mask = 0;
 #endif
 
@@ -931,6 +892,45 @@ AGAIN:
 		if (options.flags & FLG_MASK_CHK)
 			mask_init(test_db, options.mask);
 
+		/* Prune test vectors for benchmark to honor --cost option */
+		struct fmt_tests *current;
+		int index, ntests, pruned = 0;
+
+		for (i = 0; i < FMT_TUNABLE_COSTS; i++) {
+			if (options.loader.min_cost[i] > 0 || options.loader.max_cost[i] < UINT_MAX) {
+				unsigned int cost;
+
+				if (format->methods.tunable_cost_value[i] == NULL) {
+					printf("FAILED (cost %d not defined for format)\n\n", i);
+					failed++;
+					format->methods.done();
+					goto next;
+				}
+
+				ntests = 0;
+				current = format->params.tests;
+				while ((current++)->ciphertext)
+					ntests++;
+
+				current = format->params.tests;
+				for (index = 0; index < ntests; index++) {
+					cost = get_cost(format, index, i);
+					if (cost >= options.loader.min_cost[i] && cost <= options.loader.max_cost[i])
+						memcpy(current++, &format->params.tests[index], sizeof(struct fmt_tests));
+					else
+						pruned++;
+				}
+				memset(current, 0, sizeof(struct fmt_tests));
+			}
+		}
+
+		if (pruned && !format->params.tests->ciphertext) {
+			printf("FAILED (--cost pruned all %d test vectors)\n\n", pruned);
+			failed++;
+			format->methods.done();
+			goto next;
+		}
+
 		/*
 		 * Re-init for benchmark.  While the self-tests were done with very
 		 * low work sizes, we now need a proper auto-tune for benchmark, with
@@ -938,10 +938,10 @@ AGAIN:
 		 */
 		format->methods.reset(test_db);
 #endif
-		if ((result = benchmark_format(format, salts,
-		                               &results_m, test_db))) {
+		if ((result = benchmark_format(format, salts, &results_m, test_db))) {
 			puts(result);
 			failed++;
+			format->methods.done();
 			goto next;
 		}
 #if HAVE_OPENCL

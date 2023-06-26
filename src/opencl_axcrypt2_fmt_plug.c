@@ -26,7 +26,6 @@ john_register_one(&fmt_opencl_axcrypt2);
 #include "common.h"
 #include "formats.h"
 #include "options.h"
-#include "unicode.h"
 #include "opencl_common.h"
 #include "axcrypt_common.h"
 #define VERSION_2_SUPPORT 1
@@ -87,6 +86,7 @@ typedef struct {
 } out_t;
 
 static struct custom_salt *cur_salt;
+static int new_keys;
 
 static pass_t *host_pass;
 static axcrypt2_salt_t *host_salt;
@@ -235,7 +235,7 @@ static int axcrypt2_valid(char *ciphertext, struct fmt_main *self)
 
 static void *get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;
@@ -318,10 +318,14 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-				gws * sizeof(pass_t), host_pass,
-				0, NULL, multi_profilingEvent[0]),
-				"Copy data to gpu");
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			gws * sizeof(pass_t), host_pass,
+			0, NULL, multi_profilingEvent[0]),
+			"Copy data to gpu");
+
+		new_keys = 0;
+	}
 
 	// Run standard PBKDF2 kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,
@@ -377,6 +381,8 @@ static void set_key(char *key, int index)
 	// ^= the whole uint64 with the ipad/opad mask
 	strncpy((char*)host_pass[index].v, key, PLAINTEXT_LENGTH);
 	host_pass[index].length = saved_len;
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)

@@ -205,6 +205,11 @@ _Bool Packet_Reader_kick(struct Packet_Reader* self)
 		snprintf(buf, sizeof buf, "%s-%d", inet_ntoa(ip_header->ip_dst), ntohs(tcp->th_dport));
 		self->dest_addr_str = strdup(buf);
 
+		if (!self->src_addr_str || !self->dest_addr_str) {
+			fprintf(stderr, "%s:%d: strdup failed\n", __FUNCTION__, __LINE__);
+			exit(EXIT_FAILURE);
+		}
+
 		return true;	// successfully got a TCP packet of some kind (yay)
 	}
 
@@ -270,6 +275,10 @@ _Bool VNC_Auth_Reader_find_next(struct Packet_Reader* reader, char** id_out, cha
 				*response_out = response;
 				snprintf(buf, sizeof buf, "%s to %s", from, to);
 				*id_out = strdup(buf);
+				if (!*id_out) {
+					fprintf(stderr, "%s:%d: strdup failed\n", __FUNCTION__, __LINE__);
+					exit(EXIT_FAILURE);
+				}
 				free(from); free(to);
 				return true;
 			} else {

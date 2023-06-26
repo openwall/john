@@ -192,7 +192,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		len = base64_convert(p, e_b64_mime, (int)(d - p - 1),
 		                     o, e_b64_raw,
 		                     sizeof(out),
-		                     flg_Base64_MIME_TRAIL_EQ, 0);
+		                     flg_Base64_MIME_TRAIL_EQ|flg_Base64_DONOT_NULL_TERMINATE, 0);
 		if (len > sizeof(out)-2)
 			return split_fields[1];
 		o += len;
@@ -243,7 +243,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	}
 
 	p = strrchr(ciphertext, '#'); // allow # in salt
-	if (!p || p > &ciphertext[strlen(ciphertext) - 1])
+	if (!p)
 		return 0;
 
 	i = (int)(p - ciphertext);

@@ -233,7 +233,7 @@ static void modify_build_save_restore(WORD salt_val, int id_gpu, int save_binary
 		size_t program_size;
 		fclose(file);
 		program_size = opencl_read_source(kernel_bin_name, &kernel_source);
-		opencl_build_from_binary(id_gpu, program_ptr, kernel_source, program_size);
+		HANDLE_CLERROR(opencl_build_from_binary(id_gpu, program_ptr, kernel_source, program_size), "kernel build failed");
 
 		if (options.verbosity > VERB_DEFAULT)
 			fprintf(stderr, "Salt compiled from Binary:%d\n", salt_val);
@@ -556,8 +556,8 @@ static void auto_tune_all(long double kernel_run_ms, struct fmt_main *format, WO
 		}
 		else {
 			warp_size = 1;
-			if (!(cpu(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])))
-			fprintf(stderr, "Possible auto_tune fail!!.\n");
+			//if (!(cpu(device_info[gpu_id]) || gpu_intel(device_info[gpu_id])))
+				//fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
 
 		if (lws_tune_flag)
@@ -676,7 +676,7 @@ static void reset(struct db_main *db)
 		release_clobj_kpc();
 		release_clobj();
 
-		if (options.flags & FLG_MASK_CHK && mask_int_cand.num_int_cand > 1)
+		if ((options.flags & FLG_MASK_CHK) && mask_int_cand.num_int_cand > 1)
 			mask_mode = 1;
 
 		create_clobj(db);
@@ -712,8 +712,8 @@ static void reset(struct db_main *db)
 			salt_list[num_salts++] = (*(WORD *)salt->salt);
 		} while ((salt = salt->next));
 
-		if (num_salts > 1 && !(options.flags & FLG_TEST_CHK) && john_main_process)
-			fprintf(stderr, "Note: Building per-salt kernels. This takes e.g. 2 hours for 4096 salts.\n");
+		if (num_salts > 10 && !ocl_any_test_running && john_main_process)
+			fprintf(stderr, "Building %d per-salt kernels, one dot per three salts done: ", num_salts);
 
 #if _OPENMP && PARALLEL_BUILD
 #pragma omp parallel for
@@ -726,11 +726,12 @@ static void reset(struct db_main *db)
 #endif
 			{
 				opencl_process_event();
-
-				if (options.verbosity < VERB_LEGACY)
-					advance_cursor();
 			}
+			if (num_salts > 10 && (i % 3) == 2 && !ocl_any_test_running && john_main_process)
+				fprintf(stderr, ".");
 		}
+		if (num_salts > 10 && !ocl_any_test_running && john_main_process)
+			fprintf(stderr, " Done!\n");
 		set_kernel_args_kpc();
 	}
 	else {
@@ -783,7 +784,7 @@ static int des_crypt_25(int *pcount, struct db_salt *salt)
 
 	current_gws *= iter_count;
 	ret_code = clEnqueueNDRangeKernel(queue[gpu_id], kernels[gpu_id][current_salt], 1, NULL, &current_gws, lws, 0, NULL, NULL);
-	HANDLE_CLERROR(ret_code, "Enque kernel DES_bs_25 failed.\n");
+	HANDLE_CLERROR(ret_code, "Enqueue kernel DES_bs_25 failed.\n");
 
 	*pcount = mask_mode ? *pcount * mask_int_cand.num_int_cand : *pcount;
 

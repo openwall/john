@@ -32,9 +32,19 @@
 #include "misc.h"	// error()
 #include "config.h"
 #include "john.h"
+#include "options.h"
 #include "params.h"
 #include "signals.h"
 #include "unicode.h"
+
+#define is_alnum_ascii(c) \
+	(('0' <= (c) && (c) <= '9') \
+	 || ('a' <= (c) && (c) <= 'z') \
+	 || ('A' <= (c) && (c) <= 'Z'))
+
+#define is_alpha_ascii(c) \
+	(('a' <= (c) && (c) <= 'z') \
+	 || ('A' <= (c) && (c) <= 'Z'))
 
 #define _STR_VALUE(arg)         #arg
 #define STR_MACRO(n)            _STR_VALUE(n)
@@ -458,6 +468,120 @@ static char * insert_chars(char *origin_ctext, int *is_insertchars_finish)
 	return fuzz_hash;
 }
 
+// find length as digits, increment it and insert data after delimiter
+static char * update_length_data(char *origin_ctext, int *is_updatelengthdata_finish)
+{
+	static int times = 1;
+	static int pos = 0;
+	/* Modes: 0 search, */
+	/* then insert 1 raw, 2 hex, 3 base64 threating length as decimal, */
+	/*   or insert 4 raw, 5 hex, 6 base64 threating length as hex. */
+	static int mode = 0;
+	unsigned long long len = 0, as_decimal = 0, as_hex = 0;
+	int inc, hex_mode, digit, pos2;
+
+	if (mode == 0) {
+		for (; origin_ctext[pos] && !mode; ++pos) {
+			if (!is_alnum_ascii(origin_ctext[pos])) {
+				for (pos2 = pos + 1; atoi16[ARCH_INDEX(origin_ctext[pos2])] != 0x7f; ++pos2)
+					;
+				if (!origin_ctext[pos2]
+				    || pos2 == pos + 1
+				    || is_alpha_ascii(origin_ctext[pos2]))
+					continue;
+				mode = 1;
+			}
+		}
+		if (!origin_ctext[pos]) {
+			times = 1;
+			pos = 0;
+			mode = 0;
+			*is_updatelengthdata_finish = 1;
+			return NULL;
+		}
+	}
+
+	for (pos2 = pos; (digit = atoi16[ARCH_INDEX(origin_ctext[pos2])]) != 0x7f; ++pos2) {
+		/* Skip decimal modes if there is a letter. */
+		if (digit > 9 && mode < 4)
+			mode = 4;
+		/* It may overflow. Side effect: truncation of long hex fields. */
+		as_decimal = as_decimal * 10 + digit;
+		as_hex = as_hex * 16 + digit;
+	}
+
+	hex_mode = mode >= 4;
+	len = hex_mode ? as_hex : as_decimal;
+	/* Number of chars to be inserted: raw 1x, hex 2x, base64 4/3x. */
+	/* base64 gets times*3 chars to have full blocks. */
+	inc = times;
+	if (mode == 1 || mode == 4) {
+		len += inc;
+	} else if (mode == 2 || mode == 5) {
+		len += inc;
+		inc *= 2;
+	} else if (mode == 3 || mode == 6) {
+		len += inc * 3;
+		inc *= 4;
+	}
+	snprintf(fuzz_hash, FUZZ_LINE_BUFFER_SIZE,
+	         hex_mode ? "%.*s%llx%c%0*d%s"
+	                  : "%.*s%llu%c%0*d%s",
+	         pos, origin_ctext, len, origin_ctext[pos2], inc, 0, &origin_ctext[pos2 + 1]);
+	times += (times < 260 ? 1
+	          : times < 5000 ? 13
+	          : times < 10000 ? 29 : 113);
+	if (times > 20000) {
+		times = 1;
+		++mode;
+		if (mode > 6)
+			mode = 0;
+	}
+	return fuzz_hash;
+}
+
+// as insert_chars(), but 0s are inserted at beginning of fields, times vary
+static char * insert_zeros(char *origin_ctext, int *is_insertzeros_finish)
+{
+	static int times = 0;
+	static int pos = 0;
+	int c, c1;
+
+	if (times == 0 && pos == 0) {
+		c = origin_ctext[0];
+		if (is_alnum_ascii(c))
+			times = 1;
+	}
+
+	if (times == 0) {
+		/* Search position for insertion. */
+		for (; origin_ctext[pos] && !times; ++pos) {
+			c = origin_ctext[pos];
+			c1 = origin_ctext[pos + 1];
+			if (!is_alnum_ascii(c) && is_alnum_ascii(c1))
+				times = 1;
+		}
+		if (!origin_ctext[pos]) {
+			times = 0;
+			pos = 0;
+			*is_insertzeros_finish = 1;
+			return NULL;
+		}
+	}
+
+	snprintf(fuzz_hash, FUZZ_LINE_BUFFER_SIZE,
+	         "%.*s%0*d%s",
+	         pos, origin_ctext, times, 0, &origin_ctext[pos]);
+	times += (times < 300 ? 1
+	          : times < 5000 ? 20
+	          : times < 10000 ? 60 : 160);
+	if (times > 20000) {
+		times = 0;
+		++pos;
+	}
+	return fuzz_hash;
+}
+
 static char * get_next_fuzz_case(const char *label, char *ciphertext)
 {
 	static int is_replace_finish = 0; // is_replace_finish = 1 if all the replaced cases have been generated
@@ -466,6 +590,8 @@ static char * get_next_fuzz_case(const char *label, char *ciphertext)
 	static int is_chgcase_finish = 0; // is_chgcase_finish = 1 if all the change cases have been generated
 	static int is_insertdic_finish = 0; // is_insertdic_finish = 1 if all the insert dictionary cases have been generated
 	static int is_insertchars_finish = 0; // is_insertchars_finish = 1 if all the chars from -128 to 127 cases have been generated
+	static int is_updatelengthdata_finish = 0;
+	static int is_insertzeros_finish = 0;
 	static const char *last_label = NULL;
 	static char *last_ciphertext = NULL;
 
@@ -489,6 +615,8 @@ static char * get_next_fuzz_case(const char *label, char *ciphertext)
 		is_chgcase_finish = 0;
 		is_insertdic_finish = 0;
 		is_insertchars_finish = 0;
+		is_updatelengthdata_finish = 0;
+		is_insertzeros_finish = 0;
 		last_label = label;
 		last_ciphertext = ciphertext;
 	}
@@ -515,6 +643,14 @@ static char * get_next_fuzz_case(const char *label, char *ciphertext)
 
 	if (!is_insertchars_finish)
 		if (insert_chars(ciphertext, &is_insertchars_finish))
+			return fuzz_hash;
+
+	if (!is_updatelengthdata_finish)
+		if (update_length_data(ciphertext, &is_updatelengthdata_finish))
+			return fuzz_hash;
+
+	if (!is_insertzeros_finish)
+		if (insert_zeros(ciphertext, &is_insertzeros_finish))
 			return fuzz_hash;
 
 	return NULL;
@@ -575,13 +711,13 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 	current = format->params.tests;
 
 	init_status(format->params.label);
+	ldr_init_database(db, &options.loader);
 	db->format = format;
 
-	while (1) {
+	while (!event_abort) {
 		ret = get_next_fuzz_case(format->params.label, current->ciphertext);
 		save_index(index++);
 		line = fuzz_hash;
-		db->format = format;
 		ldr_load_pw_line(db, line);
 
 		if (!ret) {
@@ -591,7 +727,11 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 	}
 	if (fclose(s_file)) pexit("fclose");
 	remove(status_file_path);
-	printf("   Completed\n");
+	fmt_done(format);
+	ldr_fix_database(db);
+	ldr_free_db(db, 0);
+	if (!event_abort)
+		printf("   Completed\n");
 }
 
 // Dump fuzzed hashes which index is between from and to, including from and excluding to
@@ -686,13 +826,14 @@ int fuzz(struct db_main *db)
 		else
 			fuzz_test(db, format);
 
-		total++;
+		if (!event_abort)
+			total++;
 	} while ((format = format->next) && !event_abort);
 
 	if (options.flags & FLG_FUZZ_DUMP_CHK)
-		printf("Generated pwfile.<format> for %u formats\n", total);
-	else
-		printf("All %u formats passed fuzzing test!\n", total);
+		printf("\nGenerated pwfile.<format> for %u formats\n", total);
+	else if (total)
+		printf("\nAll %u formats passed fuzzing test!\n", total);
 
 	return 0;
 }

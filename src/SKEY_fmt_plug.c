@@ -201,7 +201,7 @@ static void *get_binary(char *ciphertext)
 
 	if (!realcipher)
 		realcipher = mem_alloc_tiny(SKEY_BINKEY_SIZE, MEM_ALIGN_WORD);
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	p = strtok(ctcopy, " \t");
 
 	if (isalpha((unsigned char)(*p)))

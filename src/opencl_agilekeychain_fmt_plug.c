@@ -70,6 +70,7 @@ typedef struct {
 } agile_salt;
 
 static struct custom_salt *cur_salt;
+static int new_keys;
 
 static cl_int cl_error;
 static agile_password *inbuffer;
@@ -217,6 +218,8 @@ static void set_key(char *key, int index)
 		length = PLAINTEXT_LENGTH;
 	inbuffer[index].length = length;
 	memcpy(inbuffer[index].v, key, length);
+
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -236,9 +239,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
 	// Copy data to gpu
-	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
-		insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
-	        "Copy data to gpu");
+	if (new_keys) {
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
+			insize, inbuffer, 0, NULL, multi_profilingEvent[0]),
+			"Copy data to gpu");
+
+		new_keys = 0;
+	}
 
 	// Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1,

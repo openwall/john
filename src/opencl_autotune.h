@@ -128,11 +128,9 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 			        rounds);
 	}
 
-#if SIZEOF_SIZE_T > 4
 	/* We can't process more than 4G keys per crypt() */
-	while (gws_limit * mask_int_cand.num_int_cand > 0xffffffffUL)
-		gws_limit >>= 1;
-#endif
+	if (mask_int_cand.num_int_cand > 1)
+		gws_limit = MIN(gws_limit, 0x100000000ULL / mask_int_cand.num_int_cand / ocl_v_width);
 
 	/* Read LWS/GWS prefs from config or environment */
 	opencl_get_user_preferences(FORMAT_LABEL);
@@ -278,7 +276,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	release_clobj();
 	create_clobj(global_work_size, self);
 
-	if (!homogenous || john_main_process)
+	if (!self_test_running && (!homogenous || john_main_process))
 		log_event("- OpenCL LWS: "Zu"%s, GWS: "Zu" %s("Zu" blocks)",
 		          local_work_size,
 		          (need_best_lws && !needed_best_gws) ? " (auto-tuned)" : "",

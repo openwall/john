@@ -107,7 +107,7 @@ static cl_uint *loaded_hashes, max_num_loaded_hashes, *hash_ids, *bitmaps, max_h
 static cl_ulong bitmap_size_bits;
 
 static unsigned int key_idx;
-static unsigned int set_new_keys = 1;
+static unsigned int new_keys = 1;
 static struct fmt_main *self;
 static cl_uint *zero_buffer;
 
@@ -596,7 +596,6 @@ static void *get_salt(char *ciphertext)
 static void clear_keys(void)
 {
 	key_idx = 0;
-	set_new_keys = 1;
 }
 
 static void set_key(char *_key, int index)
@@ -627,7 +626,7 @@ static void set_key(char *_key, int index)
 	}
 	if (len)
 		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
-	set_new_keys = 1;
+	new_keys = 1;
 }
 
 static char *get_key(int index)
@@ -669,10 +668,13 @@ static char *get_key(int index)
 				mask_int_cand.int_cand[int_index].x[i];
 	}
 
+	/* Ensure truncation due to over-length or invalid UTF-8 is made like in GPU code. */
+	if (options.target_enc == UTF_8)
+		truncate_utf8((UTF8*)out, PLAINTEXT_LENGTH);
+
 	return out;
 }
 
-/* Use only for smaller bitmaps < 16MB */
 static void prepare_bitmap_4(cl_ulong bmp_sz, cl_uint **bitmap_ptr, uint32_t num_loaded_hashes)
 {
 	unsigned int i;
@@ -831,24 +833,24 @@ static void prepare_table(struct db_main *db)
 		num_loaded_hashes = salt->count;
 		salt->sequential_id = seq_ids++;
 
-		num_loaded_hashes = create_perfect_hash_table(128, (void *)loaded_hashes,
+		num_loaded_hashes = bt_create_perfect_hash_table(128, (void *)loaded_hashes,
 				num_loaded_hashes,
 			        &offset_table,
 			        &offset_table_size,
 			        &hash_table_size, 0);
 
 		if (!num_loaded_hashes) {
-			MEM_FREE(hash_table_128);
+			MEM_FREE(bt_hash_table_128);
 			fprintf(stderr, "Failed to create Hash Table for cracking.\n");
 			error();
 		}
 
-		hash_tables[salt->sequential_id] = hash_table_128;
+		hash_tables[salt->sequential_id] = bt_hash_table_128;
 
 		buffer_offset_tables[salt->sequential_id] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, offset_table_size * sizeof(OFFSET_TABLE_WORD), offset_table, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_offset_tables[].");
 
-		buffer_hash_tables[salt->sequential_id] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, hash_table_size * sizeof(unsigned int) * 2, hash_table_128, &ret_code);
+		buffer_hash_tables[salt->sequential_id] = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, hash_table_size * sizeof(unsigned int) * 2, bt_hash_table_128, &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_tables[].");
 
 		if (max_hash_table_size < hash_table_size)
@@ -888,13 +890,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand %d\n", __FUNCTION__, count, local_work_size, gws, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
-	if (set_new_keys || ocl_autotune_running) {
+	if (new_keys) {
 		if (key_idx)
 			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
 		if (!mask_gpu_is_static)
 			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, 0, 4 * gws, saved_int_key_loc, 0, NULL, NULL), "failed in clEnqueueWriteBuffer buffer_int_key_loc.");
-		set_new_keys = 0;
+		new_keys = 0;
 	}
 
 	current_salt = salt->sequential_id;
@@ -949,22 +951,16 @@ static int cmp_exact(char *source, int index)
 
 static void reset(struct db_main *db)
 {
-	static int last_int_cand;
+	release_base_clobj();
+	release_clobj();
 
-	if (!crypt_kernel || last_int_cand != mask_int_cand.num_int_cand) {
-		release_base_clobj();
-		release_clobj();
+	prepare_table(db);
+	init_kernel();
 
-		prepare_table(db);
-		init_kernel();
+	create_base_clobj();
 
-		create_base_clobj();
-
-		current_salt = 0;
-		hash_ids[0] = 0;
-
-		last_int_cand = mask_int_cand.num_int_cand;
-	}
+	current_salt = 0;
+	hash_ids[0] = 0;
 
 	size_t gws_limit = MIN((0xf << 21) * 4 / BUFSIZE,
 	                       get_max_mem_alloc_size(gpu_id) / BUFSIZE);

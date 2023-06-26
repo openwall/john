@@ -798,6 +798,7 @@ size_t base64_convert(const void *from, b64_convert_type from_t, size_t from_len
 				case e_b64_mime:	/* mime */
 				{
 					if (to_len < from_len+1) {
+						if (alloced) MEM_FREE(fromWrk);
 						if (err) *err = ERR_base64_to_buffer_sz;
 						return 0;
 					}

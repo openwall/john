@@ -38,12 +38,6 @@ john_register_one(&fmt_opencl_krb5_asrep_aes);
 #define FORMAT_LABEL            "krb5asrep-aes-opencl"
 #define FORMAT_NAME             "Kerberos 5 AS-REP etype 17/18"
 #define ALGORITHM_NAME          "PBKDF2-SHA1 OpenCL"
-#define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
-#define BINARY_SIZE             0
-#define BINARY_ALIGN            1
-#define SALT_SIZE               sizeof(struct custom_salt *)
-#define SALT_ALIGN              sizeof(struct custom_salt *)
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
@@ -51,12 +45,12 @@ john_register_one(&fmt_opencl_krb5_asrep_aes);
 #define GETPOS(i, index)        (((index) % ocl_v_width) * 4 + ((i) & ~3U) * ocl_v_width + (((i) & 3) ^ 3) + ((index) / ocl_v_width) * 64 * ocl_v_width)
 
 static struct fmt_tests tests[] = {
+	// hero-17-abcd.pcap
+	{"$krb5asrep$17$EXAMPLE.COMhero$4e7c79214fd330b2e505a4c75e257e4686029136d54f92ce91bb69d5ffc064e64e925b3ae8bc1df431c74ccaf2075cb4a1a32151b0848964e147bf6f8e4a50caa7931faad50433991e016e312c70ad9007e38166f8df39eda3edd2445cce757e062d0919e663a67eb9fdb472b2a840cf521f18bd794947bcc0c0c6394cc5a60b860c963640867e623732206e7bf904d3b066a17b6f4ea3fd6d74f110ee80052e5297f7a19aaec22e22d582d183d43d6ca1792da187a3a182d1f479c5b4692841ccd701a63735d64584c4f8d199d67876dae5181f4eadfe75e454d0587d0953d7e16cb1b63265da6188b10c1746a2e83c41707bd03fcb2d460d1c6802826a0347b5ee7cdbe5384acad139b4395928bd$7ed0277ba9b853008cc62abe", "abcd"},
 	// AS-REP-with-PA-unsupported-openwall.pcap
 	{"$krb5asrep$18$EXAMPLE.COMlulu$b49aa3de9314e2d8daafe323f2e84b9a4ddc361d99bf3bf3a99102f8bff5368bdefc9d7ae090532fdad2a508ac1271bfbd17363b3a1da23bf9db324a24c238634e3ab28d7f4eca009b4c3953c882f5a4206458a0b4238f3e538308d7339382f38412bbfe7b71e269274526edf7b802ea1ecdf7b8c17f9502b7a6750313329a68b8f8a2d039c8dfe74b9ead98684cfc86e5d0f77c18ba05718b01c33831db17191a0e77f9cef998bbb66a794915b03c94725aceabe9e2b5e25b665a37b5dd3a59a5552bd779dd5f0ae7295d232194eec1ca1ba0324bdc836ba623117e59fcfedab45a86d76d2c768341d327c035a1f5c756cfc06d76b6f7ea31c7a8e782eb48de0aab2fb373ffc2352c4192838323f8$a5245c7f39480a840da0e4c6", "openwall"},
 	// luser-18-12345678.pcap
 	{"$krb5asrep$18$EXAMPLE.COMluser$42e34732112be6cec1532177a6c93af5ec3b2fc7da106c004d6d89ddcb4131092aecbead3e9f30d07b593f4c7adc6478ab50b80fee07db3531471f5f1986c8882c45fef784258f9d43195108b83a74f6dcae1beed179c356c0da4e2d69f122efc579fd207d2b2b241a6c275997f2ec6fec95573a7518cb8b8528d932cc14186e4c5d46cef1eed4f2924ea316d80a62b0bcd98592a11eb69c04ef43b63aeae35e9f8bd8f842d0c9c33d768cd33c55914c2a1fb2f7c640b7270cf2274993c0ce4f413aac8e9d7a231c70dd0c6f8b9c16b47a90fae8d68982a66aa58e2eb8dde93d3504e87b5d4e33827c2aa501ed63544c0578032f395205c63b030cccc699aafb9132692c79a154d645fe83927b0eda$420973360c2e907b9053f1db", "12345678"},
-	// hero-17-abcd.pcap
-	{"$krb5asrep$17$EXAMPLE.COMhero$4e7c79214fd330b2e505a4c75e257e4686029136d54f92ce91bb69d5ffc064e64e925b3ae8bc1df431c74ccaf2075cb4a1a32151b0848964e147bf6f8e4a50caa7931faad50433991e016e312c70ad9007e38166f8df39eda3edd2445cce757e062d0919e663a67eb9fdb472b2a840cf521f18bd794947bcc0c0c6394cc5a60b860c963640867e623732206e7bf904d3b066a17b6f4ea3fd6d74f110ee80052e5297f7a19aaec22e22d582d183d43d6ca1792da187a3a182d1f479c5b4692841ccd701a63735d64584c4f8d199d67876dae5181f4eadfe75e454d0587d0953d7e16cb1b63265da6188b10c1746a2e83c41707bd03fcb2d460d1c6802826a0347b5ee7cdbe5384acad139b4395928bd$7ed0277ba9b853008cc62abe", "abcd"},
 	{NULL}
 };
 
@@ -336,7 +330,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	scalar_gws = gws * ocl_v_width;
 
 	// Copy data to gpu
-	if (ocl_autotune_running || new_keys) {
+	if (new_keys) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0, key_buf_size, inbuffer, 0, NULL, multi_profilingEvent[0]), "Copy data to gpu");
 		new_keys = 0;
 	}
@@ -399,7 +393,9 @@ struct fmt_main fmt_opencl_krb5_asrep_aes = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT | FMT_HUGE_INPUT,
-		{NULL},
+		{
+			"etype"
+		},
 		{ FORMAT_TAG },
 		tests
 	}, {
@@ -411,7 +407,9 @@ struct fmt_main fmt_opencl_krb5_asrep_aes = {
 		krb5_asrep_split,
 		fmt_default_binary,
 		krb5_asrep_get_salt,
-		{NULL},
+		{
+			krb5_asrep_etype
+		},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash

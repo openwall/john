@@ -454,15 +454,15 @@ inline unsigned int strlen16(const UTF16 *str)
 
 /*
  * Strlen of UTF-8 (in characters, not octets).
- * Will return a "truncated" length if fed with bad data.
+ * Will return a "truncated" length (negative) if fed with bad data.
  */
-inline unsigned int strlen8(const UTF8 *source)
+inline int strlen8(const UTF8 *source)
 {
 	int targetLen = 0;
 	const UTF8 *sourceEnd = source + strlen((char*)source);
 	unsigned int extraBytesToRead;
 
-	while (source < sourceEnd) {
+	while (*source && source < sourceEnd) {
 		if (*source < 0xC0) {
 			source++;
 			targetLen++;
@@ -470,22 +470,44 @@ inline unsigned int strlen8(const UTF8 *source)
 				break;
 			continue;
 		}
-/*
- * The original code in ConvertUTF.c has a much larger (slower) lookup table
- * including zeros. This point must not be reached with *source < 0xC0
- */
-		extraBytesToRead =
-		    opt_trailingBytesUTF8[*source & 0x3f];
-		if ((source + extraBytesToRead >= sourceEnd) ||
-		    (extraBytesToRead > 3)) {
-			return targetLen;
-		}
+		extraBytesToRead = opt_trailingBytesUTF8[*source & 0x3f];
+		if ((source + extraBytesToRead >= sourceEnd) || (extraBytesToRead > 3))
+			return -targetLen;
 		source += extraBytesToRead + 1;
 		targetLen++;
-		if (*source == 0 || source >= sourceEnd)
+		if (source >= sourceEnd)
 			break;
 	}
 	return targetLen;
+}
+/*
+ * Truncate (in place) a UTF-8 string at position 'len' (in characters, not octets), or when
+ * invalid UTF-8 is seen (using the same Q'n'D logic that the kernels do).
+ */
+inline void truncate_utf8(UTF8 *string, int len)
+{
+	int targetLen = 0;
+	const UTF8 *stringEnd = string + strlen((char*)string);
+	unsigned int extraBytesToRead;
+
+	while (*string && string < stringEnd && *string && targetLen < len) {
+		if (*string < 0xC0) {
+			string++;
+			targetLen++;
+			continue;
+		}
+		extraBytesToRead = opt_trailingBytesUTF8[*string & 0x3f];
+		if ((string + extraBytesToRead >= stringEnd) || (extraBytesToRead > 3)) {
+			*string = 0;
+			return;
+		}
+		string += extraBytesToRead + 1;
+		targetLen++;
+		if (string >= stringEnd)
+			break;
+	}
+	if (targetLen >= len)
+		*string = 0;
 }
 
 /*
@@ -1818,7 +1840,7 @@ ucFallback:
 		src_len = dst_bufsize - 1;
 	for (i = 0; i < src_len; ++i)
 		if (*src >= 'a' && *src <= 'z')
-			*dst++ = *src++ | 0x20;
+			*dst++ = *src++ ^ 0x20;
 		else
 			*dst++ = *src++;
 	*dst = 0;

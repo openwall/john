@@ -55,7 +55,7 @@
 #define FLG_RULES_SET			(FLG_RULES_CHK | FLG_RULES_IN_USE)
 /* "Single crack" mode enabled */
 #define FLG_SINGLE_CHK			0x0000000000000400ULL
-#define FLG_SINGLE_SET			(FLG_SINGLE_CHK | FLG_CRACKING_SET)
+#define FLG_SINGLE_SET			(FLG_SINGLE_CHK | FLG_CRACKING_SET | FLG_RULES_IN_USE)
 /* Incremental mode enabled */
 #define FLG_INC_CHK			0x0000000000000800ULL
 #define FLG_INC_SET			(FLG_INC_CHK | FLG_CRACKING_SET)
@@ -113,7 +113,7 @@
  * we use the active .pot file */
 #define FLG_LOOPBACK_CHK		0x0000000008000000ULL
 #define FLG_LOOPBACK_SET	  \
-	(FLG_LOOPBACK_CHK | FLG_WORDLIST_SET | FLG_CRACKING_SET | FLG_DUPESUPP)
+	(FLG_LOOPBACK_CHK | FLG_WORDLIST_SET | FLG_CRACKING_SET)
 /* pipe mode enabled, reading from stdin with rules support */
 #define FLG_PIPE_CHK			0x0000000010000000ULL
 #define FLG_PIPE_SET			(FLG_PIPE_CHK | FLG_WORDLIST_SET)
@@ -269,12 +269,12 @@ struct options_main {
  */
 	int single_pair_max;
 /*
- * --[no]-single-retest-guess tri-state option (vs. deprecated config option)
+ * --[no-]single-retest-guess tri-state option (vs. deprecated config option)
  */
 	char *single_retest_guess;
 
 /*
- * --no-loader-dupecheck option tri-state option (vs. deprecated config option)
+ * --[no-]loader-dupe-check option tri-state option (vs. deprecated config option)
  */
 	int loader_dupecheck;
 
@@ -461,6 +461,8 @@ struct options_main {
 /* --mask-internal-target=N */
 	int req_int_cand_target;
 #endif
+/* --dupe-suppression[=SIZE] */
+	int suppressor_size;
 };
 
 extern struct options_main options;

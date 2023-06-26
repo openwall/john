@@ -86,8 +86,7 @@ john_register_one(&fmt_sapH);
 #define BENCHMARK_COMMENT		" (SHA1x1024)"
 #define BENCHMARK_LENGTH		7
 
-#define SALT_LENGTH             16  /* the max used sized salt */
-#define CIPHERTEXT_LENGTH       132 /* max salt+sha512 + 2^32 iterations */
+#define SALT_LENGTH             32  /* the max used sized salt */
 
 #define BINARY_SIZE             16 /* we cut off all hashes down to 16 bytes */
 #define MAX_BINARY_SIZE         64 /* sha512 is 64 byte */
@@ -133,6 +132,7 @@ static struct fmt_tests tests[] = {
 	{"{x-isSHA512, 7500}ctlX6qYsWspafEzwoej6nFp7zRQQjr8y22vE+xeveIX2gUndAw9N2Gep5azNUwuxOe2o7tusF800OfB9tg4taWI4Tg==","booboo"},
 	{"{x-isSHA512, 7500}Qyrh2JXgGkvIfKYOJRdWFut5/pVnXI/vZvqJ7N+Tz9M1zUTXGWCZSom4az4AhqOuAahBwuhcKqMq/pYPW4h3cThvT2JaWVBw","hapy1CCe!"},
 	{"{x-isSHA512, 18009}C2+Sij3JyXPPDuQgsF6Zot7XnjRFX86X67tWJpUzXNnFw2dKcGPH6HDEzVJ8HN8+cJe4vZaOYTlmdz09gI7YEwECAwQFBgcICQoLDA0ODwA=","maxlen"},
+	{"{x-isSHA512, 15000}2VwEw7rHLfYYblKU/ol7t6I7i2UjDOYOEW4H2iEHiUvNmNkxmM5rX5jcEAeRM6W+KQ0QBCsx1hDo9wXm+rbQPrL67ov+dGn/z+3o4f9pdIaJaU61YYQwl37PoYA7SvRU","Init123456"},
 
 	{NULL}
 };
@@ -168,7 +168,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *cp = ciphertext;
 	char *keeptr;
 	int len, hash_len=0;
-	char tmp[MAX_BINARY_SIZE+SALT_LENGTH];
+	char tmp[MAX_BINARY_SIZE+SALT_LENGTH+1];
 	/* first check for 'simple' signatures before allocation other stuff. */
 	if (!strncmp(cp, FORMAT_TAG, FORMAT_TAG_LEN))
 		hash_len = SHA1_BINARY_SIZE;
@@ -180,7 +180,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		hash_len = SHA512_BINARY_SIZE;
 	else
 		return 0;
-	keeptr = strdup(cp);
+	keeptr = xstrdup(cp);
 	cp = keeptr;
 	while (*cp++ != ' ') ;  /* skip the "{x-issha?, " */
 
@@ -197,8 +197,16 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	len = base64_convert(cp, e_b64_mime, strlen(cp), tmp, e_b64_raw,
 	                     sizeof(tmp), flg_Base64_MIME_TRAIL_EQ|flg_Base64_DONOT_NULL_TERMINATE, 0);
 	len -= hash_len;
-	if (len < 1 || len > SALT_LENGTH)
+	if (len < 1)
 		goto err;
+	if (len > SALT_LENGTH) {
+		static int warned;
+		if (!warned) {
+			fprintf(stderr, "Warning: " FORMAT_LABEL " salt longer than max supported\n");
+			warned = 1;
+		}
+		goto err;
+	}
 
 	MEM_FREE(keeptr);
 	return 1;
@@ -214,7 +222,7 @@ static void set_salt(void *salt)
 
 static void set_key(char *key, int index)
 {
-	strnzcpyn(saved_plain[index], key, sizeof(*saved_plain));
+	strnzcpy(saved_plain[index], key, sizeof(*saved_plain));
 }
 
 static char *get_key(int index)

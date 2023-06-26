@@ -238,7 +238,7 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self, int is_CPU_format)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;	/* skip over "$gpg$" marker and '*' */
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* algorithm */
@@ -368,6 +368,8 @@ int gpg_common_valid(char *ciphertext, struct fmt_main *self, int is_CPU_format)
 		if (!isdec(p))
 			goto err;
 		res = atoi(p);
+		if (res > sizeof(gpg_common_cur_salt->g))
+			goto err;
 		if ((p = strtokm(NULL, "*")) == NULL)
 			goto err;
 		if (hexlenl(p, &extra) != res*2 || extra)
@@ -853,7 +855,7 @@ static void S2KItSaltedMD5Generator(char *password, unsigned char *key, int leng
 
 void *gpg_common_get_salt(char *ciphertext)
 {
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	int i;
 	char *p;

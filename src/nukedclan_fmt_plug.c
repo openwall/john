@@ -119,7 +119,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
-	if (!(ctcopy = strdup(ciphertext)))
+	if (!(ctcopy = xstrdup(ciphertext)))
 		return 0;
 	keeptr = ctcopy;
 	ctcopy += FORMAT_TAG_LEN;	/* skip leading "$nk$*" */
@@ -247,7 +247,7 @@ static int cmp_exact(char *source, int index)
 
 static void nk_set_key(char *key, int index)
 {
-	strnzcpyn(saved_key[index], key, sizeof(*saved_key));
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)

@@ -13,20 +13,23 @@
 
 #if AC_BUILT
 #include "autoconfig.h"
-#endif
-
-#if HAVE_CRYPT
-
+#else
 #undef _XOPEN_SOURCE
 #undef _XOPEN_SOURCE_EXTENDED
 #undef _XOPEN_VERSION
 #undef  _XPG4_2
+#undef  _XPG6
 #undef _GNU_SOURCE
 #define _XOPEN_SOURCE 4 /* for crypt(3) */
 #define _XOPEN_SOURCE_EXTENDED 1 /* for OpenBSD */
 #define _XOPEN_VERSION 4
 #define _XPG4_2
+#define _XPG6
 #define _GNU_SOURCE 1 /* for crypt_r(3) */
+#endif
+
+#if HAVE_CRYPT
+
 #include <stdio.h>
 
 #if !AC_BUILT
@@ -223,7 +226,7 @@ static void init(struct fmt_main *self)
 			c = crypt(tests[i].plaintext, salt);
 #endif
 			if (c && strlen(c) >= 7)
-				tests[i].ciphertext = strdup(c);
+				tests[i].ciphertext = xstrdup(c);
 			else {
 				fprintf(stderr, "%s not supported on this system\n",
 				       options.subformat);
@@ -627,7 +630,7 @@ static int cmp_exact(char *source, int index)
 
 /*
  * For generic crypt(3), the algorithm is returned as the first "tunable cost":
- * 0: unknown (shouldn't happen
+ * 0: unknown (shouldn't happen)
  * 1: descrypt
  * 2: md5crypt
  * 3: sunmd5

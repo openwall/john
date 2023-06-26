@@ -20,7 +20,7 @@
  * To make this work, you simply add a "section" to the dynamic.conf,
  * or better yet, to the john.local.conf file of this format:
  *
- *  [List.Generic:dynamic_NUM   ( [List.Generic:md5_gen(NUM)] depricated but 'works')
+ *  [List.Generic:dynamic_NUM   ( [List.Generic:md5_gen(NUM)] deprecated but 'works')
  *
  * Num has to be replaced with a number, greater than 999, since
  * dynamic_0 to dynamic_999 are reserved for 'built-in' and any

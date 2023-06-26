@@ -61,18 +61,18 @@
 
 /* The radio capture header precedes the 802.11 header. */
 struct ieee80211_radiotap_header {
-	u_int8_t	it_version;	/* Version 0. Only increases
+	uint8_t	       it_version;	/* Version 0. Only increases
 					 * for drastic changes,
 					 * introduction of compatible
 					 * new fields does not count.
 					 */
-	u_int8_t	it_pad;
-	u_int16_t       it_len;         /* length of the whole
+	uint8_t        it_pad;
+	uint16_t       it_len;          /* length of the whole
 					 * header in bytes, including
 					 * int_version, it_pad,
 					 * it_len, and data fields.
 					 */
-	u_int32_t       it_present;     /* A bitmap telling which
+	uint32_t       it_present;      /* A bitmap telling which
 					 * fields are present. Set bit 31
 					 * (0x80000000) to extend the
 					 * bitmap by another 32 bits.
@@ -354,7 +354,7 @@ struct eapmd5pass_data {
 static void cleanexit(int signum);
 void usage();
 int radiotap_offset(pcap_t *p, struct pcap_pkthdr *h);
-void assess_packet(char *user, struct pcap_pkthdr *h, u_int8_t *pkt);
+void assess_packet(char *user, struct pcap_pkthdr *h, uint8_t *pkt);
 void eapmd5_nexttarget(struct eapmd5pass_data *em);
 int extract_eapusername(uint8_t *eap, int eaplen, struct eapmd5pass_data *em);
 int extract_eapchallenge(uint8_t *eap, int eaplen, struct eapmd5pass_data *em);
@@ -650,7 +650,7 @@ static void print_hex(unsigned char *str, int len)
                 printf("%02x", str[i]);
 }
 
-void assess_packet(char *user, struct pcap_pkthdr *h, u_int8_t *pkt)
+void assess_packet(char *user, struct pcap_pkthdr *h, uint8_t *pkt)
 {
 	struct dot11hdr *dot11;
 	struct ieee8021x *dot1xhdr;

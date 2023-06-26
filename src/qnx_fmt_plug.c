@@ -263,7 +263,7 @@ static void set_salt(void *salt)
 static void *get_salt(char *ciphertext)
 {
 	static struct qnx_saltstruct out;
-	char *origptr = strdup(ciphertext), *ct = origptr;
+	char *origptr = xstrdup(ciphertext), *ct = origptr;
 
 	memset(&out, 0, sizeof(out));
 	ct = strtokm(&ct[1], "@");

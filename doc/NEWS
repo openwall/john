@@ -57,7 +57,7 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   new --no-mask option.  [magnum; 2019]
 
 - Add format match symbol '#' for searching in format_name. For example,
-  --format=#ipmi-opencl  will pick the RAKP-opencl format.  We already had
+  --format=#ipmi,+opencl  will pick the RAKP-opencl format.  We already had
   the '@' symbol for searching in alorithm name.  [magnum; 2019]
 
 - Reduce repeated log messages with fork/node/MPI.  [magnum; 2019]
@@ -145,7 +145,7 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   the current batch has been run among all salts.  Under some circumstances
   that may take a good while.  [magnum; 2020]
 
-- Add command-line option --loader-dupecheck=<yes/no>, overriding config file.
+- Add command-line option --[no-]loader-dupe-check, overriding config file.
   Mark the latter as deprecated in config file comments.  [magnum; 2020]
 
 - Add alternative syntax to --salts option for loading "N most populated
@@ -242,6 +242,72 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   https://github.com/JeNeSuisPasDave/authenticator app passwords.
   [Mark Silinio; 2021]
 
+- Add a format class "vector" for matching vector capable OpenCL formats.  This
+  doesn't include bitslice formats.  It matches formats that will run SIMD
+  using the default GPU, or per the  --device option.  [magnum; 2021]
+
+- Revised regex mode's support for librexgen, to version >= 2.1.5  [Jan Starke,
+  magnum; 2021]
+
+- 7z2john.pl: Update from upstream.  [magnum; 2021-2022]
+
+- 7z formats: Added support for Delta encoding.  [magnum; 2021]
+
+- Added support for using a FIFO as a wordlist.  [magnum; 2021]
+
+- OpenCL: If building from a cached kernel fails, just build a new one instead
+  of bailing out.  [magnum; 2021]
+
+- cisco2john: Correction for decoding of "password 7".  It turned out what we
+  had was incomplete.  [magnum; 2021]
+
+- OpenCL on nvidia: Reduce the amount of CPU busy-wait in a number of OpenCL
+  formats.  [magnum; 2021]
+
+- OpenCL LM/DEScrypt: Override kernel selection with env. variable.  [magnum;
+  2021]
+
+- Added support for ENCDataVault and encdatavault2john.py script
+  [sylvainpelissier; 2021]
+
+- Optimize tezos-opencl by computing ed25519_publickey() and BLAKE2b on-device,
+  removing the CPU bottleneck.  This work was funded by the Tezos Foundation.
+  [Solar; 2021]
+
+- Added suport for PBKDF2-SHA256 key derivation algorithm of PrivateAccess and
+  ENCDataVault. [sylvainpelissier; 2022]
+
+- Add NT-long (handles up to 110 characters), implemented as a thin dynamic.
+  [magnum; 2022]
+
+- Update the Streebog code (a.k.a. GOST R 34.11-2012).  The new version doesn't
+  require SIMD but currently doesn't support BE.  [magnum; 2022]
+
+- Various fixes for drivers that support OpenCL 2.0 (such as nvidia and macOS)
+  [magnum; 2022]
+
+- electrum2john (and the formats): Support at least version 18.  [magnum; 2022]
+
+- Added support for Cardano legacy's encrypted secret keys. [ilap; 2022]
+
+- Added cardano2john.py: exports secret.key to john format. [ilap; 2022]
+
+- Added support for cracking blockchain wallet v4. [Solar; 2022]
+
+- Added krb5tgs-opencl, with device-side mask acceleration.  This included
+  improvements to the shared RC4 OpenCL code, and changes to affected formats.
+  [magnum; 2023]
+
+- Added support for cracking SNTP-MS "timeroast".  [magnum; 2023]
+
+- Add NT-long-opencl (password length of up to 125 bytes).  [magnum; 2023]
+
+- NT-opencl: 64-bit binary size.  Some good performance boost depending on
+  number of hashes loaded.  [magnum; 2023]
+
+- Add Coinomi wallet support (coinomi2john.py).  [Solar; 2023]
+
+- Added krb5tgs-sha1[-opencl] formats for etypes 17 and 18.  [magnum; 2023]
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 

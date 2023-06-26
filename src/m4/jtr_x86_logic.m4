@@ -42,8 +42,6 @@ dnl ======================================================================
 dnl               Intel Active CPU probe test of build-host.
 dnl ======================================================================
 
-CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
-
   AS_CASE([$host_os], [darwin*],
     [CC="$CC_BACKUP"
     CFLAGS="-mavx"
@@ -79,6 +77,7 @@ CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
     [CC="$CC_BACKUP"]
     [CFLAGS="$CFLAGS_BACKUP"]]
   )
+CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
 
 if test "x$simd" != xno; then
  if test "x$enable_native_tests" != xno && test "x$simd" = xyes; then

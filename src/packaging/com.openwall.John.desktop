@@ -1,12 +1,11 @@
 [Desktop Entry]
-Version=1.9.0J1
+Version=1.5
 Type=Application
-Terminal=1
+Terminal=true
 Name=John the Ripper Community Edition
 GenericName=John the Ripper Jumbo
 Comment=John the Ripper "Jumbo" password cracker
 TryExec=john
 Exec=john --test=0
-Icon=com.openwall.John.png
+Icon=com.openwall.John
 Categories=Security
-

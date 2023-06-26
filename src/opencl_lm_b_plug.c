@@ -1,5 +1,6 @@
 /*
- * This software is Copyright (c) 2015 Sayantan Datta <std2048 at gmail dot com>
+ * This software is Copyright (c) 2015 Sayantan Datta <std2048 at gmail dot com>,
+ * Copyright (c) 2015-2023 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification, are permitted.
  * Based on Solar Designer implementation of DES_bs_b.c in jtr-v1.7.9
@@ -8,6 +9,7 @@
 #if HAVE_OPENCL
 
 #include <string.h>
+#include <stdlib.h>
 #include <sys/time.h>
 
 #include "opencl_lm.h"
@@ -15,6 +17,7 @@
 #include "../run/opencl/opencl_lm_hst_dev_shared.h"
 #include "bt_interface.h"
 #include "mask_ext.h"
+#include "logger.h"
 
 #define PADDING 	2048
 
@@ -372,7 +375,7 @@ static void create_buffer(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *off
 	buffer_offset_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ot_size * sizeof(OFFSET_TABLE_WORD), offset_table, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_offset_table.");
 
-	buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ht_size * sizeof(unsigned int) * 2, hash_table_64, &ret_code);
+	buffer_hash_table = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, ht_size * sizeof(unsigned int) * 2, bt_hash_table_64, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_hash_table.");
 
 	buffer_bitmaps = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bmp_size_bits >> 3, bitmaps, &ret_code);
@@ -437,12 +440,35 @@ static void release_kernels();
 
 static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem, unsigned int use_last_build_opt)
 {
-	static unsigned int last_build_opts[3];
+	static unsigned int warned, last_build_opts[3];
 	char build_opts[500];
 	cl_ulong const_cache_size;
 	unsigned int i;
 
 	release_kernels();
+
+	char *kernel, *lm_kernel, *force_kernel = getenv("JOHN_DES_KERNEL");
+
+	if (force_kernel && !strcmp(force_kernel, "bs_f")) {
+		if (!warned++) fprintf(stderr, "Using fully unrolled kernel (lm_bs_f)\n");
+		full_unroll = 1;
+		lm_kernel = "lm_bs_f";
+		kernel = "$JOHN/opencl/lm_kernel_f.cl";
+	} else if (force_kernel && !strcmp(force_kernel, "bs_b")) {
+		if (!warned++) fprintf(stderr, "Using basic kernel (lm_bs_b)\n");
+		full_unroll = 0;
+		lm_kernel = "lm_bs_b";
+		kernel = "$JOHN/opencl/lm_kernel_b.cl";
+	} else
+	if (use_last_build_opt ? last_build_opts[0] : full_unroll) {
+		if (!warned++) log_event("- Using fully unrolled kernel (lm_bs_f)");
+		lm_kernel = "lm_bs_f";
+		kernel = "$JOHN/opencl/lm_kernel_f.cl";
+	} else {
+		if (!warned++) log_event("- Using basic kernel (lm_bs_b)");
+		lm_kernel = "lm_bs_b";
+		kernel = "$JOHN/opencl/lm_kernel_b.cl";
+	}
 
 	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
 		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
@@ -510,22 +536,10 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 		, mask_gpu_is_static, (unsigned long long)const_cache_size, bitmap_params);
 	}
 
+	opencl_build_kernel(kernel, gpu_id, build_opts, 0);
 
-	if (use_last_build_opt ? last_build_opts[0] : full_unroll)
-		opencl_build_kernel("$JOHN/opencl/lm_kernel_f.cl",
-		                    gpu_id, build_opts, 0);
-	else
-		opencl_build_kernel("$JOHN/opencl/lm_kernel_b.cl",
-		                    gpu_id, build_opts, 0);
-
-	if (use_last_build_opt ? last_build_opts[0] : full_unroll) {
-		crypt_kernel = clCreateKernel(program[gpu_id], "lm_bs_f", &ret_code);
-		HANDLE_CLERROR(ret_code, "Failed creating kernel lm_bs_f.");
-	}
-	else {
-		crypt_kernel = clCreateKernel(program[gpu_id], "lm_bs_b", &ret_code);
-		HANDLE_CLERROR(ret_code, "Failed creating kernel lm_bs_b.");
-	}
+	crypt_kernel = clCreateKernel(program[gpu_id], lm_kernel, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error building crypt kernel");
 }
 
 static void release_kernels()
@@ -544,7 +558,7 @@ static void clean_all_buffers()
 	release_buffer_gws();
 	release_buffer();
 	release_kernels();
-	MEM_FREE(hash_table_64);
+	MEM_FREE(bt_hash_table_64);
 	if (program[gpu_id]) {
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]),
 			"Error releasing Program");
@@ -723,6 +737,11 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		use_local_mem = 0;
 		full_unroll = 1;
 	}
+	else if (platform_apple(platform_id) && gpu_amd(device_info[gpu_id])) {
+		force_global_keys = 1;
+		use_local_mem = 1;
+		full_unroll = 1;
+	}
 	else if (gpu(device_info[gpu_id])) {
 		force_global_keys = 0;
 		use_local_mem = 1;
@@ -841,7 +860,7 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 		}
 		else {
 			warp_size = 1;
-			fprintf(stderr, "Possible auto_tune fail!!.\n");
+			//fprintf(stderr, "Possible auto_tune fail!!.\n");
 		}
 		if (lws_tune_flag)
 			local_work_size = warp_size;
@@ -940,7 +959,6 @@ static void auto_tune_all(char *bitmap_params, unsigned int num_loaded_hashes, l
 	}
 }
 
-/* Use only for smaller bitmaps < 16MB */
 static void prepare_bitmap_2(cl_ulong bmp_sz_bits, cl_uint **bitmaps_ptr, int *loaded_hashes)
 {
 	unsigned int i;
@@ -1049,9 +1067,8 @@ static char* select_bitmap(unsigned int num_ld_hashes, int *loaded_hashes, unsig
 	get_num_bits(bits_req, (*bitmap_size_bits));
 
 	sprintf(kernel_params,
-		"-D SELECT_CMP_STEPS=%u"
-		" -D BITMAP_SIZE_BITS_LESS_ONE="LLu" -D REQ_BITMAP_BITS=%u",
-		cmp_steps, (unsigned long long)(*bitmap_size_bits) - 1, bits_req);
+	        "-D SELECT_CMP_STEPS=%u -D BITMAP_MASK=0x%xU -D REQ_BITMAP_BITS=%u",
+	        cmp_steps, (uint32_t)((*bitmap_size_bits) - 1), bits_req);
 
 	*bitmap_size_bits *= cmp_steps;
 
@@ -1091,14 +1108,14 @@ static char* prepare_table(struct db_salt *salt, OFFSET_TABLE_WORD **offset_tabl
 		error();
 	}
 
-	num_loaded_hashes = create_perfect_hash_table(64, (void *)loaded_hashes,
+	num_loaded_hashes = bt_create_perfect_hash_table(64, (void *)loaded_hashes,
 				num_loaded_hashes,
 			        offset_table_ptr,
 			        &offset_table_size,
 			        &hash_table_size, 0);
 
 	if (!num_loaded_hashes) {
-		MEM_FREE(hash_table_64);
+		MEM_FREE(bt_hash_table_64);
 		MEM_FREE((*offset_table_ptr));
 		fprintf(stderr, "Failed to create Hash Table for cracking.\n");
 		error();
@@ -1172,14 +1189,14 @@ static void reset(struct db_main *db)
 		release_buffer();
 		release_buffer_gws();
 		release_kernels();
-		MEM_FREE(hash_table_64);
+		MEM_FREE(bt_hash_table_64);
 
 		salt = db->salts;
 		bitmap_params = prepare_table(salt, &offset_table, &bitmap_size_bits, &bitmaps);
 		release_buffer();
 		create_buffer(num_loaded_hashes, offset_table, offset_table_size, hash_table_size, bitmaps, bitmap_size_bits);
 
-		if (options.flags & FLG_MASK_CHK) {
+		if ((options.flags & FLG_MASK_CHK) && mask_int_cand.num_int_cand > 1) {
 			mask_mode = 1;
 			fmt_opencl_lm.methods.set_key = opencl_lm_set_key_mm;
 			fmt_opencl_lm.methods.get_key = get_key_mm;
@@ -1215,14 +1232,14 @@ static void reset(struct db_main *db)
 			//fprintf(stderr, "C:%s B:%d %d %d\n", ciphertext, binary[0], binary[1], i == num_loaded_hashes );
 		}
 
-		num_loaded_hashes = create_perfect_hash_table(64, (void *)loaded_hashes,
+		num_loaded_hashes = bt_create_perfect_hash_table(64, (void *)loaded_hashes,
 				num_loaded_hashes,
 			        &offset_table,
 			        &offset_table_size,
 			        &hash_table_size, 0);
 
 		if (!num_loaded_hashes) {
-			MEM_FREE(hash_table_64);
+			MEM_FREE(bt_hash_table_64);
 			MEM_FREE(offset_table);
 			fprintf(stderr, "Failed to create Hash Table for self test.\n");
 			error();
@@ -1263,7 +1280,7 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 		release_buffer();
 		release_kernels();
-		MEM_FREE(hash_table_64);
+		MEM_FREE(bt_hash_table_64);
 
 		bitmap_params = prepare_table(salt, &offset_table, &bitmap_size_bits, &bitmaps);
 		release_buffer();
@@ -1306,42 +1323,42 @@ static int lm_crypt(int *pcount, struct db_salt *salt)
 
 int opencl_lm_get_hash_0(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_0;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_0;
 }
 
 int opencl_lm_get_hash_1(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_1;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_1;
 }
 
 int opencl_lm_get_hash_2(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_2;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_2;
 }
 
 int opencl_lm_get_hash_3(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_3;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_3;
 }
 
 int opencl_lm_get_hash_4(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_4;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_4;
 }
 
 int opencl_lm_get_hash_5(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_5;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_5;
 }
 
 int opencl_lm_get_hash_6(int index)
 {
-	return hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_6;
+	return bt_hash_table_64[hash_ids[3 + 3 * index]] & PH_MASK_6;
 }
 
 static int cmp_one(void *binary, int index)
 {
-	if (((int *)binary)[0] == hash_table_64[hash_ids[3 + 3 * index]])
+	if (((int *)binary)[0] == bt_hash_table_64[hash_ids[3 + 3 * index]])
 		return 1;
 	return 0;
 }
@@ -1350,7 +1367,7 @@ static int cmp_exact(char *source, int index)
 {
 	int *binary = opencl_lm_get_binary(source + 4);
 
-	if (binary[1] == hash_table_64[hash_ids[3 + 3 * index] + hash_table_size])
+	if (binary[1] == bt_hash_table_64[hash_ids[3 + 3 * index] + hash_table_size])
 		return 1;
 	return 0;
 }

@@ -316,17 +316,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	int index;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
-	//fprintf(stderr, "%s(%d) lws %zu gws %zu\n", __FUNCTION__, count, local_work_size, global_work_size);
-
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
 		any_cracked = 0;
 	}
 
-	if (ocl_autotune_running || new_keys) {
-		int i;
+	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
 
-		global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
+	/* Note: This format is effectively unsalted */
+	if (new_keys) {
+		int i;
 
 		// Copy data to gpu
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
@@ -338,24 +337,30 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[1]),
 			"Run init kernel");
 
+		// Better precision for WAIT_ macros
+		BENCH_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+
 		// Run loop kernel
+		WAIT_INIT(global_work_size)
 		for (i = 0; i < (ocl_autotune_running ? 1 : LOOP_COUNT); i++) {
 			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id],
 				crypt_kernel, 1, NULL, &global_work_size, lws, 0,
 				NULL, multi_profilingEvent[2]),
 				"Run loop kernel");
-			BENCH_CLERROR(clFinish(queue[gpu_id]),
-				"Error running loop kernel");
+			WAIT_SLEEP
+			BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+			WAIT_UPDATE
 			opencl_process_event();
 		}
+		WAIT_DONE
 
 		// Run final kernel
 		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], sevenzip_final, 1,
 			NULL, &global_work_size, lws, 0, NULL, multi_profilingEvent[3]),
 			"Run final loop kernel");
-	}
 
-	new_keys = 0;
+		new_keys = 0;
+	}
 
 	if (sevenzip_trust_padding || sevenzip_salt->type == 0x80) {
 		// Run AES kernel (only for truncated hashes)

@@ -13,9 +13,10 @@
 #if !(__FreeBSD__ || __APPLE__)
 /* On FreeBSD, defining this precludes the declaration of u_int, which
  * FreeBSD's own <sys/file.h> needs. */
-#if _XOPEN_SOURCE < 500
+#if !AC_BUILT && _XOPEN_SOURCE < 500
 #undef _XOPEN_SOURCE
 #define _XOPEN_SOURCE 500 /* for fdopen(3), fileno(3), fsync(2), ftruncate(2) */
+#define _XPG6
 #endif
 #endif
 
@@ -552,7 +553,7 @@ void rec_restore_args(int lock)
 
 	if (fscanf(rec_file, "%d\n", &argc) != 1)
 		rec_format_error("fscanf");
-	if (argc < 2)
+	if (argc < 2 || argc > 11000000)
 		rec_format_error(NULL);
 	argv = mem_alloc_tiny(sizeof(char *) * (argc + 1), MEM_ALIGN_WORD);
 

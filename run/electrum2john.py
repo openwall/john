@@ -130,7 +130,7 @@ def process_file(filename, options):
     if not wallet_type:
         sys.stderr.write("%s: Unrecognized wallet format!\n" % (bname))
         return
-    if wallet.get("seed_version") not in (11, 12, 13) and wallet_type != "imported":  # all 2.x versions as of Oct 2016
+    if wallet.get("seed_version") < 11 and wallet_type != "imported":  # all 2.x versions as of Oct 2016
         sys.stderr.write("%s: Unsupported Electrum2 seed version '%d' found!\n" % (bname, wallet.get("seed_version")))
         return
     xprv = None
@@ -231,7 +231,7 @@ def process_file(filename, options):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stderr.write("Usage: %s [Ethereum Wallet files (default_wallet)]\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s [Electrum Wallet files (default_wallet)]\n" % sys.argv[0])
         sys.exit(1)
 
     parser = optparse.OptionParser()

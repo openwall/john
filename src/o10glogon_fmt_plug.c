@@ -166,7 +166,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ciphertext = cp+1;
 	len = strlen(ciphertext);
 	cp = strchr(ciphertext, '$');
-	if (!len || cp || len%16 || hexlenu(ciphertext, &extra) != len || extra)
+	if (!len || len > 80*2 || cp || len%16 || hexlenu(ciphertext, &extra) != len || extra)
 		return 0;
 	return 1;
 }

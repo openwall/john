@@ -86,7 +86,7 @@
 #include "mask_ext.h"
 #include "john.h"
 #include "version.h"
-#include "listconf.h" /* must be included after version.h */
+#include "listconf.h" /* must be included after version.h and misc.h */
 
 #ifdef NO_JOHN_BLD
 #define JOHN_BLD "unk-build-type"
@@ -143,7 +143,7 @@ static void listconf_list_build_info(void)
 	int gmp_major, gmp_minor, gmp_patchlevel;
 #endif
 	puts("Version: " JTR_GIT_VERSION);
-	puts("Build: " JOHN_BLD _MP_VERSION DEBUG_STRING ASAN_STRING UBSAN_STRING);
+	puts("Build: " JOHN_BLD _MP_VERSION OCL_STRING ZTEX_STRING DEBUG_STRING ASAN_STRING UBSAN_STRING);
 #ifdef SIMD_COEF_32
 	printf("SIMD: %s, interleaving: MD4:%d MD5:%d SHA1:%d SHA256:%d SHA512:%d\n",
 	       SIMD_TYPE,
@@ -158,10 +158,10 @@ static void listconf_list_build_info(void)
 #if CPU_REQ
 	printf("CPU tests: %s\n", CPU_req_name);
 #endif
-#if CPU_FALLBACK
+#if CPU_FALLBACK || defined(CPU_FALLBACK_BINARY)
 	puts("CPU fallback binary: " CPU_FALLBACK_BINARY);
 #endif
-#if OMP_FALLBACK
+#if OMP_FALLBACK || defined(OMP_FALLBACK_BINARY)
 	puts("OMP fallback binary: " OMP_FALLBACK_BINARY);
 #endif
 	printf("$JOHN is %s\n", path_expand("$JOHN/"));

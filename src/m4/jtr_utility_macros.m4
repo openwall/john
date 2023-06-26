@@ -189,11 +189,11 @@ dnl will be xno, xyes, xauto, etc.  forced_fail_msg is a message that
 dnl will be output, and the script will abort, IF forced is xyes which
 dnl means the user used --enable-foobar
 AC_DEFUN([JTR_MSG_RESULT_FAILIF_FORCED], [
-  if test "$1" == xyes; then
+  if test "$1" = xyes; then
     AC_MSG_RESULT([yes])
   else
     AC_MSG_RESULT([no])
-    if test "$2" == xyes; then
+    if test "$2" = xyes; then
       AC_MSG_FAILURE([$3])
     fi
   fi

@@ -6,10 +6,11 @@
  */
 
 #include "arch.h"
-#include "diskcryptor_common.h"
+#include "memory.h"
 #include "jumbo.h"
 #include "johnswap.h"
 #include "xts.h"
+#include "diskcryptor_common.h"
 
 // #define DEBUG 1
 
@@ -35,7 +36,7 @@ int diskcryptor_valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 
 	ctcopy += TAG_LENGTH;
@@ -59,7 +60,7 @@ err:
 void *diskcryptor_get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
-	char *ctcopy = strdup(ciphertext);
+	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy;
 	char *p;
 	int i;

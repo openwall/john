@@ -26,6 +26,7 @@
 #include "charset.h"
 #include "external.h"
 #include "cracker.h"
+#include "suppressor.h"
 #include "john.h"
 #include "unicode.h"
 #include "mask.h"
@@ -527,7 +528,8 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	if ((max_length = cfg_get_int(SECTION_INC, mode, "MaxLen")) < 0)
 		max_length = MIN(CHARSET_LENGTH, options.eff_maxlength);
 	else if (max_length > our_fmt_len) {
-		log_event("! MaxLen = %d is too large for this hash type", max_length);
+		log_event("! MaxLen = %d is too large%s, reduced", max_length,
+		    options.force_maxlength ? "" : " for this hash type");
 		if (john_main_process && !options.force_maxlength)
 			fprintf(stderr, "Warning: MaxLen = %d is too large "
 			    "for the current hash type, reduced to %d\n",
@@ -793,6 +795,7 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	memcpy(numbers, rec_numbers, sizeof(numbers));
 
 	crk_init(db, fix_state, NULL);
+	suppressor_init(SUPPRESSOR_CHECK);
 
 	last_count = last_length = -1;
 

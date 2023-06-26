@@ -68,7 +68,7 @@ int krb5_asrep_valid(char *ciphertext, struct fmt_main *self, int is_cpu_format)
 	int len;
 	unsigned char etype = 0;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) == 0) {
@@ -134,7 +134,7 @@ void *krb5_asrep_get_salt(char *ciphertext)
 	char *keeptr;
 	static void *ptr;
 
-	ctcopy = strdup(ciphertext);
+	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
 	memset(&cs, 0, sizeof(cs));
 	cs.edata2 = NULL;
@@ -207,4 +207,9 @@ void *krb5_asrep_get_salt(char *ciphertext)
 	memcpy(ptr, &cs, sizeof(struct custom_salt));
 
 	return (void *) &ptr;
+}
+
+unsigned int krb5_asrep_etype(void *salt)
+{
+	return (*(struct custom_salt**)salt)->etype;
 }
