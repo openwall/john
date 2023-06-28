@@ -2,28 +2,32 @@
 
 """
 This script is designed to extract and display password hash information from an AIX /etc/security/passwd file. The
-output is sent to stdout and can be used for auditing or analysis purposes. This script supports different password
-hash types (smd5, ssha, and des), recognizing them automatically.
+output is sent to stdout and can be used for auditing or analysis. This script supports different password
+hash types (des, md5, smd5, sha256, and sha512), recognizing them automatically.
 
 Usage:
-	python aix2john.py -s -f /path/to/passwd
+	python aix2john.py
 
 Arguments:
-	-s : Use this option if "lpa_options = std_hash=true" is activated in the system configuration.
-	-f : Specify the AIX shadow file filename to read (usually /etc/security/passwd)
+	-f : Specify a file path. The default is /etc/security/passwd.
+ 	-a : Show all users, including those with locked or unset passwords.
 
-Example /etc/security/passwd file:
-	root:
-			password = mrXXXXXXXXXX
-			lastupdate = 1343960660
-			flags =
-	admin:
-			password = oiXXXXXXXXXX
-			lastupdate = 1339748349
-			flags =
+Example /etc/security/passwd file with different hashes:
+	guest:
+        password = *
+	
+ 	paul:
+        password = YFf0/OmVZz6tQ
+        lastupdate = 1026394230
+        flags = 
+
+	jonas:
+        password = 5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8
+        lastupdate = 1026394230
+        flags = 
 
 The script parses the file line by line, identifies the username and corresponding password hashes, and then prints
-them to stdout in a formatted way. For 'smd5' password type, the printed format varies based on the 'is_standard' flag.
+them to stdout in a formatted way.
 
 Note: Some of the functionality offered by this script may overlap with the unshadow program.
 
@@ -35,84 +39,81 @@ be used for unauthorized access to password data.
 
 from __future__ import print_function
 import argparse
-import re
 import sys
 import logging
+import io
+import re
 
-# Regular expression to parse and validate the username
-USERNAME_RE = re.compile(r"^\s*(\w+)\s*:\s*$")
-# Prefix for password line
-PASSWORD_PREFIX = "password = "
-# Mapping of password types to their expected lengths
-PASSWORD_TYPES = {"smd5": 37, "ssha": 0, "des": 0}
+# Configure logging
+logging.basicConfig(level=logging.ERROR, format='%(levelname)s: %(message)s')
 
+# Define password types and associated lengths
+PASSWORD_TYPES = {'des': 13, 'md5': 32, 'smd5': 46, 'sha256': 64, 'sha512': 128}
+PASSWORD_UNDEFINED = 'Account is locked or no password is set'
+PASSWORD_UNKNOWN = 'Password type unknown'
 
-def print_password(username, password, password_type, is_standard):
-	"""Prints password line based on password type."""
-	if password_type == "smd5":
-		sys.stdout.write(
-			"%s:$1$%s\n" % (username, password[6:])
-			if is_standard
-			else "%s:%s\n" % (username, password)
-		)
-	elif password_type == "ssha":
-		tc, salt, h = password.split("$")
-		sys.stdout.write("%s:%s$%s$%s\n" % (username, tc, salt, h))
-	elif password_type == "des" and password != "*":
-		sys.stdout.write("%s:%s\n" % (username, password))
-	sys.stdout.flush()
+USERNAME_REGEX = re.compile(r"(.*):")
+PASSWORD_REGEX = re.compile(r"password = (.*)")
 
+def get_password_type(password):
+	"""Returns the password type based on its length or an appropriate status."""
+	if password is None or password == '*':
+		return PASSWORD_UNDEFINED
+	for pt, length in PASSWORD_TYPES.items():
+		if len(password) == length:
+			return pt
+		return PASSWORD_UNKNOWN
 
-def parse_line(line, username, is_standard):
-	"""Parses a line from the password file."""
-	match = USERNAME_RE.match(line)
-	if match:
-		return match.group(1)
+def process_line(line):
+	"""Processes a line from the input file."""
+	line = line.strip()
+	if not line:
+		return None, None
 
-	if line.strip().startswith(PASSWORD_PREFIX):
-		password = line.partition("=")[2].strip()
-		password_type = next(
-			(pt for pt in PASSWORD_TYPES if password.startswith(pt)), None
-		)
-		if password_type and len(password) == PASSWORD_TYPES.get(password_type, 0):
-			print_password(username, password, password_type, is_standard)
+	# Parsing username and password from line
+	username_match = USERNAME_REGEX.match(line)
+	password_match = PASSWORD_REGEX.match(line)
 
+	username = username_match.group(1) if username_match else None
+	password = password_match.group(1) if password_match else None
 
-def process_file(filename, is_standard):
-	"""Processes the password file."""
-	username = "?"
+	return username, password
 
-	try:
-		with open(filename, "r") as fd:
-			for line in fd:
-				result = parse_line(line, username, is_standard)
-				if result is not None:
-					username = result
-	except IOError as e:
-		logging.error(f"Failed to open file %s: %s" % (filename, str(e)))
-		sys.exit(1)
+def process_password(username, password, print_all):
+	"""Processes password and prints user data if applicable."""
+	password_type = get_password_type(password)
+	if password_type != PASSWORD_UNDEFINED or print_all:
+		print('{}:{}:{}'.format(username, password, password_type))
+		return None, None
+	return username, password
 
+def process_file(file, print_all):
+	"""Processes an opened file line by line."""
+	username, password = None, None
+	for line in file:
+		new_username, new_password = process_line(line)
+
+		username = new_username if new_username else username
+		password = new_password if new_password else password
+
+		if username and password:
+			username, password = process_password(username, password, print_all)
 
 def main():
-	"""Main function to parse command line arguments and process the file."""
-	parser = argparse.ArgumentParser()
-	parser.add_argument(
-		"-s",
-		action="store_true",
-		dest="is_standard",
-		help='Use this option if "lpa_options = std_hash=true" is activated',
-	)
-	parser.add_argument(
-		"-f",
-		dest="filename",
-		required=True,
-		help="Specify the AIX shadow file filename to read (usually /etc/security/passwd)",
-	)
-
+	"""Main function, handles argument parsing and file processing."""
+	parser = argparse.ArgumentParser(
+		description="Parses a password file and returns users' password hash and their types. Use with caution.")
+	parser.add_argument('-f', '--file', type=argparse.FileType('r'), default='/etc/security/passwd', 
+		     help='Specify a file path. Default is /etc/security/passwd.')
+	parser.add_argument('-a', '--all', action='store_true', 
+		     help='Show all users, including those with locked or unset passwords.')
 	args = parser.parse_args()
 
-	process_file(args.filename, args.is_standard)
+	try:
+		process_file(args.file, args.all)
+	except IOError as e:
+		logging.error("Could not open file. Error message: %s", e)
+		sys.exit(1)
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
 	main()
