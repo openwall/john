@@ -163,9 +163,11 @@ static void _pbkdf2_sha1_sse_load_hmac(const unsigned char *K[SSE_GROUP_SZ_SHA1]
 			SHA1_Init( &ctx );
 			SHA1_Update( &ctx, K[j], KL[j]);
 			SHA1_Final( k0, &ctx);
-			KL[j] = SHA_DIGEST_LENGTH;
-			K[j] = k0;
-		}
+			for (i = 0; i < SHA_DIGEST_LENGTH; i++) {
+				ipad[i] ^= k0[i];
+				opad[i] ^= k0[i];
+			}
+		} else
 		for (i = 0; i < KL[j]; i++) {
 			ipad[i] ^= K[j][i];
 			opad[i] ^= K[j][i];
