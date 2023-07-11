@@ -190,6 +190,7 @@ uint64_t john_max_cands;
 static int children_ok = 1;
 
 static struct db_main database;
+static int loaded_extra_pots;
 static struct fmt_main dummy_format;
 
 static char *mode_exit_message = "";
@@ -963,6 +964,8 @@ static void load_extra_pots(struct db_main *db, void (*process_file)(struct db_m
 		struct stat s;
 		char *name = (char*)path_expand(line->data);
 
+		loaded_extra_pots = 1;
+
 		if (!stat(name, &s) && s.st_mode & S_IFREG)
 			process_file(db, name);
 #if HAVE_DIRENT_H && HAVE_SYS_TYPES_H
@@ -1235,6 +1238,13 @@ static void john_load(void)
 
 		if (database.password_count && options.regen_lost_salts)
 			build_fake_salts_for_regen_lost(&database);
+
+		if (john_main_process && database.password_count < total)
+			printf("Cracked %d password hashes%s%s%s, use \"--show\"\n",
+			    total - database.password_count,
+			    loaded_extra_pots ? "" : " (are in ",
+			    loaded_extra_pots ? "" : path_expand(options.activepot),
+			    loaded_extra_pots ? "" : ")");
 
 		if (!database.password_count) {
 			log_discard();
