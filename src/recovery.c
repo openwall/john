@@ -127,12 +127,11 @@ static void rec_lock(int shared)
 #endif
 
 	if (jtr_lock(rec_fd, cmd, type, path_expand(rec_name))) {
+		const char *msg = "Crash recovery file is locked (maybe use \"--session\"): ";
 #if HAVE_MPI
-		fprintf(stderr, "Node %d@%s: Crash recovery file is locked: %s\n",
-		        NODE, mpi_name, path_expand(rec_name));
+		fprintf(stderr, "Node %d@%s: %s%s\n", NODE, mpi_name, msg, path_expand(rec_name));
 #else
-		fprintf(stderr, "Crash recovery file is locked: %s\n",
-		        path_expand(rec_name));
+		fprintf(stderr, "%s%s\n", msg, path_expand(rec_name));
 #endif
 		error();
 	}
