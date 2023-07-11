@@ -37,6 +37,7 @@
 #include "dyna_salt.h"
 #include "loader.h"
 #include "options.h"
+#include "common.h"
 #include "config.h"
 #include "unicode.h"
 #include "dynamic.h"
@@ -603,8 +604,8 @@ static int ldr_split_line(char **login, char **ciphertext,
 	if (SPLFLEN(1) > MAX_CIPHERTEXT_SIZE) {
 		huge_line = 1;
 	}
-	else if ((SPLFLEN(3) == 32 && strspn(fields[3], HEXCHARS_all) == 32) ||
-	         (SPLFLEN(2) == 32 && strspn(fields[2], HEXCHARS_all) == 32)) {
+	else if ((SPLFLEN(3) == 32 && ishex(fields[3])) ||
+	         (SPLFLEN(2) == 32 && ishex(fields[2]))) {
 		/* PWDUMP */
 		/* user:uid:LMhash:NThash:comment:homedir: */
 		*uid = fields[1];
