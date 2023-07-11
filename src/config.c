@@ -235,9 +235,11 @@ void cfg_init(const char *name, int allow_missing)
 
 	if (cfg_database && !cfg_recursion) return;
 
-	if (!(file = fopen(path_expand(name), "r"))) {
+	cfg_name = str_alloc_copy(path_expand(name));
+
+	if (!(file = fopen(cfg_name, "r"))) {
 		if (allow_missing && errno == ENOENT) return;
-		pexit("fopen: %s", path_expand(name));
+		pexit("fopen: %s", cfg_name);
 	}
 
 	number = 0;
@@ -247,8 +249,6 @@ void cfg_init(const char *name, int allow_missing)
 	if (ferror(file)) pexit("fgets");
 
 	if (fclose(file)) pexit("fclose");
-
-	cfg_name = str_alloc_copy(path_expand(name));
 
 	// merge final section (if it is a 'Local:" section)
 	cfg_merge_local_section();
