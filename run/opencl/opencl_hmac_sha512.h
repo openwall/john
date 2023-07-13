@@ -86,7 +86,7 @@ inline void hmac_sha512(HMAC_KEY_TYPE void *_key, uint key_len,
 		sha512_block(W, ctx.state);
 		data32 += 16;
 	}
-	uchar pbuf[64];
+	uchar pbuf[128];
 	memcpy_macro(pbuf, data, data_len);
 	SHA512_Update(&ctx, pbuf, data_len);
 #else
