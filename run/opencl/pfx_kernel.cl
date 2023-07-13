@@ -42,7 +42,10 @@ typedef struct {
 	uint32_t saltlen;
 	uint32_t salt[20 / 4];
 	uint32_t datalen;
-	uint32_t data[MAX_DATA_LENGTH / 4];
+	union {
+		uint u32[MAX_DATA_LENGTH / 4]; /* Same type as hmac_sha1() and hmac_sha256() use */
+		ulong u64[MAX_DATA_LENGTH / 8]; /* Same type as hmac_sha512() uses */
+	} data;
 } pfx_salt;
 
 inline void pfx_crypt(__global const uint *password, uint32_t password_length,
@@ -51,31 +54,33 @@ inline void pfx_crypt(__global const uint *password, uint32_t password_length,
 	uint i;
 	uint32_t ckey[64 / 4];
 	uint32_t csalt[20 / 4];
-	uint32_t cpassword[(PLAINTEXT_LENGTH + 1 + 3) / 4];
+	uint32_t cpassword[(PLAINTEXT_LENGTH + 3) / 4];
 
+	password_length = MIN(password_length, PLAINTEXT_LENGTH);
 	for (i = 0; i < (password_length + 3) / 4; i++)
 		cpassword[i] = password[i];
 
-	for (i = 0; i < (salt->saltlen + 3) / 4; i++)
+	uint salt_length = MIN(salt->saltlen, 20);
+	for (i = 0; i < (salt_length + 3) / 4; i++)
 		csalt[i] = salt->salt[i];
 
 	switch(salt->mac_algo) {
 	case 1:
 		pkcs12_pbe_derive_key(salt->iterations, 3, cpassword, password_length,
-		                      csalt, salt->saltlen, ckey, salt->keylen);
-		hmac_sha1(ckey, salt->keylen, salt->data, salt->datalen, out, 20);
+		                      csalt, salt_length, ckey, salt->keylen);
+		hmac_sha1(ckey, salt->keylen, salt->data.u32, salt->datalen, out, 20);
 		break;
 	case 256:
 		pkcs12_pbe_derive_key_sha256(salt->iterations, 3, cpassword,
-		                             password_length, csalt, salt->saltlen,
+		                             password_length, csalt, salt_length,
 		                             ckey, salt->keylen);
-		hmac_sha256(ckey, salt->keylen, salt->data, salt->datalen, out, 20);
+		hmac_sha256(ckey, salt->keylen, salt->data.u32, salt->datalen, out, 20);
 		break;
 	case 512:
 		pkcs12_pbe_derive_key_sha512(salt->iterations, 3, cpassword,
-		                             password_length, csalt, salt->saltlen,
+		                             password_length, csalt, salt_length,
 		                             ckey, salt->keylen);
-		hmac_sha512(ckey, salt->keylen, salt->data, salt->datalen, out, 20);
+		hmac_sha512(ckey, salt->keylen, salt->data.u64, salt->datalen, out, 20);
 		break;
 	}
 }
