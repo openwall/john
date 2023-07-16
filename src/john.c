@@ -1265,24 +1265,21 @@ static void john_load(void)
 		for ( ; i < FMT_TUNABLE_COSTS &&
 			      database.format->methods.tunable_cost_value[i] != NULL; i++) {
 			if (database.min_cost[i] < database.max_cost[i]) {
-				log_event("Loaded hashes with cost %d (%s)"
-				          " varying from %u to %u",
-				          i+1, database.format->params.tunable_cost_name[i],
+				const char *loaded = database.password_count < total ? "Remaining" : "Loaded";
+				log_event("%s hashes with cost %d (%s) varying from %u to %u",
+				          loaded, i+1, database.format->params.tunable_cost_name[i],
 				          database.min_cost[i], database.max_cost[i]);
-					printf("Loaded hashes with cost %d (%s)"
-					       " varying from %u to %u\n",
-					       i+1, database.format->params.tunable_cost_name[i],
-					        database.min_cost[i], database.max_cost[i]);
+				printf("%s hashes with cost %d (%s) varying from %u to %u\n",
+				       loaded, i+1, database.format->params.tunable_cost_name[i],
+				       database.min_cost[i], database.max_cost[i]);
 			}
 			else {	// if (database.min_cost[i] == database.max_cost[i]) {
-				log_event("Cost %d (%s) is %u for all loaded hashes",
-				          i+1, database.format->params.tunable_cost_name[i],
-				          database.min_cost[i]);
+				const char *loaded = database.password_count < total ? "remaining" : "loaded";
+				log_event("Cost %d (%s) is %u for all %s hashes",
+				          i+1, database.format->params.tunable_cost_name[i], database.min_cost[i], loaded);
 				if (options.verbosity >= VERB_DEFAULT)
-				printf("Cost %d (%s) is %u for all loaded "
-				       "hashes\n", i+1,
-				       database.format->params.tunable_cost_name[i],
-				       database.min_cost[i]);
+				printf("Cost %d (%s) is %u for all %s hashes\n",
+				       i+1, database.format->params.tunable_cost_name[i], database.min_cost[i], loaded);
 			}
 		}
 
