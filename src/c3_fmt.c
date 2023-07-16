@@ -442,8 +442,9 @@ static void *salt(char *ciphertext)
 		    !strncmp(ciphertext, "$md5,", 5))) {
 			char *p = strrchr(ciphertext + 4, '$');
 			if (p) {
-				strncpy_pad(out, ciphertext,
-				            ++p - ciphertext, 0);
+				/* NUL padding is required */
+				memset(out, 0, sizeof(out));
+				memcpy(out, ciphertext, ++p - ciphertext);
 /*
  * Workaround what looks like a bug in sunmd5.c: crypt_genhash_impl() where it
  * takes a different substring as salt depending on whether the optional
