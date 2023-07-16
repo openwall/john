@@ -147,7 +147,7 @@ static void init(struct fmt_main *self)
 		}
 
 		if (!strcmp(options.subformat, "?")) {
-			fprintf(stderr, "Subformat may either be a verbatim salt, or: descrypt, md5crypt, bcrypt, sha256crypt, sha512crypt, sun-md5\n\n");
+			fprintf(stderr, "Subformat may either be a verbatim salt, or: descrypt, md5crypt, bcrypt, sha256crypt, sha512crypt, sunmd5, scrypt, yescrypt, gost-yescrypt\n\n");
 			error();
 		} else if (!strcasecmp(options.subformat, "md5crypt") ||
 		    !strcasecmp(options.subformat, "md5")) {
@@ -157,7 +157,7 @@ static void init(struct fmt_main *self)
 			{"$1$$qRPK7m23GJusamGpoGLby/", ""},
 			{NULL} };
 			self->params.tests = tests;
-			self->params.benchmark_comment = " MD5";
+			self->params.benchmark_comment = " md5crypt";
 			salt = "$1$dXc3I7Rw$";
 		} else if (!strcasecmp(options.subformat, "sunmd5") ||
 		    !strcasecmp(options.subformat, "sun-md5")) {
@@ -191,6 +191,30 @@ static void init(struct fmt_main *self)
 			self->params.tests = tests;
 			self->params.benchmark_comment = " SHA-512 rounds=5000";
 			salt = "$6$LKO/Ute40T3FNF95$";
+		} else if (!strcasecmp(options.subformat, "scrypt")) {
+			static struct fmt_tests tests[] = {
+			{"$7$C6..../....salt$.Q4tfu4SynukrXlisOF3sNclIWRhhQeMKPQT9XVUGVB", "openwall"},
+			{"$7$C6..../....SodiumChloride$kBGj9fHznVYFQMEn/qDCfrDevf9YDtcDdKvEqHJLV8D", "pleaseletmein"},
+			{NULL} };
+			self->params.tests = tests;
+			self->params.benchmark_comment = " scrypt 16384,8,1";
+			salt = "$7$C6..../....SodiumChloride";
+		} else if (!strcasecmp(options.subformat, "yescrypt")) {
+			static struct fmt_tests tests[] = {
+			{"$y$j9T$AAt9R641xPvCI9nXw1HHW/$cuQRBMN3N/f8IcmVN.4YrZ1bHMOiLOoz9/XQMKV/v0A", "openwall"},
+			{"$y$j9T$e8R9q85ZuzUkArEUurdtS.$esON.7y6H.u3UCPVCpbRFueRpAut2n2cMf1EhpjbuiC", "pleaseletmein"},
+			{NULL} };
+			self->params.tests = tests;
+			self->params.benchmark_comment = " yescrypt";
+			salt = "$y$j9T$AAt9R641xPvCI9nXw1HHW/";
+		} else if (!strcasecmp(options.subformat, "gost-yescrypt")) {
+			static struct fmt_tests tests[] = {
+			{"$gy$j9T$Rt9jcSbmNRUKSenPHUxJp/$4zprMvVKuU/xwoYe3gB5k6WFKfpxRv6IbTkdBfVQQu3", "openwall"},
+			{"$gy$j9T$dZZACKQy5jE344hHtI3sQ/$d.kB7A2uNANeWuy2td/7oD3GMgbQtcx/XzibtJqHg5.", "pleaseletmein"},
+			{NULL} };
+			self->params.tests = tests;
+			self->params.benchmark_comment = " gost-yescrypt";
+			salt = "$gy$j9T$Rt9jcSbmNRUKSenPHUxJp/";
 		} else if ((!strcasecmp(options.subformat, "bf")) ||
 		           (!strcasecmp(options.subformat, "blowfish")) ||
 		           (!strcasecmp(options.subformat, "bcrypt"))) {
@@ -200,8 +224,16 @@ static void init(struct fmt_main *self)
 			{"$2a$05$XXXXXXXXXXXXXXXXXXXXXOAcXxm9kjPGEMsLznoKqmqw7tc8WCx4a","U*U*U"},
 			{NULL} };
 			self->params.tests = tests;
-			self->params.benchmark_comment = " BF x32";
-			salt = "$2a$05$AD6y0uWY62Xk2TXZ";
+			self->params.benchmark_comment = " bcrypt x32";
+			salt = "$2a$05$CCCCCCCCCCCCCCCCCCCCC.";
+		} else if (!strcasecmp(options.subformat, "bsdicrypt")) { /* Undocumented in the usage message and unnumbered */
+			static struct fmt_tests tests[] = {
+			{"_J9..CCCCXBrJUJV154M", "U*U*U*U*"},
+			{"_J9..CCCCXUhOBTXzaiE", "U*U***U"},
+			{NULL} };
+			self->params.tests = tests;
+			self->params.benchmark_comment = " bsdicrypt x725";
+			salt = "_J9..CCCC";
 		} else if (!strcasecmp(options.subformat, "descrypt") ||
 		           !strcasecmp(options.subformat, "des")) {
 			salt = "CC";
@@ -216,8 +248,8 @@ static void init(struct fmt_main *self)
 			/* params.tests structure data.                            */
 			self->params.benchmark_length |= 0x100;
 		}
-		for (i = 0; i < 5; i++)
-		{
+
+		for (i = 0; i < 5; i++) {
 			char *c;
 
 #if defined(_OPENMP) && defined(__GLIBC__)
@@ -225,13 +257,17 @@ static void init(struct fmt_main *self)
 #else
 			c = crypt(tests[i].plaintext, salt);
 #endif
-			if (c && strlen(c) >= 7)
+			if (c && strlen(c) >= 13)
 				tests[i].ciphertext = xstrdup(c);
 			else {
 				fprintf(stderr, "%s not supported on this system\n",
 				       options.subformat);
 				error();
 			}
+
+			/* No need to replace tests that we're not going to use */
+			if (tests != self->params.tests)
+				break;
 		}
 
 		if (strlen(tests[0].ciphertext) == 13 &&
@@ -384,7 +420,10 @@ static void *salt(char *ciphertext)
 		if ((length >= 26 && length <= 34 &&
 		    !strncmp(ciphertext, "$1$", 3)) ||
 		    (length >= 47 && !strncmp(ciphertext, "$5$", 3)) ||
-		    (length >= 90 && !strncmp(ciphertext, "$6$", 3))) {
+		    (length >= 90 && !strncmp(ciphertext, "$6$", 3)) ||
+		    (length >= 58 && !strncmp(ciphertext, "$7$", 3)) ||
+		    (length >= 51 && !strncmp(ciphertext, "$y$", 3)) ||
+		    (length >= 52 && !strncmp(ciphertext, "$gy$", 4))) {
 			char *p = strrchr(ciphertext + 3, '$');
 			if (p) cut = p - ciphertext;
 		} else
@@ -630,53 +669,63 @@ static int cmp_exact(char *source, int index)
 
 /*
  * For generic crypt(3), the algorithm is returned as the first "tunable cost":
- * 0: unknown (shouldn't happen)
+ * 0: unknown
  * 1: descrypt
  * 2: md5crypt
  * 3: sunmd5
  * 4: bcrypt
  * 5: sha256crypt
  * 6: sha512crypt
+ * 7: scrypt
+ * 10: yescrypt
+ * 11: gost-yescrypt
  * New subformats should be added to the end of the list.
- * Otherwise, restored sessions might contine cracking different hashes
- * if the (not yet implemented) option --cost= had been used
- * when starting that session.
+ * Otherwise, restored sessions might continue cracking different hashes if the
+ * option "--cost=" had been used when starting that session.
  */
 static unsigned int c3_subformat_algorithm(void *salt)
 {
-	char *c3_salt;
+	const char *c3_salt = salt;
 
-	c3_salt = salt;
-
-	if (!c3_salt[0] || !c3_salt[1] )
+	if (!c3_salt[0] || !c3_salt[1])
 		return 0;
 	if (!c3_salt[2])
 		return 1;
 	if (c3_salt[0] != '$')
 		return 0;
-	if (c3_salt[1] == '1')
+	switch (c3_salt[1]) {
+	case '1':
 		return 2;
-	if (c3_salt[1] == 'm')
+	case 'm':
 		return 3;
-	if (c3_salt[1] == '2' && c3_salt[2] == 'a')
+	case '2':
 		return 4;
-	if (c3_salt[1] == '5')
+	case '5':
 		return 5;
-	if (c3_salt[1] == '6')
+	case '6':
 		return 6;
+	case '7':
+		return 7;
+	case 'y':
+		return 10;
+	case 'g':
+		if (c3_salt[2] == 'y')
+			return 11;
+	}
 
 	return 0;
 }
-static unsigned int  c3_algorithm_specific_cost1(void *salt)
+
+static unsigned int c3_algorithm_specific_cost1(void *salt)
 {
 	unsigned int algorithm, rounds;
 	char *c3_salt;
 
 	c3_salt = salt;
-	algorithm =  c3_subformat_algorithm(salt);
+	algorithm = c3_subformat_algorithm(salt);
 
+	/* No tunable cost parameters, this makes cases 1 and 2 below dead code */
 	if (algorithm < 3)
-		/* no tunable cost parameters */
 		return 1;
 
 	switch (algorithm) {
@@ -706,6 +755,7 @@ static unsigned int  c3_algorithm_specific_cost1(void *salt)
 			sscanf(c3_salt, "rounds=%d", &rounds);
 			return rounds;
 	}
+
 	return 1;
 }
 
@@ -726,12 +776,8 @@ struct fmt_main fmt_crypt = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{
-			/*
-			 * use algorithm as first tunable cost:
-			 * (0: unknown)
-			 * descrypt, md5crypt, sunmd5, bcrypt, sha512crypt, sha256crypt
-			 */
-			"algorithm [1:descrypt 2:md5crypt 3:sunmd5 4:bcrypt 5:sha256crypt 6:sha512crypt]",
+			"algorithm [0:unknown 1:descrypt 2:md5crypt 3:sunmd5 4:bcrypt 5:sha256crypt 6:sha512crypt "
+				"7:scrypt 10:yescrypt 11:gost-yescrypt]",
 			"algorithm specific iterations",
 		},
 		{ NULL },

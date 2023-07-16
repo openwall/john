@@ -51,10 +51,6 @@
 #include "showformats.h"
 #include "mgetl.h"
 
-#ifdef HAVE_CRYPT
-extern struct fmt_main fmt_crypt;
-#endif
-
 /*
  * Jumbo may bump this at runtime
  */
@@ -97,6 +93,15 @@ static int single_skip_login;
 #endif
 
 static int jumbo_split_string;
+
+#ifdef HAVE_CRYPT
+extern struct fmt_main fmt_crypt;
+
+static int is_fmt_crypt_only(const char *ciphertext)
+{
+	return !strncmp(ciphertext, "$y$", 3) || !strncmp(ciphertext, "$gy$", 4);
+}
+#endif
 
 /*
  * There should be legislation against adding a BOM to UTF-8, not to
@@ -701,19 +706,8 @@ find_format:
 			if (alt->params.flags & FMT_WARNED)
 				continue;
 #ifdef HAVE_CRYPT
-#if 1 /* Jumbo has "all" crypt(3) formats implemented */
-			if (alt == &fmt_crypt)
+			if (alt == &fmt_crypt && !is_fmt_crypt_only(*ciphertext))
 				continue;
-#else
-			if (alt == &fmt_crypt &&
-#ifdef __sun
-			    strncmp(*ciphertext, "$md5$", 5) &&
-			    strncmp(*ciphertext, "$md5,", 5) &&
-#endif
-			    strncmp(*ciphertext, "$5$", 3) &&
-			    strncmp(*ciphertext, "$6$", 3))
-				continue;
-#endif
 #endif
 			prepared = alt->methods.prepare(fields, alt);
 			if (alt->methods.valid(prepared, alt)) {
@@ -749,20 +743,10 @@ find_format:
  * those that are only supported in that way.  Avoid the probe in other cases
  * because it may be slow and undesirable (false detection is possible).
  */
-#if 1 /* Jumbo has "all" crypt(3) formats implemented */
-		if (alt == &fmt_crypt && fmt_list != &fmt_crypt)
-			continue;
-#else
 		if (alt == &fmt_crypt &&
 		    fmt_list != &fmt_crypt /* not forced */ &&
-#ifdef __sun
-		    strncmp(*ciphertext, "$md5$", 5) &&
-		    strncmp(*ciphertext, "$md5,", 5) &&
-#endif
-		    strncmp(*ciphertext, "$5$", 3) &&
-		    strncmp(*ciphertext, "$6$", 3))
+		    !is_fmt_crypt_only(*ciphertext))
 			continue;
-#endif
 #endif
 
 		prepared = alt->methods.prepare(fields, alt);
