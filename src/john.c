@@ -1239,12 +1239,14 @@ static void john_load(void)
 		if (database.password_count && options.regen_lost_salts)
 			build_fake_salts_for_regen_lost(&database);
 
-		if (john_main_process && database.password_count < total)
-			printf("Cracked %d password hashes%s%s%s, use \"--show\"\n",
-			    total - database.password_count,
-			    loaded_extra_pots ? "" : " (are in ",
+		if (john_main_process && database.password_count < total) {
+			int count = total - database.password_count;
+			printf("Cracked %d password hash%s%s%s%s, use \"--show\"\n",
+			    count, count != 1 ? "es" : "",
+			    loaded_extra_pots ? "" : (count != 1 ? " (are in " : " (is in "),
 			    loaded_extra_pots ? "" : path_expand(options.activepot),
 			    loaded_extra_pots ? "" : ")");
+		}
 
 		if (!database.password_count) {
 			log_discard();
