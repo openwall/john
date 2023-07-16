@@ -91,14 +91,14 @@ static struct fmt_tests tests[] = {
 	{"F3WBOJKUyVWbnqtGZ2ur8uW0nqIBpObK#6043dd6dd3dd96699db8351b0db762af27a5db06169ec6668e9f464fcc3fdf1d7deafaccb67e5ef7f5ee96b2a5efad33a8af20eb19fe60d8b20e7994c76a0610", "0000000000"},
 	{"pfZzfOSVpQvuILYEIAeCT8Xnj7eQnR2w#ff80da7bbcdb11fd8bb282a80603ed34847d897701fd547d06f4438072ecd43058a3b7c0b3a296f7c5dbbf06beb3825d1eb7122f01ad78ef2afc5ab09c46ca45", "11111111111"},
 	/* mockup JWT hash */
-	{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEyMzQ1Njc4OTAsIm5hbWUiOiJKb2huIERvZSIsImFkbWluIjp0cnVlfQ.r7FDU+ahrbW0Wtsekh5UNqV2iyXGrQQaRZjdc8i733QIoTSIQM//FSGjP151C2ijvNUVo5syWOW+RpZc7khU1g", "magnum"},
+	{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEyMzQ1Njc4OTAsIm5hbWUiOiJKb2huIERvZSIsImFkbWluIjp0cnVlfQ.r7FDU-ahrbW0Wtsekh5UNqV2iyXGrQQaRZjdc8i733QIoTSIQM__FSGjP151C2ijvNUVo5syWOW-RpZc7khU1g", "magnum"},
 	{NULL}
 };
 static struct fmt_tests tests_384[] = {
 	{"what do ya want for nothing?#af45d2e376484031617f78d2b58a6b1b9c7ef464f5a01b47e42ec3736322445e8e2240ca5e69e2c78b3239ecfab21649", "Jefe"},
 	{"Beppe#Grillo#8361922C63506E53714F8A8491C6621A76CF0FD6DFEAD91BF59B420A23DFF2745C0A0D5E142D4F937E714EA8C228835B", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	/* mockup JWT hash */
-	{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEyMzQ1Njc4OTAsIm5hbWUiOiJKb2huIERvZSIsImFkbWluIjp0cnVlfQ.WNzjJCdDCTV3hLfsRy//hny9VzlaZXHFvoKSJXB5/rbKkXwE1Jve/DUirW7r5ztm", "magnum"},
+	{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEyMzQ1Njc4OTAsIm5hbWUiOiJKb2huIERvZSIsImFkbWluIjp0cnVlfQ.WNzjJCdDCTV3hLfsRy__hny9VzlaZXHFvoKSJXB5_rbKkXwE1Jve_DUirW7r5ztm", "magnum"},
 	{NULL}
 };
 
@@ -194,14 +194,13 @@ static void done(void)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self, const int B_LEN, const int CT_LEN)
 {
-	static char out[(BINARY_SIZE * 2 + 1) + (CIPHERTEXT_LENGTH + 1)];
+	static char out[(BINARY_SIZE * 2 + 1) + (CIPHERTEXT_LENGTH + 1) + 2];
 
 	if (strnlen(ciphertext, LINE_BUFFER_SIZE) < LINE_BUFFER_SIZE &&
 	    strstr(ciphertext, "$SOURCE_HASH$"))
 		return ciphertext;
 
-	if (!strchr(ciphertext, '#') && strchr(ciphertext, '.') &&
-	    strchr(ciphertext, '.') != strrchr(ciphertext, '.')) {
+	if (!strchr(ciphertext, '#')) {
 		// Treat this like a JWT hash. Convert into 'normal' hmac-sha512 format.
 		char buf[BINARY_SIZE * 2 + 1], tmp[CIPHERTEXT_LENGTH + 1], *cpi;
 
@@ -230,14 +229,31 @@ static char *split_384(char *ciphertext, int index, struct fmt_main *self) {
 	return split(ciphertext, index, self, BINARY_SIZE_384, CIPHERTEXT_LENGTH_384);
 }
 
+static int valid_jwt(const char *ciphertext, const int B_LEN)
+{
+	static const char * const base64url = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+	const char *p = ciphertext;
+	if (*p++ != 'e') /* Assume no whitespace before JSON's "{" */
+		return 0;
+	p += strspn(p, base64url);
+	if (*p++ != '.')
+		return 0;
+	p += strspn(p, base64url);
+	if (*p++ != '.')
+		return 0;
+	const int E_LEN = (B_LEN * 8 + 5) / 6;
+	if (strspn(p, base64url) != E_LEN)
+		return 0;
+	return !p[E_LEN];
+}
+
 static int valid(char *ciphertext, struct fmt_main *self, const int B_LEN, const int CT_LEN)
 {
-	int pos, i;
 	char *p;
+	int extra;
 
-	p = strrchr(ciphertext, '#'); // allow # in salt
-	if (!p && strchr(ciphertext, '.') &&
-	    strchr(ciphertext, '.') != strrchr(ciphertext, '.')) {
+	p = strrchr(ciphertext, '#'); /* search backwards to allow '#' in salt */
+	if (!p && valid_jwt(ciphertext, B_LEN)) {
 		if (strlen(ciphertext) > CT_LEN)
 			return 0;
 		ciphertext = split(ciphertext, 0, self, B_LEN, CT_LEN);
@@ -245,19 +261,10 @@ static int valid(char *ciphertext, struct fmt_main *self, const int B_LEN, const
 	}
 	if (!p)
 		return 0;
-	i = (int)(p - ciphertext);
-	if (i > SALT_LENGTH)
+	if (p - ciphertext > SALT_LENGTH)
 		return 0;
-	pos = i + 1;
-	if (strlen(ciphertext + pos) != B_LEN * 2)
+	if (hexlen(++p, &extra) != B_LEN * 2 || extra)
 		return 0;
-	for (i = pos; i < B_LEN * 2 + pos; i++)
-	{
-		if (!(  (('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
-		        (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
-		        || (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
-			return 0;
-	}
 	return 1;
 }
 static int valid_512(char *ciphertext, struct fmt_main *self) {
