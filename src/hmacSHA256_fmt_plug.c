@@ -80,8 +80,11 @@ static struct fmt_tests tests[] = {
 	{"#b613679a0814d9ec772f95d778c35fc5ff1697c493715653c6c712144292c5ad", ""},
 	{"Beppe#Grillo#14651BA87C7F7DA88BCE0DF1F89C223975AC0FDF9C35378CB0857A81DFD5C408", "Io credo nella reincarnazione e sono di Genova; per cui ho fatto testamento e mi sono lasciato tutto a me."},
 	{"jquYnUyWT5NsbvjQDZXyCxMJB6PryALZdYOZ1bEuagcUmYcbqpx5vOvpxj7VEhqW7OIzHR2O9JLDKrhuDfZxQk9jOENQb4OzEkRZmN8czdGdo7nshdYU1zcdoDGVb3YTCbjeZvazi#c8b4b8a7888787eebca16099fd076092269919bb032bfec48eed7f41d42eba9a", "magnum"},
-	// JWT hash.
-	{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEyMzQ1Njc4OTAsIm5hbWUiOiJKb2huIERvZSIsImFkbWluIjp0cnVlfQ.eoaDVGTClRdfxUZXiPs3f8FmJDkDE_VCQFXqKxpLsts", "secret" },
+	/* JWT hashes */
+	{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjEyMzQ1Njc4OTAsIm5hbWUiOiJKb2huIERvZSIsImFkbWluIjp0cnVlfQ.eoaDVGTClRdfxUZXiPs3f8FmJDkDE_VCQFXqKxpLsts", "secret"},
+	{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWV9.TJVA95OrM7E2cBab30RMHrHDcEfxjoYZgeFONFh7HgQ", "secret"},
+	{"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2dnZWRJbkFzIjoiYWRtaW4iLCJpYXQiOjE0MjI3Nzk2Mzh9.gzSraSYS8EXBxLN_oWnFSRgCzcmJmMjLiuyu5CSpyHI", "secretkey"},
+	{"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MjQyIiwibmFtZSI6Ikplc3NpY2EgVGVtcG9yYWwiLCJuaWNrbmFtZSI6Ikplc3MifQ.EDkUUxaM439gWLsQ8a8mJWIvQtgZe0et3O3z4Fd_J8o", "my_super_secret"},
 #ifndef SIMD_COEF_32
 	{"12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012#ff504b06ee64f3ba7fe503496b451cf46ee34109a62d55cd4bf4f38077ee8145","1234567890" },
 	{"012345678901234567890123456789012345678901234567890123456789#6ec69f97e81e58b4a28ee13537c84df316cf8a6250e932de1d375e72843b8f9c", "123456"},
@@ -187,14 +190,13 @@ static void done(void)
 
 static char *split(char *ciphertext, int index, struct fmt_main *self, const int B_LEN, const int CT_LEN)
 {
-	static char out[(BINARY_SIZE * 2 + 1) + (CIPHERTEXT_LENGTH + 1)];
+	static char out[(BINARY_SIZE * 2 + 1) + (CIPHERTEXT_LENGTH + 1) + 2];
 
 	if (strnlen(ciphertext, LINE_BUFFER_SIZE) < LINE_BUFFER_SIZE &&
 	    strstr(ciphertext, "$SOURCE_HASH$"))
 		return ciphertext;
 
-	if (!strchr(ciphertext, '#') && strchr(ciphertext, '.') &&
-	    strchr(ciphertext, '.') != strrchr(ciphertext, '.')) {
+	if (!strchr(ciphertext, '#')) {
 		// Treat this like a JWT hash. Convert into 'normal' hmac-sha256 format.
 		char buf[BINARY_SIZE * 2 + 1], tmp[CIPHERTEXT_LENGTH + 1], *cpi;
 
@@ -224,14 +226,31 @@ static char *split_224(char *ciphertext, int index, struct fmt_main *self) {
 	return split(ciphertext, index, self, BINARY_SIZE_224, CIPHERTEXT_LENGTH_224);
 }
 
+static int valid_jwt(const char *ciphertext, const int B_LEN)
+{
+	static const char * const base64url = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+	const char *p = ciphertext;
+	if (*p++ != 'e') /* Assume no whitespace before JSON's "{" */
+		return 0;
+	p += strspn(p, base64url);
+	if (*p++ != '.')
+		return 0;
+	p += strspn(p, base64url);
+	if (*p++ != '.')
+		return 0;
+	const int E_LEN = (B_LEN * 8 + 5) / 6;
+	if (strspn(p, base64url) != E_LEN)
+		return 0;
+	return !p[E_LEN];
+}
+
 static int valid(char *ciphertext, struct fmt_main *self, const int B_LEN, const int CT_LEN)
 {
-	int pos, i;
 	char *p;
+	int extra;
 
-	p = strrchr(ciphertext, '#'); // allow # in salt
-	if (!p && strchr(ciphertext, '.') &&
-	    strchr(ciphertext, '.') != strrchr(ciphertext, '.')) {
+	p = strrchr(ciphertext, '#'); /* search backwards to allow '#' in salt */
+	if (!p && valid_jwt(ciphertext, B_LEN)) {
 		if (strlen(ciphertext) > CT_LEN)
 			return 0;
 		ciphertext = split(ciphertext, 0, self, B_LEN, CT_LEN);
@@ -239,19 +258,10 @@ static int valid(char *ciphertext, struct fmt_main *self, const int B_LEN, const
 	}
 	if (!p)
 		return 0;
-	i = (int)(p - ciphertext);
-	if (i > SALT_LENGTH)
+	if (p - ciphertext > SALT_LENGTH)
 		return 0;
-	pos = i + 1;
-	if (strlen(ciphertext + pos) != B_LEN * 2)
+	if (hexlen(++p, &extra) != B_LEN * 2 || extra)
 		return 0;
-	for (i = pos; i < B_LEN * 2 + pos; i++)
-	{
-		if (!(  (('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
-		        (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
-		        || (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
-			return 0;
-	}
 	return 1;
 }
 
