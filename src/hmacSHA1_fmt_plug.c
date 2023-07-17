@@ -162,26 +162,20 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	int pos, i;
 	char *p;
+	int extra;
 
-	p = strrchr(ciphertext, '#'); // allow # in salt
-	if (!p) return 0;
-	i = (int)(p - ciphertext);
+	p = strrchr(ciphertext, '#'); /* search backwards to allow '#' in salt */
+	if (!p)
+		return 0;
+	if (p - ciphertext > SALT_LENGTH)
+		return 0;
 #if SIMD_COEF_32
-	if (i > 55) return 0;
-#else
-	if (i > SALT_LENGTH) return 0;
+	if (p - ciphertext > 55)
+		return 0;
 #endif
-	pos = i + 1;
-	if (strlen(ciphertext+pos) != BINARY_SIZE * 2) return 0;
-	for (i = pos; i < BINARY_SIZE*2+pos; i++)
-	{
-		if (!((('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
-		        (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
-		        || (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
-			return 0;
-	}
+	if (hexlen(++p, &extra) != BINARY_SIZE * 2 || extra)
+		return 0;
 	return 1;
 }
 
