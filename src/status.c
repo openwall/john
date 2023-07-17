@@ -238,16 +238,15 @@ static char *status_get_ETA(double percent, unsigned int secs_done)
 }
 
 #if defined(HAVE_OPENCL)
-static void status_print_cracking(double percent, char *gpustat)
+static void status_print_cracking(char *p, double percent, char *gpustat)
 #else
-static void status_print_cracking(double percent)
+static void status_print_cracking(char *p, double percent)
 #endif
 {
 	unsigned int time = status_get_time();
 	char *key1, key2[PLAINTEXT_BUFFER_SIZE];
 	char t1buf[PLAINTEXT_BUFFER_SIZE + 1];
 	char s_gps[32], s_pps[32], s_crypts_ps[32], s_combs_ps[32];
-	char s[1024], *p;
 	char sc[32];
 	int n;
 	char progress_string[128];
@@ -271,7 +270,6 @@ static void status_print_cracking(double percent)
 		}
 	}
 
-	p = s;
 #ifndef HAVE_MPI
 	if (options.fork) {
 #else
@@ -337,7 +335,7 @@ static void status_print_cracking(double percent)
 		status_update_counts();
 	}
 
-	fwrite(s, p - s, 1, stderr);
+	*p = 0;
 }
 
 static char *status_get_c(char *buffer, uint64_t c, unsigned int c_ehi)
@@ -356,7 +354,7 @@ static char *status_get_c(char *buffer, uint64_t c, unsigned int c_ehi)
 	return p;
 }
 
-static void status_print_stdout(double percent)
+static void status_print_stdout(char *p, double percent)
 {
 	unsigned int time = status_get_time();
 	char *key;
@@ -366,7 +364,7 @@ static void status_print_stdout(double percent)
 	if (!(options.flags & FLG_STATUS_CHK) && status.cands)
 		key = crk_get_key1();
 
-	fprintf(stderr,
+	sprintf(p,
 	    "%sp %u:%02u:%02u:%02u %.02f%%%s %sp/s%s%s\n",
 	    status_get_c(s_p, status.cands, 0),
 	    time / 86400, time % 86400 / 3600, time % 3600 / 60, time % 60,
@@ -443,17 +441,20 @@ void status_print(int level)
 	if (status_get_progress)
 		percent_value = status_get_progress();
 
+	char s_line[1024];
 	if (options.flags & FLG_STDOUT)
-		status_print_stdout(percent_value);
+		status_print_stdout(s_line, percent_value);
 	else
 #if defined(HAVE_OPENCL)
-		status_print_cracking(percent_value, s_gpu);
+		status_print_cracking(s_line, percent_value, s_gpu);
 #else
-		status_print_cracking(percent_value);
+		status_print_cracking(s_line, percent_value);
 #endif
 
-	if (level < 2)
+	if (level < 2) {
+		fputs(s_line, stderr);
 		return;
+	}
 
 	static struct status_main prev;
 	static double prev_time;
@@ -476,6 +477,7 @@ void status_print(int level)
 	else
 		suppressor_time -= status.suppressor_start_time;
 	fprintf(stderr,
+	    "%s"
 	    "Remaining hashes    %u (%u removed)\n"
 	    "Remaining salts     %u (%u removed)\n"
 	    "Time in seconds     %.2f (%.2f new)\n"
@@ -487,6 +489,7 @@ void status_print(int level)
 	    "    out of total    %llu (%s p/s)\n"
 	    "Hash computations   %llu (%llu new, %s c/s)\n"
 	    "Hash combinations   %s (%s new, %s C/s)\n",
+	    s_line,
 	    status.password_count, prev.password_count ? prev.password_count - status.password_count : 0,
 	    status.salt_count, prev.salt_count ? prev.salt_count - status.salt_count : 0,
 	    time, new_time,
