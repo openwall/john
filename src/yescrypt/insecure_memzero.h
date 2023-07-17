@@ -27,9 +27,6 @@
 #ifndef _INSECURE_MEMZERO_H_
 #define _INSECURE_MEMZERO_H_
 
-/* Force SKIP_MEMZERO for use in JtR */
-#define SKIP_MEMZERO
-
 #ifdef SKIP_MEMZERO
 #define insecure_memzero(buf, len) /* empty */
 #else
