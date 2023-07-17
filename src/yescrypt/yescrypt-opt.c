@@ -28,12 +28,16 @@
  * online backup system.
  */
 
+/* JtR hack: don't use OpenMP inside (ye)scrypt */
+#undef _OPENMP
+
 /*
  * AVX and especially XOP speed up Salsa20 a lot, but this mostly matters for
  * classic scrypt and for YESCRYPT_WORM (which use 8 rounds of Salsa20 per
  * sub-block), and much less so for YESCRYPT_RW (which uses 2 rounds of Salsa20
  * per block except during pwxform S-box initialization).
  */
+#if 0 /* JtR hack */
 #ifdef __XOP__
 #warning "Note: XOP is enabled.  That's great."
 #elif defined(__AVX__)
@@ -44,6 +48,7 @@
 #warning "SSE2 not enabled.  Expect poor performance."
 #else
 #warning "Note: building generic code for non-x86.  That's OK."
+#endif
 #endif
 
 /*
@@ -508,7 +513,9 @@ static volatile uint64_t Smask2var = Smask2;
 /* 64-bit without AVX.  This relies on out-of-order execution and register
  * renaming.  It may actually be fastest on CPUs with AVX(2) as well - e.g.,
  * it runs great on Haswell. */
+#if 0 /* JtR hack */
 #warning "Note: using x86-64 inline assembly for YESCRYPT_RW.  That's great."
+#endif
 /* We need a compiler memory barrier between sub-blocks to ensure that none of
  * the writes into what was S2 during processing of the previous sub-block are
  * postponed until after a read from S0 or S1 in the inline asm code below. */
