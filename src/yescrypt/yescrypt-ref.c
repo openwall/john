@@ -830,7 +830,7 @@ int yescrypt_init_shared(yescrypt_shared_t *shared,
 	N /= 2;
 
 	if (yescrypt_kdf_body(NULL, &half1,
-	    seed, seedlen, (uint8_t *)"yescrypt-ROMhash", 16,
+	    seed, seedlen, (const uint8_t *)"yescrypt-ROMhash", 16,
 	    flags | YESCRYPT_INIT_SHARED, N, r, p, t, 0,
 	    salt, sizeof(salt)))
 		goto fail;

@@ -493,7 +493,7 @@ uint8_t *yescrypt_reencrypt(uint8_t *hash,
 	uint8_t *retval = NULL, *saltstart, *hashstart;
 	const uint8_t *hashend;
 	unsigned char saltbin[64], hashbin[32];
-	size_t saltstrlen, saltlen, hashlen;
+	size_t saltstrlen, saltlen = 0, hashlen;
 
 	if (strncmp((char *)hash, "$y$", 3))
 		return NULL;

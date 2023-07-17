@@ -1,6 +1,6 @@
 /*-
  * Copyright 2005-2016 Colin Percival
- * Copyright 2016-2018 Alexander Peslyak
+ * Copyright 2016-2018,2021 Alexander Peslyak
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -101,7 +101,11 @@ static const uint32_t Krnd[64] = {
 
 /* Elementary functions used by SHA256 */
 #define Ch(x, y, z)	((x & (y ^ z)) ^ z)
-#define Maj(x, y, z)	((x & (y | z)) | (y & z))
+#if 1 /* Explicit caching/reuse of common subexpression between rounds */
+#define Maj(x, y, z)	(y ^ ((x_xor_y = x ^ y) & y_xor_z))
+#else /* Let the compiler cache/reuse or not */
+#define Maj(x, y, z)	(y ^ ((x ^ y) & (y ^ z)))
+#endif
 #define SHR(x, n)	(x >> n)
 #define ROTR(x, n)	((x >> n) | (x << (32 - n)))
 #define S0(x)		(ROTR(x, 2) ^ ROTR(x, 13) ^ ROTR(x, 22))
@@ -113,7 +117,8 @@ static const uint32_t Krnd[64] = {
 #define RND(a, b, c, d, e, f, g, h, k)			\
 	h += S1(e) + Ch(e, f, g) + k;			\
 	d += h;						\
-	h += S0(a) + Maj(a, b, c);
+	h += S0(a) + Maj(a, b, c);			\
+	y_xor_z = x_xor_y;
 
 /* Adjusted round function for rotating state */
 #define RNDr(S, W, i, ii)			\
@@ -146,6 +151,7 @@ SHA256_Transform(uint32_t state[static restrict 8],
 
 	/* 3. Mix. */
 	for (i = 0; i < 64; i += 16) {
+		uint32_t x_xor_y, y_xor_z = S[(65 - i) % 8] ^ S[(66 - i) % 8];
 		RNDr(S, W, 0, i);
 		RNDr(S, W, 1, i);
 		RNDr(S, W, 2, i);

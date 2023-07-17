@@ -1,4 +1,11 @@
-	Changes made between 1.0.3 (2018/06/13) and 1.1.x (TBD).
+	Changes made since 1.1.0 (2019/06/30).
+
+Implemented a little-known SHA-2 Maj() optimization proposed by Wei Dai.
+
+Minor code cleanups and documentation updates.
+
+
+	Changes made between 1.0.3 (2018/06/13) and 1.1.0 (2019/06/30).
 
 Merged yescrypt-opt.c and yescrypt-simd.c into one source file, which is
 a closer match to -simd but is called -opt (and -simd is now gone).
@@ -9,6 +16,8 @@ architectures (this shortcoming may be addressed later).  This also
 happens to make SSE prefetch available even in otherwise-scalar builds
 and it paves the way for adding SIMD support on big-endian architectures
 (previously, -simd assumed little-endian).
+
+Added x32 ABI support (x86-64 with 32-bit pointers).
 
 
 	Changes made between 1.0.2 (2018/06/06) and 1.0.3 (2018/06/13).

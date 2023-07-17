@@ -314,7 +314,7 @@ int main(void)
 		rom_bytes = (uint64_t)r << (7 + NROM_log2);
 
 		N_log2 = 0;
-		while ((r << (7 + N_log2)) < ram_bytes)
+		while (((uint64_t)r << (7 + N_log2)) < ram_bytes)
 			N_log2++;
 		ram_bytes = (uint64_t)r << (7 + N_log2);
 
@@ -329,7 +329,7 @@ int main(void)
 		yescrypt_params_t rom_params = { YESCRYPT_DEFAULTS,
 		    0, r, YESCRYPT_PROM, 0, 0, (uint64_t)1 << NROM_log2 };
 		if (yescrypt_init_shared(&shared,
-		    (uint8_t *)"local param", 12, &rom_params)) {
+		    (const uint8_t *)"local param", 12, &rom_params)) {
 			puts(" FAILED");
 			return 1;
 		}
@@ -369,7 +369,7 @@ int main(void)
 		fflush(stdout);
 		rom_params.flags |= YESCRYPT_SHARED_PREALLOCATED;
 		if (yescrypt_init_shared(&shared,
-		    (uint8_t *)"local param", 12, &rom_params)) {
+		    (const uint8_t *)"local param", 12, &rom_params)) {
 			puts(" FAILED");
 			return 1;
 		}
