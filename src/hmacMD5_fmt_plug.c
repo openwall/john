@@ -233,8 +233,8 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	int pos, i;
 	char *p;
+	int extra;
 
 	if (!strncmp(ciphertext, "$cram_md5$", 10)) {
 		char *f[10];
@@ -242,25 +242,13 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		ciphertext = prepare(f, self);
 	}
 
-	p = strrchr(ciphertext, '#'); // allow # in salt
+	p = strrchr(ciphertext, '#'); /* search backwards to allow '#' in salt */
 	if (!p)
 		return 0;
-
-	i = (int)(p - ciphertext);
-	if (i > SALT_LENGTH)
+	if (p - ciphertext > SALT_LENGTH)
 		return 0;
-
-	pos = i + 1;
-	if (strlen(ciphertext+pos) != BINARY_SIZE * 2)
+	if (hexlen(++p, &extra) != BINARY_SIZE * 2 || extra)
 		return 0;
-
-	for (i = pos; i < BINARY_SIZE*2+pos; i++) {
-		if (!((('0' <= ciphertext[i])&&(ciphertext[i] <= '9')) ||
-		      (('a' <= ciphertext[i])&&(ciphertext[i] <= 'f'))
-		      || (('A' <= ciphertext[i])&&(ciphertext[i] <= 'F'))))
-			return 0;
-	}
-
 	return 1;
 }
 
