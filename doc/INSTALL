@@ -176,9 +176,9 @@ that probably work fine but these instructions are for "Homebrew":
   5. Configure, possibly adding a CC option for pointing to a specific gcc and
      using whatever LDFLAGS and CPPFLAGS was recommended when you installed
      Homebrew's OpenSSL:
-        ./configure CC="/opt/homebrew/bin/gcc-10" \
-          LDFLAGS="-L/opt/homebrew/opt/openssl/lib" \
-          CPPFLAGS="-I/opt/homebrew/opt/openssl/include"
+        ./configure CC="/usr/local/bin/gcc-13" \
+          LDFLAGS="-L/usr/local/opt/openssl/lib " \
+          CPPFLAGS="-I/usr/local/opt/openssl/include"
   6. Clean old files and make:
         make -s clean && make -sj4
 
