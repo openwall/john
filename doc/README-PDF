@@ -1,10 +1,12 @@
 Cracking PDF files with JtR
 ---------------------------
 
-1. Run pdf2john.pl on the .pdf file(s).
+You can use pdf2john.py (Python) or pdf2john.pl (Perl)
 
-E.g. $ ../run/pdf2john.pl test.pdf > hashes
+1. Run pdf2john.py on the .pdf file(s).
 
-2. Run john on the output of pdf2john.pl program.
+E.g. $ ../run/pdf2john.py test.pdf > hashes
+
+2. Run john on the output of pdf2john.py program.
 
 E.g. $ ../run/john hashes

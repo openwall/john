@@ -307,6 +307,8 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Added shell.nix with opencl support on AMD and Intel. [lambdajack; 2023]
 
+- Added modern, overhauled version of pdf2john.py. [benjamin-awd; 2023]
+
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
 - Updated to 1.9.0 core, which brought the following relevant major changes:
