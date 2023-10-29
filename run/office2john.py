@@ -2952,14 +2952,14 @@ def xml_metadata_parser(data, filename):
         if PY3:
             encryptedVerifierHashValue = binascii.hexlify(base64.decodebytes(encryptedVerifierHashValue.encode()))
         else:
-            encryptedVerifierHashValue = binascii.hexlify(base64.decodestring(encryptedVerifierHashValue.encode()))
+            encryptedVerifierHashValue = binascii.hexlify(base64.decodebytes(encryptedVerifierHashValue.encode()))
 
         if PY3:
             saltAscii = binascii.hexlify(base64.decodebytes(saltValue.encode())).decode("ascii")
             encryptedVerifierHashAscii = binascii.hexlify(base64.decodebytes(encryptedVerifierHashInput.encode())).decode("ascii")
         else:
-            saltAscii = binascii.hexlify(base64.decodestring(saltValue.encode())).decode("ascii")
-            encryptedVerifierHashAscii = binascii.hexlify(base64.decodestring(encryptedVerifierHashInput.encode())).decode("ascii")
+            saltAscii = binascii.hexlify(base64.decodebytes(saltValue.encode())).decode("ascii")
+            encryptedVerifierHashAscii = binascii.hexlify(base64.decodebytes(encryptedVerifierHashInput.encode())).decode("ascii")
 
         sys.stdout.write("%s:$office$*%d*%d*%d*%d*%s*%s*%s\n" % \
             (os.path.basename(filename), version,
