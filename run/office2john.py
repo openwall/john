@@ -2921,7 +2921,7 @@ def xml_metadata_parser(data, filename):
     tree = ElementTree()
     tree.parse(data)
 
-    tree_iter = tree.iter if hasattr(ElementTree, 'iter') else tree.getiterator
+    tree_iter = tree.iter if hasattr(ElementTree, 'iter') else tree.iter
     for node in tree_iter('{http://schemas.microsoft.com/office/2006/keyEncryptor/password}encryptedKey'):
         spinCount = node.attrib.get("spinCount")
         assert(spinCount)
