@@ -168,15 +168,15 @@ int process_encrypted_image(char *image_path)
 	FRET_CHECK(ret)
 
 	for (j = 0; j < fileLen; j++) {
-		c = fgetc(fp_eimg);
-		while (i < 8 && (unsigned char)c == signature[i]) {
+		for (i = 0; i < 8; i++) {
 			c = fgetc(fp_eimg);
-			i++;
+			if (c != signature[i])
+				break;
 		}
 		if (i == 8) {
 			match = 1;
-			fprintf(stderr, "\nSignature found at 0x%llx\n", (unsigned long long)(jtr_ftell64(fp_eimg) - i - 1));
-			ret = jtr_fseek64(fp_eimg, 1, SEEK_CUR);
+			fprintf(stderr, "\nSignature found at 0x%llx\n", (unsigned long long)(jtr_ftell64(fp_eimg) - i));
+			ret = jtr_fseek64(fp_eimg, 2, SEEK_CUR);
 			version = fgetc(fp_eimg);
 			fprintf(stderr, "Version: %d ", version);
 			if (version == 1)
@@ -187,21 +187,21 @@ int process_encrypted_image(char *image_path)
 				fprintf(stderr, "\nInvalid version, looking for a signature with valid version...\n");
 				match = 0;
 			}
-		}
-		if (match == 0) {
-			i = 0;
 			continue;
 		}
+		if (match == 0)
+			continue;
 
-		i = 0;
-		while (i < 4 && (unsigned char)c == vmk_entry[i]) {
-			c = fgetc(fp_eimg);
-			i++;
+		for (i = 0; i < 4; i++) {
+			if (i)
+				c = fgetc(fp_eimg);
+			if (c != vmk_entry[i])
+				break;
 		}
 
 		if (i == 4) {
 			fprintf(stderr, "\nVMK entry found at 0x%llx\n", (unsigned long long)(jtr_ftell64(fp_eimg) - i));
-			ret = jtr_fseek64(fp_eimg, 27, SEEK_CUR);
+			ret = jtr_fseek64(fp_eimg, 28, SEEK_CUR);
 			FRET_CHECK(ret)
 			c = (unsigned char)fgetc(fp_eimg);
 			d = (unsigned char)fgetc(fp_eimg);
@@ -220,7 +220,6 @@ int process_encrypted_image(char *image_path)
 				rp_search_salt_aes();
 				if (found_ccm == 0) {
 					match = 0;
-					i = 0;
 					continue;
 				}
 
@@ -251,7 +250,6 @@ int process_encrypted_image(char *image_path)
 				if (((unsigned char)fgetc(fp_eimg) != value_type[0]) || ((unsigned char)fgetc(fp_eimg) != value_type[1])) {
 					fprintf(stderr, "Error: VMK not encrypted with AES-CCM\n");
 					match = 0;
-					i = 0;
 					continue;
 				} else
 					fprintf(stderr, "VMK encrypted with AES-CCM\n");
@@ -277,8 +275,6 @@ int process_encrypted_image(char *image_path)
 					break;
 			}
 		}
-
-		i = 0;
 	}
 
 	fclose(fp_eimg);
