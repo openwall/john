@@ -174,7 +174,7 @@ int process_encrypted_image(char *image_path)
 				break;
 		}
 		if (i == 8) {
-			match = 1;
+			match = 0x400; /* Search at least this many bytes for VMK entries */
 			fprintf(stderr, "\nSignature found at 0x%llx\n", (unsigned long long)(jtr_ftell64(fp_eimg) - i));
 			ret = jtr_fseek64(fp_eimg, 2, SEEK_CUR);
 			version = fgetc(fp_eimg);
@@ -189,12 +189,15 @@ int process_encrypted_image(char *image_path)
 			}
 			continue;
 		}
-		if (match == 0)
+		if (match <= 0)
 			continue;
+		match -= i + 1;
 
 		for (i = 0; i < 4; i++) {
-			if (i)
+			if (i) {
 				c = fgetc(fp_eimg);
+				match--;
+			}
 			if (c != vmk_entry[i])
 				break;
 		}
@@ -218,10 +221,8 @@ int process_encrypted_image(char *image_path)
 			else if ((c == key_protection_recovery[0]) && (d == key_protection_recovery[1]) && recoveryPasswordFound == 0) {
 				fprintf(stderr, "\nVMK encrypted with Recovery Password found at 0x%llx\n", (unsigned long long)fp_before_salt);
 				rp_search_salt_aes();
-				if (found_ccm == 0) {
-					match = 0;
+				if (found_ccm == 0)
 					continue;
-				}
 
 				fillBuffer(fp_eimg, r_nonce, NONCE_SIZE);
 				fprintf(stdout, "RP Nonce: ");
@@ -249,7 +250,6 @@ int process_encrypted_image(char *image_path)
 				FRET_CHECK(ret)
 				if (((unsigned char)fgetc(fp_eimg) != value_type[0]) || ((unsigned char)fgetc(fp_eimg) != value_type[1])) {
 					fprintf(stderr, "Error: VMK not encrypted with AES-CCM\n");
-					match = 0;
 					continue;
 				} else
 					fprintf(stderr, "VMK encrypted with AES-CCM\n");
