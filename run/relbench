@@ -1,8 +1,8 @@
 #!/usr/bin/env perl
 #
-# John the Ripper benchmark output comparison tool, revision 4.1
+# John the Ripper benchmark output comparison tool
 # Copyright (c) 2011 Solar Designer
-# Enhancements for revision 4.1, copyright (c) 2012 Frank Dittrich
+# Enhancements copyright (c) 2012 Frank Dittrich
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
 # There's ABSOLUTELY NO WARRANTY, express or implied.
@@ -258,8 +258,8 @@ exit unless ($n);
 printf "Minimum:\t\t\t%.5f real, %.5f virtual\n", $minr, $minv;
 printf "Maximum:\t\t\t%.5f real, %.5f virtual\n", $maxr, $maxv;
 
-@akr = sort @akr;
-@akv = sort @akv;
+@akr = sort {$a <=> $b} @akr;
+@akv = sort {$a <=> $b} @akv;
 if ($n & 1) {
 	$medr = $akr[($n - 1) / 2];
 	$medv = $akv[($n - 1) / 2];
@@ -281,8 +281,8 @@ for ($i = 0; $i < $n; $i++) {
 $dr = exp(($dr / $n) ** 0.5);
 $dv = exp(($dv / $n) ** 0.5);
 
-@adr = sort @adr;
-@adv = sort @adv;
+@adr = sort {$a <=> $b} @adr;
+@adv = sort {$a <=> $b} @adv;
 if ($n & 1) {
 	$madr = $adr[($n - 1) / 2];
 	$madv = $adv[($n - 1) / 2];
