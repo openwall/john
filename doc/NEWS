@@ -303,11 +303,14 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Add Coinomi wallet support (coinomi2john.py).  [Solar; 2023]
 
+- Add Keplr wallet support (format, keplr2john.py).  [Alain Espinosa; 2023]
+
 - Added krb5tgs-sha1[-opencl] formats for etypes 17 and 18.  [magnum; 2023]
 
-- Added shell.nix with opencl support on AMD and Intel. [lambdajack; 2023]
+- Added shell.nix with opencl support on AMD and Intel.  [lambdajack; 2023]
 
-- Added modern, overhauled version of pdf2john.py. [benjamin-awd; 2023]
+- Added modern, overhauled version of pdf2john.py.a  [benjamin-awd; 2023]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
