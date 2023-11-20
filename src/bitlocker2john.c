@@ -94,7 +94,8 @@ static void print_hex(unsigned char *str, int len, FILE *out)
 static int rp_search_salt_aes(void)
 {
 	uint8_t a,b;
-	int ret = 0, x, y;
+	int64_t ret;
+	int x, y;
 
 	for (x = 0; x < 2; x++) {
 		ret = jtr_fseek64(fp_eimg, salt_pos[x], SEEK_CUR);
@@ -147,8 +148,8 @@ static int rp_search_salt_aes(void)
 
 int process_encrypted_image(char *image_path)
 {
-	int64_t fileLen = 0, j = 0;
-	int version = 0, i = 0, match = 0, ret = 0;
+	int64_t fileLen = 0, j = 0, ret;
+	int version = 0, i = 0, match = 0;
 	unsigned char c,d;
 
 	fp_eimg = fopen(image_path, "r");
