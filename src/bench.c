@@ -903,7 +903,6 @@ AGAIN:
 				if (format->methods.tunable_cost_value[i] == NULL) {
 					printf("FAILED (cost %d not defined for format)\n\n", i);
 					failed++;
-					format->methods.done();
 					goto next;
 				}
 
@@ -927,7 +926,6 @@ AGAIN:
 		if (pruned && !format->params.tests->ciphertext) {
 			printf("FAILED (--cost pruned all %d test vectors)\n\n", pruned);
 			failed++;
-			format->methods.done();
 			goto next;
 		}
 
@@ -941,7 +939,6 @@ AGAIN:
 		if ((result = benchmark_format(format, salts, &results_m, test_db))) {
 			puts(result);
 			failed++;
-			format->methods.done();
 			goto next;
 		}
 #if HAVE_OPENCL
