@@ -48,7 +48,6 @@
 #define NOT_OPTIMIZED
 #endif
 
-static int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen);
 
 /***************Instance and Position constructors**********/
 void argon2_init_block_value(block *b, uint8_t in) {
@@ -486,9 +485,39 @@ int argon2_initialize(argon2_instance_t *instance, argon2_context *context) {
 
     return ARGON2_OK;
 }
+int opencl_argon2_initialize(argon2_context *context, argon2_type type) {
+    
+    if (context == NULL)
+        return ARGON2_INCORRECT_PARAMETER;
+
+    /* 2. Initial hashing */
+    /* H_0 + 8 extra bytes to produce the first blocks */
+    /* Hashing all inputs */
+    uint8_t blockhash[ARGON2_PREHASH_SEED_LENGTH];
+    argon2_initial_hash(blockhash, context, type);
+
+    /* 3. Creating first blocks, we always have at least two blocks in a slice */
+    //fill_first_blocks(blockhash, instance);
+    uint32_t l;
+    /* Make the first and second block in each lane as G(H0||i||0) or G(H0||i||1) */
+    uint8_t blockhash_bytes[ARGON2_BLOCK_SIZE];
+    for (l = 0; l < context->lanes; ++l) {
+
+        store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH, 0);
+        store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH + 4, l);
+        blake2b_long(blockhash_bytes, ARGON2_BLOCK_SIZE, blockhash, ARGON2_PREHASH_SEED_LENGTH);
+        load_block(((block*)context->memory) + l, blockhash_bytes);// Different than 'fill_first_blocks(blockhash, instance)'
+
+        store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH, 1);
+        blake2b_long(blockhash_bytes, ARGON2_BLOCK_SIZE, blockhash, ARGON2_PREHASH_SEED_LENGTH);
+        load_block(((block*)context->memory) + l + context->lanes, blockhash_bytes);// Different than 'fill_first_blocks(blockhash, instance)'
+    }
+
+    return ARGON2_OK;
+}
 
 
-static int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen) {
+int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen) {
     uint8_t *out = (uint8_t *)pout;
     blake2b_state blake_state;
     uint8_t outlen_bytes[sizeof(uint32_t)] = {0};

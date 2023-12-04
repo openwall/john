@@ -300,6 +300,8 @@ int argon2_decode_string(argon2_context *ctx, const char *str, argon2_type type)
 
     if (type == Argon2_i)
         CC("$argon2i");
+    else if (type == Argon2_id)
+        CC("$argon2id");
     else if (type == Argon2_d)
         CC("$argon2d");
     else

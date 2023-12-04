@@ -109,3 +109,4 @@ dict
 dict/
 /.vs/JohnTheRipper/v16/.suo
 /.vs
+src/.vscode/
