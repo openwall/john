@@ -142,6 +142,11 @@ int argon2_validate_inputs(const argon2_context *context);
  * will be modified if successful.
  */
 int argon2_initialize(argon2_instance_t *instance, argon2_context *context);
+/// @brief Similar to 'argon2_initialize' but save data to a buffer memory instead to the MEMORY
+/// @param context The argon2 context
+/// @param type The argon2 type
+/// @return If sucessfull or not
+int opencl_argon2_initialize(argon2_context *context, argon2_type type);
 
 /*
  * XORing the last block of each lane, hashing it, making the tag. Deallocates
@@ -155,6 +160,7 @@ int argon2_initialize(argon2_instance_t *instance, argon2_context *context);
  * deallocates memory
  */
 void argon2_finalize(const argon2_context *context, argon2_instance_t *instance);
+int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen);
 
 /*
  * Function that fills the segment using previous segments also from other
