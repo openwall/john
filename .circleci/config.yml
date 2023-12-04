@@ -34,7 +34,7 @@ jobs:
   no-plugs:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:opencl
+      - image: claudioandre/john:opencl18
         environment:
           OMP_NUM_THREADS: 2
           PLUGS: "none"
@@ -52,7 +52,7 @@ jobs:
   encoding-opencl:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:opencl
+      - image: claudioandre/john:opencl18
         environment:
           OMP_NUM_THREADS: 2
           ENCODING_TEST: "opencl"
