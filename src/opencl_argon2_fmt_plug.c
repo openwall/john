@@ -55,7 +55,7 @@ static struct fmt_tests tests[] = {
 	{"$argon2i$v=19$m=4096,t=3,p=1$ZGFtYWdlX2RvbmU$N59QwnpxDQZRj1/cO6bqm408dD6Z2Z9LKYpwFJSPVKA", "password"},
 	{"$argon2d$v=19$m=4096,t=3,p=1$c2hvcnRfc2FsdA$zMrTcOAOUje6UqObRVh84Pe1K6gumcDqqGzRM0ILzYmj", "sacrificed"},
 	{"$argon2i$v=19$m=4096,t=3,p=1$c2hvcnRfc2FsdA$1l4kAwUdAApoCbFH7ghBEf7bsdrOQzE4axIJ3PV0Ncrd", "sacrificed"},
-	{"$argon2d$v=19$m=16384,t=3,p=1$c2hvcnRfc2FsdA$TLSTPihIo+5F67Y1vJdfWdB9", "blessed_dead"},
+{"$argon2d$v=19$m=16384,t=3,p=1$c2hvcnRfc2FsdA$TLSTPihIo+5F67Y1vJdfWdB9", "blessed_dead"},
 	{"$argon2i$v=19$m=16384,t=3,p=1$c2hvcnRfc2FsdA$vvjDVog22A5x9eljmB+2yC8y", "blessed_dead"},
 	{"$argon2d$v=19$m=16384,t=4,p=3$YW5vdGhlcl9zYWx0$yw93eMxC8REPAwbQ0e/q43jR9+RI9HI/DHP75uzm7tQfjU734oaI3dzcMWjYjHzVQD+J4+MG+7oyD8dN/PtnmPCZs+UZ67E+rkXJ/wTvY4WgXgAdGtJRrAGxhy4rD7d5G+dCpqhrog", "death_dying"},
 	{"$argon2i$v=19$m=16384,t=4,p=3$YW5vdGhlcl9zYWx0$K7unxwO5aeuZCpnIJ06FMCRKod3eRg8oIRzQrK3E6mGbyqlTvvl47jeDWq/5drF1COJkEF9Ty7FWXJZHa+vqlf2YZGp/4qSlAvKmdtJ/6JZU32iQItzMRwcfujHE+PBjbL5uz4966A", "death_dying"},
@@ -112,10 +112,10 @@ static int run_kernel_on_gpu(uint32_t lanes_per_block, size_t jobs_per_block)
 	assert(lanes > 0 && passes > 0 && saved_salt.m_cost > 0);
 
 	if (lanes_per_block > lanes || lanes % lanes_per_block != 0)
-		error_msg("Invalid lanes_per_block!");
+		error_msg("Invalid lanes_per_block! Lanes: %u LPB: %u\n", lanes, lanes_per_block);
 
 	if (jobs_per_block > MAX_KEYS_PER_CRYPT || MAX_KEYS_PER_CRYPT % jobs_per_block != 0)
-    	error_msg("Invalid jobs_per_block!");
+                error_msg("Invalid jobs_per_block! JPB: %u\n", jobs_per_block);
 
 	size_t global_range[2] = {THREADS_PER_LANE * lanes, MAX_KEYS_PER_CRYPT};
 	size_t local_range[2] = {THREADS_PER_LANE * lanes_per_block, jobs_per_block};
@@ -136,7 +136,7 @@ static int run_kernel_on_gpu(uint32_t lanes_per_block, size_t jobs_per_block)
 
 	// Set parameters and execute kernel
 	assert(saved_salt.type >= 0 && saved_salt.type < ARGON2_NUM_TYPES && kernels[saved_salt.type]);
-        size_t shmemSize = THREADS_PER_LANE * lanes_per_block * jobs_per_block * sizeof(cl_uint) * 2;
+        size_t shmemSize = THREADS_PER_LANE * lanes_per_block * jobs_per_block * sizeof(cl_ulong);
 	HANDLE_CLERROR(clSetKernelArg(kernels[saved_salt.type], 0, shmemSize, NULL), "Error setting kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(kernels[saved_salt.type], 2, sizeof(passes), &passes), "Error setting kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(kernels[saved_salt.type], 3, sizeof(lanes), &lanes), "Error setting kernel argument");
@@ -229,11 +229,12 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 		HANDLE_CLERROR(clSetKernelArg(kernels[type], 4, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
 
 		assert(profiling_queue && profiling_event);
+                printf("Device requested LWS multiple of %zu\n", get_kernel_preferred_multiple(gpu_id, kernels[type]));
 		// Get basic kernel execution time
 		{
 			// TODO: Check that 'local_range' is multiple of get_kernel_preferred_multiple(), particularly for CPUs
 			size_t local_range[2] = {THREADS_PER_LANE * best_lanes_per_block, best_jobs_per_block};
-			size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block * sizeof(cl_uint) * 2;
+			size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block * sizeof(cl_ulong);
 			if (shmemSize > get_local_memory_size(gpu_id))
 				printf("-- Overflowing %u KB / %u KB local GPU memory --\n", (uint32_t)(shmemSize / 1024), (uint32_t)(get_local_memory_size(gpu_id) / 1024));
 
@@ -255,7 +256,7 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 			for (lpb = 1; lpb <= lanes; lpb *= 2)
 			{
 				size_t local_range[2] = {THREADS_PER_LANE * lpb, best_jobs_per_block};
-				size_t shmemSize = THREADS_PER_LANE * lpb * best_jobs_per_block * sizeof(cl_uint) * 2;
+				size_t shmemSize = THREADS_PER_LANE * lpb * best_jobs_per_block * sizeof(cl_ulong);
 
 				if(CL_SUCCESS != clSetKernelArg(kernels[type], 0, shmemSize, NULL)) break;
 				// Warm-up
@@ -284,7 +285,7 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 			for (jpb = 1; jpb <= MAX_KEYS_PER_CRYPT; jpb *= 2)
 			{
 				size_t local_range[2] = {THREADS_PER_LANE * best_lanes_per_block, jpb};
-				size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * jpb * sizeof(cl_uint) * 2;
+				size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * jpb * sizeof(cl_ulong);
 
 				if(CL_SUCCESS != clSetKernelArg(kernels[type], 0, shmemSize, NULL)) break;
 				// Warm-up
@@ -417,7 +418,7 @@ static void reset(struct db_main *db)
         if (!program[gpu_id])
 	{
 		// Create and build OpenCL kernels
-		opencl_init("$JOHN/opencl/argon2_kernels_include.cl", gpu_id, NULL);
+		opencl_init("$JOHN/opencl/argon2_kernels_include.cl", gpu_id, NULL);// Develop Nvidia: "-cl-nv-verbose -nv-line-info"
 
 		// Select OpenCL kernel
 		char kernel_name[32];
