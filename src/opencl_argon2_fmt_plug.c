@@ -46,8 +46,9 @@ john_register_one(&fmt_opencl_argon2);
 #define SALT_ALIGN              sizeof(uint32_t)
 
 struct fmt_main fmt_opencl_argon2;
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      (fmt_opencl_argon2.params.max_keys_per_crypt)
+#define MIN_KEYS_PER_CRYPT              1
+#define MAX_KEYS_PER_CRYPT              (fmt_opencl_argon2.params.max_keys_per_crypt)
+#define MAX_KEYS_PER_CRYPT_ORIGINAL     256
 
 static struct fmt_tests tests[] = {
 	{"$argon2d$v=19$m=4096,t=3,p=1$ZGFtYWdlX2RvbmU$w9w3s5/zV8+PcAZlJhnTCOE+vBkZssmZf6jOq3dKv50", "password"},
@@ -176,14 +177,12 @@ static void done(void)
 
 	MEM_FREE(blocks_in);
 	MEM_FREE(blocks_out);
+        MEM_FREE(best_kernel_params);
 
 	// Release OpenCL resources
+        assert(gpu_id >= 0 && gpu_id < MAX_GPU_DEVICES);
 	if (program[gpu_id])
 	{
-		assert(memory_buffer && gpu_id >= 0 && gpu_id < MAX_GPU_DEVICES && program[gpu_id]);
-		// Release memory
-		HANDLE_CLERROR(clReleaseMemObject(memory_buffer), "Release GPU memory");
-		memory_buffer = NULL;
 		// Release kernels
 		int i;
 		for (i = 0; i < ARGON2_NUM_TYPES; i++)
@@ -195,9 +194,13 @@ static void done(void)
 		// Release program
 		clReleaseProgram(program[gpu_id]);
 		program[gpu_id] = NULL;
-
-		MEM_FREE(best_kernel_params);
 	}
+        // Release memory
+        if (memory_buffer)
+        {
+		HANDLE_CLERROR(clReleaseMemObject(memory_buffer), "Release GPU memory");
+		memory_buffer = NULL;
+        }
 }
 
 // Autotune
@@ -235,8 +238,9 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 				printf("-- Overflowing %u KB / %u KB local GPU memory --\n", (uint32_t)(shmemSize / 1024), (uint32_t)(get_local_memory_size(gpu_id) / 1024));
 
 			HANDLE_CLERROR(clSetKernelArg(kernels[type], 0, shmemSize, NULL), "Error setting local memory size");
-			// Warm-up
+                        // Warm-up
 			HANDLE_CLERROR(clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Error on kernel");
+                        HANDLE_CLERROR(clFinish(profiling_queue), "Error profiling clFinish");
 			// Profile
 			HANDLE_CLERROR(clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, profiling_event), "Error on kernel");
 			HANDLE_CLERROR(clFinish(profiling_queue), "Error profiling clFinish");
@@ -256,6 +260,7 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 				if(CL_SUCCESS != clSetKernelArg(kernels[type], 0, shmemSize, NULL)) break;
 				// Warm-up
 				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL)) break;
+                                if(CL_SUCCESS != clFinish(profiling_queue)) break;
 				// Profile
 				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, profiling_event)) break;
 				if(CL_SUCCESS != clFinish(profiling_queue)) break;
@@ -284,6 +289,7 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 				if(CL_SUCCESS != clSetKernelArg(kernels[type], 0, shmemSize, NULL)) break;
 				// Warm-up
 				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL)) break;
+                                if(CL_SUCCESS != clFinish(profiling_queue)) break;
 				// Profile
 				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, profiling_event)) break;
 				if(CL_SUCCESS != clFinish(profiling_queue)) break;
@@ -325,83 +331,95 @@ static void reset(struct db_main *db)
 	assert(gpu_id >= 0 && gpu_id < MAX_GPU_DEVICES && db);
 	int i;
 
+        // Find [max/min]_lanes and max_memory_size
+        max_salt_lanes = 0;
+        uint32_t min_salt_lanes = UINT32_MAX;
+        max_segment_blocks = 0;
+        size_t max_memory_size = 0;
+
+        // Iterate on all salts
+        struct db_salt* curr_salt = db->salts;
+        for (i = 0; i < db->salt_count; i++)
+        {
+                assert(curr_salt && curr_salt->salt);
+                struct argon2_salt* salt = (struct argon2_salt*)curr_salt->salt;
+
+                uint32_t segment_blocks = MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2);
+                if (max_segment_blocks < segment_blocks)
+                        max_segment_blocks = segment_blocks;
+                size_t memory_size = ((size_t)segment_blocks) * ARGON2_SYNC_POINTS * salt->lanes * ARGON2_BLOCK_SIZE;
+                if (max_salt_lanes < salt->lanes)
+                        max_salt_lanes = salt->lanes;
+                if (min_salt_lanes > salt->lanes)
+                        min_salt_lanes = salt->lanes;
+                if (max_memory_size < memory_size)
+                        max_memory_size = memory_size;
+
+                curr_salt = curr_salt->next;
+        }
+        assert(max_salt_lanes > 0 && min_salt_lanes > 0 && max_memory_size > 0);
+
+        //----------------------------------------------------------------------------------------------------------------------------
+        // Create OpenCL objects
+        //----------------------------------------------------------------------------------------------------------------------------
+        // Load GWS from config/command line
+        MAX_KEYS_PER_CRYPT = MAX_KEYS_PER_CRYPT_ORIGINAL;
+        opencl_get_user_preferences(FORMAT_NAME);
+        if (global_work_size)
+        {
+                MAX_KEYS_PER_CRYPT = MAX(1, global_work_size / (THREADS_PER_LANE * max_salt_lanes));
+                printf("\nCustom GWS result on MAX_KEYS_PER_CRYPT = %u", MAX_KEYS_PER_CRYPT);
+        }
+        MEM_FREE(saved_key);
+        MEM_FREE(saved_len);
+        MEM_FREE(crypted);
+        saved_key = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(*saved_key));
+        saved_len = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(int));
+        crypted = mem_calloc(MAX_KEYS_PER_CRYPT, BINARY_SIZE);
+        max_memory_size *= MAX_KEYS_PER_CRYPT;
+
+        // Release memory of already initialized
+        MEM_FREE(blocks_in);
+        MEM_FREE(blocks_out);
+        if (memory_buffer)
+        {
+		HANDLE_CLERROR(clReleaseMemObject(memory_buffer), "Release GPU memory");
+		memory_buffer = NULL;
+        }
+        // Manage GPU memory
+        do {
+                // CPU memory to transfer to and from the GPU
+                blocks_in = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * 2 * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
+                blocks_out = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
+
+                // Create main GPU memory
+                memory_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_memory_size, NULL, &cl_error);
+                printf("\nTrying to use %zu MB / %u MB GPU memory. Max Allocation: %u MB\n", max_memory_size / 1048576, 
+                                (uint32_t)(get_global_memory_size(gpu_id) / 1048576),
+                                (uint32_t)(get_max_mem_alloc_size(gpu_id) / 1048576));
+
+                // Something like this reduce too much performance on Nvidia: get_max_mem_alloc_size(gpu_id)
+                //
+                // The best option is to try and try again
+                if(cl_error != CL_SUCCESS)
+                {
+                        max_memory_size /= 2;
+                        MAX_KEYS_PER_CRYPT /= 2;
+                        MEM_FREE(blocks_in);
+                        MEM_FREE(blocks_out);
+                }
+        } while(cl_error != CL_SUCCESS);
+
+        assert(MAX_KEYS_PER_CRYPT >= 1);
+	assert(blocks_in && blocks_out && memory_buffer);
+
+        // OpenCL kernels compilation and retrival
         if (!program[gpu_id])
 	{
-		// Find max_lanes and max_memory_size
-		MEM_FREE(best_kernel_params);
-		max_salt_lanes = 0;
-		max_segment_blocks = 0;
-		size_t max_memory_size = 0;
-
-		// Iterate on all salts
-		struct db_salt* curr_salt = db->salts;
-		for (i = 0; i < db->salt_count; i++)
-		{
-			assert(curr_salt && curr_salt->salt);
-			struct argon2_salt* salt = (struct argon2_salt*)curr_salt->salt;
-
-			uint32_t segment_blocks = MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2);
-			if (max_segment_blocks < segment_blocks)
-				max_segment_blocks = segment_blocks;
-			size_t memory_size = ((size_t)segment_blocks) * ARGON2_SYNC_POINTS * salt->lanes * ARGON2_BLOCK_SIZE;
-			if (max_salt_lanes < salt->lanes)
-				max_salt_lanes = salt->lanes;
-			if (max_memory_size < memory_size)
-				max_memory_size = memory_size;
-
-			curr_salt = curr_salt->next;
-		}
-		assert(max_salt_lanes > 0 && max_memory_size > 0);
-		// Autotune saved params
-		best_kernel_params = mem_calloc(ARGON2_NUM_TYPES * max_salt_lanes * max_segment_blocks, sizeof(struct kernel_run_params));
-
-		//----------------------------------------------------------------------------------------------------------------------------
-		// Create OpenCL objects
-		//----------------------------------------------------------------------------------------------------------------------------
-		// Load GWS from config/command line
-		opencl_get_user_preferences(FORMAT_NAME);
-		if (global_work_size)
-		{
-			MAX_KEYS_PER_CRYPT = MAX(1, global_work_size / (THREADS_PER_LANE * max_salt_lanes));
-			printf("\nCustom GWS result on MAX_KEYS_PER_CRYPT = %u", MAX_KEYS_PER_CRYPT);
-		}
-		assert(!saved_key && !saved_len && !crypted);
-		saved_key = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(*saved_key));
-		saved_len = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(int));
-		crypted = mem_calloc(MAX_KEYS_PER_CRYPT, BINARY_SIZE);
-		max_memory_size *= MAX_KEYS_PER_CRYPT;
-
-		assert(!blocks_in && !blocks_out && !memory_buffer);
-		// Manage GPU memory
-		do {
-			// CPU memory to transfer to and from the GPU
-			blocks_in = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * 2 * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
-			blocks_out = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
-
-			// Create main GPU memory
-			memory_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_memory_size, NULL, &cl_error);
-			printf("\nTrying to use %zu MB / %u MB GPU memory. Max Allocation: %u MB\n", max_memory_size / 1048576, 
-					(uint32_t)(get_global_memory_size(gpu_id) / 1048576),
-					(uint32_t)(get_max_mem_alloc_size(gpu_id) / 1048576));
-
-			// Something like this reduce too much performance on Nvidia: get_max_mem_alloc_size(gpu_id)
-			//
-			// The best option is to try and try again
-			if(cl_error != CL_SUCCESS)
-			{
-				max_memory_size /= 2;
-				MAX_KEYS_PER_CRYPT /= 2;
-				MEM_FREE(blocks_in);
-				MEM_FREE(blocks_out);
-			}
-		} while(cl_error != CL_SUCCESS);
-
-		assert(MAX_KEYS_PER_CRYPT >= 1);
-		
-		// Create and build opencl kernels
+		// Create and build OpenCL kernels
 		opencl_init("$JOHN/opencl/argon2_kernels_include.cl", gpu_id, NULL);
 
-		// Select opencl kernel
+		// Select OpenCL kernel
 		char kernel_name[32];
 		for (i = 0; i < ARGON2_NUM_TYPES; i++)
 		{
@@ -409,12 +427,9 @@ static void reset(struct db_main *db)
 			assert(!kernels[i]);
 			kernels[i] = clCreateKernel(program[gpu_id], kernel_name, &cl_error);
 			HANDLE_CLERROR(cl_error, "Error creating kernel");
-			// Set opencl kernel parameters
-			HANDLE_CLERROR(clSetKernelArg(kernels[i], 1, sizeof(memory_buffer), &memory_buffer), "Error setting kernel argument");
 		}
-		//--------------------------------------------------------------------------------------------------------------------------
 	}
-	assert(program[gpu_id] && blocks_in && blocks_out && memory_buffer && kernels[0] && kernels[1] && kernels[2]);
+        assert(program[gpu_id] && kernels[0] && kernels[1] && kernels[2]);
 
 	//-----------------------------------------------------------------------------------------------------------
 	// Autotune
@@ -424,6 +439,8 @@ static void reset(struct db_main *db)
 	uint32_t PASSES = 1;
 	for (i = 0; i < ARGON2_NUM_TYPES; i++)
 	{
+                // Set OpenCL kernel parameters
+                HANDLE_CLERROR(clSetKernelArg(kernels[i], 1, sizeof(memory_buffer), &memory_buffer), "Error setting kernel argument");
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 2, sizeof(PASSES), &PASSES), "Error setting kernel argument");
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 5, sizeof(ZERO), &ZERO), "Error setting kernel argument");
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 6, sizeof(ZERO), &ZERO), "Error setting kernel argument");
@@ -434,8 +451,11 @@ static void reset(struct db_main *db)
 	cl_event profiling_event = clCreateUserEvent(context[gpu_id], &cl_error);
 	HANDLE_CLERROR(cl_error, "clCreateUserEvent profiling");
 
+        // Autotune saved params
+        MEM_FREE(best_kernel_params);
+        best_kernel_params = mem_calloc(ARGON2_NUM_TYPES * max_salt_lanes * max_segment_blocks, sizeof(struct kernel_run_params));
 	// Iterate on all salts and autotuned for each one
-	struct db_salt* curr_salt = db->salts;
+	curr_salt = db->salts;
 	for (i = 0; i < db->salt_count; i++)
 	{
 		struct argon2_salt* salt = (struct argon2_salt*)curr_salt->salt;
@@ -445,7 +465,38 @@ static void reset(struct db_main *db)
 	// Release profiling objects
 	HANDLE_CLERROR(clReleaseCommandQueue(profiling_queue), "Releasing Profiling CommandQueue");
 	clReleaseEvent(profiling_event);
-	//-----------------------------------------------------------------------------------------------------------
+
+        // Report LWS/GWS
+        if (ocl_always_show_ws || (!self_test_running && ((options.flags & FLG_TEST_CHK) || autotune_real_db)))
+        {
+                // Finding min/max LWS
+                size_t min_local_work_size = SIZE_MAX;
+                size_t max_local_work_size = 0;
+                for (i = 0; i < ARGON2_NUM_TYPES * max_salt_lanes * max_segment_blocks; i++)
+                        if (best_kernel_params[i].jobs_per_block > 0 && best_kernel_params[i].lanes_per_block > 0)
+                        {
+                                size_t current_lws = THREADS_PER_LANE * best_kernel_params[i].lanes_per_block * best_kernel_params[i].jobs_per_block;
+                                if (min_local_work_size > current_lws)
+                                        min_local_work_size = current_lws;
+                                if (max_local_work_size < current_lws)
+                                        max_local_work_size = current_lws;
+                        }
+                // GWS
+                size_t min_global_work_size = THREADS_PER_LANE * min_salt_lanes * MAX_KEYS_PER_CRYPT;
+                size_t max_global_work_size = THREADS_PER_LANE * max_salt_lanes * MAX_KEYS_PER_CRYPT;
+
+                // Report GWS/LWS
+                if (min_global_work_size == max_global_work_size && min_local_work_size == max_local_work_size)
+                        printf("LWS="Zu" GWS="Zu" ("Zu" blocks)\n",
+			        min_local_work_size,
+                                min_global_work_size,
+			        min_global_work_size / max_local_work_size);
+                else
+                        printf("LWS=["Zu"-"Zu"] GWS=["Zu"-"Zu"] (["Zu"-"Zu"] blocks)\n",
+			        min_local_work_size, max_local_work_size,
+                                min_global_work_size, max_global_work_size,
+			        min_global_work_size / max_local_work_size, max_global_work_size / min_local_work_size);
+        }
 }
 
 // Ciphertext managment
@@ -636,7 +687,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	// Run on the GPU
 	uint32_t index = index_best_kernel_params(saved_salt.type, saved_salt.lanes, MAX(saved_salt.m_cost / (saved_salt.lanes * ARGON2_SYNC_POINTS), 2));
-	assert(best_kernel_params[index].lanes_per_block && best_kernel_params[index].jobs_per_block);
+	assert(best_kernel_params && best_kernel_params[index].lanes_per_block && best_kernel_params[index].jobs_per_block);
 	run_kernel_on_gpu(best_kernel_params[index].lanes_per_block, best_kernel_params[index].jobs_per_block);
 
 	// Post-processing on CPU
@@ -735,7 +786,7 @@ struct fmt_main fmt_opencl_argon2 = {
 		sizeof(struct argon2_salt),
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
-		256,// MAX_KEYS_PER_CRYPT,
+		MAX_KEYS_PER_CRYPT_ORIGINAL,
 		FMT_CASE | FMT_8_BIT,
 		{
 			"t",
