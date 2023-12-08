@@ -50,20 +50,18 @@
 #define ARGON2_VERSION ARGON2_VERSION_13
 #endif
 
+ //#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 
-struct u64_shuffle_buf {
-    uint lo[THREADS_PER_LANE];
-    uint hi[THREADS_PER_LANE];
-};
-
-ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local struct u64_shuffle_buf *buf)
+ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local ulong *buf)
 {
-    buf->lo[thread] = (uint)v;
-    buf->hi[thread] = (uint)(v >> 32);
+    buf[thread] = v;
+    // Another option instead of the barrier
+    // atom_xchg(buf + thread, v);
 
-    barrier(CLK_LOCAL_MEM_FENCE);
+    // GPUs don't need this as their warp size is at least 32 that is what we need
+    // barrier(CLK_LOCAL_MEM_FENCE);
 
-    return upsample(buf->hi[thread_src], buf->lo[thread_src]);
+    return buf[thread_src];
 }
 
 struct block_g {
@@ -152,7 +150,7 @@ uint apply_shuffle_shift2(uint thread, uint idx)
     return ((lo & 0x2) << 3) | (thread & 0xe) | (lo & 0x1);
 }
 
-void shuffle_block(struct block_th *block, uint thread, __local struct u64_shuffle_buf *buf)
+void shuffle_block(struct block_th *block, uint thread, __local ulong *buf)
 {
     //transpose(block, thread, buf);
     uint thread_group = (thread & 0x0C) >> 2;
@@ -222,7 +220,7 @@ void shuffle_block(struct block_th *block, uint thread, __local struct u64_shuff
 
 void next_addresses(struct block_th *addr, struct block_th *tmp,
                     uint thread_input, uint thread,
-                    __local struct u64_shuffle_buf *buf)
+                    __local ulong *buf)
 {
     addr->a = upsample(0, thread_input);
     addr->b = 0;
@@ -249,7 +247,7 @@ void next_addresses(struct block_th *addr, struct block_th *tmp,
 #endif
 
 
-__kernel void KERNEL_NAME(ARGON2_TYPE)(__local struct u64_shuffle_buf* shuffle_bufs,
+__kernel void KERNEL_NAME(ARGON2_TYPE)(__local ulong* shuffle_bufs,
         __global struct block_g* memory, uint passes, uint lanes, uint segment_blocks, uint pass, uint slice)
 {
     uint job_id = get_global_id(1);
@@ -257,7 +255,7 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__local struct u64_shuffle_buf* shuffle_b
     uint warp   = (get_local_id(1) * get_local_size(0) + get_local_id(0)) / THREADS_PER_LANE;
     uint thread = get_local_id(0) % THREADS_PER_LANE;
 
-    __local struct u64_shuffle_buf* shuffle_buf = shuffle_bufs + warp;
+    __local ulong* shuffle_buf = shuffle_bufs + warp * THREADS_PER_LANE;
 
     uint lane_blocks = ARGON2_SYNC_POINTS * segment_blocks;
 
