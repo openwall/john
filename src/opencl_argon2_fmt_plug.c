@@ -115,7 +115,7 @@ static int run_kernel_on_gpu(uint32_t lanes_per_block, size_t jobs_per_block)
 		error_msg("Invalid lanes_per_block! Lanes: %u LPB: %u\n", lanes, lanes_per_block);
 
 	if (jobs_per_block > MAX_KEYS_PER_CRYPT || MAX_KEYS_PER_CRYPT % jobs_per_block != 0)
-                error_msg("Invalid jobs_per_block! JPB: %u\n", jobs_per_block);
+                error_msg("Invalid jobs_per_block! JPB: %zu\n", jobs_per_block);
 
 	size_t global_range[2] = {THREADS_PER_LANE * lanes, MAX_KEYS_PER_CRYPT};
 	size_t local_range[2] = {THREADS_PER_LANE * lanes_per_block, jobs_per_block};
@@ -204,6 +204,8 @@ static void done(void)
 }
 
 // Autotune
+/// @brief Check if the param is a power of two
+/// @param x Should be > 0
 static int is_power_of_two(uint32_t x)
 {
     return (x & (x - 1)) == 0;
@@ -229,10 +231,25 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 		HANDLE_CLERROR(clSetKernelArg(kernels[type], 4, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
 
 		assert(profiling_queue && profiling_event);
-                printf("Device requested LWS multiple of %zu\n", get_kernel_preferred_multiple(gpu_id, kernels[type]));
+                uint32_t lws_multiple = get_kernel_preferred_multiple(gpu_id, kernels[type]);
+                printf("Device requested LWS multiple of %u\n", lws_multiple);
+
+                // If the device ask for a bigger LWS => try to give it to them
+                if (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block < lws_multiple)
+                {
+                        best_lanes_per_block = lws_multiple / THREADS_PER_LANE / best_jobs_per_block;
+                        if (best_lanes_per_block > lanes || lanes % best_lanes_per_block != 0)
+                                best_lanes_per_block = lanes;
+                }
+                while (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block < lws_multiple)
+                        best_jobs_per_block *= 2;
+                while (is_power_of_two(lws_multiple) && (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block) % lws_multiple != 0)
+                        best_jobs_per_block *= 2;
+                if (best_jobs_per_block > MAX_KEYS_PER_CRYPT)
+                        best_jobs_per_block = MAX_KEYS_PER_CRYPT;
+
 		// Get basic kernel execution time
 		{
-			// TODO: Check that 'local_range' is multiple of get_kernel_preferred_multiple(), particularly for CPUs
 			size_t local_range[2] = {THREADS_PER_LANE * best_lanes_per_block, best_jobs_per_block};
 			size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block * sizeof(cl_ulong);
 			if (shmemSize > get_local_memory_size(gpu_id))
@@ -253,7 +270,7 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 
 		// Optimize 'lanes_per_block'
 		if (lanes > 1 && is_power_of_two(lanes))
-			for (lpb = 1; lpb <= lanes; lpb *= 2)
+			for (lpb = best_lanes_per_block; lpb <= lanes; lpb *= 2)
 			{
 				size_t local_range[2] = {THREADS_PER_LANE * lpb, best_jobs_per_block};
 				size_t shmemSize = THREADS_PER_LANE * lpb * best_jobs_per_block * sizeof(cl_ulong);
@@ -280,9 +297,8 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 
 		// Optimize 'jobs_per_block'
 		// Only tune jobs per block if we hit maximum lanes per block 
-		if (best_lanes_per_block == lanes && MAX_KEYS_PER_CRYPT > 1 && is_power_of_two(MAX_KEYS_PER_CRYPT))// TODO: try 'best_lanes_per_block=lanes' when not power of 2
-		{
-			for (jpb = 1; jpb <= MAX_KEYS_PER_CRYPT; jpb *= 2)
+		if (best_lanes_per_block == lanes && MAX_KEYS_PER_CRYPT > 1 && is_power_of_two(MAX_KEYS_PER_CRYPT))
+			for (jpb = best_jobs_per_block; jpb <= MAX_KEYS_PER_CRYPT; jpb *= 2)
 			{
 				size_t local_range[2] = {THREADS_PER_LANE * best_lanes_per_block, jpb};
 				size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * jpb * sizeof(cl_ulong);
@@ -306,7 +322,32 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 					best_jobs_per_block = jpb;
 				}
 			}
-		}
+                if (best_lanes_per_block != lanes && lanes > 1 && MAX_KEYS_PER_CRYPT > 1 && is_power_of_two(MAX_KEYS_PER_CRYPT))
+			for (jpb = best_jobs_per_block; jpb <= MAX_KEYS_PER_CRYPT; jpb *= 2)
+			{
+				size_t local_range[2] = {THREADS_PER_LANE * lanes, jpb};
+				size_t shmemSize = THREADS_PER_LANE * lanes * jpb * sizeof(cl_ulong);
+
+				if(CL_SUCCESS != clSetKernelArg(kernels[type], 0, shmemSize, NULL)) break;
+				// Warm-up
+				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL)) break;
+                                if(CL_SUCCESS != clFinish(profiling_queue)) break;
+				// Profile
+				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, profiling_event)) break;
+				if(CL_SUCCESS != clFinish(profiling_queue)) break;
+
+				HANDLE_CLERROR(clGetEventProfilingInfo(*profiling_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL), "clGetEventProfilingInfo start");
+				HANDLE_CLERROR(clGetEventProfilingInfo(*profiling_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL), "clGetEventProfilingInfo end");
+
+				// Select best params
+				cl_ulong time = end_time - start_time;
+				if (best_time > time)
+				{
+					best_time = time;
+					best_jobs_per_block = jpb;
+                                        best_lanes_per_block = lanes;
+				}
+			}
 
 		// Save results
 		best_kernel_params[index].lanes_per_block = best_lanes_per_block;
