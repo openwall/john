@@ -179,8 +179,8 @@ void shuffle_block(struct block_th *block, uint thread, __local ulong *buf)
 
     //shuffle_shift1(block, thread, buf);
     for (uint i = 0; i < QWORDS_PER_THREAD; i+=4)
-{
-        block->a = u64_shuffle(block->a, (thread & 0x1c) | ((thread + 0) & 0x3), thread, buf);
+    {
+        block->a = u64_shuffle(block->a, (thread & 0x1f)                       , thread, buf);
         block->b = u64_shuffle(block->b, (thread & 0x1c) | ((thread + 1) & 0x3), thread, buf);
         block->c = u64_shuffle(block->c, (thread & 0x1c) | ((thread + 2) & 0x3), thread, buf);
         block->d = u64_shuffle(block->d, (thread & 0x1c) | ((thread + 3) & 0x3), thread, buf);
@@ -235,9 +235,7 @@ void shuffle_block(struct block_th *block, uint thread, __local ulong *buf)
     }
 }
 
-void next_addresses(struct block_th *addr, struct block_th *tmp,
-                    uint thread_input, uint thread,
-                    __local ulong *buf)
+void next_addresses(struct block_th *addr, uint thread_input, uint thread, __local ulong *buf)
 {
     addr->a = upsample(0, thread_input);
     addr->b = 0;
@@ -247,15 +245,15 @@ void next_addresses(struct block_th *addr, struct block_th *tmp,
     shuffle_block(addr, thread, buf);
 
     addr->a ^= upsample(0, thread_input);
-    *tmp = *addr;
+    struct block_th tmp = *addr;
 
     shuffle_block(addr, thread, buf);
 
     //xor_block(addr, tmp);
-    addr->a ^= tmp->a;
-    addr->b ^= tmp->b;
-    addr->c ^= tmp->c;
-    addr->d ^= tmp->d;
+    addr->a ^= tmp.a;
+    addr->b ^= tmp.b;
+    addr->c ^= tmp.c;
+    addr->d ^= tmp.d;
 }
 
 #define MAKE_KERNEL_NAME(type) argon2_kernel_segment_ ## type
@@ -310,50 +308,33 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__local ulong* shuffle_bufs,
     if (pass == 0 && slice == 0 && segment_blocks > 2) {
         if (thread == 6) {
             ++thread_input;
+        }
+        next_addresses(&addr, thread_input, thread, shuffle_buf);
     }
-        next_addresses(&addr, &tmp, thread_input, thread, shuffle_buf);
-}
-
-void argon2_step_precompute(
-        __global struct block_g *memory, __global struct block_g *mem_curr,
-        struct block_th *prev, struct block_th *tmp,
-        __local struct u64_shuffle_buf *shuffle_buf,
-        __global const struct ref **refs,
-        uint lanes, uint segment_blocks, uint thread,
-        uint lane, uint pass, uint slice, uint offset)
-{
-    uint ref_index, ref_lane;
-    bool data_independent;
-#if ARGON2_TYPE == ARGON2_I
-    data_independent = true;
-#elif ARGON2_TYPE == ARGON2_ID
-    data_independent = pass == 0 && slice < ARGON2_SYNC_POINTS / 2;
-#else
-    data_independent = false;
 #endif
 
     __global struct block_g* mem_segment = memory + slice * segment_blocks * lanes + lane;
-    __global struct block_g* mem_prev, *mem_curr;
+    __global ulong* mem_prev, *mem_curr;
     uint start_offset = 0;
     if (pass == 0) {
         if (slice == 0) {
-            mem_prev = mem_segment + 1 * lanes;
-            mem_curr = mem_segment + 2 * lanes;
+            mem_prev = (mem_segment + 1 * lanes)->data + thread;
+            mem_curr = (mem_segment + 2 * lanes)->data + thread;
             start_offset = 2;
         } else {
-            mem_prev = mem_segment - lanes;
-            mem_curr = mem_segment;
+            mem_prev = (mem_segment - lanes)->data + thread;
+            mem_curr = mem_segment->data + thread;
         }
     } else {
-        mem_prev = mem_segment + (slice == 0 ? lane_blocks * lanes : 0) - lanes;
-        mem_curr = mem_segment;
+        mem_prev = (mem_segment + (slice == 0 ? lane_blocks * lanes : 0) - lanes)->data + thread;
+        mem_curr = mem_segment->data + thread;
     }
 
     //load_block(&prev, mem_prev, thread);
-    prev.a = mem_prev->data[0 * THREADS_PER_LANE + thread];
-    prev.b = mem_prev->data[1 * THREADS_PER_LANE + thread];
-    prev.c = mem_prev->data[2 * THREADS_PER_LANE + thread];
-    prev.d = mem_prev->data[3 * THREADS_PER_LANE + thread];
+    prev.a = mem_prev[0 * THREADS_PER_LANE];
+    prev.b = mem_prev[1 * THREADS_PER_LANE];
+    prev.c = mem_prev[2 * THREADS_PER_LANE];
+    prev.d = mem_prev[3 * THREADS_PER_LANE];
 
     // Cycle
     for (uint offset = start_offset; offset < segment_blocks; ++offset)
@@ -375,8 +356,8 @@ void argon2_step_precompute(
                 if (thread == 6)
                     ++thread_input;
 
-                next_addresses(&addr, &tmp, thread_input, thread, shuffle_buf);
-        }
+                next_addresses(&addr, thread_input, thread, shuffle_buf);
+            }
 
             uint thr = addr_index % THREADS_PER_LANE;
             uint idx = addr_index / THREADS_PER_LANE;
@@ -418,28 +399,28 @@ void argon2_step_precompute(
 }
 
         //argon2_core(memory, mem_curr, &prev, &tmp, shuffle_buf, lanes, thread, pass, ref_index, ref_lane);
-        __global struct block_g* mem_ref = memory + ref_index * lanes + ref_lane;
+        __global ulong* mem_ref = (memory + ref_index * lanes + ref_lane)->data + thread;
 
     #if ARGON2_VERSION == ARGON2_VERSION_10
         //load_block_xor(prev, mem_ref, thread);
-        prev.a ^= mem_ref->data[0 * THREADS_PER_LANE + thread];
-        prev.b ^= mem_ref->data[1 * THREADS_PER_LANE + thread];
-        prev.c ^= mem_ref->data[2 * THREADS_PER_LANE + thread];
-        prev.d ^= mem_ref->data[3 * THREADS_PER_LANE + thread];
+        prev.a ^= mem_ref[0 * THREADS_PER_LANE];
+        prev.b ^= mem_ref[1 * THREADS_PER_LANE];
+        prev.c ^= mem_ref[2 * THREADS_PER_LANE];
+        prev.d ^= mem_ref[3 * THREADS_PER_LANE];
         tmp = prev;
     #else
         if (pass != 0) {
             //load_block(tmp, mem_curr, thread);
-            tmp.a = mem_curr->data[0 * THREADS_PER_LANE + thread];
-            tmp.b = mem_curr->data[1 * THREADS_PER_LANE + thread];
-            tmp.c = mem_curr->data[2 * THREADS_PER_LANE + thread];
-            tmp.d = mem_curr->data[3 * THREADS_PER_LANE + thread];
+            tmp.a = mem_curr[0 * THREADS_PER_LANE];
+            tmp.b = mem_curr[1 * THREADS_PER_LANE];
+            tmp.c = mem_curr[2 * THREADS_PER_LANE];
+            tmp.d = mem_curr[3 * THREADS_PER_LANE];
 
             //load_block_xor(prev, mem_ref, thread);
-            prev.a ^= mem_ref->data[0 * THREADS_PER_LANE + thread];
-            prev.b ^= mem_ref->data[1 * THREADS_PER_LANE + thread];
-            prev.c ^= mem_ref->data[2 * THREADS_PER_LANE + thread];
-            prev.d ^= mem_ref->data[3 * THREADS_PER_LANE + thread];
+            prev.a ^= mem_ref[0 * THREADS_PER_LANE];
+            prev.b ^= mem_ref[1 * THREADS_PER_LANE];
+            prev.c ^= mem_ref[2 * THREADS_PER_LANE];
+            prev.d ^= mem_ref[3 * THREADS_PER_LANE];
 
             //xor_block(tmp, prev);
             tmp.a ^= prev.a;
@@ -448,10 +429,10 @@ void argon2_step_precompute(
             tmp.d ^= prev.d;
         } else {
             //load_block_xor(prev, mem_ref, thread);
-            prev.a ^= mem_ref->data[0 * THREADS_PER_LANE + thread];
-            prev.b ^= mem_ref->data[1 * THREADS_PER_LANE + thread];
-            prev.c ^= mem_ref->data[2 * THREADS_PER_LANE + thread];
-            prev.d ^= mem_ref->data[3 * THREADS_PER_LANE + thread];
+            prev.a ^= mem_ref[0 * THREADS_PER_LANE];
+            prev.b ^= mem_ref[1 * THREADS_PER_LANE];
+            prev.c ^= mem_ref[2 * THREADS_PER_LANE];
+            prev.d ^= mem_ref[3 * THREADS_PER_LANE];
 
             tmp = prev;
     }
@@ -466,34 +447,12 @@ void argon2_step_precompute(
         prev.d ^= tmp.d;
 
         //store_block(mem_curr, prev, thread);
-        mem_curr->data[0 * THREADS_PER_LANE + thread] = prev.a;
-        mem_curr->data[1 * THREADS_PER_LANE + thread] = prev.b;
-        mem_curr->data[2 * THREADS_PER_LANE + thread] = prev.c;
-        mem_curr->data[3 * THREADS_PER_LANE + thread] = prev.d;
+        mem_curr[0 * THREADS_PER_LANE] = prev.a;
+        mem_curr[1 * THREADS_PER_LANE] = prev.b;
+        mem_curr[2 * THREADS_PER_LANE] = prev.c;
+        mem_curr[3 * THREADS_PER_LANE] = prev.d;
 
         // End
-                mem_curr += lanes;
-            }
-
-            barrier(CLK_GLOBAL_MEM_FENCE);
-
-#if ARGON2_TYPE == ARGON2_I || ARGON2_TYPE == ARGON2_ID
-            if (thread == 2) {
-                ++thread_input;
-            }
-            if (thread == 6) {
-                thread_input = 0;
-            }
-#endif
-        }
-#if ARGON2_TYPE == ARGON2_I
-        if (thread == 0) {
-            ++thread_input;
-        }
-        if (thread == 2) {
-            thread_input = 0;
-        }
-#endif
-        mem_curr = mem_lane;
+        mem_curr += lanes * ARGON2_QWORDS_IN_BLOCK;
     }
 }
