@@ -60,7 +60,7 @@ ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local ulong *buf)
     // in C++ default atomic operations DO a memory barrier.
     // atom_xchg(buf + thread, v);
 
-    // GPUs don't need this as their warp size is at least 32 that is what we need
+    // GPUs don't need this as their warp size is at least 32 and that's what we need
     // TODO: Test on other device types to add support
 #if !gpu_nvidia(DEVICE_INFO) && !gpu_amd(DEVICE_INFO)
     barrier(CLK_LOCAL_MEM_FENCE);
