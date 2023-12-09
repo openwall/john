@@ -200,7 +200,7 @@ static void done(void)
         {
 		HANDLE_CLERROR(clReleaseMemObject(memory_buffer), "Release GPU memory");
 		memory_buffer = NULL;
-        }
+}
 }
 
 // Autotune
@@ -242,6 +242,8 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
                                 best_lanes_per_block = lanes;
                 }
                 while (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block < lws_multiple)
+                        best_jobs_per_block *= 2;
+                while (is_power_of_two(lws_multiple) && (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block) % lws_multiple != 0)
                         best_jobs_per_block *= 2;
                 while (is_power_of_two(lws_multiple) && (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block) % lws_multiple != 0)
                         best_jobs_per_block *= 2;
@@ -346,6 +348,31 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 					best_time = time;
 					best_jobs_per_block = jpb;
                                         best_lanes_per_block = lanes;
+			}
+                if (best_lanes_per_block != lanes && lanes > 1 && MAX_KEYS_PER_CRYPT > 1 && is_power_of_two(MAX_KEYS_PER_CRYPT))
+			for (jpb = best_jobs_per_block; jpb <= MAX_KEYS_PER_CRYPT; jpb *= 2)
+			{
+				size_t local_range[2] = {THREADS_PER_LANE * lanes, jpb};
+				size_t shmemSize = THREADS_PER_LANE * lanes * jpb * sizeof(cl_ulong);
+
+				if(CL_SUCCESS != clSetKernelArg(kernels[type], 0, shmemSize, NULL)) break;
+				// Warm-up
+				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL)) break;
+                                if(CL_SUCCESS != clFinish(profiling_queue)) break;
+				// Profile
+				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, profiling_event)) break;
+				if(CL_SUCCESS != clFinish(profiling_queue)) break;
+
+				HANDLE_CLERROR(clGetEventProfilingInfo(*profiling_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL), "clGetEventProfilingInfo start");
+				HANDLE_CLERROR(clGetEventProfilingInfo(*profiling_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL), "clGetEventProfilingInfo end");
+
+				// Select best params
+				cl_ulong time = end_time - start_time;
+				if (best_time > time)
+				{
+					best_time = time;
+					best_jobs_per_block = jpb;
+                                        best_lanes_per_block = lanes;
 				}
 			}
 
@@ -374,10 +401,10 @@ static void reset(struct db_main *db)
 	int i;
 
         // Find [max/min]_lanes and max_memory_size
-        max_salt_lanes = 0;
+		max_salt_lanes = 0;
         uint32_t min_salt_lanes = UINT32_MAX;
-        max_segment_blocks = 0;
-        size_t max_memory_size = 0;
+		max_segment_blocks = 0;
+		size_t max_memory_size = 0;
 
         // Iterate on all salts
         struct db_salt* curr_salt = db->salts;
@@ -386,39 +413,39 @@ static void reset(struct db_main *db)
                 assert(curr_salt && curr_salt->salt);
                 struct argon2_salt* salt = (struct argon2_salt*)curr_salt->salt;
 
-                uint32_t segment_blocks = MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2);
-                if (max_segment_blocks < segment_blocks)
-                        max_segment_blocks = segment_blocks;
-                size_t memory_size = ((size_t)segment_blocks) * ARGON2_SYNC_POINTS * salt->lanes * ARGON2_BLOCK_SIZE;
-                if (max_salt_lanes < salt->lanes)
-                        max_salt_lanes = salt->lanes;
+			uint32_t segment_blocks = MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2);
+			if (max_segment_blocks < segment_blocks)
+				max_segment_blocks = segment_blocks;
+			size_t memory_size = ((size_t)segment_blocks) * ARGON2_SYNC_POINTS * salt->lanes * ARGON2_BLOCK_SIZE;
+			if (max_salt_lanes < salt->lanes)
+				max_salt_lanes = salt->lanes;
                 if (min_salt_lanes > salt->lanes)
                         min_salt_lanes = salt->lanes;
-                if (max_memory_size < memory_size)
-                        max_memory_size = memory_size;
+			if (max_memory_size < memory_size)
+				max_memory_size = memory_size;
 
-                curr_salt = curr_salt->next;
-        }
+			curr_salt = curr_salt->next;
+		}
         assert(max_salt_lanes > 0 && min_salt_lanes > 0 && max_memory_size > 0);
 
-        //----------------------------------------------------------------------------------------------------------------------------
-        // Create OpenCL objects
-        //----------------------------------------------------------------------------------------------------------------------------
-        // Load GWS from config/command line
+		//----------------------------------------------------------------------------------------------------------------------------
+		// Create OpenCL objects
+		//----------------------------------------------------------------------------------------------------------------------------
+		// Load GWS from config/command line
         MAX_KEYS_PER_CRYPT = MAX_KEYS_PER_CRYPT_ORIGINAL;
-        opencl_get_user_preferences(FORMAT_NAME);
-        if (global_work_size)
-        {
-                MAX_KEYS_PER_CRYPT = MAX(1, global_work_size / (THREADS_PER_LANE * max_salt_lanes));
-                printf("\nCustom GWS result on MAX_KEYS_PER_CRYPT = %u", MAX_KEYS_PER_CRYPT);
-        }
+		opencl_get_user_preferences(FORMAT_NAME);
+		if (global_work_size)
+		{
+			MAX_KEYS_PER_CRYPT = MAX(1, global_work_size / (THREADS_PER_LANE * max_salt_lanes));
+			printf("\nCustom GWS result on MAX_KEYS_PER_CRYPT = %u", MAX_KEYS_PER_CRYPT);
+		}
         MEM_FREE(saved_key);
         MEM_FREE(saved_len);
         MEM_FREE(crypted);
-        saved_key = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(*saved_key));
-        saved_len = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(int));
-        crypted = mem_calloc(MAX_KEYS_PER_CRYPT, BINARY_SIZE);
-        max_memory_size *= MAX_KEYS_PER_CRYPT;
+		saved_key = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(*saved_key));
+		saved_len = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(int));
+		crypted = mem_calloc(MAX_KEYS_PER_CRYPT, BINARY_SIZE);
+		max_memory_size *= MAX_KEYS_PER_CRYPT;
 
         // Release memory of already initialized
         MEM_FREE(blocks_in);
@@ -428,11 +455,11 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clReleaseMemObject(memory_buffer), "Release GPU memory");
 		memory_buffer = NULL;
         }
-        // Manage GPU memory
-        do {
-                // CPU memory to transfer to and from the GPU
-                blocks_in = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * 2 * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
-                blocks_out = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
+		// Manage GPU memory
+		do {
+			// CPU memory to transfer to and from the GPU
+			blocks_in = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * 2 * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
+			blocks_out = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
 
                 // Create main GPU memory
                 memory_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_memory_size, NULL, &cl_error);
@@ -452,9 +479,9 @@ static void reset(struct db_main *db)
                 }
         } while(cl_error != CL_SUCCESS);
 
-        assert(MAX_KEYS_PER_CRYPT >= 1);
+		assert(MAX_KEYS_PER_CRYPT >= 1);
 	assert(blocks_in && blocks_out && memory_buffer);
-
+		
         // OpenCL kernels compilation and retrival
         if (!program[gpu_id])
 	{
@@ -469,7 +496,10 @@ static void reset(struct db_main *db)
 			assert(!kernels[i]);
 			kernels[i] = clCreateKernel(program[gpu_id], kernel_name, &cl_error);
 			HANDLE_CLERROR(cl_error, "Error creating kernel");
+			// Set opencl kernel parameters
+			HANDLE_CLERROR(clSetKernelArg(kernels[i], 1, sizeof(memory_buffer), &memory_buffer), "Error setting kernel argument");
 		}
+		//--------------------------------------------------------------------------------------------------------------------------
 	}
         assert(program[gpu_id] && kernels[0] && kernels[1] && kernels[2]);
 
