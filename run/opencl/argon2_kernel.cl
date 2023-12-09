@@ -50,7 +50,7 @@
 #define ARGON2_VERSION ARGON2_VERSION_13
 #endif
 
-#include "opencl_device_info.h"
+#include "rotate.h"
 //#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 
 ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local ulong *buf)
@@ -117,30 +117,6 @@ void block_th_set(struct block_th *b, uint idx, ulong v)
     b->d ^= cmpeq_mask(idx, 3) & (v ^ b->d);
 }
 
-#ifdef cl_amd_media_ops
-#pragma OPENCL EXTENSION cl_amd_media_ops : enable
-
-ulong rotr64(ulong x, ulong n)
-{
-    uint lo = (uint)x;
-    uint hi = (uint)(x >> 32);
-    uint r_lo, r_hi;
-    if (n < 32) {
-        r_lo = amd_bitalign(hi, lo, (uint)n);
-        r_hi = amd_bitalign(lo, hi, (uint)n);
-    } else {
-        r_lo = amd_bitalign(lo, hi, (uint)n - 32);
-        r_hi = amd_bitalign(hi, lo, (uint)n - 32);
-    }
-    return upsample(r_hi, r_lo);
-}
-#else
-ulong rotr64(ulong x, ulong n)
-{
-    return rotate(x, 64 - n);
-}
-#endif
-
 ulong mul_wide_u32(ulong a, ulong b)
 {
 #if gpu_nvidia(DEVICE_INFO)
@@ -165,13 +141,13 @@ void g(struct block_th *block)
     ulong d = block->d;
 
     a += mul_wide_u32(a, b);
-    d = rotr64(d ^ a, 32);
+    d = ror64(d ^ a, 32);
     c += mul_wide_u32(c, d);
-    b = rotr64(b ^ c, 24);
+    b = ror64(b ^ c, 24);
     a += mul_wide_u32(a, b);
-    d = rotr64(d ^ a, 16);
+    d = ror64(d ^ a, 16);
     c += mul_wide_u32(c, d);
-    b = rotr64(b ^ c, 63);
+    b = ror64(b ^ c, 63);
 
     block->a = a;
     block->b = b;
