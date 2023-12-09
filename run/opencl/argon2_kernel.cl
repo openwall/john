@@ -51,10 +51,36 @@
 #endif
 
 #include "rotate.h"
-//#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 
+// Define when we will use warp_shuffle instructions and not local memory
+#if USE_WARP_SHUFFLE
+#define u64_shuffle(v, thread_src, thread, buf) u64_shuffle_warp(v, thread_src)
+ulong u64_shuffle_warp(ulong v, uint thread_src)
+#else
+//#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local ulong *buf)
+#endif
 {
+#if USE_WARP_SHUFFLE && gpu_nvidia(DEVICE_INFO) && SM_MAJOR >= 3
+    ulong result;
+
+    asm("{\n\t"
+            ".reg .b32 v_lo;\n\t"
+            ".reg .b32 v_hi;\n\t"
+            ".reg .b32 r_lo;\n\t"
+            ".reg .b32 r_hi;\n\t"
+
+            "mov.b64  {v_hi,v_lo}, %1;\n\t"
+        
+            "shfl.sync.idx.b32  r_lo, v_lo, %2, 0x1f, 0xffffffff;\n\t"
+            "shfl.sync.idx.b32  r_hi, v_hi, %2, 0x1f, 0xffffffff;\n\t"
+
+            "mov.b64  %0, {r_hi,r_lo};\n\t"
+        "}"
+        : "=l" (result) : "l" (v), "r" (thread_src));
+
+    return result;
+#else // Using local memory
     buf[thread] = v;
     // Another option instead of the barrier. Maybe worth testing on CPUs because
     // in C++ default atomic operations DO a memory barrier.
@@ -66,6 +92,7 @@ ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local ulong *buf)
     barrier(CLK_LOCAL_MEM_FENCE);
 #endif
     return buf[thread_src];
+#endif
 }
 
 struct u64_shuffle_buf {
@@ -161,8 +188,12 @@ uint apply_shuffle_shift2(uint thread, uint idx)
     lo = (lo + idx) & 0x3;
     return ((lo & 0x2) << 3) | (thread & 0xe) | (lo & 0x1);
 }
-
+#if USE_WARP_SHUFFLE
+#define shuffle_block(block, thread, buf) shuffle_block_warp(block, thread)
+void shuffle_block_warp(struct block_th *block, uint thread)
+#else
 void shuffle_block(struct block_th *block, uint thread, __local ulong *buf)
+#endif
 {
     //transpose(block, thread, buf);
     uint thread_group = (thread & 0x0C) >> 2;
@@ -235,7 +266,12 @@ void shuffle_block(struct block_th *block, uint thread, __local ulong *buf)
     }
 }
 
+#if USE_WARP_SHUFFLE
+#define next_addresses(addr, thread_input, thread, buf) next_addresses_warp(addr, thread_input, thread)
+void next_addresses_warp(struct block_th *addr, uint thread_input, uint thread)
+#else
 void next_addresses(struct block_th *addr, uint thread_input, uint thread, __local ulong *buf)
+#endif
 {
     addr->a = upsample(0, thread_input);
     addr->b = 0;
@@ -261,16 +297,22 @@ void next_addresses(struct block_th *addr, uint thread_input, uint thread, __loc
 
 #endif
 
-
-__kernel void KERNEL_NAME(ARGON2_TYPE)(__local ulong* shuffle_bufs, __global struct block_g* memory, 
-    uint passes, uint lanes, uint segment_blocks, uint pass, uint slice, uint type)
+// Kernel definition
+__kernel void KERNEL_NAME(ARGON2_TYPE)(__global struct block_g* memory, uint passes, uint lanes, uint segment_blocks, uint pass, uint slice, uint type
+#if USE_WARP_SHUFFLE
+                               )
+#else
+    , __local ulong* shuffle_bufs)
+#endif
 {
     uint job_id = get_global_id(1);
     uint lane   = get_global_id(0) / THREADS_PER_LANE;
-    uint warp   = (get_local_id(1) * get_local_size(0) + get_local_id(0)) / THREADS_PER_LANE;
     uint thread = get_local_id(0) % THREADS_PER_LANE;
 
+#if !USE_WARP_SHUFFLE
+    uint warp   = (get_local_id(1) * get_local_size(0) + get_local_id(0)) / THREADS_PER_LANE;
     __local ulong* shuffle_buf = shuffle_bufs + warp * THREADS_PER_LANE;
+#endif
 
     uint lane_blocks = ARGON2_SYNC_POINTS * segment_blocks;
 

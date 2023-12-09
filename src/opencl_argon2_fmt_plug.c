@@ -82,9 +82,9 @@ static uint8_t (*crypted)[BINARY_SIZE] = NULL;
 
 // GPU functions and memory
 #define ARGON2_NUM_TYPES 2
-static cl_int cl_error = CL_SUCCESS;
 static cl_kernel kernels[ARGON2_NUM_TYPES] = {NULL, NULL};
 static cl_mem memory_buffer = NULL;
+static int DEVICE_USE_LOCAL_MEMORY = 1;
 
 // CPU buffers to move data from and to the GPU
 static uint8_t* blocks_in = NULL;
@@ -145,15 +145,15 @@ static int run_kernel_on_gpu()
         if(saved_salt.type == Argon2_id)
         {
                 // We use the two kernels => initialize both OpenCL kernel params
-	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 2, sizeof(passes), &passes), "Error setting kernel argument");
-	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 3, sizeof(lanes), &lanes), "Error setting kernel argument");
-	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 4, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
-                HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 7, sizeof(argon2_type), &argon2_type), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 1, sizeof(passes), &passes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 2, sizeof(lanes), &lanes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 3, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
+                HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 6, sizeof(argon2_type), &argon2_type), "Error setting kernel argument");
 
-	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 2, sizeof(passes), &passes), "Error setting kernel argument");
-	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 3, sizeof(lanes), &lanes), "Error setting kernel argument");
-	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 4, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
-                HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 7, sizeof(argon2_type), &argon2_type), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 1, sizeof(passes), &passes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 2, sizeof(lanes), &lanes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 3, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
+                HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 6, sizeof(argon2_type), &argon2_type), "Error setting kernel argument");
 
                 for (pass = 0; pass < passes; pass++)
                         for (slice = 0; slice < ARGON2_SYNC_POINTS; slice++)
@@ -172,10 +172,13 @@ static int run_kernel_on_gpu()
                                         jobs_per_block <= MAX_KEYS_PER_CRYPT && MAX_KEYS_PER_CRYPT % jobs_per_block == 0);
 
                                 size_t local_range[2] = {THREADS_PER_LANE * lanes_per_block, jobs_per_block};
-                                size_t shmemSize = THREADS_PER_LANE * lanes_per_block * jobs_per_block * sizeof(cl_ulong);
-                                HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 0, shmemSize, NULL), "Error setting kernel argument");
-                                HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 5, sizeof(pass), &pass), "Error setting kernel argument");
-                                HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 6, sizeof(slice), &slice), "Error setting kernel argument");
+                                if (DEVICE_USE_LOCAL_MEMORY)
+                                {
+                                        size_t shmemSize = THREADS_PER_LANE * lanes_per_block * jobs_per_block * sizeof(cl_ulong);
+                                        HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 7, shmemSize, NULL), "Error setting kernel argument");
+                                }
+                                HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 4, sizeof(pass), &pass), "Error setting kernel argument");
+                                HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 5, sizeof(slice), &slice), "Error setting kernel argument");
                                 BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], kernels[selected_type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Run loop kernel");
                                 HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush");
                         }
@@ -191,18 +194,21 @@ static int run_kernel_on_gpu()
                         jobs_per_block <= MAX_KEYS_PER_CRYPT && MAX_KEYS_PER_CRYPT % jobs_per_block == 0);
 
                 size_t local_range[2] = {THREADS_PER_LANE * lanes_per_block, jobs_per_block};
-                size_t shmemSize = THREADS_PER_LANE * lanes_per_block * jobs_per_block * sizeof(cl_ulong);
-                HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 0, shmemSize, NULL), "Error setting kernel argument");
-	        HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 2, sizeof(passes), &passes), "Error setting kernel argument");
-	        HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 3, sizeof(lanes), &lanes), "Error setting kernel argument");
-	        HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 4, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
-                HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 7, sizeof(argon2_type), &argon2_type), "Error setting kernel argument");
+                if (DEVICE_USE_LOCAL_MEMORY)
+                {
+                        size_t shmemSize = THREADS_PER_LANE * lanes_per_block * jobs_per_block * sizeof(cl_ulong);
+                        HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 7, shmemSize, NULL), "Error setting kernel argument");
+                }
+	        HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 1, sizeof(passes), &passes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 2, sizeof(lanes), &lanes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 3, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
+                HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 6, sizeof(argon2_type), &argon2_type), "Error setting kernel argument");
 
                 for (pass = 0; pass < passes; pass++)
                         for (slice = 0; slice < ARGON2_SYNC_POINTS; slice++)
                         {
-                                HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 5, sizeof(pass), &pass), "Error setting kernel argument");
-                                HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 6, sizeof(slice), &slice), "Error setting kernel argument");
+                                HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 4, sizeof(pass), &pass), "Error setting kernel argument");
+                                HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 5, sizeof(slice), &slice), "Error setting kernel argument");
                                 BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], kernels[argon2_type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Run loop kernel");
                                 HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush");
                         }
@@ -277,8 +283,8 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 		cl_ulong start_time, end_time, best_time = 0;
 		uint32_t best_lanes_per_block = 1, best_jobs_per_block = 1, lpb, jpb;
 		size_t global_range[2] = {THREADS_PER_LANE * lanes, MAX_KEYS_PER_CRYPT};
-		HANDLE_CLERROR(clSetKernelArg(kernels[type], 3, sizeof(lanes), &lanes), "Error setting kernel argument");
-		HANDLE_CLERROR(clSetKernelArg(kernels[type], 4, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
+		HANDLE_CLERROR(clSetKernelArg(kernels[type], 2, sizeof(lanes), &lanes), "Error setting kernel argument");
+		HANDLE_CLERROR(clSetKernelArg(kernels[type], 3, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
 
 		assert(profiling_queue && profiling_event);
                 uint32_t lws_multiple = get_kernel_preferred_multiple(gpu_id, kernels[type]);
@@ -302,11 +308,16 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 		// Get basic kernel execution time
 		{
 			size_t local_range[2] = {THREADS_PER_LANE * best_lanes_per_block, best_jobs_per_block};
-			size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block * sizeof(cl_ulong);
-			if (shmemSize > get_local_memory_size(gpu_id))
-				printf("-- Overflowing %u KB / %u KB local GPU memory --\n", (uint32_t)(shmemSize / 1024), (uint32_t)(get_local_memory_size(gpu_id) / 1024));
+                        if (DEVICE_USE_LOCAL_MEMORY)
+                        {
+                                size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block * sizeof(cl_ulong);
+                                if (shmemSize > get_local_memory_size(gpu_id))
+                                        printf("-- Overflowing %u KB / %u KB local GPU memory --\n", 
+                                                        (uint32_t)(shmemSize / 1024), 
+                                                        (uint32_t)(get_local_memory_size(gpu_id) / 1024));
 
-			HANDLE_CLERROR(clSetKernelArg(kernels[type], 0, shmemSize, NULL), "Error setting local memory size");
+                                HANDLE_CLERROR(clSetKernelArg(kernels[type], 7, shmemSize, NULL), "Error setting local memory size");
+                        }
                         // Warm-up
 			HANDLE_CLERROR(clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Error on kernel");
                         HANDLE_CLERROR(clFinish(profiling_queue), "Error profiling clFinish");
@@ -324,9 +335,12 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 			for (lpb = best_lanes_per_block; lpb <= lanes; lpb *= 2)
 			{
 				size_t local_range[2] = {THREADS_PER_LANE * lpb, best_jobs_per_block};
-				size_t shmemSize = THREADS_PER_LANE * lpb * best_jobs_per_block * sizeof(cl_ulong);
 
-				if(CL_SUCCESS != clSetKernelArg(kernels[type], 0, shmemSize, NULL)) break;
+                                if (DEVICE_USE_LOCAL_MEMORY)
+                                {
+				        size_t shmemSize = THREADS_PER_LANE * lpb * best_jobs_per_block * sizeof(cl_ulong);
+				        if(CL_SUCCESS != clSetKernelArg(kernels[type], 7, shmemSize, NULL)) break;
+                                }
 				// Warm-up
 				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL)) break;
                                 if(CL_SUCCESS != clFinish(profiling_queue)) break;
@@ -352,9 +366,12 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 			for (jpb = best_jobs_per_block; jpb <= MAX_KEYS_PER_CRYPT; jpb *= 2)
 			{
 				size_t local_range[2] = {THREADS_PER_LANE * best_lanes_per_block, jpb};
-				size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * jpb * sizeof(cl_ulong);
 
-				if(CL_SUCCESS != clSetKernelArg(kernels[type], 0, shmemSize, NULL)) break;
+                                if (DEVICE_USE_LOCAL_MEMORY)
+                                {
+				        size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * jpb * sizeof(cl_ulong);
+				        if(CL_SUCCESS != clSetKernelArg(kernels[type], 7, shmemSize, NULL)) break;
+                                }
 				// Warm-up
 				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL)) break;
                                 if(CL_SUCCESS != clFinish(profiling_queue)) break;
@@ -377,9 +394,12 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 			for (jpb = best_jobs_per_block; jpb <= MAX_KEYS_PER_CRYPT; jpb *= 2)
 			{
 				size_t local_range[2] = {THREADS_PER_LANE * lanes, jpb};
-				size_t shmemSize = THREADS_PER_LANE * lanes * jpb * sizeof(cl_ulong);
 
-				if(CL_SUCCESS != clSetKernelArg(kernels[type], 0, shmemSize, NULL)) break;
+                                if (DEVICE_USE_LOCAL_MEMORY)
+                                {
+				        size_t shmemSize = THREADS_PER_LANE * lanes * jpb * sizeof(cl_ulong);
+				        if(CL_SUCCESS != clSetKernelArg(kernels[type], 7, shmemSize, NULL)) break;
+                                }
 				// Warm-up
 				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL)) break;
                                 if(CL_SUCCESS != clFinish(profiling_queue)) break;
@@ -438,7 +458,7 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 			//best_kernel_params[index].best_jobs_per_block = best_jobs_per_block = 1;
 		}
 
-		fprintf(stderr, "Autotune [type: %u, lanes: %u, segments: %u => (%u, %2u) => %02u ms] LWS: %3u Requested-Multiple:%3u\n", 
+		printf("Autotune [type: %u, lanes: %u, segments: %u => (%u, %2u) => %02u ms] LWS: %3u Requested-Multiple:%3u\n", 
                         type, lanes, segment_blocks, 
 		        best_lanes_per_block, best_jobs_per_block,
 			(uint32_t)(best_time / 1000000),
@@ -449,6 +469,11 @@ static void reset(struct db_main *db)
 {
 	assert(gpu_id >= 0 && gpu_id < MAX_GPU_DEVICES && db);
 	int i;
+
+        // Select mode of operation
+        uint32_t sm_version;
+        get_compute_capability(gpu_id, &sm_version, NULL);
+        DEVICE_USE_LOCAL_MEMORY = !(gpu_nvidia(device_info[gpu_id]) && sm_version >= 3);
 
         // Find [max/min]_lanes and max_memory_size
 		max_salt_lanes = 0;
@@ -512,7 +537,7 @@ static void reset(struct db_main *db)
 			blocks_out = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
 
                 // Create main GPU memory
-                memory_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_memory_size, NULL, &cl_error);
+                memory_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_memory_size, NULL, &ret_code);
                 printf("\nTrying to use %zu MB / %u MB GPU memory. Max Allocation: %u MB\n", max_memory_size / 1048576, 
                                 (uint32_t)(get_global_memory_size(gpu_id) / 1048576),
                                 (uint32_t)(get_max_mem_alloc_size(gpu_id) / 1048576));
@@ -520,14 +545,14 @@ static void reset(struct db_main *db)
                 // Something like this reduce too much performance on Nvidia: get_max_mem_alloc_size(gpu_id)
                 //
                 // The best option is to try and try again
-                if(cl_error != CL_SUCCESS)
+                if(ret_code != CL_SUCCESS)
                 {
                         max_memory_size /= 2;
                         MAX_KEYS_PER_CRYPT /= 2;
                         MEM_FREE(blocks_in);
                         MEM_FREE(blocks_out);
                 }
-        } while(cl_error != CL_SUCCESS);
+        } while(ret_code != CL_SUCCESS);
 
 		assert(MAX_KEYS_PER_CRYPT >= 1);
 	assert(blocks_in && blocks_out && memory_buffer);
@@ -536,7 +561,9 @@ static void reset(struct db_main *db)
         if (!program[gpu_id])
 	{
 		// Create and build OpenCL kernels
-		opencl_init("$JOHN/opencl/argon2_kernels_include.cl", gpu_id, NULL);// Develop Nvidia: "-cl-nv-verbose -nv-line-info"
+                char build_opts[64];
+                snprintf(build_opts, sizeof(build_opts), "-DUSE_WARP_SHUFFLE=%i", !DEVICE_USE_LOCAL_MEMORY);
+		opencl_init("$JOHN/opencl/argon2_kernels_include.cl", gpu_id, build_opts);// Develop Nvidia: "-cl-nv-verbose -nv-line-info"
 
 		// Select OpenCL kernel
 		char kernel_name[32];
@@ -544,10 +571,8 @@ static void reset(struct db_main *db)
 		{
 			snprintf(kernel_name, sizeof(kernel_name), "argon2_kernel_segment_%i", i);	
 			assert(!kernels[i]);
-			kernels[i] = clCreateKernel(program[gpu_id], kernel_name, &cl_error);
-			HANDLE_CLERROR(cl_error, "Error creating kernel");
-			// Set opencl kernel parameters
-			HANDLE_CLERROR(clSetKernelArg(kernels[i], 1, sizeof(memory_buffer), &memory_buffer), "Error setting kernel argument");
+			kernels[i] = clCreateKernel(program[gpu_id], kernel_name, &ret_code);
+			HANDLE_CLERROR(ret_code, "Error creating kernel");
 		}
 		//--------------------------------------------------------------------------------------------------------------------------
 	}
@@ -562,17 +587,17 @@ static void reset(struct db_main *db)
 	for (i = 0; i < ARGON2_NUM_TYPES; i++)
 	{
                 // Set OpenCL kernel parameters
-                HANDLE_CLERROR(clSetKernelArg(kernels[i], 1, sizeof(memory_buffer), &memory_buffer), "Error setting kernel argument");
-		HANDLE_CLERROR(clSetKernelArg(kernels[i], 2, sizeof(PASSES), &PASSES), "Error setting kernel argument");
+                HANDLE_CLERROR(clSetKernelArg(kernels[i], 0, sizeof(memory_buffer), &memory_buffer), "Error setting kernel argument");
+		HANDLE_CLERROR(clSetKernelArg(kernels[i], 1, sizeof(PASSES), &PASSES), "Error setting kernel argument");
+		HANDLE_CLERROR(clSetKernelArg(kernels[i], 4, sizeof(ZERO), &ZERO), "Error setting kernel argument");
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 5, sizeof(ZERO), &ZERO), "Error setting kernel argument");
-		HANDLE_CLERROR(clSetKernelArg(kernels[i], 6, sizeof(ZERO), &ZERO), "Error setting kernel argument");
-                HANDLE_CLERROR(clSetKernelArg(kernels[i], 7, sizeof(PASSES), &PASSES), "Error setting kernel argument");
+                HANDLE_CLERROR(clSetKernelArg(kernels[i], 6, sizeof(PASSES), &PASSES), "Error setting kernel argument");
 	}
 	// Create OpenCL profiling objects
-	cl_command_queue profiling_queue = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &cl_error);
-	HANDLE_CLERROR(cl_error, "clCreateCommandQueue profiling");
-	cl_event profiling_event = clCreateUserEvent(context[gpu_id], &cl_error);
-	HANDLE_CLERROR(cl_error, "clCreateUserEvent profiling");
+	cl_command_queue profiling_queue = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
+	HANDLE_CLERROR(ret_code, "clCreateCommandQueue profiling");
+	cl_event profiling_event = clCreateUserEvent(context[gpu_id], &ret_code);
+	HANDLE_CLERROR(ret_code, "clCreateUserEvent profiling");
 
         // Autotune saved params
         MEM_FREE(best_kernel_params);
@@ -617,16 +642,18 @@ static void reset(struct db_main *db)
 
                 // Report GWS/LWS
                 if (min_global_work_size == max_global_work_size && min_local_work_size == max_local_work_size)
-                        printf("LWS="Zu" GWS="Zu" ("Zu" blocks)\n",
+                        printf("LWS="Zu" GWS="Zu" ("Zu" blocks) => Mode: %s\n",
 			        min_local_work_size,
                                 min_global_work_size,
-			        min_global_work_size / max_local_work_size);
+			        min_global_work_size / max_local_work_size, 
+                                DEVICE_USE_LOCAL_MEMORY ? "LOCAL_MEMORY" : "WARP_SHUFFLE");
                 else
-                        printf("LWS=["Zu"-"Zu"] GWS=["Zu"-"Zu"] (["Zu"-"Zu"] blocks)\n",
+                        printf("LWS=["Zu"-"Zu"] GWS=["Zu"-"Zu"] (["Zu"-"Zu"] blocks) => Mode: %s\n",
 			        min_local_work_size, max_local_work_size,
                                 min_global_work_size, max_global_work_size,
                                 // TODO: consider an exact calculation here instead of this approximation
-			        min_global_work_size / max_local_work_size, max_global_work_size / min_local_work_size);
+			        min_global_work_size / max_local_work_size, max_global_work_size / min_local_work_size,
+                                DEVICE_USE_LOCAL_MEMORY ? "LOCAL_MEMORY" : "WARP_SHUFFLE");
         }
 }
 
