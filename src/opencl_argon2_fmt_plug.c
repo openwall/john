@@ -81,9 +81,9 @@ static int *saved_len = NULL;
 static uint8_t (*crypted)[BINARY_SIZE] = NULL;
 
 // GPU functions and memory
-#define ARGON2_NUM_TYPES 3
+#define ARGON2_NUM_TYPES 2
 static cl_int cl_error = CL_SUCCESS;
-static cl_kernel kernels[ARGON2_NUM_TYPES] = {NULL, NULL, NULL};
+static cl_kernel kernels[ARGON2_NUM_TYPES] = {NULL, NULL};
 static cl_mem memory_buffer = NULL;
 
 // CPU buffers to move data from and to the GPU
@@ -103,7 +103,19 @@ static uint32_t max_segment_blocks = 0;
 #define THREADS_PER_LANE 32
 #define ARGON2_REFS_PER_BLOCK 	(ARGON2_BLOCK_SIZE / (2 * sizeof(cl_uint)))
 
-static int run_kernel_on_gpu(uint32_t lanes_per_block, size_t jobs_per_block)
+static uint32_t index_best_kernel_params(argon2_type type, uint32_t lanes, uint32_t segment_blocks)
+{
+	assert(best_kernel_params && type >= 0 && type < ARGON2_NUM_TYPES && 
+		lanes > 0 && lanes <= max_salt_lanes &&
+		segment_blocks > 0 && segment_blocks <= max_segment_blocks);
+
+	uint32_t index = type * max_salt_lanes * max_segment_blocks + (lanes - 1) * max_segment_blocks + (segment_blocks - 1);
+
+        assert(index >= 0 && index < ARGON2_NUM_TYPES * max_salt_lanes * max_segment_blocks);
+
+        return index;
+}
+static int run_kernel_on_gpu()
 {
         uint32_t pass, slice;
         uint32_t lanes = saved_salt.lanes;
@@ -111,14 +123,7 @@ static int run_kernel_on_gpu(uint32_t lanes_per_block, size_t jobs_per_block)
 
 	assert(lanes > 0 && passes > 0 && saved_salt.m_cost > 0);
 
-	if (lanes_per_block > lanes || lanes % lanes_per_block != 0)
-		error_msg("Invalid lanes_per_block! Lanes: %u LPB: %u\n", lanes, lanes_per_block);
-
-	if (jobs_per_block > MAX_KEYS_PER_CRYPT || MAX_KEYS_PER_CRYPT % jobs_per_block != 0)
-                error_msg("Invalid jobs_per_block! JPB: %zu\n", jobs_per_block);
-
 	size_t global_range[2] = {THREADS_PER_LANE * lanes, MAX_KEYS_PER_CRYPT};
-	size_t local_range[2] = {THREADS_PER_LANE * lanes_per_block, jobs_per_block};
 
 	// Calculate memory size
 	uint32_t segment_blocks = MAX(saved_salt.m_cost / (saved_salt.lanes * ARGON2_SYNC_POINTS), 2);
@@ -135,20 +140,73 @@ static int run_kernel_on_gpu(uint32_t lanes_per_block, size_t jobs_per_block)
 						jobSize, 0, copySize, 0, blocks_in, 0, NULL, NULL), "Copy data to gpu");
 
 	// Set parameters and execute kernel
-	assert(saved_salt.type >= 0 && saved_salt.type < ARGON2_NUM_TYPES && kernels[saved_salt.type]);
-        size_t shmemSize = THREADS_PER_LANE * lanes_per_block * jobs_per_block * sizeof(cl_ulong);
-	HANDLE_CLERROR(clSetKernelArg(kernels[saved_salt.type], 0, shmemSize, NULL), "Error setting kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(kernels[saved_salt.type], 2, sizeof(passes), &passes), "Error setting kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(kernels[saved_salt.type], 3, sizeof(lanes), &lanes), "Error setting kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(kernels[saved_salt.type], 4, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
-	for (pass = 0; pass < passes; pass++)
-		for (slice = 0; slice < ARGON2_SYNC_POINTS; slice++)
-		{
-			HANDLE_CLERROR(clSetKernelArg(kernels[saved_salt.type], 5, sizeof(pass), &pass), "Error setting kernel argument");
-			HANDLE_CLERROR(clSetKernelArg(kernels[saved_salt.type], 6, sizeof(slice), &slice), "Error setting kernel argument");
-			BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], kernels[saved_salt.type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Run loop kernel");
-			HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
-		}
+	assert(saved_salt.type >= 0 && saved_salt.type < (ARGON2_NUM_TYPES + 1) && kernels[Argon2_d] && kernels[Argon2_i]);
+        cl_uint argon2_type = saved_salt.type;
+        if(saved_salt.type == Argon2_id)
+        {
+                // We use the two kernels => initialize both OpenCL kernel params
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 2, sizeof(passes), &passes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 3, sizeof(lanes), &lanes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 4, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
+                HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_d], 7, sizeof(argon2_type), &argon2_type), "Error setting kernel argument");
+
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 2, sizeof(passes), &passes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 3, sizeof(lanes), &lanes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 4, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
+                HANDLE_CLERROR(clSetKernelArg(kernels[Argon2_i], 7, sizeof(argon2_type), &argon2_type), "Error setting kernel argument");
+
+                for (pass = 0; pass < passes; pass++)
+                        for (slice = 0; slice < ARGON2_SYNC_POINTS; slice++)
+                        {
+                                // Select the type
+                                int selected_type = Argon2_d;
+                                if (pass == 0 && slice < ARGON2_SYNC_POINTS / 2)
+                                        selected_type = Argon2_i;
+
+                                // Find the autotune params
+                                uint32_t index = index_best_kernel_params(selected_type, saved_salt.lanes, MAX(saved_salt.m_cost / (saved_salt.lanes * ARGON2_SYNC_POINTS), 2));                           
+                                uint32_t lanes_per_block = best_kernel_params[index].lanes_per_block;
+                                size_t jobs_per_block    = best_kernel_params[index].jobs_per_block;
+                                assert(lanes_per_block && jobs_per_block && 
+                                        lanes_per_block <= lanes && lanes % lanes_per_block == 0 &&
+                                        jobs_per_block <= MAX_KEYS_PER_CRYPT && MAX_KEYS_PER_CRYPT % jobs_per_block == 0);
+
+                                size_t local_range[2] = {THREADS_PER_LANE * lanes_per_block, jobs_per_block};
+                                size_t shmemSize = THREADS_PER_LANE * lanes_per_block * jobs_per_block * sizeof(cl_ulong);
+                                HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 0, shmemSize, NULL), "Error setting kernel argument");
+                                HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 5, sizeof(pass), &pass), "Error setting kernel argument");
+                                HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 6, sizeof(slice), &slice), "Error setting kernel argument");
+                                BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], kernels[selected_type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Run loop kernel");
+                                //HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+                        }
+        }
+        else // Argon2_d || Argon2_i
+        {
+                // Find the autotune params
+                uint32_t index = index_best_kernel_params(argon2_type, saved_salt.lanes, MAX(saved_salt.m_cost / (saved_salt.lanes * ARGON2_SYNC_POINTS), 2));                           
+                uint32_t lanes_per_block = best_kernel_params[index].lanes_per_block;
+                size_t jobs_per_block    = best_kernel_params[index].jobs_per_block;
+                assert(lanes_per_block && jobs_per_block && 
+                        lanes_per_block <= lanes && lanes % lanes_per_block == 0 &&
+                        jobs_per_block <= MAX_KEYS_PER_CRYPT && MAX_KEYS_PER_CRYPT % jobs_per_block == 0);
+
+                size_t local_range[2] = {THREADS_PER_LANE * lanes_per_block, jobs_per_block};
+                size_t shmemSize = THREADS_PER_LANE * lanes_per_block * jobs_per_block * sizeof(cl_ulong);
+                HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 0, shmemSize, NULL), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 2, sizeof(passes), &passes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 3, sizeof(lanes), &lanes), "Error setting kernel argument");
+	        HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 4, sizeof(segment_blocks), &segment_blocks), "Error setting kernel argument");
+                HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 7, sizeof(argon2_type), &argon2_type), "Error setting kernel argument");
+
+                for (pass = 0; pass < passes; pass++)
+                        for (slice = 0; slice < ARGON2_SYNC_POINTS; slice++)
+                        {
+                                HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 5, sizeof(pass), &pass), "Error setting kernel argument");
+                                HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 6, sizeof(slice), &slice), "Error setting kernel argument");
+                                BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], kernels[argon2_type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Run loop kernel");
+                                //HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+                        }
+        }
 
         // Copy data from GPU
 	copySize = saved_salt.lanes * ARGON2_BLOCK_SIZE;
@@ -209,18 +267,6 @@ static void done(void)
 static int is_power_of_two(uint32_t x)
 {
     return (x & (x - 1)) == 0;
-}
-static uint32_t index_best_kernel_params(argon2_type type, uint32_t lanes, uint32_t segment_blocks)
-{
-	assert(best_kernel_params && type >= 0 && type < ARGON2_NUM_TYPES && 
-		lanes > 0 && lanes <= max_salt_lanes &&
-		segment_blocks > 0 && segment_blocks <= max_segment_blocks);
-
-	uint32_t index = type * max_salt_lanes * max_segment_blocks + (lanes - 1) * max_segment_blocks + (segment_blocks - 1);
-
-        assert(index >= 0 && index < ARGON2_NUM_TYPES * max_salt_lanes * max_segment_blocks);
-
-        return index;
 }
 static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, cl_command_queue profiling_queue, cl_event* profiling_event)
 {
@@ -505,7 +551,7 @@ static void reset(struct db_main *db)
 		}
 		//--------------------------------------------------------------------------------------------------------------------------
 	}
-        assert(program[gpu_id] && kernels[0] && kernels[1] && kernels[2]);
+        assert(program[gpu_id] && kernels[Argon2_d] && kernels[Argon2_i]);
 
 	//-----------------------------------------------------------------------------------------------------------
 	// Autotune
@@ -520,6 +566,7 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 2, sizeof(PASSES), &PASSES), "Error setting kernel argument");
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 5, sizeof(ZERO), &ZERO), "Error setting kernel argument");
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 6, sizeof(ZERO), &ZERO), "Error setting kernel argument");
+                HANDLE_CLERROR(clSetKernelArg(kernels[i], 7, sizeof(PASSES), &PASSES), "Error setting kernel argument");
 	}
 	// Create OpenCL profiling objects
 	cl_command_queue profiling_queue = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &cl_error);
@@ -535,7 +582,14 @@ static void reset(struct db_main *db)
 	for (i = 0; i < db->salt_count; i++)
 	{
 		struct argon2_salt* salt = (struct argon2_salt*)curr_salt->salt;
-		autotune(salt->type, salt->lanes, MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2), profiling_queue, &profiling_event);
+                // Special case that use both kernels
+                if (salt->type == Argon2_id)
+                {
+                        autotune(Argon2_d, salt->lanes, MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2), profiling_queue, &profiling_event);
+                        autotune(Argon2_i, salt->lanes, MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2), profiling_queue, &profiling_event);
+                }
+                else
+		        autotune(salt->type, salt->lanes, MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2), profiling_queue, &profiling_event);
 		curr_salt = curr_salt->next;
 	}
 	// Release profiling objects
@@ -763,9 +817,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	// Run on the GPU
-	uint32_t index = index_best_kernel_params(saved_salt.type, saved_salt.lanes, MAX(saved_salt.m_cost / (saved_salt.lanes * ARGON2_SYNC_POINTS), 2));
-	assert(best_kernel_params && best_kernel_params[index].lanes_per_block && best_kernel_params[index].jobs_per_block);
-	run_kernel_on_gpu(best_kernel_params[index].lanes_per_block, best_kernel_params[index].jobs_per_block);
+	run_kernel_on_gpu();
 
 	// Post-processing on CPU
 	// ProcessingUnit::getHash()

@@ -23,6 +23,6 @@
 #include "argon2_kernel.cl"
 
 
-#undef ARGON2_TYPE
-#define ARGON2_TYPE ARGON2_ID
-#include "argon2_kernel.cl"
+// #undef ARGON2_TYPE
+// #define ARGON2_TYPE ARGON2_ID
+// #include "argon2_kernel.cl"

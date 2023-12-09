@@ -262,8 +262,8 @@ void next_addresses(struct block_th *addr, uint thread_input, uint thread, __loc
 #endif
 
 
-__kernel void KERNEL_NAME(ARGON2_TYPE)(__local ulong* shuffle_bufs,
-        __global struct block_g* memory, uint passes, uint lanes, uint segment_blocks, uint pass, uint slice)
+__kernel void KERNEL_NAME(ARGON2_TYPE)(__local ulong* shuffle_bufs, __global struct block_g* memory, 
+    uint passes, uint lanes, uint segment_blocks, uint pass, uint slice, uint type)
 {
     uint job_id = get_global_id(1);
     uint lane   = get_global_id(0) / THREADS_PER_LANE;
@@ -277,7 +277,6 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__local ulong* shuffle_bufs,
     /* select job's memory region: */
     memory += (size_t)job_id * lanes * lane_blocks;
 
-    struct block_th prev, addr, tmp;
     uint thread_input = 0;
 
 #if ARGON2_TYPE == ARGON2_I || ARGON2_TYPE == ARGON2_ID
@@ -298,13 +297,14 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__local ulong* shuffle_bufs,
         thread_input = passes;
         break;
     case 5:
-        thread_input = ARGON2_TYPE;
+        thread_input = type;// ARGON2_TYPE;
         break;
     default:
         thread_input = 0;
         break;
     }
 
+    struct block_th addr;
     if (pass == 0 && slice == 0 && segment_blocks > 2) {
         if (thread == 6) {
             ++thread_input;
@@ -330,6 +330,7 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__local ulong* shuffle_bufs,
         mem_curr = mem_segment->data + thread;
     }
 
+    struct block_th prev;
     //load_block(&prev, mem_prev, thread);
     prev.a = mem_prev[0 * THREADS_PER_LANE];
     prev.b = mem_prev[1 * THREADS_PER_LANE];
@@ -340,37 +341,33 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__local ulong* shuffle_bufs,
     for (uint offset = start_offset; offset < segment_blocks; ++offset)
 {
         // argon2_step(memory, mem_curr, &prev, &tmp, &addr, shuffle_buf, lanes, segment_blocks, thread, &thread_input, lane, pass, slice, offset);
-    uint ref_index, ref_lane;
-    bool data_independent;
 #if ARGON2_TYPE == ARGON2_I
-        bool data_independent = true;
-#elif ARGON2_TYPE == ARGON2_ID
-        bool data_independent = pass == 0 && slice < ARGON2_SYNC_POINTS / 2;
-#else
-        bool data_independent = false;
-#endif
-    if (data_independent) {
         uint addr_index = offset % ARGON2_QWORDS_IN_BLOCK;
-            if (addr_index == 0)
-            {
-                if (thread == 6)
-                    ++thread_input;
+        if (addr_index == 0)
+        {
+            if (thread == 6)
+                ++thread_input;
 
-                next_addresses(&addr, thread_input, thread, shuffle_buf);
-            }
+            next_addresses(&addr, thread_input, thread, shuffle_buf);
+        }
 
-            uint thr = addr_index % THREADS_PER_LANE;
-            uint idx = addr_index / THREADS_PER_LANE;
+        uint thr = addr_index % THREADS_PER_LANE;
+        uint idx = addr_index / THREADS_PER_LANE;
 
-            ulong v = block_th_get(&addr, idx);
+        ulong v = block_th_get(&addr, idx);
         v = u64_shuffle(v, thr, thread, shuffle_buf);
-            ref_index = (uint)v;
-            ref_lane  = (uint)(v >> 32);
-    } else {
-            ulong v = u64_shuffle(prev.a, 0, thread, shuffle_buf);
-            ref_index = (uint)v;
-            ref_lane  = (uint)(v >> 32);
-    }
+        uint ref_index = (uint)v;
+        uint ref_lane  = (uint)(v >> 32);
+#elif ARGON2_TYPE == ARGON2_D
+        ulong v = u64_shuffle(prev.a, 0, thread, shuffle_buf);
+        uint ref_index = (uint)v;
+        uint ref_lane  = (uint)(v >> 32);
+//#elif ARGON2_TYPE == ARGON2_ID
+//      bool data_independent = pass == 0 && slice < ARGON2_SYNC_POINTS / 2;
+//          => And then select ARGON2_I or ARGON2_D based on 'data_independent' value
+#else
+    #error ARGON2_TYPE not supported
+#endif
 
         //compute_ref_pos(lanes, segment_blocks, pass, lane, slice, offset, &ref_lane, &ref_index);
         //uint lane_blocks = ARGON2_SYNC_POINTS * segment_blocks;
@@ -401,6 +398,7 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__local ulong* shuffle_bufs,
         //argon2_core(memory, mem_curr, &prev, &tmp, shuffle_buf, lanes, thread, pass, ref_index, ref_lane);
         __global ulong* mem_ref = (memory + ref_index * lanes + ref_lane)->data + thread;
 
+        struct block_th tmp;
     #if ARGON2_VERSION == ARGON2_VERSION_10
         //load_block_xor(prev, mem_ref, thread);
         prev.a ^= mem_ref[0 * THREADS_PER_LANE];
