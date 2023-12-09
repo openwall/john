@@ -50,6 +50,7 @@
 #define ARGON2_VERSION ARGON2_VERSION_13
 #endif
 
+#include "opencl_device_info.h"
 //#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
 
 ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local ulong *buf)
@@ -59,8 +60,9 @@ ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local ulong *buf)
     // atom_xchg(buf + thread, v);
 
     // GPUs don't need this as their warp size is at least 32 that is what we need
-    // barrier(CLK_LOCAL_MEM_FENCE);
-
+#if !gpu_nvidia(DEVICE_INFO) && !gpu_amd(DEVICE_INFO)
+    barrier(CLK_LOCAL_MEM_FENCE);
+#endif
     return buf[thread_src];
 }
 
@@ -136,8 +138,6 @@ ulong rotr64(ulong x, ulong n)
     return rotate(x, 64 - n);
 }
 #endif
-
-#include "opencl_device_info.h"
 
 ulong mul_wide_u32(ulong a, ulong b)
 {
