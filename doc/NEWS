@@ -305,6 +305,8 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Add Keplr wallet support (format, keplr2john.py).  [Alain Espinosa; 2023]
 
+- Add argon2-opencl support (format).  [Alain Espinosa; 2023]
+
 - Added krb5tgs-sha1[-opencl] formats for etypes 17 and 18.  [magnum; 2023]
 
 - Added shell.nix with opencl support on AMD and Intel.  [lambdajack; 2023]
