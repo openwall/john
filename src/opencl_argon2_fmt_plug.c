@@ -177,7 +177,7 @@ static int run_kernel_on_gpu()
                                 HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 5, sizeof(pass), &pass), "Error setting kernel argument");
                                 HANDLE_CLERROR(clSetKernelArg(kernels[selected_type], 6, sizeof(slice), &slice), "Error setting kernel argument");
                                 BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], kernels[selected_type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Run loop kernel");
-                                //HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+                                HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush");
                         }
         }
         else // Argon2_d || Argon2_i
@@ -204,7 +204,7 @@ static int run_kernel_on_gpu()
                                 HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 5, sizeof(pass), &pass), "Error setting kernel argument");
                                 HANDLE_CLERROR(clSetKernelArg(kernels[argon2_type], 6, sizeof(slice), &slice), "Error setting kernel argument");
                                 BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], kernels[argon2_type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Run loop kernel");
-                                //HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
+                                HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush");
                         }
         }
 
