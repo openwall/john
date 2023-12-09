@@ -120,28 +120,23 @@ struct block_th {
     ulong a, b, c, d;
 };
 
-ulong cmpeq_mask(uint test, uint ref)
-{
-    uint x = -(uint)(test == ref);
-    return upsample(x, x);
-}
 
 ulong block_th_get(const struct block_th *b, uint idx)
 {
-    ulong res = 0;
-    res ^= cmpeq_mask(idx, 0) & b->a;
-    res ^= cmpeq_mask(idx, 1) & b->b;
-    res ^= cmpeq_mask(idx, 2) & b->c;
-    res ^= cmpeq_mask(idx, 3) & b->d;
+    ulong res;
+    if (idx == 0) res = b->a;
+    if (idx == 1) res = b->b;
+    if (idx == 2) res = b->c;
+    if (idx == 3) res = b->d;
     return res;
 }
 
 void block_th_set(struct block_th *b, uint idx, ulong v)
 {
-    b->a ^= cmpeq_mask(idx, 0) & (v ^ b->a);
-    b->b ^= cmpeq_mask(idx, 1) & (v ^ b->b);
-    b->c ^= cmpeq_mask(idx, 2) & (v ^ b->c);
-    b->d ^= cmpeq_mask(idx, 3) & (v ^ b->d);
+    if (idx == 0) b->a = v;
+    if (idx == 1) b->b = v;
+    if (idx == 2) b->c = v;
+    if (idx == 3) b->d = v;
 }
 
 ulong mul_wide_u32(ulong a, ulong b)
@@ -195,10 +190,11 @@ void shuffle_block_warp(struct block_th *block, uint thread)
 void shuffle_block(struct block_th *block, uint thread, __local ulong *buf)
 #endif
 {
-    //transpose(block, thread, buf);
+    // transpose(block, thread, buf);
     uint thread_group = (thread & 0x0C) >> 2;
     for (uint i = 1; i < QWORDS_PER_THREAD; i++)
-{
+    {
+        // TODO: Try to optimize 'block_th_*et' with LUT
         uint idx = thread_group ^ i;
 
         ulong v = block_th_get(block, idx);
@@ -208,32 +204,27 @@ void shuffle_block(struct block_th *block, uint thread, __local ulong *buf)
 
     g(block);
 
-    //shuffle_shift1(block, thread, buf);
-    for (uint i = 0; i < QWORDS_PER_THREAD; i+=4)
-    {
-        block->a = u64_shuffle(block->a, (thread & 0x1f)                       , thread, buf);
-        block->b = u64_shuffle(block->b, (thread & 0x1c) | ((thread + 1) & 0x3), thread, buf);
-        block->c = u64_shuffle(block->c, (thread & 0x1c) | ((thread + 2) & 0x3), thread, buf);
-        block->d = u64_shuffle(block->d, (thread & 0x1c) | ((thread + 3) & 0x3), thread, buf);
-    }
+    // shuffle_shift1(block, thread, buf);
+    uint thread_src1 = (thread & 0x1c) | ((thread + 3) & 0x3);
+    uint thread_src2 = (thread & 0x1c) | ((thread + 2) & 0x3);
+    uint thread_src3 = (thread & 0x1c) | ((thread + 1) & 0x3);
+    //block->a = u64_shuffle(block->a, thread_src0, thread, buf);
+    block->b = u64_shuffle(block->b, thread_src3, thread, buf);
+    block->c = u64_shuffle(block->c, thread_src2, thread, buf);
+    block->d = u64_shuffle(block->d, thread_src1, thread, buf);
 
     g(block);
 
-    //shuffle_unshift1(block, thread, buf);
-    for (uint i = 0; i < QWORDS_PER_THREAD; i+=4)
-    {
-        block->a = u64_shuffle(block->a, (thread & 0x1c) | ((thread + (QWORDS_PER_THREAD - i-0) % QWORDS_PER_THREAD) & 0x3), thread, buf);
-        block->b = u64_shuffle(block->b, (thread & 0x1c) | ((thread + (QWORDS_PER_THREAD - i-1) % QWORDS_PER_THREAD) & 0x3), thread, buf);
-        block->c = u64_shuffle(block->c, (thread & 0x1c) | ((thread + (QWORDS_PER_THREAD - i-2) % QWORDS_PER_THREAD) & 0x3), thread, buf);
-        block->d = u64_shuffle(block->d, (thread & 0x1c) | ((thread + (QWORDS_PER_THREAD - i-3) % QWORDS_PER_THREAD) & 0x3), thread, buf);
-    }
-    //transpose(block, thread, buf);
-    //uint thread_group = (thread & 0x0C) >> 2;
+    // shuffle_unshift1(block, thread, buf);
+    //block->a = u64_shuffle(block->a, thread_src0, thread, buf);
+    block->b = u64_shuffle(block->b, thread_src1, thread, buf);
+    block->c = u64_shuffle(block->c, thread_src2, thread, buf);
+    block->d = u64_shuffle(block->d, thread_src3, thread, buf);
+
+    // transpose(block, thread, buf);
     for (uint i = 1; i < QWORDS_PER_THREAD; i++)
-{
-    uint thread_group = (thread & 0x0C) >> 2;
-    for (uint i = 1; i < QWORDS_PER_THREAD; i++) {
-        uint thr = (i << 2) ^ thread;
+    {
+        // TODO: Try to optimize 'block_th_*et' with LUT
         uint idx = thread_group ^ i;
 
         ulong v = block_th_get(block, idx);
@@ -243,27 +234,23 @@ void shuffle_block(struct block_th *block, uint thread, __local ulong *buf)
 
     g(block);
 
-    //shuffle_shift2(block, thread, buf);
-    for (uint i = 0; i < QWORDS_PER_THREAD; i+=4)
-{
-        block->a = u64_shuffle(block->a, apply_shuffle_shift2(thread, i+0), thread, buf);
-        block->b = u64_shuffle(block->b, apply_shuffle_shift2(thread, i+1), thread, buf);
-        block->c = u64_shuffle(block->c, apply_shuffle_shift2(thread, i+2), thread, buf);
-        block->d = u64_shuffle(block->d, apply_shuffle_shift2(thread, i+3), thread, buf);
-        }
-        base = slice * segment_blocks;
-    }
+    // shuffle_shift2(block, thread, buf);
+    uint thread_src0 = apply_shuffle_shift2(thread, 0);
+    thread_src1 = apply_shuffle_shift2(thread, 1);
+    thread_src2 = apply_shuffle_shift2(thread, 2);
+    thread_src3 = apply_shuffle_shift2(thread, 3);
+    // TODO: Try to optimize 'apply_shuffle_shift2' with LUT
+    block->a = u64_shuffle(block->a, thread_src0, thread, buf);
+    block->b = u64_shuffle(block->b, thread_src1, thread, buf);
+    block->c = u64_shuffle(block->c, thread_src2, thread, buf);
+    block->d = u64_shuffle(block->d, thread_src3, thread, buf);
 
     g(block);
 
-    //shuffle_unshift2(block, thread, buf);
-    for (uint i = 0; i < QWORDS_PER_THREAD; i+=4)
-{
-        block->a = u64_shuffle(block->a, apply_shuffle_shift2(thread, (QWORDS_PER_THREAD - i-0) % QWORDS_PER_THREAD), thread, buf);
-        block->b = u64_shuffle(block->b, apply_shuffle_shift2(thread, (QWORDS_PER_THREAD - i-1) % QWORDS_PER_THREAD), thread, buf);
-        block->c = u64_shuffle(block->c, apply_shuffle_shift2(thread, (QWORDS_PER_THREAD - i-2) % QWORDS_PER_THREAD), thread, buf);
-        block->d = u64_shuffle(block->d, apply_shuffle_shift2(thread, (QWORDS_PER_THREAD - i-3) % QWORDS_PER_THREAD), thread, buf);
-    }
+    block->a = u64_shuffle(block->a, thread_src0, thread, buf);
+    block->b = u64_shuffle(block->b, thread_src3, thread, buf);
+    block->c = u64_shuffle(block->c, thread_src2, thread, buf);
+    block->d = u64_shuffle(block->d, thread_src1, thread, buf);
 }
 
 #if USE_WARP_SHUFFLE
