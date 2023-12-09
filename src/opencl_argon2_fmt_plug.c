@@ -55,7 +55,7 @@ static struct fmt_tests tests[] = {
 	{"$argon2i$v=19$m=4096,t=3,p=1$ZGFtYWdlX2RvbmU$N59QwnpxDQZRj1/cO6bqm408dD6Z2Z9LKYpwFJSPVKA", "password"},
 	{"$argon2d$v=19$m=4096,t=3,p=1$c2hvcnRfc2FsdA$zMrTcOAOUje6UqObRVh84Pe1K6gumcDqqGzRM0ILzYmj", "sacrificed"},
 	{"$argon2i$v=19$m=4096,t=3,p=1$c2hvcnRfc2FsdA$1l4kAwUdAApoCbFH7ghBEf7bsdrOQzE4axIJ3PV0Ncrd", "sacrificed"},
-{"$argon2d$v=19$m=16384,t=3,p=1$c2hvcnRfc2FsdA$TLSTPihIo+5F67Y1vJdfWdB9", "blessed_dead"},
+        {"$argon2d$v=19$m=16384,t=3,p=1$c2hvcnRfc2FsdA$TLSTPihIo+5F67Y1vJdfWdB9", "blessed_dead"},
 	{"$argon2i$v=19$m=16384,t=3,p=1$c2hvcnRfc2FsdA$vvjDVog22A5x9eljmB+2yC8y", "blessed_dead"},
 	{"$argon2d$v=19$m=16384,t=4,p=3$YW5vdGhlcl9zYWx0$yw93eMxC8REPAwbQ0e/q43jR9+RI9HI/DHP75uzm7tQfjU734oaI3dzcMWjYjHzVQD+J4+MG+7oyD8dN/PtnmPCZs+UZ67E+rkXJ/wTvY4WgXgAdGtJRrAGxhy4rD7d5G+dCpqhrog", "death_dying"},
 	{"$argon2i$v=19$m=16384,t=4,p=3$YW5vdGhlcl9zYWx0$K7unxwO5aeuZCpnIJ06FMCRKod3eRg8oIRzQrK3E6mGbyqlTvvl47jeDWq/5drF1COJkEF9Ty7FWXJZHa+vqlf2YZGp/4qSlAvKmdtJ/6JZU32iQItzMRwcfujHE+PBjbL5uz4966A", "death_dying"},
@@ -216,7 +216,11 @@ static uint32_t index_best_kernel_params(argon2_type type, uint32_t lanes, uint3
 		lanes > 0 && lanes <= max_salt_lanes &&
 		segment_blocks > 0 && segment_blocks <= max_segment_blocks);
 
-	return type * max_salt_lanes * max_segment_blocks + lanes * max_segment_blocks + segment_blocks;
+	uint32_t index = type * max_salt_lanes * max_segment_blocks + (lanes - 1) * max_segment_blocks + (segment_blocks - 1);
+
+        assert(index >= 0 && index < ARGON2_NUM_TYPES * max_salt_lanes * max_segment_blocks);
+
+        return index;
 }
 static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, cl_command_queue profiling_queue, cl_event* profiling_event)
 {
@@ -232,7 +236,6 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 
 		assert(profiling_queue && profiling_event);
                 uint32_t lws_multiple = get_kernel_preferred_multiple(gpu_id, kernels[type]);
-                printf("Device requested LWS multiple of %u\n", lws_multiple);
 
                 // If the device ask for a bigger LWS => try to give it to them
                 if (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block < lws_multiple)
@@ -389,10 +392,11 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 			//best_kernel_params[index].best_jobs_per_block = best_jobs_per_block = 1;
 		}
 
-		fprintf(stderr, "Autotune [type: %u, lanes: %u, segments: %u => (%u, %u) => %02u ms]\n", 
+		fprintf(stderr, "Autotune [type: %u, lanes: %u, segments: %u => (%u, %2u) => %02u ms] LWS: %3u Requested-Multiple:%3u\n", 
                         type, lanes, segment_blocks, 
 		        best_lanes_per_block, best_jobs_per_block,
-			(uint32_t)(best_time / 1000000));
+			(uint32_t)(best_time / 1000000),
+                        THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block, lws_multiple);
 	}
 }
 static void reset(struct db_main *db)
@@ -539,7 +543,7 @@ static void reset(struct db_main *db)
 	clReleaseEvent(profiling_event);
 
         // Report LWS/GWS
-        if (ocl_always_show_ws || (!self_test_running && ((options.flags & FLG_TEST_CHK) || autotune_real_db)))
+        if (ocl_always_show_ws || !self_test_running)
         {
                 // Finding min/max LWS
                 size_t min_local_work_size = SIZE_MAX;
@@ -567,6 +571,7 @@ static void reset(struct db_main *db)
                         printf("LWS=["Zu"-"Zu"] GWS=["Zu"-"Zu"] (["Zu"-"Zu"] blocks)\n",
 			        min_local_work_size, max_local_work_size,
                                 min_global_work_size, max_global_work_size,
+                                // TODO: consider an exact calculation here instead of this approximation
 			        min_global_work_size / max_local_work_size, max_global_work_size / min_local_work_size);
         }
 }
