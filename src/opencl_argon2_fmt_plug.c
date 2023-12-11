@@ -83,7 +83,8 @@ static uint8_t (*crypted)[BINARY_SIZE] = NULL;
 // GPU functions and memory
 #define ARGON2_NUM_TYPES 2
 static cl_kernel kernels[ARGON2_NUM_TYPES] = {NULL, NULL};
-static cl_mem memory_buffer = NULL;
+static cl_kernel pre_processing_kernel = NULL; 
+static cl_mem memory_buffer = NULL, memory_in = NULL;
 static int DEVICE_USE_LOCAL_MEMORY = 1;
 
 // CPU buffers to move data from and to the GPU
@@ -101,7 +102,6 @@ static uint32_t max_salt_lanes = 0;
 static uint32_t max_segment_blocks = 0;
 
 #define THREADS_PER_LANE 32
-#define ARGON2_REFS_PER_BLOCK 	(ARGON2_BLOCK_SIZE / (2 * sizeof(cl_uint)))
 
 static uint32_t index_best_kernel_params(argon2_type type, uint32_t lanes, uint32_t segment_blocks)
 {
@@ -122,22 +122,25 @@ static int run_kernel_on_gpu()
         uint32_t passes = saved_salt.t_cost;
 
 	assert(lanes > 0 && passes > 0 && saved_salt.m_cost > 0);
+        assert(gpu_id >= 0 && gpu_id < MAX_GPU_DEVICES && queue[gpu_id]);
+        assert(blocks_in && blocks_out);
 
 	size_t global_range[2] = {THREADS_PER_LANE * lanes, MAX_KEYS_PER_CRYPT};
 
 	// Calculate memory size
 	uint32_t segment_blocks = MAX(saved_salt.m_cost / (saved_salt.lanes * ARGON2_SYNC_POINTS), 2);
+
         // Copy data to GPU
-	size_t jobSize = segment_blocks * ARGON2_SYNC_POINTS * saved_salt.lanes * ARGON2_BLOCK_SIZE;
-	size_t copySize = saved_salt.lanes * 2 * ARGON2_BLOCK_SIZE;
-	size_t zero3[3] = {0, 0, 0};
-	size_t region3_in[3] = {copySize, MAX_KEYS_PER_CRYPT, 1};
-	assert(gpu_id >= 0 && gpu_id < MAX_GPU_DEVICES && queue[gpu_id]);
-	assert(blocks_in && blocks_out);
-	HANDLE_CLERROR(clEnqueueWriteBufferRect(queue[gpu_id], memory_buffer, CL_FALSE, 
-						zero3, zero3,
-						region3_in,
-						jobSize, 0, copySize, 0, blocks_in, 0, NULL, NULL), "Copy data to gpu");
+        HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], memory_in, CL_FALSE, 0, MAX_KEYS_PER_CRYPT * ARGON2_PREHASH_DIGEST_LENGTH, blocks_in, 0, NULL, NULL), 
+                        "Copy data to gpu");
+
+        // TODO: Optimize GWS/LWS, or select a safe bet
+        size_t gws_copy[] = {MAX_KEYS_PER_CRYPT * 2, lanes};
+        size_t lws_copy[] = {64, 1};
+        size_t jobSize = segment_blocks * ARGON2_SYNC_POINTS * saved_salt.lanes * ARGON2_BLOCK_SIZE;
+        cl_uint buffer_row_pitch = jobSize / sizeof(cl_ulong);
+        HANDLE_CLERROR(clSetKernelArg(pre_processing_kernel, 2, sizeof(buffer_row_pitch), &buffer_row_pitch), "Error setting pre-processing kernel argument");
+        BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pre_processing_kernel, 2, NULL, gws_copy, lws_copy, 0, NULL, NULL), "Run pre-processing kernel");                      
 
 	// Set parameters and execute kernel
 	assert(saved_salt.type >= 0 && saved_salt.type < (ARGON2_NUM_TYPES + 1) && kernels[Argon2_d] && kernels[Argon2_i]);
@@ -215,7 +218,8 @@ static int run_kernel_on_gpu()
         }
 
         // Copy data from GPU
-	copySize = saved_salt.lanes * ARGON2_BLOCK_SIZE;
+	size_t copySize = saved_salt.lanes * ARGON2_BLOCK_SIZE;
+        size_t zero3[3] = {0, 0, 0};
 	size_t buffer_origin3[3] = {jobSize - copySize, 0, 0};
 	size_t region3_out[3] = {copySize, MAX_KEYS_PER_CRYPT, 1};
 	HANDLE_CLERROR(clEnqueueReadBufferRect(queue[gpu_id], memory_buffer, CL_TRUE, 
@@ -255,6 +259,8 @@ static void done(void)
 			HANDLE_CLERROR(clReleaseKernel(kernels[i]), "Release kernel");
 			kernels[i] = NULL;
 		}
+                HANDLE_CLERROR(clReleaseKernel(pre_processing_kernel), "Release pre-processing kernel");
+                pre_processing_kernel = NULL;
 		// Release program
 		clReleaseProgram(program[gpu_id]);
 		program[gpu_id] = NULL;
@@ -264,7 +270,12 @@ static void done(void)
         {
 		HANDLE_CLERROR(clReleaseMemObject(memory_buffer), "Release GPU memory");
 		memory_buffer = NULL;
-}
+        }
+        if (memory_in)
+        {
+		HANDLE_CLERROR(clReleaseMemObject(memory_in), "Release GPU memory");
+		memory_in = NULL;
+        }
 }
 
 // Autotune
@@ -530,17 +541,21 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clReleaseMemObject(memory_buffer), "Release GPU memory");
 		memory_buffer = NULL;
         }
-		// Manage GPU memory
-		do {
-			// CPU memory to transfer to and from the GPU
-			blocks_in = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * 2 * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
-			blocks_out = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
+        // Manage GPU memory
+        do {
+                // CPU memory to transfer to and from the GPU
+                if (memory_in) HANDLE_CLERROR(clReleaseMemObject(memory_in), "Release GPU memory");
+                memory_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, MAX_KEYS_PER_CRYPT * ARGON2_PREHASH_DIGEST_LENGTH, NULL, &ret_code);
+                HANDLE_CLERROR(ret_code, "Error creating memory buffer");
+
+                blocks_in = mem_calloc_align(MAX_KEYS_PER_CRYPT * ARGON2_PREHASH_DIGEST_LENGTH, sizeof(uint8_t), MEM_ALIGN_PAGE);
+                blocks_out = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
 
                 // Create main GPU memory
                 memory_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_memory_size, NULL, &ret_code);
-                printf("\nTrying to use %zu MB / %u MB GPU memory. Max Allocation: %u MB\n", max_memory_size / 1048576, 
-                                (uint32_t)(get_global_memory_size(gpu_id) / 1048576),
-                                (uint32_t)(get_max_mem_alloc_size(gpu_id) / 1048576));
+                printf("\nTrying to use %zu MB / %u MB GPU memory.\n",
+                                max_memory_size / 1048576, 
+                                (uint32_t)(get_global_memory_size(gpu_id) / 1048576));
 
                 // Something like this reduce too much performance on Nvidia: get_max_mem_alloc_size(gpu_id)
                 //
@@ -554,15 +569,16 @@ static void reset(struct db_main *db)
                 }
         } while(ret_code != CL_SUCCESS);
 
-		assert(MAX_KEYS_PER_CRYPT >= 1);
-	assert(blocks_in && blocks_out && memory_buffer);
-		
+        assert(MAX_KEYS_PER_CRYPT >= 1);
+	assert(blocks_in && blocks_out && memory_buffer && memory_in);
+
         // OpenCL kernels compilation and retrival
         if (!program[gpu_id])
 	{
 		// Create and build OpenCL kernels
                 char build_opts[64];
                 snprintf(build_opts, sizeof(build_opts), "-DUSE_WARP_SHUFFLE=%i", !DEVICE_USE_LOCAL_MEMORY);
+                // TODO: When any file in '#include <file_name>' is changed => the binary cache should be not used
 		opencl_init("$JOHN/opencl/argon2_kernels_include.cl", gpu_id, build_opts);// Develop Nvidia: "-cl-nv-verbose -nv-line-info"
 
 		// Select OpenCL kernel
@@ -574,9 +590,10 @@ static void reset(struct db_main *db)
 			kernels[i] = clCreateKernel(program[gpu_id], kernel_name, &ret_code);
 			HANDLE_CLERROR(ret_code, "Error creating kernel");
 		}
-		//--------------------------------------------------------------------------------------------------------------------------
+                pre_processing_kernel = clCreateKernel(program[gpu_id], "pre_processing", &ret_code);
+                HANDLE_CLERROR(ret_code, "Error creating pre-processing kernel");
 	}
-        assert(program[gpu_id] && kernels[Argon2_d] && kernels[Argon2_i]);
+        assert(program[gpu_id] && kernels[Argon2_d] && kernels[Argon2_i] && pre_processing_kernel);
 
 	//-----------------------------------------------------------------------------------------------------------
 	// Autotune
@@ -593,6 +610,9 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 5, sizeof(ZERO), &ZERO), "Error setting kernel argument");
                 HANDLE_CLERROR(clSetKernelArg(kernels[i], 6, sizeof(PASSES), &PASSES), "Error setting kernel argument");
 	}
+        // Pre-processing kernel
+        HANDLE_CLERROR(clSetKernelArg(pre_processing_kernel, 0, sizeof(memory_in), &memory_in), "Error setting kernel argument");
+        HANDLE_CLERROR(clSetKernelArg(pre_processing_kernel, 1, sizeof(memory_buffer), &memory_buffer), "Error setting kernel argument");
 	// Create OpenCL profiling objects
 	cl_command_queue profiling_queue = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
 	HANDLE_CLERROR(ret_code, "clCreateCommandQueue profiling");
@@ -823,7 +843,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	context.pseudo_rands = NULL;
 
 	// Pre-processing on the CPU
-	//ProcessingUnit::setPassword(size_t index, const void *pw, size_t pwSize)
 	for (i = 0; i < count; i++)
 	{
                 // argon2_context initialization
@@ -837,9 +856,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
                 context.lanes = saved_salt.lanes;
                 context.threads = saved_salt.lanes;
                 context.version = saved_salt.version;
-                context.memory = blocks_in + i * saved_salt.lanes * 2 * ARGON2_BLOCK_SIZE;
+                context.memory = blocks_in + i * ARGON2_PREHASH_DIGEST_LENGTH;
 
-                /* 3. Initialization: Hashing inputs, allocating memory, filling first blocks */
+                /* 3. Initialization: Hashing inputs */
                 opencl_argon2_initialize(&context, saved_salt.type);
 	}
 

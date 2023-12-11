@@ -493,25 +493,25 @@ int opencl_argon2_initialize(argon2_context *context, argon2_type type) {
     /* 2. Initial hashing */
     /* H_0 + 8 extra bytes to produce the first blocks */
     /* Hashing all inputs */
-    uint8_t blockhash[ARGON2_PREHASH_SEED_LENGTH];
-    argon2_initial_hash(blockhash, context, type);
+    //uint8_t blockhash[ARGON2_PREHASH_SEED_LENGTH];
+    argon2_initial_hash(context->memory, context, type);
 
     /* 3. Creating first blocks, we always have at least two blocks in a slice */
     //fill_first_blocks(blockhash, instance);
-    uint32_t l;
+    //uint32_t l;
     /* Make the first and second block in each lane as G(H0||i||0) or G(H0||i||1) */
-    uint8_t blockhash_bytes[ARGON2_BLOCK_SIZE];
-    for (l = 0; l < context->lanes; ++l) {
+    // uint8_t blockhash_bytes[ARGON2_BLOCK_SIZE];
+    // for (l = 0; l < context->lanes; ++l) {
 
-        store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH, 0);
-        store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH + 4, l);
-        blake2b_long(blockhash_bytes, ARGON2_BLOCK_SIZE, blockhash, ARGON2_PREHASH_SEED_LENGTH);
-        load_block(((block*)context->memory) + l, blockhash_bytes);// Different than 'fill_first_blocks(blockhash, instance)'
+    //     store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH, 0);
+    //     store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH + 4, l);
+    //     blake2b_long(blockhash_bytes, ARGON2_BLOCK_SIZE, blockhash, ARGON2_PREHASH_SEED_LENGTH);
+    //     load_block(((block*)context->memory) + l, blockhash_bytes);// Different than 'fill_first_blocks(blockhash, instance)'
 
-        store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH, 1);
-        blake2b_long(blockhash_bytes, ARGON2_BLOCK_SIZE, blockhash, ARGON2_PREHASH_SEED_LENGTH);
-        load_block(((block*)context->memory) + l + context->lanes, blockhash_bytes);// Different than 'fill_first_blocks(blockhash, instance)'
-    }
+    //     store32(blockhash + ARGON2_PREHASH_DIGEST_LENGTH, 1);
+    //     blake2b_long(blockhash_bytes, ARGON2_BLOCK_SIZE, blockhash, ARGON2_PREHASH_SEED_LENGTH);
+    //     load_block(((block*)context->memory) + l + context->lanes, blockhash_bytes);// Different than 'fill_first_blocks(blockhash, instance)'
+    // }
 
     return ARGON2_OK;
 }
