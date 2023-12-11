@@ -34,7 +34,14 @@
 // SOFTWARE.
 //-------------------------------------------------------------------------------------
 
+#define ARGON2_D  0
+#define ARGON2_I  1
+#define ARGON2_ID 2
+
 #ifndef ONLY_KERNEL_DEFINITION
+
+// Define the first kernel
+#define ARGON2_TYPE ARGON2_D
 
 #define ARGON2_VERSION_10 0x10
 #define ARGON2_VERSION_13 0x13
@@ -592,3 +599,15 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__global struct block_g* memory, uint pas
         mem_curr += lanes * ARGON2_QWORDS_IN_BLOCK;
     }
 }
+
+// If we are in the first pass
+#ifndef ONLY_KERNEL_DEFINITION
+
+// No more passes
+#define ONLY_KERNEL_DEFINITION
+// Define new kernel
+#undef ARGON2_TYPE
+#define ARGON2_TYPE ARGON2_I
+#include "argon2_kernel.cl"
+
+#endif
