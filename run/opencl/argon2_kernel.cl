@@ -102,23 +102,6 @@ ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local ulong *buf)
 #endif
 }
 
-struct u64_shuffle_buf {
-    uint lo[THREADS_PER_LANE];
-    uint hi[THREADS_PER_LANE];
-};
-
-ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local struct u64_shuffle_buf *buf)
-{
-    buf[thread] = v;
-    // Another option instead of the barrier
-    // atom_xchg(buf + thread, v);
-
-    // GPUs don't need this as their warp size is at least 32 that is what we need
-    // barrier(CLK_LOCAL_MEM_FENCE);
-
-    return buf[thread_src];
-}
-
 struct block_g {
     ulong data[ARGON2_QWORDS_IN_BLOCK];
 };
@@ -484,7 +467,7 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__global struct block_g* memory, uint pas
 
     // Cycle
     for (uint offset = start_offset; offset < segment_blocks; ++offset)
-{
+    {
         // argon2_step(memory, mem_curr, &prev, &tmp, &addr, shuffle_buf, lanes, segment_blocks, thread, &thread_input, lane, pass, slice, offset);
 #if ARGON2_TYPE == ARGON2_I
         uint addr_index = offset % ARGON2_QWORDS_IN_BLOCK;
@@ -521,11 +504,11 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__global struct block_g* memory, uint pas
         uint base;
         if (pass != 0) {
             base = lane_blocks - segment_blocks;
-    } else {
+        } else {
             if (slice == 0)
                 ref_lane = lane;
             base = slice * segment_blocks;
-    }
+        }
 
         uint ref_area_size = base + offset - 1;
         if (ref_lane != lane)
@@ -538,20 +521,20 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__global struct block_g* memory, uint pas
             ref_index += (slice + 1) * segment_blocks;
             if (ref_index >= lane_blocks)
                 ref_index -= lane_blocks;
-}
+        }
 
         //argon2_core(memory, mem_curr, &prev, &tmp, shuffle_buf, lanes, thread, pass, ref_index, ref_lane);
         __global ulong* mem_ref = (memory + ref_index * lanes + ref_lane)->data + thread;
 
         struct block_th tmp;
-    #if ARGON2_VERSION == ARGON2_VERSION_10
+#if ARGON2_VERSION == ARGON2_VERSION_10
         //load_block_xor(prev, mem_ref, thread);
         prev.a ^= mem_ref[0 * THREADS_PER_LANE];
         prev.b ^= mem_ref[1 * THREADS_PER_LANE];
         prev.c ^= mem_ref[2 * THREADS_PER_LANE];
         prev.d ^= mem_ref[3 * THREADS_PER_LANE];
         tmp = prev;
-    #else
+#else
         if (pass != 0) {
             //load_block(tmp, mem_curr, thread);
             tmp.a = mem_curr[0 * THREADS_PER_LANE];
@@ -578,7 +561,7 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__global struct block_g* memory, uint pas
             prev.d ^= mem_ref[3 * THREADS_PER_LANE];
 
             tmp = prev;
-    }
+        }
 #endif
 
         shuffle_block(&prev, thread, shuffle_buf);

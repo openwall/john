@@ -64,7 +64,6 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 // TODO: Backport many of the improvements to the CPU format
-// TODO: Optimize OpenCL code
 
 struct argon2_salt {
 	uint32_t t_cost, m_cost, lanes;
@@ -140,6 +139,7 @@ static int run_kernel_on_gpu()
         size_t jobSize = segment_blocks * ARGON2_SYNC_POINTS * saved_salt.lanes * ARGON2_BLOCK_SIZE;
         cl_uint buffer_row_pitch = jobSize / sizeof(cl_ulong);
         HANDLE_CLERROR(clSetKernelArg(pre_processing_kernel, 2, sizeof(buffer_row_pitch), &buffer_row_pitch), "Error setting pre-processing kernel argument");
+        // TODO: We can ask for more keys before, to run this kernel at full performance. This will have a noticeable effect on performance.
         BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pre_processing_kernel, 2, NULL, gws_copy, lws_copy, 0, NULL, NULL), "Run pre-processing kernel");                      
 
 	// Set parameters and execute kernel
@@ -259,6 +259,7 @@ static void done(void)
 			HANDLE_CLERROR(clReleaseKernel(kernels[i]), "Release kernel");
 			kernels[i] = NULL;
 		}
+                assert(pre_processing_kernel);
                 HANDLE_CLERROR(clReleaseKernel(pre_processing_kernel), "Release pre-processing kernel");
                 pre_processing_kernel = NULL;
 		// Release program
@@ -428,32 +429,7 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 					best_time = time;
 					best_jobs_per_block = jpb;
                                         best_lanes_per_block = lanes;
-			}
-                if (best_lanes_per_block != lanes && lanes > 1 && MAX_KEYS_PER_CRYPT > 1 && is_power_of_two(MAX_KEYS_PER_CRYPT))
-			for (jpb = best_jobs_per_block; jpb <= MAX_KEYS_PER_CRYPT; jpb *= 2)
-			{
-				size_t local_range[2] = {THREADS_PER_LANE * lanes, jpb};
-				size_t shmemSize = THREADS_PER_LANE * lanes * jpb * sizeof(cl_ulong);
-
-				if(CL_SUCCESS != clSetKernelArg(kernels[type], 0, shmemSize, NULL)) break;
-				// Warm-up
-				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL)) break;
-                                if(CL_SUCCESS != clFinish(profiling_queue)) break;
-				// Profile
-				if(CL_SUCCESS != clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, profiling_event)) break;
-				if(CL_SUCCESS != clFinish(profiling_queue)) break;
-
-				HANDLE_CLERROR(clGetEventProfilingInfo(*profiling_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL), "clGetEventProfilingInfo start");
-				HANDLE_CLERROR(clGetEventProfilingInfo(*profiling_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL), "clGetEventProfilingInfo end");
-
-				// Select best params
-				cl_ulong time = end_time - start_time;
-				if (best_time > time)
-				{
-					best_time = time;
-					best_jobs_per_block = jpb;
-                                        best_lanes_per_block = lanes;
-				}
+                                }
 			}
 
 		// Save results
@@ -469,11 +445,12 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 			//best_kernel_params[index].best_jobs_per_block = best_jobs_per_block = 1;
 		}
 
-		printf("Autotune [type: %u, lanes: %u, segments: %u => (%u, %2u) => %02u ms] LWS: %3u Requested-Multiple:%3u\n", 
-                        type, lanes, segment_blocks, 
-		        best_lanes_per_block, best_jobs_per_block,
-			(uint32_t)(best_time / 1000000),
-                        THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block, lws_multiple);
+                if (options.verbosity > VERB_LEGACY)
+		        printf("Autotune [type: %u, lanes: %u, segments: %u => (%u, %2u) => %02u ms] LWS: %3u Requested-Multiple:%3u\n", 
+                                type, lanes, segment_blocks, 
+		                best_lanes_per_block, best_jobs_per_block,
+			        (uint32_t)(best_time / 1000000),
+                                THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block, lws_multiple);
 	}
 }
 static void reset(struct db_main *db)
@@ -487,10 +464,10 @@ static void reset(struct db_main *db)
         DEVICE_USE_LOCAL_MEMORY = !(gpu_nvidia(device_info[gpu_id]) && sm_version >= 3);
 
         // Find [max/min]_lanes and max_memory_size
-		max_salt_lanes = 0;
+	max_salt_lanes = 0;
         uint32_t min_salt_lanes = UINT32_MAX;
-		max_segment_blocks = 0;
-		size_t max_memory_size = 0;
+	max_segment_blocks = 0;
+	size_t max_memory_size = 0;
 
         // Iterate on all salts
         struct db_salt* curr_salt = db->salts;
@@ -499,39 +476,40 @@ static void reset(struct db_main *db)
                 assert(curr_salt && curr_salt->salt);
                 struct argon2_salt* salt = (struct argon2_salt*)curr_salt->salt;
 
-			uint32_t segment_blocks = MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2);
-			if (max_segment_blocks < segment_blocks)
-				max_segment_blocks = segment_blocks;
-			size_t memory_size = ((size_t)segment_blocks) * ARGON2_SYNC_POINTS * salt->lanes * ARGON2_BLOCK_SIZE;
-			if (max_salt_lanes < salt->lanes)
-				max_salt_lanes = salt->lanes;
+                uint32_t segment_blocks = MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2);
+                if (max_segment_blocks < segment_blocks)
+                        max_segment_blocks = segment_blocks;
+
+                size_t memory_size = ((size_t)segment_blocks) * ARGON2_SYNC_POINTS * salt->lanes * ARGON2_BLOCK_SIZE;
+                if (max_salt_lanes < salt->lanes)
+                        max_salt_lanes = salt->lanes;
                 if (min_salt_lanes > salt->lanes)
                         min_salt_lanes = salt->lanes;
-			if (max_memory_size < memory_size)
-				max_memory_size = memory_size;
+		if (max_memory_size < memory_size)
+			max_memory_size = memory_size;
 
-			curr_salt = curr_salt->next;
-		}
+		curr_salt = curr_salt->next;
+	}
         assert(max_salt_lanes > 0 && min_salt_lanes > 0 && max_memory_size > 0);
 
-		//----------------------------------------------------------------------------------------------------------------------------
-		// Create OpenCL objects
-		//----------------------------------------------------------------------------------------------------------------------------
-		// Load GWS from config/command line
+        //----------------------------------------------------------------------------------------------------------------------------
+        // Create OpenCL objects
+        //----------------------------------------------------------------------------------------------------------------------------
+        // Load GWS from config/command line
         MAX_KEYS_PER_CRYPT = MAX_KEYS_PER_CRYPT_ORIGINAL;
-		opencl_get_user_preferences(FORMAT_NAME);
-		if (global_work_size)
-		{
-			MAX_KEYS_PER_CRYPT = MAX(1, global_work_size / (THREADS_PER_LANE * max_salt_lanes));
-			printf("\nCustom GWS result on MAX_KEYS_PER_CRYPT = %u", MAX_KEYS_PER_CRYPT);
-		}
+        opencl_get_user_preferences(FORMAT_NAME);
+        if (global_work_size && !self_test_running)
+        {
+                MAX_KEYS_PER_CRYPT = MAX(1, global_work_size / (THREADS_PER_LANE * max_salt_lanes));
+                printf("\nCustom GWS result on MAX_KEYS_PER_CRYPT = %u", MAX_KEYS_PER_CRYPT);
+        }
         MEM_FREE(saved_key);
         MEM_FREE(saved_len);
         MEM_FREE(crypted);
-		saved_key = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(*saved_key));
-		saved_len = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(int));
-		crypted = mem_calloc(MAX_KEYS_PER_CRYPT, BINARY_SIZE);
-		max_memory_size *= MAX_KEYS_PER_CRYPT;
+        saved_key = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(*saved_key));
+        saved_len = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(int));
+        crypted = mem_calloc(MAX_KEYS_PER_CRYPT, BINARY_SIZE);
+        max_memory_size *= MAX_KEYS_PER_CRYPT;
 
         // Release memory of already initialized
         MEM_FREE(blocks_in);
@@ -624,18 +602,50 @@ static void reset(struct db_main *db)
 	// Iterate on all salts and autotuned for each one
 	curr_salt = db->salts;
 	for (i = 0; i < db->salt_count; i++)
-	{
-		struct argon2_salt* salt = (struct argon2_salt*)curr_salt->salt;
-                // Special case that use both kernels
-                if (salt->type == Argon2_id)
+        {
+                struct argon2_salt* salt = (struct argon2_salt*)curr_salt->salt;
+
+                // LWS was given on command-line/config
+                if (local_work_size && !self_test_running)
                 {
-                        autotune(Argon2_d, salt->lanes, MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2), profiling_queue, &profiling_event);
-                        autotune(Argon2_i, salt->lanes, MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2), profiling_queue, &profiling_event);
+                        uint32_t segment_blocks = MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2);
+                        uint32_t index_d = index_best_kernel_params(Argon2_d, salt->lanes, segment_blocks);
+                        uint32_t index_i = index_best_kernel_params(Argon2_i, salt->lanes, segment_blocks);
+
+			best_kernel_params[index_d].lanes_per_block =
+                        best_kernel_params[index_d].jobs_per_block =
+                        best_kernel_params[index_i].lanes_per_block =
+                        best_kernel_params[index_i].jobs_per_block = 1;
+                        // Multiple cases
+                        if (local_work_size > THREADS_PER_LANE)
+                        {
+                                uint32_t lanes_per_block = MIN(salt->lanes, local_work_size / THREADS_PER_LANE);
+                                // Become a multiple of salt->lanes
+                                if (salt->lanes % lanes_per_block != 0)
+                                        lanes_per_block = salt->lanes;
+
+                                best_kernel_params[index_d].lanes_per_block = 
+                                best_kernel_params[index_i].lanes_per_block = lanes_per_block;
+
+				if (local_work_size > THREADS_PER_LANE * lanes_per_block)
+                                	best_kernel_params[index_d].jobs_per_block = 
+                                	best_kernel_params[index_i].jobs_per_block = MAX(1, local_work_size / THREADS_PER_LANE / salt->lanes);
+                        }
                 }
-                else
-		        autotune(salt->type, salt->lanes, MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2), profiling_queue, &profiling_event);
-		curr_salt = curr_salt->next;
-	}
+                else// Autotune
+                {              
+                        // Special case that use both kernels
+                        if (salt->type == Argon2_id)
+                        {
+                                autotune(Argon2_d, salt->lanes, MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2), profiling_queue, &profiling_event);
+                                autotune(Argon2_i, salt->lanes, MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2), profiling_queue, &profiling_event);
+                        }
+                        else
+                                autotune(salt->type, salt->lanes, MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2), profiling_queue, &profiling_event);
+                }
+                
+                curr_salt = curr_salt->next;
+        }
 	// Release profiling objects
 	HANDLE_CLERROR(clReleaseCommandQueue(profiling_queue), "Releasing Profiling CommandQueue");
 	clReleaseEvent(profiling_event);
