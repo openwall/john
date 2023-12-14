@@ -19,7 +19,7 @@ header_text: str = opencl_header.read()
 opencl_header.close()
 
 # Write C file
-dynamic_loader = open("opencl_dynamic_loader_plug.c", "w")
+dynamic_loader = open("opencl_dynamic_loader.c", "w")
 dynamic_loader.write(
 '''//-------------------------------------------------------------------------------------
 // Dynamic OpenCL library loader. Automatically generated.
