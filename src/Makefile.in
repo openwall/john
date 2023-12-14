@@ -124,7 +124,7 @@ JOHN_OBJS = \
 	unique.o gpg2john.o \
 	showformats.o
 
-OCL_OBJS = opencl_common.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
+OCL_OBJS = opencl_common.o opencl_dynamic_loader.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
 OPENCL_PLUGFORMATS_OBJS = @OPENCL_PLUGFORMATS_OBJS@
 
@@ -287,6 +287,8 @@ gpu_common.o:	gpu_common.c autoconfig.h Win32-dlfcn-port.h gpu_common.h gpu_sens
 
 opencl_common.o:	opencl_common.c os.h os-autoconf.h autoconfig.h jumbo.h arch.h options.h list.h loader.h params.h formats.h misc.h getopt.h common.h memory.h config.h logger.h $(CL_COMMON_HEADER) path.h $(CL_DEVICE_HEADER) mask_ext.h mask.h dyna_salt.h signals.h recovery.h status.h john.h md5.h john_mpi.h
 endif
+
+opencl_dynamic_loader.o:	opencl_dynamic_loader.c
 
 compiler.o:	compiler.c arch.h params.h memory.h compiler.h os.h os-autoconf.h autoconfig.h jumbo.h
 
