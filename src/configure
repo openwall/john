@@ -14203,7 +14203,7 @@ $as_echo "$ax_cv_check_cl_libcl" >&6; }
   if test "X$ax_cv_check_cl_libcl" = Xno; then :
   no_cl=yes; CL_CFLAGS=""; CL_LIBS=""
 else
-  CL_LIBS="$ax_cv_check_cl_libcl $CL_LIBS";
+  CL_LIBS="$CL_LIBS";
 $as_echo "#define _OPENCL 1" >>confdefs.h
 
 fi
