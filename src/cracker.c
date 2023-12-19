@@ -477,7 +477,7 @@ static int crk_process_guess(struct db_salt *salt, struct db_password *pw, int i
 			event_pending = event_status = 1;
 
 		crk_db->guess_count++;
-		status.guess_count = crk_db->guess_count;
+		status.guess_count++;
 
 		if (crk_guesses && !dupe) {
 			strnfcpy(crk_guesses->ptr, key,
