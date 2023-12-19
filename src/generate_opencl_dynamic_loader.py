@@ -59,7 +59,7 @@ REGEX_SPACES_ONE_OR_MORE = '[ \t\n\r]+'
 
 # Search for all function definitions
 funtions = re.findall(
-    f"extern CL_API_ENTRY (CL_API_PREFIX__VERSION_[1-9]_[0-9]_DEPRECATED )?({REGEX_C_ID}[ \*]*) CL_API_CALL{REGEX_SPACES_ONE_OR_MORE}({REGEX_C_ID})\(([_a-zA-Z0-9, \t\r\n\*\(\)]*)\) CL_API_SUFFIX__VERSION_([0-9_]+)(_DEPRECATED)?;", 
+    f"extern CL_API_ENTRY (CL_API_PREFIX__VERSION_[1-9]_[0-9]_DEPRECATED )?({REGEX_C_ID}[ \*]*) CL_API_CALL{REGEX_SPACES_ONE_OR_MORE}({REGEX_C_ID})\(([_a-zA-Z0-9, \t\r\n\*\(\)]*)\) CL_API_SUFFIX__VERSION_([0-9_]+)(_DEPRECATED)?;",
     header_text)
 
 # Handle this special case
@@ -74,7 +74,7 @@ special_function_code = '''load_opencl_dll();
 
                 if (num_platforms)
                         *num_platforms = 0;
-                        
+
                 return CL_SUCCESS;
         }
 \t'''
@@ -90,30 +90,30 @@ for x in funtions:
         if api_version > CL_TARGET_OPENCL_VERSION:
             print(f"Function '{function_name}' skipped give api={x[4]}")
             continue
-        
+
         # Begin function
         dynamic_loader.write(f'/* {function_name} */\nstatic {function_return} (*ptr_{function_name})({function_params}) = NULL;\n')    # Function pointer definition
         dynamic_loader.write(f'CL_API_ENTRY {function_return} CL_API_CALL {function_name}({function_params})\n') # Function definition
         dynamic_loader.write('{\n\t')
-        
+
         # If we are in the special case
         if function_name == special_function_name:
             dynamic_loader.write(special_function_code)
         dynamic_loader.write(f'return ptr_{function_name}(') # Function call through pointer
-        
+
         # Manage params
         function_params = "".join(re.split('\(CL_CALLBACK *', function_params))
         function_params = "".join(re.split('\)\([_a-zA-Z0-9 \*,]+\)', function_params))
         param_names = re.findall(f'(const )?(unsigned )?{REGEX_C_ID}[ \*]+({REGEX_C_ID})', function_params)
         for i in range(len(param_names)):
             dynamic_loader.write(f'{", " if i > 0 else ""}{param_names[i][2]}')
-        
+
         # End function
         dynamic_loader.write(');\n}\n\n')
     else:
         print("Error parsing CL.h header file")
         exit(1)
-        
+
 # Load dynamic library
 dynamic_loader.write(
 '''
@@ -138,8 +138,8 @@ static void load_opencl_dll()
         {
             opencl_dll = dlopen(opencl_names[i], RTLD_NOW);
             if (opencl_dll) break;
-        }      
-          
+        }
+
         // Load function pointers
         if (opencl_dll)
         {
