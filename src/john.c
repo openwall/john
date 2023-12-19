@@ -1574,6 +1574,7 @@ static void john_init(char *name, int argc, char **argv)
 	if (!(options.flags & FLG_STDOUT))
 		john_register_all(); /* maybe restricted to one format by options */
 	common_init();
+	sig_preinit();
 	sig_init();
 
 	if (!make_check && !(options.flags & (FLG_SHOW_CHK | FLG_STDOUT))) {
@@ -1975,7 +1976,6 @@ int main(int argc, char **argv)
 {
 	char *name;
 
-	sig_preinit(); /* Mitigate race conditions */
 #ifdef __DJGPP__
 	if (--argc <= 0) return 1;
 	if ((name = strrchr(argv[0], '/')))
