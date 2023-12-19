@@ -2035,7 +2035,7 @@ static void ldr_fill_user_words(struct db_main *db)
 		pexit("fclose");
 }
 
-void ldr_fix_database(struct db_main *db)
+int ldr_fix_database(struct db_main *db)
 {
 	int total = db->password_count;
 
@@ -2053,7 +2053,16 @@ void ldr_fix_database(struct db_main *db)
 		} else
 			ldr_filter_salts(db);
 		ldr_filter_costs(db);
+		total = db->password_count;
 		ldr_remove_marked(db);
+		if (options.loader.showuncracked) {
+			int cracked = total - db->password_count;
+			if (john_main_process)
+				fprintf(stderr, "%s%d password hash%s cracked,"
+					" %d left\n", cracked ? "\n" : "", cracked,
+					cracked != 1 ? "es" : "", db->password_count);
+			exit(0);
+		}
 	}
 	ldr_cost_ranges(db);
 	if (!ldr_loading_testdb)
@@ -2064,17 +2073,10 @@ void ldr_fix_database(struct db_main *db)
 
 	db->loaded = 1;
 
-	if (options.loader.showuncracked) {
-		total -= db->password_count;
-		if (john_main_process)
-			fprintf(stderr, "%s%d password hash%s cracked,"
-			        " %d left\n", total ? "\n" : "", total,
-			        total != 1 ? "es" : "", db->password_count);
-		exit(0);
-	}
-
 	if (!ldr_loading_testdb && options.seed_per_user)
 		ldr_fill_user_words(db);
+
+	return total;
 }
 
 static int ldr_cracked_hash(char *ciphertext)

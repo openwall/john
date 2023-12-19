@@ -1224,8 +1224,6 @@ static void john_load(void)
 			    database.format->params.algorithm_name);
 		}
 
-		total = database.password_count;
-
 		ldr_load_pot_file(&database, options.activepot);
 
 /*
@@ -1234,7 +1232,7 @@ static void john_load(void)
  */
 		load_extra_pots(&database, &ldr_load_pot_file);
 
-		ldr_fix_database(&database);
+		total = ldr_fix_database(&database);
 
 		if (database.password_count && options.regen_lost_salts)
 			build_fake_salts_for_regen_lost(&database);
