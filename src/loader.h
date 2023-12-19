@@ -298,14 +298,17 @@ extern void ldr_load_pw_line(struct db_main *db, char *line);
 extern void ldr_load_pw_file(struct db_main *db, char *name);
 
 /*
- * Removes passwords cracked in previous sessions from the database.
+ * Marks for removal from the database hashes cracked in previous sessions.
  */
 extern void ldr_load_pot_file(struct db_main *db, char *name);
 
 /*
- * Fixes the database after loading.
+ * Finalizes the database after loading, which includes removal of salts and
+ * hashes that don't meet criteria, as well as of hashes marked as previously
+ * cracked.  Returns the number of hashes that were in the database after
+ * removal of those not meeting criteria, but before removal of those cracked.
  */
-extern void ldr_fix_database(struct db_main *db);
+extern int ldr_fix_database(struct db_main *db);
 
 /*
  * Create a fake database from a format's test vectors and return a pointer
