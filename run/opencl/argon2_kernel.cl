@@ -225,19 +225,18 @@ void shuffle_block(struct block_th *block, uint thread, __local ulong *buf)
     g(block);
 
     // shuffle_shift2(block, thread, buf);
-    uint thread_src0 = apply_shuffle_shift2(thread, 0);
     thread_src1 = apply_shuffle_shift2(thread, 1);
     thread_src2 = apply_shuffle_shift2(thread, 2);
     thread_src3 = apply_shuffle_shift2(thread, 3);
     // TODO: Try to optimize 'apply_shuffle_shift2' with LUT
-    block->a = u64_shuffle(block->a, thread_src0, thread, buf);
+    //block->a = u64_shuffle(block->a, thread_src0, thread, buf);
     block->b = u64_shuffle(block->b, thread_src1, thread, buf);
     block->c = u64_shuffle(block->c, thread_src2, thread, buf);
     block->d = u64_shuffle(block->d, thread_src3, thread, buf);
 
     g(block);
 
-    block->a = u64_shuffle(block->a, thread_src0, thread, buf);
+    //block->a = u64_shuffle(block->a, thread_src0, thread, buf);
     block->b = u64_shuffle(block->b, thread_src3, thread, buf);
     block->c = u64_shuffle(block->c, thread_src2, thread, buf);
     block->d = u64_shuffle(block->d, thread_src1, thread, buf);
@@ -269,7 +268,7 @@ void next_addresses(struct block_th *addr, uint thread_input, uint thread, __loc
     addr->d ^= tmp.d;
 }
 
-// Begin prep-rocessing kernel code
+// Begin prep-processing kernel code
 // Blake2b G Mixing function.
 #define B2B_G(a, b, c, d, x, y) {   \
     v[a] = v[a] + v[b] + x;         \
@@ -536,31 +535,31 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__global struct block_g* memory, uint pas
         tmp = prev;
 #else
         if (pass != 0) {
-            //load_block(tmp, mem_curr, thread);
-            tmp.a = mem_curr[0 * THREADS_PER_LANE];
-            tmp.b = mem_curr[1 * THREADS_PER_LANE];
-            tmp.c = mem_curr[2 * THREADS_PER_LANE];
-            tmp.d = mem_curr[3 * THREADS_PER_LANE];
+		//load_block(tmp, mem_curr, thread);
+		tmp.a = mem_curr[0 * THREADS_PER_LANE];
+		tmp.b = mem_curr[1 * THREADS_PER_LANE];
+		tmp.c = mem_curr[2 * THREADS_PER_LANE];
+		tmp.d = mem_curr[3 * THREADS_PER_LANE];
 
-            //load_block_xor(prev, mem_ref, thread);
-            prev.a ^= mem_ref[0 * THREADS_PER_LANE];
-            prev.b ^= mem_ref[1 * THREADS_PER_LANE];
-            prev.c ^= mem_ref[2 * THREADS_PER_LANE];
-            prev.d ^= mem_ref[3 * THREADS_PER_LANE];
+		//load_block_xor(prev, mem_ref, thread);
+		prev.a ^= mem_ref[0 * THREADS_PER_LANE];
+		prev.b ^= mem_ref[1 * THREADS_PER_LANE];
+		prev.c ^= mem_ref[2 * THREADS_PER_LANE];
+		prev.d ^= mem_ref[3 * THREADS_PER_LANE];
 
-            //xor_block(tmp, prev);
-            tmp.a ^= prev.a;
-            tmp.b ^= prev.b;
-            tmp.c ^= prev.c;
-            tmp.d ^= prev.d;
+		//xor_block(tmp, prev);
+		tmp.a ^= prev.a;
+		tmp.b ^= prev.b;
+		tmp.c ^= prev.c;
+		tmp.d ^= prev.d;
         } else {
-            //load_block_xor(prev, mem_ref, thread);
-            prev.a ^= mem_ref[0 * THREADS_PER_LANE];
-            prev.b ^= mem_ref[1 * THREADS_PER_LANE];
-            prev.c ^= mem_ref[2 * THREADS_PER_LANE];
-            prev.d ^= mem_ref[3 * THREADS_PER_LANE];
+		//load_block_xor(prev, mem_ref, thread);
+		prev.a ^= mem_ref[0 * THREADS_PER_LANE];
+		prev.b ^= mem_ref[1 * THREADS_PER_LANE];
+		prev.c ^= mem_ref[2 * THREADS_PER_LANE];
+		prev.d ^= mem_ref[3 * THREADS_PER_LANE];
 
-            tmp = prev;
+		tmp = prev;
         }
 #endif
 
@@ -573,10 +572,10 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__global struct block_g* memory, uint pas
         prev.d ^= tmp.d;
 
         //store_block(mem_curr, prev, thread);
-        mem_curr[0 * THREADS_PER_LANE] = prev.a;
-        mem_curr[1 * THREADS_PER_LANE] = prev.b;
-        mem_curr[2 * THREADS_PER_LANE] = prev.c;
-        mem_curr[3 * THREADS_PER_LANE] = prev.d;
+	mem_curr[0 * THREADS_PER_LANE] = prev.a;
+	mem_curr[1 * THREADS_PER_LANE] = prev.b;
+	mem_curr[2 * THREADS_PER_LANE] = prev.c;
+	mem_curr[3 * THREADS_PER_LANE] = prev.d;
 
         // End
         mem_curr += lanes * ARGON2_QWORDS_IN_BLOCK;
