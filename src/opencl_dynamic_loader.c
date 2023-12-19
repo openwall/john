@@ -1,12 +1,12 @@
-//-------------------------------------------------------------------------------------
-// Dynamic OpenCL library loader. Automatically generated.
-//
-// This software is copyright (c) 2023, Alain Espinosa <alainesp at gmail.com> and it
-// is hereby released to the general public under the following terms:
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted.
-//-------------------------------------------------------------------------------------
+/*
+ * Dynamic OpenCL library loader. Automatically generated.
+ *
+ * This software is copyright (c) 2023, Alain Espinosa <alainesp at gmail.com> and it
+ * is hereby released to the general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
 #ifdef HAVE_OPENCL
 
 #ifndef CL_TARGET_OPENCL_VERSION
@@ -21,8 +21,8 @@
 #include <CL/cl_ext.h>
 #endif
 
-// DLL handle
-static void* opencl_dll = NULL;
+/* DLL handle */
+static void *opencl_dll = NULL;
 static void load_opencl_dll();
 
 /* clGetPlatformIDs */
@@ -31,17 +31,16 @@ CL_API_ENTRY cl_int CL_API_CALL clGetPlatformIDs(cl_uint num_entries, cl_platfor
 {
 	load_opencl_dll();
 
-        if (!opencl_dll)
-        {
-                // Our implementation
-                if ((num_entries == 0 && platforms) || (!num_platforms && !platforms))
-                        return CL_INVALID_VALUE;
+	if (!opencl_dll) {
+		/* Our implementation */
+		if ((num_entries == 0 && platforms) || (!num_platforms && !platforms))
+			return CL_INVALID_VALUE;
 
-                if (num_platforms)
-                        *num_platforms = 0;
-                        
-                return CL_SUCCESS;
-        }
+		if (num_platforms)
+			*num_platforms = 0;
+
+		return CL_SUCCESS;
+	}
 	return ptr_clGetPlatformIDs(num_entries, platforms, num_platforms);
 }
 
@@ -664,575 +663,576 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueTask(cl_command_queue command_queue, cl
 
 #include <dlfcn.h>
 #include <stdio.h>
-static void load_opencl_dll()
-{
-        int i;
-        if (opencl_dll)
-            return;
 
-        // Names to try to load
-        const char* opencl_names[] = {
-            "libOpenCL.so",      // Linux/others
-            "OpenCL",            // _WIN
-            "/System/Library/Frameworks/OpenCL.framework/OpenCL", // __APPLE__
-            "opencl.dll",        // __CYGWIN__
-            "cygOpenCL-1.dll",   // __CYGWIN__
-            "libOpenCL.so.1"     // Linux/others
-        };
-        for (i = 0; i < sizeof(opencl_names)/sizeof(opencl_names[0]); i++)
-        {
-            opencl_dll = dlopen(opencl_names[i], RTLD_NOW);
-            if (opencl_dll) break;
-        }      
-          
-        // Load function pointers
-        if (opencl_dll)
-        {
-                int all_functions_loaded = 1;
+static void load_opencl_dll(void)
+{
+	int i;
+
+	if (opencl_dll)
+		return;
+
+	/* Names to try to load */
+	const char * const opencl_names[] = {
+		"libOpenCL.so",		/* Linux/others, hack via "development" sub-package's symlink */
+		"OpenCL",		/* _WIN */
+		"/System/Library/Frameworks/OpenCL.framework/OpenCL", /* __APPLE__ */
+		"opencl.dll",		/* __CYGWIN__ */
+		"cygOpenCL-1.dll",	/* __CYGWIN__ */
+		"libOpenCL.so.1"	/* Linux/others, no "development" sub-package installed */
+	};
+
+	for (i = 0; i < sizeof(opencl_names)/sizeof(opencl_names[0]); i++) {
+		opencl_dll = dlopen(opencl_names[i], RTLD_NOW);
+		if (opencl_dll)
+			break;
+	}
+
+	/* Load function pointers */
+	if (opencl_dll) {
+		int all_functions_loaded = 1;
 
 		ptr_clGetPlatformIDs = dlsym(opencl_dll, "clGetPlatformIDs");
 		if (!ptr_clGetPlatformIDs)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetPlatformIDs function\n");
+			puts("Cannot load clGetPlatformIDs function");
 		}
 		ptr_clGetPlatformInfo = dlsym(opencl_dll, "clGetPlatformInfo");
 		if (!ptr_clGetPlatformInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetPlatformInfo function\n");
+			puts("Cannot load clGetPlatformInfo function");
 		}
 		ptr_clGetDeviceIDs = dlsym(opencl_dll, "clGetDeviceIDs");
 		if (!ptr_clGetDeviceIDs)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetDeviceIDs function\n");
+			puts("Cannot load clGetDeviceIDs function");
 		}
 		ptr_clGetDeviceInfo = dlsym(opencl_dll, "clGetDeviceInfo");
 		if (!ptr_clGetDeviceInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetDeviceInfo function\n");
+			puts("Cannot load clGetDeviceInfo function");
 		}
 		ptr_clCreateSubDevices = dlsym(opencl_dll, "clCreateSubDevices");
 		if (!ptr_clCreateSubDevices)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateSubDevices function\n");
+			puts("Cannot load clCreateSubDevices function");
 		}
 		ptr_clRetainDevice = dlsym(opencl_dll, "clRetainDevice");
 		if (!ptr_clRetainDevice)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clRetainDevice function\n");
+			puts("Cannot load clRetainDevice function");
 		}
 		ptr_clReleaseDevice = dlsym(opencl_dll, "clReleaseDevice");
 		if (!ptr_clReleaseDevice)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clReleaseDevice function\n");
+			puts("Cannot load clReleaseDevice function");
 		}
 		ptr_clCreateContext = dlsym(opencl_dll, "clCreateContext");
 		if (!ptr_clCreateContext)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateContext function\n");
+			puts("Cannot load clCreateContext function");
 		}
 		ptr_clCreateContextFromType = dlsym(opencl_dll, "clCreateContextFromType");
 		if (!ptr_clCreateContextFromType)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateContextFromType function\n");
+			puts("Cannot load clCreateContextFromType function");
 		}
 		ptr_clRetainContext = dlsym(opencl_dll, "clRetainContext");
 		if (!ptr_clRetainContext)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clRetainContext function\n");
+			puts("Cannot load clRetainContext function");
 		}
 		ptr_clReleaseContext = dlsym(opencl_dll, "clReleaseContext");
 		if (!ptr_clReleaseContext)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clReleaseContext function\n");
+			puts("Cannot load clReleaseContext function");
 		}
 		ptr_clGetContextInfo = dlsym(opencl_dll, "clGetContextInfo");
 		if (!ptr_clGetContextInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetContextInfo function\n");
+			puts("Cannot load clGetContextInfo function");
 		}
 		ptr_clRetainCommandQueue = dlsym(opencl_dll, "clRetainCommandQueue");
 		if (!ptr_clRetainCommandQueue)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clRetainCommandQueue function\n");
+			puts("Cannot load clRetainCommandQueue function");
 		}
 		ptr_clReleaseCommandQueue = dlsym(opencl_dll, "clReleaseCommandQueue");
 		if (!ptr_clReleaseCommandQueue)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clReleaseCommandQueue function\n");
+			puts("Cannot load clReleaseCommandQueue function");
 		}
 		ptr_clGetCommandQueueInfo = dlsym(opencl_dll, "clGetCommandQueueInfo");
 		if (!ptr_clGetCommandQueueInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetCommandQueueInfo function\n");
+			puts("Cannot load clGetCommandQueueInfo function");
 		}
 		ptr_clCreateBuffer = dlsym(opencl_dll, "clCreateBuffer");
 		if (!ptr_clCreateBuffer)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateBuffer function\n");
+			puts("Cannot load clCreateBuffer function");
 		}
 		ptr_clCreateSubBuffer = dlsym(opencl_dll, "clCreateSubBuffer");
 		if (!ptr_clCreateSubBuffer)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateSubBuffer function\n");
+			puts("Cannot load clCreateSubBuffer function");
 		}
 		ptr_clCreateImage = dlsym(opencl_dll, "clCreateImage");
 		if (!ptr_clCreateImage)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateImage function\n");
+			puts("Cannot load clCreateImage function");
 		}
 		ptr_clRetainMemObject = dlsym(opencl_dll, "clRetainMemObject");
 		if (!ptr_clRetainMemObject)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clRetainMemObject function\n");
+			puts("Cannot load clRetainMemObject function");
 		}
 		ptr_clReleaseMemObject = dlsym(opencl_dll, "clReleaseMemObject");
 		if (!ptr_clReleaseMemObject)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clReleaseMemObject function\n");
+			puts("Cannot load clReleaseMemObject function");
 		}
 		ptr_clGetSupportedImageFormats = dlsym(opencl_dll, "clGetSupportedImageFormats");
 		if (!ptr_clGetSupportedImageFormats)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetSupportedImageFormats function\n");
+			puts("Cannot load clGetSupportedImageFormats function");
 		}
 		ptr_clGetMemObjectInfo = dlsym(opencl_dll, "clGetMemObjectInfo");
 		if (!ptr_clGetMemObjectInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetMemObjectInfo function\n");
+			puts("Cannot load clGetMemObjectInfo function");
 		}
 		ptr_clGetImageInfo = dlsym(opencl_dll, "clGetImageInfo");
 		if (!ptr_clGetImageInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetImageInfo function\n");
+			puts("Cannot load clGetImageInfo function");
 		}
 		ptr_clSetMemObjectDestructorCallback = dlsym(opencl_dll, "clSetMemObjectDestructorCallback");
 		if (!ptr_clSetMemObjectDestructorCallback)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clSetMemObjectDestructorCallback function\n");
+			puts("Cannot load clSetMemObjectDestructorCallback function");
 		}
 		ptr_clRetainSampler = dlsym(opencl_dll, "clRetainSampler");
 		if (!ptr_clRetainSampler)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clRetainSampler function\n");
+			puts("Cannot load clRetainSampler function");
 		}
 		ptr_clReleaseSampler = dlsym(opencl_dll, "clReleaseSampler");
 		if (!ptr_clReleaseSampler)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clReleaseSampler function\n");
+			puts("Cannot load clReleaseSampler function");
 		}
 		ptr_clGetSamplerInfo = dlsym(opencl_dll, "clGetSamplerInfo");
 		if (!ptr_clGetSamplerInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetSamplerInfo function\n");
+			puts("Cannot load clGetSamplerInfo function");
 		}
 		ptr_clCreateProgramWithSource = dlsym(opencl_dll, "clCreateProgramWithSource");
 		if (!ptr_clCreateProgramWithSource)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateProgramWithSource function\n");
+			puts("Cannot load clCreateProgramWithSource function");
 		}
 		ptr_clCreateProgramWithBinary = dlsym(opencl_dll, "clCreateProgramWithBinary");
 		if (!ptr_clCreateProgramWithBinary)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateProgramWithBinary function\n");
+			puts("Cannot load clCreateProgramWithBinary function");
 		}
 		ptr_clCreateProgramWithBuiltInKernels = dlsym(opencl_dll, "clCreateProgramWithBuiltInKernels");
 		if (!ptr_clCreateProgramWithBuiltInKernels)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateProgramWithBuiltInKernels function\n");
+			puts("Cannot load clCreateProgramWithBuiltInKernels function");
 		}
 		ptr_clRetainProgram = dlsym(opencl_dll, "clRetainProgram");
 		if (!ptr_clRetainProgram)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clRetainProgram function\n");
+			puts("Cannot load clRetainProgram function");
 		}
 		ptr_clReleaseProgram = dlsym(opencl_dll, "clReleaseProgram");
 		if (!ptr_clReleaseProgram)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clReleaseProgram function\n");
+			puts("Cannot load clReleaseProgram function");
 		}
 		ptr_clBuildProgram = dlsym(opencl_dll, "clBuildProgram");
 		if (!ptr_clBuildProgram)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clBuildProgram function\n");
+			puts("Cannot load clBuildProgram function");
 		}
 		ptr_clCompileProgram = dlsym(opencl_dll, "clCompileProgram");
 		if (!ptr_clCompileProgram)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCompileProgram function\n");
+			puts("Cannot load clCompileProgram function");
 		}
 		ptr_clLinkProgram = dlsym(opencl_dll, "clLinkProgram");
 		if (!ptr_clLinkProgram)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clLinkProgram function\n");
+			puts("Cannot load clLinkProgram function");
 		}
 		ptr_clUnloadPlatformCompiler = dlsym(opencl_dll, "clUnloadPlatformCompiler");
 		if (!ptr_clUnloadPlatformCompiler)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clUnloadPlatformCompiler function\n");
+			puts("Cannot load clUnloadPlatformCompiler function");
 		}
 		ptr_clGetProgramInfo = dlsym(opencl_dll, "clGetProgramInfo");
 		if (!ptr_clGetProgramInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetProgramInfo function\n");
+			puts("Cannot load clGetProgramInfo function");
 		}
 		ptr_clGetProgramBuildInfo = dlsym(opencl_dll, "clGetProgramBuildInfo");
 		if (!ptr_clGetProgramBuildInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetProgramBuildInfo function\n");
+			puts("Cannot load clGetProgramBuildInfo function");
 		}
 		ptr_clCreateKernel = dlsym(opencl_dll, "clCreateKernel");
 		if (!ptr_clCreateKernel)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateKernel function\n");
+			puts("Cannot load clCreateKernel function");
 		}
 		ptr_clCreateKernelsInProgram = dlsym(opencl_dll, "clCreateKernelsInProgram");
 		if (!ptr_clCreateKernelsInProgram)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateKernelsInProgram function\n");
+			puts("Cannot load clCreateKernelsInProgram function");
 		}
 		ptr_clRetainKernel = dlsym(opencl_dll, "clRetainKernel");
 		if (!ptr_clRetainKernel)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clRetainKernel function\n");
+			puts("Cannot load clRetainKernel function");
 		}
 		ptr_clReleaseKernel = dlsym(opencl_dll, "clReleaseKernel");
 		if (!ptr_clReleaseKernel)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clReleaseKernel function\n");
+			puts("Cannot load clReleaseKernel function");
 		}
 		ptr_clSetKernelArg = dlsym(opencl_dll, "clSetKernelArg");
 		if (!ptr_clSetKernelArg)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clSetKernelArg function\n");
+			puts("Cannot load clSetKernelArg function");
 		}
 		ptr_clGetKernelInfo = dlsym(opencl_dll, "clGetKernelInfo");
 		if (!ptr_clGetKernelInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetKernelInfo function\n");
+			puts("Cannot load clGetKernelInfo function");
 		}
 		ptr_clGetKernelArgInfo = dlsym(opencl_dll, "clGetKernelArgInfo");
 		if (!ptr_clGetKernelArgInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetKernelArgInfo function\n");
+			puts("Cannot load clGetKernelArgInfo function");
 		}
 		ptr_clGetKernelWorkGroupInfo = dlsym(opencl_dll, "clGetKernelWorkGroupInfo");
 		if (!ptr_clGetKernelWorkGroupInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetKernelWorkGroupInfo function\n");
+			puts("Cannot load clGetKernelWorkGroupInfo function");
 		}
 		ptr_clWaitForEvents = dlsym(opencl_dll, "clWaitForEvents");
 		if (!ptr_clWaitForEvents)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clWaitForEvents function\n");
+			puts("Cannot load clWaitForEvents function");
 		}
 		ptr_clGetEventInfo = dlsym(opencl_dll, "clGetEventInfo");
 		if (!ptr_clGetEventInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetEventInfo function\n");
+			puts("Cannot load clGetEventInfo function");
 		}
 		ptr_clCreateUserEvent = dlsym(opencl_dll, "clCreateUserEvent");
 		if (!ptr_clCreateUserEvent)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateUserEvent function\n");
+			puts("Cannot load clCreateUserEvent function");
 		}
 		ptr_clRetainEvent = dlsym(opencl_dll, "clRetainEvent");
 		if (!ptr_clRetainEvent)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clRetainEvent function\n");
+			puts("Cannot load clRetainEvent function");
 		}
 		ptr_clReleaseEvent = dlsym(opencl_dll, "clReleaseEvent");
 		if (!ptr_clReleaseEvent)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clReleaseEvent function\n");
+			puts("Cannot load clReleaseEvent function");
 		}
 		ptr_clSetUserEventStatus = dlsym(opencl_dll, "clSetUserEventStatus");
 		if (!ptr_clSetUserEventStatus)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clSetUserEventStatus function\n");
+			puts("Cannot load clSetUserEventStatus function");
 		}
 		ptr_clSetEventCallback = dlsym(opencl_dll, "clSetEventCallback");
 		if (!ptr_clSetEventCallback)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clSetEventCallback function\n");
+			puts("Cannot load clSetEventCallback function");
 		}
 		ptr_clGetEventProfilingInfo = dlsym(opencl_dll, "clGetEventProfilingInfo");
 		if (!ptr_clGetEventProfilingInfo)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetEventProfilingInfo function\n");
+			puts("Cannot load clGetEventProfilingInfo function");
 		}
 		ptr_clFlush = dlsym(opencl_dll, "clFlush");
 		if (!ptr_clFlush)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clFlush function\n");
+			puts("Cannot load clFlush function");
 		}
 		ptr_clFinish = dlsym(opencl_dll, "clFinish");
 		if (!ptr_clFinish)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clFinish function\n");
+			puts("Cannot load clFinish function");
 		}
 		ptr_clEnqueueReadBuffer = dlsym(opencl_dll, "clEnqueueReadBuffer");
 		if (!ptr_clEnqueueReadBuffer)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueReadBuffer function\n");
+			puts("Cannot load clEnqueueReadBuffer function");
 		}
 		ptr_clEnqueueReadBufferRect = dlsym(opencl_dll, "clEnqueueReadBufferRect");
 		if (!ptr_clEnqueueReadBufferRect)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueReadBufferRect function\n");
+			puts("Cannot load clEnqueueReadBufferRect function");
 		}
 		ptr_clEnqueueWriteBuffer = dlsym(opencl_dll, "clEnqueueWriteBuffer");
 		if (!ptr_clEnqueueWriteBuffer)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueWriteBuffer function\n");
+			puts("Cannot load clEnqueueWriteBuffer function");
 		}
 		ptr_clEnqueueWriteBufferRect = dlsym(opencl_dll, "clEnqueueWriteBufferRect");
 		if (!ptr_clEnqueueWriteBufferRect)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueWriteBufferRect function\n");
+			puts("Cannot load clEnqueueWriteBufferRect function");
 		}
 		ptr_clEnqueueFillBuffer = dlsym(opencl_dll, "clEnqueueFillBuffer");
 		if (!ptr_clEnqueueFillBuffer)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueFillBuffer function\n");
+			puts("Cannot load clEnqueueFillBuffer function");
 		}
 		ptr_clEnqueueCopyBuffer = dlsym(opencl_dll, "clEnqueueCopyBuffer");
 		if (!ptr_clEnqueueCopyBuffer)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueCopyBuffer function\n");
+			puts("Cannot load clEnqueueCopyBuffer function");
 		}
 		ptr_clEnqueueCopyBufferRect = dlsym(opencl_dll, "clEnqueueCopyBufferRect");
 		if (!ptr_clEnqueueCopyBufferRect)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueCopyBufferRect function\n");
+			puts("Cannot load clEnqueueCopyBufferRect function");
 		}
 		ptr_clEnqueueReadImage = dlsym(opencl_dll, "clEnqueueReadImage");
 		if (!ptr_clEnqueueReadImage)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueReadImage function\n");
+			puts("Cannot load clEnqueueReadImage function");
 		}
 		ptr_clEnqueueWriteImage = dlsym(opencl_dll, "clEnqueueWriteImage");
 		if (!ptr_clEnqueueWriteImage)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueWriteImage function\n");
+			puts("Cannot load clEnqueueWriteImage function");
 		}
 		ptr_clEnqueueFillImage = dlsym(opencl_dll, "clEnqueueFillImage");
 		if (!ptr_clEnqueueFillImage)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueFillImage function\n");
+			puts("Cannot load clEnqueueFillImage function");
 		}
 		ptr_clEnqueueCopyImage = dlsym(opencl_dll, "clEnqueueCopyImage");
 		if (!ptr_clEnqueueCopyImage)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueCopyImage function\n");
+			puts("Cannot load clEnqueueCopyImage function");
 		}
 		ptr_clEnqueueCopyImageToBuffer = dlsym(opencl_dll, "clEnqueueCopyImageToBuffer");
 		if (!ptr_clEnqueueCopyImageToBuffer)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueCopyImageToBuffer function\n");
+			puts("Cannot load clEnqueueCopyImageToBuffer function");
 		}
 		ptr_clEnqueueCopyBufferToImage = dlsym(opencl_dll, "clEnqueueCopyBufferToImage");
 		if (!ptr_clEnqueueCopyBufferToImage)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueCopyBufferToImage function\n");
+			puts("Cannot load clEnqueueCopyBufferToImage function");
 		}
 		ptr_clEnqueueMapBuffer = dlsym(opencl_dll, "clEnqueueMapBuffer");
 		if (!ptr_clEnqueueMapBuffer)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueMapBuffer function\n");
+			puts("Cannot load clEnqueueMapBuffer function");
 		}
 		ptr_clEnqueueMapImage = dlsym(opencl_dll, "clEnqueueMapImage");
 		if (!ptr_clEnqueueMapImage)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueMapImage function\n");
+			puts("Cannot load clEnqueueMapImage function");
 		}
 		ptr_clEnqueueUnmapMemObject = dlsym(opencl_dll, "clEnqueueUnmapMemObject");
 		if (!ptr_clEnqueueUnmapMemObject)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueUnmapMemObject function\n");
+			puts("Cannot load clEnqueueUnmapMemObject function");
 		}
 		ptr_clEnqueueMigrateMemObjects = dlsym(opencl_dll, "clEnqueueMigrateMemObjects");
 		if (!ptr_clEnqueueMigrateMemObjects)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueMigrateMemObjects function\n");
+			puts("Cannot load clEnqueueMigrateMemObjects function");
 		}
 		ptr_clEnqueueNDRangeKernel = dlsym(opencl_dll, "clEnqueueNDRangeKernel");
 		if (!ptr_clEnqueueNDRangeKernel)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueNDRangeKernel function\n");
+			puts("Cannot load clEnqueueNDRangeKernel function");
 		}
 		ptr_clEnqueueNativeKernel = dlsym(opencl_dll, "clEnqueueNativeKernel");
 		if (!ptr_clEnqueueNativeKernel)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueNativeKernel function\n");
+			puts("Cannot load clEnqueueNativeKernel function");
 		}
 		ptr_clEnqueueMarkerWithWaitList = dlsym(opencl_dll, "clEnqueueMarkerWithWaitList");
 		if (!ptr_clEnqueueMarkerWithWaitList)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueMarkerWithWaitList function\n");
+			puts("Cannot load clEnqueueMarkerWithWaitList function");
 		}
 		ptr_clEnqueueBarrierWithWaitList = dlsym(opencl_dll, "clEnqueueBarrierWithWaitList");
 		if (!ptr_clEnqueueBarrierWithWaitList)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueBarrierWithWaitList function\n");
+			puts("Cannot load clEnqueueBarrierWithWaitList function");
 		}
 		ptr_clGetExtensionFunctionAddressForPlatform = dlsym(opencl_dll, "clGetExtensionFunctionAddressForPlatform");
 		if (!ptr_clGetExtensionFunctionAddressForPlatform)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetExtensionFunctionAddressForPlatform function\n");
+			puts("Cannot load clGetExtensionFunctionAddressForPlatform function");
 		}
 		ptr_clSetCommandQueueProperty = dlsym(opencl_dll, "clSetCommandQueueProperty");
 		if (!ptr_clSetCommandQueueProperty)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clSetCommandQueueProperty function\n");
+			puts("Cannot load clSetCommandQueueProperty function");
 		}
 		ptr_clCreateImage2D = dlsym(opencl_dll, "clCreateImage2D");
 		if (!ptr_clCreateImage2D)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateImage2D function\n");
+			puts("Cannot load clCreateImage2D function");
 		}
 		ptr_clCreateImage3D = dlsym(opencl_dll, "clCreateImage3D");
 		if (!ptr_clCreateImage3D)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateImage3D function\n");
+			puts("Cannot load clCreateImage3D function");
 		}
 		ptr_clEnqueueMarker = dlsym(opencl_dll, "clEnqueueMarker");
 		if (!ptr_clEnqueueMarker)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueMarker function\n");
+			puts("Cannot load clEnqueueMarker function");
 		}
 		ptr_clEnqueueWaitForEvents = dlsym(opencl_dll, "clEnqueueWaitForEvents");
 		if (!ptr_clEnqueueWaitForEvents)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueWaitForEvents function\n");
+			puts("Cannot load clEnqueueWaitForEvents function");
 		}
 		ptr_clEnqueueBarrier = dlsym(opencl_dll, "clEnqueueBarrier");
 		if (!ptr_clEnqueueBarrier)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueBarrier function\n");
+			puts("Cannot load clEnqueueBarrier function");
 		}
 		ptr_clUnloadCompiler = dlsym(opencl_dll, "clUnloadCompiler");
 		if (!ptr_clUnloadCompiler)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clUnloadCompiler function\n");
+			puts("Cannot load clUnloadCompiler function");
 		}
 		ptr_clGetExtensionFunctionAddress = dlsym(opencl_dll, "clGetExtensionFunctionAddress");
 		if (!ptr_clGetExtensionFunctionAddress)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clGetExtensionFunctionAddress function\n");
+			puts("Cannot load clGetExtensionFunctionAddress function");
 		}
 		ptr_clCreateCommandQueue = dlsym(opencl_dll, "clCreateCommandQueue");
 		if (!ptr_clCreateCommandQueue)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateCommandQueue function\n");
+			puts("Cannot load clCreateCommandQueue function");
 		}
 		ptr_clCreateSampler = dlsym(opencl_dll, "clCreateSampler");
 		if (!ptr_clCreateSampler)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clCreateSampler function\n");
+			puts("Cannot load clCreateSampler function");
 		}
 		ptr_clEnqueueTask = dlsym(opencl_dll, "clEnqueueTask");
 		if (!ptr_clEnqueueTask)
 		{
 			all_functions_loaded = 0;
-			printf("Cannot load clEnqueueTask function\n");
+			puts("Cannot load clEnqueueTask function");
 		}
 
-            if (!all_functions_loaded)
-            {
-                dlclose(opencl_dll);
-                opencl_dll = NULL;
-            }
-        }
-        else
-            printf("Cannot load OpenCL library\n");
+		if (!all_functions_loaded) {
+			dlclose(opencl_dll);
+			opencl_dll = NULL;
+		}
+	} else {
+		puts("Cannot load OpenCL library");
+	}
 }
 
 #endif

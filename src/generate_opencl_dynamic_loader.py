@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 #-------------------------------------------------------------------------------------
 # Dynamic OpenCL library loader.
 #
@@ -21,15 +23,15 @@ opencl_header.close()
 # Write C file
 dynamic_loader = open("opencl_dynamic_loader.c", "w")
 dynamic_loader.write(
-'''//-------------------------------------------------------------------------------------
-// Dynamic OpenCL library loader. Automatically generated.
-//
-// This software is copyright (c) 2023, Alain Espinosa <alainesp at gmail.com> and it
-// is hereby released to the general public under the following terms:
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted.
-//-------------------------------------------------------------------------------------
+'''/*
+ * Dynamic OpenCL library loader. Automatically generated.
+ *
+ * This software is copyright (c) 2023, Alain Espinosa <alainesp at gmail.com> and it
+ * is hereby released to the general public under the following terms:
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ */
 #ifdef HAVE_OPENCL
 
 #ifndef CL_TARGET_OPENCL_VERSION
@@ -47,8 +49,8 @@ dynamic_loader.write(
 #include <CL/cl_ext.h>
 #endif
 
-// DLL handle
-static void* opencl_dll = NULL;
+/* DLL handle */
+static void *opencl_dll = NULL;
 static void load_opencl_dll();
 
 ''')
@@ -66,17 +68,16 @@ funtions = re.findall(
 special_function_name = "clGetPlatformIDs"
 special_function_code = '''load_opencl_dll();
 
-        if (!opencl_dll)
-        {
-                // Our implementation
-                if ((num_entries == 0 && platforms) || (!num_platforms && !platforms))
-                        return CL_INVALID_VALUE;
+	if (!opencl_dll) {
+		/* Our implementation */
+		if ((num_entries == 0 && platforms) || (!num_platforms && !platforms))
+			return CL_INVALID_VALUE;
 
-                if (num_platforms)
-                        *num_platforms = 0;
+		if (num_platforms)
+			*num_platforms = 0;
 
-                return CL_SUCCESS;
-        }
+		return CL_SUCCESS;
+	}
 \t'''
 
 # Declare funtions and pointer to functions
@@ -92,7 +93,7 @@ for x in funtions:
             continue
 
         # Begin function
-        dynamic_loader.write(f'/* {function_name} */\nstatic {function_return} (*ptr_{function_name})({function_params}) = NULL;\n')    # Function pointer definition
+        dynamic_loader.write(f'/* {function_name} */\nstatic {function_return} (*ptr_{function_name})({function_params}) = NULL;\n') # Function pointer definition
         dynamic_loader.write(f'CL_API_ENTRY {function_return} CL_API_CALL {function_name}({function_params})\n') # Function definition
         dynamic_loader.write('{\n\t')
 
@@ -119,31 +120,33 @@ dynamic_loader.write(
 '''
 #include <dlfcn.h>
 #include <stdio.h>
-static void load_opencl_dll()
+
+static void load_opencl_dll(void)
 {
-        int i;
-        if (opencl_dll)
-            return;
+	int i;
 
-        // Names to try to load
-        const char* opencl_names[] = {
-            "libOpenCL.so",      // Linux/others
-            "OpenCL",            // _WIN
-            "/System/Library/Frameworks/OpenCL.framework/OpenCL", // __APPLE__
-            "opencl.dll",        // __CYGWIN__
-            "cygOpenCL-1.dll",   // __CYGWIN__
-            "libOpenCL.so.1"     // Linux/others
-        };
-        for (i = 0; i < sizeof(opencl_names)/sizeof(opencl_names[0]); i++)
-        {
-            opencl_dll = dlopen(opencl_names[i], RTLD_NOW);
-            if (opencl_dll) break;
-        }
+	if (opencl_dll)
+		return;
 
-        // Load function pointers
-        if (opencl_dll)
-        {
-                int all_functions_loaded = 1;
+	/* Names to try to load */
+	const char * const opencl_names[] = {
+		"libOpenCL.so",		/* Linux/others, hack via "development" sub-package's symlink */
+		"OpenCL",		/* _WIN */
+		"/System/Library/Frameworks/OpenCL.framework/OpenCL", /* __APPLE__ */
+		"opencl.dll",		/* __CYGWIN__ */
+		"cygOpenCL-1.dll",	/* __CYGWIN__ */
+		"libOpenCL.so.1"	/* Linux/others, no "development" sub-package installed */
+	};
+
+	for (i = 0; i < sizeof(opencl_names)/sizeof(opencl_names[0]); i++) {
+		opencl_dll = dlopen(opencl_names[i], RTLD_NOW);
+		if (opencl_dll)
+			break;
+	}
+
+	/* Load function pointers */
+	if (opencl_dll) {
+		int all_functions_loaded = 1;
 
 ''')
 
@@ -156,18 +159,17 @@ for x in funtions:
         dynamic_loader.write(f'\t\tif (!ptr_{function_name})\n')
         dynamic_loader.write('\t\t{\n')
         dynamic_loader.write(f'\t\t\tall_functions_loaded = 0;\n')
-        dynamic_loader.write(f'\t\t\tprintf("Cannot load {function_name} function\\n");\n')
+        dynamic_loader.write(f'\t\t\tputs("Cannot load {function_name} function");\n')
         dynamic_loader.write('\t\t}\n')
 
 dynamic_loader.write('''
-            if (!all_functions_loaded)
-            {
-                dlclose(opencl_dll);
-                opencl_dll = NULL;
-            }
-        }
-        else
-            printf("Cannot load OpenCL library\\n");
+		if (!all_functions_loaded) {
+			dlclose(opencl_dll);
+			opencl_dll = NULL;
+		}
+	} else {
+		puts("Cannot load OpenCL library");
+	}
 }
 
 #endif
