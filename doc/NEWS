@@ -313,6 +313,8 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Added modern, overhauled version of pdf2john.py.a  [benjamin-awd; 2023]
 
+- Avoid hard build-time dependency on Perl (is now optional).  [Solar; 2023]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 

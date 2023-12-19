@@ -7733,12 +7733,6 @@ $as_echo "no" >&6; }
 fi
 
 
-if test "x$PERL" = x ; then
-  { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error $? "No perl executable found
-See \`config.log' for more details" "$LINENO" 5; }
-fi
 if test -z "$AS"; then :
   AS="$CC"
 fi
