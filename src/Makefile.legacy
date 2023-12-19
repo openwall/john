@@ -1730,9 +1730,9 @@ bench: $(BENCH_OBJS)
 
 listconf.o: version.h listconf.h listconf.c timer.h
 
-dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dynamic_big_crypt_generator.sh dynamic_big_crypt_chopper.pl unused/dynamic_big_crypt.c
+dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dynamic_big_crypt_generator.sh dynamic_big_crypt_chopper.pl dynamic_big_crypt_generated.c
 	$(shell ./dynamic_big_crypt_generator.sh)
-	@if [ ! -f dynamic_big_crypt.c ] ; then $(CP_PRESERVE) unused/dynamic_big_crypt.c dynamic_big_crypt.c ; fi
+	@if [ ! -f dynamic_big_crypt.c ] ; then $(CP_PRESERVE) dynamic_big_crypt_generated.c dynamic_big_crypt.c ; fi
 
 dynamic_big_crypt.o:	dynamic_big_crypt.c arch.h misc.h common.h formats.h sha.h sha2.h md5.h md4.h gost.h sph_haval.h sph_ripemd.h sph_tiger.h sph_whirlpool.h dynamic.h johnswap.h simd-intrinsics.h dynamic_types.h
 

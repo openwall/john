@@ -214,9 +214,9 @@ debug:
 help:
 	@echo "The 'older' fat makefile can be done with make --file=Makefile.legacy [target]"
 
-dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dynamic_big_crypt_generator.sh dynamic_big_crypt_chopper.pl unused/dynamic_big_crypt.c
+dynamic_big_crypt.c: dynamic_big_crypt_hash.cin dynamic_big_crypt_header.cin dynamic_big_crypt_generator.sh dynamic_big_crypt_chopper.pl dynamic_big_crypt_generated.c
 	$(shell ./dynamic_big_crypt_generator.sh)
-	@if [ ! -f dynamic_big_crypt.c ] ; then $(CP) unused/dynamic_big_crypt.c dynamic_big_crypt.c ; fi
+	@if [ ! -f dynamic_big_crypt.c ] ; then $(CP) dynamic_big_crypt_generated.c dynamic_big_crypt.c ; fi
 
 # Digital/Compaq's cc and make use the .S suffix for a different purpose...
 digipaq-alpha.o: alpha.S

@@ -338,9 +338,6 @@ AC_CACHE_SAVE
 AC_PATH_PROG([SORT], [sort])
 AC_PATH_PROG([FIND], [find])
 AC_PATH_PROG([PERL], [perl])
-if test "x$PERL" = x ; then
-  AC_MSG_FAILURE([No perl executable found])
-fi
 AS_IF([test -z "$AS"], [AS="$CC"])
 AS_IF([test -z "$LD"], [LD="$CC"])
 AS_IF([test -z "$AR"], [AC_PATH_TOOL([AR], [ar], [ar], [$PATH:/usr/ccs/bin])])
