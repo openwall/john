@@ -161,13 +161,6 @@ CL_API_ENTRY cl_mem CL_API_CALL clCreateSubBuffer(cl_mem buffer, cl_mem_flags fl
 	return ptr_clCreateSubBuffer(buffer, flags, buffer_create_type, buffer_create_info, errcode_ret);
 }
 
-/* clCreateImage */
-static cl_mem (*ptr_clCreateImage)(cl_context context, cl_mem_flags flags, const cl_image_format * image_format, const cl_image_desc * image_desc, void * host_ptr, cl_int * errcode_ret);
-CL_API_ENTRY cl_mem CL_API_CALL clCreateImage(cl_context context, cl_mem_flags flags, const cl_image_format * image_format, const cl_image_desc * image_desc, void * host_ptr, cl_int * errcode_ret)
-{
-	return ptr_clCreateImage(context, flags, image_format, image_desc, host_ptr, errcode_ret);
-}
-
 /* clRetainMemObject */
 static cl_int (*ptr_clRetainMemObject)(cl_mem memobj);
 CL_API_ENTRY cl_int CL_API_CALL clRetainMemObject(cl_mem memobj)
@@ -182,25 +175,11 @@ CL_API_ENTRY cl_int CL_API_CALL clReleaseMemObject(cl_mem memobj)
 	return ptr_clReleaseMemObject(memobj);
 }
 
-/* clGetSupportedImageFormats */
-static cl_int (*ptr_clGetSupportedImageFormats)(cl_context context, cl_mem_flags flags, cl_mem_object_type image_type, cl_uint num_entries, cl_image_format * image_formats, cl_uint * num_image_formats);
-CL_API_ENTRY cl_int CL_API_CALL clGetSupportedImageFormats(cl_context context, cl_mem_flags flags, cl_mem_object_type image_type, cl_uint num_entries, cl_image_format * image_formats, cl_uint * num_image_formats)
-{
-	return ptr_clGetSupportedImageFormats(context, flags, image_type, num_entries, image_formats, num_image_formats);
-}
-
 /* clGetMemObjectInfo */
 static cl_int (*ptr_clGetMemObjectInfo)(cl_mem memobj, cl_mem_info param_name, size_t param_value_size, void * param_value, size_t * param_value_size_ret);
 CL_API_ENTRY cl_int CL_API_CALL clGetMemObjectInfo(cl_mem memobj, cl_mem_info param_name, size_t param_value_size, void * param_value, size_t * param_value_size_ret)
 {
 	return ptr_clGetMemObjectInfo(memobj, param_name, param_value_size, param_value, param_value_size_ret);
-}
-
-/* clGetImageInfo */
-static cl_int (*ptr_clGetImageInfo)(cl_mem image, cl_image_info param_name, size_t param_value_size, void * param_value, size_t * param_value_size_ret);
-CL_API_ENTRY cl_int CL_API_CALL clGetImageInfo(cl_mem image, cl_image_info param_name, size_t param_value_size, void * param_value, size_t * param_value_size_ret)
-{
-	return ptr_clGetImageInfo(image, param_name, param_value_size, param_value, param_value_size_ret);
 }
 
 /* clSetMemObjectDestructorCallback */
@@ -483,60 +462,11 @@ CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyBufferRect(cl_command_queue command
 	return ptr_clEnqueueCopyBufferRect(command_queue, src_buffer, dst_buffer, src_origin, dst_origin, region, src_row_pitch, src_slice_pitch, dst_row_pitch, dst_slice_pitch, num_events_in_wait_list, event_wait_list, event);
 }
 
-/* clEnqueueReadImage */
-static cl_int (*ptr_clEnqueueReadImage)(cl_command_queue command_queue, cl_mem image, cl_bool blocking_read, const size_t * origin, const size_t * region, size_t row_pitch, size_t slice_pitch, void * ptr, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event);
-CL_API_ENTRY cl_int CL_API_CALL clEnqueueReadImage(cl_command_queue command_queue, cl_mem image, cl_bool blocking_read, const size_t * origin, const size_t * region, size_t row_pitch, size_t slice_pitch, void * ptr, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event)
-{
-	return ptr_clEnqueueReadImage(command_queue, image, blocking_read, origin, region, row_pitch, slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
-}
-
-/* clEnqueueWriteImage */
-static cl_int (*ptr_clEnqueueWriteImage)(cl_command_queue command_queue, cl_mem image, cl_bool blocking_write, const size_t * origin, const size_t * region, size_t input_row_pitch, size_t input_slice_pitch, const void * ptr, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event);
-CL_API_ENTRY cl_int CL_API_CALL clEnqueueWriteImage(cl_command_queue command_queue, cl_mem image, cl_bool blocking_write, const size_t * origin, const size_t * region, size_t input_row_pitch, size_t input_slice_pitch, const void * ptr, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event)
-{
-	return ptr_clEnqueueWriteImage(command_queue, image, blocking_write, origin, region, input_row_pitch, input_slice_pitch, ptr, num_events_in_wait_list, event_wait_list, event);
-}
-
-/* clEnqueueFillImage */
-static cl_int (*ptr_clEnqueueFillImage)(cl_command_queue command_queue, cl_mem image, const void * fill_color, const size_t * origin, const size_t * region, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event);
-CL_API_ENTRY cl_int CL_API_CALL clEnqueueFillImage(cl_command_queue command_queue, cl_mem image, const void * fill_color, const size_t * origin, const size_t * region, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event)
-{
-	return ptr_clEnqueueFillImage(command_queue, image, fill_color, origin, region, num_events_in_wait_list, event_wait_list, event);
-}
-
-/* clEnqueueCopyImage */
-static cl_int (*ptr_clEnqueueCopyImage)(cl_command_queue command_queue, cl_mem src_image, cl_mem dst_image, const size_t * src_origin, const size_t * dst_origin, const size_t * region, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event);
-CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyImage(cl_command_queue command_queue, cl_mem src_image, cl_mem dst_image, const size_t * src_origin, const size_t * dst_origin, const size_t * region, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event)
-{
-	return ptr_clEnqueueCopyImage(command_queue, src_image, dst_image, src_origin, dst_origin, region, num_events_in_wait_list, event_wait_list, event);
-}
-
-/* clEnqueueCopyImageToBuffer */
-static cl_int (*ptr_clEnqueueCopyImageToBuffer)(cl_command_queue command_queue, cl_mem src_image, cl_mem dst_buffer, const size_t * src_origin, const size_t * region, size_t dst_offset, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event);
-CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyImageToBuffer(cl_command_queue command_queue, cl_mem src_image, cl_mem dst_buffer, const size_t * src_origin, const size_t * region, size_t dst_offset, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event)
-{
-	return ptr_clEnqueueCopyImageToBuffer(command_queue, src_image, dst_buffer, src_origin, region, dst_offset, num_events_in_wait_list, event_wait_list, event);
-}
-
-/* clEnqueueCopyBufferToImage */
-static cl_int (*ptr_clEnqueueCopyBufferToImage)(cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_image, size_t src_offset, const size_t * dst_origin, const size_t * region, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event);
-CL_API_ENTRY cl_int CL_API_CALL clEnqueueCopyBufferToImage(cl_command_queue command_queue, cl_mem src_buffer, cl_mem dst_image, size_t src_offset, const size_t * dst_origin, const size_t * region, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event)
-{
-	return ptr_clEnqueueCopyBufferToImage(command_queue, src_buffer, dst_image, src_offset, dst_origin, region, num_events_in_wait_list, event_wait_list, event);
-}
-
 /* clEnqueueMapBuffer */
 static void * (*ptr_clEnqueueMapBuffer)(cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_map, cl_map_flags map_flags, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event, cl_int * errcode_ret);
 CL_API_ENTRY void * CL_API_CALL clEnqueueMapBuffer(cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_map, cl_map_flags map_flags, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event, cl_int * errcode_ret)
 {
 	return ptr_clEnqueueMapBuffer(command_queue, buffer, blocking_map, map_flags, offset, size, num_events_in_wait_list, event_wait_list, event, errcode_ret);
-}
-
-/* clEnqueueMapImage */
-static void * (*ptr_clEnqueueMapImage)(cl_command_queue command_queue, cl_mem image, cl_bool blocking_map, cl_map_flags map_flags, const size_t * origin, const size_t * region, size_t * image_row_pitch, size_t * image_slice_pitch, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event, cl_int * errcode_ret);
-CL_API_ENTRY void * CL_API_CALL clEnqueueMapImage(cl_command_queue command_queue, cl_mem image, cl_bool blocking_map, cl_map_flags map_flags, const size_t * origin, const size_t * region, size_t * image_row_pitch, size_t * image_slice_pitch, cl_uint num_events_in_wait_list, const cl_event * event_wait_list, cl_event * event, cl_int * errcode_ret)
-{
-	return ptr_clEnqueueMapImage(command_queue, image, blocking_map, map_flags, origin, region, image_row_pitch, image_slice_pitch, num_events_in_wait_list, event_wait_list, event, errcode_ret);
 }
 
 /* clEnqueueUnmapMemObject */
@@ -593,20 +523,6 @@ static cl_int (*ptr_clSetCommandQueueProperty)(cl_command_queue command_queue, c
 CL_API_ENTRY cl_int CL_API_CALL clSetCommandQueueProperty(cl_command_queue command_queue, cl_command_queue_properties properties, cl_bool enable, cl_command_queue_properties * old_properties)
 {
 	return ptr_clSetCommandQueueProperty(command_queue, properties, enable, old_properties);
-}
-
-/* clCreateImage2D */
-static cl_mem (*ptr_clCreateImage2D)(cl_context context, cl_mem_flags flags, const cl_image_format * image_format, size_t image_width, size_t image_height, size_t image_row_pitch, void * host_ptr, cl_int * errcode_ret);
-CL_API_ENTRY cl_mem CL_API_CALL clCreateImage2D(cl_context context, cl_mem_flags flags, const cl_image_format * image_format, size_t image_width, size_t image_height, size_t image_row_pitch, void * host_ptr, cl_int * errcode_ret)
-{
-	return ptr_clCreateImage2D(context, flags, image_format, image_width, image_height, image_row_pitch, host_ptr, errcode_ret);
-}
-
-/* clCreateImage3D */
-static cl_mem (*ptr_clCreateImage3D)(cl_context context, cl_mem_flags flags, const cl_image_format * image_format, size_t image_width, size_t image_height, size_t image_depth, size_t image_row_pitch, size_t image_slice_pitch, void * host_ptr, cl_int * errcode_ret);
-CL_API_ENTRY cl_mem CL_API_CALL clCreateImage3D(cl_context context, cl_mem_flags flags, const cl_image_format * image_format, size_t image_width, size_t image_height, size_t image_depth, size_t image_row_pitch, size_t image_slice_pitch, void * host_ptr, cl_int * errcode_ret)
-{
-	return ptr_clCreateImage3D(context, flags, image_format, image_width, image_height, image_depth, image_row_pitch, image_slice_pitch, host_ptr, errcode_ret);
 }
 
 /* clEnqueueMarker */
@@ -781,11 +697,6 @@ static void load_opencl_dll(void)
 		all_functions_loaded = 0;
 		puts("Cannot load clCreateSubBuffer function");
 	}
-	ptr_clCreateImage = dlsym(opencl_dll, "clCreateImage");
-	if (!ptr_clCreateImage) {
-		all_functions_loaded = 0;
-		puts("Cannot load clCreateImage function");
-	}
 	ptr_clRetainMemObject = dlsym(opencl_dll, "clRetainMemObject");
 	if (!ptr_clRetainMemObject) {
 		all_functions_loaded = 0;
@@ -796,20 +707,10 @@ static void load_opencl_dll(void)
 		all_functions_loaded = 0;
 		puts("Cannot load clReleaseMemObject function");
 	}
-	ptr_clGetSupportedImageFormats = dlsym(opencl_dll, "clGetSupportedImageFormats");
-	if (!ptr_clGetSupportedImageFormats) {
-		all_functions_loaded = 0;
-		puts("Cannot load clGetSupportedImageFormats function");
-	}
 	ptr_clGetMemObjectInfo = dlsym(opencl_dll, "clGetMemObjectInfo");
 	if (!ptr_clGetMemObjectInfo) {
 		all_functions_loaded = 0;
 		puts("Cannot load clGetMemObjectInfo function");
-	}
-	ptr_clGetImageInfo = dlsym(opencl_dll, "clGetImageInfo");
-	if (!ptr_clGetImageInfo) {
-		all_functions_loaded = 0;
-		puts("Cannot load clGetImageInfo function");
 	}
 	ptr_clSetMemObjectDestructorCallback = dlsym(opencl_dll, "clSetMemObjectDestructorCallback");
 	if (!ptr_clSetMemObjectDestructorCallback) {
@@ -1011,45 +912,10 @@ static void load_opencl_dll(void)
 		all_functions_loaded = 0;
 		puts("Cannot load clEnqueueCopyBufferRect function");
 	}
-	ptr_clEnqueueReadImage = dlsym(opencl_dll, "clEnqueueReadImage");
-	if (!ptr_clEnqueueReadImage) {
-		all_functions_loaded = 0;
-		puts("Cannot load clEnqueueReadImage function");
-	}
-	ptr_clEnqueueWriteImage = dlsym(opencl_dll, "clEnqueueWriteImage");
-	if (!ptr_clEnqueueWriteImage) {
-		all_functions_loaded = 0;
-		puts("Cannot load clEnqueueWriteImage function");
-	}
-	ptr_clEnqueueFillImage = dlsym(opencl_dll, "clEnqueueFillImage");
-	if (!ptr_clEnqueueFillImage) {
-		all_functions_loaded = 0;
-		puts("Cannot load clEnqueueFillImage function");
-	}
-	ptr_clEnqueueCopyImage = dlsym(opencl_dll, "clEnqueueCopyImage");
-	if (!ptr_clEnqueueCopyImage) {
-		all_functions_loaded = 0;
-		puts("Cannot load clEnqueueCopyImage function");
-	}
-	ptr_clEnqueueCopyImageToBuffer = dlsym(opencl_dll, "clEnqueueCopyImageToBuffer");
-	if (!ptr_clEnqueueCopyImageToBuffer) {
-		all_functions_loaded = 0;
-		puts("Cannot load clEnqueueCopyImageToBuffer function");
-	}
-	ptr_clEnqueueCopyBufferToImage = dlsym(opencl_dll, "clEnqueueCopyBufferToImage");
-	if (!ptr_clEnqueueCopyBufferToImage) {
-		all_functions_loaded = 0;
-		puts("Cannot load clEnqueueCopyBufferToImage function");
-	}
 	ptr_clEnqueueMapBuffer = dlsym(opencl_dll, "clEnqueueMapBuffer");
 	if (!ptr_clEnqueueMapBuffer) {
 		all_functions_loaded = 0;
 		puts("Cannot load clEnqueueMapBuffer function");
-	}
-	ptr_clEnqueueMapImage = dlsym(opencl_dll, "clEnqueueMapImage");
-	if (!ptr_clEnqueueMapImage) {
-		all_functions_loaded = 0;
-		puts("Cannot load clEnqueueMapImage function");
 	}
 	ptr_clEnqueueUnmapMemObject = dlsym(opencl_dll, "clEnqueueUnmapMemObject");
 	if (!ptr_clEnqueueUnmapMemObject) {
@@ -1090,16 +956,6 @@ static void load_opencl_dll(void)
 	if (!ptr_clSetCommandQueueProperty) {
 		all_functions_loaded = 0;
 		puts("Cannot load clSetCommandQueueProperty function");
-	}
-	ptr_clCreateImage2D = dlsym(opencl_dll, "clCreateImage2D");
-	if (!ptr_clCreateImage2D) {
-		all_functions_loaded = 0;
-		puts("Cannot load clCreateImage2D function");
-	}
-	ptr_clCreateImage3D = dlsym(opencl_dll, "clCreateImage3D");
-	if (!ptr_clCreateImage3D) {
-		all_functions_loaded = 0;
-		puts("Cannot load clCreateImage3D function");
 	}
 	ptr_clEnqueueMarker = dlsym(opencl_dll, "clEnqueueMarker");
 	if (!ptr_clEnqueueMarker) {

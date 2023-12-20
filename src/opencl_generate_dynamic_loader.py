@@ -91,6 +91,8 @@ for x in funtions:
     if len(x) == 6:
         function_return = x[1]
         function_name = x[2]
+        if "Image" in function_name:
+            continue
         function_params = " ".join(x[3].split()) # Better param definition
         api_version = int(x[4].replace('_', '')) * 10
         if api_version > CL_TARGET_OPENCL_VERSION:
@@ -158,6 +160,8 @@ static void load_opencl_dll(void)
 # Load function pointers
 for x in funtions:
     function_name = x[2]
+    if "Image" in function_name:
+        continue
     api_version = int(x[4].replace('_', '')) * 10
     if api_version <= CL_TARGET_OPENCL_VERSION:
         dynamic_loader.write(f'\tptr_{function_name} = dlsym(opencl_dll, "{function_name}");\n')
