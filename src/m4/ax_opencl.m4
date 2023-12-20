@@ -54,9 +54,6 @@ if test "$disable_opencl" = 'yes'; then
         [CL_CFLAGS="${PTHREAD_CFLAGS}"; CL_LIBS="${PTHREAD_LIBS} -lm"])
 
   ax_save_CPPFLAGS=$CPPFLAGS
-  CPPFLAGS="$CL_CFLAGS $CPPFLAGS"
-  AC_CHECK_HEADERS([CL/cl.h OpenCL/cl.h])
-  CPPFLAGS=$ax_save_CPPFLAGS
 
   AC_CHECK_HEADERS([windows.h])
 
@@ -65,13 +62,8 @@ if test "$disable_opencl" = 'yes'; then
   # if defined(HAVE_WINDOWS_H) && defined(_WIN32)
   #   include <windows.h>
   # endif
-  # ifdef HAVE_CL_CL_H
-  #   include <CL/cl.h>
-  # elif defined(HAVE_OPENCL_CL_H)
-  #   include <OpenCL/cl.h>
-  # else
-  #   error no CL.h
-  # endif]],
+  # include "CL/cl.h"
+  ]],
                              [[clCreateContextFromType(0,0,0,0,0)]])])
 
   AC_CACHE_CHECK([for OpenCL library], [ax_cv_check_cl_libcl],
