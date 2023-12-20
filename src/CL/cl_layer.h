@@ -21,9 +21,9 @@
 ** This header is generated from the Khronos OpenCL XML API Registry.
 */
 
-#include <CL/cl_icd.h>
+#include "cl_icd.h"
 
-#include <CL/cl.h>
+#include "cl.h"
 
 /* CL_NO_PROTOTYPES implies CL_NO_EXTENSION_PROTOTYPES: */
 #if defined(CL_NO_PROTOTYPES) && !defined(CL_NO_EXTENSION_PROTOTYPES)

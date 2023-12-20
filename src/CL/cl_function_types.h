@@ -19,7 +19,7 @@
 #ifndef OPENCL_CL_FUNCTION_TYPES_H_
 #define OPENCL_CL_FUNCTION_TYPES_H_
 
-#include <CL/cl.h>
+#include "cl.h"
 
 typedef cl_int CL_API_CALL clGetPlatformIDs_t(
     cl_uint num_entries,

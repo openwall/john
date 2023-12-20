@@ -17,16 +17,16 @@
 #ifndef OPENCL_CL_ICD_H
 #define OPENCL_CL_ICD_H
 
-#include <CL/cl.h>
-#include <CL/cl_function_types.h>
-#include <CL/cl_egl.h>
-#include <CL/cl_ext.h>
-#include <CL/cl_gl.h>
+#include "cl.h"
+#include "cl_function_types.h"
+#include "cl_egl.h"
+#include "cl_ext.h"
+#include "cl_gl.h"
 
 #if defined(_WIN32)
-#include <CL/cl_d3d11.h>
-#include <CL/cl_d3d10.h>
-#include <CL/cl_dx9_media_sharing.h>
+#include "cl_d3d11.h"
+#include "cl_d3d10.h"
+#include "cl_dx9_media_sharing.h"
 #endif
 
 #ifdef __cplusplus

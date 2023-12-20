@@ -23,7 +23,7 @@
 
 #include <va/va.h>
 
-#include <CL/cl.h>
+#include "cl.h"
 
 /* CL_NO_PROTOTYPES implies CL_NO_EXTENSION_PROTOTYPES: */
 #if defined(CL_NO_PROTOTYPES) && !defined(CL_NO_EXTENSION_PROTOTYPES)
