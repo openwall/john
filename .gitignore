@@ -110,3 +110,6 @@ dict/
 /.vs/JohnTheRipper/v16/.suo
 /.vs
 src/.vscode/
+/src/.vs
+/src/CppProperties.json
+/src/launch.vs.json
