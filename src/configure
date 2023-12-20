@@ -14021,21 +14021,6 @@ $as_echo "$ax_cv_c_compiler_ms" >&6; }
 fi
 
   ax_save_CPPFLAGS=$CPPFLAGS
-  CPPFLAGS="$CL_CFLAGS $CPPFLAGS"
-  for ac_header in CL/cl.h OpenCL/cl.h
-do :
-  as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
-ac_fn_c_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
-if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
-  cat >>confdefs.h <<_ACEOF
-#define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
-_ACEOF
-
-fi
-
-done
-
-  CPPFLAGS=$ax_save_CPPFLAGS
 
   for ac_header in windows.h
 do :
@@ -14080,13 +14065,8 @@ fi
   # if defined(HAVE_WINDOWS_H) && defined(_WIN32)
   #   include <windows.h>
   # endif
-  # ifdef HAVE_CL_CL_H
-  #   include <CL/cl.h>
-  # elif defined(HAVE_OPENCL_CL_H)
-  #   include <OpenCL/cl.h>
-  # else
-  #   error no CL.h
-  # endif
+  # include "CL/cl.h"
+
 int
 main ()
 {
@@ -14105,13 +14085,8 @@ else
   # if defined(HAVE_WINDOWS_H) && defined(_WIN32)
   #   include <windows.h>
   # endif
-  # ifdef HAVE_CL_CL_H
-  #   include <CL/cl.h>
-  # elif defined(HAVE_OPENCL_CL_H)
-  #   include <OpenCL/cl.h>
-  # else
-  #   error no CL.h
-  # endif
+  # include "CL/cl.h"
+
 int
 main ()
 {
@@ -14130,13 +14105,8 @@ else
   # if defined(HAVE_WINDOWS_H) && defined(_WIN32)
   #   include <windows.h>
   # endif
-  # ifdef HAVE_CL_CL_H
-  #   include <CL/cl.h>
-  # elif defined(HAVE_OPENCL_CL_H)
-  #   include <OpenCL/cl.h>
-  # else
-  #   error no CL.h
-  # endif
+  # include "CL/cl.h"
+
 int
 main ()
 {
@@ -14166,13 +14136,8 @@ rm -f core conftest.err conftest.$ac_objext \
   # if defined(HAVE_WINDOWS_H) && defined(_WIN32)
   #   include <windows.h>
   # endif
-  # ifdef HAVE_CL_CL_H
-  #   include <CL/cl.h>
-  # elif defined(HAVE_OPENCL_CL_H)
-  #   include <OpenCL/cl.h>
-  # else
-  #   error no CL.h
-  # endif
+  # include "CL/cl.h"
+
 int
 main ()
 {

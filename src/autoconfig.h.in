@@ -39,9 +39,6 @@
 /* Define to 1 if you have the `atoll' function. */
 #undef HAVE_ATOLL
 
-/* Define to 1 if you have the <CL/cl.h> header file. */
-#undef HAVE_CL_CL_H
-
 /* Define to 1 if you have the `crypt' library (-lcrypt). */
 #undef HAVE_CRYPT
 
@@ -197,9 +194,6 @@
 
 /* Define to 1 if you (really) have OpenCL 1.2. */
 #undef HAVE_OPENCL_1_2
-
-/* Define to 1 if you have the <OpenCL/cl.h> header file. */
-#undef HAVE_OPENCL_CL_H
 
 /* Define to 1 if you have the <openssl/cmac.h> header file. */
 #undef HAVE_OPENSSL_CMAC_H
