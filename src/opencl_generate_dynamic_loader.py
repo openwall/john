@@ -16,7 +16,7 @@ import re
 # OpenCL version supported
 CL_TARGET_OPENCL_VERSION = 120
 
-opencl_header = open("cl.h")
+opencl_header = open("CL/cl.h")
 header_text: str = opencl_header.read()
 opencl_header.close()
 
@@ -42,13 +42,8 @@ dynamic_loader.write(
 '''
 #endif
 
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#include <OpenCL/cl_ext.h>
-#else
-#include <CL/cl.h>
-#include <CL/cl_ext.h>
-#endif
+#include "CL/cl.h"
+#include "CL/cl_ext.h"
 
 #include <dlfcn.h>
 #include <stdio.h>
