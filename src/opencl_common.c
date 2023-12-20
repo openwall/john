@@ -2937,6 +2937,22 @@ void opencl_list_devices(void)
 	}
 
 	if (!available_devices) {
+		if (num_platforms) {
+			/* Prints information about the platform, if any. */
+			for (i = 0; i < num_platforms; i++) {
+				clGetPlatformInfo(platforms[i].platform,
+				                  CL_PLATFORM_NAME, sizeof(dname), dname, NULL);
+				printf("Platform #%d name: %s, ", i, dname);
+				clGetPlatformInfo(platforms[i].platform,
+				                  CL_PLATFORM_VERSION, sizeof(dname), dname, NULL);
+				printf("version: %s\n", dname);
+
+				clGetPlatformInfo(platforms[i].platform,
+				                  CL_PLATFORM_EXTENSIONS, sizeof(dname), dname, NULL);
+				if (options.verbosity > VERB_LEGACY)
+					printf("    Platform extensions:    %s\n", dname);
+			}
+		}
 		fprintf(stderr, "Error: No OpenCL-capable devices were detected"
 		        " by the installed OpenCL driver.\n\n");
 		return;
