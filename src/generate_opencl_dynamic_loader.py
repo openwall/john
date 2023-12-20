@@ -32,6 +32,7 @@ dynamic_loader.write(
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  */
+
 #ifdef HAVE_OPENCL
 
 #ifndef CL_TARGET_OPENCL_VERSION
@@ -49,9 +50,12 @@ dynamic_loader.write(
 #include <CL/cl_ext.h>
 #endif
 
+#include <dlfcn.h>
+#include <stdio.h>
+
 /* DLL handle */
-static void *opencl_dll = NULL;
-static void load_opencl_dll();
+static void *opencl_dll;
+static void load_opencl_dll(void);
 
 ''')
 
@@ -70,7 +74,7 @@ special_function_code = '''load_opencl_dll();
 
 	if (!opencl_dll) {
 		/* Our implementation */
-		if ((num_entries == 0 && platforms) || (!num_platforms && !platforms))
+		if ((!num_entries && platforms) || (!num_platforms && !platforms))
 			return CL_INVALID_VALUE;
 
 		if (num_platforms)
@@ -78,6 +82,7 @@ special_function_code = '''load_opencl_dll();
 
 		return CL_SUCCESS;
 	}
+
 \t'''
 
 # Declare funtions and pointer to functions
@@ -89,11 +94,11 @@ for x in funtions:
         function_params = " ".join(x[3].split()) # Better param definition
         api_version = int(x[4].replace('_', '')) * 10
         if api_version > CL_TARGET_OPENCL_VERSION:
-            print(f"Function '{function_name}' skipped give api={x[4]}")
+            print(f"Function '{function_name}' skipped, API {x[4]}")
             continue
 
         # Begin function
-        dynamic_loader.write(f'/* {function_name} */\nstatic {function_return} (*ptr_{function_name})({function_params}) = NULL;\n') # Function pointer definition
+        dynamic_loader.write(f'/* {function_name} */\nstatic {function_return} (*ptr_{function_name})({function_params});\n') # Function pointer definition
         dynamic_loader.write(f'CL_API_ENTRY {function_return} CL_API_CALL {function_name}({function_params})\n') # Function definition
         dynamic_loader.write('{\n\t')
 
@@ -118,11 +123,9 @@ for x in funtions:
 # Load dynamic library
 dynamic_loader.write(
 '''
-#include <dlfcn.h>
-#include <stdio.h>
-
 static void load_opencl_dll(void)
 {
+	int all_functions_loaded = 1;
 	int i;
 
 	if (opencl_dll)
@@ -144,10 +147,12 @@ static void load_opencl_dll(void)
 			break;
 	}
 
-	/* Load function pointers */
-	if (opencl_dll) {
-		int all_functions_loaded = 1;
+	if (!opencl_dll) {
+		puts("Cannot load OpenCL library");
+		return;
+	}
 
+	/* Load function pointers */
 ''')
 
 # Load function pointers
@@ -155,20 +160,16 @@ for x in funtions:
     function_name = x[2]
     api_version = int(x[4].replace('_', '')) * 10
     if api_version <= CL_TARGET_OPENCL_VERSION:
-        dynamic_loader.write(f'\t\tptr_{function_name} = dlsym(opencl_dll, "{function_name}");\n')
-        dynamic_loader.write(f'\t\tif (!ptr_{function_name})\n')
-        dynamic_loader.write('\t\t{\n')
-        dynamic_loader.write(f'\t\t\tall_functions_loaded = 0;\n')
-        dynamic_loader.write(f'\t\t\tputs("Cannot load {function_name} function");\n')
-        dynamic_loader.write('\t\t}\n')
+        dynamic_loader.write(f'\tptr_{function_name} = dlsym(opencl_dll, "{function_name}");\n')
+        dynamic_loader.write(f'\tif (!ptr_{function_name}) {{\n')
+        dynamic_loader.write(f'\t\tall_functions_loaded = 0;\n')
+        dynamic_loader.write(f'\t\tputs("Cannot load {function_name} function");\n')
+        dynamic_loader.write('\t}\n')
 
 dynamic_loader.write('''
-		if (!all_functions_loaded) {
-			dlclose(opencl_dll);
-			opencl_dll = NULL;
-		}
-	} else {
-		puts("Cannot load OpenCL library");
+	if (!all_functions_loaded) {
+		dlclose(opencl_dll);
+		opencl_dll = NULL;
 	}
 }
 
