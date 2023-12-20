@@ -20,7 +20,7 @@
  *
  * Example usage:
  *
- *    #include <CL/cl_half.h>
+ *    #include "cl_half.h"
  *    ...
  *    cl_half h = cl_half_from_float(0.5f, CL_HALF_RTE);
  *    cl_float f = cl_half_to_float(h);
@@ -29,7 +29,7 @@
 #ifndef OPENCL_CL_HALF_H
 #define OPENCL_CL_HALF_H
 
-#include <CL/cl_platform.h>
+#include "cl_platform.h"
 
 #include <stdint.h>
 
