@@ -14,13 +14,8 @@
 #define CL_TARGET_OPENCL_VERSION 120
 #endif
 
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#include <OpenCL/cl_ext.h>
-#else
-#include <CL/cl.h>
-#include <CL/cl_ext.h>
-#endif
+#include "CL/cl.h"
+#include "CL/cl_ext.h"
 
 #include <dlfcn.h>
 #include <stdio.h>

@@ -23,13 +23,9 @@
 #define CL_TARGET_OPENCL_VERSION 120
 #endif
 
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#include <OpenCL/cl_ext.h>
-#else
-#include <CL/cl.h>
-#include <CL/cl_ext.h>
-#endif
+#include "CL/cl.h"
+#include "CL/cl_ext.h"
+
 
 #if !CL_VERSION_1_2
 #error We need minimum OpenCL 1.2 to build with OpenCL support. The headers currently used does not comply.
