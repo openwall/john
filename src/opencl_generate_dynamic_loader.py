@@ -125,9 +125,13 @@ for x in funtions:
 # Load dynamic library
 dynamic_loader.write(
 '''
+static cl_int unimplemented_function(void)
+{
+	return CL_INVALID_OPERATION;
+}
+
 static void load_opencl_dll(void)
 {
-	int all_functions_loaded = 1;
 	int i;
 
 	if (opencl_dll)
@@ -166,16 +170,11 @@ for x in funtions:
     if api_version <= CL_TARGET_OPENCL_VERSION:
         dynamic_loader.write(f'\tptr_{function_name} = dlsym(opencl_dll, "{function_name}");\n')
         dynamic_loader.write(f'\tif (!ptr_{function_name}) {{\n')
-        dynamic_loader.write(f'\t\tall_functions_loaded = 0;\n')
-        dynamic_loader.write(f'\t\tputs("Cannot load {function_name} function");\n')
+        dynamic_loader.write(f'\t\tptr_{function_name} = (void *)unimplemented_function;\n')
+        dynamic_loader.write(f'\t\tfprintf(stderr, "Warning: Cannot find the {function_name} function\\n");\n')
         dynamic_loader.write('\t}\n')
 
-dynamic_loader.write('''
-	if (!all_functions_loaded) {
-		dlclose(opencl_dll);
-		opencl_dll = NULL;
-	}
-}
+dynamic_loader.write('''}
 
 #endif
 ''')
