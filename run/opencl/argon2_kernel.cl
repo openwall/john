@@ -474,6 +474,8 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__global struct block_g* memory, uint pas
 	prev.c = mem_prev[2 * THREADS_PER_LANE];
 	prev.d = mem_prev[3 * THREADS_PER_LANE];
 
+	uint lanes_rec = 0xffffffffU / lanes;
+
 	// Cycle
 	for (uint offset = start_offset; offset < segment_blocks; ++offset) {
 		// argon2_step(memory, mem_curr, &prev, &tmp, &addr, shuffle_buf, lanes, segment_blocks, thread, &thread_input, lane, pass, slice, offset);
@@ -503,7 +505,21 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__global struct block_g* memory, uint pas
 
 		//compute_ref_pos(lanes, segment_blocks, pass, lane, slice, offset, &ref_lane, &ref_index);
 		//uint lane_blocks = ARGON2_SYNC_POINTS * segment_blocks;
-		ref_lane %= lanes;
+		//ref_lane %= lanes;
+		if (lanes & (lanes - 1)) {
+#if 0
+			if (lanes <= 5) {
+				ref_lane = mul_hi(ref_lane * lanes_rec + lanes_rec, lanes);
+			} else
+#endif
+			{
+				ref_lane -= mul_hi(ref_lane, lanes_rec) * lanes;
+				if (ref_lane >= lanes)
+					ref_lane -= lanes;
+			}
+		} else {
+			ref_lane &= lanes - 1;
+		}
 
 		uint base;
 		if (pass != 0) {
