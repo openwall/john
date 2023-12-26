@@ -82,7 +82,7 @@ static uint8_t (*crypted)[BINARY_SIZE] = NULL;
 // GPU functions and memory
 #define ARGON2_NUM_TYPES 2
 static cl_kernel kernels[ARGON2_NUM_TYPES] = {NULL, NULL};
-static cl_kernel pre_processing_kernel = NULL; 
+static cl_kernel pre_processing_kernel = NULL;
 static cl_mem memory_buffer = NULL, memory_in = NULL;
 static int DEVICE_USE_LOCAL_MEMORY = 1;
 
@@ -103,7 +103,7 @@ static uint32_t max_segment_blocks = 0;
 
 static uint32_t index_best_kernel_params(argon2_type type, uint32_t lanes, uint32_t segment_blocks)
 {
-	assert(best_kernel_params && type >= 0 && type < ARGON2_NUM_TYPES && 
+	assert(best_kernel_params && type >= 0 && type < ARGON2_NUM_TYPES &&
 		lanes > 0 && lanes <= max_salt_lanes &&
 		segment_blocks > 0 && segment_blocks <= max_segment_blocks);
 
@@ -135,7 +135,7 @@ static int run_kernel_on_gpu(uint32_t count)
         size_t jobSize = segment_blocks * ARGON2_SYNC_POINTS * saved_salt.lanes * ARGON2_BLOCK_SIZE;
         cl_uint buffer_row_pitch = jobSize / sizeof(cl_ulong);
         HANDLE_CLERROR(clSetKernelArg(pre_processing_kernel, 2, sizeof(buffer_row_pitch), &buffer_row_pitch), "Error setting pre-processing kernel argument");
-        BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pre_processing_kernel, 2, NULL, gws_copy, lws_copy, 0, NULL, NULL), "Run pre-processing kernel");                      
+        BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pre_processing_kernel, 2, NULL, gws_copy, lws_copy, 0, NULL, NULL), "Run pre-processing kernel");
 
 	// Set parameters and execute kernel
 	assert(saved_salt.type >= 0 && saved_salt.type < (ARGON2_NUM_TYPES + 1) && kernels[Argon2_d] && kernels[Argon2_i]);
@@ -162,10 +162,10 @@ static int run_kernel_on_gpu(uint32_t count)
                                         selected_type = Argon2_i;
 
                                 // Find the autotune params
-                                uint32_t index = index_best_kernel_params(selected_type, saved_salt.lanes, MAX(saved_salt.m_cost / (saved_salt.lanes * ARGON2_SYNC_POINTS), 2));                           
+                                uint32_t index = index_best_kernel_params(selected_type, saved_salt.lanes, MAX(saved_salt.m_cost / (saved_salt.lanes * ARGON2_SYNC_POINTS), 2));
                                 uint32_t lanes_per_block = best_kernel_params[index].lanes_per_block;
                                 size_t jobs_per_block    = best_kernel_params[index].jobs_per_block;
-                                assert(lanes_per_block && jobs_per_block && 
+                                assert(lanes_per_block && jobs_per_block &&
                                         lanes_per_block <= lanes && lanes % lanes_per_block == 0 &&
                                         jobs_per_block <= MAX_KEYS_PER_CRYPT && MAX_KEYS_PER_CRYPT % jobs_per_block == 0);
 
@@ -185,10 +185,10 @@ static int run_kernel_on_gpu(uint32_t count)
         else // Argon2_d || Argon2_i
         {
                 // Find the autotune params
-                uint32_t index = index_best_kernel_params(argon2_type, saved_salt.lanes, MAX(saved_salt.m_cost / (saved_salt.lanes * ARGON2_SYNC_POINTS), 2));                           
+                uint32_t index = index_best_kernel_params(argon2_type, saved_salt.lanes, MAX(saved_salt.m_cost / (saved_salt.lanes * ARGON2_SYNC_POINTS), 2));
                 uint32_t lanes_per_block = best_kernel_params[index].lanes_per_block;
                 size_t jobs_per_block    = best_kernel_params[index].jobs_per_block;
-                assert(lanes_per_block && jobs_per_block && 
+                assert(lanes_per_block && jobs_per_block &&
                         lanes_per_block <= lanes && lanes % lanes_per_block == 0 &&
                         jobs_per_block <= MAX_KEYS_PER_CRYPT && MAX_KEYS_PER_CRYPT % jobs_per_block == 0);
 
@@ -219,7 +219,7 @@ static int run_kernel_on_gpu(uint32_t count)
         size_t zero3[3] = {0, 0, 0};
 	size_t buffer_origin3[3] = {jobSize - copySize, 0, 0};
 	size_t region3_out[3] = {copySize, MAX_KEYS_PER_CRYPT, 1};
-	HANDLE_CLERROR(clEnqueueReadBufferRect(queue[gpu_id], memory_buffer, CL_TRUE, 
+	HANDLE_CLERROR(clEnqueueReadBufferRect(queue[gpu_id], memory_buffer, CL_TRUE,
 						buffer_origin3, zero3,
 						region3_out,
 						jobSize, 0, copySize, 0, blocks_in_out, 0, NULL, NULL), "Copy data from gpu");
@@ -320,8 +320,8 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
                         {
                                 size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block * sizeof(cl_ulong);
                                 if (shmemSize > get_local_memory_size(gpu_id))
-                                        printf("-- Overflowing %u KB / %u KB local GPU memory --\n", 
-                                                        (uint32_t)(shmemSize / 1024), 
+                                        printf("-- Overflowing %u KB / %u KB local GPU memory --\n",
+                                                        (uint32_t)(shmemSize / 1024),
                                                         (uint32_t)(get_local_memory_size(gpu_id) / 1024));
 
                                 HANDLE_CLERROR(clSetKernelArg(kernels[type], 7, shmemSize, NULL), "Error setting local memory size");
@@ -369,7 +369,7 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 			}
 
 		// Optimize 'jobs_per_block'
-		// Only tune jobs per block if we hit maximum lanes per block 
+		// Only tune jobs per block if we hit maximum lanes per block
 		if (best_lanes_per_block == lanes && MAX_KEYS_PER_CRYPT > 1 && is_power_of_two(MAX_KEYS_PER_CRYPT))
 			for (jpb = best_jobs_per_block; jpb <= MAX_KEYS_PER_CRYPT; jpb *= 2)
 			{
@@ -442,8 +442,8 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 		}
 
                 if (options.verbosity > VERB_LEGACY)
-		        printf("Autotune [type: %u, lanes: %u, segments: %u => (%u, %2u) => %02u ms] LWS: %3u Requested-Multiple:%3u\n", 
-                                type, lanes, segment_blocks, 
+		        printf("Autotune [type: %u, lanes: %u, segments: %u => (%u, %2u) => %02u ms] LWS: %3u Requested-Multiple:%3u\n",
+                                type, lanes, segment_blocks,
 		                best_lanes_per_block, best_jobs_per_block,
 			        (uint32_t)(best_time / 1000000),
                                 THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block, lws_multiple);
@@ -526,7 +526,7 @@ static void reset(struct db_main *db)
                 // Create main GPU memory
                 memory_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_memory_size, NULL, &ret_code);
                 printf("\nTrying to use %zu MB / %u MB GPU memory.\n",
-                                max_memory_size / 1048576, 
+                                max_memory_size / 1048576,
                                 (uint32_t)(get_global_memory_size(gpu_id) / 1048576));
 
                 // Something like this reduce too much performance on Nvidia: get_max_mem_alloc_size(gpu_id)
@@ -617,16 +617,16 @@ static void reset(struct db_main *db)
                                 if (salt->lanes % lanes_per_block != 0)
                                         lanes_per_block = salt->lanes;
 
-                                best_kernel_params[index_d].lanes_per_block = 
+                                best_kernel_params[index_d].lanes_per_block =
                                 best_kernel_params[index_i].lanes_per_block = lanes_per_block;
 
 				if (local_work_size > THREADS_PER_LANE * lanes_per_block)
-                                	best_kernel_params[index_d].jobs_per_block = 
+                                	best_kernel_params[index_d].jobs_per_block =
                                 	best_kernel_params[index_i].jobs_per_block = MAX(1, local_work_size / THREADS_PER_LANE / salt->lanes);
                         }
                 }
                 else// Autotune
-                {              
+                {
                         // Special case that use both kernels
                         if (salt->type == Argon2_id)
                         {
@@ -636,7 +636,7 @@ static void reset(struct db_main *db)
                         else
                                 autotune(salt->type, salt->lanes, MAX(salt->m_cost / (salt->lanes * ARGON2_SYNC_POINTS), 2), profiling_queue, &profiling_event);
                 }
-                
+
                 curr_salt = curr_salt->next;
         }
 	// Release profiling objects
@@ -667,7 +667,7 @@ static void reset(struct db_main *db)
                         printf("LWS="Zu" GWS="Zu" ("Zu" blocks) => Mode: %s\n",
 			        min_local_work_size,
                                 min_global_work_size,
-			        min_global_work_size / max_local_work_size, 
+			        min_global_work_size / max_local_work_size,
                                 DEVICE_USE_LOCAL_MEMORY ? "LOCAL_MEMORY" : "WARP_SHUFFLE");
                 else
                         printf("LWS=["Zu"-"Zu"] GWS=["Zu"-"Zu"] (["Zu"-"Zu"] blocks) => Mode: %s\n",
@@ -879,7 +879,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		block xored = *cursor;
 		for (l = 1; l < saved_salt.lanes; l++) {
 			++cursor;
-			for (j = 0; j < ARGON2_BLOCK_SIZE / 8; j++) 
+			for (j = 0; j < ARGON2_BLOCK_SIZE / 8; j++)
 				xored.v[j] ^= cursor->v[j];
 		}
 
