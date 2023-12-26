@@ -194,6 +194,7 @@ void shuffle_block(struct block_th *block, uint thread, __local ulong *buf)
 	g(block);
 
 	// shuffle_shift1(block, thread, buf);
+	//uint thread_src0 = thread & 0x1f;
 	uint thread_src1 = (thread & 0x1c) | ((thread + 3) & 0x3);
 	uint thread_src2 = (thread & 0x1c) | ((thread + 2) & 0x3);
 	uint thread_src3 = (thread & 0x1c) | ((thread + 1) & 0x3);
@@ -223,19 +224,28 @@ void shuffle_block(struct block_th *block, uint thread, __local ulong *buf)
 	g(block);
 
 	// shuffle_shift2(block, thread, buf);
+#if nvidia_sm_5plus(DEVICE_INFO) && !nvidia_sm_5x(DEVICE_INFO)
+#define DUMMY_WRITES_TO_A
+	// This speeds things up on GTX 1080 despite of PTX code size increase
+	uint thread_src0 = apply_shuffle_shift2(thread, 0);
+#endif
 	thread_src1 = apply_shuffle_shift2(thread, 1);
 	thread_src2 = apply_shuffle_shift2(thread, 2);
 	thread_src3 = apply_shuffle_shift2(thread, 3);
 	// TODO: Try to optimize 'apply_shuffle_shift2' with LUT
 
-	//block->a = u64_shuffle(block->a, thread_src0, thread, buf);
+#ifdef DUMMY_WRITES_TO_A
+	block->a = u64_shuffle(block->a, thread_src0, thread, buf);
+#endif
 	block->b = u64_shuffle(block->b, thread_src1, thread, buf);
 	block->c = u64_shuffle(block->c, thread_src2, thread, buf);
 	block->d = u64_shuffle(block->d, thread_src3, thread, buf);
 
 	g(block);
 
-	//block->a = u64_shuffle(block->a, thread_src0, thread, buf);
+#ifdef DUMMY_WRITES_TO_A
+	block->a = u64_shuffle(block->a, thread_src0, thread, buf);
+#endif
 	block->b = u64_shuffle(block->b, thread_src3, thread, buf);
 	block->c = u64_shuffle(block->c, thread_src2, thread, buf);
 	block->d = u64_shuffle(block->d, thread_src1, thread, buf);
