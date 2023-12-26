@@ -57,7 +57,7 @@
 #define ARGON2_VERSION ARGON2_VERSION_13
 #endif
 
-#include "rotate.h"
+#include "opencl_rotate.h"
 
 // Define when we will use warp_shuffle instructions and not local memory
 #if USE_WARP_SHUFFLE
