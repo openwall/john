@@ -13,24 +13,12 @@
 #define OPENCL_SHA512_H
 
 #include "opencl_sha2_common.h"
+#include "opencl_rotate.h"
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
 // Macros.
-// macOS AMD drivers do not support amd_bitalign
-#if defined(USE_BITSELECT) && defined(cl_amd_media_ops) && !__MESA__
-#pragma OPENCL EXTENSION cl_amd_media_ops : enable
-#define ror64(x, n)      ((n) < 32 ?                                            \
-        (amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n)) |                \
-        ((ulong)amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n)) << 32)) : \
-        (amd_bitalign((uint)(x), (uint)((x) >> 32), (uint)(n) - 32) |           \
-        ((ulong)amd_bitalign((uint)((x) >> 32), (uint)(x), (uint)(n) - 32) << 32)))
-#elif (cpu(DEVICE_INFO))
-#define ror64(x, n)             ((x >> n) | (x << (64UL-n)))
-#else
-#define ror64(x, n)             (rotate(x, (64UL-n)))
-#endif
 #define SWAP64_V(n)             SWAP64(n)
 
 #define Sigma0(x)               ((ror64(x,28UL)) ^ (ror64(x,34UL)) ^ (ror64(x,39UL)))

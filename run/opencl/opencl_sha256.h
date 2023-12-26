@@ -13,18 +13,12 @@
 #define OPENCL_SHA256_H
 
 #include "opencl_sha2_common.h"
+#include "opencl_rotate.h"
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 
 //Macros.
-#ifdef USE_BITSELECT
-#define ror32(x, n)             (rotate(x, (32U-n)))
-#elif (cpu(DEVICE_INFO))
-#define ror32(x, n)             ((x >> n) | (x << (32U-n)))
-#else
-#define ror32(x, n)             (rotate(x, (32U-n)))
-#endif
 #define SWAP32_V(n)   \
     (((n) << 24)           | (((n) & 0xff00U) << 8) | \
     (((n) >> 8) & 0xff00U) | ((n) >> 24))
