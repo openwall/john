@@ -359,11 +359,14 @@ static void create_buffer(unsigned int num_loaded_hashes, OFFSET_TABLE_WORD *off
 
 	opencl_lm_init_index();
 
-	active_placeholders = 1;
-	if (mask_skip_ranges)
-	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
-		if (mask_skip_ranges[i] != -1)
-			active_placeholders++;
+	active_placeholders = 0;
+	if (mask_skip_ranges) {
+		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
+			if (mask_skip_ranges[i] != -1)
+				active_placeholders++;
+		}
+	} else {
+		active_placeholders = 1;
 	}
 
 	buffer_lm_key_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 768 * sizeof(unsigned int), opencl_lm_index768, &ret_code);

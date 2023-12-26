@@ -922,11 +922,14 @@ void create_int_keys_buffer()
 {
 	unsigned int active_placeholders, i;
 
-	active_placeholders = 1;
-	if (mask_skip_ranges)
-	for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
-		if (mask_skip_ranges[i] != -1)
-			active_placeholders++;
+	active_placeholders = 0;
+	if (mask_skip_ranges) {
+		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
+			if (mask_skip_ranges[i] != -1)
+				active_placeholders++;
+		}
+	} else {
+		active_placeholders = 1;
 	}
 
 	buffer_int_des_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, active_placeholders * 7 * ((mask_int_cand.num_int_cand + DES_BS_DEPTH - 1) >> DES_LOG_DEPTH) * sizeof(unsigned int), NULL, &ret_code);
