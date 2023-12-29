@@ -934,6 +934,7 @@ AGAIN:
 		 * low work sizes, we now need a proper auto-tune for benchmark, with
 		 * internal mask if applicable.
 		 */
+		benchmark_running = 1;
 		format->methods.reset(test_db);
 #endif
 		if ((result = benchmark_format(format, salts, &results_m, test_db))) {
