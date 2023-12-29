@@ -285,13 +285,13 @@ static int is_power_of_two(uint32_t x)
 {
 	return (x & (x - 1)) == 0;
 }
-
-static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, cl_command_queue profiling_queue, cl_event* profiling_event)
+#define AUTOTUNE_HANDLE_CLERROR(cl_error, message) if (CL_SUCCESS != (cl_error)) return CL_OUT_OF_RESOURCES;
+static cl_int autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, cl_command_queue profiling_queue, cl_event* profiling_event)
 {
 	uint32_t index = index_best_kernel_params(type, lanes, segment_blocks);
 	// If not, initialize
 	if (best_kernel_params[index].lanes_per_block)
-		return;
+		return CL_SUCCESS;
 
 	cl_ulong start_time, end_time, best_time = 0;
 	uint32_t best_lanes_per_block = 1, best_jobs_per_block = 1, lpb, jpb;
@@ -309,11 +309,9 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 		if (best_lanes_per_block > lanes || lanes % best_lanes_per_block != 0)
 			best_lanes_per_block = lanes;
 	}
-	while (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block < lws_multiple)
+	while (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block < lws_multiple && MAX_KEYS_PER_CRYPT % (best_jobs_per_block * 2) == 0)
 		best_jobs_per_block *= 2;
-	while (is_power_of_two(lws_multiple) && (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block) % lws_multiple != 0)
-		best_jobs_per_block *= 2;
-	while (is_power_of_two(lws_multiple) && (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block) % lws_multiple != 0)
+	while (is_power_of_two(lws_multiple) && (THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block) % lws_multiple != 0 && MAX_KEYS_PER_CRYPT % (best_jobs_per_block * 2) == 0)
 		best_jobs_per_block *= 2;
 	if (best_jobs_per_block > MAX_KEYS_PER_CRYPT)
 		best_jobs_per_block = MAX_KEYS_PER_CRYPT;
@@ -328,16 +326,16 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 					(uint32_t)(shmemSize / 1024),
 					(uint32_t)(get_local_memory_size(gpu_id) / 1024));
 
-			HANDLE_CLERROR(clSetKernelArg(kernels[type], 7, shmemSize, NULL), "Error setting local memory size");
+			AUTOTUNE_HANDLE_CLERROR(clSetKernelArg(kernels[type], 7, shmemSize, NULL), "Error setting local memory size");
 		}
 
 		// Warm-up
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Error on kernel");
-		HANDLE_CLERROR(clFinish(profiling_queue), "Error profiling clFinish");
+		AUTOTUNE_HANDLE_CLERROR(clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, NULL), "Error on kernel");
+		AUTOTUNE_HANDLE_CLERROR(clFinish(profiling_queue), "Error profiling clFinish");
 
 		// Profile
-		HANDLE_CLERROR(clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, profiling_event), "Error on kernel");
-		HANDLE_CLERROR(clFinish(profiling_queue), "Error profiling clFinish");
+		AUTOTUNE_HANDLE_CLERROR(clEnqueueNDRangeKernel(profiling_queue, kernels[type], 2, NULL, global_range, local_range, 0, NULL, profiling_event), "Error on kernel");
+		AUTOTUNE_HANDLE_CLERROR(clFinish(profiling_queue), "Error profiling clFinish");
 
 		HANDLE_CLERROR(clGetEventProfilingInfo(*profiling_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL), "clGetEventProfilingInfo start");
 		HANDLE_CLERROR(clGetEventProfilingInfo(*profiling_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL), "clGetEventProfilingInfo end");
@@ -465,6 +463,8 @@ static void autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, 
 			type, lanes, segment_blocks, best_lanes_per_block, best_jobs_per_block,
 			(uint32_t)(best_time / 1000000),
 			THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block, lws_multiple);
+
+	return CL_SUCCESS;
 }
 
 static void reset(struct db_main *db)
@@ -511,8 +511,9 @@ static void reset(struct db_main *db)
 	// Create OpenCL objects
 	//----------------------------------------------------------------------------------------------------------------------------
 
+	// Use all GPU memory by default
+	MAX_KEYS_PER_CRYPT = get_global_memory_size(gpu_id) / max_memory_size;
 	// Load GWS from config/command line
-	MAX_KEYS_PER_CRYPT = MAX_KEYS_PER_CRYPT_ORIGINAL;
 	opencl_get_user_preferences(FORMAT_NAME);
 	if (global_work_size && !self_test_running) {
 		MAX_KEYS_PER_CRYPT = MAX(1, global_work_size / (THREADS_PER_LANE * max_salt_lanes));
@@ -525,41 +526,6 @@ static void reset(struct db_main *db)
 	saved_len = mem_calloc(MAX_KEYS_PER_CRYPT, sizeof(int));
 	crypted = mem_calloc(MAX_KEYS_PER_CRYPT, BINARY_SIZE);
 	max_memory_size *= MAX_KEYS_PER_CRYPT;
-
-	// Release memory of already initialized
-	MEM_FREE(blocks_in_out);
-	if (memory_buffer) {
-		HANDLE_CLERROR(clReleaseMemObject(memory_buffer), "Release GPU memory");
-		memory_buffer = NULL;
-	}
-
-	// Manage GPU memory
-	do {
-		// CPU memory to transfer to and from the GPU
-		if (memory_in)
-			HANDLE_CLERROR(clReleaseMemObject(memory_in), "Release GPU memory");
-		memory_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, MAX_KEYS_PER_CRYPT * ARGON2_PREHASH_DIGEST_LENGTH, NULL, &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating memory buffer");
-
-		blocks_in_out = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
-
-		// Create main GPU memory
-		memory_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_memory_size, NULL, &ret_code);
-		printf("\nTrying to use %zu MB / %u MB GPU memory.\n",
-			max_memory_size / 1048576,
-			(uint32_t)(get_global_memory_size(gpu_id) / 1048576));
-
-		// Something like this reduce too much performance on Nvidia: get_max_mem_alloc_size(gpu_id)
-		// The best option is to try and try again
-		if (ret_code != CL_SUCCESS) {
-			max_memory_size /= 2;
-			MAX_KEYS_PER_CRYPT /= 2;
-			MEM_FREE(blocks_in_out);
-		}
-	} while (ret_code != CL_SUCCESS);
-
-	assert(MAX_KEYS_PER_CRYPT >= 1);
-	assert(blocks_in_out && memory_buffer && memory_in);
 
 	// OpenCL kernels compilation and retrival
 	if (!program[gpu_id]) {
@@ -592,16 +558,11 @@ static void reset(struct db_main *db)
 	uint32_t PASSES = 1;
 	for (i = 0; i < ARGON2_NUM_TYPES; i++) {
 		// Set OpenCL kernel parameters
-		HANDLE_CLERROR(clSetKernelArg(kernels[i], 0, sizeof(memory_buffer), &memory_buffer), "Error setting kernel argument");
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 1, sizeof(PASSES), &PASSES), "Error setting kernel argument");
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 4, sizeof(ZERO), &ZERO), "Error setting kernel argument");
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 5, sizeof(ZERO), &ZERO), "Error setting kernel argument");
 		HANDLE_CLERROR(clSetKernelArg(kernels[i], 6, sizeof(PASSES), &PASSES), "Error setting kernel argument");
 	}
-
-	// Pre-processing kernel
-	HANDLE_CLERROR(clSetKernelArg(pre_processing_kernel, 0, sizeof(memory_in), &memory_in), "Error setting kernel argument");
-	HANDLE_CLERROR(clSetKernelArg(pre_processing_kernel, 1, sizeof(memory_buffer), &memory_buffer), "Error setting kernel argument");
 
 	// Create OpenCL profiling objects
 	cl_command_queue profiling_queue = clCreateCommandQueue(context[gpu_id], devices[gpu_id], CL_QUEUE_PROFILING_ENABLE, &ret_code);
@@ -612,6 +573,53 @@ static void reset(struct db_main *db)
 	// Autotune saved params
 	MEM_FREE(best_kernel_params);
 	best_kernel_params = mem_calloc(ARGON2_NUM_TYPES * max_salt_lanes * max_segment_blocks, sizeof(struct kernel_run_params));
+
+	// Manage GPU memory
+	do {
+		// CPU memory to transfer to and from the GPU
+		if (memory_in) {
+			HANDLE_CLERROR(clReleaseMemObject(memory_in), "Release GPU memory");
+			memory_in = NULL;
+		}
+		memory_in = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, MAX_KEYS_PER_CRYPT * ARGON2_PREHASH_DIGEST_LENGTH, NULL, &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating memory buffer");
+
+		MEM_FREE(blocks_in_out);
+		blocks_in_out = mem_calloc_align(MAX_KEYS_PER_CRYPT * max_salt_lanes * ARGON2_BLOCK_SIZE, sizeof(uint8_t), MEM_ALIGN_PAGE);
+
+		// Create main GPU memory
+		if (memory_buffer) {
+			HANDLE_CLERROR(clReleaseMemObject(memory_buffer), "Release GPU memory");
+			memory_buffer = NULL;
+		}
+		memory_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_memory_size, NULL, &ret_code);
+		if (ocl_always_show_ws || !self_test_running)
+			printf("\nTrying to use %zu MB / %u MB GPU memory.\n",
+				max_memory_size / 1048576,
+				(uint32_t)(get_global_memory_size(gpu_id) / 1048576));
+
+		// Check kernel execution
+		if (ret_code == CL_SUCCESS) {
+			// Set OpenCL kernel parameters
+			for (i = 0; i < ARGON2_NUM_TYPES; i++)
+				HANDLE_CLERROR(clSetKernelArg(kernels[i], 0, sizeof(memory_buffer), &memory_buffer), "Error setting kernel argument");
+			// Pre-processing kernel
+			HANDLE_CLERROR(clSetKernelArg(pre_processing_kernel, 0, sizeof(memory_in), &memory_in), "Error setting kernel argument");
+			HANDLE_CLERROR(clSetKernelArg(pre_processing_kernel, 1, sizeof(memory_buffer), &memory_buffer), "Error setting kernel argument");
+
+			ret_code = autotune(Argon2_i, 1, max_segment_blocks, profiling_queue, &profiling_event);
+		}
+
+		// Something like this reduce too much performance on Nvidia: get_max_mem_alloc_size(gpu_id)
+		// The best option is to try and try again
+		if (ret_code != CL_SUCCESS) {
+			max_memory_size /= 2;
+			MAX_KEYS_PER_CRYPT /= 2;
+		}
+	} while (ret_code != CL_SUCCESS);
+
+	assert(MAX_KEYS_PER_CRYPT >= 1);
+	assert(blocks_in_out && memory_buffer && memory_in);
 
 	// Iterate on all salts and autotuned for each one
 	curr_salt = db->salts;
