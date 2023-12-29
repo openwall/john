@@ -379,8 +379,8 @@ static cl_int autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks
 
 	// Optimize 'jobs_per_block'
 	// Only tune jobs per block if we hit maximum lanes per block
-	if (best_lanes_per_block == lanes && MAX_KEYS_PER_CRYPT > 1 && is_power_of_two(MAX_KEYS_PER_CRYPT))
-	for (jpb = best_jobs_per_block; jpb <= MAX_KEYS_PER_CRYPT; jpb *= 2) {
+	if (best_lanes_per_block == lanes && MAX_KEYS_PER_CRYPT > 1)
+	for (jpb = best_jobs_per_block; jpb <= MAX_KEYS_PER_CRYPT && MAX_KEYS_PER_CRYPT % jpb == 0; jpb *= 2) {
 		size_t local_range[2] = {THREADS_PER_LANE * best_lanes_per_block, jpb};
 
 		if (DEVICE_USE_LOCAL_MEMORY) {
@@ -404,7 +404,7 @@ static cl_int autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks
 		HANDLE_CLERROR(clGetEventProfilingInfo(*profiling_event, CL_PROFILING_COMMAND_START, sizeof(cl_ulong), &start_time, NULL), "clGetEventProfilingInfo start");
 		HANDLE_CLERROR(clGetEventProfilingInfo(*profiling_event, CL_PROFILING_COMMAND_END, sizeof(cl_ulong), &end_time, NULL), "clGetEventProfilingInfo end");
 
-			// Select best params
+		// Select best params
 		cl_ulong time = end_time - start_time;
 		if (best_time > time) {
 			best_time = time;
@@ -412,8 +412,8 @@ static cl_int autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks
 		}
 	}
 
-	if (best_lanes_per_block != lanes && lanes > 1 && MAX_KEYS_PER_CRYPT > 1 && is_power_of_two(MAX_KEYS_PER_CRYPT))
-	for (jpb = best_jobs_per_block; jpb <= MAX_KEYS_PER_CRYPT; jpb *= 2) {
+	if (best_lanes_per_block != lanes && lanes > 1 && MAX_KEYS_PER_CRYPT > 1)
+	for (jpb = best_jobs_per_block; jpb <= MAX_KEYS_PER_CRYPT && MAX_KEYS_PER_CRYPT % jpb == 0; jpb *= 2) {
 		size_t local_range[2] = {THREADS_PER_LANE * lanes, jpb};
 
 		if (DEVICE_USE_LOCAL_MEMORY) {
@@ -510,9 +510,13 @@ static void reset(struct db_main *db)
 	//----------------------------------------------------------------------------------------------------------------------------
 	// Create OpenCL objects
 	//----------------------------------------------------------------------------------------------------------------------------
-
 	// Use all GPU memory by default
-	MAX_KEYS_PER_CRYPT = get_global_memory_size(gpu_id) / max_memory_size;
+	if (gpu_amd(device_info[gpu_id])) {
+		MAX_KEYS_PER_CRYPT = get_max_mem_alloc_size(gpu_id) / max_memory_size;
+	} else {
+		MAX_KEYS_PER_CRYPT = get_global_memory_size(gpu_id) * 15 / 16 / (max_memory_size + ARGON2_PREHASH_DIGEST_LENGTH);
+	}
+	MAX_KEYS_PER_CRYPT -= MAX_KEYS_PER_CRYPT & (MAX_KEYS_PER_CRYPT > 128 ? 3 : 1); // Make it even or multiple of 4
 	// Load GWS from config/command line
 	opencl_get_user_preferences(FORMAT_NAME);
 	if (global_work_size && !self_test_running) {
