@@ -134,13 +134,16 @@ static int run_kernel_on_gpu(uint32_t count)
 	// Copy data to GPU
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], memory_in, CL_FALSE, 0, MAX_KEYS_PER_CRYPT * ARGON2_PREHASH_DIGEST_LENGTH, blocks_in_out, 0, NULL, NULL), "Copy data to gpu");
 
-	// TODO: Optimize GWS/LWS, or select a safe bet
-	size_t gws_copy[] = {MAX_KEYS_PER_CRYPT * 2, lanes};
-	size_t lws_copy[] = {64, 1};
+	// Pre-process keys
+	size_t lws_multiple = get_kernel_preferred_multiple(gpu_id, pre_processing_kernel);
+	size_t gws_pre_processing[] = {(MAX_KEYS_PER_CRYPT * 2 + lws_multiple - 1) / lws_multiple * lws_multiple, lanes};
+	size_t lws_pre_processing[] = {lws_multiple, 1};
 	size_t jobSize = segment_blocks * ARGON2_SYNC_POINTS * saved_salt.lanes * ARGON2_BLOCK_SIZE;
 	cl_uint buffer_row_pitch = jobSize / sizeof(cl_ulong);
+	cl_uint num_keys = MAX_KEYS_PER_CRYPT;
 	HANDLE_CLERROR(clSetKernelArg(pre_processing_kernel, 2, sizeof(buffer_row_pitch), &buffer_row_pitch), "Error setting pre-processing kernel argument");
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pre_processing_kernel, 2, NULL, gws_copy, lws_copy, 0, NULL, NULL), "Run pre-processing kernel");
+	HANDLE_CLERROR(clSetKernelArg(pre_processing_kernel, 3, sizeof(num_keys), &num_keys), "Error setting pre-processing kernel argument");
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], pre_processing_kernel, 2, NULL, gws_pre_processing, lws_pre_processing, 0, NULL, NULL), "Run pre-processing kernel");
 
 	// Set parameters and execute kernel
 	assert(saved_salt.type >= 0 && saved_salt.type < (ARGON2_NUM_TYPES + 1) && kernels[Argon2_d] && kernels[Argon2_i]);

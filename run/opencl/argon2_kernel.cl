@@ -345,13 +345,14 @@ void blake2b_block(ulong m[16], ulong out_len, ulong message_size)
 
 #define BLAKE2B_OUTBYTES 64
 
-__kernel void pre_processing(__global uint* in_memory, __global ulong* out_memory, uint buffer_row_pitch)
+__kernel void pre_processing(__global uint* in_memory, __global ulong* out_memory, uint buffer_row_pitch, uint max_job_id)
 {
 	size_t lane_id  = get_global_id(1);
 	uint lanes = get_global_size(1);
 
 	size_t job_id  = get_global_id(0) / 2;
 	uint pos = get_global_id(0) % 2;
+	if (job_id >= max_job_id) return; // Don't pre-process more keys than needed
 
 	// Global memory
 	__global uint* in = in_memory + job_id * BLAKE2B_OUTBYTES / sizeof(uint);
