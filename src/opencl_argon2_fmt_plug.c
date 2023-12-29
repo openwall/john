@@ -285,7 +285,9 @@ static int is_power_of_two(uint32_t x)
 {
 	return (x & (x - 1)) == 0;
 }
+
 #define AUTOTUNE_HANDLE_CLERROR(cl_error, message) if (CL_SUCCESS != (cl_error)) return CL_OUT_OF_RESOURCES;
+
 static cl_int autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks, cl_command_queue profiling_queue, cl_event* profiling_event)
 {
 	uint32_t index = index_best_kernel_params(type, lanes, segment_blocks);
@@ -322,7 +324,7 @@ static cl_int autotune(argon2_type type, uint32_t lanes, uint32_t segment_blocks
 		if (DEVICE_USE_LOCAL_MEMORY) {
 			size_t shmemSize = THREADS_PER_LANE * best_lanes_per_block * best_jobs_per_block * sizeof(cl_ulong);
 			if (shmemSize > get_local_memory_size(gpu_id))
-				printf("-- Overflowing %u KB / %u KB local GPU memory --\n",
+				printf("-- Overflowing %u KiB / %u KiB local device memory --\n",
 					(uint32_t)(shmemSize / 1024),
 					(uint32_t)(get_local_memory_size(gpu_id) / 1024));
 
@@ -510,19 +512,35 @@ static void reset(struct db_main *db)
 	//----------------------------------------------------------------------------------------------------------------------------
 	// Create OpenCL objects
 	//----------------------------------------------------------------------------------------------------------------------------
-	// Use all GPU memory by default
+	// Use almost all GPU memory by default
+	unsigned int warps = 6, limit, target;
 	if (gpu_amd(device_info[gpu_id])) {
-		MAX_KEYS_PER_CRYPT = get_max_mem_alloc_size(gpu_id) / max_memory_size;
+		limit = get_max_mem_alloc_size(gpu_id) / max_memory_size;
 	} else {
-		MAX_KEYS_PER_CRYPT = get_global_memory_size(gpu_id) * 15 / 16 / (max_memory_size + ARGON2_PREHASH_DIGEST_LENGTH);
+		if (gpu_nvidia(device_info[gpu_id])) {
+			unsigned int major = 0, minor = 0;
+			get_compute_capability(gpu_id, &major, &minor);
+			if (major == 5) /* NVIDIA Maxwell */
+				warps = 2;
+		}
+		limit = get_global_memory_size(gpu_id) * 31 / 32 / (max_memory_size + ARGON2_PREHASH_DIGEST_LENGTH);
 	}
-	MAX_KEYS_PER_CRYPT -= MAX_KEYS_PER_CRYPT & (MAX_KEYS_PER_CRYPT > 128 ? 3 : 1); // Make it even or multiple of 4
+	unsigned int cores = get_processors_count(gpu_id);
+	unsigned int threads_per_crypt = THREADS_PER_LANE;
+	if (!benchmark_running)
+		threads_per_crypt *= max_salt_lanes;
+	do {
+		target = (cores * warps + threads_per_crypt - 1) / threads_per_crypt;
+	} while (target > limit && --warps > 1);
+	if (target > limit)
+		target = limit;
+	if (target > 16)
+		target -= target & (target > 128 ? 3 : 1); // Make it even or multiple of 4
+	MAX_KEYS_PER_CRYPT = target;
 	// Load GWS from config/command line
 	opencl_get_user_preferences(FORMAT_NAME);
-	if (global_work_size && !self_test_running) {
-		MAX_KEYS_PER_CRYPT = MAX(1, global_work_size / (THREADS_PER_LANE * max_salt_lanes));
-		printf("\nCustom GWS result on MAX_KEYS_PER_CRYPT = %u", MAX_KEYS_PER_CRYPT);
-	}
+	if (global_work_size && !self_test_running)
+		MAX_KEYS_PER_CRYPT = MAX(1, global_work_size / threads_per_crypt);
 	MEM_FREE(saved_key);
 	MEM_FREE(saved_len);
 	MEM_FREE(crypted);
@@ -579,6 +597,7 @@ static void reset(struct db_main *db)
 	best_kernel_params = mem_calloc(ARGON2_NUM_TYPES * max_salt_lanes * max_segment_blocks, sizeof(struct kernel_run_params));
 
 	// Manage GPU memory
+	int need_linefeed = benchmark_running;
 	do {
 		// CPU memory to transfer to and from the GPU
 		if (memory_in) {
@@ -597,10 +616,14 @@ static void reset(struct db_main *db)
 			memory_buffer = NULL;
 		}
 		memory_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, max_memory_size, NULL, &ret_code);
-		if (ocl_always_show_ws || !self_test_running)
-			printf("\nTrying to use %zu MB / %u MB GPU memory.\n",
-				max_memory_size / 1048576,
-				(uint32_t)(get_global_memory_size(gpu_id) / 1048576));
+		if (ocl_always_show_ws || !self_test_running) {
+			printf("%sTrying to compute %u hashes at a time using %u of %u MiB device memory\n",
+				need_linefeed ? "\n" : "",
+				MAX_KEYS_PER_CRYPT,
+				(unsigned int)(max_memory_size / 0x100000),
+				(uint32_t)(get_global_memory_size(gpu_id) / 0x100000));
+			need_linefeed = 0;
+		}
 
 		// Check kernel execution
 		if (ret_code == CL_SUCCESS) {
