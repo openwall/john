@@ -415,9 +415,9 @@ __kernel void KERNEL_NAME(ARGON2_TYPE)(__global struct block_g* memory, uint pas
 	/* select job's memory region: */
 	memory += (size_t)job_id * lanes * lane_blocks;
 
+#if ARGON2_TYPE == ARGON2_I || ARGON2_TYPE == ARGON2_ID
 	uint thread_input = 0;
 
-#if ARGON2_TYPE == ARGON2_I || ARGON2_TYPE == ARGON2_ID
 	switch (thread) {
 	case 0:
 		thread_input = pass;
