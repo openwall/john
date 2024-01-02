@@ -4067,7 +4067,7 @@ sub dynamic_compile {
 		# for most of them (in the below switch statement) There are only a handful where
 		# we keep the 'original' hard coded function (7,17,19,20,21,27,28)
 
- 		my $func = "dynamic_" . $dynamic_args;
+		my $func = "dynamic_" . $dynamic_args;
 		my $prefmt = "num=$dynamic_args,optimize=1,format=";
 		my $fmt;
 
@@ -4243,7 +4243,7 @@ sub do_dynamic_GetToken {
 	my $exprStr = $_[0];
 	if (!defined($exprStr) || length($exprStr) == 0) { return dyna_addtok("X", $exprStr); }
 	my $stmp = substr($exprStr, 0, 1);
- 	if ($stmp eq "." || $stmp eq "(" || $stmp eq ")") {
+	if ($stmp eq "." || $stmp eq "(" || $stmp eq ")") {
 		return dyna_addtok(substr($exprStr, 0, 1), substr($exprStr, 1));
 	}
 	if ($stmp eq '$') {
@@ -4555,7 +4555,7 @@ sub dynamic_compile_to_pcode {
 	do_dynamic_Lexi();
 	unless (@gen_toks > 3) { print STDERR "Error, the format= of the expression was missing, or NOT valid\n"; die; }
 
- 	# now clean up salt, salt2, user, etc if they were NOT part of the expression:
+	# now clean up salt, salt2, user, etc if they were NOT part of the expression:
 	$v = $saltlen; $saltlen=0;
 	foreach(@gen_toks) { if ($_ eq "s") {$saltlen=$v;last;} }
 	$gen_u_do=0;
@@ -4686,7 +4686,7 @@ sub dynamic_compile_expression_to_pcode {
 		if ($curTok eq "p") { push(@gen_pCode, "dynamic_app_p" . $gen_PWCase); ++$cur; next; }
 		if ($curTok eq "S") { push(@gen_pCode, "dynamic_app_S"); ++$cur; $gen_needs2 = 1; next; }
 		if ($curTok eq "u") { push(@gen_pCode, "dynamic_app_u"); ++$cur; $gen_needu = 1; next; }
- 		if ($curTok eq "1") { push(@gen_pCode, "dynamic_app_1"); ++$cur; next; }
+		if ($curTok eq "1") { push(@gen_pCode, "dynamic_app_1"); ++$cur; next; }
 		if ($curTok eq "2") { push(@gen_pCode, "dynamic_app_2"); ++$cur; next; }
 		if ($curTok eq "3") { push(@gen_pCode, "dynamic_app_3"); ++$cur; next; }
 		if ($curTok eq "4") { push(@gen_pCode, "dynamic_app_4"); ++$cur; next; }

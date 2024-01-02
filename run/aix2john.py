@@ -68,15 +68,15 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-s', action="store_true",
-    						default=False,
-    						dest="is_standard",
-    						help='Use this option if "lpa_options = std_hash=true" is activated'
-    						)
+        default=False,
+        dest="is_standard",
+        help='Use this option if "lpa_options = std_hash=true" is activated'
+        )
 
     parser.add_argument('-f', dest="filename",
-    						default=False,
-    						help='Specify the AIX shadow file filename to read (usually /etc/security/passwd)'
-    						)
+        default=False,
+        help='Specify the AIX shadow file filename to read (usually /etc/security/passwd)'
+        )
 
     args = parser.parse_args()
 
