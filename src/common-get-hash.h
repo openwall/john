@@ -28,7 +28,7 @@
 #define COMMON_GET_HASH_VAR COMMON_GET_HASH_SIMD_VAR
 #endif
 #undef HASH_IDX
-#define HASH_IDX ((((unsigned int)index)&(SIMD_COEF_64-1))+(((unsigned int)index)/SIMD_COEF_64)*SIMD_COEF_64*COMMON_GET_HASH_SIMD64) 
+#define HASH_IDX ((((unsigned int)index)&(SIMD_COEF_64-1))+(((unsigned int)index)/SIMD_COEF_64)*SIMD_COEF_64*COMMON_GET_HASH_SIMD64)
 static int common_code_get_hash_0(int index) { return ((uint64_t*)COMMON_GET_HASH_VAR)[HASH_IDX] & PH_MASK_0; }
 static int common_code_get_hash_1(int index) { return ((uint64_t*)COMMON_GET_HASH_VAR)[HASH_IDX] & PH_MASK_1; }
 static int common_code_get_hash_2(int index) { return ((uint64_t*)COMMON_GET_HASH_VAR)[HASH_IDX] & PH_MASK_2; }
@@ -51,7 +51,7 @@ static int common_code_get_hash_4(int index) { return ((uint32_t*)COMMON_GET_HAS
 static int common_code_get_hash_5(int index) { return ((uint32_t*)COMMON_GET_HASH_VAR)[HASH_IDX] & PH_MASK_5; }
 static int common_code_get_hash_6(int index) { return ((uint32_t*)COMMON_GET_HASH_VAR)[HASH_IDX] & PH_MASK_6; }
 #else
-	// this code works for 'all' types.  Deref address of element [index], then casing and getting element 0, works 
+	// this code works for 'all' types.  Deref address of element [index], then casing and getting element 0, works
 	// properly for types such as:
 	//   static uint32_t (*crypt_out)[(BINARY_SIZE + 1) / sizeof(uint32_t)];
 	//   static uint32_t *crypt_out  (flat array, i.e. each with 1 element, crc32 uses this)

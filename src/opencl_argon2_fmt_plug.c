@@ -559,7 +559,7 @@ static void reset(struct db_main *db)
 		// Select OpenCL kernel
 		char kernel_name[32];
 		for (i = 0; i < ARGON2_NUM_TYPES; i++) {
-			snprintf(kernel_name, sizeof(kernel_name), "argon2_kernel_segment_%i", i);	
+			snprintf(kernel_name, sizeof(kernel_name), "argon2_kernel_segment_%i", i);
 			assert(!kernels[i]);
 			kernels[i] = clCreateKernel(program[gpu_id], kernel_name, &ret_code);
 			HANDLE_CLERROR(ret_code, "Error creating kernel");
@@ -915,7 +915,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (i = 0; i < count; i++) {
 		uint32_t l;
 		size_t j;
-			
+
 		const block *cursor = (const block *)(blocks_in_out + i * saved_salt.lanes * ARGON2_BLOCK_SIZE);
 		block xored = *cursor;
 		for (l = 1; l < saved_salt.lanes; l++) {

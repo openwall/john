@@ -486,7 +486,7 @@ int argon2_initialize(argon2_instance_t *instance, argon2_context *context) {
     return ARGON2_OK;
 }
 int opencl_argon2_initialize(argon2_context *context, argon2_type type) {
-    
+
     if (context == NULL)
         return ARGON2_INCORRECT_PARAMETER;
 
