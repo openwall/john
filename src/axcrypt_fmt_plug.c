@@ -249,7 +249,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						AES_decrypt(block, block, &akey);
 						// A = MSB(B)
 						memcpy(wrapped, block, halfblocklen);
-                    				// R[i] = LSB(B)
+						// R[i] = LSB(B)
 						memcpy(wrapped + k * halfblocklen, block + halfblocklen, halfblocklen);
 					}
 				}

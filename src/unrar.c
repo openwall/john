@@ -600,7 +600,7 @@ static int add_vm_code(unpack_data_t *unpack_data, unsigned int first_byte,
 {
 	rarvm_input_t rarvm_input;
 	unsigned int filter_pos, new_filter, block_start, init_mask, cur_size, data_size;
- 	struct UnpackFilter *filter, *stack_filter;
+	struct UnpackFilter *filter, *stack_filter;
 	size_t i, empty_count, stack_pos;
 	unsigned int vm_codesize;
 	long static_size;

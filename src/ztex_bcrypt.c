@@ -276,7 +276,7 @@ static int cmp_exact(char *source, int index)
 	//fprintf(stderr,"cmp_exact start %d, key %s\n",index,result->key);
 
 	// Implementation feature: Byte 20 is zero
- 	result->binary[20] = 0x00;
+	result->binary[20] = 0x00;
 
 	return !memcmp(result->binary, BF_common_get_binary(source), 24);
 }
