@@ -1,5 +1,5 @@
 # ccl_chrome_indexeddb
-This repository contains (sometimes partial) re-implementations of the technologies involved in reading IndexedDB data 
+This repository contains (sometimes partial) re-implementations of the technologies involved in reading IndexedDB data
 in Chrome-esque applications.
 This includes:
 * Snappy decompression
@@ -12,7 +12,7 @@ This includes:
 Read a blog on the subject here: https://www.cclsolutionsgroup.com/post/indexeddb-on-chromium
 
 ### Caveats
-There is a fair amount of work yet to be done in terms of documentation, but 
+There is a fair amount of work yet to be done in terms of documentation, but
 the modules should be fine for pulling data out of IndexedDB, with the following
 caveats:
 
@@ -33,12 +33,12 @@ me towards test data, I'd be very thankful!
 #### Cyclic references
 It is noted in the V8 source that recursive referencing is possible in the
 serialization, we're not yet accounting for that so if Python throws a
-`RecursionError` that's likely what you're seeing. The plan is to use a 
+`RecursionError` that's likely what you're seeing. The plan is to use a
 similar approach to ccl_bplist where the collection types are subclassed and
 do Just In Time resolution of the items, but that isn't done yet.
 
 ## Using the modules
-There are two methods for accessing records - a more pythonic API using a set of 
+There are two methods for accessing records - a more pythonic API using a set of
 wrapper objects and a raw API which doesn't mask the underlying workings. There is
 unlikely to be much benefit to using the raw API in most cases, so the wrapper objects
 are recommended in most cases.
@@ -82,14 +82,14 @@ for record in obj_store.iterate_records():
     with record.get_blob_stream(record.value["file"]) as f:
         file_data = f.read()
 
-# By default, any errors in decoding records will bubble an exception 
+# By default, any errors in decoding records will bubble an exception
 # which might be painful when iterating records in a for-loop, so either
-# passing True into the errors_to_stdout argument and/or by passing in an 
-# error handler function to bad_deserialization_data_handler, you can 
+# passing True into the errors_to_stdout argument and/or by passing in an
+# error handler function to bad_deserialization_data_handler, you can
 # perform logging rather than crashing:
 
 for record in obj_store.iterate_records(
-        errors_to_stdout=True, 
+        errors_to_stdout=True,
         bad_deserializer_data_handler= lambda k,v: print(f"error: {k}, {v}")):
     print(record.user_key)
     print(record.value)
@@ -107,16 +107,16 @@ blob_folder_path = sys.argv[2]
 # open the database:
 db = ccl_chromium_indexeddb.IndexedDb(leveldb_folder_path, blob_folder_path)
 
-# there can be multiple databases, so we need to iterate through them (NB 
+# there can be multiple databases, so we need to iterate through them (NB
 # DatabaseID objects contain additional metadata, they aren't just ints):
 for db_id_meta in db.global_metadata.db_ids:
     # and within each database, there will be multiple object stores so we
     # will need to know the maximum object store number (this process will be
     # cleaned up in future releases):
     max_objstore_id = db.get_database_metadata(
-            db_id_meta.dbid_no, 
+            db_id_meta.dbid_no,
             ccl_chromium_indexeddb.DatabaseMetadataType.MaximumObjectStoreId)
-    
+
     # if the above returns None, then there are no stores in this db
     if max_objstore_id is None:
         continue

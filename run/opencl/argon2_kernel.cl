@@ -78,7 +78,7 @@ ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local ulong *buf)
 		".reg .b32 r_hi;\n\t"
 
 		"mov.b64  {v_hi,v_lo}, %1;\n\t"
-	
+
 		"shfl.sync.idx.b32  r_lo, v_lo, %2, 0x1f, 0xffffffff;\n\t"
 		"shfl.sync.idx.b32  r_hi, v_hi, %2, 0x1f, 0xffffffff;\n\t"
 
@@ -318,12 +318,12 @@ void blake2b_block(ulong m[16], ulong out_len, ulong message_size)
 
 	ulong v[16];
 	// Init work variables
-	for (int i = 0; i < 8; i++)		
+	for (int i = 0; i < 8; i++)
 		v[i] = v[i + 8] = blake2b_iv[i];
 	v[0] ^= 0x01010000 ^ out_len;
 
 	v[12] ^= message_size;// low 64 bits of offset
-	//v[13] ^= 0;		 // high 64 bits	
+	//v[13] ^= 0;		 // high 64 bits
 	v[14] = ~v[14];	   // last block flag set ?
 
 	// Rounds

@@ -31,7 +31,7 @@ __contact__ = "Alex Caithness"
 
 DB_SCHEMA = """
 CREATE TABLE storage_keys ("_id" INTEGER PRIMARY KEY AUTOINCREMENT, "storage_key" TEXT);
-CREATE TABLE batches ("start_ldbseq" INTEGER PRIMARY KEY, 
+CREATE TABLE batches ("start_ldbseq" INTEGER PRIMARY KEY,
                       "end_ldbseq" INTEGER,
                       "storage_key" INTEGER,
                       "timestamp" INTEGER);
@@ -44,7 +44,7 @@ CREATE TABLE records ("_id" INTEGER PRIMARY KEY AUTOINCREMENT,
 CREATE INDEX "storage_keys_storage_key" ON "storage_keys" ("storage_key");
 
 CREATE VIEW "records_view" AS
-    SELECT 
+    SELECT
       storage_keys.storage_key AS "storage_key",
       records."key"  AS "key",
       records.value AS "value",
@@ -57,7 +57,7 @@ CREATE VIEW "records_view" AS
 """
 
 INSERT_STORAGE_KEY_SQL = """INSERT INTO "storage_keys" ("storage_key") VALUES (?);"""
-INSERT_BATCH_SQL = """INSERT INTO "batches" ("start_ldbseq", "end_ldbseq", "storage_key", "timestamp") 
+INSERT_BATCH_SQL = """INSERT INTO "batches" ("start_ldbseq", "end_ldbseq", "storage_key", "timestamp")
                       VALUES (?, ?, ?, ?);"""
 INSERT_RECORD_SQL = """INSERT INTO "records" ("storage_key", "key", "value", "batch", "ldbseq")
                        VALUES (?, ?, ?, ?, ?);"""
