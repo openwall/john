@@ -11,7 +11,7 @@
 #      (previously literal strings only)                	 #
 #    - Added LastFM breach dataset (~21m unique hashes)   	 #
 #    - Common non-matching rules removed (Lifeboat and LastFM) 	 #
-#    - Ordered by frequency against LastFM                     	 # 
+#    - Ordered by frequency against LastFM                     	 #
 #                                                              	 #
 #    Blog: https://in.security/2023/01/10/                       #
 #          oneruletorulethemstill-new-and-improved/              #
