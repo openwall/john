@@ -2535,7 +2535,7 @@ void get_compute_capability(int sequential_id, unsigned int *major,
 	                CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
 	                sizeof(cl_uint), minor, NULL);
 
-	if (!major) {
+	if (!*major) {
 /*
  * Apple, VCL and some other environments don't expose CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV
  * so we need this crap - which is incomplete, best effort matching.
