@@ -204,7 +204,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		                     flg_Base64_MIME_TRAIL_EQ, 0);
 		if (len2 > sizeof(out) - len - 3)
 			return split_fields[1];
-		len = len2;
+		o[len = len2] = 0;
 		if (!(p = strchr(o, ' ')))
 			return split_fields[1];
 		p++;

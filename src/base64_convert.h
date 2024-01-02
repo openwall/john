@@ -72,7 +72,9 @@ size_t base64_convert(const void *from,       // input data.
                    size_t to_len,
                    unsigned flags,
 		   int *err);                 // optional pointer to int, set on error. NULL is fine, but no error return given.
-/* same function as base64_convert(), but returns the *to as a char* */
+/* same function as base64_convert(), but returns the *to as a char* and has
+ * its own error handling (prints an error and terminates the process) if err
+ * is not NULL */
 char *base64_convert_cp(const void *from,
                         b64_convert_type from_t,
                         size_t from_len,
