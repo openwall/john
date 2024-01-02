@@ -269,7 +269,7 @@ Example: choose a subset of formats (john is built without OpenCL).
 $ john --format=mssql* --list=formats
 mssql, mssql05, mssql12
 $ john --format=*crypt --list=formats
-descrypt, bsdicrypt, md5crypt, bcrypt, scrypt, adxcrypt, AxCrypt, BestCrypt, 
+descrypt, bsdicrypt, md5crypt, bcrypt, scrypt, adxcrypt, AxCrypt, BestCrypt,
 sha1crypt, sha256crypt, sha512crypt, django-scrypt, Raw-SHA1-AxCrypt, crypt
 ```
 
