@@ -67,7 +67,7 @@ static int *cracked, cracked_count;
 static struct custom_salt {
 	uint8_t salt[32];
 	uint8_t mac[32];
-	// Arbitrary size, could be any really but bigger than 256 
+	// Arbitrary size, could be any really but bigger than 256
 	// have a performance hit and you need the flag FMT_HUGE_INPUT
 	uint8_t ciphertext[256];
 	uint16_t ciphertext_size;
@@ -132,7 +132,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (hexlenl(p, &extra) != 32 * 2 || extra)
 		goto err;
-	
+
 	MEM_FREE(keeptr);
 	return 1;
 
@@ -163,7 +163,7 @@ static void *get_salt(char *ciphertext)
 	cs.ciphertext_size = ciphertext_size;
 	for (i = 0; i < ciphertext_size; i++)
 		cs.ciphertext[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
-	
+
 	// MAC
 	p = strtokm(NULL, "*");
 	for (i = 0; i < 32; i++)

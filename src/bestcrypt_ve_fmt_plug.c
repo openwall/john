@@ -1,7 +1,7 @@
 /*
  * JtR format to crack password of BestCrypt v4 encrypted volume
- * 
- * This implementation relies on findings from @trounce1 and @kholia 
+ *
+ * This implementation relies on findings from @trounce1 and @kholia
  * reverse-engineering work
  * Copyright (c) 2021 Jean-Christophe Delaunay <jean-christophe.delaunay [at] synacktiv.com>
  *
@@ -381,7 +381,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 		*/
 
-		/* we now compute sha256(decrypted_content[0:0x40]) and 
+		/* we now compute sha256(decrypted_content[0:0x40]) and
 		compare it with decrypted_content[0x40:0x60] */
 		SHA256_Init(&ctx);
 		SHA256_Update(&ctx, out, 0x40);
