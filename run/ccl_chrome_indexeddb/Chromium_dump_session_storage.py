@@ -31,16 +31,16 @@ __contact__ = "Alex Caithness"
 DB_SCHEMA = """
 CREATE TABLE "hosts" ("_id" INTEGER PRIMARY KEY AUTOINCREMENT, "host" TEXT);
 CREATE TABLE "guids" ("_id" INTEGER PRIMARY KEY AUTOINCREMENT, "guid" TEXT);
-CREATE TABLE "items" ("_id" INTEGER PRIMARY KEY AUTOINCREMENT, 
-                      "host" INTEGER, 
-                      "guid" INTEGER, 
-                      "ldbseq" INTEGER, 
-                      "key" TEXT, 
+CREATE TABLE "items" ("_id" INTEGER PRIMARY KEY AUTOINCREMENT,
+                      "host" INTEGER,
+                      "guid" INTEGER,
+                      "ldbseq" INTEGER,
+                      "key" TEXT,
                       "value" TEXT);
-CREATE INDEX "item_host" ON "items" ("host");  
+CREATE INDEX "item_host" ON "items" ("host");
 CREATE INDEX "item_ldbseq" ON "items" ("ldbseq");
 
-CREATE VIEW items_view AS 
+CREATE VIEW items_view AS
     SELECT "items"."ldbseq",
       "hosts"."host",
       "items"."key",

@@ -39,11 +39,11 @@ See: https://source.chromium.org/chromium/chromium/src/+/main:components/service
 Meta keys:
     Key = "META:" + storage_key (the host)
     Value = protobuff: 1=timestamp (varint); 2=size in bytes (varint)
-    
+
 Record keys:
     Key = "_" + storage_key + "\\x0" + script_key
     Value = record_value
-    
+
 """
 
 _META_PREFIX = b"META:"

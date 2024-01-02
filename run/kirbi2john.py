@@ -28,7 +28,7 @@ def extract_ticket_from_kirbi(filename):
 
 def extract_ticket(data):
     if data[0] == 0x76:
-        # ram dump 
+        # ram dump
         #enctickets.append(((decoder.decode(data)[0][2][0][3][2]).asOctets(), i, f))
         return (decoder.decode(data)[0][2][0][3][2]).asOctets()
     elif data[:2] == b'6d':

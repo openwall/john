@@ -58,7 +58,7 @@ for filename in filenames:
     for ips_s, salt in apop_salt.items():
         for ips_h, ahash in apop_hash.items():
             for ips_u, user in apop_user.items():
-                if (ips_s == ips_h == ips_u): 
+                if (ips_s == ips_h == ips_u):
                     print('{user}:$dynamic_1017${hash}$HEX${salt}'.format(
                         user=user.decode('utf-8'),
                         hash=ahash.decode('utf-8'),

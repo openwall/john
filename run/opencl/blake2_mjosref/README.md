@@ -4,7 +4,7 @@
 
 This is just an another -- somewhat smaller -- implementation of BLAKE2,
 written while working on the RFC text. Some stuff regarding parameter
-handling has been simplified. The API is little different from the 
+handling has been simplified. The API is little different from the
 original Reference implementation (after consultation with BLAKE2 authors).
 
 See [blake2.net](https://blake2.net) for more information.

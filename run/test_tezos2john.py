@@ -53,7 +53,7 @@ class TestMethods(unittest.TestCase):
         print("Initializing")
 
         #List of valid english seeds found at https://github.com/trezor/python-mnemonic/blob/master/vectors.json
-        #Format is Enthropy, mnemonic, seed, bip32_xprv. We are only using mnemonic. 
+        #Format is Enthropy, mnemonic, seed, bip32_xprv. We are only using mnemonic.
         self.EnglishValidSeeds = [
             [
                 "00000000000000000000000000000000",
@@ -183,7 +183,7 @@ class TestMethods(unittest.TestCase):
             ],
             [
                 "f30f8c1da665478f49b001d94c5fc452",
-                "vessel ladder alter error federal sibling chat ability sun glass valve picture", 
+                "vessel ladder alter error federal sibling chat ability sun glass valve picture",
                 "2aaa9242daafcee6aa9d7269f17d4efe271e1b9a529178d7dc139cd18747090bf9d60295d0ce74309a78852a9caadf0af48aae1c6253839624076224374bc63f",
                 "xprv9s21ZrQH143K2QWV9Wn8Vvs6jbqfF1YbTCdURQW9dLFKDovpKaKrqS3SEWsXCu6ZNky9PSAENg6c9AQYHcg4PjopRGGKmdD313ZHszymnps"
             ],
@@ -212,7 +212,7 @@ class TestMethods(unittest.TestCase):
                 "LordDarkHelmet"
             ]
         ]
-        ## 
+        ##
 
         self.vectorValid = []
         self.vectorInvalidICO = []
@@ -273,7 +273,7 @@ class TestMethods(unittest.TestCase):
                 self.vectorMisspelledSeedWord.append(" ".join([bip39LanguageList[location] for location in myValidSeedLocations]))
                 bip39LanguageList[0] = original_val
                 myValidSeedLocations[0] = original_loc
-                
+
         #print("All seed test vectors loaded for all languages")
 
         #suppress stderr
@@ -281,8 +281,8 @@ class TestMethods(unittest.TestCase):
         sys.stderr = MockStdErrHandler()
 
 
-                
-        
+
+
 
 
 
@@ -302,23 +302,23 @@ class TestMethods(unittest.TestCase):
         for test in self.vectorInvalid_2ExtraWords:
             self.assertFalse(isValidMnemonic(test))
 
-    def test_BadChecksum(self): 
+    def test_BadChecksum(self):
         print("Testing to see if bad checksum fails ... ")
         for test in self.vectorBadChecksum:
             self.assertFalse(isValidMnemonic(test))
 
-    def test_MisspelledSeedWord(self): 
+    def test_MisspelledSeedWord(self):
         print("Testing to see if bad checksum fails ... ")
         for test in self.vectorMisspelledSeedWord:
             self.assertFalse(isValidMnemonic(test))
 
-    def test_InvalidICO(self): 
+    def test_InvalidICO(self):
         print("Testing to see if invalid ICO Seeds fails count ... ")
         for test in self.vectorInvalidICO:
             self.assertFalse(isICOValidSeed(test))
         # We do not check for valid or invalid checksum
 
-    def test_ValidICO(self): 
+    def test_ValidICO(self):
         print("Testing to see if valid ICO Seeds passes count ... ")
         sys.stderr = self.original_stdout  #For items that are supposed to succeed, we want to see the error messages.
         for test in self.vectorValidICO:

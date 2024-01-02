@@ -17,13 +17,13 @@ from textwrap import dedent
 def format_hmac(user, hash_data, hashcat):
     """Take hash data and return a valid hashcat hash for the
     PBKDF2-HMAC-SHA512 hash mode (12100) if hashcat is set to True
-    else it will return a valid john format hash for the 
+    else it will return a valid john format hash for the
     JtR pbkdf2-hmac-sha512 hash format"""
 
     hcat_fmt_str = "sha512:{}:{}:{}"
     john_fmt_str = "{}:$pbkdf2-hmac-sha512${}.{}.{}"
     junk, morejunk, iterations, salt, digest = hash_data.split("$")
-    
+
     if hashcat:
         #Everything just goes in base64 in this mode - nice & easy
         return hcat_fmt_str.format(iterations, salt, digest)
@@ -31,7 +31,7 @@ def format_hmac(user, hash_data, hashcat):
     # John format needs Hex conversions
     hex_digest = hexlify(b64decode(digest)).decode().upper()
     hex_salt = hexlify(b64decode(salt)).decode().upper()
-    
+
     return john_fmt_str.format(user, iterations, hex_salt, hex_digest)
 
 def format_sha512(user, hash_data, hashcat):
@@ -47,16 +47,16 @@ def format_sha512(user, hash_data, hashcat):
     # Convert hash and salt to hex - needed for both formats now
     hex_digest = hexlify(b64decode(digest)).decode().upper()
     hex_salt = hexlify(b64decode(salt)).decode().upper()
-    
+
     if hashcat:
         return hcat_fmt_str.format(hex_digest, hex_salt)
-    
+
     return john_fmt_str.format(user, hex_digest, hex_salt)
 
 def extract_hash(line, hmac_list, sha512_list, regex, hashcat):
     """Do basic parsing on a given passwd file line, if valid hash found
     format it accordingly for its type and once properly formatted,
-    append to the corresponding hash list. Hash identification is managed 
+    append to the corresponding hash list. Hash identification is managed
     by a pretty basic regex passed from calling function."""
 
     # If there are no hashes on this line - return
@@ -72,7 +72,7 @@ def extract_hash(line, hmac_list, sha512_list, regex, hashcat):
                 "Invalid input. Try removing ':' from username:\n {}\n"
                 .format(m.group()))
         return
-    
+
     # Everything else in the hash is an int, $ or b64, so we can split on :
     user, hash_data = m.group().split(":")
 
@@ -91,17 +91,17 @@ def extract_hash(line, hmac_list, sha512_list, regex, hashcat):
 
 
 def process_file(hashfile, hashcat):
-    """Take a mosquitto_passwd file and convert to John/Hashcat compatible 
+    """Take a mosquitto_passwd file and convert to John/Hashcat compatible
     format.Can handle both SHA512 and PBKDF2_HMAC_SHA512 output formats.
     Uses raw hex or base64 for hash and salt because 'bad' bytes are possible.
 
     Some versions of mosquitto_passwd can use mixed hash types, so we
     manage the two possible variants in simple lists, up until writing
-    them out. 
+    them out.
 
     See https://github.com/eclipse/mosquitto/search?q=pw_sha512_pbkdf2 for
     info on HMAC format Hashes. An equivalent search can be made for SHA512.
-    
+
     Hashes have been assumed to always be of the format:
         username:$[HASHNO][$ITER(HMAC ONLY)]$SALT$HASH
     Where salt and hash are always B64 encoded and usernames can be .+
@@ -113,7 +113,7 @@ def process_file(hashfile, hashcat):
     sha512_list = []
 
     # This is probably close enough-ish to being a good regex for the job
-    # Suggestions welcome 
+    # Suggestions welcome
     regex = re.compile(
             r".+:\$[6-7](\$[0-9]+)*\$[a-zA-Z0-9+/=]+\$[a-zA-Z0-9+/=]{80,90}")
 
@@ -150,7 +150,7 @@ def get_args():
     return parser.parse_args()
 
 if __name__ == "__main__":
-    
+
     #Get user options
     args = get_args()
 

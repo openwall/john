@@ -10,14 +10,14 @@
 
 import sys
 import binascii
-import os  
+import os
 from pathlib import Path
 
 
 def process(vault):
     salt = None
     tag = "encdv"
-    if not os.path.isdir(vault):  
+    if not os.path.isdir(vault):
         sys.stderr.write(f"{vault} : should be a folder.\n")
         sys.exit(1)
 
@@ -37,7 +37,7 @@ def process(vault):
     else:
         sys.stderr.write(f"{vault} : Valid vault not found.\n")
         return
-    
+
     # Check file size
     file_size = os.path.getsize(file_path)
     if file_size < 24:
