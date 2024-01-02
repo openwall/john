@@ -455,8 +455,6 @@ static size_t actual_base64_to_raw_conv(const char *cpi, size_t len_left, char *
 			to_len -= 3;
 		}
 	}
-	if ((flags&flg_Base64_DONOT_NULL_TERMINATE) == 0)
-		*cpo = 0;
 	return cpo-cpo_o;
 }
 
