@@ -22,7 +22,7 @@ version will most likely not be supported in future John the Ripper versions
 which address the issues mentioned above.
 
 That means, once a future John the Ripper release with full support for
-cracking LUKS passphrases is released, you'll most likely need to re-run 
+cracking LUKS passphrases is released, you'll most likely need to re-run
 luks2john on the LUKS encrypted device or LUKS header backup, and you'll
 need to re-run john so that the new LUKS hashes will be stored in your pot file.
 (The passwords you found for the old LUKS hash representation will work

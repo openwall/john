@@ -1,9 +1,9 @@
 # Eclipse mosquitto_password cracking
 
 mosquitto2john.py is a helper script to allow you to convert Eclipse Mosquitto
-passwd files into a John friendly format. The script takes a 
-[mosquitto_passwd file](https://mosquitto.org/man/mosquitto_passwd-1.html) as 
-its only required input. 
+passwd files into a John friendly format. The script takes a
+[mosquitto_passwd file](https://mosquitto.org/man/mosquitto_passwd-1.html) as
+its only required input.
 
 ## Usage
 
@@ -29,13 +29,13 @@ mosquitto_passwd files and pipe the output into an outfile of your choosing:
 ❯ mosquitto2john.py mosquitto_passwd mosquitto_passwd_2 > mosquitto.hash
 ❯ john ./mosquitto.hash
 [...SNIP...]
-Session completed. 
+Session completed.
 ```
 ### Hashcat
 
-The hashcat option converts the hashes to Hashcat friendly formats - mode 1710 
-for SHA512 and 12100 for pbkdf2-hmac-sha512 hashes. In the following example, 
-some SHA512 and pbkdf2-hmac-sha512 hashes have already been exported into 
+The hashcat option converts the hashes to Hashcat friendly formats - mode 1710
+for SHA512 and 12100 for pbkdf2-hmac-sha512 hashes. In the following example,
+some SHA512 and pbkdf2-hmac-sha512 hashes have already been exported into
 separate files according to their type:
 
 ```
@@ -61,23 +61,23 @@ cracking.
 
 ### No hashes loaded?
 
-In certain older versions of JtR and only for the SHA512 format hashes 
+In certain older versions of JtR and only for the SHA512 format hashes
 (dynamic_82), you may have problems autodetecting the hash format. You
 can manually specify the format with *--format=dynamic_82 in this instance*:
 
 ```
 # Peek at the format to spot the issue -  just after the username field
 ❯ head -n 1 ./mosquitto.hash
-username:$dynamic_82$SOMELONGHASH$SOMESALT	
+username:$dynamic_82$SOMELONGHASH$SOMESALT
 # Now manually specify the dynamic_82 format
 ❯ john ./mosquitto.hash --format=dynamic_82
 [...SNIP...]
-Session completed. 
+Session completed.
 ```
 
 ### Mixed Hash Types?
 
-The Eclipse mosquitto_passwd program might allow different hash varieties, 
+The Eclipse mosquitto_passwd program might allow different hash varieties,
 depending on the Version you're working against. In the rare case that this
 could come up, the output can either be split into two (using, say grep), or
 you can simply specify the hash format on the command line. In the following
@@ -88,7 +88,7 @@ sequentially:
 ❯ ls
 mosquitto_out
 # Now crack one at a time because different hash modes
-❯ john ./mosquitto_out --format=dynamic_82 
+❯ john ./mosquitto_out --format=dynamic_82
 [... SNIP ...]
 Session completed.
 ❯ john ./mosquitto_out --format=pbkdf2-hmac-sha512
@@ -96,7 +96,7 @@ Session completed.
 Session completed.
 ```
 
-Similarly, if using Hashcat, we need to crack any mixed hash formats one 
+Similarly, if using Hashcat, we need to crack any mixed hash formats one
 flavour at a time. The following is an equivalent example in Hashcat:
 
 ```
@@ -112,9 +112,9 @@ Hashfile 'hcat_out_file' on line 2 [...SNIP...]: Token length exception
 [... SNIP ...]
 ```
 This time, a Token length exception is raised for the hashes whose format
-doesn't match the current mode. Hashcat will continue to crack the valid 
-hashes just fine, but to avoid this,you may instead choose to split the two 
-formats into separate files. See the usage section for hashcat hash 
+doesn't match the current mode. Hashcat will continue to crack the valid
+hashes just fine, but to avoid this,you may instead choose to split the two
+formats into separate files. See the usage section for hashcat hash
 identification.
 
 Again, note the need to **specify --hex-salt** for the 1710 format hashes.
@@ -122,23 +122,23 @@ Again, note the need to **specify --hex-salt** for the 1710 format hashes.
 ### Invalid input. Try removing ':' from username
 
 You may see this error on (hopefully) rare occasions if the mosquitto_passwd
-file itself  contains an error. Eclipse mention in one line of the 
-[mosquitto_passwd README](https://mosquitto.org/man/mosquitto_passwd-1.html) 
-that colons are a forbidden username character. Just because there's nothing 
+file itself  contains an error. Eclipse mention in one line of the
+[mosquitto_passwd README](https://mosquitto.org/man/mosquitto_passwd-1.html)
+that colons are a forbidden username character. Just because there's nothing
 stopping this happening and it's not a huge warning, mosquitto2john looks out
-for it and will tell you what to do if you have a non-conforming passwd file. 
+for it and will tell you what to do if you have a non-conforming passwd file.
 
-The simplest solution in this instance is to make a note of the username, 
+The simplest solution in this instance is to make a note of the username,
 remove the colon and try your conversion again. Happy hacking.
 
 ## More info? Troubleshooting the Script itself?
 
 See https://github.com/eclipse/mosquitto/search?q=pw_sha512_pbkdf2 for info
-on HMAC formats. An equivalent search can be made for SHA512. This is the 
+on HMAC formats. An equivalent search can be made for SHA512. This is the
 information used to infer the valid hash formats.
 
-Hashes have been assumed to always be of the format: 
+Hashes have been assumed to always be of the format:
 username:$[HASHNO][$ITER(HMAC ONLY)]$SALT$HASH
-Where salt and hash are always B64 encoded and usernames SHOULD not include a 
-colon. Any usernames with a colon are out of spec, but possible, so we handle 
-by alerting the user and advising on manual management. 
+Where salt and hash are always B64 encoded and usernames SHOULD not include a
+colon. Any usernames with a colon are out of spec, but possible, so we handle
+by alerting the user and advising on manual management.
