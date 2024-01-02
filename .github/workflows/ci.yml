@@ -3,12 +3,14 @@ name: CI
 on: [push, pull_request]
 
 jobs:
-#  whitespace-errors:
-#    runs-on: ubuntu-latest
-#    steps:
-#    - uses: actions/checkout@v3
-#    - name: check
-#      run: git diff-index --check --cached 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+  whitespace-errors:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    - name: check
+      run: git diff-index --check --cached b1b622f691d40196815939e4736a5da71befd206
 
   gcc13-x86_64:
     runs-on: ubuntu-latest
