@@ -266,7 +266,7 @@ static void bench_set_keys(struct fmt_main *format,
 				}
 			}
 #ifndef BENCH_BUILD
-			if (options.flags & FLG_MASK_CHK) {
+			if ((options.flags & FLG_MASK_CHK) && ((options.flags & FLG_MASK_STACKED) || mask_mult > 1)) {
 				plaintext[mask_key_len] = 0;
 				if (do_mask_crack(PARENT_KEY))
 					return;
@@ -418,6 +418,8 @@ char *benchmark_format(struct fmt_main *format, int salts,
 			assert(index > 0);
 /* If we have exactly one test vector, reuse its salt in two_salts[1] */
 			salt = two_salts[0];
+/* ... but disable (fake) multi-salt benchmark anyway */
+			salts = 0;
 			dyna_copied = 1;
 		}
 
