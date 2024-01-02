@@ -19,7 +19,7 @@ inline unsigned int modulo64_31b(uint64_t a, unsigned int N)
 	return (unsigned int)(a % N);
 }
 
-inline uint64_t add64(uint64_t a, unsigned int b)
+static inline uint64_t add64(uint64_t a, unsigned int b)
 {
 	return (a + b);
 }
