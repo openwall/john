@@ -624,4 +624,3 @@ $ ./john --show=left
 So, if you prefer to hit the [tab] key instead of typing '=',
 you might want to add this line to your ~/.bashrc file:
 __john_completion=2
-

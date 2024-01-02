@@ -137,4 +137,3 @@ for db_id_meta in db.global_metadata.db_ids:
             with record.get_blob_stream(record.value["file"]) as f:
                 file_data = f.read()
 ```
-

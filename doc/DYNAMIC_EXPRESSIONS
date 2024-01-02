@@ -108,5 +108,3 @@ The hashing functions (each have a lc, uc, _raw, _64 and _64c version)
 
 These functions can be intermixed in pretty much any way. So a hash of
   sha512(md5(panama($p).$s.ripmd128($s.$p)))  is perfectly 'valid'.
-
-

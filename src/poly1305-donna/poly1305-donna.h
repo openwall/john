@@ -25,4 +25,3 @@ int poly1305_verify(const unsigned char mac1[16], const unsigned char mac2[16]);
 int poly1305_power_on_self_test(void);
 
 #endif /* POLY1305_DONNA_H */
-

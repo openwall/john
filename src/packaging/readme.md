@@ -4,4 +4,3 @@
 currently available for many flavors of Unix, Windows, DOS, and OpenVMS.
 
 Use these files as a starting point, a template, a blueprint for distro packagers.
-

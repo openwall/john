@@ -50,4 +50,3 @@ void ztex_detect(struct list_main *dev_allow,
 		struct list_main **ztex_detected_list);
 
 #endif
-

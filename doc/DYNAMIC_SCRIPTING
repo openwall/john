@@ -480,4 +480,3 @@ So in this case, we see that the 'only 1 salt' speed is pretty much a wash.  How
 'many salts' speed, has gone from 1900k to 4100k for non-sse, and from 5500k to 13100k.
 
 NOTE, the above format is actually dynamic_6 (also dynamic_7) format.
-

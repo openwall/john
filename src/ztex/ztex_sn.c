@@ -135,4 +135,3 @@ char *ztex_sn_get_by_sn_orig(char *sn_orig)
 	snprintf(result, sizeof(result), "%u", line->id + 1);
 	return result;
 }
-

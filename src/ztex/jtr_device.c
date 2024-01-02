@@ -571,5 +571,3 @@ struct jtr_device *jtr_device_list_process_inpkt(
 
 
 	//libusb_exit(NULL);
-
-

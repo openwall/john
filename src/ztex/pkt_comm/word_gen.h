@@ -35,4 +35,3 @@ struct word_gen {
 extern struct word_gen word_gen_words_pass_by;
 
 struct pkt *pkt_word_gen_new(struct word_gen *word_gen);
-

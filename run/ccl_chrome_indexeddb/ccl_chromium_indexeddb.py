@@ -692,4 +692,3 @@ class WrappedIndexDB:
 
     def __repr__(self):
         return f"<WrappedIndexDB: {self._raw_db.database_path}>"
-
