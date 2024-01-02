@@ -79,4 +79,3 @@ else
     echo '== Running $JTR -test=0 =='
     $JTR -test=0
 fi
-

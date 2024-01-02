@@ -65,4 +65,3 @@ struct pkt *pkt_config_new(char subtype, char *data, int len)
 	struct pkt *pkt = pkt_new(PKT_TYPE_CONFIG, output_data, len + 2);
 	return pkt;
 }
-

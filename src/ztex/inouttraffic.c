@@ -874,4 +874,3 @@ int fpga_pkt_read(struct fpga *fpga)
 		return result;
 	return rd->read_limit;
 }
-

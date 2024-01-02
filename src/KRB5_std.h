@@ -49,4 +49,3 @@ void des3_decrypt(krb5_key *key, char *cipher, char *plain, int len);
 void str2key(char *user, char *realm, char *passwd, krb5_key *krb5key);
 
 #endif // _KRB5_STD_H_
-

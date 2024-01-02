@@ -221,4 +221,3 @@ poly1305_finish(poly1305_context *ctx, unsigned char mac[16]) {
 	st->pad[0] = 0;
 	st->pad[1] = 0;
 }
-

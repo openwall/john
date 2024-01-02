@@ -75,4 +75,3 @@ charset.each_byte do |c|
 	end
 end
 fstat.close
-

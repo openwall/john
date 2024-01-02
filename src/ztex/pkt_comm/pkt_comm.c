@@ -730,4 +730,3 @@ int pkt_comm_input_completed(struct pkt_comm *comm, int len, int error)
 	}
 	return 0;
 }
-

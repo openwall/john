@@ -228,4 +228,3 @@ struct pkt *pkt_cmp_config_new(struct cmp_config *cmp_config)
 	*/
 	return pkt;
 }
-

@@ -18,4 +18,3 @@ extern struct fmt_tests salted_sha1_common_tests[];
 int salted_sha1_common_valid(char *ciphertext, struct fmt_main *self);
 
 #endif // salted_sha1_common_h__
-

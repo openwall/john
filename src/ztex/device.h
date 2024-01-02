@@ -55,4 +55,3 @@ char *device_strerror(int error_code);
 // < 0 - error
 // >= 0 - OK, including the case when no data was actually transmitted
 int device_fpgas_pkt_rw(struct device *device);
-

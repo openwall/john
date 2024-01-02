@@ -33,4 +33,3 @@ int blake2b(void *out, size_t outlen,   // return buffer for digest
     const void *in, size_t inlen);      // data to be hashed
 
 #endif
-

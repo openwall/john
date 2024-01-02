@@ -480,6 +480,3 @@ void task_list_delete(struct task_list *task_list)
 	}
 	MEM_FREE(task_list);
 }
-
-
-

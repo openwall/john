@@ -89,4 +89,3 @@ SNs on startup and in information/error messages. To hide SNs, you can
 list SNs of your boards in [List.ZTEX:Devices] section in john.conf.
 Board numbers (starting from 1) will appear instead of SNs. You can
 specify these numbers in --dev command-line option.
-

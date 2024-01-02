@@ -78,4 +78,3 @@ if [ "x$TXT_FILES" != "x" ] ; then
 fi
 
 exit 0
-

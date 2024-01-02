@@ -154,4 +154,3 @@ char *inpkt_type_name(int pkt_type)
 	sprintf(ret_buf, "type=0x%02x", pkt_type);
 	return ret_buf;
 }
-

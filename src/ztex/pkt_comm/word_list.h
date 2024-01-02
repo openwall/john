@@ -25,4 +25,3 @@ struct pkt *pkt_word_list_new(char *words, int num_words, int max_len);
 struct pkt *pkt_template_list_new(char *words,
 		int num_words, int max_len,
 		unsigned char *range_info, int ranges_max);
-

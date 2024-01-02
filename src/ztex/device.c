@@ -598,5 +598,3 @@ int device_fpgas_pkt_rw(struct device *device)
 	} // for ( ;num_of_fpgas ;)
 	return 1;
 }
-
-

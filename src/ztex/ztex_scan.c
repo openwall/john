@@ -201,4 +201,3 @@ void ztex_detect(struct list_main *dev_allow,
 	ztex_dev_list_delete(ztex_dev_list);
 	libusb_exit(NULL);
 }
-

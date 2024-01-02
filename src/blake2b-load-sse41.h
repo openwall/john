@@ -399,4 +399,3 @@ b1 = _mm_unpackhi_epi64(m3, m1); \
 
 
 #endif
-

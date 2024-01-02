@@ -39,4 +39,3 @@ struct custom_salt {
 int cloudkeychain_valid(char *ciphertext, struct fmt_main *self);
 
 unsigned int cloudkeychain_iteration_count(void *salt);
-

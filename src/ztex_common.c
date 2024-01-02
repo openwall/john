@@ -56,4 +56,3 @@ void ztex_init()
 	ztex_use_list = ztex_detected_list;
 	ztex_initialized = 1;
 }
-
