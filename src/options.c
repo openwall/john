@@ -248,7 +248,7 @@ static struct opt_entry opt_list[] = {
 
 #ifdef HAVE_FUZZ
 #define FUZZ_USAGE \
-"--fuzz[=DICTFILE]          Fuzz formats' prepare(), valid() and split()\n" \
+"--fuzz[=DICTFILE|LIMIT]    Fuzz formats' prepare(), valid() and split()\n" \
 "--fuzz-dump[=FROM,TO]      Dump the fuzzed hashes between FROM and TO to file\n" \
 "                           pwfile.format\n"
 #else

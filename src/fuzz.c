@@ -30,6 +30,7 @@
 
 #include "jumbo.h"
 #include "misc.h"	// error()
+#include "common.h"
 #include "config.h"
 #include "john.h"
 #include "options.h"
@@ -62,6 +63,7 @@ struct FuzzDic {
 	char *value;
 };
 
+static int fuzz_limit;
 static struct FuzzDic *rfd;
 
 static FILE *s_file; // Status file which is ./fuzz_status/'format->params.label'
@@ -101,9 +103,6 @@ static void fuzz_init_dictionary()
 #else
 	char *file_start;
 #endif
-
-	if (!options.fuzz_dic)
-		return;
 
 	if (!(file = jtr_fopen(options.fuzz_dic, "r")))
 		pexit("fopen: %s", options.fuzz_dic);
@@ -174,6 +173,9 @@ static char * replace_each_chars(char *ciphertext, int *is_replace_finish)
 	static int replaced_chars_index = 0;
 	static int cipher_index = 0;
 	static char replaced_chars[5] = "\xFF" "9$*#";
+
+	if (cipher_index >= strlen(ciphertext))
+		cipher_index = 0;
 
 	while (replaced_chars_index < sizeof(replaced_chars)) {
 		if (ciphertext[cipher_index] != replaced_chars[replaced_chars_index]) {
@@ -268,6 +270,9 @@ static char * change_case(char *origin_ctext, int *is_chgcase_finish)
 	static int flag = 2;
 	static int cipher_index = 0;
 
+	if (cipher_index >= strlen(origin_ctext))
+		cipher_index = 0;
+
 	while (origin_ctext[cipher_index]) {
 		c = origin_ctext[cipher_index];
 		if ('a' <= c && 'z' >= c) {
@@ -335,7 +340,7 @@ static char * insert_dic(char *origin_ctext, int *is_insertdic_finish)
 	static int index = 0;
 	static int flag_long = 0;
 
-	if (!options.fuzz_dic)
+	if (!rfd)
 		return NULL;
 
 	if (!flag) {
@@ -395,6 +400,8 @@ static void insert_char(char *origin_ctext, int pos, char c, int size, char *out
 {
 	const int origin_ctext_len = strlen(origin_ctext);
 
+	if (pos > origin_ctext_len)
+		pos = origin_ctext_len;
 	if (size + origin_ctext_len >= FUZZ_LINE_BUFFER_SIZE)
 		size = FUZZ_LINE_BUFFER_SIZE- origin_ctext_len - 1;
 
@@ -411,6 +418,9 @@ static char * insert_chars(char *origin_ctext, int *is_insertchars_finish)
 	static int flag_long = 0;
 	static int times[5] = { 1, 10, 100, 1000, 10000 };
 	static int times_index = 0;
+
+	if (oc_index > strlen(origin_ctext))
+		oc_index = 0;
 
 //printf("%s:%d %s(oc='%s', times_index=%d, c_index=%d, oc_index=%d)\n",
 //	__FILE__, __LINE__, __FUNCTION__, origin_ctext,
@@ -480,6 +490,9 @@ static char * update_length_data(char *origin_ctext, int *is_updatelengthdata_fi
 	unsigned long long len = 0, as_decimal = 0, as_hex = 0;
 	int inc, hex_mode, digit, pos2;
 
+	if (pos > strlen(origin_ctext))
+		pos = 0;
+
 	if (mode == 0) {
 		for (; origin_ctext[pos] && !mode; ++pos) {
 			if (!is_alnum_ascii(origin_ctext[pos])) {
@@ -546,6 +559,9 @@ static char * insert_zeros(char *origin_ctext, int *is_insertzeros_finish)
 	static int times = 0;
 	static int pos = 0;
 	int c, c1;
+
+	if (pos > strlen(origin_ctext))
+		pos = 0;
 
 	if (times == 0 && pos == 0) {
 		c = origin_ctext[0];
@@ -714,7 +730,7 @@ static void fuzz_test(struct db_main *db, struct fmt_main *format)
 	ldr_init_database(db, &options.loader);
 	db->format = format;
 
-	while (!event_abort) {
+	while (!event_abort && index < fuzz_limit) {
 		ret = get_next_fuzz_case(format->params.label, current->ciphertext);
 		save_index(index++);
 		line = fuzz_hash;
@@ -812,7 +828,13 @@ int fuzz(struct db_main *db)
 		}
 	}
 
-	fuzz_init_dictionary();
+	fuzz_limit = 0x7fffffff;
+	if (options.fuzz_dic) {
+		if (isdec(options.fuzz_dic))
+			fuzz_limit = atoi(options.fuzz_dic);
+		else
+			fuzz_init_dictionary();
+	}
 
 	total = 0;
 	if ((format = fmt_list))
