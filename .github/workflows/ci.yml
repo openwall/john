@@ -19,8 +19,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -33,8 +31,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -47,8 +43,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -61,8 +55,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -75,8 +67,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -89,8 +79,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -103,8 +91,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -117,8 +103,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -131,8 +115,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -145,8 +127,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -159,8 +139,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -173,8 +151,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -187,8 +163,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -201,8 +175,6 @@ jobs:
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
