@@ -661,7 +661,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			keyLen[t] = strlen(saved_plain[t]);
 
 			// Back-out of trailing spaces
-			while ( saved_plain[t][keyLen[t] - 1] == ' ' )
+			while ( keyLen[t] && saved_plain[t][keyLen[t] - 1] == ' ' )
 			{
 				if (keyLen[t] == 0) break;
 				saved_plain[t][--keyLen[t]] = 0;
