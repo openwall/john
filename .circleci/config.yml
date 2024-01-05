@@ -11,7 +11,6 @@ jobs:
       - run:
           name: Testing JtR
           command: .circleci/circle-ci.sh TEST
-          no_output_timeout: 20m
 
   wine-32bits:
     <<: *common_linux
@@ -71,7 +70,6 @@ jobs:
     docker:
       - image: ghcr.io/openwall/john-ci:fedora.32
         environment:
-          OMP_NUM_THREADS: 1
           ASAN_TEST: "yes"
           FULL_TEST: "yes"
           BUILD_OPTS: "--enable-asan --disable-openmp --disable-opencl"
@@ -81,20 +79,10 @@ jobs:
     docker:
       - image: ghcr.io/openwall/john-ci:fedora.32
         environment:
-          OMP_NUM_THREADS: 1
-          ASAN_TEST: "yes"
-          FULL_TEST: "yes"
-          BUILD_OPTS: "--enable-asan --enable-openmp-for-fast-formats --disable-opencl"
-
-  non-SIMD:
-    <<: *common_linux
-    docker:
-      - image: ghcr.io/openwall/john-ci:fedora.32
-        environment:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
           FULL_TEST: "yes"
-          BUILD_OPTS: "--enable-asan --disable-simd --disable-opencl"
+          BUILD_OPTS: "--enable-asan --enable-openmp-for-fast-formats --disable-opencl"
 
   fast-formats-omp-x-non-SIMD:
     <<: *common_linux
@@ -106,18 +94,32 @@ jobs:
           FULL_TEST: "yes"
           BUILD_OPTS: "--enable-asan --enable-openmp-for-fast-formats --disable-simd --disable-opencl"
 
+  arm:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: arm.medium
+    steps:
+      - checkout
+      - run:
+          name: Preparing
+          command: sudo apt update && sudo apt install -y libssl-dev zlib1g-dev libgmp-dev libpcap-dev libbz2-dev && uname -a
+      - run:
+          name: Building JtR
+          command: .circleci/circle-ci.sh BUILD
+      - run:
+          name: Testing JtR
+          command: .circleci/circle-ci.sh TEST
+
 workflows:
   version: 2
   build:
     jobs:
       - asan
+      - arm
       - encoding-cpu
       - wine-64bits
       - no-plugs
 
-      - non-SIMD:
-          requires:
-            - no-plugs
       - encoding-opencl:
           requires:
             - encoding-cpu
