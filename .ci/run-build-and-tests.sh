@@ -29,6 +29,10 @@ echo 'END OF BUILD ENVIRONMENT INFORMATION'
 nproc="$(nproc)" || nproc=1
 j="-j$nproc"
 
+if [ $nproc -gt 2 ]; then
+	export OMP_NUM_THREADS=2
+fi
+
 cd src
 time ./configure $*
 time make $j
