@@ -118,9 +118,9 @@ int blockchain_decrypt(unsigned char *derived_key, unsigned char *data)
 
 	// "guid" will be found in the first block
 	if (memmem(out, 16, "\"guid\"", 6)) {
-		AES_cbc_encrypt(data + 32, out + 16, SAFETY_FACTOR - 16, &akey, iv,
+		AES_cbc_encrypt(data + 32, out + 16, SAFETY_FACTOR - 32, &akey, iv,
 		                AES_DECRYPT);
-		if (memmem(out, SAFETY_FACTOR, "\"sharedKey\"", 11))
+		if (memmem(out, SAFETY_FACTOR - 16, "\"sharedKey\"", 11))
 			// Do not check for "options" string. It is too further
 			// down in the byte stream for v3 wallets.  Note, we
 			// 'could' check that the guid and sharedKey values are
