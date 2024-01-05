@@ -91,13 +91,13 @@ static char *get_key(int index)
 
 static int vmx_decrypt(struct custom_salt *cur_salt, unsigned char *key, unsigned char *data)
 {
-	unsigned char out[BLOBLEN];
+	unsigned char out[16];
 	unsigned char ivec[16];
 	AES_KEY aes_decrypt_key;
 
 	memcpy(ivec, data, 16);
 	AES_set_decrypt_key(key, 256, &aes_decrypt_key);
-	AES_cbc_encrypt(cur_salt->blob + 16, out, BLOBLEN - 16, &aes_decrypt_key, ivec, AES_DECRYPT);
+	AES_cbc_encrypt(cur_salt->blob + 16, out, 16, &aes_decrypt_key, ivec, AES_DECRYPT);
 
 	return memcmp(out, "type=key:cipher=", 16) == 0;
 }
