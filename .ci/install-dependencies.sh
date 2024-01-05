@@ -7,7 +7,7 @@
 
 j=-j`nproc` || j=
 type sudo >/dev/null 2>&1 && sudo=sudo || sudo=
-common_packages='make libssl-dev'
+common_packages='make libssl-dev libpcap-dev'
 
 retry_if_failed()
 {
