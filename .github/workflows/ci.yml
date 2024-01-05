@@ -24,6 +24,18 @@ jobs:
     - name: build check
       run: .ci/run-build-and-tests.sh --enable-fuzz --enable-asan
 
+  asan-disable-all:
+    runs-on: ubuntu-latest
+    env:
+      CC: gcc-13
+      TARGET: x86_64
+    steps:
+    - uses: actions/checkout@v3
+    - name: install dependencies
+      run: .ci/install-dependencies.sh
+    - name: build check
+      run: .ci/run-build-and-tests.sh --enable-asan --disable-openmp --disable-simd --without-openssl
+
   asan-disable-openmp:
     runs-on: ubuntu-latest
     env:
