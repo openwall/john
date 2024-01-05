@@ -30,9 +30,12 @@ nproc="$(nproc)" || nproc=1
 j="-j$nproc"
 
 cd src
-time ./configure
+time ./configure $*
 time make $j
 time make $j check
+if [ "$1" = "--enable-fuzz" ]; then
+	time ../run/john --fuzz=500
+fi
 
 if git status --porcelain |grep ^.; then
 	echo >&2 'git status reported uncleanness'
