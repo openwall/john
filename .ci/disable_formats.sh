@@ -11,6 +11,12 @@ echo 'KeePass-opencl = Y' >> ../run/john-local.conf
 # These formats fail OpenCL CPU runtime
 echo 'RAR-opencl = Y' >> ../run/john-local.conf
 
+if [[ $(uname -m) == "aarch64" ]]; then
+    # SunMD5 format crashes on ARM. macOS and Linux
+    # See https://github.com/openwall/john/issues/5296
+    echo 'sunmd5 = Y' >> ../run/john-local.conf
+fi
+
 # These formats run very slowly inside CI
 # Time measures are from Intel CPU driver running inside Docker
 echo 'ansible-opencl = Y' >> ../run/john-local.conf    # (282.202952 secs) PASS
