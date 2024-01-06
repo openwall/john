@@ -66,6 +66,9 @@ if [[ $1 == "BUILD" ]]; then
     echo '--------------------------------------------------------------------------------'
 
 elif [[ $1 == "TEST" ]]; then
+    # Disable problematic formats before testing
+    source ../.ci/disable_formats.sh
+
     echo '---------------------------------- Build Info ----------------------------------'
     $WINE $JTR --list=build-info
     echo '--------------------------------------------------------------------------------'
