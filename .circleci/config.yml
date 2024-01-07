@@ -33,7 +33,7 @@ jobs:
   no-plugs:
     <<: *common_linux
     docker:
-      - image: claudioandre/john:opencl18
+      - image: claudioandre/john:opencl
         environment:
           OMP_NUM_THREADS: 2
           PLUGS: "none"
@@ -43,7 +43,7 @@ jobs:
   encoding-cpu:
     <<: *common_linux
     docker:
-      - image: ghcr.io/openwall/john-ci:fedora.32
+      - image: ghcr.io/claudioandre-br/john-ci:fedora.latest
         environment:
           OMP_NUM_THREADS: 2
           ENCODING_TEST: "cpu"
@@ -59,7 +59,7 @@ jobs:
   asan:
     <<: *common_linux
     docker:
-      - image: ghcr.io/openwall/john-ci:fedora.32
+      - image: ghcr.io/claudioandre-br/john-ci:fedora.latest
         environment:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
@@ -68,7 +68,7 @@ jobs:
   test-full:
     <<: *common_linux
     docker:
-      - image: ghcr.io/openwall/john-ci:fedora.32
+      - image: ghcr.io/claudioandre-br/john-ci:fedora.latest
         environment:
           ASAN_TEST: "yes"
           FULL_TEST: "yes"
@@ -77,7 +77,7 @@ jobs:
   fast-formats-omp:
     <<: *common_linux
     docker:
-      - image: ghcr.io/openwall/john-ci:fedora.32
+      - image: ghcr.io/claudioandre-br/john-ci:fedora.latest
         environment:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
@@ -87,7 +87,7 @@ jobs:
   fast-formats-omp-x-non-SIMD:
     <<: *common_linux
     docker:
-      - image: ghcr.io/openwall/john-ci:fedora.32
+      - image: ghcr.io/claudioandre-br/john-ci:fedora.latest
         environment:
           OMP_NUM_THREADS: 2
           ASAN_TEST: "yes"
