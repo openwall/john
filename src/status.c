@@ -149,7 +149,7 @@ static char *status_get_cps(char *buffer, uint64_t c, unsigned int c_ehi, double
 		sprintf(buffer, "%uM", (unsigned int)(cps / 1000000));
 	} else if (cps >= 1000000) {
 		sprintf(buffer, "%uK", (unsigned int)(cps / 1000));
-	} else if (cps >= 1000 || !cps) {
+	} else if (cps >= 1000 || cpsf < 1e-6) {
 		sprintf(buffer, "%u", (unsigned int)cps);
 	} else {
 		int width = 6;
