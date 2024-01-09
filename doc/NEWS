@@ -317,6 +317,8 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Added a local copy of the OpenCL headers.  [Alain Espinosa; 2023]
 
+- Add Armory wallet support (accepts btcrecover data extracts).  [Solar; 2024]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
