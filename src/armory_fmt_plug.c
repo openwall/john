@@ -22,6 +22,11 @@ john_register_one(&fmt_armory);
 #include <omp.h>
 #endif
 
+#include "arch.h"
+#if !ARCH_LITTLE_ENDIAN
+#include "johnswap.h"
+#endif
+
 #include "base64_convert.h"
 #include "formats.h"
 #include "memory.h"
@@ -46,8 +51,7 @@ john_register_one(&fmt_armory);
 struct custom_salt {
 	uint8_t privkey[32], iv[16];
 	uint32_t bytes_reqd, iter_count;
-	uint8_t seed[32];
-	uint32_t crc;
+	uint8_t seed[32], crc[4];
 };
 
 #define BINARY_SIZE			20
@@ -134,18 +138,23 @@ static void *get_salt(char *ciphertext)
 	    decoded, e_b64_raw, sizeof(decoded), flg_Base64_DONOT_NULL_TERMINATE, &err) != sizeof(decoded) || err)
 		return NULL;
 
-	/* XXX add endianness conversion */
 	static struct custom_salt salt;
 	memcpy(&salt, &decoded[BINARY_SIZE], sizeof(salt));
+#if !ARCH_LITTLE_ENDIAN
+	salt.bytes_reqd = JOHNSWAP(salt.bytes_reqd);
+	salt.iter_count = JOHNSWAP(salt.iter_count);
+#endif
 
 	if ((salt.bytes_reqd & 63) || salt.bytes_reqd < 128)
 		return NULL;
 
-	CRC32_t crc;
-	CRC32_Init(&crc);
-	CRC32_Update(&crc, "ar:", 3);
-	CRC32_Update(&crc, decoded, sizeof(decoded) - sizeof(salt.crc));
-	if (salt.crc != ~crc)
+	CRC32_t ctx;
+	unsigned char crc[4];
+	CRC32_Init(&ctx);
+	CRC32_Update(&ctx, "ar:", 3);
+	CRC32_Update(&ctx, decoded, sizeof(decoded) - sizeof(salt.crc));
+	CRC32_Final(crc, ctx);
+	if (memcmp(salt.crc, crc, sizeof(crc)))
 		return NULL;
 
 	return &salt;
@@ -189,9 +198,15 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+typedef union {
+	uint8_t u8[64];
+	uint32_t u32[16];
+	uint64_t u64[8];
+} lut_item;
+
 static int derive_key(region_t *memory, char *key, const struct custom_salt *salt, uint8_t *dk)
 {
-	uint64_t (*lut)[8] = memory->aligned;
+	lut_item *lut = memory->aligned;
 
 	if (!lut || memory->aligned_size < salt->bytes_reqd) {
 		free_region_t(memory);
@@ -205,38 +220,40 @@ static int derive_key(region_t *memory, char *key, const struct custom_salt *sal
 	uint32_t n = salt->bytes_reqd >> 6;
 	uint32_t i = salt->iter_count;
 	do {
-		uint64_t (*p)[8];
+		lut_item *p;
 		SHA512_CTX ctx;
 
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, mk, mklen);
 		SHA512_Update(&ctx, salt->seed, sizeof(salt->seed));
-		SHA512_Final((unsigned char *)lut, &ctx);
+		SHA512_Final(lut[0].u8, &ctx);
 
 		p = lut;
 		do {
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, p, 64);
-			SHA512_Final((unsigned char *)++p, &ctx);
+			SHA512_Final((++p)->u8, &ctx);
 		} while (p < &lut[n - 1]);
 
-		uint64_t x[8];
-		memcpy(x, p, sizeof(x));
-
+		lut_item x = *p;
 		uint32_t j = n >> 1;
 		do {
-			p = &lut[(x[7] >> 32) % n]; /* XXX: endianness */
+#if ARCH_LITTLE_ENDIAN
+			p = &lut[x.u32[15] % n];
+#else
+			p = &lut[JOHNSWAP(x.u32[15]) % n];
+#endif
 
 			uint32_t k;
 			for (k = 0; k < 8; k++)
-				x[k] ^= (*p)[k];
+				x.u64[k] ^= p->u64[k];
 
 			SHA512_Init(&ctx);
-			SHA512_Update(&ctx, x, 64);
-			SHA512_Final((unsigned char *)x, &ctx);
+			SHA512_Update(&ctx, &x, 64);
+			SHA512_Final(x.u8, &ctx);
 		} while (--j);
 
-		memcpy(mk = dk, x, mklen = 32);
+		memcpy(mk = dk, x.u8, mklen = 32);
 	} while (--i);
 
 	return 0;
