@@ -218,6 +218,7 @@ static int derive_key(region_t *memory, char *key, const struct custom_salt *sal
 	size_t mklen = strlen(key);
 
 	uint32_t n = salt->bytes_reqd >> 6;
+	uint32_t nrec = (n & (n - 1)) ? 0xffffffffU / n : 0;
 	uint32_t i = salt->iter_count;
 	do {
 		lut_item *p;
@@ -238,11 +239,18 @@ static int derive_key(region_t *memory, char *key, const struct custom_salt *sal
 		lut_item x = *p;
 		uint32_t j = n >> 1;
 		do {
-#if ARCH_LITTLE_ENDIAN
-			p = &lut[x.u32[15] % n];
-#else
-			p = &lut[JOHNSWAP(x.u32[15]) % n];
+			uint32_t v = x.u32[15];
+#if !ARCH_LITTLE_ENDIAN
+			v = JOHNSWAP(v);
 #endif
+			if (nrec) {
+				v -= (((uint64_t)v * nrec) >> 32) * n;
+				if (v >= n)
+					v -= n;
+			} else {
+				v &= n - 1;
+			}
+			p = &lut[v];
 
 			uint32_t k;
 			for (k = 0; k < 8; k++)
