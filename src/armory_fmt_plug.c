@@ -16,6 +16,11 @@ john_register_one(&fmt_armory);
 
 #include <stdint.h>
 #include <string.h>
+#include <errno.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 #include "base64_convert.h"
 #include "formats.h"
@@ -52,6 +57,7 @@ struct custom_salt {
 
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
+#define OMP_SCALE			1
 
 /*
  * These test vectors were extracted from test wallets by Christopher Gurnee's
@@ -67,9 +73,56 @@ static struct fmt_tests tests[] = {
 	{NULL}
 };
 
-static char saved_key[MAX_KEYS_PER_CRYPT][PLAINTEXT_LENGTH + 1];
 static struct custom_salt *saved_salt;
-static uint8_t crypt_out[BINARY_SIZE];
+
+static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static uint8_t (*crypt_out)[BINARY_SIZE];
+
+static int max_threads;
+static region_t *memory;
+
+static secp256k1_context *secp256k1_ctx;
+
+static void init(struct fmt_main *self)
+{
+	omp_autotune(self, OMP_SCALE);
+
+#ifdef _OPENMP
+	max_threads = omp_get_max_threads();
+#else
+	max_threads = 1;
+#endif
+
+	memory = mem_alloc(sizeof(*memory) * max_threads);
+	int i;
+	for (i = 0; i < max_threads; i++)
+		init_region_t(&memory[i]);
+
+	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
+	crypt_out = mem_calloc(self->params.max_keys_per_crypt, sizeof(*crypt_out));
+
+	/*
+	 * Use a shared context as permitted by comment in secp256k1.h for
+	 * calls that take a const pointer.
+	 */
+	if (!(secp256k1_ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN))) {
+		fprintf(stderr, "Failed to create secp256k1 context\n");
+		error();
+	}
+}
+
+static void done(void)
+{
+	int i;
+	for (i = 0; i < max_threads; i++)
+		free_region_t(&memory[i]);
+	MEM_FREE(memory);
+
+	MEM_FREE(saved_key);
+	MEM_FREE(crypt_out);
+
+	secp256k1_context_destroy(secp256k1_ctx);
+}
 
 static void *get_salt(char *ciphertext)
 {
@@ -136,23 +189,21 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-static void derive_key(char *key, const struct custom_salt *salt, uint8_t *dk)
+static int derive_key(region_t *memory, char *key, const struct custom_salt *salt, uint8_t *dk)
 {
-	static uint64_t (*lut)[8];
-	static uint32_t lut_size;
-	uint32_t i, n;
+	uint64_t (*lut)[8] = memory->aligned;
 
-	if (!lut || lut_size < salt->bytes_reqd) {
-		MEM_FREE(lut);
-		lut = mem_alloc(lut_size = salt->bytes_reqd);
-		/* XXX free this memory in done() */
+	if (!lut || memory->aligned_size < salt->bytes_reqd) {
+		free_region_t(memory);
+		if (!(lut = alloc_region_t(memory, salt->bytes_reqd)))
+			return -1;
 	}
 
 	uint8_t *mk = (uint8_t *)key;
 	size_t mklen = strlen(key);
 
-	n = salt->bytes_reqd >> 6;
-	i = salt->iter_count;
+	uint32_t n = salt->bytes_reqd >> 6;
+	uint32_t i = salt->iter_count;
 	do {
 		uint64_t (*p)[8];
 		SHA512_CTX ctx;
@@ -187,9 +238,11 @@ static void derive_key(char *key, const struct custom_salt *salt, uint8_t *dk)
 
 		memcpy(mk = dk, x, mklen = 32);
 	} while (--i);
+
+	return 0;
 }
 
-static int crypt_all(int *pcount, struct db_salt *salt)
+static int derive_address(region_t *memory, char *key, const struct custom_salt *salt, uint8_t *da)
 {
 	union {
 		uint8_t u8[32];
@@ -197,7 +250,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	} dk;
 
 	/* Derive AES key */
-	derive_key(saved_key[0], saved_salt, dk.u8);
+	if (derive_key(memory, key, salt, dk.u8))
+		return -1;
 
 	/* AES CFB mode decryption */
 	AES_KEY ak;
@@ -212,16 +266,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	dk.u64[2] ^= xor[0];
 	dk.u64[3] ^= xor[1];
 
-	secp256k1_pubkey pubkey;
-	static secp256k1_context *sctx;
-	if (!sctx)
-		sctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN); /* XXX destroy this in done() */
-
 	/* Compute public key from decrypted private key */
-	if (secp256k1_ec_pubkey_create(sctx, &pubkey, dk.u8)) {
+	secp256k1_pubkey pubkey;
+	if (secp256k1_ec_pubkey_create(secp256k1_ctx, &pubkey, dk.u8)) {
 		unsigned char ser[65];
 		size_t serlen = sizeof(ser);
-		secp256k1_ec_pubkey_serialize(sctx, ser, &serlen, &pubkey, SECP256K1_EC_UNCOMPRESSED);
+		secp256k1_ec_pubkey_serialize(secp256k1_ctx, ser, &serlen, &pubkey, SECP256K1_EC_UNCOMPRESSED);
 
 		/* Hash160 */
 		{
@@ -234,13 +284,54 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			sph_ripemd160_context ctx;
 			sph_ripemd160_init(&ctx);
 			sph_ripemd160(&ctx, dk.u8, 32);
-			sph_ripemd160_close(&ctx, crypt_out);
+			sph_ripemd160_close(&ctx, da);
 		}
 	} else {
-		memset(crypt_out, 0, sizeof(crypt_out));
+		memset(da, 0, BINARY_SIZE);
 	}
 
-	return *pcount;
+	return 0;
+}
+
+static int crypt_all(int *pcount, struct db_salt *salt)
+{
+	int failed = 0, count = *pcount, index;
+
+#ifdef _OPENMP
+#pragma omp parallel for default(none) private(index) shared(count, failed, max_threads, memory, saved_key, saved_salt, crypt_out)
+#endif
+	for (index = 0; index < count; index++) {
+#ifdef _OPENMP
+		int t = omp_get_thread_num();
+		if (t >= max_threads) {
+			failed = -1;
+			continue;
+		}
+#else
+		const int t = 0;
+#endif
+		errno = 0;
+		if (derive_address(&memory[t], saved_key[index], saved_salt, crypt_out[index])) {
+			failed = errno ? errno : ENOMEM;
+#ifndef _OPENMP
+			break;
+#endif
+		}
+	}
+
+	if (failed) {
+#ifdef _OPENMP
+		if (failed < 0) {
+			fprintf(stderr, "OpenMP thread number out of range\n");
+			error();
+		}
+#endif
+		fprintf(stderr, "Memory allocation failed: %s\n", strerror(failed));
+		error();
+	}
+
+
+	return count;
 }
 
 static int cmp_all(void *binary, int count)
@@ -250,7 +341,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return !memcmp(binary, crypt_out, sizeof(crypt_out));
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
@@ -273,13 +364,13 @@ struct fmt_main fmt_armory = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT,
+		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
 		{ FORMAT_TAG },
 		tests
 	}, {
-		fmt_default_init,
-		fmt_default_done,
+		init,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
