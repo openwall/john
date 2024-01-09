@@ -145,7 +145,7 @@ static void *get_salt(char *ciphertext)
 	salt.iter_count = JOHNSWAP(salt.iter_count);
 #endif
 
-	if ((salt.bytes_reqd & 63) || salt.bytes_reqd < 128)
+	if (salt.bytes_reqd < 1024 || (salt.bytes_reqd & (salt.bytes_reqd - 1)))
 		return NULL;
 
 	CRC32_t ctx;
@@ -218,7 +218,6 @@ static int derive_key(region_t *memory, char *key, const struct custom_salt *sal
 	size_t mklen = strlen(key);
 
 	uint32_t n = salt->bytes_reqd >> 6;
-	uint32_t nrec = (n & (n - 1)) ? 0xffffffffU / n : 0;
 	uint32_t i = salt->iter_count;
 	do {
 		lut_item *p;
@@ -243,14 +242,7 @@ static int derive_key(region_t *memory, char *key, const struct custom_salt *sal
 #if !ARCH_LITTLE_ENDIAN
 			v = JOHNSWAP(v);
 #endif
-			if (nrec) {
-				v -= (((uint64_t)v * nrec) >> 32) * n;
-				if (v >= n)
-					v -= n;
-			} else {
-				v &= n - 1;
-			}
-			p = &lut[v];
+			p = &lut[v & (n - 1)];
 
 			uint32_t k;
 			for (k = 0; k < 8; k++)
