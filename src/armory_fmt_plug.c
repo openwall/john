@@ -366,6 +366,18 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+static unsigned int tunable_cost_memory(void *_salt)
+{
+	struct custom_salt *salt = (struct custom_salt *)_salt;
+	return salt->bytes_reqd;
+}
+
+static unsigned int tunable_cost_iterations(void *_salt)
+{
+	struct custom_salt *salt = (struct custom_salt *)_salt;
+	return salt->iter_count;
+}
+
 struct fmt_main fmt_armory = {
 	{
 		FORMAT_LABEL,
@@ -382,8 +394,8 @@ struct fmt_main fmt_armory = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },
-		{ FORMAT_TAG },
+		{"memory", "iterations"},
+		{FORMAT_TAG},
 		tests
 	}, {
 		init,
@@ -394,11 +406,9 @@ struct fmt_main fmt_armory = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-		{ NULL },
+		{tunable_cost_memory, tunable_cost_iterations},
 		fmt_default_source,
-		{
-			fmt_default_binary_hash
-		},
+		{fmt_default_binary_hash},
 		fmt_default_salt_hash,
 		NULL,
 		set_salt,
@@ -406,9 +416,7 @@ struct fmt_main fmt_armory = {
 		get_key,
 		fmt_default_clear_keys,
 		crypt_all,
-		{
-			fmt_default_get_hash
-		},
+		{fmt_default_get_hash},
 		cmp_all,
 		cmp_one,
 		cmp_exact
