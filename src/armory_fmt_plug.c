@@ -35,12 +35,18 @@ john_register_one(&fmt_armory);
 #include "aes.h"
 #include "secp256k1.h"
 #include "sph_ripemd.h"
+#include "simd-intrinsics.h"
 
 #define FORMAT_LABEL			"armory"
 #define FORMAT_TAG			"YXI6"
 #define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG) - 1)
 #define FORMAT_NAME			"Armory wallet"
-#define ALGORITHM_NAME			"SHA-512/AES-256/secp256k1/SHA-256/RIPEMD-160"
+
+#ifdef SIMD_COEF_64
+#define ALGORITHM_NAME			"SHA512/AES/secp256k1/SHA256/RIPEMD160 " SHA512_ALGORITHM_NAME
+#else
+#define ALGORITHM_NAME			"SHA512/AES/secp256k1/SHA256/RIPEMD160 " ARCH_BITS_STR "/" ARCH_BITS_STR
+#endif
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0x107
@@ -59,8 +65,13 @@ struct custom_salt {
 #define SALT_SIZE			sizeof(struct custom_salt)
 #define SALT_ALIGN			sizeof(uint32_t)
 
+#ifdef SIMD_COEF_64
+#define MIN_KEYS_PER_CRYPT		(SIMD_COEF_64 * SIMD_PARA_SHA512)
+#define MAX_KEYS_PER_CRYPT		(SIMD_COEF_64 * SIMD_PARA_SHA512)
+#else
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		1
+#endif
 #define OMP_SCALE			1
 
 /*
@@ -234,22 +245,58 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 
 	uint32_t i = saved_salt->iter_count;
 	do {
-		lut_item *p;
+		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
+			SHA512_CTX ctx;
+			SHA512_Init(&ctx);
+			SHA512_Update(&ctx, mk[subindex], mklen[subindex]);
+			SHA512_Update(&ctx, saved_salt->seed, sizeof(saved_salt->seed));
+			SHA512_Final(lut[0][subindex].u8, &ctx);
+		}
+
+		lut_item *p = lut;
+		JTR_ALIGN(64) lut_item x;
+
+#ifdef SIMD_COEF_64
+		JTR_ALIGN(64) uint64_t in[MIN_KEYS_PER_CRYPT][16];
+		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
+			in[subindex][8] = 0x80;
+			memset(&in[subindex][9], 0, 48);
+			in[subindex][15] = 64 << 3;
+		}
+
+		do {
+			for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++)
+				memcpy(in[subindex], &(*p)[subindex], 64);
+			SIMDSHA512body(in, p[1]->u64, NULL, SSEi_FLAT_IN|SSEi_FLAT_OUT);
+		} while (++p < &lut[n - 1]);
+
+		memcpy(x, *p, sizeof(x));
+
+		uint32_t j = n >> 1;
+		do {
+			for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
+				uint32_t v = x[subindex].u32[15];
+#if !ARCH_LITTLE_ENDIAN
+				v = JOHNSWAP(v);
+#endif
+				p = &lut[v & (n - 1)];
+
+				uint32_t k;
+				for (k = 0; k < 8; k++)
+					x[subindex].u64[k] ^= (*p)[subindex].u64[k];
+				memcpy(in[subindex], &x[subindex], 64);
+			}
+
+			SIMDSHA512body(in, x[0].u64, NULL, SSEi_FLAT_IN|SSEi_FLAT_OUT);
+		} while (--j);
+#elif MIN_KEYS_PER_CRYPT == 1
 		SHA512_CTX ctx;
-
-		SHA512_Init(&ctx);
-		SHA512_Update(&ctx, mk[0], mklen[0]);
-		SHA512_Update(&ctx, saved_salt->seed, sizeof(saved_salt->seed));
-		SHA512_Final(lut[0][0].u8, &ctx);
-
-		p = lut;
 		do {
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, p, 64);
 			SHA512_Final((*++p)[0].u8, &ctx);
 		} while (p < &lut[n - 1]);
 
-		lut_item x;
 		memcpy(x, *p, sizeof(x));
 
 		uint32_t j = n >> 1;
@@ -268,8 +315,12 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 			SHA512_Update(&ctx, &x, 64);
 			SHA512_Final(x[0].u8, &ctx);
 		} while (--j);
+#else
+#error "This code only supports either SIMD or MIN_KEYS_PER_CRYPT = 1"
+#endif
 
-		memcpy(mk[0] = dk[0].u8, x[0].u8, mklen[0] = 32);
+		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++)
+			memcpy(mk[subindex] = dk[subindex].u8, x[subindex].u8, mklen[subindex] = 32);
 	} while (--i);
 
 	return 0;
