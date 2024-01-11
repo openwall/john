@@ -205,7 +205,7 @@ typedef union {
 	uint8_t u8[64];
 	uint32_t u32[16];
 	uint64_t u64[8];
-} lut_item;
+} lut_item[MIN_KEYS_PER_CRYPT];
 
 typedef union {
 	uint8_t u8[32];
@@ -215,39 +215,46 @@ typedef union {
 /* Derive AES keys from password(s) starting at saved_key[index] */
 static int derive_keys(region_t *memory, int index, derived_key *dk)
 {
-	lut_item *lut = memory->aligned;
+	uint8_t *mk[MIN_KEYS_PER_CRYPT];
+	size_t mklen[MIN_KEYS_PER_CRYPT];
+	int subindex;
+	for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
+		mk[subindex] = (uint8_t *)saved_key[index + subindex];
+		mklen[subindex] = strlen(saved_key[index + subindex]);
+	}
 
-	if (!lut || memory->aligned_size < saved_salt->bytes_reqd) {
+	uint32_t n = saved_salt->bytes_reqd >> 6;
+	lut_item *lut = memory->aligned;
+	size_t bytes_reqd = (size_t)n * sizeof(*lut);
+	if (!lut || memory->aligned_size < bytes_reqd) {
 		free_region_t(memory);
-		if (!(lut = alloc_region_t(memory, saved_salt->bytes_reqd)))
+		if (!(lut = alloc_region_t(memory, bytes_reqd)))
 			return -1;
 	}
 
-	uint8_t *mk = (uint8_t *)saved_key[index];
-	size_t mklen = strlen(saved_key[index]);
-
-	uint32_t n = saved_salt->bytes_reqd >> 6;
 	uint32_t i = saved_salt->iter_count;
 	do {
 		lut_item *p;
 		SHA512_CTX ctx;
 
 		SHA512_Init(&ctx);
-		SHA512_Update(&ctx, mk, mklen);
+		SHA512_Update(&ctx, mk[0], mklen[0]);
 		SHA512_Update(&ctx, saved_salt->seed, sizeof(saved_salt->seed));
-		SHA512_Final(lut[0].u8, &ctx);
+		SHA512_Final(lut[0][0].u8, &ctx);
 
 		p = lut;
 		do {
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, p, 64);
-			SHA512_Final((++p)->u8, &ctx);
+			SHA512_Final((*++p)[0].u8, &ctx);
 		} while (p < &lut[n - 1]);
 
-		lut_item x = *p;
+		lut_item x;
+		memcpy(x, *p, sizeof(x));
+
 		uint32_t j = n >> 1;
 		do {
-			uint32_t v = x.u32[15];
+			uint32_t v = x[0].u32[15];
 #if !ARCH_LITTLE_ENDIAN
 			v = JOHNSWAP(v);
 #endif
@@ -255,14 +262,14 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 
 			uint32_t k;
 			for (k = 0; k < 8; k++)
-				x.u64[k] ^= p->u64[k];
+				x[0].u64[k] ^= (*p)[0].u64[k];
 
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, &x, 64);
-			SHA512_Final(x.u8, &ctx);
+			SHA512_Final(x[0].u8, &ctx);
 		} while (--j);
 
-		memcpy(mk = dk[0].u8, x.u8, mklen = 32);
+		memcpy(mk[0] = dk[0].u8, x[0].u8, mklen[0] = 32);
 	} while (--i);
 
 	return 0;
