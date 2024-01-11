@@ -207,28 +207,34 @@ typedef union {
 	uint64_t u64[8];
 } lut_item;
 
-static int derive_key(region_t *memory, char *key, const struct custom_salt *salt, uint8_t *dk)
+typedef union {
+	uint8_t u8[32];
+	uint64_t u64[4];
+} derived_key;
+
+/* Derive AES keys from password(s) starting at saved_key[index] */
+static int derive_keys(region_t *memory, int index, derived_key *dk)
 {
 	lut_item *lut = memory->aligned;
 
-	if (!lut || memory->aligned_size < salt->bytes_reqd) {
+	if (!lut || memory->aligned_size < saved_salt->bytes_reqd) {
 		free_region_t(memory);
-		if (!(lut = alloc_region_t(memory, salt->bytes_reqd)))
+		if (!(lut = alloc_region_t(memory, saved_salt->bytes_reqd)))
 			return -1;
 	}
 
-	uint8_t *mk = (uint8_t *)key;
-	size_t mklen = strlen(key);
+	uint8_t *mk = (uint8_t *)saved_key[index];
+	size_t mklen = strlen(saved_key[index]);
 
-	uint32_t n = salt->bytes_reqd >> 6;
-	uint32_t i = salt->iter_count;
+	uint32_t n = saved_salt->bytes_reqd >> 6;
+	uint32_t i = saved_salt->iter_count;
 	do {
 		lut_item *p;
 		SHA512_CTX ctx;
 
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, mk, mklen);
-		SHA512_Update(&ctx, salt->seed, sizeof(salt->seed));
+		SHA512_Update(&ctx, saved_salt->seed, sizeof(saved_salt->seed));
 		SHA512_Final(lut[0].u8, &ctx);
 
 		p = lut;
@@ -256,39 +262,31 @@ static int derive_key(region_t *memory, char *key, const struct custom_salt *sal
 			SHA512_Final(x.u8, &ctx);
 		} while (--j);
 
-		memcpy(mk = dk, x.u8, mklen = 32);
+		memcpy(mk = dk[0].u8, x.u8, mklen = 32);
 	} while (--i);
 
 	return 0;
 }
 
-static int derive_address(region_t *memory, char *key, const struct custom_salt *salt, uint8_t *da)
+/* Derive one address from one AES key derived above; clobbers dk */
+static void derive_address(region_t *memory, derived_key *dk, uint8_t *da)
 {
-	union {
-		uint8_t u8[32];
-		uint64_t u64[4];
-	} dk;
-
-	/* Derive AES key */
-	if (derive_key(memory, key, salt, dk.u8))
-		return -1;
-
 	/* AES CFB mode decryption */
 	AES_KEY ak;
-	AES_set_encrypt_key(dk.u8, 256, &ak);
-	AES_encrypt(saved_salt->iv, dk.u8, &ak);
+	AES_set_encrypt_key(dk->u8, 256, &ak);
+	AES_encrypt(saved_salt->iv, dk->u8, &ak);
 	uint64_t xor[2];
 	memcpy(xor, saved_salt->privkey, sizeof(xor));
-	dk.u64[0] ^= xor[0];
-	dk.u64[1] ^= xor[1];
-	AES_encrypt(saved_salt->privkey, &dk.u8[16], &ak);
+	dk->u64[0] ^= xor[0];
+	dk->u64[1] ^= xor[1];
+	AES_encrypt(saved_salt->privkey, &dk->u8[16], &ak);
 	memcpy(xor, saved_salt->privkey + 16, sizeof(xor));
-	dk.u64[2] ^= xor[0];
-	dk.u64[3] ^= xor[1];
+	dk->u64[2] ^= xor[0];
+	dk->u64[3] ^= xor[1];
 
 	/* Compute public key from decrypted private key */
 	secp256k1_pubkey pubkey;
-	if (secp256k1_ec_pubkey_create(secp256k1_ctx, &pubkey, dk.u8)) {
+	if (secp256k1_ec_pubkey_create(secp256k1_ctx, &pubkey, dk->u8)) {
 		unsigned char ser[65];
 		size_t serlen = sizeof(ser);
 		secp256k1_ec_pubkey_serialize(secp256k1_ctx, ser, &serlen, &pubkey, SECP256K1_EC_UNCOMPRESSED);
@@ -298,19 +296,17 @@ static int derive_address(region_t *memory, char *key, const struct custom_salt 
 			SHA256_CTX ctx;
 			SHA256_Init(&ctx);
 			SHA256_Update(&ctx, ser, sizeof(ser));
-			SHA256_Final(dk.u8, &ctx);
+			SHA256_Final(dk->u8, &ctx);
 		}
 		{
 			sph_ripemd160_context ctx;
 			sph_ripemd160_init(&ctx);
-			sph_ripemd160(&ctx, dk.u8, 32);
+			sph_ripemd160(&ctx, dk->u8, 32);
 			sph_ripemd160_close(&ctx, da);
 		}
 	} else {
 		memset(da, 0, BINARY_SIZE);
 	}
-
-	return 0;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
@@ -320,7 +316,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(index) shared(count, failed, max_threads, memory, saved_key, saved_salt, crypt_out)
 #endif
-	for (index = 0; index < count; index++) {
+	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef _OPENMP
 		int t = omp_get_thread_num();
 		if (t >= max_threads) {
@@ -331,12 +327,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		const int t = 0;
 #endif
 		errno = 0;
-		if (derive_address(&memory[t], saved_key[index], saved_salt, crypt_out[index])) {
+		derived_key dk[MIN_KEYS_PER_CRYPT];
+		if (derive_keys(&memory[t], index, dk)) {
 			failed = errno ? errno : ENOMEM;
 #ifndef _OPENMP
 			break;
 #endif
 		}
+		int subindex;
+		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++)
+			derive_address(memory, &dk[subindex], crypt_out[index + subindex]);
 	}
 
 	if (failed) {
