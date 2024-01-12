@@ -86,6 +86,7 @@ static struct fmt_tests tests[] = {
 	{"YXI6uOgnVa0B+Wx63/haI5oBRHkDf7ge3Kjc5LXnYXtnlIUHDD+J3u5ilyHfMmo7uaFaj1cbogHyjdZUhZj3a6XzdFE3NA0AAEAABgAAAARJgevrWUGCq2+5j8v3ei+vkZOpcUhdPDwrKTyXAU4znXCL2A==", "jtr-test-password"},
 	/* 32 MiB, 3 iterations */
 	{"YXI6q0bSuS3K6msHGDI5wSvD04RH7VqENEsIctti29xVGbyxLoqwIyGL53+qFOkW1Zqb6ZncatQZgX/3cf9XXxjFbSxGp4EAAAACAwAAAKKiUt8yakXdpwZ6SnbPFbwIsUzUUVMgwlySR02FFtMijFRpew==", "a3q92wz8"},
+	{"YXI6AjyVtsaXWcRnwXXVg8wxXIojao8Qbg9h6O3geKo7wW9DU9IwieZ3P9Zrad25GfcKNj92Ku8Y+zas7SYkOVKbM158up0AAAACAwAAAA6ucY42OWUaxhXVn8KufVHLdLzl0K4qlBFX7PXgvaFYeMGp7g==", "test_pxYe6q1MT"},
 	{NULL}
 };
 
