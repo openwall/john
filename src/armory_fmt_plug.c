@@ -141,6 +141,24 @@ static void done(void)
 	secp256k1_context_destroy(secp256k1_ctx);
 }
 
+/*
+ * Free the tests' memory allocation before actual cracking, so that it doesn't
+ * affect long-term memory usage in case the actual targets need less memory
+ * than the tests.  However, don't do this when proceeding from self-test to
+ * benchmark, so that memory (de)allocation time doesn't affect the speeds.
+ */
+void reset(struct db_main *db)
+{
+	if (benchmark_running)
+		return;
+
+	int i;
+	for (i = 0; i < max_threads; i++) {
+		free_region_t(&memory[i]);
+		init_region_t(&memory[i]);
+	}
+}
+
 static void *get_salt(char *ciphertext)
 {
 	uint8_t decoded[BINARY_SIZE + SALT_SIZE];
@@ -486,7 +504,7 @@ struct fmt_main fmt_armory = {
 	}, {
 		init,
 		done,
-		fmt_default_reset,
+		reset,
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
