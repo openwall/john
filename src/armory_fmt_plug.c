@@ -27,6 +27,7 @@ john_register_one(&fmt_armory);
 
 #include "base64_convert.h"
 #include "formats.h"
+#include "loader.h"
 #include "memory.h"
 #include "crc32.h"
 #include "sha2.h"
@@ -412,10 +413,10 @@ static void derive_address(region_t *memory, derived_key *dk, uint8_t *da)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int failed = 0, count = *pcount, index;
+	int failed = 0, cracked = !salt, count = *pcount, index;
 
 #ifdef _OPENMP
-#pragma omp parallel for default(none) private(index) shared(count, failed, max_threads, memory, saved_key, saved_salt, crypt_out)
+#pragma omp parallel for default(none) private(index) shared(count, failed, cracked, salt, max_threads, memory, saved_key, saved_salt, crypt_out)
 #endif
 	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #ifdef _OPENMP
@@ -427,6 +428,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 		const int t = 0;
 #endif
+
 		errno = 0;
 		derived_key dk[MIN_KEYS_PER_CRYPT];
 		if (derive_keys(&memory[t], index, dk)) {
@@ -435,9 +437,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			break;
 #endif
 		}
+
 		int subindex;
-		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++)
+		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
 			derive_address(memory, &dk[subindex], crypt_out[index + subindex]);
+
+			if (salt) {
+				struct db_password *pw = salt->list;
+				do {
+					if (!memcmp(pw->binary, crypt_out[index + subindex], BINARY_SIZE))
+						cracked = -1;
+				} while ((pw = pw->next));
+			}
+		}
 	}
 
 	if (failed) {
@@ -451,8 +463,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		error();
 	}
 
-
-	return count;
+	return cracked ? count : 0;
 }
 
 static int cmp_all(void *binary, int count)
