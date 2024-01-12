@@ -60,8 +60,6 @@ target wallet's settings.
 Since our built-in test vectors currently include 32 MiB test wallet data
 extracts, the self-test at startup will potentially (depending on number
 of threads and SIMD) consume a lot of memory (and take much time, too).
-That memory currently remains allocated further during the run even if
-your actual target wallet's data extract needs less memory.  If this is
-a problem (perhaps if you're on a system supporting a lot of hardware
-threads, but having little RAM), you may remove some test vectors from
-the "tests" array in armory_fmt_plug.c and re-run "make".
+If this is a problem (perhaps if you're on a system supporting a lot of
+hardware threads, but having little RAM), you may remove some test
+vectors from the "tests" array in armory_fmt_plug.c and re-run "make".
