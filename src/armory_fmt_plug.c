@@ -23,9 +23,7 @@ john_register_one(&fmt_armory);
 #endif
 
 #include "arch.h"
-#if !ARCH_LITTLE_ENDIAN
 #include "johnswap.h"
-#endif
 
 #include "base64_convert.h"
 #include "formats.h"
@@ -254,7 +252,6 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 		}
 
 		lut_item *p = lut;
-		JTR_ALIGN(64) lut_item x;
 
 #ifdef SIMD_COEF_64
 		JTR_ALIGN(64) uint64_t in[MIN_KEYS_PER_CRYPT][16];
@@ -270,25 +267,38 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 			SIMDSHA512body(in, p[1]->u64, NULL, SSEi_FLAT_IN|SSEi_FLAT_OUT);
 		} while (++p < &lut[n - 1]);
 
-		memcpy(x, *p, sizeof(x));
+		JTR_ALIGN(64) uint64_t x[16][MIN_KEYS_PER_CRYPT];
+		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
+			uint32_t k;
+			for (k = 0; k < 8; k++)
+				x[k][subindex] = JOHNSWAP64((*p)[subindex].u64[k]);
+			x[8][subindex] = 0x8000000000000000ULL;
+			for (k = 9; k < 15; k++)
+				x[k][subindex] = 0;
+			x[15][subindex] = 64 << 3;
+		}
 
 		uint32_t j = n >> 1;
 		do {
 			for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
-				uint32_t v = x[subindex].u32[15];
-#if !ARCH_LITTLE_ENDIAN
-				v = JOHNSWAP(v);
-#endif
-				p = &lut[v & (n - 1)];
+				uint32_t v = x[7][subindex];
+				p = &lut[JOHNSWAP(v) & (n - 1)];
 
 				uint32_t k;
 				for (k = 0; k < 8; k++)
-					x[subindex].u64[k] ^= (*p)[subindex].u64[k];
-				memcpy(in[subindex], &x[subindex], 64);
+					x[k][subindex] ^= JOHNSWAP64((*p)[subindex].u64[k]);
 			}
 
-			SIMDSHA512body(in, x[0].u64, NULL, SSEi_FLAT_IN|SSEi_FLAT_OUT);
+			SIMDSHA512body(x, x[0], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
 		} while (--j);
+
+		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
+			uint32_t k;
+			for (k = 0; k < 4; k++)
+				dk[subindex].u64[k] = JOHNSWAP64(x[k][subindex]);
+			mk[subindex] = dk[subindex].u8;
+			mklen[subindex] = 32;
+		}
 #elif MIN_KEYS_PER_CRYPT == 1
 		SHA512_CTX ctx;
 		do {
@@ -297,6 +307,7 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 			SHA512_Final((*++p)[0].u8, &ctx);
 		} while (p < &lut[n - 1]);
 
+		lut_item x;
 		memcpy(x, *p, sizeof(x));
 
 		uint32_t j = n >> 1;
@@ -315,12 +326,12 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 			SHA512_Update(&ctx, &x, 64);
 			SHA512_Final(x[0].u8, &ctx);
 		} while (--j);
-#else
-#error "This code only supports either SIMD or MIN_KEYS_PER_CRYPT = 1"
-#endif
 
 		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++)
 			memcpy(mk[subindex] = dk[subindex].u8, x[subindex].u8, mklen[subindex] = 32);
+#else
+#error "This code only supports either SIMD or MIN_KEYS_PER_CRYPT = 1"
+#endif
 	} while (--i);
 
 	return 0;
