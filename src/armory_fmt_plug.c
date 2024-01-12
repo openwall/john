@@ -253,6 +253,8 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 
 		lut_item *p = lut;
 
+#define DO8 DO(0) DO(1) DO(2) DO(3) DO(4) DO(5) DO(6) DO(7)
+
 #ifdef SIMD_COEF_64
 		JTR_ALIGN(64) uint64_t x[16][MIN_KEYS_PER_CRYPT];
 		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
@@ -266,15 +268,19 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 		}
 
 		do {
-			uint32_t k;
 #if (__AVX512F__ || __MIC__) && SIMD_PARA_SHA512 == 1
 			vtype idxs = vset_epi64(7<<3, 6<<3, 5<<3, 4<<3, 3<<3, 2<<3, 1<<3, 0<<3);
-			for (k = 0; k < 8; k++)
-				vscatter_epi64(&(*p)[0].u64[k], idxs, *(vtype *)&x[k], 8);
+#define DO(k) \
+			vscatter_epi64(&(*p)[0].u64[k], idxs, *(vtype *)&x[k], 8);
+			DO8
+#undef DO
 #else
-			for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++)
-				for (k = 0; k < 8; k++)
-					(*p)[subindex].u64[k] = x[k][subindex];
+			for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
+#define DO(k) \
+				(*p)[subindex].u64[k] = x[k][subindex];
+				DO8
+#undef DO
+			}
 #endif
 
 			if (++p >= &lut[n])
@@ -289,9 +295,10 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 				uint32_t v = x[7][subindex];
 				p = &lut[JOHNSWAP(v) & (n - 1)];
 
-				uint32_t k;
-				for (k = 0; k < 8; k++)
-					x[k][subindex] ^= (*p)[subindex].u64[k];
+#define DO(k) \
+				x[k][subindex] ^= (*p)[subindex].u64[k];
+				DO8
+#undef DO
 			}
 
 			SIMDSHA512body(x, x[0], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
@@ -323,9 +330,10 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 #endif
 			p = &lut[v & (n - 1)];
 
-			uint32_t k;
-			for (k = 0; k < 8; k++)
-				x[0].u64[k] ^= (*p)[0].u64[k];
+#define DO(k) \
+			x[0].u64[k] ^= (*p)[0].u64[k];
+			DO8
+#undef DO
 
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, &x, 64);
