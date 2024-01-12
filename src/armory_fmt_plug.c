@@ -254,19 +254,6 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 		lut_item *p = lut;
 
 #ifdef SIMD_COEF_64
-		JTR_ALIGN(64) uint64_t in[MIN_KEYS_PER_CRYPT][16];
-		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
-			in[subindex][8] = 0x80;
-			memset(&in[subindex][9], 0, 48);
-			in[subindex][15] = 64 << 3;
-		}
-
-		do {
-			for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++)
-				memcpy(in[subindex], &(*p)[subindex], 64);
-			SIMDSHA512body(in, p[1]->u64, NULL, SSEi_FLAT_IN|SSEi_FLAT_OUT);
-		} while (++p < &lut[n - 1]);
-
 		JTR_ALIGN(64) uint64_t x[16][MIN_KEYS_PER_CRYPT];
 		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
 			uint32_t k;
@@ -278,6 +265,19 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 			x[15][subindex] = 64 << 3;
 		}
 
+		do {
+			for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
+				uint32_t k;
+				for (k = 0; k < 8; k++)
+					(*p)[subindex].u64[k] = x[k][subindex];
+			}
+
+			if (++p >= &lut[n])
+				break;
+
+			SIMDSHA512body(x, x[0], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+		} while (1);
+
 		uint32_t j = n >> 1;
 		do {
 			for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
@@ -286,7 +286,7 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 
 				uint32_t k;
 				for (k = 0; k < 8; k++)
-					x[k][subindex] ^= JOHNSWAP64((*p)[subindex].u64[k]);
+					x[k][subindex] ^= (*p)[subindex].u64[k];
 			}
 
 			SIMDSHA512body(x, x[0], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
