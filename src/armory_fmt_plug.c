@@ -290,8 +290,13 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 		do {
 #if (__AVX512F__ || __MIC__) && SIMD_PARA_SHA512 == 1
 			vtype idxs = vset_epi64(7<<3, 6<<3, 5<<3, 4<<3, 3<<3, 2<<3, 1<<3, 0<<3);
+#if __AVX512F__
 #define DO(k) \
 			vscatter_epi64(&(*p)[0].u64[k], idxs, *(vtype *)&x[k], 8);
+#else /* Sequential writes and smaller code size, but slower on Tiger Lake */
+#define DO(k) \
+			*(vtype *)(*p)[k].u64 = vgather_epi64((vtype *)&x[0][k], idxs, 8);
+#endif
 			DO8
 #undef DO
 #else
