@@ -26,11 +26,9 @@
  * values, the hash function has to shuffle it. But 0x80 and length must be
  * in place.
  *
- * SSEi_CSTRING_IN
- * Input will be just as for OpenSSL: A normal char[COEF][64] array where
- * each string ends in NULL, with no 0x80 or length prepared. The intrinsics
- * function needs to take care of that as well as cleaning (after NULL),
- * shuffling and possibly do endian swapping if applicable.
+ * SSEi_HALF_IN
+ * Input is like SSEi_MIXED_IN, but elements 9 to 14 are assumed all zeroes.
+ * Currently only implemented for SHA-512.
  *
  * SSEi_FLAT_OUT
  * Output will be just as from OpenSSL. Swapped if applicable, not interleaved.
@@ -85,7 +83,7 @@ typedef enum {
 	SSEi_NO_OP                   = 0x0, /* No-op */
 	SSEi_MIXED_IN                = 0x0,
 	SSEi_FLAT_IN                 = 0x1,
-/*	SSEi_CSTRING_IN              = 0x2,	NOT IMPLEMENTED YET*/
+	SSEi_HALF_IN                 = 0x2,
 	SSEi_FLAT_OUT                = 0x4,
 	SSEi_RELOAD                  = 0x8,
 	SSEi_RELOAD_INP_FMT          = 0x10 | SSEi_RELOAD,
