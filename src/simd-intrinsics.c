@@ -2272,6 +2272,24 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
     w[i][(t)&0xf] = vadd_epi64(tmp1[i], tmp2[i]);                   \
 }
 
+#define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)                    \
+{                                                           \
+    SHA512_PARA_DO(i)                                       \
+    {                                                       \
+        tmp1[i] = vadd_epi64(h[i],    w[i][(x)&0xf]);       \
+        tmp2[i] = vadd_epi64(S1(e[i]),vset1_epi64(K));      \
+        tmp1[i] = vadd_epi64(tmp1[i], Ch(e[i],f[i],g[i]));  \
+        tmp1[i] = vadd_epi64(tmp1[i], tmp2[i]);             \
+        tmp2[i] = vadd_epi64(S0(a[i]),Maj(a[i],b[i],c[i])); \
+        d[i]    = vadd_epi64(tmp1[i], d[i]);                \
+        h[i]    = vadd_epi64(tmp1[i], tmp2[i]);             \
+        if (x < 64) R(x);                                   \
+    }                                                       \
+}
+
+#define SHA512_MANUAL_OPT 0
+
+#if SHA512_MANUAL_OPT
 #undef R0
 #define R0(t)                                                       \
     w[i][t] = vadd_epi64(s0(w[i][(t-15)&0xf]), w[i][(t-16)&0xf]);
@@ -2303,21 +2321,6 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
     w[i][t] = vadd_epi64(tmp1[i], tmp2[i]);                         \
 }
 
-#define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)                    \
-{                                                           \
-    SHA512_PARA_DO(i)                                       \
-    {                                                       \
-        tmp1[i] = vadd_epi64(h[i],    w[i][(x)&0xf]);       \
-        tmp2[i] = vadd_epi64(S1(e[i]),vset1_epi64(K));      \
-        tmp1[i] = vadd_epi64(tmp1[i], Ch(e[i],f[i],g[i]));  \
-        tmp1[i] = vadd_epi64(tmp1[i], tmp2[i]);             \
-        tmp2[i] = vadd_epi64(S0(a[i]),Maj(a[i],b[i],c[i])); \
-        d[i]    = vadd_epi64(tmp1[i], d[i]);                \
-        h[i]    = vadd_epi64(tmp1[i], tmp2[i]);             \
-        if (x < 64) R(x);                                   \
-    }                                                       \
-}
-
 #define SHA512_STEP0(a,b,c,d,e,f,g,h,x,K)                   \
 {                                                           \
     SHA512_PARA_DO(i)                                       \
@@ -2337,6 +2340,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
         if (x < 64) R(x);                                   \
     }                                                       \
 }
+#endif
 
 #define INIT_D 0x152fecd8f70e5939ULL
 
@@ -2436,7 +2440,7 @@ next:
 		SHA512_PARA_DO(k)
 		{
 			w[k][8] = vset1_epi64(0x8000000000000000ULL);
-#if 0
+#if !SHA512_MANUAL_OPT
 			w[k][9] =
 			w[k][10] =
 			w[k][11] =
@@ -2510,6 +2514,7 @@ next:
 		}
 	}
 
+#if SHA512_MANUAL_OPT
 	if (SSEi_flags & SSEi_HALF_IN) {
 		SHA512_STEP0(a, b, c, d, e, f, g, h,  0, 0x428a2f98d728ae22ULL);
 		SHA512_STEP0(h, a, b, c, d, e, f, g,  1, 0x7137449123ef65cdULL);
@@ -2527,6 +2532,7 @@ next:
 		SHA512_STEP0(d, e, f, g, h, a, b, c, 13, 0x80deb1fe3b1696b1ULL);
 		SHA512_STEP0(c, d, e, f, g, h, a, b, 14, 0x9bdc06a725c71235ULL);
 	} else {
+#endif
 		SHA512_STEP(a, b, c, d, e, f, g, h,  0, 0x428a2f98d728ae22ULL);
 		SHA512_STEP(h, a, b, c, d, e, f, g,  1, 0x7137449123ef65cdULL);
 		SHA512_STEP(g, h, a, b, c, d, e, f,  2, 0xb5c0fbcfec4d3b2fULL);
@@ -2542,7 +2548,9 @@ next:
 		SHA512_STEP(e, f, g, h, a, b, c, d, 12, 0x72be5d74f27b896fULL);
 		SHA512_STEP(d, e, f, g, h, a, b, c, 13, 0x80deb1fe3b1696b1ULL);
 		SHA512_STEP(c, d, e, f, g, h, a, b, 14, 0x9bdc06a725c71235ULL);
+#if SHA512_MANUAL_OPT
 	}
+#endif
 	SHA512_STEP(b, c, d, e, f, g, h, a, 15, 0xc19bf174cf692694ULL);
 
 	SHA512_STEP(a, b, c, d, e, f, g, h, 16, 0xe49b69c19ef14ad2ULL);
