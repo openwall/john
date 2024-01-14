@@ -188,7 +188,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		uint64_t *keys64, *tmpBuf64=(uint64_t*)tmpBuf, *p64;
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
 		keys64 = (uint64_t*)keys;
-		memset(keys, 0, 128*MIN_KEYS_PER_CRYPT);
 
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			SHA512_Init(&ctx);
@@ -202,8 +201,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #else
 				p64[j*SIMD_COEF_64] = tmpBuf64[j];
 #endif
-			p64[8*SIMD_COEF_64] = 0x8000000000000000ULL;
-			p64[15*SIMD_COEF_64] = 0x200;
 		}
 		uint64_t rounds = 98;
 		SIMDSHA512body(keys, keys64, &rounds, SSEi_HALF_IN|SSEi_LOOP);
