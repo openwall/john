@@ -57,6 +57,9 @@ john_register_one(&fmt_ecryptfs1);
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512)
 #define MAX_KEYS_PER_CRYPT      (SIMD_COEF_64*SIMD_PARA_SHA512 * 2)
+/* We use SSEi_HALF_IN, so can halve SHA_BUF_SIZ */
+#undef SHA_BUF_SIZ
+#define SHA_BUF_SIZ 8
 #if ARCH_LITTLE_ENDIAN==1
 #define GETPOS_512(i, index)    ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64 *8 )
 #else
@@ -206,7 +209,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_64
 		unsigned char tmpBuf[64];
 		unsigned int i;
-		unsigned char _IBuf[128*MIN_KEYS_PER_CRYPT+MEM_ALIGN_CACHE], *keys;
+		unsigned char _IBuf[8*SHA_BUF_SIZ*MIN_KEYS_PER_CRYPT+MEM_ALIGN_CACHE], *keys;
 		uint64_t *keys64;
 
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);

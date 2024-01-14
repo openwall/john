@@ -634,6 +634,10 @@ static int mbedtls_pkcs12_derivation_simd_sha256( unsigned char *data[SSE_GROUP_
 
 #if defined(SIMD_COEF_64)
 
+/* We use SSEi_HALF_IN, so can halve SHA_BUF_SIZ */
+#undef SHA_BUF_SIZ
+#define SHA_BUF_SIZ 8
+
 // 64 bit mixer
 #if ARCH_LITTLE_ENDIAN==1
 #define GETPOS4(i, index)        ( (index&(SIMD_COEF_64-1))*8 + ((i)&(0xffffffff-7))*SIMD_COEF_64 + (7-((i)&7)) + (unsigned int)index/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64*8 )
