@@ -2434,6 +2434,16 @@ static MAYBE_INLINE void SIMDSHA512univ(vtype* data, uint64_t *out, uint64_t *re
 			w[k][5] = _data[5];
 			w[k][6] = _data[6];
 			w[k][7] = _data[7];
+			w[k][8] = vset1_epi64(0x8000000000000000ULL);
+#if !SHA512_MANUAL_OPT
+			w[k][9] =
+			w[k][10] =
+			w[k][11] =
+			w[k][12] =
+			w[k][13] =
+			w[k][14] = vset1_epi64(0);
+#endif
+			w[k][15] = vset1_epi64(64 << 3);
 			_data += 16;
 		}
 next:
