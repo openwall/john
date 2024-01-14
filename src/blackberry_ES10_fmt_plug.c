@@ -182,10 +182,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int j;
 		SHA512_CTX ctx;
 #ifdef SIMD_COEF_64
+/* We use SSEi_HALF_IN, so can halve SHA_BUF_SIZ */
+#undef SHA_BUF_SIZ
+#define SHA_BUF_SIZ 8
 		unsigned int i;
-		unsigned char _IBuf[128*MIN_KEYS_PER_CRYPT+MEM_ALIGN_CACHE],
-		              *keys, tmpBuf[128];
-		uint64_t *keys64, *tmpBuf64=(uint64_t*)tmpBuf, *p64;
+		unsigned char _IBuf[8*SHA_BUF_SIZ*MIN_KEYS_PER_CRYPT+MEM_ALIGN_CACHE], *keys;
+		uint64_t *keys64, tmpBuf64[SHA_BUF_SIZ], *p64;
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
 		keys64 = (uint64_t*)keys;
 
@@ -193,7 +195,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, saved_key[index+i], strlen(saved_key[index+i]));
 			SHA512_Update(&ctx, cur_salt->salt, strlen((char*)cur_salt->salt));
-			SHA512_Final(tmpBuf, &ctx);
+			SHA512_Final((unsigned char *)tmpBuf64, &ctx);
 			p64 = &keys64[i%SIMD_COEF_64+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64];
 			for (j = 0; j < 8; ++j)
 #if ARCH_LITTLE_ENDIAN==1

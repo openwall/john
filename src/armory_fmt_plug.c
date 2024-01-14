@@ -276,7 +276,7 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 #define DO8 DO(0) DO(1) DO(2) DO(3) DO(4) DO(5) DO(6) DO(7)
 
 #ifdef SIMD_COEF_64
-		JTR_ALIGN(64) uint64_t x[16][MIN_KEYS_PER_CRYPT];
+		JTR_ALIGN(64) uint64_t x[8][MIN_KEYS_PER_CRYPT];
 		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
 			uint32_t k;
 			for (k = 0; k < 8; k++)

@@ -271,6 +271,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		int i;
 
 #ifdef SIMD_COEF_64
+/* We use SSEi_HALF_IN, so can halve SHA_BUF_SIZ */
+#undef SHA_BUF_SIZ
+#define SHA_BUF_SIZ 8
 		char unaligned_buf[MIN_KEYS_PER_CRYPT*SHA_BUF_SIZ*sizeof(uint64_t)+MEM_ALIGN_SIMD];
 		uint64_t *key_iv = (uint64_t*)mem_align(unaligned_buf, MEM_ALIGN_SIMD);
 		JTR_ALIGN(8)  unsigned char hash1[SHA512_DIGEST_LENGTH];            // 512 bits
