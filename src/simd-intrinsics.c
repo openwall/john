@@ -2352,8 +2352,7 @@ void sha384_unreverse(uint64_t *hash)
 
 #undef INIT_D
 
-void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
-                   unsigned SSEi_flags)
+static MAYBE_INLINE void SIMDSHA512univ(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags)
 {
 	unsigned int i, k;
 
@@ -2762,6 +2761,21 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 			vstore((vtype*)&(out[i*8*VS64+7*VS64]), h[i]);
 		}
 	}
+}
+
+void SIMDSHA512halfinout(vtype* data, uint64_t *out, uint64_t *reload_state)
+{
+	SIMDSHA512univ(data, out, reload_state, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
+}
+
+void SIMDSHA512half(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags)
+{
+	SIMDSHA512univ(data, out, reload_state, SSEi_flags | SSEi_HALF_IN);
+}
+
+void SIMDSHA512full(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags)
+{
+	SIMDSHA512univ(data, out, reload_state, SSEi_flags & ~SSEi_HALF_IN);
 }
 
 #endif /* SIMD_PARA_SHA512 */
