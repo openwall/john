@@ -555,7 +555,7 @@ static int crypt_all(int *pcount, struct db_salt *salt,
 		SIMDSHA512body(&crypt_key[index * PAD_SIZE],
 		            (uint64_t*)&crypt_key[index * PAD_SIZE],
 		            (uint64_t*)&prep_opad[index * BINARY_SIZE],
-		            SSEi_MIXED_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|EX_FLAGS);
+		            SSEi_HALF_IN|SSEi_RELOAD|SSEi_OUTPUT_AS_INP_FMT|EX_FLAGS);
 #else
 		SHA512_CTX ctx;
 

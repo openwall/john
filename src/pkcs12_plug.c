@@ -724,7 +724,7 @@ static int mbedtls_pkcs12_derivation_simd_sha512( unsigned char *data[SSE_GROUP_
 
 		// Perform remaining ( iterations - 1 ) recursive hash calculations
 		for ( i = 1; i < (size_t) iterations; i++ )
-			SIMDSHA512body(sse_buf, (uint64_t*)sse_buf, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA512body(sse_buf, (uint64_t*)sse_buf, NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
 
 		// Now unmarshall the data from sse_buf
 		use_len = ( datalen > hlen ) ? hlen : datalen;
