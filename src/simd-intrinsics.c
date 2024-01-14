@@ -2415,15 +2415,32 @@ static MAYBE_INLINE void SIMDSHA512univ(vtype* data, uint64_t *out, uint64_t *re
 			w[k][15] = tmp2[k];
 		}
 	} else if (SSEi_flags & SSEi_HALF_IN) {
+		vtype *_data = data;
 		SHA512_PARA_DO(k)
 		{
-			memcpy(w[k], data, 9 * sizeof(vtype));
-			data += 9;
-#ifdef DEBUG
-			memset(&w[k][9], 0x55, 6 * sizeof(vtype));
+			w[k][0] = _data[0];
+			w[k][1] = _data[1];
+			w[k][2] = _data[2];
+			w[k][3] = _data[3];
+			w[k][4] = _data[4];
+			w[k][5] = _data[5];
+			w[k][6] = _data[6];
+			w[k][7] = _data[7];
+			_data += 16;
+		}
+next:
+		SHA512_PARA_DO(k)
+		{
+			w[k][8] = vset1_epi64(0x8000000000000000ULL);
+#if 0
+			w[k][9] =
+			w[k][10] =
+			w[k][11] =
+			w[k][12] =
+			w[k][13] =
+			w[k][14] = vset1_epi64(0);
 #endif
-			data += 6;
-			memcpy(&w[k][15], data++, sizeof(vtype));
+			w[k][15] = vset1_epi64(64 << 3);
 		}
 	} else
 		memcpy(w, data, 16 * sizeof(vtype) * SIMD_PARA_SHA512);
@@ -2671,6 +2688,64 @@ static MAYBE_INLINE void SIMDSHA512univ(vtype* data, uint64_t *out, uint64_t *re
 		}
 	}
 
+	if ((SSEi_flags & (SSEi_HALF_IN | SSEi_LOOP)) == (SSEi_HALF_IN | SSEi_LOOP)) {
+		SHA512_PARA_DO(i)
+		{
+			w[i][0] = a[i];
+			w[i][1] = b[i];
+			w[i][2] = c[i];
+			w[i][3] = d[i];
+			w[i][4] = e[i];
+			w[i][5] = f[i];
+			w[i][6] = g[i];
+			w[i][7] = h[i];
+		}
+
+		if (SSEi_flags & SSEi_FLAT_OUT) {
+			SHA512_PARA_DO(i)
+			{
+				uint64_t *o = (uint64_t*)&out[i*8*VS64];
+#if __AVX512F__ || __MIC__
+				vtype idxs = vset_epi64(7<<3, 6<<3, 5<<3, 4<<3, 3<<3, 2<<3, 1<<3, 0<<3);
+
+				vscatter_epi64(o + 0, idxs, a[i], 8);
+				vscatter_epi64(o + 1, idxs, b[i], 8);
+				vscatter_epi64(o + 2, idxs, c[i], 8);
+				vscatter_epi64(o + 3, idxs, d[i], 8);
+				vscatter_epi64(o + 4, idxs, e[i], 8);
+				vscatter_epi64(o + 5, idxs, f[i], 8);
+				vscatter_epi64(o + 6, idxs, g[i], 8);
+				vscatter_epi64(o + 7, idxs, h[i], 8);
+#else
+				uint64_t j, k;
+				union {
+					vtype v[8];
+					uint64_t s[8 * VS64];
+				} tmp;
+
+				tmp.v[0] = a[i];
+				tmp.v[1] = b[i];
+				tmp.v[2] = c[i];
+				tmp.v[3] = d[i];
+				tmp.v[4] = e[i];
+				tmp.v[5] = f[i];
+				tmp.v[6] = g[i];
+				tmp.v[7] = h[i];
+				for (j = 0; j < VS64; j++)
+					for (k = 0; k < 8; k++)
+						o[j*8+k] = tmp.s[k*VS64+j];
+#endif
+			}
+			out += SIMD_PARA_SHA512 * VS64 * 8;
+			if (out < reload_state)
+				goto next;
+			out = (uint64_t *)data;
+		} else {
+			if (--*reload_state)
+				goto next;
+		}
+		goto out;
+	} else
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		SHA512_PARA_DO(i)
 		{
@@ -2734,6 +2809,7 @@ static MAYBE_INLINE void SIMDSHA512univ(vtype* data, uint64_t *out, uint64_t *re
 				vstore((vtype*)&out[i*32*VS64+7*VS64], h[i]);
 			}
 		} else {
+out:
 			SHA512_PARA_DO(i)
 			{
 				vstore((vtype*)&out[i*16*VS64+0*VS64], a[i]);
@@ -2763,9 +2839,19 @@ static MAYBE_INLINE void SIMDSHA512univ(vtype* data, uint64_t *out, uint64_t *re
 	}
 }
 
-void SIMDSHA512halfinout(vtype* data, uint64_t *out, uint64_t *reload_state)
+void SIMDSHA512halfloop(vtype* data, uint64_t *out, uint64_t *count)
 {
-	SIMDSHA512univ(data, out, reload_state, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
+	SIMDSHA512univ(data, out, count, SSEi_HALF_IN|SSEi_LOOP);
+}
+
+void SIMDSHA512halfloopflat(vtype* data, uint64_t *out, uint64_t *end)
+{
+	SIMDSHA512univ(data, out, end, SSEi_HALF_IN|SSEi_LOOP|SSEi_FLAT_OUT);
+}
+
+void SIMDSHA512halfinout(vtype* data, uint64_t *out)
+{
+	SIMDSHA512univ(data, out, NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
 }
 
 void SIMDSHA512half(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags)

@@ -299,8 +299,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			key_iv[15*SIMD_COEF_64 + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = (SHA512_DIGEST_LENGTH << 3);
 		}
 
-		for (i = 1; i < cur_salt->cry_rounds; i++)  // start at 1; the first iteration is already done
-			SIMDSHA512body(key_iv, key_iv, NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
+		// the first iteration is already done above
+		uint64_t rounds = cur_salt->cry_rounds - 1;
+		SIMDSHA512body(key_iv, key_iv, &rounds, SSEi_HALF_IN|SSEi_LOOP);
 
 		for (index2 = 0; index2 < MIN_KEYS_PER_CRYPT; index2++) {
 			AES_KEY aes_key;
