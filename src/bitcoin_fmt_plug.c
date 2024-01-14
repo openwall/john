@@ -287,16 +287,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < SHA512_DIGEST_LENGTH/sizeof(uint64_t); ++i) {
 				key_iv[SIMD_COEF_64*i + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = sha_ctx.h[i];
 			}
-
-			// We need to set ONE time, the upper half of the data buffer.  We put the 0x80 byte (in BE format), at offset
-			// 512-bits (SHA512_DIGEST_LENGTH) multiplied by the SIMD_COEF_64 (same as MIN_KEYS_PER_CRYPT), then zero
-			// out the rest of the buffer, putting 512 (#bits) at the end.  Once this part of the buffer is set up, we never
-			// touch it again, for the rest of the crypt.  We simply overwrite the first half of this buffer, over and over
-			// again, with BE results of the prior hash.
-			key_iv[ SHA512_DIGEST_LENGTH/sizeof(uint64_t) * SIMD_COEF_64 + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64 ] = 0x8000000000000000ULL;
-			for (i = (SHA512_DIGEST_LENGTH/sizeof(uint64_t)+1); i < 15; i++)
-				key_iv[i*SIMD_COEF_64 + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = 0;
-			key_iv[15*SIMD_COEF_64 + (index2&(SIMD_COEF_64-1)) + index2/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = (SHA512_DIGEST_LENGTH << 3);
 		}
 
 		// the first iteration is already done above

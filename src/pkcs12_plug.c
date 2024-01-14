@@ -700,7 +700,6 @@ static int mbedtls_pkcs12_derivation_simd_sha512( unsigned char *data[SSE_GROUP_
 	v = 128;
 
 	memset(diversifier, (unsigned char) id, v);
-	memset(sse_buf, 0, sizeof(sse_buf));
 
 	pkcs12_fill_salt_buffer_simd(salt_block, v, salt, saltlen, SSE_GROUP_SZ_SHA512);
 	pkcs12_fill_buffer_simd(pwd_block,  v, pwd,  pwdlen, SSE_GROUP_SZ_SHA512);
@@ -718,8 +717,6 @@ static int mbedtls_pkcs12_derivation_simd_sha512( unsigned char *data[SSE_GROUP_
 			for (i = 0; i < SHA512_DIGEST_LENGTH; ++i) {
 				sse_buf[GETPOS4(i, k)] = hash[i];
 			}
-			sse_buf[GETPOS4(64,k)] = 0x80;
-			sse_buf[GETPOS4(126,k)] = 2; // (SHA512_DIGEST_LENGTH<<3);
 		}
 
 		// Perform remaining ( iterations - 1 ) recursive hash calculations

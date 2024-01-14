@@ -211,7 +211,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
 		keys64 = (uint64_t*)keys;
-		memset(keys, 0, 128*MIN_KEYS_PER_CRYPT);
 
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			SHA512_Init(&ctx);
@@ -220,14 +219,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA512_Final((unsigned char *)tmpBuf, &ctx);
 			for (j = 0; j < 64; ++j)
 				keys[GETPOS_512(j, i)] = tmpBuf[j];
-			keys[GETPOS_512(j, i)] = 0x80;
-			// 64 bytes of crypt data (0x200 bits).
-			keys[GETPOS_512(126, i)] = 0x02;
 		}
 		uint64_t rounds = ECRYPTFS_DEFAULT_NUM_HASH_ITERATIONS - 1;
 		SIMDSHA512body(keys, keys64, &rounds, SSEi_HALF_IN|SSEi_LOOP);
 		// Last one with FLAT_OUT
-		SIMDSHA512body(keys, (uint64_t*)crypt_out[index], NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
+		SIMDSHA512body(keys, (uint64_t*)crypt_out[index], NULL, SSEi_HALF_IN|SSEi_FLAT_OUT);
 #else
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, cur_salt->salt, ECRYPTFS_SALT_SIZE);
