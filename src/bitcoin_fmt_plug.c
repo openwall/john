@@ -300,7 +300,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 		for (i = 1; i < cur_salt->cry_rounds; i++)  // start at 1; the first iteration is already done
-			SIMDSHA512body(key_iv, key_iv, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA512body(key_iv, key_iv, NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
 
 		for (index2 = 0; index2 < MIN_KEYS_PER_CRYPT; index2++) {
 			AES_KEY aes_key;

@@ -225,9 +225,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			keys[GETPOS_512(126, i)] = 0x02;
 		}
 		for (j = 1; j < ECRYPTFS_DEFAULT_NUM_HASH_ITERATIONS; j++)
-			SIMDSHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA512body(keys, keys64, NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
 		// Last one with FLAT_OUT
-		SIMDSHA512body(keys, (uint64_t*)crypt_out[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
+		SIMDSHA512body(keys, (uint64_t*)crypt_out[index], NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
 #else
 		SHA512_Init(&ctx);
 		SHA512_Update(&ctx, cur_salt->salt, ECRYPTFS_SALT_SIZE);

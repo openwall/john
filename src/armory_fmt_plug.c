@@ -311,7 +311,7 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 			if (++p >= &lut[n])
 				break;
 
-			SIMDSHA512body(x, x[0], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA512body(x, x[0], NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
 		} while (1);
 
 		uint32_t j = n >> 1;
@@ -326,7 +326,7 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 #undef DO
 			}
 
-			SIMDSHA512body(x, x[0], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA512body(x, x[0], NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
 		} while (--j);
 
 		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
