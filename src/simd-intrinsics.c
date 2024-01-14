@@ -2368,6 +2368,8 @@ static MAYBE_INLINE void SIMDSHA512univ(vtype* data, uint64_t *out, uint64_t *re
 	vtype tmp1[SIMD_PARA_SHA512], tmp2[SIMD_PARA_SHA512];
 
 	if (SSEi_flags & SSEi_FLAT_IN) {
+		SSEi_flags &= ~SSEi_HALF_IN;
+
 		uint64_t *_data = (uint64_t*)data;
 		SHA512_PARA_DO(k)
 		{
@@ -2415,6 +2417,8 @@ static MAYBE_INLINE void SIMDSHA512univ(vtype* data, uint64_t *out, uint64_t *re
 			w[k][15] = tmp2[k];
 		}
 	} else if (SSEi_flags & SSEi_HALF_IN) {
+		SSEi_flags &= ~(SSEi_FLAT_IN|SSEi_RELOAD|SSEi_REVERSE_STEPS|SSEi_CRYPT_SHA384|SSEi_OUTPUT_AS_2BUF_INP_FMT);
+
 		vtype *_data = data;
 		SHA512_PARA_DO(k)
 		{
