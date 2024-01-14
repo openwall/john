@@ -2272,6 +2272,37 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
     w[i][(t)&0xf] = vadd_epi64(tmp1[i], tmp2[i]);                   \
 }
 
+#undef R0
+#define R0(t)                                                       \
+    w[i][t] = vadd_epi64(s0(w[i][(t-15)&0xf]), w[i][(t-16)&0xf]);
+
+#undef R1
+#define R1(t)                                                       \
+{                                                                   \
+    tmp1[i] = s1(w[i][(t-2)&0xf]);                                  \
+    tmp2[i] = vadd_epi64(s0(w[i][(t-15)&0xf]), w[i][(t-16)&0xf]);   \
+    w[i][t] = vadd_epi64(tmp1[i], tmp2[i]);                         \
+}
+
+#undef R2
+#define R2(t)                                                       \
+{                                                                   \
+    tmp1[i] = vadd_epi64(s1(w[i][t-2]), w[i][t-7]);                 \
+    w[i][t] = vadd_epi64(tmp1[i], w[i][(t-16)&0xf]);                \
+}
+
+#undef R3
+#define R3(t)                                                       \
+    w[i][t] = vadd_epi64(s1(w[i][t-2]), w[i][t-7]);
+
+#undef R4
+#define R4(t)                                                       \
+{                                                                   \
+    tmp1[i] = vadd_epi64(s1(w[i][t-2]), w[i][t-7]);                 \
+    tmp2[i] = s0(w[i][(t-15)&0xf]);                                 \
+    w[i][t] = vadd_epi64(tmp1[i], tmp2[i]);                         \
+}
+
 #define SHA512_STEP(a,b,c,d,e,f,g,h,x,K)                    \
 {                                                           \
     SHA512_PARA_DO(i)                                       \
@@ -2283,6 +2314,26 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
         tmp2[i] = vadd_epi64(S0(a[i]),Maj(a[i],b[i],c[i])); \
         d[i]    = vadd_epi64(tmp1[i], d[i]);                \
         h[i]    = vadd_epi64(tmp1[i], tmp2[i]);             \
+        if (x < 64) R(x);                                   \
+    }                                                       \
+}
+
+#define SHA512_STEP0(a,b,c,d,e,f,g,h,x,K)                   \
+{                                                           \
+    SHA512_PARA_DO(i)                                       \
+    {                                                       \
+        tmp1[i] = (x > 8 && x < 15) ? h[i] : vadd_epi64(h[i], w[i][(x)&0xf]); \
+        tmp2[i] = vadd_epi64(S1(e[i]),vset1_epi64(K));      \
+        tmp1[i] = vadd_epi64(tmp1[i], Ch(e[i],f[i],g[i]));  \
+        tmp1[i] = vadd_epi64(tmp1[i], tmp2[i]);             \
+        tmp2[i] = vadd_epi64(S0(a[i]),Maj(a[i],b[i],c[i])); \
+        d[i]    = vadd_epi64(tmp1[i], d[i]);                \
+        h[i]    = vadd_epi64(tmp1[i], tmp2[i]);             \
+        if (x == 0) R0(x) else                              \
+        if (x < 6) R1(x) else                               \
+        if (x == 8) R2(x) else                              \
+        if (x > 8 && x < 14) R3(x) else                     \
+        if (x == 14) R4(x) else                             \
         if (x < 64) R(x);                                   \
     }                                                       \
 }
@@ -2364,6 +2415,17 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 			w[k][14] = tmp1[k];
 			w[k][15] = tmp2[k];
 		}
+	} else if (SSEi_flags & SSEi_HALF_IN) {
+		SHA512_PARA_DO(k)
+		{
+			memcpy(w[k], data, 9 * sizeof(vtype));
+			data += 9;
+#ifdef DEBUG
+			memset(&w[k][9], 0x55, 6 * sizeof(vtype));
+#endif
+			data += 6;
+			memcpy(&w[k][15], data++, sizeof(vtype));
+		}
 	} else
 		memcpy(w, data, 16 * sizeof(vtype) * SIMD_PARA_SHA512);
 
@@ -2428,21 +2490,39 @@ void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state,
 		}
 	}
 
-	SHA512_STEP(a, b, c, d, e, f, g, h,  0, 0x428a2f98d728ae22ULL);
-	SHA512_STEP(h, a, b, c, d, e, f, g,  1, 0x7137449123ef65cdULL);
-	SHA512_STEP(g, h, a, b, c, d, e, f,  2, 0xb5c0fbcfec4d3b2fULL);
-	SHA512_STEP(f, g, h, a, b, c, d, e,  3, 0xe9b5dba58189dbbcULL);
-	SHA512_STEP(e, f, g, h, a, b, c, d,  4, 0x3956c25bf348b538ULL);
-	SHA512_STEP(d, e, f, g, h, a, b, c,  5, 0x59f111f1b605d019ULL);
-	SHA512_STEP(c, d, e, f, g, h, a, b,  6, 0x923f82a4af194f9bULL);
-	SHA512_STEP(b, c, d, e, f, g, h, a,  7, 0xab1c5ed5da6d8118ULL);
-	SHA512_STEP(a, b, c, d, e, f, g, h,  8, 0xd807aa98a3030242ULL);
-	SHA512_STEP(h, a, b, c, d, e, f, g,  9, 0x12835b0145706fbeULL);
-	SHA512_STEP(g, h, a, b, c, d, e, f, 10, 0x243185be4ee4b28cULL);
-	SHA512_STEP(f, g, h, a, b, c, d, e, 11, 0x550c7dc3d5ffb4e2ULL);
-	SHA512_STEP(e, f, g, h, a, b, c, d, 12, 0x72be5d74f27b896fULL);
-	SHA512_STEP(d, e, f, g, h, a, b, c, 13, 0x80deb1fe3b1696b1ULL);
-	SHA512_STEP(c, d, e, f, g, h, a, b, 14, 0x9bdc06a725c71235ULL);
+	if (SSEi_flags & SSEi_HALF_IN) {
+		SHA512_STEP0(a, b, c, d, e, f, g, h,  0, 0x428a2f98d728ae22ULL);
+		SHA512_STEP0(h, a, b, c, d, e, f, g,  1, 0x7137449123ef65cdULL);
+		SHA512_STEP0(g, h, a, b, c, d, e, f,  2, 0xb5c0fbcfec4d3b2fULL);
+		SHA512_STEP0(f, g, h, a, b, c, d, e,  3, 0xe9b5dba58189dbbcULL);
+		SHA512_STEP0(e, f, g, h, a, b, c, d,  4, 0x3956c25bf348b538ULL);
+		SHA512_STEP0(d, e, f, g, h, a, b, c,  5, 0x59f111f1b605d019ULL);
+		SHA512_STEP(c, d, e, f, g, h, a, b,  6, 0x923f82a4af194f9bULL);
+		SHA512_STEP(b, c, d, e, f, g, h, a,  7, 0xab1c5ed5da6d8118ULL);
+		SHA512_STEP0(a, b, c, d, e, f, g, h,  8, 0xd807aa98a3030242ULL);
+		SHA512_STEP0(h, a, b, c, d, e, f, g,  9, 0x12835b0145706fbeULL);
+		SHA512_STEP0(g, h, a, b, c, d, e, f, 10, 0x243185be4ee4b28cULL);
+		SHA512_STEP0(f, g, h, a, b, c, d, e, 11, 0x550c7dc3d5ffb4e2ULL);
+		SHA512_STEP0(e, f, g, h, a, b, c, d, 12, 0x72be5d74f27b896fULL);
+		SHA512_STEP0(d, e, f, g, h, a, b, c, 13, 0x80deb1fe3b1696b1ULL);
+		SHA512_STEP0(c, d, e, f, g, h, a, b, 14, 0x9bdc06a725c71235ULL);
+	} else {
+		SHA512_STEP(a, b, c, d, e, f, g, h,  0, 0x428a2f98d728ae22ULL);
+		SHA512_STEP(h, a, b, c, d, e, f, g,  1, 0x7137449123ef65cdULL);
+		SHA512_STEP(g, h, a, b, c, d, e, f,  2, 0xb5c0fbcfec4d3b2fULL);
+		SHA512_STEP(f, g, h, a, b, c, d, e,  3, 0xe9b5dba58189dbbcULL);
+		SHA512_STEP(e, f, g, h, a, b, c, d,  4, 0x3956c25bf348b538ULL);
+		SHA512_STEP(d, e, f, g, h, a, b, c,  5, 0x59f111f1b605d019ULL);
+		SHA512_STEP(c, d, e, f, g, h, a, b,  6, 0x923f82a4af194f9bULL);
+		SHA512_STEP(b, c, d, e, f, g, h, a,  7, 0xab1c5ed5da6d8118ULL);
+		SHA512_STEP(a, b, c, d, e, f, g, h,  8, 0xd807aa98a3030242ULL);
+		SHA512_STEP(h, a, b, c, d, e, f, g,  9, 0x12835b0145706fbeULL);
+		SHA512_STEP(g, h, a, b, c, d, e, f, 10, 0x243185be4ee4b28cULL);
+		SHA512_STEP(f, g, h, a, b, c, d, e, 11, 0x550c7dc3d5ffb4e2ULL);
+		SHA512_STEP(e, f, g, h, a, b, c, d, 12, 0x72be5d74f27b896fULL);
+		SHA512_STEP(d, e, f, g, h, a, b, c, 13, 0x80deb1fe3b1696b1ULL);
+		SHA512_STEP(c, d, e, f, g, h, a, b, 14, 0x9bdc06a725c71235ULL);
+	}
 	SHA512_STEP(b, c, d, e, f, g, h, a, 15, 0xc19bf174cf692694ULL);
 
 	SHA512_STEP(a, b, c, d, e, f, g, h, 16, 0xe49b69c19ef14ad2ULL);
