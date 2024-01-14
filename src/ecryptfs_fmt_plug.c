@@ -224,8 +224,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			// 64 bytes of crypt data (0x200 bits).
 			keys[GETPOS_512(126, i)] = 0x02;
 		}
-		for (j = 1; j < ECRYPTFS_DEFAULT_NUM_HASH_ITERATIONS; j++)
-			SIMDSHA512body(keys, keys64, NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
+		uint64_t rounds = ECRYPTFS_DEFAULT_NUM_HASH_ITERATIONS - 1;
+		SIMDSHA512body(keys, keys64, &rounds, SSEi_HALF_IN|SSEi_LOOP);
 		// Last one with FLAT_OUT
 		SIMDSHA512body(keys, (uint64_t*)crypt_out[index], NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
 #else

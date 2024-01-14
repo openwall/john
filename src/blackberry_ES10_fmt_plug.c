@@ -205,8 +205,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			p64[8*SIMD_COEF_64] = 0x8000000000000000ULL;
 			p64[15*SIMD_COEF_64] = 0x200;
 		}
-		for (j = 0; j < 98; j++)
-			SIMDSHA512body(keys, keys64, NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
+		uint64_t rounds = 98;
+		SIMDSHA512body(keys, keys64, &rounds, SSEi_HALF_IN|SSEi_LOOP);
 		SIMDSHA512body(keys, (uint64_t*)crypt_out[index], NULL, SSEi_HALF_IN|SSEi_FLAT_OUT);
 #else
 		SHA512_Init(&ctx);

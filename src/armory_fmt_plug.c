@@ -280,39 +280,10 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
 			uint32_t k;
 			for (k = 0; k < 8; k++)
-				x[k][subindex] = JOHNSWAP64((*p)[subindex].u64[k]);
-			x[8][subindex] = 0x8000000000000000ULL;
-			for (k = 9; k < 15; k++)
-				x[k][subindex] = 0;
-			x[15][subindex] = 64 << 3;
+				x[k][subindex] = (*p)[subindex].u64[k] = JOHNSWAP64((*p)[subindex].u64[k]);
 		}
 
-		do {
-#if (__AVX512F__ || __MIC__) && SIMD_PARA_SHA512 == 1
-			vtype idxs = vset_epi64(7<<3, 6<<3, 5<<3, 4<<3, 3<<3, 2<<3, 1<<3, 0<<3);
-#if __AVX512F__
-#define DO(k) \
-			vscatter_epi64(&(*p)[0].u64[k], idxs, *(vtype *)&x[k], 8);
-#else /* Sequential writes and smaller code size, but slower on Tiger Lake */
-#define DO(k) \
-			*(vtype *)(*p)[k].u64 = vgather_epi64((vtype *)&x[0][k], idxs, 8);
-#endif
-			DO8
-#undef DO
-#else
-			for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
-#define DO(k) \
-				(*p)[subindex].u64[k] = x[k][subindex];
-				DO8
-#undef DO
-			}
-#endif
-
-			if (++p >= &lut[n])
-				break;
-
-			SIMDSHA512body(x, x[0], NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
-		} while (1);
+		SIMDSHA512body(x, p[1][0].u64, lut[n][0].u64, SSEi_HALF_IN|SSEi_LOOP|SSEi_FLAT_OUT);
 
 		uint32_t j = n >> 1;
 		do {

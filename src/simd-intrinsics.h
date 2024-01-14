@@ -111,13 +111,19 @@ void SIMDSHA256body(vtype* data, uint32_t *out, uint32_t *reload_state, unsigned
 
 #ifdef SIMD_COEF_64
 #define SHA512_ALGORITHM_NAME	BITS " " SIMD_TYPE " " SHA512_N_STR
-void SIMDSHA512halfinout(vtype* data, uint64_t *out, uint64_t *reload_state);
+void SIMDSHA512halfloop(vtype* data, uint64_t *out, uint64_t *count);
+void SIMDSHA512halfloopflat(vtype* data, uint64_t *out, uint64_t *end);
+void SIMDSHA512halfinout(vtype* data, uint64_t *out);
 void SIMDSHA512half(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags);
 void SIMDSHA512full(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags);
 static inline void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags)
 {
-	if (SSEi_flags == (SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT))
-		SIMDSHA512halfinout(data, out, reload_state);
+	if (SSEi_flags == (SSEi_HALF_IN|SSEi_LOOP))
+		SIMDSHA512halfloop(data, out, reload_state);
+	else if (SSEi_flags == (SSEi_HALF_IN|SSEi_LOOP|SSEi_FLAT_OUT))
+		SIMDSHA512halfloopflat(data, out, reload_state);
+	else if (SSEi_flags == (SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT))
+		SIMDSHA512halfinout(data, out);
 	else if (SSEi_flags & SSEi_HALF_IN)
 		SIMDSHA512half(data, out, reload_state, SSEi_flags);
 	else
