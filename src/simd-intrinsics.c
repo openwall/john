@@ -2734,25 +2734,28 @@ next:
 		if (SSEi_flags & SSEi_FLAT_OUT) {
 			SHA512_PARA_DO(i)
 			{
-				uint64_t *o = (uint64_t*)&out[i*8*VS64];
 #if __AVX512F__ || __MIC__
 				vtype idxs = vset_epi64(7<<3, 6<<3, 5<<3, 4<<3, 3<<3, 2<<3, 1<<3, 0<<3);
 
-				vscatter_epi64(o + 0, idxs, a[i], 8);
-				vscatter_epi64(o + 1, idxs, b[i], 8);
-				vscatter_epi64(o + 2, idxs, c[i], 8);
-				vscatter_epi64(o + 3, idxs, d[i], 8);
-				vscatter_epi64(o + 4, idxs, e[i], 8);
-				vscatter_epi64(o + 5, idxs, f[i], 8);
-				vscatter_epi64(o + 6, idxs, g[i], 8);
-				vscatter_epi64(o + 7, idxs, h[i], 8);
+				vscatter_epi64(out + 0, idxs, a[i], 8);
+				vscatter_epi64(out + 1, idxs, b[i], 8);
+				vscatter_epi64(out + 2, idxs, c[i], 8);
+				vscatter_epi64(out + 3, idxs, d[i], 8);
+				vscatter_epi64(out + 4, idxs, e[i], 8);
+				vscatter_epi64(out + 5, idxs, f[i], 8);
+				vscatter_epi64(out + 6, idxs, g[i], 8);
+				vscatter_epi64(out + 7, idxs, h[i], 8);
+				out += 64;
 #else
-				uint64_t j, k;
+				uint64_t j;
 				union {
 					vtype v[8];
 					uint64_t s[8 * VS64];
 				} tmp;
 
+/* We could make tmp a pointer to w instead, but this causes strict aliasing
+ * warnings with old gcc, and it could prevent the compiler from keeping w[]
+ * in registers. */
 				tmp.v[0] = a[i];
 				tmp.v[1] = b[i];
 				tmp.v[2] = c[i];
@@ -2761,12 +2764,19 @@ next:
 				tmp.v[5] = f[i];
 				tmp.v[6] = g[i];
 				tmp.v[7] = h[i];
-				for (j = 0; j < VS64; j++)
-					for (k = 0; k < 8; k++)
-						o[j*8+k] = tmp.s[k*VS64+j];
+				for (j = 0; j < VS64; j++) {
+					out[0] = tmp.s[0*VS64+j];
+					out[1] = tmp.s[1*VS64+j];
+					out[2] = tmp.s[2*VS64+j];
+					out[3] = tmp.s[3*VS64+j];
+					out[4] = tmp.s[4*VS64+j];
+					out[5] = tmp.s[5*VS64+j];
+					out[6] = tmp.s[6*VS64+j];
+					out[7] = tmp.s[7*VS64+j];
+					out += 8;
+				}
 #endif
 			}
-			out += SIMD_PARA_SHA512 * VS64 * 8;
 			if (out < reload_state)
 				goto next;
 			out = (uint64_t *)data;
@@ -2779,21 +2789,20 @@ next:
 	if (SSEi_flags & SSEi_FLAT_OUT) {
 		SHA512_PARA_DO(i)
 		{
-			uint64_t *o = (uint64_t*)&out[i*8*VS64];
 #if __AVX512F__ || __MIC__
-			vtype idxs = vset_epi64(7<<3, 6<<3, 5<<3, 4<<3,
-			                        3<<3, 2<<3, 1<<3, 0<<3);
+			vtype idxs = vset_epi64(7<<3, 6<<3, 5<<3, 4<<3, 3<<3, 2<<3, 1<<3, 0<<3);
 
-			vscatter_epi64(o + 0, idxs, vswap64(a[i]), 8);
-			vscatter_epi64(o + 1, idxs, vswap64(b[i]), 8);
-			vscatter_epi64(o + 2, idxs, vswap64(c[i]), 8);
-			vscatter_epi64(o + 3, idxs, vswap64(d[i]), 8);
-			vscatter_epi64(o + 4, idxs, vswap64(e[i]), 8);
-			vscatter_epi64(o + 5, idxs, vswap64(f[i]), 8);
-			vscatter_epi64(o + 6, idxs, vswap64(g[i]), 8);
-			vscatter_epi64(o + 7, idxs, vswap64(h[i]), 8);
+			vscatter_epi64(out + 0, idxs, vswap64(a[i]), 8);
+			vscatter_epi64(out + 1, idxs, vswap64(b[i]), 8);
+			vscatter_epi64(out + 2, idxs, vswap64(c[i]), 8);
+			vscatter_epi64(out + 3, idxs, vswap64(d[i]), 8);
+			vscatter_epi64(out + 4, idxs, vswap64(e[i]), 8);
+			vscatter_epi64(out + 5, idxs, vswap64(f[i]), 8);
+			vscatter_epi64(out + 6, idxs, vswap64(g[i]), 8);
+			vscatter_epi64(out + 7, idxs, vswap64(h[i]), 8);
+			out += 64;
 #else
-			uint64_t j, k;
+			uint64_t j;
 			union {
 				vtype v[8];
 				uint64_t s[8 * VS64];
@@ -2818,9 +2827,17 @@ next:
 			tmp.v[6] = g[i];
 			tmp.v[7] = h[i];
 #endif
-			for (j = 0; j < VS64; j++)
-				for (k = 0; k < 8; k++)
-					o[j*8+k] = tmp.s[k*VS64+j];
+			for (j = 0; j < VS64; j++) {
+				out[0] = tmp.s[0*VS64+j];
+				out[1] = tmp.s[1*VS64+j];
+				out[2] = tmp.s[2*VS64+j];
+				out[3] = tmp.s[3*VS64+j];
+				out[4] = tmp.s[4*VS64+j];
+				out[5] = tmp.s[5*VS64+j];
+				out[6] = tmp.s[6*VS64+j];
+				out[7] = tmp.s[7*VS64+j];
+				out += 8;
+			}
 #endif
 		}
 	}
