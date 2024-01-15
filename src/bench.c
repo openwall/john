@@ -941,7 +941,7 @@ AGAIN:
 #endif
 		if ((result = benchmark_format(format, salts, &results_m, test_db))) {
 			puts(result);
-			failed++;
+			failed += !event_abort;
 			goto next;
 		}
 #if HAVE_OPENCL
@@ -1096,15 +1096,17 @@ next:
 		opencl_was_skipped = " (OpenCL formats skipped)";
 #endif
 
-	if (failed && total > 1 && !event_abort)
+	if (failed && total > 1)
 		printf("%u out of %u tests have FAILED%s\n", failed, total, opencl_was_skipped);
-	else if (total > 1 && !event_abort && john_main_process) {
+	else if (total > 1 && john_main_process) {
+		const char *all = event_abort ? "" : "All ";
+		const char *not = event_abort ? ", last one aborted" : "";
 #ifndef BENCH_BUILD
 		if (benchmark_time)
-			printf("%u formats benchmarked%s.\n", total, opencl_was_skipped);
+			printf("%s%u formats benchmarked%s%s\n", all, total, not, opencl_was_skipped);
 		else
 #endif
-			printf("All %u formats passed self-tests%s!\n", total, opencl_was_skipped);
+			printf("%s%u formats passed self-tests%s\n", all, total, opencl_was_skipped);
 	}
 
 #ifndef BENCH_BUILD
