@@ -380,6 +380,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 	else
 #endif
 
+#if SIMD_PARA_MD5 > 1
 	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
@@ -400,6 +401,7 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 			}
 		}
 	}
+#endif
 	else
 	{
 		MD5_PARA_DO(i)
@@ -1027,6 +1029,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 	else
 #endif
 
+#if SIMD_PARA_MD4 > 1
 	if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
@@ -1048,6 +1051,7 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 		}
 	}
 	else
+#endif
 	{
 		MD4_PARA_DO(i)
 		{
@@ -1566,6 +1570,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 #endif
 		}
 	}
+#if SIMD_PARA_SHA1 > 1
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT)
 	{
 		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
@@ -1588,6 +1593,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 			}
 		}
 	}
+#endif
 	else
 	{
 		SHA1_PARA_DO(i)
@@ -2104,6 +2110,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 #endif
 		}
 	}
+#if SIMD_PARA_SHA256 > 1
 	else if (SSEi_flags & SSEi_OUTPUT_AS_INP_FMT) {
 		if ((SSEi_flags & SSEi_OUTPUT_AS_2BUF_INP_FMT) == SSEi_OUTPUT_AS_2BUF_INP_FMT) {
 			SHA256_PARA_DO(i)
@@ -2131,6 +2138,7 @@ void SIMDSHA256body(vtype *data, uint32_t *out, uint32_t *reload_state, unsigned
 			}
 		}
 	}
+#endif
 	else
 	{
 		SHA256_PARA_DO(i)
