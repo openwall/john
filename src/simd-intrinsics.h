@@ -122,7 +122,7 @@ static inline void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_s
 		SIMDSHA512halfloop(data, out, reload_state);
 	else if (SSEi_flags == (SSEi_HALF_IN|SSEi_LOOP|SSEi_FLAT_OUT))
 		SIMDSHA512halfloopflat(data, out, reload_state);
-	else if (SSEi_flags == (SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT))
+	else if (SSEi_flags == SSEi_HALF_IN)
 		SIMDSHA512halfinout(data, out);
 	else if (SSEi_flags & SSEi_HALF_IN)
 		SIMDSHA512half(data, out, reload_state, SSEi_flags);

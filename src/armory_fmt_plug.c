@@ -41,9 +41,10 @@ john_register_one(&fmt_armory);
 #define FORMAT_TAG_LEN			(sizeof(FORMAT_TAG) - 1)
 #define FORMAT_NAME			"Armory wallet"
 
-#ifdef SIMD_COEF_64
+#if defined(SIMD_COEF_64) && SIMD_PARA_SHA512 == 1
 #define ALGORITHM_NAME			"SHA512/AES/secp256k1/SHA256/RIPEMD160 " SHA512_ALGORITHM_NAME
 #else
+#undef SIMD_COEF_64
 #define ALGORITHM_NAME			"SHA512/AES/secp256k1/SHA256/RIPEMD160 " ARCH_BITS_STR "/" ARCH_BITS_STR
 #endif
 
@@ -297,7 +298,7 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 #undef DO
 			}
 
-			SIMDSHA512body(x, x[0], NULL, SSEi_HALF_IN|SSEi_OUTPUT_AS_INP_FMT);
+			SIMDSHA512body(x, x[0], NULL, SSEi_HALF_IN);
 		} while (--j);
 
 		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
