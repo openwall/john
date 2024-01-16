@@ -107,7 +107,6 @@ static struct fmt_tests tests[] = {
 	{"$5$saltstring$5B8vYYiY.CVt1RlTTf8KbXBH3hsxY/GNooZaBBGWEc5", "Hello world!"},
 	{"$5$V8UMZ8/8.j$GGzeGHZy60318qdLiocMj7DddCnfr7jIcLMDIRy9Tr0", "password"},
 
-#ifdef DEBUG
 #if PLAINTEXT_LENGTH > 35
 	{"$5$aewWTiO8RzEz5FBF$CZ3I.vdWF4omQXMQOv1g3XarjhH0wwR29Jwzt6/gvV/", "012345678901234567890123456789012345"},
 #endif
@@ -171,7 +170,6 @@ static struct fmt_tests tests[] = {
 
 	// from a comment in the OpenCL implementation:
 	//{"$5$EKt.VLXiPjwyv.xe$52wdOp9ixFXMsHDI1JcCw8KJ83IakDP6J7MIEV2OUk0", "1234567"},
-#endif
 	// from a comment in the CUDA implementaton:
 	//{"$5$rounds=5000$abcdefghijklmnop$BAYQep7SsuSczAeXlks3F54SpxMUUludHi1C4JVOqpD","abcdefghijklmno"},
 	{NULL}
