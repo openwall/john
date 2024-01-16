@@ -2468,12 +2468,49 @@ next_half:
 #endif
 			w[k][15] = vset1_epi64(64 << 3);
 		}
+	} else if (SSEi_flags & SSEi_LOOP) {
+		SSEi_flags &= ~(SSEi_HALF_IN|SSEi_FLAT_IN|SSEi_RELOAD|SSEi_REVERSE_STEPS|SSEi_CRYPT_SHA384);
+
+		vtype *_data = data;
+		SHA512_PARA_DO(k)
+		{
+			w[k][0] = _data[0];
+			w[k][1] = _data[1];
+			w[k][2] = _data[2];
+			w[k][3] = _data[3];
+			w[k][4] = _data[4];
+			w[k][5] = _data[5];
+			w[k][6] = _data[6];
+			w[k][7] = _data[7];
+			w[k][8] = _data[8];
+			w[k][9] = _data[9];
+			w[k][10] = _data[10];
+			w[k][11] = _data[11];
+			w[k][12] = _data[12];
+			w[k][13] = _data[13];
+			w[k][14] = _data[14];
+			w[k][15] = _data[15];
+			_data += 16;
+		}
+next_full:
+		_data = data;
+		SHA512_PARA_DO(k)
+		{
+			w[k][8] = _data[8];
+			w[k][9] = _data[9];
+			w[k][10] = _data[10];
+			w[k][11] = _data[11];
+			w[k][12] = _data[12];
+			w[k][13] = _data[13];
+			w[k][14] = _data[14];
+			w[k][15] = _data[15];
+			_data += 16;
+		}
 	} else
 		memcpy(w, data, 16 * sizeof(vtype) * SIMD_PARA_SHA512);
 
 	//dump_stuff_shammx64_msg("\nindex 2", w, 128, 2);
 
-next_full:
 	if (SSEi_flags & SSEi_RELOAD) {
 		if ((SSEi_flags & SSEi_RELOAD_INP_FMT) == SSEi_RELOAD_INP_FMT)
 		{
@@ -2785,19 +2822,6 @@ next_full:
 			if (--*reload_state)
 				goto next_half;
 		} else {
-			vtype *_data = data + 8;
-			SHA512_PARA_DO(i)
-			{
-				w[i][8] = _data[0];
-				w[i][9] = _data[1];
-				w[i][10] = _data[2];
-				w[i][11] = _data[3];
-				w[i][12] = _data[4];
-				w[i][13] = _data[5];
-				w[i][14] = _data[6];
-				w[i][15] = _data[7];
-				_data += 16;
-			}
 			if (--*reload_state)
 				goto next_full;
 			goto out_full;
