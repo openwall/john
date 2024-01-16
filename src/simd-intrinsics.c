@@ -2951,7 +2951,7 @@ void SIMDSHA512halfinout(vtype* data, uint64_t *out)
 
 void SIMDSHA512half(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags)
 {
-	SIMDSHA512univ(data, out, reload_state, SSEi_flags | SSEi_HALF_IN);
+	SIMDSHA512univ(data, out, reload_state, (SSEi_flags & ~SSEi_LOOP) | SSEi_HALF_IN);
 }
 
 void SIMDSHA512fullloop(vtype* data, uint64_t *out, uint64_t *count)
