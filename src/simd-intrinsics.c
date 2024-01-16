@@ -1,7 +1,7 @@
 /*
  * This software is
  * Copyright (c) 2010 bartavelle, <bartavelle at bandecon.com>,
- * Copyright (c) 2012 Solar Designer,
+ * Copyright (c) 2012,2015,2024 Solar Designer,
  * Copyright (c) 2011-2015 JimF,
  * Copyright (c) 2011-2023 magnum,
  * and it is hereby released to the general public under the following terms:
