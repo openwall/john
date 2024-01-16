@@ -632,9 +632,12 @@ void benchmark_cps(uint64_t crypts, clock_t time, char *buffer)
 		sprintf(buffer, "%uK", (unsigned int)cps / 1000);
 	} else if (cps >= 100) {
 		sprintf(buffer, "%u", (unsigned int)cps);
-	} else {
+	} else if (cps >= 10) {
 		unsigned int frac = crypts * clk_tck * 10 / time % 10;
 		sprintf(buffer, "%u.%u", (unsigned int)cps, frac);
+	} else {
+		unsigned int frac = crypts * clk_tck * 100 / time % 100;
+		sprintf(buffer, "%u.%02u", (unsigned int)cps, frac);
 	}
 }
 
