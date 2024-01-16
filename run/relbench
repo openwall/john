@@ -42,19 +42,18 @@ sub parse
 		return;
 	}
 
-	if (/^(All|\d+ out of) \d+ (tests|formats)( have)? (passed self-tests|FAILED)/) {
-		($total) = /^All (\d+) (tests|formats)( have)? passed self-tests/;
-		if (!defined($total)) {
+	if (/^(|All |\d+ out of )\d+ (tests|formats)( have)? (benchmarked|passed self-tests|FAILED)/) {
+		($total) = /^(|All )(\d+) (tests|formats)( have)? (benchmarked|passed self-tests)/;
+		if (defined($total)) {
+			$failed = 0;
+		} else {
 			($failed, $total) =
 			    /^(\d+) out of (\d+) (tests|formats)( have)? FAILED/;
 		}
 		return;
 	}
-	return if /Benchmarking: .*\.\.\. FAILED/;
+	return if /Benchmarking: .*\.\.\. FAILED|^Speed for cost |^Warning: /;
 
-	if (/^Speed for cost /) {
-		return;
-	}
 	my $ok = 0;
 	if (defined($name)) {
 		($kind, $real, $reals, $virtual, $virtuals) =
@@ -71,9 +70,12 @@ sub parse
 			$id = $name . ':' . $kind;
 			$real *= 1000 if ($reals eq 'K');
 			$real *= 1000000 if ($reals eq 'M');
+			$real *= 1000000000 if ($reals eq 'G');
+			$real = 0.001 if ($real eq "0.0" || $real eq "0.00");
 			$virtual *= 1000 if ($virtuals eq 'K');
 			$virtual *= 1000000 if ($virtuals eq 'M');
-			$virtual = 0.001 if $virtual eq "0.0";
+			$virtual *= 1000000000 if ($virtuals eq 'G');
+			$virtual = 0.001 if ($virtual eq "0.0" || $virtual eq "0.00");
 			return;
 		}
 	} else {
