@@ -65,10 +65,8 @@
  * 14/15 if in flat mode.
  *
  * SSEi_FLAT_RELOAD_SWAPLAST
- * Can be an issue for flat mode, and reload (i.e. multi buffers.) The last
- * limb should NEVER have this flag set. This also only 'affects' the SHA1
- * and SHA256 formats. Similar to SSEi_4BUF_INPUT_FIRST_BLK, but simply says
- * we will have more buffers coming after this one.
+ * Similar to SSEi_4BUF_INPUT_FIRST_BLK, but simply says we will have more
+ * buffers coming after this one. Currently only enabled/used for SHA-256.
  *
  * SSEi_CRYPT_SHA224     use SHA224 IV.
  * SSEi_CRYPT_SHA384     use SHA384 IV.
