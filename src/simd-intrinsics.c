@@ -174,8 +174,8 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 			for (i=0; i < 14; i++)
 				W[i] = vswap32(W[i]);
 			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
-			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
-			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
+			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) /* ||
+			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST) */) {
 				W[14] = vswap32(W[14]);
 				W[15] = vswap32(W[15]);
 			}
@@ -836,8 +836,8 @@ void SIMDmd4body(vtype* _data, unsigned int *out, uint32_t *reload_state,
 			for (i=0; i < 14; i++)
 				W[i] = vswap32(W[i]);
 			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
-			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
-			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
+			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) /* ||
+			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST) */) {
 				W[14] = vswap32(W[14]);
 				W[15] = vswap32(W[15]);
 			}
@@ -1297,8 +1297,8 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 				saved_key += (VS32<<4);
 			}
 			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
-			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
-			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
+			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) /* ||
+			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST) */) {
 				W[14] = vswap32(W[14]);
 				W[15] = vswap32(W[15]);
 			}
@@ -1331,8 +1331,8 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 			for (i=0; i < 14; i++)
 				W[i] = vswap32(W[i]);
 			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
-			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) ||
-			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
+			    ((SSEi_flags & SSEi_4BUF_INPUT_FIRST_BLK) == SSEi_4BUF_INPUT_FIRST_BLK) /* ||
+			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST) */) {
 				W[14] = vswap32(W[14]);
 				W[15] = vswap32(W[15]);
 			}
@@ -2419,8 +2419,8 @@ static MAYBE_INLINE void SIMDSHA512univ(vtype* data, uint64_t *out, uint64_t *re
 				_data += (VS64<<4);
 			}
 #if ARCH_LITTLE_ENDIAN
-			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) ||
-			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST)) {
+			if (((SSEi_flags & SSEi_2BUF_INPUT_FIRST_BLK) == SSEi_2BUF_INPUT_FIRST_BLK) /* ||
+			    (SSEi_flags & SSEi_FLAT_RELOAD_SWAPLAST) */) {
 				tmp1[k] = vswap64(tmp1[k]);
 				tmp2[k] = vswap64(tmp2[k]);
 			}
