@@ -272,30 +272,34 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 			SHA512_Final(lut[0][subindex].u8, &ctx);
 		}
 
-		lut_item *p = lut;
-
-#define DO8 DO(0) DO(1) DO(2) DO(3) DO(4) DO(5) DO(6) DO(7)
-
 #ifdef SIMD_COEF_64
 		JTR_ALIGN(64) uint64_t x[8][MIN_KEYS_PER_CRYPT];
 		for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
 			uint32_t k;
 			for (k = 0; k < 8; k++)
-				x[k][subindex] = (*p)[subindex].u64[k] = JOHNSWAP64((*p)[subindex].u64[k]);
+				x[k][subindex] = lut[0][subindex].u64[k] = JOHNSWAP64(lut[0][subindex].u64[k]);
 		}
 
-		SIMDSHA512body(x, p[1][0].u64, lut[n][0].u64, SSEi_HALF_IN|SSEi_LOOP|SSEi_FLAT_OUT);
+		SIMDSHA512body(x, lut[1][0].u64, lut[n][0].u64, SSEi_HALF_IN|SSEi_LOOP|SSEi_FLAT_OUT);
 
 		uint32_t j = n >> 1;
 		do {
+			lut_item *pp[MIN_KEYS_PER_CRYPT];
 			for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
 				uint32_t v = x[7][subindex];
-				p = &lut[JOHNSWAP(v) & (n - 1)];
+				lut_item *p = pp[subindex] = &lut[JOHNSWAP(v) & (n - 1)];
+				x[0][subindex] ^= (*p)[subindex].u64[0];
+				x[1][subindex] ^= (*p)[subindex].u64[1];
+				x[2][subindex] ^= (*p)[subindex].u64[2];
+				x[3][subindex] ^= (*p)[subindex].u64[3];
+			}
 
-#define DO(k) \
-				x[k][subindex] ^= (*p)[subindex].u64[k];
-				DO8
-#undef DO
+			for (subindex = 0; subindex < MIN_KEYS_PER_CRYPT; subindex++) {
+				lut_item *p = pp[subindex];
+				x[4][subindex] ^= (*p)[subindex].u64[4];
+				x[5][subindex] ^= (*p)[subindex].u64[5];
+				x[6][subindex] ^= (*p)[subindex].u64[6];
+				x[7][subindex] ^= (*p)[subindex].u64[7];
 			}
 
 			SIMDSHA512body(x, x[0], NULL, SSEi_HALF_IN);
@@ -309,6 +313,7 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 			mklen[subindex] = 32;
 		}
 #elif MIN_KEYS_PER_CRYPT == 1
+		lut_item *p = lut;
 		SHA512_CTX ctx;
 		do {
 			SHA512_Init(&ctx);
@@ -327,10 +332,14 @@ static int derive_keys(region_t *memory, int index, derived_key *dk)
 #endif
 			p = &lut[v & (n - 1)];
 
-#define DO(k) \
-			x[0].u64[k] ^= (*p)[0].u64[k];
-			DO8
-#undef DO
+			x[0].u64[0] ^= (*p)[0].u64[0];
+			x[0].u64[1] ^= (*p)[0].u64[1];
+			x[0].u64[2] ^= (*p)[0].u64[2];
+			x[0].u64[3] ^= (*p)[0].u64[3];
+			x[0].u64[4] ^= (*p)[0].u64[4];
+			x[0].u64[5] ^= (*p)[0].u64[5];
+			x[0].u64[6] ^= (*p)[0].u64[6];
+			x[0].u64[7] ^= (*p)[0].u64[7];
 
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, &x, 64);
