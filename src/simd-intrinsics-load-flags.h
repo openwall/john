@@ -81,13 +81,14 @@
  *
  * SSEi_LOOP
  * Iterated hashing, with hash output reused as input for the next iteration.
- * Currently supported only for SHA-512 and only along with SSEi_HALF_IN.
+ * Currently supported only for SHA-512 and only along with SSEi_MIXED_IN or
+ * SSEi_HALF_IN.
  * Without SSEi_FLAT_OUT, *reload_state is reused as the iteration count (and
- * is clobbered), and the final output is in the SSEi_HALF_IN format.
+ * is clobbered), and the final output is in the input format (full or half).
  * With SSEi_FLAT_OUT, reload_state is reused as pointer to the end of the
  * multi-hash output, which is in a format similar to that of SSEi_FLAT_OUT
  * alone but without byte order swapping, and the input data is overwritten
- * with the final output in the SSEi_HALF_IN format.
+ * with the final output in the SSEi_HALF_IN format, which this mode requires.
  */
 
 typedef enum {

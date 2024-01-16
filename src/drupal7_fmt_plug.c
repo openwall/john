@@ -142,7 +142,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef SIMD_COEF_64
 		unsigned char _IBuf[128*MIN_KEYS_PER_CRYPT+MEM_ALIGN_CACHE], *keys;
 		uint64_t *keys64;
-		unsigned i, j, len, Lcount = loopCnt;
+		unsigned i, j, len;
 
 		keys = (unsigned char*)mem_align(_IBuf, MEM_ALIGN_CACHE);
 		keys64 = (uint64_t*)keys;
@@ -164,11 +164,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			keys[GETPOS(j+64, i)] = 0x80;
 			keys64[15*SIMD_COEF_64+(i&(SIMD_COEF_64-1))+i/SIMD_COEF_64*SHA_BUF_SIZ*SIMD_COEF_64] = (len+64) << 3;
 		}
-		while (--Lcount)
-			SIMDSHA512body(keys, keys64, NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT);
+
+		uint64_t Lcount = loopCnt - 1;
+		SIMDSHA512body(keys, keys64, &Lcount, SSEi_MIXED_IN|SSEi_LOOP|SSEi_OUTPUT_AS_INP_FMT);
 
 		// Last one with FLAT_OUT
-		SIMDSHA512body(keys, (uint64_t*)crypt_key[index], NULL, SSEi_MIXED_IN|SSEi_OUTPUT_AS_INP_FMT|SSEi_FLAT_OUT);
+		SIMDSHA512body(keys, (uint64_t*)crypt_key[index], NULL, SSEi_MIXED_IN|SSEi_FLAT_OUT);
 #else
 		SHA512_CTX ctx;
 		unsigned char tmp[DIGEST_SIZE + PLAINTEXT_LENGTH];
