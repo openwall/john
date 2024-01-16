@@ -115,10 +115,14 @@ void SIMDSHA512halfloop(vtype* data, uint64_t *out, uint64_t *count);
 void SIMDSHA512halfloopflat(vtype* data, uint64_t *out, uint64_t *end);
 void SIMDSHA512halfinout(vtype* data, uint64_t *out);
 void SIMDSHA512half(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags);
+void SIMDSHA512flatin2buf(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags);
 void SIMDSHA512fullloop(vtype* data, uint64_t *out, uint64_t *count);
 void SIMDSHA512full(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags);
 static inline void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_state, unsigned SSEi_flags)
 {
+#if SIMD_PARA_SHA512 == 1
+	SSEi_flags &= ~SSEi_OUTPUT_AS_INP_FMT; /* Flag only matters for SIMD_PARA_SHA512 > 1 */
+#endif
 	if (SSEi_flags == (SSEi_HALF_IN|SSEi_LOOP))
 		SIMDSHA512halfloop(data, out, reload_state);
 	else if (SSEi_flags == (SSEi_HALF_IN|SSEi_LOOP|SSEi_FLAT_OUT))
@@ -127,8 +131,10 @@ static inline void SIMDSHA512body(vtype* data, uint64_t *out, uint64_t *reload_s
 		SIMDSHA512halfinout(data, out);
 	else if (SSEi_flags & SSEi_HALF_IN)
 		SIMDSHA512half(data, out, reload_state, SSEi_flags);
+	else if ((SSEi_flags & ~SSEi_RELOAD) == (SSEi_FLAT_IN|SSEi_2BUF_INPUT_FIRST_BLK))
+		SIMDSHA512flatin2buf(data, out, reload_state, SSEi_flags); /* Optional SSEi_RELOAD */
 	else if ((SSEi_flags & ~SSEi_OUTPUT_AS_INP_FMT) == (SSEi_MIXED_IN|SSEi_LOOP))
-		SIMDSHA512fullloop(data, out, reload_state);
+		SIMDSHA512fullloop(data, out, reload_state); /* Implies SSEi_OUTPUT_AS_INP_FMT */
 	else
 		SIMDSHA512full(data, out, reload_state, SSEi_flags);
 }
