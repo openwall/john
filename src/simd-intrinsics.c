@@ -401,8 +401,8 @@ void SIMDmd5body(vtype* _data, unsigned int *out,
 			}
 		}
 	}
-#endif
 	else
+#endif
 	{
 		MD5_PARA_DO(i)
 		{
