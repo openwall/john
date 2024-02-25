@@ -16,11 +16,12 @@ system.
 
     - Open the Command Prompt in Windows (see [1])
 
-    - Install required CygWin packages.
-      - C:\cygwin64\setup-x86_64.exe -q -P gcc-core -P libgcc1 -P make -P perl
-      - C:\cygwin64\setup-x86_64.exe -q -P libssl-devel -P libbz2-devel
-      - C:\cygwin64\setup-x86_64.exe -q -P libgmp-devel -P zlib-devel
-      - C:\cygwin64\setup-x86_64.exe -q -P libOpenCL-devel -P libcrypt-devel
+    - Install required CygWin packages from where you have the CygWin setup:
+      - cd C:\Users\Name\Downloads...
+      - setup-x86_64.exe -q -P gcc-core -P libgcc1 -P make -P perl
+      - setup-x86_64.exe -q -P libssl-devel -P libbz2-devel
+      - setup-x86_64.exe -q -P libgmp-devel -P zlib-devel
+      - setup-x86_64.exe -q -P libOpenCL-devel -P libcrypt-devel
 
     - Open a CygWin terminal using the Windows menu or a desktop shortcut.
 
@@ -32,11 +33,12 @@ system.
     Unzip it to your preferred directory
 
 ==== Build
+    - Copy your Jonh the Ripper source code inside C:\cygwin64
 
     - Inside a CygWin terminal
 
     - Go to the folder you unzipped John the Ripper source code. E.g.:
-      cd c:\Users\YourName\Desktop\JohnTheRipper-bleeding-jumbo\src
+      cd ../../john-bleeding-jumbo/src
 
     - Build
       ./configure && make -s clean && make -sj4
@@ -44,11 +46,11 @@ system.
 
 === Test your build
 
-    ..\run\john --test=0
+    ../run/john --test=0
 
 === Benchmark your build
 
-    ..\run\john --test
+    ../run/john --test
 
 
 
