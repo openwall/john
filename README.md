@@ -33,7 +33,7 @@ Included below is basic John the Ripper core documentation.
 
 ---
 
-	John the Ripper password cracker.
+##	John the Ripper password cracker.
 
 John the Ripper is a fast password cracker, currently available for
 many flavors of Unix, macOS, Windows, DOS, BeOS, and OpenVMS (the latter
@@ -44,12 +44,12 @@ Kerberos/AFS and Windows LM hashes, as well as DES-based tripcodes, plus
 hundreds of additional hashes and ciphers in "-jumbo" versions.
 
 
-	How to install.
+##	How to install.
 
-See INSTALL for information on installing John on your system.
+See [INSTALL](doc/INSTALL) for information on installing John on your system.
 
 
-	How to use.
+##	How to use.
 
 To run John, you need to supply it with some password files and
 optionally specify a cracking mode, like this, using the default order
@@ -94,7 +94,7 @@ choose the executable that fits your system best, e.g. "john-omp" to
 take advantage of multiple CPUs and/or CPU cores.
 
 
-	Features.
+##	Features.
 
 John the Ripper is designed to be both feature-rich and fast.  It
 combines several cracking modes in one program and is fully
@@ -143,7 +143,7 @@ these larger files for cracking, a corresponding bundled *2john program
 should be used first, and then its output fed into JtR -jumbo.
 
 
-	Graphical User Interface (GUI).
+##	Graphical User Interface (GUI).
 
 There is an official GUI for John the Ripper: Johnny.
 
@@ -158,24 +158,24 @@ More information about Johnny and its releases is on the wiki:
 https://openwall.info/wiki/john/johnny
 
 
-	Documentation.
+##	Documentation.
 
 The rest of documentation is located in separate files, listed here in
 the recommended order of reading:
 
-* INSTALL - installation instructions
-* OPTIONS - command line options and additional utilities
-* MODES - cracking modes: what they are
-* CONFIG (*) - how to customize
-* RULES (*) - wordlist rules syntax
-* EXTERNAL (*) - defining an external mode
-* EXAMPLES - usage examples - strongly recommended
-* FAQ - guess
-* CHANGES (*) - history of changes
-* CONTACT (*) - how to contact the author or otherwise obtain support
-* CREDITS (*) - credits
-* LICENSE - copyrights and licensing terms
-* COPYING - GNU GPL version 2, as referenced by LICENSE above
+* [INSTALL](doc/INSTALL) - installation instructions
+* [OPTIONS](doc/OPTIONS) - command line options and additional utilities
+* [MODES](doc/MODES) - cracking modes: what they are
+* [CONFIG](doc/CONFIG) (*) - how to customize
+* [RULES](doc/RULES) (*) - wordlist rules syntax
+* [EXTERNAL](doc/EXTERNAL) (*) - defining an external mode
+* [EXAMPLES](doc/EXAMPLES) - usage examples - strongly recommended
+* [FAQ](doc/FAQ) - guess
+* [CHANGES](doc/CHANGES) (*) - history of changes
+* [CONTACT](doc/CONTACT) (*) - how to contact the author or otherwise obtain support
+* [CREDITS](doc/CREDITS) (*) - credits
+* [LICENSE](doc/LICENSE) - copyrights and licensing terms
+* [COPYING](doc/COPYING) - GNU GPL version 2, as referenced by LICENSE above
 
 (*) most users can safely skip these.
 
