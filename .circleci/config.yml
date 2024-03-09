@@ -97,12 +97,16 @@ jobs:
   arm:
     machine:
       image: ubuntu-2204:current
+      environment:
+        export DEBIAN_FRONTEND="noninteractive"
     resource_class: arm.medium
     steps:
       - checkout
       - run:
           name: Preparing
-          command: sudo apt update && sudo apt install -y libssl-dev zlib1g-dev libgmp-dev libpcap-dev libbz2-dev && uname -a
+          command: |
+            uname -a
+            # sudo apt update && sudo apt install -y libssl-dev zlib1g-dev libgmp-dev libpcap-dev libbz2-dev
       - run:
           name: Building JtR
           command: .circleci/circle-ci.sh BUILD
