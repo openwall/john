@@ -106,7 +106,7 @@ jobs:
           name: Preparing
           command: |
             uname -a
-            # sudo apt update && sudo apt install -y libssl-dev zlib1g-dev libgmp-dev libpcap-dev libbz2-dev
+            sudo apt update && sudo apt install -y zlib1g-dev libgmp-dev libpcap-dev libbz2-dev
       - run:
           name: Building JtR
           command: .circleci/circle-ci.sh BUILD
