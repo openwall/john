@@ -68,7 +68,7 @@ ulong u64_shuffle_warp(ulong v, uint thread_src)
 ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local ulong *buf)
 #endif
 {
-#if USE_WARP_SHUFFLE && gpu_nvidia(DEVICE_INFO) && SM_MAJOR >= 3
+#if USE_WARP_SHUFFLE && !__OS_X__ && gpu_nvidia(DEVICE_INFO) && SM_MAJOR >= 3
 	ulong result;
 
 	asm("{\n\t"
@@ -97,7 +97,7 @@ ulong u64_shuffle(ulong v, uint thread_src, uint thread, __local ulong *buf)
 	// TODO: Test on other device types to add support
 #if !gpu_nvidia(DEVICE_INFO) && !gpu_amd(DEVICE_INFO)
 	barrier(CLK_LOCAL_MEM_FENCE);
-#elif gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR < 2500
+#elif !__OS_X__ && gpu_amd(DEVICE_INFO) && DEV_VER_MAJOR < 2500
 	asm("" ::: "memory");
 #endif
 	return buf[thread_src];
