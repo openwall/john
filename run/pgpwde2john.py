@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # This software is Copyright (c) 2017, Dhiru Kholia <dhiru.kholia at gmail.com>
 # and it is hereby released to the general public under the following terms:
@@ -10,8 +10,6 @@
 #
 # Only tested with Symantec Encryption Desktop 10.4.1 MP1 running on Ubuntu
 # 12.04.5 LTS, Ubuntu 14.04 LTS, and Windows 7 SP1.
-#
-# Updated to support python3
 
 import os
 import sys
@@ -237,8 +235,9 @@ def process_file(filename):
             userflags, serialNumber, userLocalId, reserved = fields[7:11]
             size, symmAlg, totalESKsize, reserved, userName, s2ktype, hashIterations, reserved2, salt, esk = fields[11:]
             userName = userName.strip(b"\x00").decode()
-            sys.stderr.write("DEBUG: %s, %s, %s, %s, %s, %s\n" % (size, symmAlg, totalESKsize, userName, s2ktype, hashIterations))
-            print("%s:$pgpwde$0*%s*%s*%s*%s*%s" % (userName, symmAlg, s2ktype, hashIterations, salt.hex(), esk.hex()))
+            esk_cut = esk.hex()[0:256]
+            sys.stderr.write("DEBUG: %s, %s, %s, %s, %s, %s, %s\n" % (size, symmAlg, totalESKsize, userName, s2ktype, hashIterations, esk.hex()))
+            print("%s:$pgpwde$0*%s*%s*%s*%s*%s" % (userName, symmAlg, s2ktype, hashIterations, salt.hex(), esk_cut))
 
     f.close()
 
