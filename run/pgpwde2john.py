@@ -16,6 +16,7 @@ import sys
 import struct
 from binascii import hexlify
 
+PY3 = sys.version_info[0] == 3
 
 """
 Random notes on PGP WDE.
@@ -235,9 +236,15 @@ def process_file(filename):
             userflags, serialNumber, userLocalId, reserved = fields[7:11]
             size, symmAlg, totalESKsize, reserved, userName, s2ktype, hashIterations, reserved2, salt, esk = fields[11:]
             userName = userName.strip(b"\x00").decode()
-            esk_cut = esk.hex()[0:256]
-            sys.stderr.write("DEBUG: %s, %s, %s, %s, %s, %s, %s\n" % (size, symmAlg, totalESKsize, userName, s2ktype, hashIterations, esk.hex()))
-            print("%s:$pgpwde$0*%s*%s*%s*%s*%s" % (userName, symmAlg, s2ktype, hashIterations, salt.hex(), esk_cut))
+            if PY3:
+                esk_hex = esk.hex()
+                salt_hex = salt.hex()
+            else:
+                esk_hex = esk.encode("hex")
+                salt_hex = salt.encode("hex")
+            esk_cut = esk_hex[0:256]
+            sys.stderr.write("DEBUG: %s, %s, %s, %s, %s, %s, %s\n" % (size, symmAlg, totalESKsize, userName, s2ktype, hashIterations, esk_hex))
+            print("%s:$pgpwde$0*%s*%s*%s*%s*%s" % (userName, symmAlg, s2ktype, hashIterations, salt_hex, esk_cut))
 
     f.close()
 
