@@ -302,10 +302,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					else
 						cracked[index+i] = 1;
 				} else if (cur_salt->type == 2) {
-					// check if starting 4 bytes are "xprv"
-					if (strncmp((const char*)outbuf, "xprv", 4))
+					// check if starting 4 bytes are "xprv" or "zprv"
+					if (memcmp(outbuf, "xprv", 4) && memcmp(outbuf, "zprv", 4)) {
 						cracked[index+i] = 0;
-					else {
+					} else {
 						// check if remaining 12 bytes are in base58 set [1-9A-HJ-NP-Za-km-z]
 						for (j = 0; j < 12; j++) {
 							unsigned char c = outbuf[4 + j];
