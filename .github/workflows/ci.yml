@@ -6,7 +6,7 @@ jobs:
   whitespace-errors:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
     - name: check
@@ -18,7 +18,7 @@ jobs:
       CC: gcc
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -30,7 +30,7 @@ jobs:
       CC: gcc
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -42,7 +42,7 @@ jobs:
       CC: gcc
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -54,7 +54,7 @@ jobs:
       CC: gcc
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -66,7 +66,7 @@ jobs:
       CC: gcc
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -78,7 +78,7 @@ jobs:
       CC: gcc
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -90,7 +90,7 @@ jobs:
       CC: gcc
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -102,7 +102,7 @@ jobs:
       CC: gcc-13
       TARGET: x86
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -114,7 +114,7 @@ jobs:
       CC: gcc-13
       TARGET: x86
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -126,7 +126,7 @@ jobs:
       CC: gcc-13
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -138,7 +138,7 @@ jobs:
       CC: gcc-12
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -150,7 +150,7 @@ jobs:
       CC: gcc-11
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -162,7 +162,7 @@ jobs:
       CC: gcc-10
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -174,7 +174,7 @@ jobs:
       CC: gcc
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -186,7 +186,7 @@ jobs:
       CC: gcc-8
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -198,7 +198,7 @@ jobs:
       CC: clang-15
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -210,7 +210,7 @@ jobs:
       CC: clang-14
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -222,7 +222,7 @@ jobs:
       CC: clang-13
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -234,7 +234,7 @@ jobs:
       CC: clang-12
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -246,7 +246,7 @@ jobs:
       CC: clang-11
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -258,7 +258,7 @@ jobs:
       CC: clang
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -270,7 +270,7 @@ jobs:
       CC: clang-9
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
@@ -282,7 +282,7 @@ jobs:
       CC: clang-8
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
