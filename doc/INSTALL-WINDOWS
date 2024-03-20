@@ -12,12 +12,14 @@ system.
 
 === Preconditions and Required stuff
 
-    - Install CygWin (see https://cygwin.com/install.html)
+    Install CygWin (see https://cygwin.com/install.html):
+
+    - Download the setup-x86_64.exe program
 
     - Open the Command Prompt in Windows (see [1])
 
-    - Install required CygWin packages from where you have the CygWin setup:
-      - cd C:\Users\Name\Downloads...
+    - Install required CygWin packages by running the below commands from the
+      directory where you have the CygWin setup program:
       - setup-x86_64.exe -q -P gcc-core -P libgcc1 -P make -P perl
       - setup-x86_64.exe -q -P libssl-devel -P libbz2-devel
       - setup-x86_64.exe -q -P libgmp-devel -P zlib-devel
@@ -33,7 +35,6 @@ system.
     Unzip it to your preferred directory
 
 ==== Build
-    - Copy your Jonh the Ripper source code inside C:\cygwin64
 
     - Inside a CygWin terminal
 
