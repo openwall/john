@@ -15,7 +15,7 @@ jobs:
   asan:
     runs-on: ubuntu-latest
     env:
-      CC: gcc-13
+      CC: gcc
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
@@ -27,7 +27,7 @@ jobs:
   asan-disable-all:
     runs-on: ubuntu-latest
     env:
-      CC: gcc-13
+      CC: gcc
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
@@ -39,7 +39,7 @@ jobs:
   asan-disable-openmp:
     runs-on: ubuntu-latest
     env:
-      CC: gcc-13
+      CC: gcc
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
@@ -51,7 +51,7 @@ jobs:
   asan-without-openssl:
     runs-on: ubuntu-latest
     env:
-      CC: gcc-13
+      CC: gcc
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
@@ -63,7 +63,7 @@ jobs:
   asan-disable-simd:
     runs-on: ubuntu-latest
     env:
-      CC: gcc-13
+      CC: gcc
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
@@ -75,7 +75,7 @@ jobs:
   asan-sse2:
     runs-on: ubuntu-latest
     env:
-      CC: gcc-13
+      CC: gcc
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
@@ -87,7 +87,7 @@ jobs:
   asan-avx:
     runs-on: ubuntu-latest
     env:
-      CC: gcc-13
+      CC: gcc
       TARGET: x86_64
     steps:
     - uses: actions/checkout@v3
