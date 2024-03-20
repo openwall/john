@@ -98,7 +98,7 @@ jobs:
     machine:
       image: ubuntu-2204:current
       environment:
-        export DEBIAN_FRONTEND="noninteractive"
+        DEBIAN_FRONTEND: "noninteractive"
     resource_class: arm.medium
     steps:
       - checkout
