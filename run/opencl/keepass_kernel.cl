@@ -80,11 +80,10 @@ typedef struct {
 } keepass_result;
 
 typedef struct {
-	uint8_t hash[32];
 #if KEEPASS_AES
 	uint iterations;
-	AES_KEY akey;
 #endif
+	uint8_t hash[32];
 } keepass_state;
 
 inline void calc_hmac_base_key(const void *master_seed, const void *final_key, void *result)
@@ -143,15 +142,9 @@ __kernel void keepass_init(__global const keepass_password *masterkey,
 	}
 
 #if KEEPASS_AES
-	// Next, encrypt the hash using the random seed as key (only for AES-KDF)
 	if (salt->kdf == 0) {
-		memcpy_macro(pbuf, salt->transf_randomseed, 32);
-		AES_KEY akey;
-		AES_set_encrypt_key(pbuf, 256, &akey);
-
 		// Save state for loop kernel.
 		state[gid].iterations = salt->t_cost;
-		memcpy_pg(&state[gid].akey, &akey, sizeof(AES_KEY));
 	}
 #endif
 
@@ -160,16 +153,22 @@ __kernel void keepass_init(__global const keepass_password *masterkey,
 
 #if KEEPASS_AES
 // Here's the heavy part. NOTHING else is significant for performance!
-__kernel void keepass_loop_aes(__global keepass_state *state)
+// Encrypt the hash using the random seed as key
+__kernel void keepass_loop_aes(__global keepass_state *state, MAYBE_CONSTANT keepass_salt_t *salt)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint gid = get_global_id(0);
 	uint i;
+	uint8_t pbuf[32];
 
 	i = MIN(state[gid].iterations, HASH_LOOPS);
 	state[gid].iterations -= i;
 
-	AES_KEY akey;
-	memcpy_gp(&akey, &state[gid].akey, sizeof(AES_KEY));
+	memcpy_macro(pbuf, salt->transf_randomseed, 32);
+
+	AES_set_encrypt_key(pbuf, 256, &akey);
+
 	uint8_t hash[32];
 	memcpy_macro(hash, state[gid].hash, 32);
 
@@ -217,8 +216,9 @@ __kernel void keepass_final(__global keepass_state *state,
 	memcpy_macro(hash, state[gid].hash, 32);
 
 #if KEEPASS_AES
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	SHA256_CTX ctx;
-	AES_KEY akey;
 	uint8_t pbuf[32];
 	uint8_t iv[16];
 

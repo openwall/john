@@ -83,6 +83,8 @@ void cryptoSafe(__global const uchar *pwbuf,
 #define GPU_LOC_3 LOC_3
 #endif
 
+	__local aes_local_t lt;
+
 	/* Prepare password, pad to length 32 with ASCII '0's */
 	prepare(pwbuf, index, password);
 
@@ -113,7 +115,7 @@ void cryptoSafe(__global const uchar *pwbuf,
 #endif
 #endif
 
-		AES_KEY aes_decrypt_key;
+		AES_KEY aes_decrypt_key; aes_decrypt_key.lt = &lt;
 		unsigned char plain[16], iv[16] = { 0 };
 
 		AES_set_decrypt_key(password, 256, &aes_decrypt_key);

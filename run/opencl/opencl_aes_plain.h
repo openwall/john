@@ -21,7 +21,7 @@
  * Copy tables to local memory.
  */
 #ifndef AES_LOCAL_TABLES
-//#define AES_LOCAL_TABLES
+#define AES_LOCAL_TABLES
 #endif
 
 /*

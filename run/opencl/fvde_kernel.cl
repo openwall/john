@@ -29,6 +29,8 @@ __kernel void fvde_decrypt(MAYBE_CONSTANT fvde_salt_t *salt,
                            __global crack_t *out,
                            __global uint32_t *cracked)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint32_t gid = get_global_id(0);
 	MAYBE_CONSTANT uint64_t *C = salt->blob.qword; // len(C) == 3 or 5 (AES-256)
 	int32_t n = BLOBLEN / 8 - 1;  // len(C) - 1
@@ -38,7 +40,6 @@ __kernel void fvde_decrypt(MAYBE_CONSTANT fvde_salt_t *salt,
 		uint8_t stream[16];
 	} todecrypt;
 	int32_t i, j;
-	AES_KEY akey;
 	uint64_t A = C[0];
 
 	if (salt->type == 1) {

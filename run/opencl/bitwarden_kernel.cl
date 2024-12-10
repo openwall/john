@@ -31,9 +31,10 @@ __kernel void bitwarden_decrypt(MAYBE_CONSTANT bitwarden_salt_t *salt,
                                 __global crack_t *out,
                                 __global uint32_t *cracked)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint32_t gid = get_global_id(0);
 	int32_t i;
-	AES_KEY akey;
 	union {
 		uchar c[32];
 		uint  w[32 / 4];

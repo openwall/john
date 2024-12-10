@@ -14,10 +14,11 @@ __kernel void lastpass_final(__global crack_t *out,
                              MAYBE_CONSTANT salt_t *salt,
                              __global state_t *state)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint idx = get_global_id(0);
 	uint i;
 	uint key[8];
-	AES_KEY akey;
 
 	for (i = 0; i < 8; i++)
 		key[i] = SWAP32(state[idx].hash[i]);
@@ -38,11 +39,12 @@ __kernel void lastpass_cli_final(__global crack_t *out,
                                  MAYBE_CONSTANT lpcli_salt_t *salt,
                                  __global state_t *state)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint idx = get_global_id(0);
 	uint i;
 	uint key[8];
 	uchar iv[16];
-	AES_KEY akey;
 
 	for (i = 0; i < 8; i++)
 		key[i] = SWAP32(state[idx].hash[i]);

@@ -32,6 +32,8 @@ __kernel void
 o5logon_kernel(__global const uint *keys, __constant salt_t *salt,
                __global const uint *index, __global uint *result)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint W[16] = { 0 }, salt_s[3], output[5];
 	uint gid = get_global_id(0);
 	uint base = index[gid];
@@ -51,7 +53,6 @@ o5logon_kernel(__global const uint *keys, __constant salt_t *salt,
 		ulong l[16 / 8];
 	} pt;
 	uchar iv[16];
-	AES_KEY akey;
 
 	keys += base >> 6;
 

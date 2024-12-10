@@ -43,7 +43,7 @@ typedef struct {
                 (cp)[2] ^= (uchar)((value) >> 16), \
                 (cp)[3] ^= (uchar)((value) >> 24 ) )
 
-inline int axcrypt_decrypt(__global const axcrypt_password *inbuffer, uint gid, __constant axcrypt_salt *cur_salt, __global axcrypt_out *output)
+inline int axcrypt_decrypt(__global const axcrypt_password *inbuffer, uint gid, __constant axcrypt_salt *cur_salt, __global axcrypt_out *output, __local aes_local_t *lt)
 {
 	uchar password[PLAINTEXT_LENGTH];
 	uchar keyfile[4096];
@@ -59,7 +59,7 @@ inline int axcrypt_decrypt(__global const axcrypt_password *inbuffer, uint gid, 
 		uint32_t w[4];
 		uint64_t l[2];
 	} cipher;
-	AES_KEY akey;
+	AES_KEY akey; akey.lt = lt;
 	SHA_CTX ctx;
 	uint i;
 	int j, nb_iterations = cur_salt->key_wrapping_rounds;
@@ -117,7 +117,8 @@ void axcrypt(__global const axcrypt_password *inbuffer,
                 __global axcrypt_out *out,
                 __constant axcrypt_salt *salt)
 {
+	__local aes_local_t lt;
 	uint idx = get_global_id(0);
 
-	out[idx].cracked = axcrypt_decrypt(inbuffer, idx, salt, out);
+	out[idx].cracked = axcrypt_decrypt(inbuffer, idx, salt, out, &lt);
 }

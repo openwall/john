@@ -122,9 +122,10 @@ inline void odf_bf(__global const uchar *password,
 
 inline void odf_aes(__global const uchar *password,
                     __constant odf_salt *salt,
-                    __global uint *out)
+                    __global uint *out,
+                    __local aes_local_t *lt)
 {
-	AES_KEY akey;
+	AES_KEY akey; akey.lt = lt;
 	uchar iv[16];
 	uint i, j;
 	uint hash[256/32];
@@ -177,10 +178,11 @@ __kernel void odf(__global odf_password *password,
                   __constant odf_salt *salt,
                   __global odf_out *out)
 {
+	__local aes_local_t lt;
 	uint idx = get_global_id(0);
 
 	if (salt->cipher_type == 0)
 		odf_bf(password[idx].v, salt, out[idx].v);
 	else
-		odf_aes(password[idx].v, salt, out[idx].v);
+		odf_aes(password[idx].v, salt, out[idx].v, &lt);
 }

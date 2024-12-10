@@ -11,6 +11,7 @@
 
 #include "opencl_misc.h"
 #include "opencl_ripemd.h"
+#define AES_BITSLICE // Somehow this kernel bugs out with the table based kernel
 #define AES_SRC_TYPE __constant
 #define AES_DST_TYPE __global
 #include "opencl_aes.h"
@@ -147,10 +148,11 @@ __kernel void tc_ripemd_aesxts(__global const pbkdf2_password *inbuffer,
                                __global tc_hash *outbuffer,
                                __constant tc_salt *salt)
 {
+	__local aes_local_t lt;
 	uint idx = get_global_id(0);
 	uint key[64 / 4];
 
 	pbkdf2(inbuffer[idx].v, inbuffer[idx].length, salt->salt, key);
 
-	AES_256_XTS_first_sector(salt->bin, outbuffer[idx].v, (uchar*)key);
+	AES_256_XTS_first_sector(salt->bin, outbuffer[idx].v, (uchar*)key, &lt);
 }

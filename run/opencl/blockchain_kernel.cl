@@ -34,10 +34,10 @@ typedef struct {
 } blockchain_salt;
 
 inline int blockchain_decrypt(__global uchar *derived_key,
-                              __constant uchar *data)
+                              __constant uchar *data, __local aes_local_t *lt)
 {
+	AES_KEY akey; akey.lt = lt;
 	uchar out[SAFETY_FACTOR];
-	AES_KEY akey;
 	uchar iv[16];
 
 	AES_set_decrypt_key(derived_key, 256, &akey);
@@ -68,11 +68,12 @@ __kernel void blockchain(__global const pbkdf2_password *inbuffer,
                          __constant blockchain_salt *salt,
                          __global blockchain_out *out)
 {
+	__local aes_local_t lt;
 	uint idx = get_global_id(0);
 
 	pbkdf2(inbuffer[idx].v, inbuffer[idx].length,
 	       salt->pbkdf2.salt, salt->pbkdf2.length, salt->pbkdf2.iterations,
 	       dk[idx].v, salt->pbkdf2.outlen, salt->pbkdf2.skip_bytes);
 
-	out[idx].cracked = blockchain_decrypt((__global uchar*)dk[idx].v, salt->data);
+	out[idx].cracked = blockchain_decrypt((__global uchar*)dk[idx].v, salt->data, &lt);
 }

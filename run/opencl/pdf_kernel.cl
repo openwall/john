@@ -568,6 +568,9 @@ void pdf_r6(__global const uchar *pwbuf,
 #define GPU_LOC_3 LOC_3
 #endif
 
+	__local aes_local_t lt;
+	AES_KEY aes; aes.lt = &lt;
+
 	/* Prepare password */
 	uint pw_len = prepare56(pwbuf, index, password);
 
@@ -604,7 +607,6 @@ void pdf_r6(__global const uchar *pwbuf,
 		uint block_size = 32;
 		uint data_len = 0;
 		uint i, j, sum, magic = 0;
-		AES_KEY aes;
 		uint start_clean;
 		uint md_len_pos;
 

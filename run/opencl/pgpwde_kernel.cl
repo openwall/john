@@ -137,9 +137,9 @@ inline int PKCS1oaepMGF1Unpack(uchar *in, uint32_t inlen)
 	return memcmp_pp(nullhash, msg + hashlen / 4, hashlen);
 }
 
-inline int pgpwde_decrypt_and_verify(uchar *key, __constant uchar *esk)
+inline int pgpwde_decrypt_and_verify(uchar *key, __constant uchar *esk, __local aes_local_t *lt)
 {
-	AES_KEY aes_key;
+	AES_KEY aes_key; aes_key.lt = lt;
 	uchar iv[16] = { 8, 0 };
 	uchar out[128];
 
@@ -156,11 +156,12 @@ __kernel void pgpwde(__global const pgpwde_password *inbuffer,
                   __global pgpwde_hash *outbuffer,
                   __constant pgpwde_salt *salt)
 {
+	__local aes_local_t lt;
 	uint idx = get_global_id(0);
 	uint key[8];
 
 	pgpwde_kdf(inbuffer[idx].v, inbuffer[idx].length, salt->salt,
 	           salt->bytes, key);
 
-	outbuffer[idx].cracked = pgpwde_decrypt_and_verify((uchar*)key, salt->esk);
+	outbuffer[idx].cracked = pgpwde_decrypt_and_verify((uchar*)key, salt->esk, &lt);
 }

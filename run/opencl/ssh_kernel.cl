@@ -194,8 +194,9 @@ inline int check_padding_and_structure(uchar *out, uint length, uint strict_mode
 	return 1;
 }
 
-inline void common_crypt_code(uchar *password, uint len, __constant ssh_salt *osalt, uchar *out, uint full_decrypt)
+inline void common_crypt_code(uchar *password, uint len, __constant ssh_salt *osalt, uchar *out, uint full_decrypt, __local aes_local_t *lt)
 {
+	AES_KEY akey; akey.lt = lt;
 	uchar salt[16];
 
 	memcpy_macro(salt, osalt->salt, osalt->sl);
@@ -217,7 +218,6 @@ inline void common_crypt_code(uchar *password, uint len, __constant ssh_salt *os
 		}
 	} else if (osalt->cipher == 1) {  // RSA/DSA keys with AES-128
 		uchar key[16];
-		AES_KEY akey;
 		uchar iv[16];
 
 		memcpy_macro(iv, osalt->salt, 16);
@@ -236,7 +236,6 @@ inline void common_crypt_code(uchar *password, uint len, __constant ssh_salt *os
 #endif
 	} else if (osalt->cipher == 3) {  // EC keys with AES-128
 		uchar key[16];
-		AES_KEY akey;
 		uchar iv[16];
 
 		memcpy_macro(iv, osalt->salt, 16);
@@ -246,7 +245,6 @@ inline void common_crypt_code(uchar *password, uint len, __constant ssh_salt *os
 		AES_cbc_decrypt(osalt->ct, out, osalt->ctl, &akey, iv);
 	} else if (osalt->cipher == 4) {  // RSA/DSA keys with AES-192
 		uchar key[24];
-		AES_KEY akey;
 		uchar iv[16];
 
 		memcpy_macro(iv, osalt->salt, 16);
@@ -261,7 +259,6 @@ inline void common_crypt_code(uchar *password, uint len, __constant ssh_salt *os
 		}
 	} else if (osalt->cipher == 5) {  // RSA/DSA keys with AES-256
 		uchar key[32];
-		AES_KEY akey;
 		uchar iv[16];
 
 		memcpy_macro(iv, osalt->salt, 16);
@@ -280,12 +277,12 @@ inline void common_crypt_code(uchar *password, uint len, __constant ssh_salt *os
 #define QUICK 0
 #define FULL 1
 
-inline int ssh_decrypt(uchar *password, uint len, __constant ssh_salt *osalt, __global ssh_out *output)
+inline int ssh_decrypt(uchar *password, uint len, __constant ssh_salt *osalt, __global ssh_out *output, __local aes_local_t *lt)
 {
 	uchar out[CTLEN];
 	int block_size = osalt->cipher == 0 ? 8 : 16;
 
-	common_crypt_code(password, len, osalt, out, QUICK);
+	common_crypt_code(password, len, osalt, out, QUICK, lt);
 
 	if (osalt->cipher == 3)  // EC keys with AES-128
 		return check_padding_and_structure_EC(out, osalt->ctl);
@@ -293,7 +290,7 @@ inline int ssh_decrypt(uchar *password, uint len, __constant ssh_salt *osalt, __
 	if (!check_padding_and_structure(out, osalt->ctl, QUICK, block_size))
 		return 0;
 
-	common_crypt_code(password, len, osalt, out, FULL);
+	common_crypt_code(password, len, osalt, out, FULL, lt);
 
 	return check_padding_and_structure(out, osalt->ctl, FULL, block_size);
 }
@@ -302,10 +299,11 @@ __kernel void ssh(__global const ssh_password *inbuffer,
                   __global ssh_out *out,
                   __constant ssh_salt *salt)
 {
+	__local aes_local_t lt;
 	uchar password[PLAINTEXT_LENGTH];
 	uint gid = get_global_id(0);
 
 	memcpy_gp(password, inbuffer[gid].v, inbuffer[gid].length);
 
-	out[gid].cracked = ssh_decrypt(password, inbuffer[gid].length, salt, out);
+	out[gid].cracked = ssh_decrypt(password, inbuffer[gid].length, salt, out, &lt);
 }

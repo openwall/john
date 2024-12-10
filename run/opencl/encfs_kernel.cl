@@ -130,10 +130,10 @@ inline uint encfs_common_MAC_32(MAYBE_CONSTANT encfs_salt *salt, uchar *src,
 
 inline void encfs_common_streamDecode(MAYBE_CONSTANT encfs_salt *salt,
                                       uchar *buf, uint size, uint64_t iv64,
-                                      uchar *key)
+                                      uchar *key, __local aes_local_t *lt)
 {
 	uchar ivec[MAX_IVLENGTH];
-	AES_KEY akey;
+	AES_KEY akey; akey.lt = lt;
 
 	encfs_common_setIVec(salt, ivec, iv64 + 1, key);
 	AES_set_encrypt_key(key, salt->keySize * 8, &akey);
@@ -151,6 +151,7 @@ void encfs_final(MAYBE_CONSTANT encfs_salt *salt,
                  __global pbkdf2_out *pbkdf2,
                  __global encfs_out *out)
 {
+	__local aes_local_t lt;
 	uint gid = get_global_id(0);
 	uint i;
 	uchar master[MAX_KEYLENGTH + MAX_IVLENGTH];
@@ -165,7 +166,7 @@ void encfs_final(MAYBE_CONSTANT encfs_salt *salt,
 		checksum = (checksum << 8) | salt->data[i];
 
 	memcpy_mcp(tmpBuf, salt->data + KEY_CHECKSUM_BYTES, salt->keySize + salt->ivLength);
-	encfs_common_streamDecode(salt, tmpBuf, salt->keySize + salt->ivLength ,checksum, master);
+	encfs_common_streamDecode(salt, tmpBuf, salt->keySize + salt->ivLength ,checksum, master, &lt);
 	checksum2 = encfs_common_MAC_32(salt, tmpBuf, salt->keySize + salt->ivLength, master);
 
 	out[gid].cracked = (checksum2 == checksum);

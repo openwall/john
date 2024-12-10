@@ -64,13 +64,14 @@ __kernel void keyring(__global const keyring_password *inbuffer,
                       __global keyring_hash *outbuffer,
                       __constant keyring_salt *salt)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint gid = get_global_id(0);
 	uint W[64/4] = { 0 };
 	uint o[32/4];
 	uint i;
 	uint len = inbuffer[gid].length;
 	uint iterations = salt->iterations;
-	AES_KEY akey;
 	uchar buffer[LINE_BUFFER_SIZE / 2];
 	union {
 		uchar c[16];

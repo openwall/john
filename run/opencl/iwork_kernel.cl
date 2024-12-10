@@ -39,9 +39,10 @@ void iwork_final(MAYBE_CONSTANT iwork_salt *salt,
                  __global iwork_out *result,
                  __global pbkdf2_state *state)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint gid = get_global_id(0);
 	uint i;
-	AES_KEY akey;
 	int success = 1; // hash was cracked
 	union {
 		uchar c[BLOBLEN];

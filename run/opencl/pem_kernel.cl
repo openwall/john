@@ -24,7 +24,7 @@ typedef struct {
 	uchar ciphertext[CTLEN];
 } pem_salt;
 
-inline int pem_decrypt(__global uchar *key, MAYBE_CONSTANT pem_salt *salt)
+inline int pem_decrypt(__global uchar *key, MAYBE_CONSTANT pem_salt *salt, __local aes_local_t *lt)
 {
 	uchar out[CTLEN];
 	struct asn1_hdr hdr;
@@ -49,7 +49,7 @@ inline int pem_decrypt(__global uchar *key, MAYBE_CONSTANT pem_salt *salt)
 	} else {
 		const uint aes_sz = salt->cid * 64;
 		uchar aiv[16];
-		AES_KEY akey;
+		AES_KEY akey; akey.lt = lt;
 
 		block_size = 16;
 		memcpy_macro(aiv, salt->iv, 16);
@@ -109,7 +109,8 @@ void pem_final(MAYBE_CONSTANT pem_salt *salt,
                __global pbkdf2_out *pbkdf2,
                __global pem_out *out)
 {
+	__local aes_local_t lt;
 	uint gid = get_global_id(0);
 
-	out[gid].cracked = pem_decrypt((__global uchar*)pbkdf2[gid].dk, salt);
+	out[gid].cracked = pem_decrypt((__global uchar*)pbkdf2[gid].dk, salt, &lt);
 }

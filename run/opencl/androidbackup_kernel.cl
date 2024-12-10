@@ -21,12 +21,12 @@ typedef struct {
 	uchar masterkey_blob[MAX_MASTERKEYBLOB_LEN];
 } ab_salt;
 
-inline int ab_decrypt(__global uchar *key, MAYBE_CONSTANT ab_salt *salt)
+inline int ab_decrypt(__global uchar *key, MAYBE_CONSTANT ab_salt *salt, __local aes_local_t *lt)
 {
 	uchar out[MAX_MASTERKEYBLOB_LEN];
 	const int length = salt->masterkey_blob_length;
 	uchar aiv[16];
-	AES_KEY akey;
+	AES_KEY akey; akey.lt = lt;
 	int pad_byte;
 
 	memcpy_macro(aiv, salt->iv, 16);
@@ -51,7 +51,8 @@ void ab_final(MAYBE_CONSTANT ab_salt *salt,
                __global pbkdf2_out *pbkdf2,
                __global ab_out *out)
 {
+	__local aes_local_t lt;
 	uint gid = get_global_id(0);
 
-	out[gid].cracked = ab_decrypt((__global uchar*)pbkdf2[gid].dk, salt);
+	out[gid].cracked = ab_decrypt((__global uchar*)pbkdf2[gid].dk, salt, &lt);
 }

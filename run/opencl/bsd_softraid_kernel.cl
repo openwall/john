@@ -29,11 +29,12 @@ __kernel
 void softraid_final(MAYBE_CONSTANT softraid_salt *salt,
                     __global pbkdf2_out *out)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint gid = get_global_id(0);
 	uint dk[OUTLEN / 4];
 	uchar unmasked_keys[MASKED_KEY_SIZE];
 	uchar hashed_mask_key[SHA1_DIGEST_LENGTH];
-	AES_KEY akey;
 	SHA_CTX ctx;
 
 	memcpy_gp(dk, out[gid].dk, OUTLEN);

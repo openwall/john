@@ -12,9 +12,6 @@ typedef struct {
 
 #define pbkdf2_out dmg_out
 #include "pbkdf2_hmac_sha1_kernel.cl"
-#if __OS_X__
-#define AES_NO_BITSLICE
-#endif
 #define AES_SRC_TYPE MAYBE_CONSTANT
 #include "opencl_aes.h"
 #include "opencl_hmac_sha1.h"
@@ -94,10 +91,10 @@ inline int check_v1hash(const uchar *derived_key,
 }
 
 inline int check_v2hash(const uchar *derived_key,
-                        MAYBE_CONSTANT dmg_salt *salt)
+                        MAYBE_CONSTANT dmg_salt *salt, __local aes_local_t *lt)
 {
 	des3_context ks;
-	AES_KEY aes_decrypt_key;
+	AES_KEY aes_decrypt_key; aes_decrypt_key.lt = lt;
 	uint buf[8192/4];
 	uchar *outbuf = (uchar*)buf;
 	uchar iv[20];
@@ -155,10 +152,11 @@ __kernel
 void dmg_final_v2(MAYBE_CONSTANT dmg_salt *salt,
                   __global dmg_out *out)
 {
+	__local aes_local_t lt;
 	uint gid = get_global_id(0);
 	uint dk[OUTLEN / 4];
 
 	memcpy_gp(dk, out[gid].dk, OUTLEN);
 
-	out[gid].cracked = check_v2hash((uchar*)dk, salt);
+	out[gid].cracked = check_v2hash((uchar*)dk, salt, &lt);
 }

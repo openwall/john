@@ -30,8 +30,9 @@ __kernel void dk_decrypt(__global pbkdf2_password *password,
                          __global agile_out *agile_out,
                          __constant agile_salt *salt)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint idx = get_global_id(0);
-	AES_KEY akey;
 	uchar iv[16];
 	uchar plaintext[16];
 	uint i;

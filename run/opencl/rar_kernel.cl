@@ -239,9 +239,9 @@ inline int check_huffman(uchar *next) {
 /*
  * Returns 0 for early rejection, 1 if passed
  */
-inline int check_rar(__global rar_file *cur_file, __global uint *_key, __global uint *_iv)
+inline int check_rar(__global rar_file *cur_file, __global uint *_key, __global uint *_iv, __local aes_local_t *lt)
 {
-	AES_KEY aes_ctx;
+	AES_KEY aes_ctx; aes_ctx.lt = lt;
 	uchar iv[16];
 	uchar plain[16 + 8]; /* Some are safety margin for check_huffman() */
 	__global uchar *key = (__global uchar*)_key;
@@ -341,8 +341,9 @@ __kernel void RarFinal(const __global uint *pw_len, __global rar_out *output)
 
 __kernel void RarCheck(__global rar_out *output, __global rar_file *file)
 {
+	__local aes_local_t lt;
 	uint gid = get_global_id(0);
 
 	/* GPU-side early reject */
-	output[gid].sha[4] = check_rar(file, output[gid].sha, output[gid].iv);
+	output[gid].sha[4] = check_rar(file, output[gid].sha, output[gid].iv, &lt);
 }

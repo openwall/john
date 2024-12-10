@@ -60,8 +60,9 @@ __kernel void ethereum_presale_process(__global crack_t *pbkdf2_out,
                                        __global state_t *state,
                                        __global hash_t *out)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint32_t gid = get_global_id(0);
-	AES_KEY akey;
 	uchar iv[16];
 	int i;
 	uchar seed[1024 + 1];

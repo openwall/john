@@ -9,7 +9,6 @@
 
 #include "opencl_misc.h"
 #include "opencl_sha1_ctx.h"
-#define AES_NO_BITSLICE
 #include "opencl_aes.h"
 #include "opencl_twofish.h"
 #include "opencl_cast.h"
@@ -82,9 +81,10 @@ __kernel void pgpdisk_aes(__global const pgpdisk_password *inbuffer,
                           __global pgpdisk_hash *outbuffer,
                           __constant pgpdisk_salt *salt)
 {
+	__local aes_local_t lt;
+	AES_KEY aes_key; aes_key.lt = &lt;
 	uint idx = get_global_id(0);
 	uchar key[32];
-	AES_KEY aes_key;
 
 	pgpdisk_kdf(inbuffer[idx].v, inbuffer[idx].length,
 	            salt->salt, salt->saltlen, salt->iterations,

@@ -38,6 +38,8 @@ __kernel void geli_final(__global crack_t *pbkdf2,
                          __constant geli_salt_t *salt,
                          __global out_t *out)
 {
+	__local aes_local_t lt;
+	AES_KEY aes_decrypt_key; aes_decrypt_key.lt = &lt;
 	uint gid = get_global_id(0);
 	__constant uchar *mmkey;
 	const uchar nullstring[1] = { 0 };
@@ -64,7 +66,6 @@ __kernel void geli_final(__global crack_t *pbkdf2,
 	for (nkey = 0; nkey < G_ELI_MAXMKEYS; nkey++, mmkey += G_ELI_MKEYLEN) {
 		int bit = (1 << nkey);
 		uchar iv[16] = { 0 };
-		AES_KEY aes_decrypt_key;
 		uchar tmpmkey[G_ELI_MKEYLEN];
 		const uchar *odhmac; /* On-disk HMAC. */
 		uchar chmac[SHA512_MDLEN]; /* Calculated HMAC. */

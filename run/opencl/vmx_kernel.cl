@@ -41,6 +41,8 @@ void vmx_final(MAYBE_CONSTANT vmx_salt *salt,
 		__global pbkdf2_state *state,
 		__global vmx_state *vstate)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint gid = get_global_id(0);
 	uint i;
 #if !OUTLEN || OUTLEN > 20
@@ -71,7 +73,6 @@ void vmx_final(MAYBE_CONSTANT vmx_salt *salt,
 #endif
 	} else {
 		uchar data[16];
-		AES_KEY akey;
 		int success = 0;
 		union {
 			uchar c[256 / 8];

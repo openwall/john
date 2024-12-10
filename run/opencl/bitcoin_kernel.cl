@@ -84,6 +84,8 @@ __kernel void loop_sha512(__global hash512_t *state, uint count)
 
 __kernel void bitcoin_final(__constant salt_t *salt, __global hash512_t *state, __global uint *cracked)
 {
+	__local aes_local_t lt;
+	AES_KEY aes_key; aes_key.lt = &lt;
 	uint gid = get_global_id(0);
 	uchar iv[16];  // updated IV for the final block
 	memcpy_cp(iv, salt->cry_master + salt->cry_master_length - 32, 16);
@@ -93,7 +95,6 @@ __kernel void bitcoin_final(__constant salt_t *salt, __global hash512_t *state, 
 		state[gid].W[i] = SWAP64(state[gid].W[i]);
 
 	uchar output[16];
-	AES_KEY aes_key;
 	AES_set_decrypt_key(state[gid].b, 256, &aes_key);
 	AES_cbc_decrypt(salt->cry_master + salt->cry_master_length - 16, output, 16, &aes_key, iv);
 

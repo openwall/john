@@ -10,6 +10,7 @@
 #include "opencl_md5.h"
 #include "opencl_sha1.h"
 #include "opencl_sha2_ctx.h"
+#define CMAC_SINGLE_UPDATE
 #include "opencl_cmac.h"
 
 typedef struct {
@@ -658,6 +659,7 @@ void wpapsk_final_sha256(__global wpapsk_state *state,
                          MAYBE_CONSTANT wpapsk_data *data,
                          __global mic_t *mic)
 {
+	__local aes_local_t lt;
 	uchar ptk[48];
 	uchar cmic[16];
 	uint outbuffer[8];
@@ -674,7 +676,7 @@ void wpapsk_final_sha256(__global wpapsk_state *state,
 	sha256_prf_bits((uchar*)outbuffer, 32, (MAYBE_CONSTANT uchar*)data->data, 76, ptk, 48 * 8);
 
 	/* CMAC is kinda like a HMAC but using AES */
-	AES_CMAC_Init(&ctx);
+	AES_CMAC_Init(&ctx, &lt);
 	AES_CMAC_SetKey(&ctx, ptk);
 	AES_CMAC_Update(&ctx, (MAYBE_CONSTANT uchar*)data->eapol, data->eapol_size);
 	AES_CMAC_Final(cmic, &ctx);

@@ -153,6 +153,7 @@ __kernel void sevenzip_final(__global const sevenzip_password *inbuffer,
 __kernel void sevenzip_aes(__constant sevenzip_salt *salt,
                            __global sevenzip_hash *outbuffer)
 {
+	__local aes_local_t lt;
 	uint gid = get_global_id(0);
 	uint i;
 	uint pad;
@@ -162,7 +163,7 @@ __kernel void sevenzip_aes(__constant sevenzip_salt *salt,
 	/* Early rejection if possible (only decrypt last 16 bytes) */
 	if (pad > 0 && salt->length >= 32) {
 		uint8_t buf[16];
-		AES_KEY akey;
+		AES_KEY akey; akey.lt = &lt;
 		unsigned char iv[16];
 
 		for (i = 0; i < 16; i++)

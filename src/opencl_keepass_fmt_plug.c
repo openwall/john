@@ -53,10 +53,13 @@ typedef struct {
 	uint32_t cracked;
 } result;
 
+#define AES_MAXNR   14
+
 typedef struct {
-	uint8_t  hash[32];
+#if KEEPASS_AES
 	uint32_t iterations;
-	uint8_t  akey[724]; /* sizeof(AES_CTX) on GPU side */
+#endif
+	uint8_t hash[32];
 } keepass_state;
 
 static int new_keys;
@@ -131,6 +134,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	CLKERNELARG(kernel_init, 2, mem_state);
 
 	CLKERNELARG(kernel_loop_aes, 0, mem_state);
+	CLKERNELARG(kernel_loop_aes, 1, mem_salt);
 
 	CLKERNELARG(kernel_final, 0, mem_state);
 	CLKERNELARG(kernel_final, 1, mem_salt);
@@ -272,6 +276,7 @@ static void set_salt(void *salt)
 		saltsize = sizeof(keepass_salt_t) + keepass_salt->content_size - 1;
 		CLCREATEBUFFER(mem_salt, CL_RO, saltsize);
 		CLKERNELARG(kernel_init, 1, mem_salt);
+		CLKERNELARG(kernel_loop_aes, 1, mem_salt);
 		CLKERNELARG(kernel_final, 1, mem_salt);
 #if KEEPASS_ARGON2
 		CLKERNELARG(kernel_argon2, 1, mem_salt);

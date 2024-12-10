@@ -35,6 +35,8 @@ __kernel void axcrypt2_final(__global crack_t *pbkdf2,
                              __constant axcrypt2_salt_t *salt,
                              __global out_t *out)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint gid = get_global_id(0);
 
 	int i, k, j, nb_iterations = salt->key_wrapping_rounds;
@@ -49,7 +51,6 @@ __kernel void axcrypt2_final(__global crack_t *pbkdf2,
 		key.u[i] = SWAP64(pbkdf2[gid].hash[i]);
 
 	uchar KEK[32];
-	AES_KEY akey;
 	int halfblocklen = 16 / 2;
 	int wrappedkeylen = 56 - halfblocklen;
 	union {

@@ -19,7 +19,7 @@ typedef struct {
 	uchar encrypted_blob[ENCRYPTED_BLOB_LEN];
 } telegram_salt;
 
-inline int telegram_decrypt(__global uchar *authkey, MAYBE_CONSTANT telegram_salt *salt)
+inline int telegram_decrypt(__global uchar *authkey, MAYBE_CONSTANT telegram_salt *salt, __local aes_local_t *lt)
 {
 	// variables
 	uchar data_a[48];
@@ -39,7 +39,7 @@ inline int telegram_decrypt(__global uchar *authkey, MAYBE_CONSTANT telegram_sal
 	int encrypted_data_length = salt->encrypted_blob_length - 16;
 	SHA_CTX ctx;
 	SHA_CTX fctx;
-	AES_KEY aeskey;
+	AES_KEY aeskey; aeskey.lt = lt;
 	int i;
 
 	// setup buffers
@@ -105,7 +105,8 @@ void telegram_final(MAYBE_CONSTANT telegram_salt *salt,
                __global pbkdf2_out *pbkdf2,
                __global telegram_out *out)
 {
+	__local aes_local_t lt;
 	uint gid = get_global_id(0);
 
-	out[gid].cracked = telegram_decrypt((__global uchar*)pbkdf2[gid].dk, salt);
+	out[gid].cracked = telegram_decrypt((__global uchar*)pbkdf2[gid].dk, salt, &lt);
 }

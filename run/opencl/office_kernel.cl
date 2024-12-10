@@ -125,6 +125,8 @@ void Final2007(__global ms_office_state *state,
                __constant ms_office_salt *salt,
                __constant ms_office_blob *blob)
 {
+	__local aes_local_t lt;
+	AES_KEY akey; akey.lt = &lt;
 	uint i;
 	uint W[16];
 	union {
@@ -144,7 +146,6 @@ void Final2007(__global ms_office_state *state,
 		unsigned char c[16];
 		uint w[4];
 	} decryptedVerifierHash;
-	AES_KEY akey;
 	uint result = 1;
 
 #if (50000 % HASH_LOOPS0710)
@@ -240,11 +241,12 @@ inline void Decrypt(__constant ms_office_salt *salt,
                     const uchar *verifierInputKey,
                     __constant uchar *encryptedVerifier,
                     uchar *decryptedVerifier,
-                    const int length)
+                    const int length,
+                    __local aes_local_t *lt)
 {
 	uint i;
 	uchar iv[16];
-	AES_KEY akey;
+	AES_KEY akey; akey.lt = lt;
 
 	for (i = 0; i < 16; i++)
 		iv[i] = salt->salt.c[i];
@@ -262,6 +264,7 @@ void Generate2010key(__global ms_office_state *state,
                      __constant ms_office_salt *salt,
                      __constant ms_office_blob *blob)
 {
+	__local aes_local_t lt;
 	uint i, j, result = 1;
 	uint W[16];
 	union {
@@ -328,10 +331,10 @@ void Generate2010key(__global ms_office_state *state,
 		output[1].w[i] = SWAP32(output[1].w[i]);
 
 	Decrypt(salt, output[0].c, blob->encryptedVerifier,
-	        decryptedVerifierHashInputBytes.c, 16);
+	        decryptedVerifierHashInputBytes.c, 16, &lt);
 
 	Decrypt(salt, output[1].c, blob->encryptedVerifierHash,
-	        decryptedVerifierHashBytes.c, 32);
+	        decryptedVerifierHashBytes.c, 32, &lt);
 
 	for (i = 0; i < 4; i++)
 		W[i] = SWAP32(decryptedVerifierHashInputBytes.w[i]);
@@ -414,6 +417,7 @@ void Generate2013key(__global ms_office_state *state,
                      __constant ms_office_salt *salt,
                      __constant ms_office_blob *blob)
 {
+	__local aes_local_t lt;
 	uint i, j, result = 1;
 	ulong W[4][16];
 	ulong output[4][64/8];
@@ -468,10 +472,10 @@ void Generate2013key(__global ms_office_state *state,
 		output[2][i] = SWAP64(output[2][i]);
 
 	Decrypt(salt, (uchar*)output[1], blob->encryptedVerifier,
-	        (uchar*)decryptedVerifierHashInputBytes, 16);
+	        (uchar*)decryptedVerifierHashInputBytes, 16, &lt);
 
 	Decrypt(salt, (uchar*)output[2], blob->encryptedVerifierHash,
-	        (uchar*)decryptedVerifierHashBytes, 32);
+	        (uchar*)decryptedVerifierHashBytes, 32, &lt);
 
 	for (i = 0; i < 2; i++)
 		W[3][i] = SWAP64(decryptedVerifierHashInputBytes[i]);
