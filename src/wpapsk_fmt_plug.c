@@ -43,14 +43,16 @@ john_register_one(&fmt_wpapsk);
 #else
 #warning Notice: WPAPSK (CPU) format built without support for 802.11w (this needs recent OpenSSL)
 #endif
+#define CMACALGO ""
 #define FORMAT_NAME		"WPA/WPA2/PMKID PSK"
 #else
+#define CMACALGO "HMAC-SHA256/AES-CMAC "
 #define FORMAT_NAME		"WPA/WPA2/PMF/PMKID PSK"
 #endif
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME          "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PBKDF2-SHA1 " CMACALGO SHA1_ALGORITHM_NAME
 #else
-#define ALGORITHM_NAME          "PBKDF2-SHA1 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "PBKDF2-SHA1 " CMACALGO "32/" ARCH_BITS_STR
 #endif
 
 #ifdef SIMD_COEF_32

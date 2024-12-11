@@ -33,8 +33,8 @@ john_register_one(&fmt_opencl_ssh);
 #include "ssh_variable_code.h"
 
 #define FORMAT_LABEL            "ssh-opencl"
-#define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "RSA/DSA/EC (SSH private keys) OpenCL"
+#define FORMAT_NAME             "SSH private key"
+#define ALGORITHM_NAME          "RSA/DSA/EC 3DES/AES OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
 #define BINARY_SIZE             0

@@ -36,7 +36,7 @@ static int new_keys;
 
 #define FORMAT_LABEL		"wpapsk-opencl"
 #define FORMAT_NAME		"WPA/WPA2/PMF/PMKID PSK"
-#define ALGORITHM_NAME		"PBKDF2-SHA1 OpenCL"
+#define ALGORITHM_NAME		"PBKDF2-SHA1 HMAC-SHA256/AES-CMAC OpenCL"
 
 #define ITERATIONS		4095
 #define HASH_LOOPS		105 // factors 3, 3, 5, 7, 13

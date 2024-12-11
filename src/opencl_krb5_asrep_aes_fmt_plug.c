@@ -37,7 +37,7 @@ john_register_one(&fmt_opencl_krb5_asrep_aes);
 
 #define FORMAT_LABEL            "krb5asrep-aes-opencl"
 #define FORMAT_NAME             "Kerberos 5 AS-REP etype 17/18"
-#define ALGORITHM_NAME          "PBKDF2-SHA1 OpenCL"
+#define ALGORITHM_NAME          "PBKDF2-SHA1 AES OpenCL"
 
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
