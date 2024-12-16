@@ -36,23 +36,12 @@ john_register_one(&fmt_wpapsk);
 #include "options.h"
 #include "unicode.h"
 
-#define FORMAT_LABEL		"wpapsk"
-#if !HAVE_OPENSSL_CMAC_H
-#ifdef _MSC_VER
-#pragma message("Notice: WPAPSK (CPU) format built without support for 802.11w (this needs recent OpenSSL)")
-#else
-#warning Notice: WPAPSK (CPU) format built without support for 802.11w (this needs recent OpenSSL)
-#endif
-#define CMACALGO ""
-#define FORMAT_NAME		"WPA/WPA2/PMKID PSK"
-#else
-#define CMACALGO "HMAC-SHA256/AES-CMAC "
-#define FORMAT_NAME		"WPA/WPA2/PMF/PMKID PSK"
-#endif
+#define FORMAT_LABEL    "wpapsk"
+#define FORMAT_NAME     "WPA/WPA2/PMF/PMKID PSK"
 #ifdef SIMD_COEF_32
-#define ALGORITHM_NAME          "PBKDF2-SHA1 " CMACALGO SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME  "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " HMAC-SHA256/AES-CMAC 32/" ARCH_BITS_STR
 #else
-#define ALGORITHM_NAME          "PBKDF2-SHA1 " CMACALGO "32/" ARCH_BITS_STR
+#define ALGORITHM_NAME  "PBKDF2-SHA1 HMAC-SHA256/AES-CMAC 32/" ARCH_BITS_STR
 #endif
 
 #ifdef SIMD_COEF_32
