@@ -1,7 +1,7 @@
 /*
  * AES OpenCL functions
  *
- * Copyright (c) 2017-2018, magnum.
+ * Copyright (c) 2017-2024, magnum.
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
@@ -17,13 +17,53 @@
 #ifndef _AES_PLAIN
 #define _AES_PLAIN
 
+/*
+ * Copy tables to local memory.
+ */
+#ifndef AES_LOCAL_TABLES
+//#define AES_LOCAL_TABLES
+#endif
+
+/*
+ * This ruins Intel auto-vectorizing and slows AMD down - doesn't seem to make
+ * much of a difference elsewhere.
+ */
+#if gpu_nvidia(DEVICE_INFO)
+#define FULL_UNROLL
+#endif
+
+/*
+ * Declare td4 as 32-bit repeated values, and use logical 'and' instead of shift
+ */
+#if gpu_amd(DEVICE_INFO)
+#define TD4_32_BIT
+#endif
+
 #include "opencl_aes_tables.h"
 
 #define AES_MAXNR   14
 
+typedef struct aes_tables {
+	u32 Te0[256];
+	u32 Te1[256];
+	u32 Te2[256];
+	u32 Te3[256];
+	u32 Td0[256];
+	u32 Td1[256];
+	u32 Td2[256];
+	u32 Td3[256];
+#ifdef TD4_32_BIT
+	u32 Td4[256];
+#else
+	u8 Td4[256];
+#endif
+	u32 rcon[10];
+} aes_local_t;
+
 typedef struct aes_key_st {
 	uint rd_key[4 * (AES_MAXNR + 1)];
 	int rounds;
+	__local aes_local_t *lt;
 } AES_KEY;
 
 #define GETU32(pt) (((u32)(pt)[0] << 24) ^ ((u32)(pt)[1] << 16) ^ ((u32)(pt)[2] <<  8) ^ ((u32)(pt)[3]))
@@ -32,11 +72,46 @@ typedef struct aes_key_st {
 #define MAXKC   (256/32)
 #define MAXKB   (256/8)
 
-/*
- * This controls loop-unrolling. Only effect I've seen is it ruins
- * Intel auto-vectorizing.
+#ifdef AES_LOCAL_TABLES
+
+#define THREAD      get_local_id(0)
+#define LWS         get_local_size(0)
+
+/**
+ * Copy tables to local memory
  */
-#undef FULL_UNROLL
+inline void aes_table_init(__local aes_local_t *lt)
+{
+	for (uint i = THREAD; i < 256; i += LWS) {
+		lt->Te0[i] = Te0[i];
+		lt->Te1[i] = Te1[i];
+		lt->Te2[i] = Te2[i];
+		lt->Te3[i] = Te3[i];
+		lt->Td0[i] = Td0[i];
+		lt->Td1[i] = Td1[i];
+		lt->Td2[i] = Td2[i];
+		lt->Td3[i] = Td3[i];
+		lt->Td4[i] = Td4[i];
+		if (i < 10)
+			lt->rcon[i] = rcon[i];
+	}
+
+	barrier(CLK_LOCAL_MEM_FENCE);
+}
+
+/* Do not move from this spot */
+#define Te0	lt->Te0
+#define Te1	lt->Te1
+#define Te2	lt->Te2
+#define Te3	lt->Te3
+#define Td0	lt->Td0
+#define Td1	lt->Td1
+#define Td2	lt->Td2
+#define Td3	lt->Td3
+#define Td4	lt->Td4
+#define rcon lt->rcon
+
+#endif	/* AES_LOCAL_TABLES */
 
 /**
  * Expand the cipher key into the encryption key schedule.
@@ -48,6 +123,11 @@ inline void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 	u32 *rk;
 	int i = 0;
 	u32 temp;
+	__local aes_local_t *lt = key->lt;
+
+#ifdef AES_LOCAL_TABLES
+	aes_table_init(lt);
+#endif
 
 	rk = key->rd_key;
 
@@ -144,6 +224,7 @@ inline void AES_set_decrypt_key(AES_KEY_TYPE void *_userKey,
 	u32 *rk;
 	int i, j;
 	u32 temp;
+	__local aes_local_t *lt = key->lt;
 
 	/* first, start with an encryption schedule */
 	AES_set_encrypt_key(userKey, bits, key);
@@ -190,9 +271,7 @@ inline void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 {
 	const u32 *rk;
 	u32 s0, s1, s2, s3, t0, t1, t2, t3;
-#ifndef FULL_UNROLL
-	int r;
-#endif /* ?FULL_UNROLL */
+	__local aes_local_t *lt = key->lt;
 
 	rk = key->rd_key;
 
@@ -279,7 +358,7 @@ inline void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	/*
 	 * Nr - 1 full rounds:
 	 */
-	r = key->rounds >> 1;
+	int r = key->rounds >> 1;
 	for (;;) {
 		t0 =
 			Te0[(s0 >> 24)       ] ^
@@ -378,9 +457,7 @@ inline void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 {
 	const u32 *rk;
 	u32 s0, s1, s2, s3, t0, t1, t2, t3;
-#ifndef FULL_UNROLL
-	int r;
-#endif /* ?FULL_UNROLL */
+	__local aes_local_t *lt = key->lt;
 
 //	assert(in && out && key);
 	rk = key->rd_key;
@@ -468,7 +545,7 @@ inline void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	/*
 	 * Nr - 1 full rounds:
 	 */
-	r = key->rounds >> 1;
+	int r = key->rounds >> 1;
 	for (;;) {
 		t0 =
 			Td0[(s0 >> 24)       ] ^
@@ -530,6 +607,36 @@ inline void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	 * apply last round and
 	 * map cipher state to byte array block:
 	 */
+#ifdef TD4_32_BIT
+	s0 =
+		( ((uint)(Td4[(t0 >> 24)])) & 0xff000000U) ^
+		(Td4[(t3 >> 16) & 0xff] & 0x00ff0000U) ^
+		(Td4[(t2 >>  8) & 0xff] & 0x0000ff00U) ^
+		(Td4[(t1      ) & 0xff] & 0x000000ffU) ^
+		rk[0];
+	PUTU32(out     , s0);
+	s1 =
+		( ((uint)(Td4[(t1 >> 24)])) & 0xff000000U) ^
+		(Td4[(t0 >> 16) & 0xff] & 0x00ff0000U) ^
+		(Td4[(t3 >>  8) & 0xff] & 0x0000ff00U) ^
+		(Td4[(t2      ) & 0xff] & 0x000000ffU) ^
+		rk[1];
+	PUTU32(out +  4, s1);
+	s2 =
+		( ((uint)(Td4[(t2 >> 24)])) & 0xff000000U) ^
+		(Td4[(t1 >> 16) & 0xff] & 0x00ff0000U) ^
+		(Td4[(t0 >>  8) & 0xff] & 0x0000ff00U) ^
+		(Td4[(t3      ) & 0xff] & 0x000000ffU) ^
+		rk[2];
+	PUTU32(out +  8, s2);
+	s3 =
+		( ((uint)(Td4[(t3 >> 24)])) & 0xff000000U) ^
+		(Td4[(t2 >> 16) & 0xff] & 0x00ff0000U) ^
+		(Td4[(t1 >>  8) & 0xff] & 0x0000ff00U) ^
+		(Td4[(t0      ) & 0xff] & 0x000000ffU) ^
+		rk[3];
+	PUTU32(out + 12, s3);
+#else
 	s0 =
 		( ((uint)(Td4[(t0 >> 24)])) << 24) ^
 		(Td4[(t3 >> 16) & 0xff] << 16) ^
@@ -558,6 +665,7 @@ inline void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		(Td4[(t0      ) & 0xff])       ^
 		rk[3];
 	PUTU32(out + 12, s3);
+#endif
 }
 
 #endif /* _AES_PLAIN */

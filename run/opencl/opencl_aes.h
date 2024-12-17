@@ -1,7 +1,7 @@
 /*
  * AES OpenCL functions
  *
- * Copyright (c) 2017-2018, magnum.
+ * Copyright (c) 2017-2024, magnum.
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
@@ -42,13 +42,13 @@
 #define AES_BLOCK_SIZE 16
 
 /*
- * Source the basic AES code. We use a fancy bitsliced version that can
- * do two blocks in parallel except with some devices that are either too
- * buggy to use it, or actually perform slower with it.
- * CPU's seem to generally perform worse with it. Nvidia GPU's love it.
- * macOS may crash just trying to build it.
+ * Source the basic AES code, with local memory-cached tables.
+ *
+ * There is also a fancy bitsliced version that can do two blocks in parallel.
+ * CPU's seem to generally perform worse with it. Nvidia GPU's love it but
+ * right now no formats seem to end up faster with. It's left as opt-in.
  */
-#if defined(AES_NO_BITSLICE) || cpu(DEVICE_INFO) || (__OS_X__ && gpu_amd(DEVICE_INFO))
+#ifndef AES_BITSLICE
 #include "opencl_aes_plain.h"
 #else
 #include "opencl_aes_bitslice.h"
@@ -313,14 +313,14 @@ inline void AES_cfb_decrypt(AES_SRC_TYPE void *_in,
 	}
 }
 
-inline void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in,
-                                     AES_DST_TYPE uint *out,
-                                     AES_KEY_TYPE uchar *double_key)
+inline void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in, AES_DST_TYPE uint *out,
+                                     AES_KEY_TYPE uchar *double_key, __local aes_local_t *lt)
 {
 	uint tweak[4] = { 0 };
 	uint buf[4];
 	int i;
-	AES_KEY akey1, akey2;
+	AES_KEY akey1; akey1.lt = lt;
+	AES_KEY akey2; akey2.lt = lt;
 
 	AES_set_decrypt_key(double_key, 256, &akey1);
 	AES_set_encrypt_key(double_key + 32, 256, &akey2);
@@ -337,11 +337,12 @@ inline void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in,
 }
 
 inline void AES_256_XTS_DiskCryptor(AES_SRC_TYPE uchar *data, AES_DST_TYPE uchar *output,
-		AES_KEY_TYPE uchar *double_key, int len)
+                                    AES_KEY_TYPE uchar *double_key, int len, __local aes_local_t *lt)
 {
 	uchar buf[16];
 	int i, j, cnt;
-	AES_KEY key1, key2;
+	AES_KEY key1; key1.lt = lt;
+	AES_KEY key2; key2.lt = lt;
 	int bits = 256;
 	uchar buffer[96];
 	uchar *out = buffer;

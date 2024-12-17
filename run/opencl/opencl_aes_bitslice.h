@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018 magnum
+ * Copyright (c) 2017-2024 magnum
  * Copyright (c) 2016 Thomas Pornin <pornin@bolet.org>
  * Copyright (c) 2016 Mike Belopuhov
  *
@@ -26,11 +26,15 @@
 #ifndef _AES_BITSLICE
 #define _AES_BITSLICE
 
+typedef struct aes_tables {
+	uint32_t dummy;
+} aes_local_t;
+
 typedef struct aes_ctx {
 	uint32_t sk[60];
 	uint32_t sk_exp[120];
-
 	uint num_rounds;
+	__local aes_local_t *lt; /* Not currently used yet but here for interoperability */
 } AES_CTX;
 
 inline void
@@ -1001,11 +1005,8 @@ typedef AES_CTX  AES_KEY;
 #define AES_set_encrypt_key(key, bits, ctx) AES_Setkey(ctx, key, (bits) / 8)
 #define AES_set_decrypt_key(key, bits, ctx) AES_Setkey(ctx, key, (bits) / 8)
 
-#define AES_Encrypt(ctx, in, out)           AES_Encrypt_ECB_pp(ctx, in, out, 1)
-#define AES_Decrypt(ctx, in, out)           AES_Decrypt_ECB_pp(ctx, in, out, 1)
-
-#define AES_encrypt(in, out, ctx)           AES_Encrypt(ctx, in, out)
-#define AES_decrypt(in, out, ctx)           AES_Decrypt(ctx, in, out)
+#define AES_encrypt(in, out, ctx)           AES_Encrypt_ECB_pp(ctx, in, out, 1)
+#define AES_decrypt(in, out, ctx)           AES_Decrypt_ECB_pp(ctx, in, out, 1)
 
 #define AES_ecb_encrypt_pp(in, out, len, ctx)	  \
 	AES_Encrypt_ECB_pp(ctx, in, out, (len) / AES_BLOCK_SIZE)

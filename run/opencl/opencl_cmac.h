@@ -47,13 +47,14 @@ typedef struct _AES_CMAC_CTX {
 } while (0)
 
 inline void
-AES_CMAC_Init(AES_CMAC_CTX *ctx)
+AES_CMAC_Init(AES_CMAC_CTX *ctx, __local aes_local_t *lt)
 {
 	uint i;
 
 	for (i = 0; i < 16; i++)
 		ctx->X[i] = 0;
 	ctx->M_n = 0;
+	ctx->aesctx.lt = lt;
 }
 
 inline void
@@ -67,7 +68,7 @@ AES_CMAC_Update(AES_CMAC_CTX *ctx, MAYBE_CONSTANT uint8_t *data, uint len)
 {
 	uint i;
 
-#if 0 /* Only needed if we ever call Update() several times */
+#ifndef CMAC_SINGLE_UPDATE
 	if (ctx->M_n > 0) {
 		uint mlen = MIN(16 - ctx->M_n, len);
 
