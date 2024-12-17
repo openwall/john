@@ -20,7 +20,7 @@
 /*
  * Copy tables to local memory.
  */
-#ifndef AES_LOCAL_TABLES
+#if gpu(DEVICE_INFO)
 #define AES_LOCAL_TABLES
 #endif
 
