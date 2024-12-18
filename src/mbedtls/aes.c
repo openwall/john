@@ -1102,13 +1102,13 @@ int mbedtls_aes_crypt_cbc(mbedtls_aes_context *ctx,
     }
 
     if (length % 16) {
-	    ret = MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH;
-	    /*
-	     * For bug compatibility, chug along and return the error afterwards.
-	     * Our old code (and eg. OpenSSL) would read and write past buffers
-	     * just like we do here.  - magnum
-	     */
-	    length = (length + 15) / 16 * 16;
+        ret = MBEDTLS_ERR_AES_INVALID_INPUT_LENGTH;
+        /*
+         * For bug compatibility, chug along and return the error afterwards.
+         * Our old code (and eg. OpenSSL) would read and write past buffers
+         * just like we do here.  - magnum
+         */
+        length = (length + 15) / 16 * 16;
     }
 
 #if defined(MBEDTLS_VIA_PADLOCK_HAVE_CODE)

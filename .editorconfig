@@ -27,6 +27,11 @@ tab_width = 8
 indent_style = space
 indent_size = 2
 
+# Neither does mbedtls
+[src/mbedtls/*.[ch]]
+indent_style = space
+indent_size = 4
+
 [7z2john.pl]
 indent_style = space
 indent_size = 2
