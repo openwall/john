@@ -168,7 +168,7 @@ static int process_file(char *name)
 							inv_cp;
 					initUnicode(0);
 
-					enc_to_utf16(u16, sizeof(u16), (UTF8*)convin, len);
+					enc_to_utf16(u16, LINE_BUFFER_SIZE, (UTF8*)convin, len);
 					out = (char*)utf16_to_utf8_r(u8buf, sizeof(u8buf), u16);
 					if (options.verbosity > VERB_DEFAULT &&
 					    strcmp(convin, out))
@@ -182,7 +182,7 @@ static int process_file(char *name)
 				strcpy (dd, convin);
 				while (*convin) {
 					out = dd;
-					utf8_to_utf16(u16, sizeof(u16),
+					utf8_to_utf16(u16, LINE_BUFFER_SIZE,
 					              (UTF8*)dd, len);
 					if (!valid_ansi(u16))
 						break;
