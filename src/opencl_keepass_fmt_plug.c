@@ -53,8 +53,6 @@ typedef struct {
 	uint32_t cracked;
 } result;
 
-#define AES_MAXNR   14
-
 typedef struct {
 #if KEEPASS_AES
 	uint32_t iterations;
