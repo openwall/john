@@ -4,7 +4,7 @@
  * and binary forms, with or without modification, are permitted.
  */
 
-#define FORMAT_STRUCT fmt_pdf_opencl
+#define FORMAT_STRUCT fmt_opencl_pdf
 
 #ifdef HAVE_OPENCL
 
