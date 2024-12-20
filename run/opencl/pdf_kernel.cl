@@ -126,20 +126,20 @@ void pdf_r2(__global const uchar *pwbuf,
 
 		/* Apply GPU-side mask */
 #if NUM_INT_KEYS > 1
-		password[GPU_LOC_0] = int_keys[mi] & 0xff;
+		((uchar*)password)[GPU_LOC_0] = int_keys[mi] & 0xff;
 #if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
-		password[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
+		((uchar*)password)[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
-		password[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
+		((uchar*)password)[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
-		password[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
+		((uchar*)password)[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
 #endif
 #endif
 #endif
@@ -244,20 +244,20 @@ void pdf_r34(__global const uchar *pwbuf,
 
 		/* Apply GPU-side mask */
 #if NUM_INT_KEYS > 1
-		password[GPU_LOC_0] = int_keys[mi] & 0xff;
+		((uchar*)password)[GPU_LOC_0] = int_keys[mi] & 0xff;
 #if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
-		password[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
+		((uchar*)password)[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
-		password[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
+		((uchar*)password)[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
-		password[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
+		((uchar*)password)[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
 #endif
 #endif
 #endif
@@ -465,20 +465,20 @@ void pdf_r5(__global const uchar *pwbuf,
 
 		/* Apply GPU-side mask */
 #if NUM_INT_KEYS > 1
-		password[GPU_LOC_0] = int_keys[mi] & 0xff;
+		((uchar*)password)[GPU_LOC_0] = int_keys[mi] & 0xff;
 #if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
-		password[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
+		((uchar*)password)[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
-		password[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
+		((uchar*)password)[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
-		password[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
+		((uchar*)password)[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
 #endif
 #endif
 #endif
@@ -578,20 +578,20 @@ void pdf_r6(__global const uchar *pwbuf,
 
 		/* Apply GPU-side mask */
 #if NUM_INT_KEYS > 1
-		password[GPU_LOC_0] = int_keys[mi] & 0xff;
+		((uchar*)password)[GPU_LOC_0] = int_keys[mi] & 0xff;
 #if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
-		password[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
+		((uchar*)password)[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
-		password[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
+		((uchar*)password)[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
-		password[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
+		((uchar*)password)[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
 #endif
 #endif
 #endif
