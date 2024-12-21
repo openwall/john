@@ -201,7 +201,6 @@ __kernel void gost12256loop(__global inbuf *in,
 #endif
 
 	/* Repeatedly run the collected hash value through Streebog to burn CPU cycles.  */
-#pragma unroll HASH_LOOPS
 	for (cnt = 0; cnt < HASH_LOOPS; ++cnt) {
 		/* New context. */
 		GOST34112012Init(&ctx, 256);

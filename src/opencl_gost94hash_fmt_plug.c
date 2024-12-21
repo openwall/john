@@ -91,8 +91,7 @@ typedef struct {
 
 #define STEP			0
 #define SEED			128
-#define HASH_LOOPS		(42 * 4) /* Kernel is hardcoded for multiple of 42 for optimizations */
-#define LOOP_CALLS		(5000 + (HASH_LOOPS - 1) / HASH_LOOPS)
+#define HASH_LOOPS		(21 * 8)
 #define ITERATIONS		5004
 
 static inbuf *inbuffer;
@@ -218,7 +217,7 @@ static void reset(struct db_main *db)
 	                       sizeof(mem_state), 0, db);
 
 	// Auto tune execution from shared/included code.
-	autotune_run(self, LOOP_CALLS, 0, 200);
+	autotune_run(self, ITERATIONS, 0, 200);
 }
 
 static void done(void)
