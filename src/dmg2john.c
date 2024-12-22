@@ -39,7 +39,6 @@
 
 #include "arch.h"
 #include "filevault.h"
-#include "misc.h"
 #include "jumbo.h"
 #include "memory.h"
 #include "johnswap.h"
@@ -104,7 +103,7 @@ static void print_hex(unsigned char *str, int len)
 // to link dmg2john.o with misc.o results in linking errors, as parts of misc.o
 // depends on other parts of JtR jumbo. These linking problems are not easily
 // solvable without refactoring misc.c file.
-int strnzcpyn(char *dst, const char *src, int size)
+static int strnzcpyn(char *dst, const char *src, int size)
 {
 	char *dptr;
 	if (!size) return 0;
@@ -118,7 +117,7 @@ int strnzcpyn(char *dst, const char *src, int size)
 	return (dptr-dst);
 }
 
-char *strnzcat(char *dst, const char *src, int size)
+static char *strnzcat(char *dst, const char *src, int size)
 {
 	char *dptr = dst;
 

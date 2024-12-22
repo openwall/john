@@ -296,21 +296,8 @@ char *strnfcpy(char *dst, const char *src, int size)
 	return dst;
 }
 
-char *strnzcpy(char *dst, const char *src, int size)
-{
-	char *dptr;
-
-	if (size < 1)
-		return dst;
-	dptr = dst;
-
-	while (--size)
-		if (!(*dptr++ = *src++))
-			return dst;
-	*dptr = 0;
-
-	return dst;
-}
+/* C99-style inlining: Code in .h and extern declaration in .c */
+extern inline char *strnzcpy(char *dst, const char *src, int size);
 
 char *strnzcpylwr(char *dst, const char *src, int size)
 {
@@ -336,21 +323,7 @@ char *strnzcpylwr(char *dst, const char *src, int size)
 	return dst;
 }
 
-int strnzcpyn(char *dst, const char *src, int size)
-{
-	char *dptr;
-
-	if (size < 1)
-		return 0;
-	dptr = dst;
-
-	while (--size)
-		if (!(*dptr++ = *src++))
-			return (dptr-dst)-1;
-	*dptr = 0;
-
-	return (dptr-dst);
-}
+extern inline int strnzcpyn(char *dst, const char *src, int size);
 
 int strnzcpylwrn(char *dst, const char *src, int size)
 {

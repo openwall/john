@@ -114,7 +114,21 @@ extern char *strnfcpy(char *dst, const char *src, int size);
 /*
  * Similar to the above, but always NUL terminates the string.
  */
-extern char *strnzcpy(char *dst, const char *src, int size);
+inline char *strnzcpy(char *dst, const char *src, int size)
+{
+	char *dptr;
+
+	if (size < 1)
+		return dst;
+	dptr = dst;
+
+	while (--size)
+		if (!(*dptr++ = *src++))
+			return dst;
+	*dptr = 0;
+
+	return dst;
+}
 
 /*
  * Similar to the above, but also converts to lowercase in a single pass
@@ -124,7 +138,21 @@ extern char *strnzcpylwr(char *dst, const char *src, int size);
 /*
  * Similar to the strnzcpy, but returns the length of the string.
  */
-extern int strnzcpyn(char *dst, const char *src, int size);
+inline int strnzcpyn(char *dst, const char *src, int size)
+{
+	char *dptr;
+
+	if (size < 1)
+		return 0;
+	dptr = dst;
+
+	while (--size)
+		if (!(*dptr++ = *src++))
+			return (dptr-dst)-1;
+	*dptr = 0;
+
+	return (dptr-dst);
+}
 
 /*
  * Similar to the strnzcpylwr, but returns the length of the string.
