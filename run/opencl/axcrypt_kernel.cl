@@ -43,7 +43,7 @@ typedef struct {
                 (cp)[2] ^= (uchar)((value) >> 16), \
                 (cp)[3] ^= (uchar)((value) >> 24 ) )
 
-inline int axcrypt_decrypt(__global const axcrypt_password *inbuffer, uint gid, __constant axcrypt_salt *cur_salt, __global axcrypt_out *output, __local aes_local_t *lt)
+INLINE int axcrypt_decrypt(__global const axcrypt_password *inbuffer, uint gid, __constant axcrypt_salt *cur_salt, __global axcrypt_out *output, __local aes_local_t *lt)
 {
 	uchar password[PLAINTEXT_LENGTH];
 	uchar keyfile[4096];

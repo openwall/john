@@ -40,7 +40,7 @@ typedef struct {
 
 #ifdef UTF_8
 
-inline
+INLINE
 void oldoffice_utf16(__global const uchar *source,
                      __global const uint *index,
                      nt_buffer_t *nt_buffer)
@@ -116,7 +116,7 @@ void oldoffice_utf16(__global const uchar *source,
 
 #else
 
-inline
+INLINE
 void oldoffice_utf16(__global const uchar *password,
                      __global const uint *index,
                      nt_buffer_t *nt_buffer)
@@ -148,7 +148,7 @@ void oldoffice_utf16(__global const uchar *password,
 #define MAYBE_VOLATILE
 #endif
 
-inline
+INLINE
 void oldoffice_md5(const nt_buffer_t *nt_buffer,
                    __global salt_t *cs,
                    __global uint *result,
@@ -361,7 +361,7 @@ void oldoffice_md5(const nt_buffer_t *nt_buffer,
 	}
 }
 
-inline
+INLINE
 void oldoffice_sha1(const nt_buffer_t *nt_buffer,
                     __global salt_t *cs,
                     __global uint *result,

@@ -25,7 +25,7 @@
 #define SALT_TYPE MAYBE_CONSTANT
 #endif
 
-inline void _phsk_preproc(__global const uchar *key, uint keylen,
+INLINE void _phsk_preproc(__global const uchar *key, uint keylen,
                           __global uint *state, uint padding)
 {
 	uint j, t;
@@ -58,7 +58,7 @@ inline void _phsk_preproc(__global const uchar *key, uint keylen,
 }
 
 
-inline void _phsk_hmac_sha256(__global uint *output, __global uint *ipad_state,
+INLINE void _phsk_hmac_sha256(__global uint *output, __global uint *ipad_state,
                               __global uint *opad_state, SALT_TYPE uchar *salt,
                               uint saltlen, uchar add)
 {

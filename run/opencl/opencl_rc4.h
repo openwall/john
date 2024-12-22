@@ -98,7 +98,7 @@ typedef struct {
  * Set IV.  Clever, compact 32-bit implementation nicked from hashcat, replacing
  * the (also 32-bit) constant array we had.  No difference in speed though.
  */
-inline void rc4_init(
+INLINE void rc4_init(
 #ifdef RC4_USE_LOCAL
                 __local
 #endif
@@ -114,7 +114,7 @@ inline void rc4_init(
 /*
  * Arbitrary length key
  */
-inline void rc4_set_key(
+INLINE void rc4_set_key(
 #ifdef RC4_USE_LOCAL
                 __local
 #endif
@@ -138,7 +138,7 @@ inline void rc4_set_key(
 /*
  * Unrolled fixed keylen of 5 (40-bit).
  */
-inline void rc4_40_set_key(
+INLINE void rc4_40_set_key(
 #ifdef RC4_USE_LOCAL
                 __local
 #endif
@@ -168,7 +168,7 @@ inline void rc4_40_set_key(
 /*
  * Unrolled fixed keylen of 16 (128-bit).
  */
-inline void rc4_128_set_key(
+INLINE void rc4_128_set_key(
 #ifdef RC4_USE_LOCAL
                 __local
 #endif
@@ -210,7 +210,7 @@ inline void rc4_128_set_key(
 /*
  * Len is given in bytes but must be multiple of 4.
  */
-inline void rc4(
+INLINE void rc4(
 #ifdef RC4_USE_LOCAL
                 __local
 #endif

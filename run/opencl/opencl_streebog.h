@@ -731,7 +731,7 @@ __constant const ulong Ax[8][256] = {
 	}
 };
 
-inline void
+INLINE void
 GOST34112012Init(GOST34112012Context *CTX, const uint digest_size)
 {
 	CTX->buffer.VWORD = 0;
@@ -752,7 +752,7 @@ GOST34112012Init(GOST34112012Context *CTX, const uint digest_size)
 	CTX->bufsize = 0;
 }
 
-inline void
+INLINE void
 pad(GOST34112012Context *CTX)
 {
 	if (CTX->bufsize > 63)
@@ -764,7 +764,7 @@ pad(GOST34112012Context *CTX)
 }
 
 /* Let r = x + y modulo 2^512 */
-inline void
+INLINE void
 add512(const uint512_u *x, const uint512_u *y, uint512_u *r)
 {
 	uint CF;
@@ -785,7 +785,7 @@ add512(const uint512_u *x, const uint512_u *y, uint512_u *r)
 	}
 }
 
-inline void
+INLINE void
 g(uint512_u *h, const uint512_u *N, const uint512_u *m, __local localbuf *loc_buf)
 {
 	uint512_u Ki, data;
@@ -821,7 +821,7 @@ g(uint512_u *h, const uint512_u *N, const uint512_u *m, __local localbuf *loc_bu
 }
 
 // Special case of the above where N is all zeros
-inline void
+INLINE void
 g0(uint512_u *h, const uint512_u *m, __local localbuf *loc_buf)
 {
 	uint512_u Ki, data;
@@ -857,7 +857,7 @@ g0(uint512_u *h, const uint512_u *m, __local localbuf *loc_buf)
 	XOR512(&data, m, h);
 }
 
-inline void
+INLINE void
 stage2(GOST34112012Context *CTX, const uint512_u *data, __local localbuf *loc_buf)
 {
 	const uint512_u buffer512 = {{ 0x0000000000000200UL, 0, 0, 0, 0, 0, 0, 0 }};
@@ -872,7 +872,7 @@ stage2(GOST34112012Context *CTX, const uint512_u *data, __local localbuf *loc_bu
 	add512(&(CTX->Sigma), &m, &(CTX->Sigma));
 }
 
-inline void
+INLINE void
 stage2d(GOST34112012Context *CTX, const uchar *data, __local localbuf *loc_buf)
 {
 	const uint512_u buffer512 = {{ 0x0000000000000200UL, 0, 0, 0, 0, 0, 0, 0 }};
@@ -888,7 +888,7 @@ stage2d(GOST34112012Context *CTX, const uchar *data, __local localbuf *loc_buf)
 	add512(&(CTX->Sigma), &m, &(CTX->Sigma));
 }
 
-inline void
+INLINE void
 stage3(GOST34112012Context *CTX, __local localbuf *loc_buf)
 {
 	uint512_u buf = {{ 0 }};
@@ -906,7 +906,7 @@ stage3(GOST34112012Context *CTX, __local localbuf *loc_buf)
 	g0(&(CTX->h), &(CTX->Sigma), loc_buf);
 }
 
-__attribute__((noinline)) void
+NOINLINE void
 GOST34112012Update(GOST34112012Context *CTX, const uchar *data, uint len, __local localbuf *loc_buf)
 {
 	if (CTX->bufsize) {
@@ -937,7 +937,7 @@ GOST34112012Update(GOST34112012Context *CTX, const uchar *data, uint len, __loca
 	}
 }
 
-__attribute__((noinline)) void
+NOINLINE void
 GOST34112012Final(GOST34112012Context *CTX,
 #if STREEBOG512CRYPT
                   uint512_u

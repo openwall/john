@@ -46,7 +46,7 @@ typedef struct _AES_CMAC_CTX {
 		(r)[i] ^= (v)[i];				\
 } while (0)
 
-inline void
+INLINE void
 AES_CMAC_Init(AES_CMAC_CTX *ctx, __local aes_local_t *lt)
 {
 	uint i;
@@ -57,13 +57,13 @@ AES_CMAC_Init(AES_CMAC_CTX *ctx, __local aes_local_t *lt)
 	ctx->aesctx.lt = lt;
 }
 
-inline void
+INLINE void
 AES_CMAC_SetKey(AES_CMAC_CTX *ctx, const uint8_t *key)
 {
 	AES_set_encrypt_key(key, 128, &ctx->aesctx);
 }
 
-inline void
+INLINE void
 AES_CMAC_Update(AES_CMAC_CTX *ctx, MAYBE_CONSTANT uint8_t *data, uint len)
 {
 	uint i;
@@ -95,7 +95,7 @@ AES_CMAC_Update(AES_CMAC_CTX *ctx, MAYBE_CONSTANT uint8_t *data, uint len)
 	ctx->M_n = len;
 }
 
-inline void
+INLINE void
 AES_CMAC_Final(uint8_t *digest, AES_CMAC_CTX *ctx)
 {
 	uint8_t K[16] = { 0 };

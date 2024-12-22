@@ -26,7 +26,7 @@
 
 #ifdef UTF_8
 
-inline
+INLINE
 void prepare_key(const __global uint *key, uint length,
                  MAYBE_VOLATILE uint *nt_buffer)
 {
@@ -97,7 +97,7 @@ void prepare_key(const __global uint *key, uint length,
 
 #else
 
-inline
+INLINE
 void prepare_key(const __global uint *key, uint length, uint *nt_buffer)
 {
 	uint i, nt_index, keychars;
@@ -116,7 +116,7 @@ void prepare_key(const __global uint *key, uint length, uint *nt_buffer)
 
 #endif /* encodings */
 
-inline
+INLINE
 void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 {
 	uint block[16];
@@ -209,7 +209,7 @@ void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 	md5_block(uint, block, output); /* md5_update(hash, 16), md5_final() */
 }
 
-inline
+INLINE
 void cmp_final(uint gid,
                uint iter,
                uint *hash,
@@ -257,7 +257,7 @@ void cmp_final(uint gid,
 	}
 }
 
-inline
+INLINE
 void cmp(uint gid,
          uint iter,
          uint *hash,

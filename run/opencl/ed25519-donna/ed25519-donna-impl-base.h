@@ -122,7 +122,7 @@ ge25519_scalarmult_base_choose_niels(ge25519_niels *t, uint32_t pos, signed char
 /* computes [s]basepoint */
 static void
 #if gpu_nvidia(DEVICE_INFO) && DEV_VER_MAJOR > 525 && DEV_VER_MAJOR < 560
-__attribute__((noinline))
+NOINLINE
 #endif
 ge25519_scalarmult_base_niels(ge25519 *r, const bignum256modm s) {
 	signed char b[64];

@@ -29,7 +29,7 @@ typedef struct {
 	uchar salt[8];
 } pgpsda_salt;
 
-inline void pgpsda_kdf(__global const uchar *ipassword, const uint plen,
+INLINE void pgpsda_kdf(__global const uchar *ipassword, const uint plen,
                        __constant uchar *isalt, const uint iterations,
                        uchar *key)
 {

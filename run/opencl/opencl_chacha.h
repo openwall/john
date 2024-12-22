@@ -77,7 +77,7 @@ typedef struct chacha_ctx_s {
 __constant char sigma[16] = "expand 32-byte k";
 __constant char tau[16] = "expand 16-byte k";
 
-inline
+INLINE
 void chacha_keysetup(chacha_ctx *x, CHACHA_KEY_TYPE uchar *k, uint kbits)
 {
 	__constant char *constants;
@@ -102,7 +102,7 @@ void chacha_keysetup(chacha_ctx *x, CHACHA_KEY_TYPE uchar *k, uint kbits)
 	x->input[3] = U8TO32_LITTLE(constants + 12);
 }
 
-inline
+INLINE
 void chacha_ivsetup(chacha_ctx *x, CHACHA_IV_TYPE uchar *iv, const uchar *counter, uint length)
 {
 	if (length == 0 || length == 8) {
@@ -118,7 +118,7 @@ void chacha_ivsetup(chacha_ctx *x, CHACHA_IV_TYPE uchar *iv, const uchar *counte
 	}
 }
 
-inline
+INLINE
 void chacha_encrypt_bytes(chacha_ctx *x, CHACHA_SRC_TYPE uchar *m, CHACHA_DST_TYPE uchar *c, uint bytes)
 {
 	uint x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15;
@@ -253,7 +253,7 @@ void chacha_encrypt_bytes(chacha_ctx *x, CHACHA_SRC_TYPE uchar *m, CHACHA_DST_TY
 	}
 }
 
-inline
+INLINE
 void chacha_decrypt_bytes(chacha_ctx *x, CHACHA_SRC_TYPE uchar *c, CHACHA_DST_TYPE uchar *m, uint bytes)
 {
 	chacha_encrypt_bytes(x, c, m, bytes);

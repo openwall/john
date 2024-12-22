@@ -53,7 +53,7 @@ void wpapmk_init(__global const uint *inbuffer,
 
 #else
 
-inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
+INLINE void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
                       __global MAYBE_VECTOR_UINT *ipad,
                       __global MAYBE_VECTOR_UINT *opad,
                       MAYBE_CONSTANT uchar *salt, uint saltlen, uchar add)
@@ -87,7 +87,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 		state[i] = output[i];
 }
 
-inline void preproc(__global const MAYBE_VECTOR_UINT *key,
+INLINE void preproc(__global const MAYBE_VECTOR_UINT *key,
                     __global MAYBE_VECTOR_UINT *state, uint padding)
 {
 	uint i;
@@ -193,7 +193,7 @@ void wpapsk_pass2(MAYBE_CONSTANT wpapsk_salt *salt,
 //__constant uint text[6] = { 0x72696150, 0x65736977, 0x79656b20, 0x70786520, 0x69736e61, 0x00006e6f };
 __constant uint text[6] = { 0x50616972, 0x77697365, 0x206b6579, 0x20657870, 0x616e7369, 0x6f6e0000 };
 
-inline void prf_512(const MAYBE_VECTOR_UINT *key,
+INLINE void prf_512(const MAYBE_VECTOR_UINT *key,
                     MAYBE_CONSTANT uint *data,
                     MAYBE_VECTOR_UINT *ret)
 {
@@ -529,14 +529,14 @@ void wpapsk_final_pmkid(__global wpapsk_state *state,
 
 #define SHA256_MAC_LEN 32
 
-inline void
+INLINE void
 WPA_PUT_LE16(uchar *a, uint val)
 {
 	a[1] = (val >> 8) & 0xff;
 	a[0] = val & 0xff;
 }
 
-inline void
+INLINE void
 sha256_vector(uint num_elem, const uchar *addr[], const uint *len, uchar *mac)
 {
 	SHA256_CTX ctx;
@@ -550,7 +550,7 @@ sha256_vector(uint num_elem, const uchar *addr[], const uint *len, uchar *mac)
 	SHA256_Final(mac, &ctx);
 }
 
-inline void
+INLINE void
 hmac_sha256_vector(const uchar *key, uint key_len, uint num_elem,
                    const uchar *addr[], const uint *len, uchar *mac)
 {
@@ -596,7 +596,7 @@ hmac_sha256_vector(const uchar *key, uint key_len, uint num_elem,
 	sha256_vector(2, _addr, _len, mac);
 }
 
-inline void
+INLINE void
 sha256_prf_bits(const uchar *key, uint key_len, MAYBE_CONSTANT uchar *data,
                 uint data_len, uchar *buf, uint buf_len_bits)
 {

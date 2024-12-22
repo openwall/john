@@ -36,7 +36,7 @@ typedef struct {
 	uint cracked;
 } sappse_out;
 
-inline int sappse_crypt(__global const uint *password, uint32_t password_length,
+INLINE int sappse_crypt(__global const uint *password, uint32_t password_length,
                       __constant sappse_salt *salt, __global sappse_out *out)
 {
 	uint i;

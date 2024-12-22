@@ -26,7 +26,7 @@
 
 #ifdef UTF_8
 
-inline
+INLINE
 void prepare(const __global uint *key, uint length,
              MAYBE_VOLATILE uint *nt_buffer)
 {
@@ -97,7 +97,7 @@ void prepare(const __global uint *key, uint length,
 
 #else
 
-inline
+INLINE
 void prepare(const __global uint *key, uint length, uint *nt_buffer)
 {
 	uint i, nt_index, keychars;
@@ -118,7 +118,7 @@ void prepare(const __global uint *key, uint length, uint *nt_buffer)
 
 #define asciidigit(n)	((n) >= '0' && (n) <= '9')
 
-inline
+INLINE
 void krb5pa_md5_final(const uint *K,
                       MAYBE_CONSTANT uint *salts,
 #ifdef RC4_USE_LOCAL
@@ -257,7 +257,7 @@ void krb5pa_md5_final(const uint *K,
 	md5_block(uint, block, K2); /* md5_update(ihash, 16), md5_final() */
 }
 
-inline
+INLINE
 void cmp_final(uint gid,
                uint iter,
                uint *hash,
@@ -305,7 +305,7 @@ void cmp_final(uint gid,
 	}
 }
 
-inline
+INLINE
 void cmp(uint gid,
          uint iter,
          uint *hash,

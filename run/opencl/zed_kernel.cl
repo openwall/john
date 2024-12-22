@@ -35,7 +35,7 @@ typedef struct {
 	uint32_t salt[salt_len / 4];
 } zed_salt;
 
-inline void zed_crypt(__global const uint *password, uint32_t password_length,
+INLINE void zed_crypt(__global const uint *password, uint32_t password_length,
                       __constant zed_salt *salt, __global uint *out)
 {
 	uint i;

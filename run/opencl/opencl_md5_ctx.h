@@ -19,7 +19,7 @@ typedef struct {
 	uchar buffer[64];  /* data block being processed */
 } MD5_CTX;
 
-inline void _md5_process(MD5_CTX *ctx, const uchar data[64])
+INLINE void _md5_process(MD5_CTX *ctx, const uchar data[64])
 {
 	uint W[16], A, B, C, D;
 
@@ -78,7 +78,7 @@ inline void _md5_process(MD5_CTX *ctx, const uchar data[64])
 /*
  * MD5 context setup
  */
-inline void MD5_Init(MD5_CTX *ctx)
+INLINE void MD5_Init(MD5_CTX *ctx)
 {
 	ctx->total = 0;
 
@@ -91,7 +91,7 @@ inline void MD5_Init(MD5_CTX *ctx)
 /*
  * MD5 process buffer
  */
-inline void MD5_Update(MD5_CTX *ctx, const uchar *input, uint ilen)
+INLINE void MD5_Update(MD5_CTX *ctx, const uchar *input, uint ilen)
 {
 	uint fill;
 	uint left;
@@ -129,7 +129,7 @@ inline void MD5_Update(MD5_CTX *ctx, const uchar *input, uint ilen)
 /*
  * MD5 final digest
  */
-inline void MD5_Final(uchar output[20], MD5_CTX *ctx)
+INLINE void MD5_Final(uchar output[20], MD5_CTX *ctx)
 {
 	uint last, padn;
 	ulong bits;

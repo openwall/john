@@ -86,7 +86,7 @@ typedef struct {
 	uint8_t hash[32];
 } keepass_state;
 
-inline void calc_hmac_base_key(const void *master_seed, const void *final_key, void *result)
+INLINE void calc_hmac_base_key(const void *master_seed, const void *final_key, void *result)
 {
 	const uint8_t one_le[1] = "\x01";
 	SHA512_CTX ctx;
@@ -98,7 +98,7 @@ inline void calc_hmac_base_key(const void *master_seed, const void *final_key, v
 	SHA512_Final(result, &ctx);
 }
 
-inline void calc_hmac_key(const void *block_index, const void *base_key, void *result)
+INLINE void calc_hmac_key(const void *block_index, const void *base_key, void *result)
 {
 	SHA512_CTX ctx;
 

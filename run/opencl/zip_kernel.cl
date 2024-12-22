@@ -36,7 +36,7 @@ typedef struct {
 #define hmac_sha1 u_hmac_sha1
 #define big_hmac_sha1 u_big_hmac_sha1
 
-inline void preproc(const uchar *key, uint keylen, uint *state, uint padding)
+INLINE void preproc(const uchar *key, uint keylen, uint *state, uint padding)
 {
 	uint i;
 	uint W[16];
@@ -63,7 +63,7 @@ inline void preproc(const uchar *key, uint keylen, uint *state, uint padding)
 	state[4] = E + INIT_E;
 }
 
-inline void hmac_sha1(uint *output, uint *ipad_state, uint *opad_state, __constant uchar *salt, int saltlen, uchar add)
+INLINE void hmac_sha1(uint *output, uint *ipad_state, uint *opad_state, __constant uchar *salt, int saltlen, uchar add)
 {
 	int i;
 	uint W[16];
@@ -121,7 +121,7 @@ inline void hmac_sha1(uint *output, uint *ipad_state, uint *opad_state, __consta
 	output[4] = E;
 }
 
-inline void big_hmac_sha1(uint *input, uint inputlen, uint *ipad_state, uint *opad_state, uint *tmp_out, uint iter)
+INLINE void big_hmac_sha1(uint *input, uint inputlen, uint *ipad_state, uint *opad_state, uint *tmp_out, uint iter)
 {
 	uint i;
 	uint W[16];
@@ -179,7 +179,7 @@ inline void big_hmac_sha1(uint *input, uint inputlen, uint *ipad_state, uint *op
 	}
 }
 
-inline void pbkdf2_hmac_sha1(const uchar *pass, const uint passlen,
+INLINE void pbkdf2_hmac_sha1(const uchar *pass, const uint passlen,
                              __constant uchar *salt, const uint saltlen, const uint iterations,
                              uchar *out, const uint outlen, uint skip_bytes)
 {
@@ -218,7 +218,7 @@ inline void pbkdf2_hmac_sha1(const uchar *pass, const uint passlen,
 #undef hmac_sha1
 #undef big_hmac_sha1
 
-inline uint prepare(__global const uchar *pwbuf, __global const uint *buf_idx, uint index, uchar *password)
+INLINE uint prepare(__global const uchar *pwbuf, __global const uint *buf_idx, uint index, uchar *password)
 {
 	uint i;
 	uint base = buf_idx[index];

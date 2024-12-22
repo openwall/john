@@ -18,7 +18,7 @@
 
 #include "opencl_device_info.h"
 
-/* Note: long is *always* 64-bit in OpenCL */
+/* long is always 64-bit in OpenCL while long long is reserved for 128 bits */
 typedef uchar uint8_t;
 typedef char int8_t;
 typedef ushort uint16_t;
@@ -52,21 +52,18 @@ typedef uint32_t host_size_t;
 #endif
 
 /*
- * Some runtimes/drivers breaks on using inline, others breaks on lack of it,
- * yet others require use of static as well.
- *
- * Only usable in device code
+ * Most runtimes will inline nearly everything without request.
  */
 #if _OPENCL_COMPILER
 
+#define NOINLINE  __attribute__((noinline))
+
 #if __MESA__
-#define inline	// empty!
+#define INLINE
 #elif __POCL__
-// Do nothing (POCL complains if we redefine)
-#elif gpu_amd(DEVICE_INFO) // We really target ROCM here
-#define inline	static inline
+#define INLINE    inline
 #else
-// Do nothing
+#define INLINE    static inline
 #endif
 
 #endif /* _OPENCL_COMPILER */
@@ -101,7 +98,7 @@ typedef struct dyna_salt_t {
 
 #if SCALAR && 0 /* Used for testing */
 #define HAVE_LUT3	1
-inline uint lut3(uint x, uint y, uint z, uchar m)
+INLINE uint lut3(uint x, uint y, uint z, uchar m)
 {
 	uint i;
 	uint r = 0;
@@ -132,7 +129,7 @@ inline uint lut3(uint x, uint y, uint z, uchar m)
 
 #if SCALAR && SM_MAJOR >= 5 && (DEV_VER_MAJOR > 352 || (DEV_VER_MAJOR == 352 && DEV_VER_MINOR >= 21))
 #define HAVE_LUT3	1
-inline uint lut3(uint a, uint b, uint c, uint imm)
+INLINE uint lut3(uint a, uint b, uint c, uint imm)
 {
 	uint r;
 	asm("lop3.b32 %0, %1, %2, %3, %4;"
@@ -143,7 +140,7 @@ inline uint lut3(uint a, uint b, uint c, uint imm)
 
 #if 0 /* This does no good */
 #define HAVE_LUT3_64	1
-inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
+INLINE ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 {
 	ulong t, r;
 
@@ -163,7 +160,7 @@ inline ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 #pragma OPENCL EXTENSION cl_amd_media_ops : enable
 #define BITALIGN(hi, lo, s) amd_bitalign((hi), (lo), (s))
 #elif SCALAR && SM_MAJOR > 3 || (SM_MAJOR == 3 && SM_MINOR >= 2)
-inline uint funnel_shift_right(uint hi, uint lo, uint s)
+INLINE uint funnel_shift_right(uint hi, uint lo, uint s)
 {
 	uint r;
 	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
@@ -172,7 +169,7 @@ inline uint funnel_shift_right(uint hi, uint lo, uint s)
 	return r;
 }
 
-inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
+INLINE uint funnel_shift_right_imm(uint hi, uint lo, uint s)
 {
 	uint r;
 	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
@@ -205,13 +202,13 @@ inline uint funnel_shift_right_imm(uint hi, uint lo, uint s)
 #define block_swap32(W, len)	for (uint i = 0; i < len; i++) W[i] = SWAP32(W[i])
 #define block_swap64(W, len)	for (uint i = 0; i < len; i++) W[i] = SWAP64(W[i])
 
-inline ushort SWAP16(ushort x)
+INLINE ushort SWAP16(ushort x)
 {
 	return ((x << 8) + (x >> 8));
 }
 
 #if USE_BITSELECT
-inline uint SWAP32(uint x)
+INLINE uint SWAP32(uint x)
 {
 	return bitselect(rotate(x, 24U), rotate(x, 8U), 0x00FF00FFU);
 }
@@ -223,7 +220,7 @@ inline uint SWAP32(uint x)
 		          rotate(n, 40UL), 0x00FF000000FF0000UL), \
 		0xFFFF0000FFFF0000UL)
 #else
-inline uint SWAP32(uint x)
+INLINE uint SWAP32(uint x)
 {
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
@@ -241,7 +238,7 @@ inline uint SWAP32(uint x)
 #define VSWAP32 SWAP32
 #else
 /* Vector-capable swap32() */
-inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
+INLINE MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 {
 	x = rotate(x, 16U);
 	return ((x & 0x00FF00FF) << 8) + ((x >> 8) & 0x00FF00FF);
@@ -379,7 +376,7 @@ inline MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define XORCHAR_BE(buf, index, val) ((uchar*)(buf))[(index) ^ 3] ^= (val)
 #endif
 
-inline int check_pkcs_pad(const uchar *data, int len, int blocksize)
+INLINE int check_pkcs_pad(const uchar *data, int len, int blocksize)
 {
 	int pad_len, padding, real_len;
 
@@ -424,7 +421,7 @@ inline int check_pkcs_pad(const uchar *data, int len, int blocksize)
  */
 
 /* src and dst are private mem */
-inline void memcpy_pp(void* restrict dst, const void* restrict src, uint count)
+INLINE void memcpy_pp(void* restrict dst, const void* restrict src, uint count)
 {
 	const char *s = src;
 	char *d = dst;
@@ -434,7 +431,7 @@ inline void memcpy_pp(void* restrict dst, const void* restrict src, uint count)
 }
 
 /* src is private mem, dst is global mem */
-inline void memcpy_pg(__global void* restrict dst, const void* restrict src, uint count)
+INLINE void memcpy_pg(__global void* restrict dst, const void* restrict src, uint count)
 {
 	const char *s = src;
 	__global char *d = dst;
@@ -444,7 +441,7 @@ inline void memcpy_pg(__global void* restrict dst, const void* restrict src, uin
 }
 
 /* src is global mem, dst is private mem */
-inline void memcpy_gp(void* restrict dst, __global const void* restrict src, uint count)
+INLINE void memcpy_gp(void* restrict dst, __global const void* restrict src, uint count)
 {
 	__global const char *s = src;
 	char *d = dst;
@@ -454,7 +451,7 @@ inline void memcpy_gp(void* restrict dst, __global const void* restrict src, uin
 }
 
 /* src is constant mem, dst is private mem */
-inline void memcpy_cp(void* restrict dst, __constant void* restrict src, uint count)
+INLINE void memcpy_cp(void* restrict dst, __constant void* restrict src, uint count)
 {
 	__constant char *s = src;
 	char *d = dst;
@@ -464,7 +461,7 @@ inline void memcpy_cp(void* restrict dst, __constant void* restrict src, uint co
 }
 
 /* src is MAYBE_CONSTANT mem, dst is private mem */
-inline void memcpy_mcp(void* restrict dst, MAYBE_CONSTANT void* restrict src, uint count)
+INLINE void memcpy_mcp(void* restrict dst, MAYBE_CONSTANT void* restrict src, uint count)
 {
 	MAYBE_CONSTANT char *s = src;
 	char *d = dst;
@@ -474,7 +471,7 @@ inline void memcpy_mcp(void* restrict dst, MAYBE_CONSTANT void* restrict src, ui
 }
 
 /* dst is private mem */
-inline void memset_p(void *p, uint val, uint count)
+INLINE void memset_p(void *p, uint val, uint count)
 {
 	char *d = p;
 
@@ -483,7 +480,7 @@ inline void memset_p(void *p, uint val, uint count)
 }
 
 /* dst is global mem */
-inline void memset_g(__global void *p, uint val, uint count)
+INLINE void memset_g(__global void *p, uint val, uint count)
 {
 	__global char *d = p;
 
@@ -492,7 +489,7 @@ inline void memset_g(__global void *p, uint val, uint count)
 }
 
 /* s1 and s2 are private mem */
-inline int memcmp_pp(const void *s1, const void *s2, uint size)
+INLINE int memcmp_pp(const void *s1, const void *s2, uint size)
 {
 	const uchar *a = s1;
 	const uchar *b = s2;
@@ -505,7 +502,7 @@ inline int memcmp_pp(const void *s1, const void *s2, uint size)
 }
 
 /* s1 is private mem, s2 is global mem */
-inline int memcmp_pg(const void *s1, __global const void *s2, uint size)
+INLINE int memcmp_pg(const void *s1, __global const void *s2, uint size)
 {
 	const uchar *a = s1;
 	__global const uchar *b = s2;
@@ -518,7 +515,7 @@ inline int memcmp_pg(const void *s1, __global const void *s2, uint size)
 }
 
 /* s1 is private mem, s2 is constant mem */
-inline int memcmp_pc(const void *s1, __constant const void *s2, uint size)
+INLINE int memcmp_pc(const void *s1, __constant const void *s2, uint size)
 {
 	const uchar *a = s1;
 	__constant const uchar *b = s2;
@@ -531,7 +528,7 @@ inline int memcmp_pc(const void *s1, __constant const void *s2, uint size)
 }
 
 /* s1 is global mem, s2 is constant mem */
-inline int memcmp_gc(__global const void *s1, __constant void *s2, uint size)
+INLINE int memcmp_gc(__global const void *s1, __constant void *s2, uint size)
 {
 	__global const uchar *a = s1;
 	__constant uchar *b = s2;
@@ -544,7 +541,7 @@ inline int memcmp_gc(__global const void *s1, __constant void *s2, uint size)
 }
 
 /* s1 is private mem, s2 is MAYBE_CONSTANT mem */
-inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
+INLINE int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
 {
 	const uchar *a = s1;
 	MAYBE_CONSTANT uchar *b = s2;
@@ -557,7 +554,7 @@ inline int memcmp_pmc(const void *s1, MAYBE_CONSTANT void *s2, uint size)
 }
 
 /* haystack is private mem, needle is constant mem */
-inline int memmem_pc(const void *haystack, size_t haystack_len,
+INLINE int memmem_pc(const void *haystack, size_t haystack_len,
                      __constant const void *needle, size_t needle_len)
 {
 	const char *haystack_ = haystack;

@@ -40,7 +40,7 @@ typedef struct {
 
 #ifdef UTF_8
 
-inline
+INLINE
 void prepare_utf16(__global const uchar *source,
                    __global const uint *index,
                    nt_buffer_t *nt_buffer)
@@ -116,7 +116,7 @@ void prepare_utf16(__global const uchar *source,
 
 #else
 
-inline
+INLINE
 void prepare_utf16(__global const uchar *password,
                    __global const uint *index,
                    nt_buffer_t *nt_buffer)

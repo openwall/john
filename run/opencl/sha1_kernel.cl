@@ -15,7 +15,7 @@
 /* This handles an input of 0xffffffffU correctly */
 #define BITMAP_SHIFT ((BITMAP_MASK >> 5) + 1)
 
-inline void cmp_final(uint gid,
+INLINE void cmp_final(uint gid,
 		uint iter,
 		uint *hash,
 		__global uint *offset_table,
@@ -64,7 +64,7 @@ inline void cmp_final(uint gid,
 	}
 }
 
-inline void cmp(uint gid,
+INLINE void cmp(uint gid,
 		uint iter,
 		uint *hash,
 #if USE_LOCAL_BITMAPS

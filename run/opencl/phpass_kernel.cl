@@ -123,7 +123,7 @@ typedef struct {
 #define ACF3				0x98badcfe
 #define ACF4				0x10325476
 
-inline void md5(MAYBE_VECTOR_UINT len,
+INLINE void md5(MAYBE_VECTOR_UINT len,
                 MAYBE_VECTOR_UINT *internal_ret,
                 MAYBE_VECTOR_UINT *x)
 {

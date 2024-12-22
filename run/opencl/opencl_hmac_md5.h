@@ -24,7 +24,7 @@
 #define HMAC_OUT_TYPE
 #endif
 
-inline void hmac_md5(HMAC_KEY_TYPE void *_key, uint key_len,
+INLINE void hmac_md5(HMAC_KEY_TYPE void *_key, uint key_len,
                      HMAC_MSG_TYPE void *_data, uint data_len,
                      HMAC_OUT_TYPE void *_digest, uint digest_len)
 {

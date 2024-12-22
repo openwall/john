@@ -40,7 +40,7 @@ typedef struct {
 	uint cracked;
 } ssh_out;
 
-inline void generate_key_bytes(int nbytes, uchar *password, uint32_t len, uchar *salt, uchar *key)
+INLINE void generate_key_bytes(int nbytes, uchar *password, uint32_t len, uchar *salt, uchar *key)
 {
 	uchar digest[16];
 	int keyidx = 0;
@@ -70,7 +70,7 @@ inline void generate_key_bytes(int nbytes, uchar *password, uint32_t len, uchar 
 	}
 }
 
-inline int check_padding_and_structure_EC(uchar *out, int length)
+INLINE int check_padding_and_structure_EC(uchar *out, int length)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
@@ -121,7 +121,7 @@ inline int check_padding_and_structure_EC(uchar *out, int length)
 	return 1;
 }
 
-inline int check_padding_and_structure(uchar *out, uint length, uint strict_mode, uint block_size)
+INLINE int check_padding_and_structure(uchar *out, uint length, uint strict_mode, uint block_size)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
@@ -194,7 +194,7 @@ inline int check_padding_and_structure(uchar *out, uint length, uint strict_mode
 	return 1;
 }
 
-inline void common_crypt_code(uchar *password, uint len, __constant ssh_salt *osalt, uchar *out, uint full_decrypt, __local aes_local_t *lt)
+INLINE void common_crypt_code(uchar *password, uint len, __constant ssh_salt *osalt, uchar *out, uint full_decrypt, __local aes_local_t *lt)
 {
 	AES_KEY akey; akey.lt = lt;
 	uchar salt[16];
@@ -277,7 +277,7 @@ inline void common_crypt_code(uchar *password, uint len, __constant ssh_salt *os
 #define QUICK 0
 #define FULL 1
 
-inline int ssh_decrypt(uchar *password, uint len, __constant ssh_salt *osalt, __global ssh_out *output, __local aes_local_t *lt)
+INLINE int ssh_decrypt(uchar *password, uint len, __constant ssh_salt *osalt, __global ssh_out *output, __local aes_local_t *lt)
 {
 	uchar out[CTLEN];
 	int block_size = osalt->cipher == 0 ? 8 : 16;

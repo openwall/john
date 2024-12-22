@@ -41,7 +41,7 @@ __constant uint padding[8] = {
 	0xb6002e2e, 0x803e68d0, 0xfea90c2f, 0x7a695364
 };
 
-inline uint prepare234(__global const uchar *pwbuf, __global const uint *index, uint *password)
+INLINE uint prepare234(__global const uchar *pwbuf, __global const uint *index, uint *password)
 {
 	uint i;
 	uint gid = get_global_id(0);
@@ -391,7 +391,7 @@ void pdf_r34(__global const uchar *pwbuf,
 	}
 }
 
-inline uint prepare56(__global const uchar *pwbuf, __global const uint *index, uint *password)
+INLINE uint prepare56(__global const uchar *pwbuf, __global const uint *index, uint *password)
 {
 	uint i;
 	uint gid = get_global_id(0);

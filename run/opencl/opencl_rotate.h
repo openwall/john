@@ -23,7 +23,7 @@
  * Leaving it here as a curious reference. - magnum
  */
 #if 0 && gpu_nvidia(DEVICE_INFO) && SM_MAJOR >= 2
-inline uint byte_perm(uint a, uint b, uint imm)
+INLINE uint byte_perm(uint a, uint b, uint imm)
 {
     uint r;
     asm("prmt.b32 %0, %1, %2, %3;"
@@ -32,7 +32,7 @@ inline uint byte_perm(uint a, uint b, uint imm)
     return r;
 }
 
-inline uint ror32(uint x, uint n)
+INLINE uint ror32(uint x, uint n)
 {
 	switch (n) {
 	case 8:

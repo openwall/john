@@ -13,7 +13,7 @@
 #include "opencl_sha2.h"
 #include "opencl_pbkdf2_hmac_sha512.h"
 
-inline void _phs512_preproc(__global const ulong *key, uint keylen,
+INLINE void _phs512_preproc(__global const ulong *key, uint keylen,
                             ulong *state, ulong mask)
 {
 	uint i, j;
@@ -48,7 +48,7 @@ inline void _phs512_preproc(__global const ulong *key, uint keylen,
 	state[7] = H + SHA512_INIT_H;
 }
 
-inline void _phs512_hmac(ulong *output, ulong *ipad_state, ulong *opad_state,
+INLINE void _phs512_hmac(ulong *output, ulong *ipad_state, ulong *opad_state,
                          __constant ulong *salt, uint saltlen)
 {
 	uint i, j;

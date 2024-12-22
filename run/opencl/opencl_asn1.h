@@ -58,7 +58,7 @@ struct asn1_oid {
     size_t len;
 };
 
-inline
+INLINE
 int asn1_get_next(const uint8_t *buf, size_t len, struct asn1_hdr *hdr)
 {
     const uint8_t *pos, *end;

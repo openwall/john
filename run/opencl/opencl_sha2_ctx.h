@@ -26,7 +26,7 @@ typedef struct {
 	uchar buffer[64];  /* data block being processed */
 } SHA256_CTX;
 
-inline
+INLINE
 void SHA256_Init(SHA256_CTX *ctx) {
 	uint i;
 
@@ -36,7 +36,7 @@ void SHA256_Init(SHA256_CTX *ctx) {
 		ctx->state[i] = h[i];
 }
 
-inline
+INLINE
 void _sha256_process(SHA256_CTX *ctx, const uchar data[64]) {
 	MAYBE_VOLATILE uint t, W[16], A, B, C, D, E, F, G, H;
 
@@ -103,7 +103,7 @@ void _sha256_process(SHA256_CTX *ctx, const uchar data[64]) {
 /*
  * SHA-256 process buffer
  */
-inline
+INLINE
 void SHA256_Update(SHA256_CTX *ctx, const uchar *input, uint ilen) {
 	uint fill;
 	uint left;
@@ -141,7 +141,7 @@ void SHA256_Update(SHA256_CTX *ctx, const uchar *input, uint ilen) {
 /*
  * SHA-256 final digest
  */
-inline
+INLINE
 void SHA256_Final(uchar output[32], SHA256_CTX *ctx) {
 	uint last, padn;
 	ulong bits;
@@ -192,7 +192,7 @@ typedef struct {
 	uchar buffer[128]; /* data block being processed */
 } SHA512_CTX;
 
-inline
+INLINE
 void SHA384_Init(SHA512_CTX *ctx) {
 	ctx->total = 0;
 	ctx->state[0] = SHA384_INIT_A;
@@ -205,7 +205,7 @@ void SHA384_Init(SHA512_CTX *ctx) {
 	ctx->state[7] = SHA384_INIT_H;
 }
 
-inline
+INLINE
 void SHA512_Init(SHA512_CTX *ctx) {
 	ctx->total = 0;
 	ctx->state[0] = SHA512_INIT_A;
@@ -218,7 +218,7 @@ void SHA512_Init(SHA512_CTX *ctx) {
 	ctx->state[7] = SHA512_INIT_H;
 }
 
-inline
+INLINE
 void _sha512_process(SHA512_CTX *ctx, const uchar data[128]) {
 	ulong t, W[16], A, B, C, D, E, F, G, H;
 
@@ -285,7 +285,7 @@ void _sha512_process(SHA512_CTX *ctx, const uchar data[128]) {
 /*
  * SHA-512 process buffer
  */
-inline
+INLINE
 void SHA512_Update(SHA512_CTX *ctx, const uchar *input, uint ilen) {
 	uint fill;
 	uint left;
@@ -325,7 +325,7 @@ void SHA512_Update(SHA512_CTX *ctx, const uchar *input, uint ilen) {
 /*
  * SHA-384 final digest
  */
-inline
+INLINE
 void SHA384_Final(uchar output[64], SHA512_CTX *ctx) {
 	uint last, padn;
 	ulong bits;
@@ -366,7 +366,7 @@ void SHA384_Final(uchar output[64], SHA512_CTX *ctx) {
 /*
  * SHA-512 final digest
  */
-inline
+INLINE
 void SHA512_Final(uchar output[64], SHA512_CTX *ctx) {
 	uint last, padn;
 	ulong bits;

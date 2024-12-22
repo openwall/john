@@ -48,7 +48,7 @@ typedef struct {
 	} data;
 } pfx_salt;
 
-inline void pfx_crypt(__global const uint *password, uint32_t password_length,
+INLINE void pfx_crypt(__global const uint *password, uint32_t password_length,
                       __constant pfx_salt *salt, __global uint *out)
 {
 	uint i;

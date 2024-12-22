@@ -21,7 +21,7 @@
 #define SL3CONV
 #endif
 
-inline void cmp_final(uint gid,
+INLINE void cmp_final(uint gid,
 		uint iter,
 		uint *hash,
 		__global uint *offset_table,
@@ -70,7 +70,7 @@ inline void cmp_final(uint gid,
 	}
 }
 
-inline void cmp(uint gid,
+INLINE void cmp(uint gid,
 		uint iter,
 		uint *hash,
 #if USE_LOCAL_BITMAPS

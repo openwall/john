@@ -76,7 +76,7 @@ typedef struct {
  *
  * @param ctx context to initialize
  */
-inline void gost94_init(gost94_ctx *ctx)
+INLINE void gost94_init(gost94_ctx *ctx)
 {
 	memset_p(ctx, 0, sizeof(gost94_ctx));
 }
@@ -124,7 +124,7 @@ inline void gost94_init(gost94_ctx *ctx)
  * @param hash intermediate message hash
  * @param block the message block to process
  */
-inline void rhash_gost94_block_compress(gost94_ctx *ctx, const uint* block, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
+INLINE void rhash_gost94_block_compress(gost94_ctx *ctx, const uint* block, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
 {
 	uint i;
 	uint key[8], u[8], v[8], w[8], s[8];
@@ -266,7 +266,7 @@ inline void rhash_gost94_block_compress(gost94_ctx *ctx, const uint* block, MAYB
  * @param ctx algorithm context
  * @param block the 256-bit message block to process
  */
-inline void rhash_gost94_compute_sum_and_hash(gost94_ctx * ctx, const uint* block, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
+INLINE void rhash_gost94_compute_sum_and_hash(gost94_ctx * ctx, const uint* block, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
 {
 #if !__ENDIAN_LITTLE__
 	uint block_le[8]; /* tmp buffer for little endian number */
@@ -300,7 +300,7 @@ inline void rhash_gost94_compute_sum_and_hash(gost94_ctx * ctx, const uint* bloc
  * @param msg message chunk
  * @param size length of the message chunk
  */
-__attribute__((noinline)) void gost94_update(gost94_ctx *ctx, const uchar* msg, uint size, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
+NOINLINE void gost94_update(gost94_ctx *ctx, const uchar* msg, uint size, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
 {
 	uint index = ctx->length & 31;
 	ctx->length += size;
@@ -339,7 +339,7 @@ __attribute__((noinline)) void gost94_update(gost94_ctx *ctx, const uchar* msg, 
 }
 
 #if !__ENDIAN_LITTLE__
-inline void rhash_u32_swap_copy(void* to, const void* from, uint length) {
+INLINE void rhash_u32_swap_copy(void* to, const void* from, uint length) {
 	uint i;
 	uint *pO, *pI;
 	pO = (uint *)to;
@@ -361,7 +361,7 @@ inline void rhash_u32_swap_copy(void* to, const void* from, uint length) {
  * @param ctx the algorithm context containing current hashing state
  * @param result calculated hash in binary form
  */
-__attribute__((noinline)) void gost94_final(gost94_ctx *ctx, uchar *result, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
+NOINLINE void gost94_final(gost94_ctx *ctx, uchar *result, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
 {
 	uint  index = ctx->length & 31;
 	uint* msg32 = (uint*)ctx->message;
@@ -553,7 +553,7 @@ __constant uchar sbox[8][16] = {
  * it at run-time can save a little space in the executable file
  * in trade of consuming some time at program start.
  */
-inline void gost94_init_table(MAYBE_LOCAL rhash_gost94_sbox *cur_sbox)
+INLINE void gost94_init_table(MAYBE_LOCAL rhash_gost94_sbox *cur_sbox)
 {
 	uint i;
 #if GOST94_FLAT_INIT

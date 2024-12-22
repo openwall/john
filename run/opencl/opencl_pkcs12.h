@@ -29,7 +29,7 @@
 
 #ifdef UTF_8
 
-inline uint enc2utf16be(const UTF8 *pwd, uint length, UTF16 *unipwd)
+INLINE uint enc2utf16be(const UTF8 *pwd, uint length, UTF16 *unipwd)
 {
 	const UTF8 *source = pwd;
 	const UTF8 *sourceEnd = &source[length];
@@ -91,7 +91,7 @@ inline uint enc2utf16be(const UTF8 *pwd, uint length, UTF16 *unipwd)
 
 #else
 
-inline uint enc2utf16be(const UTF8 *pwd, uint length, UTF16 *unipwd)
+INLINE uint enc2utf16be(const UTF8 *pwd, uint length, UTF16 *unipwd)
 {
 	uint l = length;
 
@@ -106,7 +106,7 @@ inline uint enc2utf16be(const UTF8 *pwd, uint length, UTF16 *unipwd)
 
 #endif /* encodings */
 
-inline void pkcs12_fill_buffer(uint *data, uint data_len,
+INLINE void pkcs12_fill_buffer(uint *data, uint data_len,
                                const uint *filler, uint fill_len)
 {
 	if ((fill_len & 0x03) == 0) {
@@ -131,7 +131,7 @@ inline void pkcs12_fill_buffer(uint *data, uint data_len,
 }
 
 /* SHA-1 */
-inline void pkcs12_pbe_derive_key(uint iterations, int id,
+INLINE void pkcs12_pbe_derive_key(uint iterations, int id,
                                   const uint *pwd, uint pwdlen,
                                   const uint *salt,
                                   uint saltlen, uint *key, uint keylen)
@@ -251,7 +251,7 @@ inline void pkcs12_pbe_derive_key(uint iterations, int id,
 }
 
 /* SHA-256 */
-inline void pkcs12_pbe_derive_key_sha256(uint iterations, int id,
+INLINE void pkcs12_pbe_derive_key_sha256(uint iterations, int id,
                                          const uint *pwd, uint pwdlen,
                                          const uint *salt,
                                          uint saltlen, uint *key, uint keylen)
@@ -381,7 +381,7 @@ inline void pkcs12_pbe_derive_key_sha256(uint iterations, int id,
 
 
 /* SHA-512 */
-inline void pkcs12_pbe_derive_key_sha512(uint iterations, int id,
+INLINE void pkcs12_pbe_derive_key_sha512(uint iterations, int id,
                                          const uint *pwd, uint pwdlen,
                                          const uint *salt,
                                          uint saltlen, uint *key, uint keylen)

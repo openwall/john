@@ -34,7 +34,7 @@ typedef struct {
 	uchar salt[16];
 } pgpdisk_salt;
 
-inline void pgpdisk_kdf(__global const uchar *ipassword, const uint plen,
+INLINE void pgpdisk_kdf(__global const uchar *ipassword, const uint plen,
                         __constant uchar *isalt, const uint saltlen,
                         const uint iterations, uchar *okey, uint bytesNeeded)
 {

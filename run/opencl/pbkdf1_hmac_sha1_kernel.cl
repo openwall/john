@@ -58,7 +58,7 @@
 /* MAYBE_VECTOR_UINT need to be defined before this header */
 #include "opencl_pbkdf1_hmac_sha1.h"
 
-inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
+INLINE void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
                       __global MAYBE_VECTOR_UINT *ipad,
                       __global MAYBE_VECTOR_UINT *opad,
                       MAYBE_CONSTANT uchar *salt, uint saltlen)
@@ -118,7 +118,7 @@ inline void hmac_sha1(__global MAYBE_VECTOR_UINT *state,
 		state[i] = output[i];
 }
 
-inline void preproc(__global const MAYBE_VECTOR_UINT *key,
+INLINE void preproc(__global const MAYBE_VECTOR_UINT *key,
                     __global MAYBE_VECTOR_UINT *state, uint padding)
 {
 	uint i;

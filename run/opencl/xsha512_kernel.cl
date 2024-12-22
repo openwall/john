@@ -21,7 +21,7 @@ typedef struct {
 	char v[PLAINTEXT_LENGTH+1];
 } xsha512_key;
 
-inline void xsha512(__global const char *password, uint8_t pass_len,
+INLINE void xsha512(__global const char *password, uint8_t pass_len,
 	__global uint64_t *hash, uint32_t offset, __constant uint32_t *salt)
 {
 	xsha512_ctx ctx;

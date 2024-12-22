@@ -59,7 +59,7 @@
 /* This handles an input of 0xffffffffU correctly */
 #define BITMAP_SHIFT ((BITMAP_MASK >> 5) + 1)
 
-inline int nt_crypt(uint *hash, uint *nt_buffer, uint md4_size, BITMAPS_TYPE uint *bitmaps)
+INLINE int nt_crypt(uint *hash, uint *nt_buffer, uint md4_size, BITMAPS_TYPE uint *bitmaps)
 {
 	MD4_G_VARS
 
@@ -282,7 +282,7 @@ inline int nt_crypt(uint *hash, uint *nt_buffer, uint md4_size, BITMAPS_TYPE uin
 
 #if UTF_8
 
-inline uint prepare_key(__global uint *key, uint length,
+INLINE uint prepare_key(__global uint *key, uint length,
                         MAYBE_VOLATILE uint *nt_buffer)
 {
 	const __global UTF8 *source = (const __global UTF8*)key;
@@ -351,7 +351,7 @@ inline uint prepare_key(__global uint *key, uint length,
 
 #else
 
-inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
+INLINE uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
 {
 	uint i, nt_index, keychars;
 
@@ -369,7 +369,7 @@ inline uint prepare_key(__global uint *key, uint length, uint *nt_buffer)
 
 #endif /* UTF_8 */
 
-inline void cmp_final(uint gid,
+INLINE void cmp_final(uint gid,
                       uint iter,
                       uint *hash,
                       __global uint *offset_table,
@@ -399,7 +399,7 @@ inline void cmp_final(uint gid,
 	}
 }
 
-inline void cmp(uint gid,
+INLINE void cmp(uint gid,
                 uint iter,
                 uint *hash,
                 BITMAPS_TYPE uint *bitmaps,

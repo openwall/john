@@ -381,7 +381,7 @@ __constant UInt32 mds_poly_divx_const[] = { 0, 0xb4 };
 #define H24( y, L )  H23( q0[y]^L[26], L )
 #define H34( y, L )  H33( q1[y]^L[27], L )
 
-inline
+INLINE
 UInt32 two_h(int k, Byte L[], int kCycles)
 {
 	switch (kCycles) {
@@ -396,7 +396,7 @@ UInt32 two_h(int k, Byte L[], int kCycles)
 	}
 }
 
-inline
+INLINE
 void fill_keyed_sboxes(Byte S[], int kCycles, Twofish_key *xkey)
 {
 	int i;
@@ -432,7 +432,7 @@ void fill_keyed_sboxes(Byte S[], int kCycles, Twofish_key *xkey)
 __constant uint rs_poly_const[] = { 0, 0x14d };
 __constant uint rs_poly_div_const[] = { 0, 0xa6 };
 
-inline
+INLINE
 void Twofish_prepare_key(Byte *key, int key_len, Twofish_key *xkey)
 {
 	Byte K[32 + 32 + 4] = { 0 };
@@ -553,7 +553,7 @@ void Twofish_prepare_key(Byte *key, int key_len, Twofish_key *xkey)
     PUT32( A, dst   ); PUT32( B, dst+ 4 ); \
     PUT32( C, dst+8 ); PUT32( D, dst+12 )
 
-inline
+INLINE
 void Twofish_encrypt(Twofish_key *xkey, Byte p[16], Byte c[16])
 {
 	UInt32 A, B, C, D, T0, T1;
@@ -565,7 +565,7 @@ void Twofish_encrypt(Twofish_key *xkey, Byte p[16], Byte c[16])
 	PUT_OUTPUT(C, D, A, B, c, xkey, 4);
 }
 
-inline
+INLINE
 int Twofish_Encrypt(Twofish_key *m_key, Byte *pInput, Byte *pOutBuffer,
                     int nInputOctets, Byte *m_pInitVector)
 {
@@ -617,7 +617,7 @@ int Twofish_Encrypt(Twofish_key *m_key, Byte *pInput, Byte *pOutBuffer,
 	return 16 * (numBlocks + 1);
 }
 
-inline
+INLINE
 void Twofish_decrypt(Twofish_key *xkey, Byte c[16], Byte p[16])
 {
 	UInt32 A, B, C, D, T0, T1;
@@ -629,7 +629,7 @@ void Twofish_decrypt(Twofish_key *xkey, Byte c[16], Byte p[16])
 	PUT_OUTPUT(C, D, A, B, p, xkey, 0);
 }
 
-inline
+INLINE
 int Twofish_Decrypt(Twofish_key *m_key, Byte *pInput, Byte *pOutBuffer,
                     int nInputOctets, Byte *m_pInitVector, int check_pad)
 {
@@ -693,7 +693,7 @@ int Twofish_Decrypt(Twofish_key *m_key, Byte *pInput, Byte *pOutBuffer,
 }
 
 #if 0
-inline
+INLINE
 int Twofish_Decrypt_cfb128(Twofish_key *m_key, Twofish_Byte *pInput,
                            Twofish_Byte *pOutBuffer, int nInputOctets,
                            Twofish_Byte *m_pInitVector)

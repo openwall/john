@@ -47,12 +47,12 @@ __constant CRC32_t CRC32_table[256] = {
 #define POLY  0xEDB88320
 #define ALL1  0xFFFFFFFF
 
-inline void CRC32_Init(CRC32_t *value)
+INLINE void CRC32_Init(CRC32_t *value)
 {
 	*value = ALL1;
 }
 
-inline void CRC32_Update(CRC32_t *value, void *data, uint count)
+INLINE void CRC32_Update(CRC32_t *value, void *data, uint count)
 {
 	uchar *ptr = (uchar*)data;
 	CRC32_t result = *value;
@@ -63,7 +63,7 @@ inline void CRC32_Update(CRC32_t *value, void *data, uint count)
 	*value = result;
 }
 
-inline void CRC32_Final(uchar *out, CRC32_t value)
+INLINE void CRC32_Final(uchar *out, CRC32_t value)
 {
 	value = ~value;
 	out[0] = value;

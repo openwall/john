@@ -51,7 +51,7 @@ __constant uint magic_table[256] = {
   0x29, 0x39, 0xb9, 0xe9, 0x4c, 0xff, 0x43, 0xab,
 };
 
-inline void
+INLINE void
 lotus_transform_password (unsigned int *i1, unsigned int *o1,
                           MAYBE_LOCAL unsigned int *lotus_magic_table)
 {
@@ -71,7 +71,7 @@ lotus_transform_password (unsigned int *i1, unsigned int *o1,
 }
 
 /* The mixing function: perturbs the first three rows of the matrix */
-inline void
+INLINE void
 lotus_mix (unsigned int *m1, MAYBE_LOCAL unsigned int *lotus_magic_table)
 {
 	int i, j, k;

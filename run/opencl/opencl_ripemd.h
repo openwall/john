@@ -61,7 +61,7 @@
 	RR(a ## 2, b ## 2, c ## 2, d ## 2, e ## 2, f, s, r, K2 ## k)
 
 /* Input is raw Merkle Damgard */
-inline void ripemd160(uint *W, uint *ctx)
+INLINE void ripemd160(uint *W, uint *ctx)
 {
 	uint A1, B1, C1, D1, E1;
 	uint A2, B2, C2, D2, E2;
@@ -252,7 +252,7 @@ inline void ripemd160(uint *W, uint *ctx)
 }
 
 /* Input is last output; length is 160 bits */
-inline void ripemd160_160Z(uint *W, uint *ctx)
+INLINE void ripemd160_160Z(uint *W, uint *ctx)
 {
 	uint A1, B1, C1, D1, E1;
 	uint A2, B2, C2, D2, E2;

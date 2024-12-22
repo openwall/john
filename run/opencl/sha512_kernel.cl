@@ -18,7 +18,7 @@ typedef struct {
 	char v[PLAINTEXT_LENGTH+1];
 } sha512_key;
 
-inline void sha512(__global const char *password, uint8_t pass_len,
+INLINE void sha512(__global const char *password, uint8_t pass_len,
 	__global uint64_t *hash, uint32_t offset)
 {
 	sha512_ctx ctx;

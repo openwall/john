@@ -24,7 +24,7 @@
 #define TS2 Te2
 #define TS3 Te3
 
-inline unsigned int OPT3_XOR(unsigned int a, unsigned int b, unsigned int c)
+INLINE unsigned int OPT3_XOR(unsigned int a, unsigned int b, unsigned int c)
 {
 #if HAVE_LUT3
 	return lut3(a, b, c, 0x96);
@@ -33,7 +33,7 @@ inline unsigned int OPT3_XOR(unsigned int a, unsigned int b, unsigned int c)
 #endif
 }
 
-inline unsigned int OPT3_XORAND(unsigned int a, unsigned int b, unsigned int c)
+INLINE unsigned int OPT3_XORAND(unsigned int a, unsigned int b, unsigned int c)
 {
 #if HAVE_LUT3
 	return lut3(a, b, c, 0xb8);
@@ -42,7 +42,7 @@ inline unsigned int OPT3_XORAND(unsigned int a, unsigned int b, unsigned int c)
 #endif
 }
 
-inline unsigned int OPT3_ANDOR(unsigned int a, unsigned int b, unsigned int c)
+INLINE unsigned int OPT3_ANDOR(unsigned int a, unsigned int b, unsigned int c)
 {
 #if HAVE_LUT3
 	return lut3(a, b, c, 0xe8);

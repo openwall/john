@@ -13,7 +13,7 @@
 #define INIT_C 0x98badcfe
 #define INIT_D 0x10325476
 
-inline void md5x50_40(uint* msg)
+INLINE void md5x50_40(uint* msg)
 {
 	uint a, b, c, d;
 	int i;
@@ -130,7 +130,7 @@ inline void md5x50_40(uint* msg)
 	msg[3] = 0;
 }
 
-inline void md5x50_128(uint* msg)
+INLINE void md5x50_128(uint* msg)
 {
 	uint a, b, c, d;
 	int i;

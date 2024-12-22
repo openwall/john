@@ -586,7 +586,7 @@ __constant uint S[8][256] = {
 #define _CAST_F2(l, r, i, j) _CAST_f2(l, r, K[i], K[i+j])
 #define _CAST_F3(l, r, i, j) _CAST_f3(l, r, K[i], K[i+j])
 
-inline void Cast5Encrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
+INLINE void Cast5Encrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 {
 	uint l; GET_UINT32BE(l, inBlock, 0);
 	uint r; GET_UINT32BE(r, inBlock, 4);
@@ -616,7 +616,7 @@ inline void Cast5Encrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 	PUT_UINT32BE(l, outBlock, 4);
 }
 
-inline void Cast5Decrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
+INLINE void Cast5Decrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 {
 	uint l; GET_UINT32BE(l, inBlock, 0);
 	uint r; GET_UINT32BE(r, inBlock, 4);
@@ -647,7 +647,7 @@ inline void Cast5Decrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 	t = l = r = 0;
 }
 
-inline void Cast5SetKey(CAST_KEY *key, uint keylength, const uchar *userKey)
+INLINE void Cast5SetKey(CAST_KEY *key, uint keylength, const uchar *userKey)
 {
 	uint i;
 	uint *K = key->K;

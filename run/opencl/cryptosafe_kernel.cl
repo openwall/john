@@ -15,7 +15,7 @@ typedef struct {
 	unsigned char ciphertext[16];
 } salt_t;
 
-inline void prepare(__global const uchar *pwbuf, __global const uint *index, uchar *password)
+INLINE void prepare(__global const uchar *pwbuf, __global const uint *index, uchar *password)
 {
 	uint i;
 	uint gid = get_global_id(0);

@@ -56,7 +56,7 @@
 /* This handles an input of 0xffffffffU correctly */
 #define BITMAP_SHIFT ((BITMAP_MASK >> 5) + 1)
 
-inline void md4_encrypt(uint *hash, uint *W, uint len)
+INLINE void md4_encrypt(uint *hash, uint *W, uint len)
 {
 	hash[0] = 0x67452301;
 	hash[1] = 0xefcdab89;
@@ -118,7 +118,7 @@ inline void md4_encrypt(uint *hash, uint *W, uint len)
 	STEP(H2, hash[1], hash[2], hash[3], hash[0], W[15] + 0x6ed9eba1, 15);
 }
 
-inline void cmp_final(uint gid,
+INLINE void cmp_final(uint gid,
 		uint iter,
 		uint *hash,
 		__global uint *offset_table,
@@ -164,7 +164,7 @@ inline void cmp_final(uint gid,
 	}
 }
 
-inline void cmp(uint gid,
+INLINE void cmp(uint gid,
 		uint iter,
 		uint *hash,
 #if USE_LOCAL_BITMAPS

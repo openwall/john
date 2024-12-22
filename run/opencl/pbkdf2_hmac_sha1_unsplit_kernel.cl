@@ -44,7 +44,7 @@ typedef struct {
 	uchar salt[SALTLEN];
 } pbkdf2_salt;
 
-inline void preproc(__global const uchar *key, uint keylen,
+INLINE void preproc(__global const uchar *key, uint keylen,
     uint *state, uint padding)
 {
 	uint i;
@@ -72,7 +72,7 @@ inline void preproc(__global const uchar *key, uint keylen,
 	state[4] = E + INIT_E;
 }
 
-inline void hmac_sha1(uint *output,
+INLINE void hmac_sha1(uint *output,
     uint *ipad_state,
     uint *opad_state,
     __constant uchar *salt, int saltlen, uchar add)
@@ -133,7 +133,7 @@ inline void hmac_sha1(uint *output,
 	output[4] = E;
 }
 
-inline void big_hmac_sha1(uint *input, uint inputlen,
+INLINE void big_hmac_sha1(uint *input, uint inputlen,
     uint *ipad_state,
     uint *opad_state, uint *tmp_out, uint iterations)
 {
@@ -193,7 +193,7 @@ inline void big_hmac_sha1(uint *input, uint inputlen,
 	}
 }
 
-inline void pbkdf2(__global const uchar *pass, uint passlen,
+INLINE void pbkdf2(__global const uchar *pass, uint passlen,
                    __constant uchar *salt, uint saltlen, uint iterations,
                    __global uint *out, uint outlen, uint skip_bytes)
 {

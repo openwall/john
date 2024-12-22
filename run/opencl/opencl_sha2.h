@@ -687,7 +687,7 @@ __constant ulong K[] = {
 #else
 
 /* Raw'n'lean single-block SHA-512, no context[tm] */
-inline void sha512_single_s(ulong *W, ulong *output)
+INLINE void sha512_single_s(ulong *W, ulong *output)
 {
 	ulong A, B, C, D, E, F, G, H, t;
 
@@ -748,7 +748,7 @@ inline void sha512_single_s(ulong *W, ulong *output)
 }
 
 /* Raw'n'lean single-block SHA-512, no context[tm] */
-inline void sha512_single(MAYBE_VECTOR_ULONG *W, MAYBE_VECTOR_ULONG *output)
+INLINE void sha512_single(MAYBE_VECTOR_ULONG *W, MAYBE_VECTOR_ULONG *output)
 {
 	MAYBE_VECTOR_ULONG A, B, C, D, E, F, G, H, t;
 
@@ -773,7 +773,7 @@ inline void sha512_single(MAYBE_VECTOR_ULONG *W, MAYBE_VECTOR_ULONG *output)
 	output[7] = H + SHA512_INIT_H;
 }
 
-inline void sha512_single_zeros(MAYBE_VECTOR_ULONG *W,
+INLINE void sha512_single_zeros(MAYBE_VECTOR_ULONG *W,
                                 MAYBE_VECTOR_ULONG *output)
 {
 	MAYBE_VECTOR_ULONG A, B, C, D, E, F, G, H, t;

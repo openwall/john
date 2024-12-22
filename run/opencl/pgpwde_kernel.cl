@@ -34,7 +34,7 @@ typedef struct {
 	uchar esk[128];
 } pgpwde_salt;
 
-inline void pgpwde_kdf(__global const uchar *ipassword, const uint plen,
+INLINE void pgpwde_kdf(__global const uchar *ipassword, const uint plen,
                        __constant uchar *isalt, uint cbytes, uint *okey)
 {
 	const uint saltlen = 16;
@@ -78,7 +78,7 @@ inline void pgpwde_kdf(__global const uchar *ipassword, const uint plen,
 	}
 }
 
-inline int PKCS1oaepMGF1Unpack(uchar *in, uint32_t inlen)
+INLINE int PKCS1oaepMGF1Unpack(uchar *in, uint32_t inlen)
 {
 	const uint32_t hashlen = SHA1_DIGEST_LENGTH;
 	const uchar nullhash[20] = { 0xda, 0x39, 0xa3, 0xee, 0x5e, 0x6b, 0x4b, 0x0d,
@@ -137,7 +137,7 @@ inline int PKCS1oaepMGF1Unpack(uchar *in, uint32_t inlen)
 	return memcmp_pp(nullhash, msg + hashlen / 4, hashlen);
 }
 
-inline int pgpwde_decrypt_and_verify(uchar *key, __constant uchar *esk, __local aes_local_t *lt)
+INLINE int pgpwde_decrypt_and_verify(uchar *key, __constant uchar *esk, __local aes_local_t *lt)
 {
 	AES_KEY aes_key; aes_key.lt = lt;
 	uchar iv[16] = { 8, 0 };
