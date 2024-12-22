@@ -16,7 +16,6 @@
  * Manual unroll:  Build time: 4 min 26.142 s, binary size 5961490, 9959 c/s
  */
 #define STREEBOG_UNROLL         0
-#define STREEBOG_MANUAL_UNROLL  0
 #include "opencl_streebog.h"
 
 #define SALT_LENGTH                 16

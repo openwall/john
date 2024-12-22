@@ -12,7 +12,6 @@
 #define STREEBOG_LOCAL_AX       1
 #define STREEBOG_VECTOR         1
 #define STREEBOG_UNROLL         0
-#define STREEBOG_MANUAL_UNROLL  0
 #include "opencl_streebog.h"
 
 #define SALT_LENGTH                 16

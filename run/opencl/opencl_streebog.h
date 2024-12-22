@@ -797,7 +797,6 @@ g(uint512_u *h, const uint512_u *N, const uint512_u *m, __local localbuf *loc_bu
 	XLPS(&Ki, m, &data);
 
 #if STREEBOG_UNROLL
-#if STREEBOG_MANUAL_UNROLL
 	ROUND(0, &Ki, &data);
 	ROUND(1, &Ki, &data);
 	ROUND(2, &Ki, &data);
@@ -810,10 +809,6 @@ g(uint512_u *h, const uint512_u *N, const uint512_u *m, __local localbuf *loc_bu
 	ROUND(9, &Ki, &data);
 	ROUND(10, &Ki, &data);
 #else
-#pragma unroll 11
-#endif
-#endif
-#if !STREEBOG_MANUAL_UNROLL
 	for (uint i = 0; i < 11; i++)
 		ROUND(i, &Ki, &data);
 #endif
@@ -838,7 +833,6 @@ g0(uint512_u *h, const uint512_u *m, __local localbuf *loc_buf)
 	XLPS(&Ki, m, &data);
 
 #if STREEBOG_UNROLL
-#if STREEBOG_MANUAL_UNROLL
 	ROUND(0, &Ki, &data);
 	ROUND(1, &Ki, &data);
 	ROUND(2, &Ki, &data);
@@ -851,10 +845,6 @@ g0(uint512_u *h, const uint512_u *m, __local localbuf *loc_buf)
 	ROUND(9, &Ki, &data);
 	ROUND(10, &Ki, &data);
 #else
-#pragma unroll 11
-#endif
-#endif
-#if !STREEBOG_MANUAL_UNROLL
 	for (uint i = 0; i < 11; i++)
 		ROUND(i, &Ki, &data);
 #endif
