@@ -481,7 +481,12 @@ case "$host_cpu" in
         JTR_ARM_SIMD_LOGIC
       )
     ;;
-  arm*) ARCH_LINK=arm32le.h endian=little
+  arm*) endian=little
+    if test "$CPU_BIT_STR" -eq 64; then
+      ARCH_LINK=arm64le.h
+    else
+      ARCH_LINK=arm32le.h
+    fi
     AC_MSG_CHECKING([special compiler flags])
     AC_MSG_RESULT([ARM])
     JTR_ARM_SPECIAL_LOGIC

@@ -9375,7 +9375,12 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 fi
     ;;
-  arm*) ARCH_LINK=arm32le.h endian=little
+  arm*) endian=little
+    if test "$CPU_BIT_STR" -eq 64; then
+      ARCH_LINK=arm64le.h
+    else
+      ARCH_LINK=arm32le.h
+    fi
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking special compiler flags" >&5
 $as_echo_n "checking special compiler flags... " >&6; }
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: ARM" >&5
