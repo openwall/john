@@ -282,8 +282,8 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 	OFFSET_TABLE_WORD *offset_table = NULL;
 	DES_hash_check_params temp_param;
 
-	while (fmt_opencl_DES.params.tests[*max_uncracked_hashes].ciphertext) {
-		ciphertext = fmt_opencl_DES.methods.split(fmt_opencl_DES.params.tests[*max_uncracked_hashes].ciphertext, 0, &fmt_opencl_DES);
+	while (fmt_opencl_cryptdes.params.tests[*max_uncracked_hashes].ciphertext) {
+		ciphertext = fmt_opencl_cryptdes.methods.split(fmt_opencl_cryptdes.params.tests[*max_uncracked_hashes].ciphertext, 0, &fmt_opencl_cryptdes);
 		(*max_uncracked_hashes)++;
 	}
 
@@ -291,10 +291,10 @@ static void fill_buffer_self_test(unsigned int *max_uncracked_hashes, unsigned i
 	uncracked_hashes_t = (WORD *) mem_calloc(2 * *max_uncracked_hashes, sizeof(WORD));
 
 	i = 0;
-	while (fmt_opencl_DES.params.tests[i].ciphertext) {
-		ciphertext = fmt_opencl_DES.methods.split(fmt_opencl_DES.params.tests[i].ciphertext, 0, &fmt_opencl_DES);
-		binary = (WORD *)fmt_opencl_DES.methods.binary(ciphertext);
-		salt_val = *(WORD *)fmt_opencl_DES.methods.salt(ciphertext);
+	while (fmt_opencl_cryptdes.params.tests[i].ciphertext) {
+		ciphertext = fmt_opencl_cryptdes.methods.split(fmt_opencl_cryptdes.params.tests[i].ciphertext, 0, &fmt_opencl_cryptdes);
+		binary = (WORD *)fmt_opencl_cryptdes.methods.binary(ciphertext);
+		salt_val = *(WORD *)fmt_opencl_cryptdes.methods.salt(ciphertext);
 		uncracked_hashes_t[2 * i] = binary[0];
 		uncracked_hashes_t[2 * i + 1] = binary[1];
 		num_uncracked_hashes(salt_val) = 1;
@@ -630,7 +630,7 @@ int opencl_DES_bs_cmp_one(void *binary, int index)
 
 int opencl_DES_bs_cmp_exact(char *source, int index)
 {
-	int *binary = fmt_opencl_DES.methods.binary(source);
+	int *binary = fmt_opencl_cryptdes.methods.binary(source);
 
 	if (binary[1] == hash_tables[current_salt][hash_ids[2 + 2 * index] + hash_table_size(current_salt)])
 		return 1;
@@ -1149,8 +1149,8 @@ size_t create_keys_kernel_set_args(int mask_mode)
 	int i;
 
 	if (mask_mode) {
-		fmt_opencl_DES.methods.set_key = set_key_mm;
-		fmt_opencl_DES.methods.get_key = get_key_mm;
+		fmt_opencl_cryptdes.methods.set_key = set_key_mm;
+		fmt_opencl_cryptdes.methods.get_key = get_key_mm;
 	}
 
 	des_finalize_int_keys();

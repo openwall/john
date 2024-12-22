@@ -317,10 +317,10 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 
 	/* for hash_ids[2*x + 1], 27 bits for storing gid and 5 bits for bs depth. */
 	//assert(global_work_size <= ((1U << 28) - 1));
-	fmt_opencl_DES.params.max_keys_per_crypt =
+	fmt_opencl_cryptdes.params.max_keys_per_crypt =
 		global_work_size << des_log_depth;
 
-	fmt_opencl_DES.params.min_keys_per_crypt =
+	fmt_opencl_cryptdes.params.min_keys_per_crypt =
 		opencl_calc_min_kpc(local_work_size, global_work_size,
 		                    1 << des_log_depth);
 }
@@ -622,7 +622,7 @@ static void reset(struct db_main *db)
 
 		if (mask_mode) {
 			release_kernel();
-			auto_tune_all(100, &fmt_opencl_DES, salt_val, mask_mode, extern_lws_limit);
+			auto_tune_all(100, &fmt_opencl_cryptdes, salt_val, mask_mode, extern_lws_limit);
 		}
 
 		set_kernel_args_kpc();
@@ -639,14 +639,14 @@ static void reset(struct db_main *db)
 
 		build_salt(0);
 		i = 0;
-		while (fmt_opencl_DES.params.tests[i].ciphertext) {
-			char *ciphertext = fmt_opencl_DES.methods.split(fmt_opencl_DES.params.tests[i].ciphertext, 0, &fmt_opencl_DES);
-			salt_val = *(WORD *)fmt_opencl_DES.methods.salt(ciphertext);
+		while (fmt_opencl_cryptdes.params.tests[i].ciphertext) {
+			char *ciphertext = fmt_opencl_cryptdes.methods.split(fmt_opencl_cryptdes.params.tests[i].ciphertext, 0, &fmt_opencl_cryptdes);
+			salt_val = *(WORD *)fmt_opencl_cryptdes.methods.salt(ciphertext);
 			build_salt(salt_val);
 			i++;
 		}
 
-		auto_tune_all(300, &fmt_opencl_DES, salt_val, 0, extern_lws_limit);
+		auto_tune_all(300, &fmt_opencl_cryptdes, salt_val, 0, extern_lws_limit);
 
 		set_kernel_args_kpc();
 

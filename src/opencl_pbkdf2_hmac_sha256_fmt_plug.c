@@ -10,9 +10,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_pbkdf2_hmac_sha256;
+extern struct fmt_main fmt_opencl_pbkdf2_sha256;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_pbkdf2_hmac_sha256);
+john_register_one(&fmt_opencl_pbkdf2_sha256);
 #else
 
 #include <stdint.h>
@@ -362,7 +362,7 @@ static unsigned int iteration_count(void *salt)
 	return (unsigned int)my_salt->rounds;
 }
 
-struct fmt_main fmt_opencl_pbkdf2_hmac_sha256 = {
+struct fmt_main fmt_opencl_pbkdf2_sha256 = {
 {
 	FORMAT_LABEL,
 	FORMAT_NAME,

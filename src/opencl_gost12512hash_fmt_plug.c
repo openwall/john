@@ -9,9 +9,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_cryptgost12512;
+extern struct fmt_main fmt_opencl_cryptstreebog512;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_cryptgost12512);
+john_register_one(&fmt_opencl_cryptstreebog512);
 #else
 
 #include <string.h>
@@ -426,7 +426,7 @@ static unsigned int iteration_count(void *salt)
 #define COMMON_GET_HASH_VAR crypt_out
 #include "common-get-hash.h"
 
-struct fmt_main fmt_opencl_cryptgost12512 = {
+struct fmt_main fmt_opencl_cryptstreebog512 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

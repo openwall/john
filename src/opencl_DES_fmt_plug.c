@@ -8,9 +8,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_DES;
+extern struct fmt_main fmt_opencl_cryptdes;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_DES);
+john_register_one(&fmt_opencl_cryptdes);
 #else
 
 #include <string.h>
@@ -276,7 +276,7 @@ static int cmp_all(WORD *binary, int count)
 	return 1;
 }
 
-struct fmt_main fmt_opencl_DES = {
+struct fmt_main fmt_opencl_cryptdes = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

@@ -8,9 +8,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_bf;
+extern struct fmt_main fmt_opencl_cryptb;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_bf);
+john_register_one(&fmt_opencl_cryptb);
 #else
 
 #include <stdlib.h>
@@ -162,7 +162,7 @@ static int cmp_exact(char *source, int index)
 	    sizeof(BF_binary));
 }
 
-struct fmt_main fmt_opencl_bf = {
+struct fmt_main fmt_opencl_cryptb = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

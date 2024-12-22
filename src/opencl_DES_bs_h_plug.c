@@ -393,10 +393,10 @@ static void gws_tune(size_t gws_init, long double kernel_run_ms, int gws_tune_fl
 
 	/* for hash_ids[2*x + 1], 27 bits for storing gid and 5 bits for bs depth. */
 	//assert(global_work_size <= ((1U << 28) - 1));
-	fmt_opencl_DES.params.max_keys_per_crypt =
+	fmt_opencl_cryptdes.params.max_keys_per_crypt =
 		global_work_size << des_log_depth;
 
-	fmt_opencl_DES.params.min_keys_per_crypt =
+	fmt_opencl_cryptdes.params.min_keys_per_crypt =
 		opencl_calc_min_kpc(local_work_size,
 		                    global_work_size,
 		                    1 << des_log_depth);
@@ -703,7 +703,7 @@ static void reset(struct db_main *db)
 			} while ((salt = salt->next));
 
 			forced_global_keys = 0;
-			auto_tune_all(100, &fmt_opencl_DES, test_salt, mask_mode, extern_lws_limit, &forced_global_keys);
+			auto_tune_all(100, &fmt_opencl_cryptdes, test_salt, mask_mode, extern_lws_limit, &forced_global_keys);
 		}
 
 		salt = db->salts;
@@ -748,15 +748,15 @@ static void reset(struct db_main *db)
 		for (i = 0; i < 4096; i++)
 			build_salt((WORD)i);
 
-		salt_val = *(WORD *)fmt_opencl_DES.methods.salt(fmt_opencl_DES.methods.split(
-			fmt_opencl_DES.params.tests[0].ciphertext, 0, &fmt_opencl_DES));
+		salt_val = *(WORD *)fmt_opencl_cryptdes.methods.salt(fmt_opencl_cryptdes.methods.split(
+			fmt_opencl_cryptdes.params.tests[0].ciphertext, 0, &fmt_opencl_cryptdes));
 
-		auto_tune_all(300, &fmt_opencl_DES, salt_val, 0, extern_lws_limit, &forced_global_keys);
+		auto_tune_all(300, &fmt_opencl_cryptdes, salt_val, 0, extern_lws_limit, &forced_global_keys);
 
 		i = 0;
-		while (fmt_opencl_DES.params.tests[i].ciphertext) {
-			ciphertext = fmt_opencl_DES.methods.split(fmt_opencl_DES.params.tests[i].ciphertext, 0, &fmt_opencl_DES);
-			salt_val = *(WORD *)fmt_opencl_DES.methods.salt(ciphertext);
+		while (fmt_opencl_cryptdes.params.tests[i].ciphertext) {
+			ciphertext = fmt_opencl_cryptdes.methods.split(fmt_opencl_cryptdes.params.tests[i].ciphertext, 0, &fmt_opencl_cryptdes);
+			salt_val = *(WORD *)fmt_opencl_cryptdes.methods.salt(ciphertext);
 			init_kernel(salt_val, gpu_id, 1, 0, forced_global_keys ? 0 :local_work_size);
 			i++;
 		}
