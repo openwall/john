@@ -47,8 +47,10 @@
  * Tell our originally 32-bit ARM code that we sort of have NEON.
  * Newer gcc does the same for us on its own, but older gcc needs help here.
  */
+#if __GNUC__ < 6
 #ifndef __ARM_NEON
 #define __ARM_NEON 1
+#endif
 #endif
 /*
  * Give native vsel() a try with DES_BS=3, even though the timings are often
