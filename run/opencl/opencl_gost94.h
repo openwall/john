@@ -380,7 +380,7 @@ inline void gost94_final(gost94_ctx *ctx, uchar *result, MAYBE_LOCAL const rhash
 }
 
 /* ROTL macros rotate a 32-bit word left by n bits */
-#define ROTL32(dword, n) ((dword) << (n) ^ ((dword) >> (32 - (n))))
+#define ROTL32(dword, n) rotate(dword, (uint)(n))
 
 #if GOST94_FLAT_INIT
 __constant uint precomp_table[1024] = {
