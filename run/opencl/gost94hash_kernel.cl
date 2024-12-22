@@ -8,7 +8,9 @@
 
 #include "opencl_misc.h"
 
+#if gpu(DEVICE_INFO)
 #define GOST94_USE_LOCAL      1
+#endif
 #define GOST94_FLAT_INIT      1
 #include "opencl_gost94.h"
 

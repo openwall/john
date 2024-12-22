@@ -57,6 +57,11 @@ typedef union {
 #define GOST94_BLOCK_SIZE  32
 #define GOST94_HASH_LENGTH 32
 
+#if GOST94_USE_LOCAL
+#define THREAD  get_local_id(0)
+#define LWS     get_local_size(0)
+#endif
+
 /* algorithm context */
 typedef struct {
 	uint hash[8];  /* algorithm 256-bit state */
@@ -550,33 +555,36 @@ __constant uchar sbox[8][16] = {
  */
 inline void gost94_init_table(MAYBE_LOCAL rhash_gost94_sbox *cur_sbox)
 {
-	uint lid = get_local_id(0);
-#if GOST94_FLAT_INIT
-	uint ls = get_local_size(0);
 	uint i;
-
-	for (i = lid; i < 1024; i += ls)
+#if GOST94_FLAT_INIT
+#if GOST94_USE_LOCAL
+	for (i = THREAD; i < 1024; i += LWS)
 		cur_sbox->flat[i] = precomp_table[i];
 #else
-	uint a, b, i;
+	for (i = 0; i < 1024; i++)
+		cur_sbox->flat[i] = precomp_table[i];
+#endif	/* GOST94_USE_LOCAL */
+#else
+	uint a, b;
 	uint ax, bx, cx, dx;
 
-	if (lid == 0) {
-		for (i = 0, a = 0; a < 16; a++) {
-			ax = (uint)sbox[1][a] << 15;
-			bx = (uint)sbox[3][a] << 23;
-			cx = ROTL32((uint)sbox[5][a], 31);
-			dx = (uint)sbox[7][a] << 7;
+#if GOST94_USE_LOCAL
+	if (THREAD == 0) // Suboptimal
+#endif
+	for (i = 0, a = 0; a < 16; a++) {
+		ax = (uint)sbox[1][a] << 15;
+		bx = (uint)sbox[3][a] << 23;
+		cx = ROTL32((uint)sbox[5][a], 31);
+		dx = (uint)sbox[7][a] << 7;
 
-			for (b = 0; b < 16; b++, i++) {
-				cur_sbox->array[0][i] = ax | ((uint)sbox[0][b] << 11);
-				cur_sbox->array[1][i] = bx | ((uint)sbox[2][b] << 19);
-				cur_sbox->array[2][i] = cx | ((uint)sbox[4][b] << 27);
-				cur_sbox->array[3][i] = dx | ((uint)sbox[6][b] << 3);
-			}
+		for (b = 0; b < 16; b++, i++) {
+			cur_sbox->array[0][i] = ax | ((uint)sbox[0][b] << 11);
+			cur_sbox->array[1][i] = bx | ((uint)sbox[2][b] << 19);
+			cur_sbox->array[2][i] = cx | ((uint)sbox[4][b] << 27);
+			cur_sbox->array[3][i] = dx | ((uint)sbox[6][b] << 3);
 		}
 	}
-#endif
+#endif	/* GOST94_FLAT_INIT */
 #if GOST94_USE_LOCAL
 	barrier(CLK_LOCAL_MEM_FENCE);
 #endif

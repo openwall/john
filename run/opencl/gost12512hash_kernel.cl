@@ -8,7 +8,9 @@
 
 #include "opencl_misc.h"
 #define STREEBOG512CRYPT        1
+#if gpu(DEVICE_INFO)
 #define STREEBOG_LOCAL_AX       1
+#endif
 #define STREEBOG_VECTOR         1
 /*
  * Without unroll: Build time: 45.125 s, binary size 2542391, 10402 c/s
@@ -253,13 +255,13 @@ __kernel void gost12512final(__global inbuf *in,
 
 	memcpy512(&(result), &(out[gid]));
 
-#if STREEBOG_LOCAL_AX
 	if (rounds) {
 		saltlen = ssalt->len;
 		len = in[gid].len;
 		memcpy_gp(p_bytes, state[gid].p_bytes, len);
 		memcpy_gp(s_bytes, state[gid].s_bytes, saltlen);
 
+#if STREEBOG_LOCAL_AX
 		uint ls = get_local_size(0);
 		uint lid = get_local_id(0);
 
@@ -268,8 +270,8 @@ __kernel void gost12512final(__global inbuf *in,
 				loc_buf->Ax[j][i] = Ax[j][i];
 		}
 		barrier(CLK_LOCAL_MEM_FENCE);
-	}
 #endif
+	}
 
 	/* Repeatedly run the collected hash value through Streebog to burn CPU cycles.  */
 	for (cnt = 0; cnt < rounds; ++cnt) {
