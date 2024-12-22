@@ -906,7 +906,7 @@ stage3(GOST34112012Context *CTX, __local localbuf *loc_buf)
 	g0(&(CTX->h), &(CTX->Sigma), loc_buf);
 }
 
-inline void
+__attribute__((noinline)) void
 GOST34112012Update(GOST34112012Context *CTX, const uchar *data, uint len, __local localbuf *loc_buf)
 {
 	if (CTX->bufsize) {
@@ -937,7 +937,7 @@ GOST34112012Update(GOST34112012Context *CTX, const uchar *data, uint len, __loca
 	}
 }
 
-inline void
+__attribute__((noinline)) void
 GOST34112012Final(GOST34112012Context *CTX,
 #if STREEBOG512CRYPT
                   uint512_u

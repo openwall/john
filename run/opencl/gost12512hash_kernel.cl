@@ -12,11 +12,6 @@
 #define STREEBOG_LOCAL_AX       1
 #endif
 #define STREEBOG_VECTOR         1
-/*
- * Without unroll: Build time: 45.125 s, binary size 2542391, 10402 c/s
- * Pragma unroll:  Build time: 21 min 14.788 s, binary size 11502092, 10051 c/s
- * Manual unroll:  Build time: 4 min 26.142 s, binary size 5961490, 9959 c/s
- */
 #define STREEBOG_UNROLL         0
 #include "opencl_streebog.h"
 
