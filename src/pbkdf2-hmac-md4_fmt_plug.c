@@ -36,6 +36,9 @@ john_register_one(&fmt_pbkdf2_hmac_md4);
 #define SALT_ALIGN              sizeof(uint32_t)
 #define PLAINTEXT_LENGTH        125
 
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0x107
+
 #if SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      (SIMD_COEF_32 * SIMD_PARA_MD4)
 #define MAX_KEYS_PER_CRYPT      (64 * SIMD_COEF_32 * SIMD_PARA_MD4)

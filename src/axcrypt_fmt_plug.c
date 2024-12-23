@@ -41,8 +41,6 @@ john_register_one(&fmt_axcrypt);
 #define FORMAT_LABEL            "AxCrypt"
 #define FORMAT_NAME             ""
 #define ALGORITHM_NAME          "PBKDF2-SHA512/SHA1 AES 32/" ARCH_BITS_STR
-#define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125 /* actual max is 250 */
 #define BINARY_SIZE             0
 #define SALT_SIZE               sizeof(struct custom_salt *)
@@ -311,6 +309,7 @@ struct fmt_main fmt_axcrypt =
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{
 			"iteration count",
+			"version"
 		},
 		{ FORMAT_TAG },
 		axcrypt_tests
@@ -325,6 +324,7 @@ struct fmt_main fmt_axcrypt =
 		axcrypt_get_salt,
 		{
 			axcrypt_iteration_count,
+			axcrypt_version
 		},
 		fmt_default_source,
 		{

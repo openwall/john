@@ -13,9 +13,6 @@
 
 #include <assert.h>
 
-#define BENCHMARK_COMMENT                  ""
-#define BENCHMARK_LENGTH                   0x107
-
 #define PBKDF2_32_BINARY_ALIGN             sizeof(uint32_t)
 #define PBKDF2_32_MAX_SALT_SIZE            179 /* 3 limb md4/md5/sha1/sha256 max when 4 byte loop counter is appended */
 #define PBKDF2_64_MAX_SALT_SIZE            107 /* 1 limb sha512 max when 4 byte loop counter is appended */

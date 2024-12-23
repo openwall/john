@@ -144,3 +144,10 @@ unsigned int axcrypt_iteration_count(void *salt)
 
 	return cur_salt->key_wrapping_rounds;
 }
+
+unsigned int axcrypt_version(void *salt)
+{
+	struct custom_salt *cur_salt = *(struct custom_salt **) salt;
+
+	return cur_salt->version;
+}

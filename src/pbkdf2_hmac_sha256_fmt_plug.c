@@ -50,6 +50,8 @@ john_register_one(&fmt_pbkdf2_hmac_sha256);
 #define ALGORITHM_NAME          "PBKDF2-SHA256 32/" ARCH_BITS_STR
 #endif
 
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0x107
 #define MAX_CIPHERTEXT_LENGTH   1024 /* Bump this and code will adopt */
 #define SALT_SIZE               sizeof(struct custom_salt)
 #ifdef SIMD_COEF_32
