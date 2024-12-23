@@ -1273,23 +1273,27 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	log_event("- build time: %ss", ns2string(end - start));
 
 	// Report build errors and warnings
+	// Nvidia may return a single '\n' that we ignore
 	if (build_code != CL_SUCCESS) {
 		// Give us info about error and exit (through HANDLE_CLERROR)
 		if (options.verbosity <= VERB_LEGACY)
 			fprintf(stderr, "Options used: %s %s\n",
 			        build_opts, kernel_source_file);
-		fprintf(stderr, "Build time: %ss\n", ns2string(end - start));
-		if (strlen(build_log) > 1)
+		if (strlen(build_log) > 1) {
+			fprintf(stderr, "Build time: %ss\n", ns2string(end - start));
 			fprintf(stderr, "Build log: %s\n", build_log);
+		} else if (options.verbosity >= VERB_MAX)
+			fprintf(stderr, "Build time: %ss\n", ns2string(end - start));
 		fprintf(stderr, "Error building kernel %s. DEVICE_INFO=%d\n",
 		        kernel_source_file, device_info[sequential_id]);
 		HANDLE_CLERROR(build_code, "clBuildProgram");
 	}
-	// Nvidia may return a single '\n' that we ignore
 	else if (options.verbosity >= LOG_VERB) {
-		fprintf(stderr, "Build time: %ss\n", ns2string(end - start));
-		if (strlen(build_log) > 1)
+		if (strlen(build_log) > 1) {
+			fprintf(stderr, "Build time: %ss\n", ns2string(end - start));
 			fprintf(stderr, "Build log: %s\n", build_log);
+		} else if (options.verbosity >= VERB_MAX)
+			fprintf(stderr, "Build time: %ss\n", ns2string(end - start));
 	}
 
 	MEM_FREE(build_log);
