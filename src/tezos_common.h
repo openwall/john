@@ -9,6 +9,8 @@
 #include "formats.h"
 #include "jumbo.h"
 
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0x107
 #define FORMAT_TAG              "$tezos$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 

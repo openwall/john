@@ -8,6 +8,8 @@
 #include "formats.h"
 
 #define FORMAT_NAME             "1Password Cloud Keychain"
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0x507
 #define FORMAT_TAG              "$cloudkeychain$"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 

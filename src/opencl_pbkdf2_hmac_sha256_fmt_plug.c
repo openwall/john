@@ -33,6 +33,8 @@ john_register_one(&fmt_opencl_pbkdf2_sha256);
 #define FORMAT_NAME		""
 #define ALGORITHM_NAME		"PBKDF2-SHA256 OpenCL"
 
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0x107
 #define SALT_SIZE		sizeof(salt_t)
 #define SALT_ALIGN		1
 

@@ -25,7 +25,7 @@
  * The format exploits the fact that the salt is usually empty,
  * so KDF result can be reused.
  */
-#define BENCHMARK_LENGTH        7
+#define BENCHMARK_LENGTH        0x507
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(sevenzip_salt_t*)

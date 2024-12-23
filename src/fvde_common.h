@@ -4,6 +4,8 @@
 
 #include "formats.h"
 
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0x507
 #define SALTLEN                 16
 #define BLOBLEN                 40  // 24 for AES-128
 #define FORMAT_NAME             "FileVault 2"

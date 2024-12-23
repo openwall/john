@@ -23,6 +23,8 @@
 #define G_ELI_MKEYLEN           (G_ELI_DATAIVKEYLEN + SHA512_MDLEN)
 
 #define FORMAT_NAME             "FreeBSD GELI"
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0x507
 #define FORMAT_TAG              "$geli$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 

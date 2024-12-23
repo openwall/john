@@ -55,8 +55,6 @@ john_register_one(&fmt_odf);
 #else
 #define ALGORITHM_NAME          "PBKDF2-SHA1 BF/AES 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
 // keep plaintext length under 52 to avoid having to deal with the Libre/Star office SHA1 bug
 #define PLAINTEXT_LENGTH        51
 #define SALT_SIZE               sizeof(struct custom_salt)

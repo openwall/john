@@ -9,6 +9,8 @@
 #define FORMAT_TAG              "$odf$*"
 #define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
 #define FORMAT_NAME             "OpenDocument Star/Libre/OpenOffice"
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0x507
 
 struct custom_salt {
 	int cipher_type;

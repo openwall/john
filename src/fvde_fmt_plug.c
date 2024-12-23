@@ -42,8 +42,6 @@ john_register_one(&fmt_fvde);
 #else
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES 32/" ARCH_BITS_STR
 #endif
-#define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
 #define BINARY_SIZE             0
 #define PLAINTEXT_LENGTH        125
 #define SALT_SIZE               sizeof(*cur_salt)

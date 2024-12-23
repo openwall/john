@@ -35,8 +35,6 @@ john_register_one(&fmt_opencl_odf_aes);
 
 #define FORMAT_LABEL            "ODF-opencl"
 #define ALGORITHM_NAME          "PBKDF2-SHA1 BF/AES OpenCL"
-#define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      1
 #define BINARY_SIZE             (256/8)

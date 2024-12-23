@@ -51,6 +51,8 @@ john_register_one(&fmt_opencl_electrum_modern);
 #define FORMAT_TAG              "$electrum$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "PBKDF2-SHA512 OpenCL"
+#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_LENGTH        0x107
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(struct custom_salt)

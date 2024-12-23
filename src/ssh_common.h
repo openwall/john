@@ -6,6 +6,8 @@
 
 #include "formats.h"
 
+#define BENCHMARK_COMMENT   ""
+#define BENCHMARK_LENGTH    0x507
 #define N                   8192
 #define FORMAT_TAG          "$sshng$"
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)

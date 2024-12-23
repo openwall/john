@@ -10,6 +10,7 @@
 #include "johnswap.h"
 
 struct fmt_tests fvde_tests[] = {
+	{"$fvde$1$16$84286044060108438487434858307513$20000$f1620ab93192112f0a23eea89b5d4df065661f974b704191", "hashcat"},
 	// https://github.com/kholia/fvde2john/blob/master/fvde-1.raw.tar.xz
 	{"$fvde$1$16$e7eebaabacaffe04dd33d22fd09e30e5$41000$e9acbb4bc6dafb74aadb72c576fecf69c2ad45ccd4776d76", "openwall"},
 	// external disk encrypted by macOS 10.12.2
