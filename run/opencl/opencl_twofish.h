@@ -38,6 +38,7 @@
 #define OPENCL_TWOFISH_H_
 
 #include "opencl_misc.h"
+#include "opencl_rotate.h"
 
 typedef uchar Twofish_Byte;
 typedef uint Twofish_UInt32;
@@ -49,7 +50,7 @@ typedef struct {
 
 #define UINT32_MASK    ( (((UInt32)2)<<31) - 1 )
 #define ROL32( x, n )  rotate((x), (uint)(n))
-#define ROR32( x, n )  rotate((x), (32U - (n)))
+#define ROR32( x, n )  ror32(x, n)
 
 #if __OS_X__
 #define LARGE_Q_TABLE   0

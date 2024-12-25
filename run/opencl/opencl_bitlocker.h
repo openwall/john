@@ -19,7 +19,8 @@
 #ifndef _BITCRACKER_H
 #define _BITCRACKER_H
 
-#define ROR(x, i)	(rotate((x), 32U - (i)))
+#include "opencl_rotate.h"
+#define ROR(x, i)	ror32(x, i)
 
 #define SCHEDULE0()  \
         schedule0 = schedule16 + schedule25 \
