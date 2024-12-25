@@ -12,7 +12,6 @@
 #ifndef OPENCL_DEVICE_INFO_H
 #define	OPENCL_DEVICE_INFO_H
 
-//Copied from opencl_common.h
 #define DEV_UNKNOWN                 0           //0
 #define DEV_CPU                     (1 << 0)    //1
 #define DEV_GPU                     (1 << 1)    //2
