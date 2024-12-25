@@ -42,7 +42,7 @@ john_register_one(&fmt_opencl_solarwinds);
 #define MAX_KEYS_PER_CRYPT      1
 
 #define BINARY_SIZE             64
-#define BINARY_ALIGN            MEM_ALIGN_WORD
+#define BINARY_ALIGN            4
 #define SALT_SIZE               sizeof(*cur_salt)
 #define SALT_ALIGN              MEM_ALIGN_WORD
 
