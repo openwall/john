@@ -69,6 +69,7 @@ john_register_one(&fmt_ssh);
 #define SALT_ALIGN          sizeof(int)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  8
+#define EC_KEY_WITH_AES256  (cur_salt->cipher == 5 && cur_salt->ctl == 224 && cur_salt->sl == 16)
 
 /*
  * For cost 1 using core i7, MKPC=8 and OMP_SCALE 128 works fine but that
@@ -380,6 +381,16 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 		AES_set_decrypt_key(key, 128, &akey);
 		// full decrypt
 		AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
+	} else if (EC_KEY_WITH_AES256) { // EC keys with AES-256
+		unsigned char key[32];
+		AES_KEY akey;
+		unsigned char iv[16];
+
+		memcpy(iv, cur_salt->salt, 16);
+		generate_key_bytes(32, (unsigned char*)password, key);
+		AES_set_decrypt_key(key, 256, &akey);
+		// full decrypt
+		AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
 	} else if (cur_salt->cipher == 4) { // RSA/DSA keys with AES-192
 		unsigned char key[24];
 		AES_KEY akey;
@@ -438,7 +449,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		} else if (cur_salt->cipher == 2 || cur_salt->cipher == 6) {  // new ssh key format handling
 			cracked[index] =
 				!check_structure_bcrypt(out, cur_salt->ctl);
-		} else if (cur_salt->cipher == 3) { // EC keys
+		} else if (cur_salt->cipher == 3 || EC_KEY_WITH_AES256) { // EC keys
 			cracked[index] =
 				!check_padding_and_structure_EC(out, cur_salt->ctl, 0);
 		} else if (cur_salt->cipher == 4) {  // AES-192
@@ -481,7 +492,7 @@ static int cmp_exact(char *source, int index)
 		return !check_padding_and_structure(out, cur_salt->ctl, 1, 16);
 	} else if (cur_salt->cipher == 2 || cur_salt->cipher == 6) {  /* new ssh key format handling */
 		return 1; // XXX add more checks!
-	} else if (cur_salt->cipher == 3) { // EC keys
+	} else if (cur_salt->cipher == 3 || EC_KEY_WITH_AES256) { // EC keys
 		return 1;
 	} else if (cur_salt->cipher == 4) {
 		return !check_padding_and_structure(out, cur_salt->ctl, 1, 16);
