@@ -287,7 +287,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *pFmt)
 	snprintf(out, sizeof(out), "%s%s$%s$%s$%s$%s", FORMAT_TAG, e, u, r, s, tc);
 
 	data = out + strlen(out) - 2 * (CHECKSUM_SIZE + TIMESTAMP_SIZE) - 1;
-	strlwr(data);
+	enc_strlwr(data);
 
 	return out;
 }

@@ -12,6 +12,7 @@
 #include "misc.h"
 #include "common.h"
 #include "krb5_asrep_common.h"
+#include "unicode.h"
 
 char *krb5_asrep_split(char *ciphertext, int index, struct fmt_main *self)
 {
@@ -32,8 +33,6 @@ char *krb5_asrep_split(char *ciphertext, int index, struct fmt_main *self)
 		ptr += FORMAT_TAG_LEN;
 		memcpy(ptr, "23$", ETYPE_TAG_LEN); // old hashes
 		ptr += ETYPE_TAG_LEN;
-		for (i = 0; i < strlen(ciphertext) + 1; i++)
-			ptr[i] = tolower(ARCH_INDEX(ciphertext[i]));
 	} else { // new format hashes (with FORMAT_TAG)
 		p = ciphertext + FORMAT_TAG_LEN;
 		if (!strncmp(p, "23$", ETYPE_TAG_LEN))
@@ -47,14 +46,13 @@ char *krb5_asrep_split(char *ciphertext, int index, struct fmt_main *self)
 			p = strchr(ciphertext + FORMAT_TAG_LEN + ETYPE_TAG_LEN + 1, '$') + 1;
 			for (i = 0; i < p - ciphertext; i++)
 				ptr[i] = ARCH_INDEX(ciphertext[i]);
-			for (; i < strlen(ciphertext) + 1; i++)
-				ptr[i] = tolower(ARCH_INDEX(ciphertext[i]));
-
-		} else {
-			for (i = 0; i < strlen(ciphertext) + 1; i++)
-				ptr[i] = tolower(ARCH_INDEX(ciphertext[i]));
+			ptr += i;
+			ciphertext += i;
 		}
 	}
+
+	strcpy(ptr, ciphertext);
+	enc_strlwr(ptr);
 
 	return keeptr;
 }

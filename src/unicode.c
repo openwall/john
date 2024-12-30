@@ -1752,11 +1752,17 @@ int utf16_uc(UTF16 *dst, unsigned dst_len, const UTF16 *src, unsigned src_len)
 /* Lowercase UTF-8 or codepage encoding */
 int enc_lc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len)
 {
-	UTF16 tmp16[512+1], tmp16l[512+1];
+	static UTF16 *tmp16, *tmp16l;
+	static size_t tmp_buf_size;
 	int utf16len, i;
 
-#ifndef UNICODE_NO_OPTIONS
-	if ((options.target_enc ? options.target_enc : options.input_enc) != UTF_8) {
+	if (tmp_buf_size < 2 * dst_bufsize) {
+		tmp_buf_size = 2 * MAX(dst_bufsize, LINE_BUFFER_SIZE);
+		tmp16 = mem_realloc(tmp16, tmp_buf_size);
+		tmp16l = mem_realloc(tmp16l, tmp_buf_size);
+	}
+
+	if (valid_utf8(src) < 2) {
 		if (dst_bufsize <= src_len)
 			src_len = dst_bufsize - 1;
 		for (i = 0; i < src_len; ++i) {
@@ -1765,11 +1771,11 @@ int enc_lc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len)
 		*dst = 0;
 		return src_len;
 	}
-#endif
-	utf16len = utf8_to_utf16(tmp16, 512, src, src_len);
+
+	utf16len = utf8_to_utf16(tmp16, tmp_buf_size, src, src_len);
 	if (utf16len <= 0)
 		goto lcFallback;
-	utf16len = utf16_lc(tmp16l, 512, tmp16, utf16len);
+	utf16len = utf16_lc(tmp16l, tmp_buf_size, tmp16, utf16len);
 	if (utf16len <= 0)
 		goto lcFallback;
 	utf16_to_enc_r(dst, dst_bufsize, tmp16l);
@@ -1791,11 +1797,17 @@ lcFallback:
 /* Uppercase UTF-8 or codepage encoding */
 int enc_uc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len)
 {
-	UTF16 tmp16[512+1], tmp16u[512+1];
+	static UTF16 *tmp16, *tmp16u;
+	static size_t tmp_buf_size;
 	int utf16len, i;
 
-#ifndef UNICODE_NO_OPTIONS
-	if ((options.target_enc ? options.target_enc : options.input_enc) != UTF_8) {
+	if (tmp_buf_size < 2 * dst_bufsize) {
+		tmp_buf_size = 2 * MAX(dst_bufsize, LINE_BUFFER_SIZE);
+		tmp16 = mem_realloc(tmp16, tmp_buf_size);
+		tmp16u = mem_realloc(tmp16u, tmp_buf_size);
+	}
+
+	if (valid_utf8(src) < 2) {
 		int len;
 		if (dst_bufsize <= src_len)
 			src_len = dst_bufsize - 1;
@@ -1803,7 +1815,7 @@ int enc_uc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len)
 #if 0  // Defined out until we need it
 		if (UnicodeType == UNICODE_UNICODE) {
 			for (i = 0; i < src_len; ++i) {
-				if (*src == 0xDF) { /* this goes out as 2 chars. */
+				if (*src == 0xDF) { /* German ß goes out as SS, 1->2 chars. */
 					++len;
 					if (len > dst_bufsize) {
 						return 0;
@@ -1825,12 +1837,11 @@ int enc_uc(UTF8 *dst, unsigned dst_bufsize, const UTF8 *src, unsigned src_len)
 		*dst = 0;
 		return len;
 	}
-#endif
 
-	utf16len = utf8_to_utf16(tmp16, 512, src, src_len);
+	utf16len = utf8_to_utf16(tmp16, tmp_buf_size, src, src_len);
 	if (utf16len <= 0)
 		goto ucFallback;
-	utf16len = utf16_uc(tmp16u, 512, tmp16, utf16len);
+	utf16len = utf16_uc(tmp16u, tmp_buf_size, tmp16, utf16len);
 	if (utf16len <= 0)
 		goto ucFallback;
 	utf16_to_enc_r(dst, dst_bufsize, tmp16u);

@@ -50,7 +50,6 @@ size_t krb5tgs_max_data_len = 1024;
 char *krb5tgs_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char *ptr, *keeptr;
-	int i;
 
 	if (strnlen(ciphertext, LINE_BUFFER_SIZE) < LINE_BUFFER_SIZE &&
 	    strstr(ciphertext, "$SOURCE_HASH$"))
@@ -63,8 +62,8 @@ char *krb5tgs_split(char *ciphertext, int index, struct fmt_main *self)
 		ptr += FORMAT_TAG_LEN;
 	}
 
-	for (i = 0; i < strlen(ciphertext) + 1; i++)
-		ptr[i] = tolower(ARCH_INDEX(ciphertext[i]));
+	strcpy(ptr, ciphertext);
+	enc_strlwr(ptr);
 
 	return keeptr;
 }
