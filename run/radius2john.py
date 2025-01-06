@@ -12,14 +12,14 @@
 # ---
 
 # Utility to bruteforce RADIUS shared-secret
-# Usage: ./radius2john.py -f <pcap files>
+# Usage: ./radius2john.py <pcap files>
 #
 # This script depends on Scapy (https://scapy.net)
 # To install: pip install --user scapy
 
 # ---
 
-# Application of two  methods described in http://www.untruth.org/~josh/security/radius/radius-auth.html :
+# Application of two  methods described in https://www.untruth.org/~josh/security/radius/radius-auth.html :
 # "3.3 User-Password Attribute Based Shared Secret Attack"
 # "3.1 Response Authenticator Based Shared Secret Attack"
 
@@ -40,9 +40,11 @@ try:
     import scapy.all as scapy
 except ImportError:
     print(
-        "Scapy seems to be missing, run 'pip install --user scapy' to install it"
+        "Scapy seems to be missing, run 'pip install --user scapy' to install it",
+        file=sys.stderr
     )
     sys.exit(1)
+
 
 def read_file(args, filename):
     packets = scapy.rdpcap(filename)
@@ -122,11 +124,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,epilog=
     """
     ### Utility to bruteforce RADIUS shared-secret written by k4amos
-    Basic Usage: ./radius2john.py -f <pcap files>"
 
     ---
 
-    Application of two  methods described in http://www.untruth.org/~josh/security/radius/radius-auth.html :
+    Application of two  methods described in https://www.untruth.org/~josh/security/radius/radius-auth.html :
     - "3.3 User-Password Attribute Based Shared Secret Attack"
     - "3.1 Response Authenticator Based Shared Secret Attack"
 
@@ -140,9 +141,9 @@ if __name__ == "__main__":
     and dumps md5 and salt as needed.
     """)
 
-    parser.add_argument('-f', '--file', type=str, required=True, nargs='+')
-    parser.add_argument('--single', help='To get only one hash per client IPs', action='store_true', default=False)
-    parser.add_argument('-l', '--login', type=str,help='User login used for the 3.3 attack')
+    parser.add_argument('file', type=str, nargs='+', help='Input PCAP files')
+    parser.add_argument('--single', help='To get only one hash per client IP', action='store_true', default=False)
+    parser.add_argument('-l', '--login', type=str, help='User login used for the 3.3 attack')
     parser.add_argument('-p', '--password', type=str, help='User password used for the 3.3 attack')
 
     parsed_args = parser.parse_args()
@@ -150,10 +151,7 @@ if __name__ == "__main__":
 
     if args["login"] is not None and args["password"] is None:
         # Attack 3.3 can work without login verification (if there is only one client, there is no point), but cannot work without a password
-        print("You must specify the password used by the client for the '3.3 User-Password Attribute Based Shared Secret Attack'")
-        print("Basic Usage: ./radius2john.py -f <pcap files>")
-        print("You can specify '-h' to display help")
-        sys.exit(1)
+        parser.error("You must specify the password used by the client for the '3.3 User-Password Attribute Based Shared Secret Attack'")
 
     all_requests = {}
     dumped_ips = {}
