@@ -33,6 +33,10 @@
 #define VM_GLOBALMEMSIZE             0x2000
 #define VM_FIXEDGLOBALSIZE               64
 
+#define VM_FC 1
+#define VM_FZ 2
+#define VM_FS 0x80000000
+
 typedef enum rarvm_commands
 {
   VM_MOV,  VM_CMP,  VM_ADD,  VM_SUB,  VM_JZ,   VM_JNZ,  VM_INC,  VM_DEC,
@@ -48,12 +52,6 @@ typedef enum rarvm_standard_filters {
   VMSF_NONE, VMSF_E8, VMSF_E8E9, VMSF_ITANIUM, VMSF_RGB, VMSF_AUDIO,
   VMSF_DELTA, VMSF_UPCASE
 } rarvm_standard_filters_t;
-
-enum VM_Flags {
-	VM_FC=1,
-	VM_FZ=2,
-	VM_FS=0x80000000
-};
 
 enum rarvm_op_type {
 	VM_OPREG,

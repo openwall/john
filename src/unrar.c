@@ -529,9 +529,11 @@ static int read_tables(const unsigned char **fd, unpack_data_t *unpack_data)
 				n = (rar_getbits(unpack_data) >> 9) + 11;
 				rar_addbits(unpack_data, 7);
 			}
+			if (i == 0) {
+				return 0;
+			}
 			while (n-- > 0 && i < table_size) {
-				if (i>0)
-					table[i] = table[i-1];
+				table[i] = table[i - 1];
 				i++;
 			}
 		} else {
@@ -903,9 +905,9 @@ void rar_unpack_init_data(int solid, unpack_data_t *unpack_data)
 		memset(unpack_data->old_dist, 0, sizeof(unpack_data->old_dist));
 		unpack_data->old_dist_ptr= 0;
 		memset(unpack_data->unp_old_table, 0, sizeof(unpack_data->unp_old_table));
+		memset(&unpack_data->LDD, 0, sizeof(unpack_data->LDD));
 		memset(&unpack_data->LD, 0, sizeof(unpack_data->LD));
 		memset(&unpack_data->DD, 0, sizeof(unpack_data->DD));
-		memset(&unpack_data->LDD, 0, sizeof(unpack_data->LDD));
 		memset(&unpack_data->RD, 0, sizeof(unpack_data->RD));
 		memset(&unpack_data->BD, 0, sizeof(unpack_data->BD));
 		unpack_data->last_dist= 0;
