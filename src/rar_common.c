@@ -1,6 +1,6 @@
 /*
  * This software is Copyright (c) 2011, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012-2020, magnum
+ * and Copyright (c) 2012-2025, magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -37,6 +37,7 @@ static unsigned char *aes_iv;
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 
 #define YEL	"\x1b[0;33m"
+#define RED	"\x1b[0;31m"
 #define NRM	"\x1b[0m"
 
 static struct fmt_tests cpu_tests[] = {
@@ -302,7 +303,7 @@ static void *get_binary(char *ciphertext)
 		} else if (file->type == 0)
 			fprintf(stderr, YEL "%.32s(...) solid\n" NRM, ciphertext);
 		else
-			fprintf(stderr, YEL "%.32s(...) 0x%02x size %"PRIu64"\n" NRM, ciphertext, file->method, file->pack_size);
+			fprintf(stderr, YEL "%.32s(...) 0x%02x size %"PRIu64" unp_size %"PRIu64"\n" NRM, ciphertext, file->method, file->pack_size, file->unp_size);
 	}
 
 
@@ -538,20 +539,26 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 
 	count[0] = 0;
 	if (!ncount[0] && !ncount[1] && !ncount[2] && !ncount[3])
-		return 0; /* No codes at all */
+		goto HUFFMAN_FAIL; /* No codes at all */
 
 	left = 1;
 	for (i = 1; i < 16; ++i) {
 		left <<= 1;
 		left -= count[i];
 		if (left < 0) {
-			return 0; /* over-subscribed */
+			goto HUFFMAN_FAIL; /* over-subscribed */
 		}
 	}
 	if (left) {
-		return 0; /* incomplete set */
+		goto HUFFMAN_FAIL; /* incomplete set */
 	}
 	return 1; /* Passed this check! */
+
+HUFFMAN_FAIL:
+#ifdef DEBUG
+	fprintf(stderr, RED "failed early reject checks for Huffman encoding\n" NRM);
+#endif
+	return 0;
 }
 #endif
 
@@ -635,6 +642,9 @@ inline static void check_rar(rar_file *cur_file, int index, unsigned char *key, 
 				// PPM checks here.
 				if (!(plain[0] & 0x20) ||    // Reset bit must be set
 				    (plain[1] & 0x80)) {     // MaxMB must be < 128
+#ifdef DEBUG
+					fprintf(stderr, RED "failed PPM early reject check\n" NRM);
+#endif
 					cracked[index] = 0;
 					return;
 				}
@@ -642,6 +652,9 @@ inline static void check_rar(rar_file *cur_file, int index, unsigned char *key, 
 				// LZ checks here.
 				if ((plain[0] & 0x40) ||     // KeepOldTable can't be set
 				    !check_huffman(plain)) { // Huffman table check
+#ifdef DEBUG
+					fprintf(stderr, RED "failed LZ early reject check\n" NRM);
+#endif
 					cracked[index] = 0;
 					return;
 				}
@@ -661,10 +674,21 @@ inline static void check_rar(rar_file *cur_file, int index, unsigned char *key, 
 
 			/* Reset key for full deflate check */
 			AES_set_decrypt_key(key, 128, &aes_ctx);
-			if (rar_unpack29(cur_file->data, solid, unpack_t))
+			if (rar_unpack29(cur_file->data, solid, unpack_t)) {
 				cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
-			else
+#ifdef DEBUG
+				if (!cracked[index])
+					fprintf(stderr, RED "'%s' passed unpack29 but failed CRC, %08x != %08x\n" NRM, get_key(index), ~JOHNSWAP(unpack_t->unp_crc), ~JOHNSWAP(cur_file->crc.w));
+#endif
+			} else {
 				cracked[index] = 0;
+#ifdef DEBUG
+				if (!memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4))
+					fprintf(stderr, RED "Note: '%s' failed unpack29 yet passed CRC check (%08x)\n" NRM, get_key(index), ~JOHNSWAP(unpack_t->unp_crc));
+				else
+					fprintf(stderr, RED "failed unpack29\n" NRM);
+#endif
+			}
 		}
 #endif /* HAVE_UNRAR */
 	}
