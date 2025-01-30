@@ -46,8 +46,26 @@ def process_file(filename):
         elements = list(r.getiterator())
 
     is_encrypted = False
+    is_supported = True
     key_size = 16
     start_key_generation_name = "SHA1"
+
+    for element in elements:
+        if element.get("{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}full-path") == "encrypted-package":
+            is_supported = False
+
+        if element.get("{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}key-derivation-name") is not None:
+            key_derivation_name = element.get("{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}key-derivation-name")
+
+        if element.get("{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}algorithm-name") is not None:
+            algorithm_name = element.get("{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}algorithm-name")
+
+    if not is_supported:
+        sys.stderr.write("%s is an unsupported encrypted OpenOffice file!\n" % filename)
+        sys.stderr.write("- Algorithm name: '%s';\n" % algorithm_name)
+        sys.stderr.write("- Key derivation name: '%s'.\n" % key_derivation_name)
+        return 14
+
     for i in range(0, len(elements) - 4):
         element = elements[i]
         if element.get("{urn:oasis:names:tc:opendocument:xmlns:manifest:1.0}full-path") == "content.xml":
