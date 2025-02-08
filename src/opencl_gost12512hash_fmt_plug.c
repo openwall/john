@@ -22,6 +22,7 @@ john_register_one(&fmt_opencl_cryptstreebog512);
 #include "formats.h"
 #include "options.h"
 #include "opencl_common.h"
+#include "opencl_helper_macros.h"
 
 #define FORMAT_LABEL        "streebog512crypt-opencl"
 #define FORMAT_NAME         "Astra Linux $gost12512hash$"
@@ -90,6 +91,7 @@ typedef struct {
 } statebuf;
 
 typedef struct {
+	uint64_t C[8][12];
 	uint64_t Ax[8][256];
 } localbuf;
 
@@ -99,7 +101,6 @@ typedef struct {
 #define ITERATIONS		5004
 
 static inbuf *inbuffer;
-static cl_int cl_error;
 static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static cl_kernel init_kernel, final_kernel;
 static int new_keys;
@@ -116,22 +117,6 @@ static int split_events[] = { 2, -1, -1 };
 
 static void release_clobj(void);
 
-#define CL_RO CL_MEM_READ_ONLY
-#define CL_WO CL_MEM_WRITE_ONLY
-#define CL_RW CL_MEM_READ_WRITE
-
-#define CLCREATEBUFFER(_flags, _size)	  \
-	clCreateBuffer(context[gpu_id], _flags, _size, NULL, &cl_error); \
-	HANDLE_CLERROR(cl_error, "Error allocating GPU memory");
-
-#define CLKERNELARG(kernel, id, arg)	  \
-	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), &arg), \
-	               "Error setting kernel argument");
-
-#define CLKRNARGLOC(kernel, id, arg)	  \
-	HANDLE_CLERROR(clSetKernelArg(kernel, id, sizeof(arg), NULL), \
-	               "Error setting kernel argument");
-
 static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	release_clobj();
@@ -139,10 +124,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	inbuffer = mem_calloc(gws, sizeof(inbuf));
 	crypt_out = mem_calloc(gws, sizeof(outbuf));
 
-	mem_in = CLCREATEBUFFER(CL_RO, gws * sizeof(inbuf));
-	mem_out = CLCREATEBUFFER(CL_WO, gws * sizeof(outbuf));
-	mem_state = CLCREATEBUFFER(CL_RW, gws * sizeof(statebuf));
-	mem_salt = CLCREATEBUFFER(CL_RO, sizeof(saltstruct));
+	CLCREATEBUFFER(mem_in, CL_RO, gws * sizeof(inbuf));
+	CLCREATEBUFFER(mem_out, CL_WO, gws * sizeof(outbuf));
+	CLCREATEBUFFER(mem_state, CL_RW, gws * sizeof(statebuf));
+	CLCREATEBUFFER(mem_salt, CL_RO, sizeof(saltstruct));
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_TRUE, 0, gws * sizeof(inbuf), inbuffer, 0, NULL, NULL), "Copy data to gpu");
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt, CL_TRUE, 0, sizeof(saltstruct), &cur_salt, 0, NULL, NULL), "Salt transfer");
@@ -194,6 +179,9 @@ static void init(struct fmt_main *_self)
 	self = _self;
 
 	opencl_prepare_dev(gpu_id);
+
+	/* Work around autotune miss */
+	local_work_size = 256;
 }
 
 static void reset(struct db_main *db)
@@ -316,15 +304,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 	// Run kernel
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], init_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[1]), "Run initial kernel");
+	CLRUNKERNEL(init_kernel, &gws, lws, multi_profilingEvent[1]);
 
 	uint loops = (ocl_autotune_running ? 1 : cur_salt.rounds / HASH_LOOPS);
+	WAIT_INIT(gws)
 	for (index = 0; index < loops; index++) {
-		BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "failed in clEnqueueNDRangeKernel");
-		BENCH_CLERROR(clFinish(queue[gpu_id]), "Error running loop kernel");
+		CLRUNKERNEL(crypt_kernel, &gws, lws, multi_profilingEvent[2]);
+		WAIT_SLEEP
+		CLFINISH();
+		WAIT_UPDATE
 		opencl_process_event();
 	}
-	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], final_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[3]), "failed in clEnqueueNDRangeKernel");
+	WAIT_DONE
+
+	CLRUNKERNEL(final_kernel, &gws, lws, multi_profilingEvent[3]);
 
 	// Read the result back
 	BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], mem_out, CL_TRUE, 0, gws * sizeof(outbuf), crypt_out, 0, NULL, multi_profilingEvent[4]), "Copy result back");

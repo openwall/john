@@ -98,13 +98,13 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 static void release_clobj(void)
 {
 	if (cl_salt) {
-		RELEASEPINNED(result);
-		RELEASEPINNED(saved_key);
-		RELEASEPINNED(saved_idx);
-		RELEASEPINNED(saved_int_key_loc);
-		RELEASEBUFFER(cl_crack_count_ret);
-		RELEASEBUFFER(cl_salt);
-		RELEASEBUFFER(cl_buffer_int_keys);
+		CLRELEASEPINNED(result);
+		CLRELEASEPINNED(saved_key);
+		CLRELEASEPINNED(saved_idx);
+		CLRELEASEPINNED(saved_int_key_loc);
+		CLRELEASEBUFFER(cl_crack_count_ret);
+		CLRELEASEBUFFER(cl_salt);
+		CLRELEASEBUFFER(cl_buffer_int_keys);
 	}
 }
 
@@ -207,7 +207,7 @@ static void reset(struct db_main *db)
 	/* create kernels to execute */
 	if (!crypt_kernel) {
 		for(i = 0; i < 4; i++)
-			CREATEKERNEL(pdf_kernel[i], kernel_name[i]);
+			CLCREATEKERNEL(pdf_kernel[i], kernel_name[i]);
 		crypt_kernel = pdf_kernel[0];
 	}
 
@@ -350,9 +350,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		new_keys = 0;
 	}
 
+	WAIT_INIT(gws)
 	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "Failed running crypt kernel");
-
+	CLFLUSH();
+	WAIT_SLEEP
 	CLREAD_CRYPT(cl_crack_count_ret, CL_TRUE, 0, sizeof(cl_uint), &crack_count_ret, NULL);
+	WAIT_UPDATE
+	WAIT_DONE
 
 	if (crack_count_ret) {
 		/* This is benign - may happen when gws > count due to GET_NEXT_MULTIPLE() */

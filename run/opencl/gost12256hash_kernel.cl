@@ -7,13 +7,6 @@
  */
 
 #include "opencl_misc.h"
-
-#define STREEBOG256CRYPT        1
-#if gpu(DEVICE_INFO)
-#define STREEBOG_LOCAL_AX       1
-#endif
-#define STREEBOG_VECTOR         1
-#define STREEBOG_UNROLL         0
 #include "opencl_streebog.h"
 
 #define SALT_LENGTH                 16
@@ -60,6 +53,10 @@ __kernel void gost12256init(__global inbuf *in,
 	uint lid = get_local_id(0);
 
 	for (uint i = lid; i < 256; i += ls) {
+#if STREEBOG_LOCAL_C
+		if (i < 12)
+			loc_buf->C[i].VWORD = C[i].VWORD;
+#endif
 		for (uint j = 0; j < 8; j++)
 			loc_buf->Ax[j][i] = Ax[j][i];
 	}
@@ -195,6 +192,10 @@ __kernel void gost12256loop(__global inbuf *in,
 	uint lid = get_local_id(0);
 
 	for (uint i = lid; i < 256; i += ls) {
+#if STREEBOG_LOCAL_C
+		if (i < 12)
+			loc_buf->C[i].VWORD = C[i].VWORD;
+#endif
 		for (uint j = 0; j < 8; j++)
 			loc_buf->Ax[j][i] = Ax[j][i];
 	}
@@ -262,6 +263,10 @@ __kernel void gost12256final(__global inbuf *in,
 		uint lid = get_local_id(0);
 
 		for (uint i = lid; i < 256; i += ls) {
+#if STREEBOG_LOCAL_C
+			if (i < 12)
+				loc_buf->C[i].VWORD = C[i].VWORD;
+#endif
 			for (uint j = 0; j < 8; j++)
 				loc_buf->Ax[j][i] = Ax[j][i];
 		}

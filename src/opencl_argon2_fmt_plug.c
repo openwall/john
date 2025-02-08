@@ -307,10 +307,10 @@ static void done(void)
 
 		if (argon2_self == &fmt_opencl_keepass_argon2) {
 			if (keepass_outbuffer) {
-				RELEASEBUFFER(cl_keepass_in);
-				RELEASEBUFFER(cl_keepass_salt);
-				RELEASEBUFFER(cl_keepass_state);
-				RELEASEBUFFER(cl_keepass_out);
+				CLRELEASEBUFFER(cl_keepass_in);
+				CLRELEASEBUFFER(cl_keepass_salt);
+				CLRELEASEBUFFER(cl_keepass_state);
+				CLRELEASEBUFFER(cl_keepass_out);
 
 				MEM_FREE(keepass_inbuffer);
 				MEM_FREE(keepass_statebuffer);
@@ -644,9 +644,9 @@ static void reset(struct db_main *db)
 
 			opencl_init("$JOHN/opencl/keepass_kernel.cl", gpu_id,  build_opts);
 
-			CREATEKERNEL(keepass_init, "keepass_init");
-			//CREATEKERNEL(keepass_argon2, "keepass_argon2");
-			CREATEKERNEL(keepass_final, "keepass_final");
+			CLCREATEKERNEL(keepass_init, "keepass_init");
+			//CLCREATEKERNEL(keepass_argon2, "keepass_argon2");
+			CLCREATEKERNEL(keepass_final, "keepass_final");
 		}
 	}
 
@@ -989,7 +989,7 @@ static void kp_set_salt(void *salt)
 	memcpy(&saved_salt, &keepass_salt->t_cost, sizeof(struct argon2_salt));
 
 	if (sizeof(keepass_salt_t) + keepass_salt->content_size - 1 > keepass_saltsize) {
-		RELEASEBUFFER(cl_keepass_salt);
+		CLRELEASEBUFFER(cl_keepass_salt);
 		keepass_saltsize = sizeof(keepass_salt_t) + keepass_salt->content_size - 1;
 		CLCREATEBUFFER(cl_keepass_salt, CL_RO, keepass_saltsize);
 		CLKERNELARG(keepass_init, 1, cl_keepass_salt);
