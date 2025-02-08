@@ -300,7 +300,7 @@ INLINE void rhash_gost94_compute_sum_and_hash(gost94_ctx * ctx, const uint* bloc
  * @param msg message chunk
  * @param size length of the message chunk
  */
-NOINLINE void gost94_update(gost94_ctx *ctx, const uchar* msg, uint size, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
+static NOINLINE void gost94_update(gost94_ctx *ctx, const uchar* msg, uint size, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
 {
 	uint index = ctx->length & 31;
 	ctx->length += size;
@@ -361,7 +361,7 @@ INLINE void rhash_u32_swap_copy(void* to, const void* from, uint length) {
  * @param ctx the algorithm context containing current hashing state
  * @param result calculated hash in binary form
  */
-NOINLINE void gost94_final(gost94_ctx *ctx, uchar *result, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
+static NOINLINE void gost94_final(gost94_ctx *ctx, uchar *result, MAYBE_LOCAL const rhash_gost94_sbox *sbox)
 {
 	uint  index = ctx->length & 31;
 	uint* msg32 = (uint*)ctx->message;

@@ -48,6 +48,10 @@
 #define UNROLL16
 #endif
 
+#if STREEBOG512CRYPT && !defined STREEBOG512
+#define STREEBOG512	1
+#endif
+
 #if STREEBOG_VECTOR
 #define memcpy512(dst, src) do {	  \
 		(dst)->VWORD = (src)->VWORD; \
@@ -906,7 +910,7 @@ stage3(GOST34112012Context *CTX, __local localbuf *loc_buf)
 	g0(&(CTX->h), &(CTX->Sigma), loc_buf);
 }
 
-NOINLINE void
+static NOINLINE void
 GOST34112012Update(GOST34112012Context *CTX, const uchar *data, uint len, __local localbuf *loc_buf)
 {
 	if (CTX->bufsize) {
@@ -937,15 +941,16 @@ GOST34112012Update(GOST34112012Context *CTX, const uchar *data, uint len, __loca
 	}
 }
 
-NOINLINE void
+static NOINLINE void
 GOST34112012Final(GOST34112012Context *CTX,
-#if STREEBOG512CRYPT
-                  uint512_u
-#else
-                  uint256_u
-#endif
-                  *digest, __local localbuf *loc_buf)
+                  void *_digest,
+                  __local localbuf *loc_buf)
 {
+#if STREEBOG512
+	uint512_u *digest = _digest;
+#else
+	uint256_u *digest = _digest;
+#endif
 	stage3(CTX, loc_buf);
 
 	CTX->bufsize = 0;
