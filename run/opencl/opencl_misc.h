@@ -58,12 +58,14 @@ typedef uint32_t host_size_t;
 
 #define NOINLINE  __attribute__((noinline))
 
+#ifndef INLINE
 #if __MESA__
 #define INLINE
 #elif __POCL__
 #define INLINE    inline
 #else
 #define INLINE    static inline
+#endif
 #endif
 
 #endif /* _OPENCL_COMPILER */
