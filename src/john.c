@@ -1394,6 +1394,8 @@ static void john_load(void)
 		if (mpi_p > 1)
 			john_set_mpi();
 #endif
+		/* Without this, all nodes get the same PRNG sequence. */
+		srand(NODE);
 	}
 #if HAVE_OPENCL
 	/*
