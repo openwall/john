@@ -49,6 +49,10 @@ static inline uint64_t lo_dword(uint64_t val) {
 }
 
 static inline uint64_t mul128(uint64_t multiplier, uint64_t multiplicand, uint64_t* product_hi) {
+#if defined(__GNUC__) && defined(__x86_64__)
+  __asm__("mul %2" : "+a" (multiplier), "=d" (*product_hi) : "r" (multiplicand) : "cc");
+  return multiplier;
+#else
   // multiplier   = ab = a * 2^32 + b
   // multiplicand = cd = c * 2^32 + d
   // ab * cd = a * c * 2^64 + (a * d + b * c) * 2^32 + b * d
@@ -72,6 +76,7 @@ static inline uint64_t mul128(uint64_t multiplier, uint64_t multiplicand, uint64
   assert(ac <= *product_hi);
 
   return product_lo;
+#endif
 }
 
 static inline uint64_t div_with_reminder(uint64_t dividend, uint32_t divisor, uint32_t* remainder) {
