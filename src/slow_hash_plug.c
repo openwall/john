@@ -7,6 +7,12 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "mbedtls/aesni.h"
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+#include <immintrin.h>
+#endif
+
+#include "aligned.h"
 #include "memory.h"
 #include "int-util.h"
 #include "oaes_lib.h"
@@ -150,13 +156,16 @@ void cn_fast_hash(const void *data, size_t length, char *hash)
 
 void cn_slow_hash(const void *data, size_t length, char *hash)
 {
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+	const int have_aesni = mbedtls_aesni_has_support(MBEDTLS_AESNI_AES);
+#endif
 	//uint8_t long_state[MEMORY]; // This is 2 MB, too large for stack
 	uint8_t *long_state = mem_alloc(MEMORY);
 	union cn_slow_hash_state state;
 	uint8_t text[INIT_SIZE_BYTE];
-	uint8_t a[AES_BLOCK_SIZE];
+	uint8_t a[AES_BLOCK_SIZE] JTR_ALIGN(16);
 	uint8_t b[AES_BLOCK_SIZE];
-	uint8_t c[AES_BLOCK_SIZE];
+	uint8_t c[AES_BLOCK_SIZE] JTR_ALIGN(16);
 	uint8_t d[AES_BLOCK_SIZE];
 	size_t i, j;
 	uint8_t aes_key[AES_KEY_SIZE];
@@ -188,7 +197,12 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 		/* Iteration 1 */
 		j = e2i(a, MEMORY / AES_BLOCK_SIZE);
 		copy_block(c, &long_state[j * AES_BLOCK_SIZE]);
-		oaes_encryption_round(a, c);
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+		if (have_aesni)
+			*(__m128i *)c = _mm_aesenc_si128(*(__m128i *)c, *(__m128i *)a);
+		else
+#endif
+			oaes_encryption_round(a, c);
 		xor_blocks(b, c);
 		swap_blocks(b, c);
 		copy_block(&long_state[j * AES_BLOCK_SIZE], c);
