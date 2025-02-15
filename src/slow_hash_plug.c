@@ -172,7 +172,7 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 	const int have_aesni = mbedtls_aesni_has_support(MBEDTLS_AESNI_AES);
 #endif
-	block *long_state = mem_alloc(MEMORY); // This is 2 MiB, too large for stack
+	block *long_state = mem_alloc_align(MEMORY, AES_BLOCK_SIZE); // This is 2 MiB, too large for stack
 	OAES_CTX *aes_ctx = oaes_alloc();
 	union cn_slow_hash_state state;
 	block text[INIT_SIZE_BLK];
