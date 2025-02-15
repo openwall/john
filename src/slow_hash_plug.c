@@ -82,9 +82,9 @@ void hash_extra_skein(const void *data, size_t length, char *hash)
 #define INIT_SIZE_BLK   8
 #define INIT_SIZE_BYTE (INIT_SIZE_BLK * AES_BLOCK_SIZE)
 
-static size_t e2i(const uint8_t* a, size_t count) { return (*((uint64_t*)a) / AES_BLOCK_SIZE) & (count - 1); }
+static inline size_t e2i(const uint8_t* a, size_t count) { return (*((uint64_t*)a) / AES_BLOCK_SIZE) & (count - 1); }
 
-static void mul(const uint8_t* a, const uint8_t* b, uint8_t* res) {
+static inline void mul(const uint8_t* a, const uint8_t* b, uint8_t* res) {
   uint64_t a0, b0;
   uint64_t hi, lo;
 
@@ -95,7 +95,7 @@ static void mul(const uint8_t* a, const uint8_t* b, uint8_t* res) {
   ((uint64_t*)res)[1] = SWAP64LE(lo);
 }
 
-static void sum_half_blocks(uint8_t* a, const uint8_t* b) {
+static inline void sum_half_blocks(uint8_t* a, const uint8_t* b) {
   uint64_t a0, a1, b0, b1;
 
   a0 = SWAP64LE(((uint64_t*)a)[0]);
@@ -108,11 +108,11 @@ static void sum_half_blocks(uint8_t* a, const uint8_t* b) {
   ((uint64_t*)a)[1] = SWAP64LE(a1);
 }
 
-static void copy_block(uint8_t* dst, const uint8_t* src) {
+static inline void copy_block(uint8_t* dst, const uint8_t* src) {
   memcpy(dst, src, AES_BLOCK_SIZE);
 }
 
-static void swap_blocks(uint8_t* a, uint8_t* b) {
+static inline void swap_blocks(uint8_t* a, uint8_t* b) {
   size_t i;
   uint8_t t;
   for (i = 0; i < AES_BLOCK_SIZE; i++) {
@@ -122,7 +122,7 @@ static void swap_blocks(uint8_t* a, uint8_t* b) {
   }
 }
 
-static void xor_blocks(uint8_t* a, const uint8_t* b) {
+static inline void xor_blocks(uint8_t* a, const uint8_t* b) {
   size_t i;
   for (i = 0; i < AES_BLOCK_SIZE; i++) {
     a[i] ^= b[i];
