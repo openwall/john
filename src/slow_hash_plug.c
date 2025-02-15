@@ -18,7 +18,6 @@
 #include <immintrin.h>
 #endif
 
-#include "aligned.h"
 #include "memory.h"
 #include "int-util.h"
 #include "oaes_lib.h"
@@ -82,51 +81,55 @@ void hash_extra_skein(const void *data, size_t length, char *hash)
 #define INIT_SIZE_BLK   8
 #define INIT_SIZE_BYTE (INIT_SIZE_BLK * AES_BLOCK_SIZE)
 
-static inline size_t e2i(const uint8_t* a, size_t count) { return (*((uint64_t*)a) / AES_BLOCK_SIZE) & (count - 1); }
+typedef union {
+	uint8_t b[AES_BLOCK_SIZE];
+	uint64_t u64[AES_BLOCK_SIZE / 8];
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+	__m128i v;
+#endif
+} block;
 
-static inline void mul(const uint8_t* a, const uint8_t* b, uint8_t* res) {
-  uint64_t a0, b0;
-  uint64_t hi, lo;
+static inline size_t e2i(block *a, size_t count) { return (a->u64[0] / AES_BLOCK_SIZE) & (count - 1); }
 
-  a0 = SWAP64LE(((uint64_t*)a)[0]);
-  b0 = SWAP64LE(((uint64_t*)b)[0]);
-  lo = mul128(a0, b0, &hi);
-  ((uint64_t*)res)[0] = SWAP64LE(hi);
-  ((uint64_t*)res)[1] = SWAP64LE(lo);
+static inline void mul(const block *a, const block *b, block *res) {
+	uint64_t a0, b0;
+	uint64_t hi, lo;
+
+	a0 = SWAP64LE(a->u64[0]);
+	b0 = SWAP64LE(b->u64[0]);
+	lo = mul128(a0, b0, &hi);
+	res->u64[0] = SWAP64LE(hi);
+	res->u64[1] = SWAP64LE(lo);
 }
 
-static inline void sum_half_blocks(uint8_t* a, const uint8_t* b) {
-  uint64_t a0, a1, b0, b1;
+static inline void sum_half_blocks(block *a, const block *b) {
+	uint64_t a0, a1, b0, b1;
 
-  a0 = SWAP64LE(((uint64_t*)a)[0]);
-  a1 = SWAP64LE(((uint64_t*)a)[1]);
-  b0 = SWAP64LE(((uint64_t*)b)[0]);
-  b1 = SWAP64LE(((uint64_t*)b)[1]);
-  a0 += b0;
-  a1 += b1;
-  ((uint64_t*)a)[0] = SWAP64LE(a0);
-  ((uint64_t*)a)[1] = SWAP64LE(a1);
+	a0 = SWAP64LE(a->u64[0]);
+	a1 = SWAP64LE(a->u64[1]);
+	b0 = SWAP64LE(b->u64[0]);
+	b1 = SWAP64LE(b->u64[1]);
+	a0 += b0;
+	a1 += b1;
+	a->u64[0] = SWAP64LE(a0);
+	a->u64[1] = SWAP64LE(a1);
 }
 
-static inline void copy_block(uint8_t* dst, const uint8_t* src) {
-  memcpy(dst, src, AES_BLOCK_SIZE);
+static inline void swap_blocks(block *a, block *b) {
+	block t = *a;
+	*a = *b;
+	*b = t;
 }
 
-static inline void swap_blocks(uint8_t* a, uint8_t* b) {
-  size_t i;
-  uint8_t t;
-  for (i = 0; i < AES_BLOCK_SIZE; i++) {
-    t = a[i];
-    a[i] = b[i];
-    b[i] = t;
-  }
-}
-
-static inline void xor_blocks(uint8_t* a, const uint8_t* b) {
-  size_t i;
-  for (i = 0; i < AES_BLOCK_SIZE; i++) {
-    a[i] ^= b[i];
-  }
+static inline void xor_blocks(block *a, const block *b) {
+#if 0 && MBEDTLS_AESNI_HAVE_CODE == 2
+/* Somehow with gcc 11 this results in code size increase when
+ * aesni_pseudo_encrypt_ecb() is inlined, so disabled for now */
+	a->v = _mm_xor_si128(a->v, b->v);
+#else
+	a->u64[0] ^= b->u64[0];
+	a->u64[1] ^= b->u64[1];
+#endif
 }
 
 #pragma pack(push, 1)
@@ -150,7 +153,7 @@ void hash_process(union hash_state *state, const uint8_t *buf, size_t count)
 }
 
 #if MBEDTLS_AESNI_HAVE_CODE == 2
-static inline void aesni_pseudo_encrypt_ecb(OAES_CTX *ctx, uint8_t * restrict c)
+static inline void aesni_pseudo_encrypt_ecb(OAES_CTX *ctx, block * restrict c)
 {
 	struct {
 		size_t data_len;
@@ -158,7 +161,7 @@ static inline void aesni_pseudo_encrypt_ecb(OAES_CTX *ctx, uint8_t * restrict c)
 		size_t exp_data_len;
 		__m128i *exp_data;
 	} *key = *(void **)ctx;
-	__m128i cv = *(__m128i *)c;
+	__m128i cv = c->v;
 	cv = _mm_aesenc_si128(cv, key->exp_data[0]);
 	cv = _mm_aesenc_si128(cv, key->exp_data[1]);
 	cv = _mm_aesenc_si128(cv, key->exp_data[2]);
@@ -169,7 +172,7 @@ static inline void aesni_pseudo_encrypt_ecb(OAES_CTX *ctx, uint8_t * restrict c)
 	cv = _mm_aesenc_si128(cv, key->exp_data[7]);
 	cv = _mm_aesenc_si128(cv, key->exp_data[8]);
 	cv = _mm_aesenc_si128(cv, key->exp_data[9]);
-	*(__m128i *)c = cv;
+	c->v = cv;
 }
 #endif
 
@@ -178,39 +181,32 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 	const int have_aesni = mbedtls_aesni_has_support(MBEDTLS_AESNI_AES);
 #endif
-	//uint8_t long_state[MEMORY]; // This is 2 MB, too large for stack
-	uint8_t *long_state = mem_alloc(MEMORY);
+	block *long_state = mem_alloc(MEMORY); // This is 2 MiB, too large for stack
+	OAES_CTX *aes_ctx = oaes_alloc();
 	union cn_slow_hash_state state;
-	uint8_t text[INIT_SIZE_BYTE];
-	uint8_t a[AES_BLOCK_SIZE] JTR_ALIGN(16);
-	uint8_t b[AES_BLOCK_SIZE];
-	uint8_t c[AES_BLOCK_SIZE] JTR_ALIGN(16);
-	uint8_t d[AES_BLOCK_SIZE];
+	block text[INIT_SIZE_BLK];
+	block a, b, c, d;
 	size_t i, j;
-	uint8_t aes_key[AES_KEY_SIZE];
-	OAES_CTX* aes_ctx;
 
 	hash_process(&state.hs, data, length);
 	memcpy(text, state.init, INIT_SIZE_BYTE);
-	memcpy(aes_key, state.hs.b, AES_KEY_SIZE);
-	aes_ctx = oaes_alloc();
 
-	oaes_key_import_data(aes_ctx, aes_key, AES_KEY_SIZE);
+	oaes_key_import_data(aes_ctx, state.hs.b, AES_KEY_SIZE);
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
 		for (j = 0; j < INIT_SIZE_BLK; j++)
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 			if (have_aesni)
-				aesni_pseudo_encrypt_ecb(aes_ctx, &text[j * AES_BLOCK_SIZE]);
+				aesni_pseudo_encrypt_ecb(aes_ctx, &text[j]);
 			else
 #endif
-				oaes_pseudo_encrypt_ecb(aes_ctx, &text[j * AES_BLOCK_SIZE]);
+				oaes_pseudo_encrypt_ecb(aes_ctx, text[j].b);
 
-		memcpy(&long_state[i * INIT_SIZE_BYTE], text, INIT_SIZE_BYTE);
+		memcpy(&long_state[i * INIT_SIZE_BLK], text, INIT_SIZE_BYTE);
 	}
 
 	for (i = 0; i < 16; i++) {
-		a[i] = state.k[     i] ^ state.k[32 + i];
-		b[i] = state.k[16 + i] ^ state.k[48 + i];
+		a.b[i] = state.k[     i] ^ state.k[32 + i];
+		b.b[i] = state.k[16 + i] ^ state.k[48 + i];
 	}
 
 	for (i = 0; i < ITER / 2; i++) {
@@ -219,42 +215,42 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 		 * next address  <-+
 		 */
 		/* Iteration 1 */
-		j = e2i(a, MEMORY / AES_BLOCK_SIZE);
-		copy_block(c, &long_state[j * AES_BLOCK_SIZE]);
+		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
+		c = long_state[j];
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 		if (have_aesni)
-			*(__m128i *)c = _mm_aesenc_si128(*(__m128i *)c, *(__m128i *)a);
+			c.v = _mm_aesenc_si128(c.v, a.v);
 		else
 #endif
-			oaes_encryption_round(a, c);
-		xor_blocks(b, c);
-		swap_blocks(b, c);
-		copy_block(&long_state[j * AES_BLOCK_SIZE], c);
-		//assert(j == e2i(a, MEMORY / AES_BLOCK_SIZE));
-		swap_blocks(a, b);
+			oaes_encryption_round(a.b, c.b);
+		xor_blocks(&b, &c);
+		swap_blocks(&b, &c);
+		long_state[j] = c;
+		//assert(j == e2i(&a, MEMORY / AES_BLOCK_SIZE));
+		swap_blocks(&a, &b);
 		/* Iteration 2 */
-		j = e2i(a, MEMORY / AES_BLOCK_SIZE);
-		copy_block(c, &long_state[j * AES_BLOCK_SIZE]);
-		mul(a, c, d);
-		sum_half_blocks(b, d);
-		swap_blocks(b, c);
-		xor_blocks(b, c);
-		copy_block(&long_state[j * AES_BLOCK_SIZE], c);
-		//assert(j == e2i(a, MEMORY / AES_BLOCK_SIZE));
-		swap_blocks(a, b);
+		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
+		c = long_state[j];
+		mul(&a, &c, &d);
+		sum_half_blocks(&b, &d);
+		swap_blocks(&b, &c);
+		xor_blocks(&b, &c);
+		long_state[j] = c;
+		//assert(j == e2i(&a, MEMORY / AES_BLOCK_SIZE));
+		swap_blocks(&a, &b);
 	}
 
 	memcpy(text, state.init, INIT_SIZE_BYTE);
 	oaes_key_import_data(aes_ctx, &state.hs.b[32], AES_KEY_SIZE);
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
 		for (j = 0; j < INIT_SIZE_BLK; j++) {
-			xor_blocks(&text[j * AES_BLOCK_SIZE], &long_state[i * INIT_SIZE_BYTE + j * AES_BLOCK_SIZE]);
+			xor_blocks(&text[j], &long_state[i * INIT_SIZE_BLK + j]);
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 			if (have_aesni)
-				aesni_pseudo_encrypt_ecb(aes_ctx, &text[j * AES_BLOCK_SIZE]);
+				aesni_pseudo_encrypt_ecb(aes_ctx, &text[j]);
 			else
 #endif
-				oaes_pseudo_encrypt_ecb(aes_ctx, &text[j * AES_BLOCK_SIZE]);
+				oaes_pseudo_encrypt_ecb(aes_ctx, text[j].b);
 		}
 	}
 	memcpy(state.init, text, INIT_SIZE_BYTE);
