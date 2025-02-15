@@ -1,6 +1,12 @@
 // Copyright (c) 2012-2013 The Cryptonote developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
+//
+// Changes from Cryptonote's (AES-NI usage and other optimizations) are
+// Copyright (c) 2025 by Solar Designer
+// Same license as above, or alternatively (for the changes only):
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted.
 
 #include <assert.h>
 #include <stddef.h>
@@ -154,6 +160,30 @@ void cn_fast_hash(const void *data, size_t length, char *hash)
 	memcpy(hash, &state, HASH_SIZE);
 }
 
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+static inline void aesni_pseudo_encrypt_ecb(OAES_CTX *ctx, uint8_t * restrict c)
+{
+	struct {
+		size_t data_len;
+		uint8_t *data;
+		size_t exp_data_len;
+		__m128i *exp_data;
+	} *key = *(void **)ctx;
+	__m128i cv = *(__m128i *)c;
+	cv = _mm_aesenc_si128(cv, key->exp_data[0]);
+	cv = _mm_aesenc_si128(cv, key->exp_data[1]);
+	cv = _mm_aesenc_si128(cv, key->exp_data[2]);
+	cv = _mm_aesenc_si128(cv, key->exp_data[3]);
+	cv = _mm_aesenc_si128(cv, key->exp_data[4]);
+	cv = _mm_aesenc_si128(cv, key->exp_data[5]);
+	cv = _mm_aesenc_si128(cv, key->exp_data[6]);
+	cv = _mm_aesenc_si128(cv, key->exp_data[7]);
+	cv = _mm_aesenc_si128(cv, key->exp_data[8]);
+	cv = _mm_aesenc_si128(cv, key->exp_data[9]);
+	*(__m128i *)c = cv;
+}
+#endif
+
 void cn_slow_hash(const void *data, size_t length, char *hash)
 {
 #if MBEDTLS_AESNI_HAVE_CODE == 2
@@ -179,7 +209,12 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 	oaes_key_import_data(aes_ctx, aes_key, AES_KEY_SIZE);
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
 		for (j = 0; j < INIT_SIZE_BLK; j++)
-			oaes_pseudo_encrypt_ecb(aes_ctx, &text[AES_BLOCK_SIZE * j]);
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+			if (have_aesni)
+				aesni_pseudo_encrypt_ecb(aes_ctx, &text[j * AES_BLOCK_SIZE]);
+			else
+#endif
+				oaes_pseudo_encrypt_ecb(aes_ctx, &text[j * AES_BLOCK_SIZE]);
 
 		memcpy(&long_state[i * INIT_SIZE_BYTE], text, INIT_SIZE_BYTE);
 	}
@@ -225,7 +260,12 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
 		for (j = 0; j < INIT_SIZE_BLK; j++) {
 			xor_blocks(&text[j * AES_BLOCK_SIZE], &long_state[i * INIT_SIZE_BYTE + j * AES_BLOCK_SIZE]);
-			oaes_pseudo_encrypt_ecb(aes_ctx, &text[j * AES_BLOCK_SIZE]);
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+			if (have_aesni)
+				aesni_pseudo_encrypt_ecb(aes_ctx, &text[j * AES_BLOCK_SIZE]);
+			else
+#endif
+				oaes_pseudo_encrypt_ecb(aes_ctx, &text[j * AES_BLOCK_SIZE]);
 		}
 	}
 	memcpy(state.init, text, INIT_SIZE_BYTE);
