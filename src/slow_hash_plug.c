@@ -188,15 +188,18 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 	memcpy(text, state.init, INIT_SIZE_BYTE);
 
 	oaes_key_import_data(aes_ctx, state.hs.b, AES_KEY_SIZE);
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+	if (have_aesni)
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
 		for (j = 0; j < INIT_SIZE_BLK; j++)
-#if MBEDTLS_AESNI_HAVE_CODE == 2
-			if (have_aesni)
-				aesni_pseudo_encrypt_ecb(aes_ctx, &text[j]);
-			else
+			aesni_pseudo_encrypt_ecb(aes_ctx, &text[j]);
+		memcpy(&long_state[i * INIT_SIZE_BLK], text, INIT_SIZE_BYTE);
+	}
+	else
 #endif
-				oaes_pseudo_encrypt_ecb(aes_ctx, text[j].b);
-
+	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
+		for (j = 0; j < INIT_SIZE_BLK; j++)
+			oaes_pseudo_encrypt_ecb(aes_ctx, text[j].b);
 		memcpy(&long_state[i * INIT_SIZE_BLK], text, INIT_SIZE_BYTE);
 	}
 
@@ -205,20 +208,17 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 		b.b[i] = state.k[16 + i] ^ state.k[48 + i];
 	}
 
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+	/* Dependency chain: address -> read value ------+
+	 * written value <-+ hard function (AES or MUL) <+
+	 * next address  <-+
+	 */
+	if (have_aesni)
 	for (i = 0; i < ITER / 2; i++) {
-		/* Dependency chain: address -> read value ------+
-		 * written value <-+ hard function (AES or MUL) <+
-		 * next address  <-+
-		 */
 		/* Iteration 1 */
 		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
 		c = long_state[j];
-#if MBEDTLS_AESNI_HAVE_CODE == 2
-		if (have_aesni)
-			c.v = _mm_aesenc_si128(c.v, a.v);
-		else
-#endif
-			oaes_encryption_round(a.b, c.b);
+		c.v = _mm_aesenc_si128(c.v, a.v);
 		xor_blocks(&b, &c);
 		long_state[j] = b;
 		e = a; a = c;
@@ -229,25 +229,50 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 		sum_half_blocks(&e, &d);
 		long_state[j] = e;
 		b = a;
-#if 0 && MBEDTLS_AESNI_HAVE_CODE == 2
+#if 0
 		a.v = _mm_xor_si128(c.v, e.v);
 #else
 		a.u64[0] = c.u64[0] ^ e.u64[0];
 		a.u64[1] = c.u64[1] ^ e.u64[1];
 #endif
 	}
+	else
+#endif
+	for (i = 0; i < ITER / 2; i++) {
+		/* Iteration 1 */
+		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
+		c = long_state[j];
+		oaes_encryption_round(a.b, c.b);
+		xor_blocks(&b, &c);
+		long_state[j] = b;
+		e = a; a = c;
+		/* Iteration 2 */
+		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
+		c = long_state[j];
+		mul(&a, &c, &d);
+		sum_half_blocks(&e, &d);
+		long_state[j] = e;
+		b = a;
+		a.u64[0] = c.u64[0] ^ e.u64[0];
+		a.u64[1] = c.u64[1] ^ e.u64[1];
+	}
 
 	memcpy(text, state.init, INIT_SIZE_BYTE);
 	oaes_key_import_data(aes_ctx, &state.hs.b[32], AES_KEY_SIZE);
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+	if (have_aesni)
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
 		for (j = 0; j < INIT_SIZE_BLK; j++) {
 			xor_blocks(&text[j], &long_state[i * INIT_SIZE_BLK + j]);
-#if MBEDTLS_AESNI_HAVE_CODE == 2
-			if (have_aesni)
-				aesni_pseudo_encrypt_ecb(aes_ctx, &text[j]);
-			else
+			aesni_pseudo_encrypt_ecb(aes_ctx, &text[j]);
+		}
+	}
+	else
 #endif
-				oaes_pseudo_encrypt_ecb(aes_ctx, text[j].b);
+	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
+		for (j = 0; j < INIT_SIZE_BLK; j++) {
+			xor_blocks(&text[j], &long_state[i * INIT_SIZE_BLK + j]);
+			oaes_pseudo_encrypt_ecb(aes_ctx, text[j].b);
 		}
 	}
 	memcpy(state.init, text, INIT_SIZE_BYTE);
