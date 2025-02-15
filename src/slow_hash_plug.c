@@ -181,7 +181,7 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 	OAES_CTX *aes_ctx = oaes_alloc();
 	union cn_slow_hash_state state;
 	block text[INIT_SIZE_BLK];
-	block a, b, c, d, e;
+	block a, b, c, d;
 	size_t i, j;
 
 	hash_process(&state.hs, data, length);
@@ -221,7 +221,7 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 		c.v = _mm_aesenc_si128(c.v, a.v);
 		xor_blocks(&b, &c);
 		long_state[j] = b;
-		e = a; a = c;
+		block e = a; a = c;
 		/* Iteration 2 */
 		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
 		c = long_state[j];
@@ -245,16 +245,15 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 		oaes_encryption_round(a.b, c.b);
 		xor_blocks(&b, &c);
 		long_state[j] = b;
-		e = a; a = c;
 		/* Iteration 2 */
-		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
-		c = long_state[j];
-		mul(&a, &c, &d);
-		sum_half_blocks(&e, &d);
-		long_state[j] = e;
-		b = a;
-		a.u64[0] = c.u64[0] ^ e.u64[0];
-		a.u64[1] = c.u64[1] ^ e.u64[1];
+		j = e2i(&c, MEMORY / AES_BLOCK_SIZE);
+		b = long_state[j];
+		mul(&b, &c, &d);
+		sum_half_blocks(&a, &d);
+		long_state[j] = a;
+		a.u64[0] ^= b.u64[0];
+		a.u64[1] ^= b.u64[1];
+		b = c;
 	}
 
 	memcpy(text, state.init, INIT_SIZE_BYTE);
