@@ -400,7 +400,7 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Dropped our old AES-NI code in favor of the AES code from mbedTLS, which
   supports AES-NI (Intel) as well as AES-CE (Arm).  The new code kicks in for
-  any format using AES.  Boosts of up to 13x seen on Intel and 7x on MacBook
+  most formats using AES.  Boosts of up to 13x seen on Intel and 7x on MacBook
   M1 (those are for the KeePass format with AES-KDF, which is extreme because
   all the heavy lifting is AES).  [magnum, Solar; 2024]
 
@@ -412,6 +412,8 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Add oracle2john.py and fix the o5logon format to support passwords longer
   than 16.  [k4amos; 2024]
+
+- Optimize the Monero format, use AES-NI for a ~10x speedup.  [Solar; 2025]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
