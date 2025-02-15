@@ -190,7 +190,7 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 	const int have_aesni = mbedtls_aesni_has_support(MBEDTLS_AESNI_AES);
 #endif
 	//uint8_t long_state[MEMORY]; // This is 2 MB, too large for stack
-	uint8_t *long_state = mem_alloc(MEMORY);
+	uint8_t *long_state = mem_alloc_align(MEMORY, AES_BLOCK_SIZE); // This is 2 MiB, too large for stack
 	union cn_slow_hash_state state;
 	uint8_t text[INIT_SIZE_BYTE];
 	uint8_t a[AES_BLOCK_SIZE] JTR_ALIGN(16);
