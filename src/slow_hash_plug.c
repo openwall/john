@@ -103,6 +103,9 @@ static inline void mul(const block *a, const block *b, block *res) {
 }
 
 static inline void sum_half_blocks(block *a, const block *b) {
+#if 0 && MBEDTLS_AESNI_HAVE_CODE == 2
+	a->v = _mm_add_epi64(a->v, b->v);
+#else
 	uint64_t a0, a1, b0, b1;
 
 	a0 = SWAP64LE(a->u64[0]);
@@ -113,18 +116,11 @@ static inline void sum_half_blocks(block *a, const block *b) {
 	a1 += b1;
 	a->u64[0] = SWAP64LE(a0);
 	a->u64[1] = SWAP64LE(a1);
-}
-
-static inline void swap_blocks(block *a, block *b) {
-	block t = *a;
-	*a = *b;
-	*b = t;
+#endif
 }
 
 static inline void xor_blocks(block *a, const block *b) {
-#if 0 && MBEDTLS_AESNI_HAVE_CODE == 2
-/* Somehow with gcc 11 this results in code size increase when
- * aesni_pseudo_encrypt_ecb() is inlined, so disabled for now */
+#if 1 && MBEDTLS_AESNI_HAVE_CODE == 2
 	a->v = _mm_xor_si128(a->v, b->v);
 #else
 	a->u64[0] ^= b->u64[0];
@@ -185,7 +181,7 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 	OAES_CTX *aes_ctx = oaes_alloc();
 	union cn_slow_hash_state state;
 	block text[INIT_SIZE_BLK];
-	block a, b, c, d;
+	block a, b, c, d, e;
 	size_t i, j;
 
 	hash_process(&state.hs, data, length);
@@ -224,20 +220,21 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 #endif
 			oaes_encryption_round(a.b, c.b);
 		xor_blocks(&b, &c);
-		swap_blocks(&b, &c);
-		long_state[j] = c;
-		//assert(j == e2i(&a, MEMORY / AES_BLOCK_SIZE));
-		swap_blocks(&a, &b);
+		long_state[j] = b;
+		e = a; a = c;
 		/* Iteration 2 */
 		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
 		c = long_state[j];
 		mul(&a, &c, &d);
-		sum_half_blocks(&b, &d);
-		swap_blocks(&b, &c);
-		xor_blocks(&b, &c);
-		long_state[j] = c;
-		//assert(j == e2i(&a, MEMORY / AES_BLOCK_SIZE));
-		swap_blocks(&a, &b);
+		sum_half_blocks(&e, &d);
+		long_state[j] = e;
+		b = a;
+#if 0 && MBEDTLS_AESNI_HAVE_CODE == 2
+		a.v = _mm_xor_si128(c.v, e.v);
+#else
+		a.u64[0] = c.u64[0] ^ e.u64[0];
+		a.u64[1] = c.u64[1] ^ e.u64[1];
+#endif
 	}
 
 	memcpy(text, state.init, INIT_SIZE_BYTE);
