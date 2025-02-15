@@ -130,11 +130,11 @@ static inline void xor_blocks(block *a, const block *b) {
 
 #pragma pack(push, 1)
 union cn_slow_hash_state {
-  union hash_state hs;
-  struct {
-    uint8_t k[64];
-    uint8_t init[INIT_SIZE_BYTE];
-  };
+	union hash_state hs;
+	struct {
+		uint64_t k[8];
+		uint8_t init[INIT_SIZE_BYTE];
+	};
 };
 #pragma pack(pop)
 
@@ -203,10 +203,10 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 		memcpy(&long_state[i * INIT_SIZE_BLK], text, INIT_SIZE_BYTE);
 	}
 
-	for (i = 0; i < 16; i++) {
-		a.b[i] = state.k[     i] ^ state.k[32 + i];
-		b.b[i] = state.k[16 + i] ^ state.k[48 + i];
-	}
+	a.u64[0] = state.k[0] ^ state.k[4];
+	a.u64[1] = state.k[1] ^ state.k[5];
+	b.u64[0] = state.k[2] ^ state.k[6];
+	b.u64[1] = state.k[3] ^ state.k[7];
 
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 	/* Dependency chain: address -> read value ------+
