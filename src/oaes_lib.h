@@ -181,6 +181,8 @@ OAES_API OAES_RET oaes_encryption_round( const uint8_t * key, uint8_t * c );
 
 OAES_API OAES_RET oaes_pseudo_encrypt_ecb( OAES_CTX * ctx, uint8_t * c );
 
+OAES_API uint8_t * oaes_get_exp_data( const OAES_CTX * ctx );
+
 #ifdef __cplusplus
 }
 #endif

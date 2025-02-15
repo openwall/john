@@ -149,25 +149,20 @@ void hash_process(union hash_state *state, const uint8_t *buf, size_t count)
 }
 
 #if MBEDTLS_AESNI_HAVE_CODE == 2
-static inline void aesni_pseudo_encrypt_ecb(OAES_CTX *ctx, block * restrict c)
+static inline void aesni_pseudo_encrypt_ecb(const uint8_t *exp_data, block * restrict c)
 {
-	struct {
-		size_t data_len;
-		uint8_t *data;
-		size_t exp_data_len;
-		__m128i *exp_data;
-	} *key = *(void **)ctx;
 	__m128i cv = c->v;
-	cv = _mm_aesenc_si128(cv, key->exp_data[0]);
-	cv = _mm_aesenc_si128(cv, key->exp_data[1]);
-	cv = _mm_aesenc_si128(cv, key->exp_data[2]);
-	cv = _mm_aesenc_si128(cv, key->exp_data[3]);
-	cv = _mm_aesenc_si128(cv, key->exp_data[4]);
-	cv = _mm_aesenc_si128(cv, key->exp_data[5]);
-	cv = _mm_aesenc_si128(cv, key->exp_data[6]);
-	cv = _mm_aesenc_si128(cv, key->exp_data[7]);
-	cv = _mm_aesenc_si128(cv, key->exp_data[8]);
-	cv = _mm_aesenc_si128(cv, key->exp_data[9]);
+	const __m128i *dv = (const __m128i *)exp_data;
+	cv = _mm_aesenc_si128(cv, dv[0]);
+	cv = _mm_aesenc_si128(cv, dv[1]);
+	cv = _mm_aesenc_si128(cv, dv[2]);
+	cv = _mm_aesenc_si128(cv, dv[3]);
+	cv = _mm_aesenc_si128(cv, dv[4]);
+	cv = _mm_aesenc_si128(cv, dv[5]);
+	cv = _mm_aesenc_si128(cv, dv[6]);
+	cv = _mm_aesenc_si128(cv, dv[7]);
+	cv = _mm_aesenc_si128(cv, dv[8]);
+	cv = _mm_aesenc_si128(cv, dv[9]);
 	c->v = cv;
 }
 #endif
@@ -188,11 +183,12 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 	memcpy(text, state.init, INIT_SIZE_BYTE);
 
 	oaes_key_import_data(aes_ctx, state.hs.b, AES_KEY_SIZE);
+	const uint8_t *aes_exp_data = oaes_get_exp_data(aes_ctx);
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 	if (have_aesni)
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
 		for (j = 0; j < INIT_SIZE_BLK; j++)
-			aesni_pseudo_encrypt_ecb(aes_ctx, &text[j]);
+			aesni_pseudo_encrypt_ecb(aes_exp_data, &text[j]);
 		memcpy(&long_state[i * INIT_SIZE_BLK], text, INIT_SIZE_BYTE);
 	}
 	else
@@ -258,12 +254,13 @@ void cn_slow_hash(const void *data, size_t length, char *hash)
 
 	memcpy(text, state.init, INIT_SIZE_BYTE);
 	oaes_key_import_data(aes_ctx, &state.hs.b[32], AES_KEY_SIZE);
+	aes_exp_data = oaes_get_exp_data(aes_ctx);
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 	if (have_aesni)
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
 		for (j = 0; j < INIT_SIZE_BLK; j++) {
 			xor_blocks(&text[j], &long_state[i * INIT_SIZE_BLK + j]);
-			aesni_pseudo_encrypt_ecb(aes_ctx, &text[j]);
+			aesni_pseudo_encrypt_ecb(aes_exp_data, &text[j]);
 		}
 	}
 	else

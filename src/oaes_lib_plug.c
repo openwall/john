@@ -1334,3 +1334,9 @@ OAES_API OAES_RET oaes_pseudo_encrypt_ecb( OAES_CTX * ctx, uint8_t * c )
 
 	return OAES_RET_SUCCESS;
 }
+
+OAES_API uint8_t * oaes_get_exp_data( const OAES_CTX * ctx )
+{
+	oaes_ctx * _ctx = (oaes_ctx *) ctx;
+	return _ctx->key->exp_data;
+}
