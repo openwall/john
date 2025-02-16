@@ -37,13 +37,13 @@ john_register_one(&fmt_monero);
 #include "chacha.h"
 #include "slow_hash.h"
 
-#define FORMAT_LABEL            "monero"
-#define FORMAT_NAME             "monero Wallet"
+#define FORMAT_LABEL            "Monero"
+#define FORMAT_NAME             "Monero Wallet"
 #define FORMAT_TAG              "$monero$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
 #define ALGORITHM_NAME          "Pseudo-AES / ChaCha / Various 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
+#define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        125
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
@@ -70,7 +70,8 @@ static struct fmt_tests tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
-static int any_cracked, *cracked;
+static char (*saved_slow_hash)[64];
+static int keys_changed, any_cracked, *cracked;
 static size_t cracked_size;
 
 static struct custom_salt {
@@ -84,8 +85,9 @@ static void init(struct fmt_main *self)
 	omp_autotune(self, OMP_SCALE);
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
+	saved_slow_hash = mem_calloc(sizeof(*saved_slow_hash), self->params.max_keys_per_crypt);
+	keys_changed = any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
-	any_cracked = 0;
 	cracked = mem_calloc(cracked_size, 1);
 }
 
@@ -93,6 +95,7 @@ static void done(void)
 {
 	MEM_FREE(saved_key);
 	MEM_FREE(saved_len);
+	MEM_FREE(saved_slow_hash);
 	MEM_FREE(cracked);
 }
 
@@ -160,6 +163,7 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 	saved_len[index] = strnzcpyn(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	keys_changed = 1;
 }
 
 static char *get_key(int index)
@@ -177,19 +181,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		memset(cracked, 0, cracked_size);
 		any_cracked = 0;
 	}
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-		unsigned char km[64];
+		char *km = saved_slow_hash[index];
 		unsigned char out[32];
 		unsigned char iv[IVLEN];
 		struct chacha_ctx ckey;
 
+		if (keys_changed)
+			cn_slow_hash(saved_key[index], saved_len[index], km);
+
 		// 1
 		memcpy(iv, cur_salt->ct, IVLEN);
-		cn_slow_hash(saved_key[index], saved_len[index], (char *)km);
-		chacha_keysetup(&ckey, km, 256);
+		chacha_keysetup(&ckey, (unsigned char *)km, 256);
 		chacha_ivsetup(&ckey, iv, NULL, IVLEN);
 		chacha_decrypt_bytes(&ckey, cur_salt->ct + IVLEN + 2, out, 32, 20);
 		if (memmem(out, 32, (void*)"key_data", 8) || memmem(out, 32, (void*)"m_creation_timestamp", 20)) {
@@ -203,7 +210,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		// 2
 		memcpy(iv, cur_salt->ct, IVLEN);
-		chacha_keysetup(&ckey, km, 256);
+		chacha_keysetup(&ckey, (unsigned char *)km, 256);
 		chacha_ivsetup(&ckey, iv, NULL, IVLEN);
 		chacha_decrypt_bytes(&ckey, cur_salt->ct + IVLEN + 2, out, 32, 8);
 		if (memmem(out, 32, (void*)"key_data", 8) || memmem(out, 32, (void*)"m_creation_timestamp", 20)) {
@@ -214,6 +221,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			any_cracked |= 1;
 		}
 	}
+
+	keys_changed = 0;
 
 	return count;
 }
