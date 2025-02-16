@@ -40,6 +40,7 @@
 #endif
 
 #include "oaes_lib.h"
+#include "memory.h"
 
 #define OAES_RKEY_LEN 4
 #define OAES_COL_LEN 4
@@ -506,7 +507,7 @@ static OAES_RET oaes_key_expand( OAES_CTX * ctx )
 
 	_ctx->key->exp_data_len = _ctx->key->num_keys * OAES_RKEY_LEN * OAES_COL_LEN;
 	_ctx->key->exp_data = (uint8_t *)
-			calloc( _ctx->key->exp_data_len, sizeof( uint8_t ));
+			mem_calloc_align( _ctx->key->exp_data_len, sizeof( uint8_t ), 16);
 
 	if( NULL == _ctx->key->exp_data )
 		return OAES_RET_MEM;
