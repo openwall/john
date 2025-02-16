@@ -183,8 +183,8 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 
 	if (!aes_ctx || oaes_key_import_data(aes_ctx, state.hs.b, AES_KEY_SIZE))
 		return -1;
-	const uint8_t *aes_exp_data = oaes_get_exp_data(aes_ctx);
 #if MBEDTLS_AESNI_HAVE_CODE == 2
+	const uint8_t *aes_exp_data = oaes_get_exp_data(aes_ctx);
 	if (have_aesni)
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
 		for (j = 0; j < INIT_SIZE_BLK; j++)
@@ -255,8 +255,8 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 	memcpy(text, state.init, INIT_SIZE_BYTE);
 	if (oaes_key_import_data(aes_ctx, &state.hs.b[32], AES_KEY_SIZE))
 		return -1;
-	aes_exp_data = oaes_get_exp_data(aes_ctx);
 #if MBEDTLS_AESNI_HAVE_CODE == 2
+	aes_exp_data = oaes_get_exp_data(aes_ctx);
 	if (have_aesni)
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
 		for (j = 0; j < INIT_SIZE_BLK; j++) {
