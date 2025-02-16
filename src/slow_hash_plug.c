@@ -26,6 +26,7 @@
 #include "jh.h"
 #include "keccak.h"
 #include "sph_skein.h"
+#include "slow_hash.h"
 
 union hash_state {
 	uint8_t b[200];
@@ -276,4 +277,13 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 	extra_hashes[state.hs.b[0] & 3](&state, 200, hash);
 	oaes_free(&aes_ctx);
 	return 0;
+}
+
+int cn_slow_hash_aesni(void)
+{
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+	return mbedtls_aesni_has_support(MBEDTLS_AESNI_AES);
+#else
+	return 0;
+#endif
 }

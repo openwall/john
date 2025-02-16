@@ -753,11 +753,11 @@ AGAIN:
 		}
 
 		/* FIXME: Kludge for thin dynamics, and OpenCL formats */
-		/* c3_fmt also added, since it is a somewhat dynamic   */
-		/* format and needs init called to change the name     */
+		/* Monero and crypt also added since they change their name */
 		if ((format->params.flags & FMT_DYNAMIC) ||
 		    strstr(format->params.label, "-opencl") ||
 		    strstr(format->params.label, "-ztex") ||
+		    !strcmp(format->params.label, "Monero") ||
 		    !strcmp(format->params.label, "crypt")) {
 #ifdef HAVE_OPENCL
 /*
