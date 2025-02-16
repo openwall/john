@@ -74,6 +74,9 @@ static char (*saved_slow_hash)[64];
 static int keys_changed, any_cracked, *cracked;
 static size_t cracked_size;
 
+static int max_threads;
+static region_t *memory;
+
 static struct custom_salt {
 	uint32_t ctlen;
 	int type;
@@ -83,6 +86,18 @@ static struct custom_salt {
 static void init(struct fmt_main *self)
 {
 	omp_autotune(self, OMP_SCALE);
+
+#ifdef _OPENMP
+	max_threads = omp_get_max_threads();
+#else
+	max_threads = 1;
+#endif
+
+	memory = mem_alloc(sizeof(*memory) * max_threads);
+	int i;
+	for (i = 0; i < max_threads; i++)
+		init_region(&memory[i]);
+
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
 	saved_slow_hash = mem_calloc(sizeof(*saved_slow_hash), self->params.max_keys_per_crypt);
@@ -93,6 +108,11 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+	int i;
+	for (i = 0; i < max_threads; i++)
+		free_region(&memory[i]);
+	MEM_FREE(memory);
+
 	MEM_FREE(saved_key);
 	MEM_FREE(saved_len);
 	MEM_FREE(saved_slow_hash);
@@ -174,8 +194,7 @@ static char *get_key(int index)
 // Based on https://github.com/monero-project/monero/blob/master/src/wallet/wallet2.cpp
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	const int count = *pcount;
-	int index;
+	int failed = 0, count = *pcount, index;
 
 	if (any_cracked) {
 		memset(cracked, 0, cracked_size);
@@ -191,8 +210,26 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char iv[IVLEN];
 		struct chacha_ctx ckey;
 
-		if (keys_changed)
-			cn_slow_hash(saved_key[index], saved_len[index], km);
+		if (keys_changed) {
+#ifdef _OPENMP
+			int t = omp_get_thread_num();
+			if (t >= max_threads) {
+				failed = -1;
+				continue;
+			}
+#else
+			const int t = 0;
+#endif
+			if ((!memory[t].aligned && !alloc_region(&memory[t], 1 << 21)) ||
+			    cn_slow_hash(saved_key[index], saved_len[index], km, memory[t].aligned)) {
+				failed = 1;
+#ifdef _OPENMP
+				continue;
+#else
+				break;
+#endif
+			}
+		}
 
 		// 1
 		memcpy(iv, cur_salt->ct, IVLEN);
@@ -220,6 +257,17 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 			any_cracked |= 1;
 		}
+	}
+
+	if (failed) {
+#ifdef _OPENMP
+		if (failed < 0) {
+			fprintf(stderr, "OpenMP thread number out of range\n");
+			error();
+		}
+#endif
+		fprintf(stderr, "Memory allocation failed\n");
+		error();
 	}
 
 	keys_changed = 0;
