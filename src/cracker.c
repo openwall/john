@@ -1,8 +1,11 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2003,2006,2010-2013,2015,2017 by Solar Designer
+ * Copyright (c) 2009-2018 by JimF
+ * Copyright (c) 2011-2025 by magnum
  *
- * ...with heavy changes in the jumbo patch, by magnum & JimF
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #define NEED_OS_TIMER
@@ -158,6 +161,8 @@ static void crk_help(void)
 #else
 		        "or send SIGHUP to john process for status\n");
 #endif
+	if (event_delayed_status)
+		fprintf(stderr, "Delayed status pending...\r");
 
 	printed = 1;
 }

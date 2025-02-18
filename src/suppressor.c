@@ -15,6 +15,7 @@
 #include "logger.h"
 #include "options.h"
 #include "status.h"
+#include "signals.h"
 #include "suppressor.h"
 
 #define DEFAULT_SIZE 256 /* MiB */
@@ -74,6 +75,10 @@ void suppressor_init(unsigned int new_flags)
 				fprintf(stderr, "%d: %s\n", NODE, msg);
 			else
 				fprintf(stderr, "%s\n", msg);
+
+			/* The output above may have overwritten a delayed status message */
+            if (john_main_process && event_delayed_status)
+                fprintf(stderr, "Delayed status pending...\r");
 			return;
 		}
 

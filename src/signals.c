@@ -1,8 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2003,2006,2010,2013,2015 by Solar Designer
- *
- * ...with changes in the jumbo patch, by JimF and magnum.
+ * Copyright (c) 2009-2018 by JimF
+ * Copyright (c) 2009-2025 by magnum
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -539,7 +539,15 @@ static void sig_handle_status(int signum)
 	if (mpi_p > 1 || getenv("OMPI_COMM_WORLD_SIZE"))
 		event_save = 1;
 #endif
-	event_status = event_pending = 1;
+	/* SIGUSR1 now requests delayed status and a second one during the
+	 * delay will promote it to immediate. */
+	if (event_delayed_status) {
+		event_status = event_pending = 1;
+		event_delayed_status = 0;
+	} else {
+		event_delayed_status = 1;
+		write_loop(2, "Delayed status pending...\r", 26);
+	}
 #ifndef SA_RESTART
 	sig_install(sig_handle_status, signum);
 #endif
