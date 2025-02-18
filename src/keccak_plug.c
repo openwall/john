@@ -1,9 +1,11 @@
 // keccak.c
 // 19-Nov-11  Markku-Juhani O. Saarinen <mjos@iki.fi>
 // A baseline Keccak (3rd round) implementation.
+// Updated to support big-endian.
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "int-util.h"
 #include "keccak.h"
 
 const uint64_t keccakf_rndc[24] =
@@ -93,7 +95,7 @@ void keccak(const uint8_t *in, size_t inlen, uint8_t *md, int mdlen)
 
     for ( ; inlen >= rsiz; inlen -= rsiz, in += rsiz) {
         for (i = 0; i < rsizw; i++)
-            st[i] ^= ((uint64_t *) in)[i];
+            st[i] ^= swap64le(((uint64_t *) in)[i]);
         keccakf(st, KECCAK_ROUNDS);
     }
 
@@ -110,11 +112,11 @@ void keccak(const uint8_t *in, size_t inlen, uint8_t *md, int mdlen)
     temp[rsiz - 1] |= 0x80;
 
     for (i = 0; i < rsizw; i++)
-        st[i] ^= ((uint64_t *) temp)[i];
+        st[i] ^= swap64le(((uint64_t *) temp)[i]);
 
     keccakf(st, KECCAK_ROUNDS);
 
-    memcpy(md, st, mdlen);
+    memcpy_swap64le(md, st, mdlen / sizeof(uint64_t));
 }
 
 void keccak1600(const uint8_t *in, size_t inlen, uint8_t *md)

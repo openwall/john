@@ -85,7 +85,7 @@ typedef union {
 #endif
 } block;
 
-static inline size_t e2i(block *a, size_t count) { return (a->u64[0] / AES_BLOCK_SIZE) & (count - 1); }
+static inline size_t e2i(block *a, size_t count) { return (swap64le(a->u64[0]) / AES_BLOCK_SIZE) & (count - 1); }
 
 static inline void mul(const block *a, const block *b, block *res) {
 	uint64_t a0, b0;
@@ -136,7 +136,9 @@ union cn_slow_hash_state {
 
 void hash_permutation(union hash_state *state)
 {
-	keccakf((uint64_t*)state, 24);
+	mem_inplace_swap64le(state->w, 25);
+	keccakf(state->w, 24);
+	mem_inplace_swap64le(state->w, 25);
 }
 
 void hash_process(union hash_state *state, const uint8_t *buf, size_t count)

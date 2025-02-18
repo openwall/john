@@ -1,15 +1,17 @@
-/* hash.c     April 2012
+/* April 2012
  * Groestl ANSI C code optimised for 32-bit machines
  * Author: Thomas Krinninger
  *
  *  This work is based on the implementation of
  *          Soeren S. Thomsen and Krystian Matusiewicz
  *
- *
+ * Updated to support big-endian.
  */
 
 #include "groestl.h"
 #include "groestl_tables.h"
+#include "int-util.h"
+#include "arch.h"
 
 #define P_TYPE 0
 #define Q_TYPE 1
@@ -19,9 +21,15 @@ const uint8_t shift_Values[2][8] = {{0,1,2,3,4,5,6,7},{1,3,5,7,0,2,4,6}};
 const uint8_t indices_cyclic[15] = {0,1,2,3,4,5,6,7,0,1,2,3,4,5,6};
 
 
+#if ARCH_LITTLE_ENDIAN
 #define ROTATE_COLUMN_DOWN(v1, v2, amount_bytes, temp_var) {temp_var = (v1<<(8*amount_bytes))|(v2>>(8*(4-amount_bytes))); \
 															v2 = (v2<<(8*amount_bytes))|(v1>>(8*(4-amount_bytes))); \
 															v1 = temp_var;}
+#else
+#define ROTATE_COLUMN_DOWN(v1, v2, amount_bytes, temp_var) {temp_var = (v1>>(8*amount_bytes))|(v2<<(8*(4-amount_bytes))); \
+															v2 = (v2>>(8*amount_bytes))|(v1<<(8*(4-amount_bytes))); \
+															v1 = temp_var;}
+#endif
 
 
 #define COLUMN(x,y,i,c0,c1,c2,c3,c4,c5,c6,c7,tv1,tv2,tu,tl,t)				\
@@ -67,14 +75,14 @@ const uint8_t indices_cyclic[15] = {0,1,2,3,4,5,6,7,0,1,2,3,4,5,6};
 static void RND512P(uint8_t *x, uint32_t *y, uint32_t r) {
 	uint32_t temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp;
 	uint32_t* x32 = (uint32_t*)x;
-	x32[ 0] ^= 0x00000000^r;
-	x32[ 2] ^= 0x00000010^r;
-	x32[ 4] ^= 0x00000020^r;
-	x32[ 6] ^= 0x00000030^r;
-	x32[ 8] ^= 0x00000040^r;
-	x32[10] ^= 0x00000050^r;
-	x32[12] ^= 0x00000060^r;
-	x32[14] ^= 0x00000070^r;
+	x32[ 0] ^= SWAP32LE(0x00000000)^r;
+	x32[ 2] ^= SWAP32LE(0x00000010)^r;
+	x32[ 4] ^= SWAP32LE(0x00000020)^r;
+	x32[ 6] ^= SWAP32LE(0x00000030)^r;
+	x32[ 8] ^= SWAP32LE(0x00000040)^r;
+	x32[10] ^= SWAP32LE(0x00000050)^r;
+	x32[12] ^= SWAP32LE(0x00000060)^r;
+	x32[14] ^= SWAP32LE(0x00000070)^r;
 	COLUMN(x,y, 0,  0,  2,  4,  6,  9, 11, 13, 15, temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp);
 	COLUMN(x,y, 2,  2,  4,  6,  8, 11, 13, 15,  1, temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp);
 	COLUMN(x,y, 4,  4,  6,  8, 10, 13, 15,  1,  3, temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp);
@@ -90,21 +98,21 @@ static void RND512Q(uint8_t *x, uint32_t *y, uint32_t r) {
 	uint32_t temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp;
 	uint32_t* x32 = (uint32_t*)x;
 	x32[ 0] = ~x32[ 0];
-	x32[ 1] ^= 0xffffffff^r;
+	x32[ 1] ^= SWAP32LE(0xffffffff)^r;
 	x32[ 2] = ~x32[ 2];
-	x32[ 3] ^= 0xefffffff^r;
+	x32[ 3] ^= SWAP32LE(0xefffffff)^r;
 	x32[ 4] = ~x32[ 4];
-	x32[ 5] ^= 0xdfffffff^r;
+	x32[ 5] ^= SWAP32LE(0xdfffffff)^r;
 	x32[ 6] = ~x32[ 6];
-	x32[ 7] ^= 0xcfffffff^r;
+	x32[ 7] ^= SWAP32LE(0xcfffffff)^r;
 	x32[ 8] = ~x32[ 8];
-	x32[ 9] ^= 0xbfffffff^r;
+	x32[ 9] ^= SWAP32LE(0xbfffffff)^r;
 	x32[10] = ~x32[10];
-	x32[11] ^= 0xafffffff^r;
+	x32[11] ^= SWAP32LE(0xafffffff)^r;
 	x32[12] = ~x32[12];
-	x32[13] ^= 0x9fffffff^r;
+	x32[13] ^= SWAP32LE(0x9fffffff)^r;
 	x32[14] = ~x32[14];
-	x32[15] ^= 0x8fffffff^r;
+	x32[15] ^= SWAP32LE(0x8fffffff)^r;
 	COLUMN(x,y, 0,  2,  6, 10, 14,  1,  5,  9, 13, temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp);
 	COLUMN(x,y, 2,  4,  8, 12,  0,  3,  7, 11, 15, temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp);
 	COLUMN(x,y, 4,  6, 10, 14,  2,  5,  9, 13,  1, temp_v1, temp_v2, temp_upper_value, temp_lower_value, temp);
@@ -129,28 +137,28 @@ static void F512(uint32_t *h, const uint32_t *m) {
 	}
 
 	/* compute Q(m) */
-	RND512Q((uint8_t*)z, y, 0x00000000);
-	RND512Q((uint8_t*)y, z, 0x01000000);
-	RND512Q((uint8_t*)z, y, 0x02000000);
-	RND512Q((uint8_t*)y, z, 0x03000000);
-	RND512Q((uint8_t*)z, y, 0x04000000);
-	RND512Q((uint8_t*)y, z, 0x05000000);
-	RND512Q((uint8_t*)z, y, 0x06000000);
-	RND512Q((uint8_t*)y, z, 0x07000000);
-	RND512Q((uint8_t*)z, y, 0x08000000);
-	RND512Q((uint8_t*)y, Qtmp, 0x09000000);
+	RND512Q((uint8_t*)z, y, SWAP32LE(0x00000000));
+	RND512Q((uint8_t*)y, z, SWAP32LE(0x01000000));
+	RND512Q((uint8_t*)z, y, SWAP32LE(0x02000000));
+	RND512Q((uint8_t*)y, z, SWAP32LE(0x03000000));
+	RND512Q((uint8_t*)z, y, SWAP32LE(0x04000000));
+	RND512Q((uint8_t*)y, z, SWAP32LE(0x05000000));
+	RND512Q((uint8_t*)z, y, SWAP32LE(0x06000000));
+	RND512Q((uint8_t*)y, z, SWAP32LE(0x07000000));
+	RND512Q((uint8_t*)z, y, SWAP32LE(0x08000000));
+	RND512Q((uint8_t*)y, Qtmp, SWAP32LE(0x09000000));
 
 	/* compute P(h+m) */
-	RND512P((uint8_t*)Ptmp, y, 0x00000000);
-	RND512P((uint8_t*)y, z, 0x00000001);
-	RND512P((uint8_t*)z, y, 0x00000002);
-	RND512P((uint8_t*)y, z, 0x00000003);
-	RND512P((uint8_t*)z, y, 0x00000004);
-	RND512P((uint8_t*)y, z, 0x00000005);
-	RND512P((uint8_t*)z, y, 0x00000006);
-	RND512P((uint8_t*)y, z, 0x00000007);
-	RND512P((uint8_t*)z, y, 0x00000008);
-	RND512P((uint8_t*)y, Ptmp, 0x00000009);
+	RND512P((uint8_t*)Ptmp, y, SWAP32LE(0x00000000));
+	RND512P((uint8_t*)y, z, SWAP32LE(0x00000001));
+	RND512P((uint8_t*)z, y, SWAP32LE(0x00000002));
+	RND512P((uint8_t*)y, z, SWAP32LE(0x00000003));
+	RND512P((uint8_t*)z, y, SWAP32LE(0x00000004));
+	RND512P((uint8_t*)y, z, SWAP32LE(0x00000005));
+	RND512P((uint8_t*)z, y, SWAP32LE(0x00000006));
+	RND512P((uint8_t*)y, z, SWAP32LE(0x00000007));
+	RND512P((uint8_t*)z, y, SWAP32LE(0x00000008));
+	RND512P((uint8_t*)y, Ptmp, SWAP32LE(0x00000009));
 
 	/* compute P(h+m) + Q(m) + h */
 	for (i = 0; i < 2*COLS512; i++) {
@@ -185,16 +193,16 @@ static void OutputTransformation(hashState *ctx) {
 	for (j = 0; j < 2*COLS512; j++) {
 		temp[j] = ctx->chaining[j];
 	}
-	RND512P((uint8_t*)temp, y, 0x00000000);
-	RND512P((uint8_t*)y, z, 0x00000001);
-	RND512P((uint8_t*)z, y, 0x00000002);
-	RND512P((uint8_t*)y, z, 0x00000003);
-	RND512P((uint8_t*)z, y, 0x00000004);
-	RND512P((uint8_t*)y, z, 0x00000005);
-	RND512P((uint8_t*)z, y, 0x00000006);
-	RND512P((uint8_t*)y, z, 0x00000007);
-	RND512P((uint8_t*)z, y, 0x00000008);
-	RND512P((uint8_t*)y, temp, 0x00000009);
+	RND512P((uint8_t*)temp, y, SWAP32LE(0x00000000));
+	RND512P((uint8_t*)y, z, SWAP32LE(0x00000001));
+	RND512P((uint8_t*)z, y, SWAP32LE(0x00000002));
+	RND512P((uint8_t*)y, z, SWAP32LE(0x00000003));
+	RND512P((uint8_t*)z, y, SWAP32LE(0x00000004));
+	RND512P((uint8_t*)y, z, SWAP32LE(0x00000005));
+	RND512P((uint8_t*)z, y, SWAP32LE(0x00000006));
+	RND512P((uint8_t*)y, z, SWAP32LE(0x00000007));
+	RND512P((uint8_t*)z, y, SWAP32LE(0x00000008));
+	RND512P((uint8_t*)y, temp, SWAP32LE(0x00000009));
 	for (j = 0; j < 2*COLS512; j++) {
 		ctx->chaining[j] ^= temp[j];
 	}
@@ -210,7 +218,7 @@ static void Init(hashState* ctx) {
 	}
 
 	/* set initial value */
-	ctx->chaining[2*COLS512-1] = u32BIG((uint32_t)HASH_BIT_LEN);
+	ctx->chaining[2*COLS512-1] = SWAP32BE((uint32_t)HASH_BIT_LEN);
 
 	/* set other variables */
 	ctx->buf_ptr = 0;
