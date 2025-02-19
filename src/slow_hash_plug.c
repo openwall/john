@@ -212,18 +212,17 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 	for (i = 0; i < ITER / 2; i++) {
 		/* Iteration 1 */
 		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
-		c = long_state[j];
-		c.v = _mm_aesenc_si128(c.v, a.v);
+		c.v = _mm_aesenc_si128(long_state[j].v, a.v);
 		xor_blocks(&b, &c);
-		long_state[j] = b;
-		block e = a; a = c;
+		long_state[j].v = b.v;
+		block e = a; a.v = c.v;
 		/* Iteration 2 */
 		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
-		c = long_state[j];
+		c.v = long_state[j].v;
 		mul(&a, &c, &d);
 		sum_half_blocks(&e, &d);
-		long_state[j] = e;
-		b = a;
+		long_state[j].v = e.v;
+		b.v = a.v;
 #if 0
 		a.v = _mm_xor_si128(c.v, e.v);
 #else
