@@ -8,8 +8,6 @@
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted.
 
-#include <assert.h>
-#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -29,37 +27,26 @@
 #include "sph_skein.h"
 #include "slow_hash.h"
 
-union hash_state {
-	uint8_t b[200];
-	uint64_t w[25];
-};
-
-enum {
-	HASH_SIZE = 32
-};
-
-void hash_extra_blake(const void *data, size_t length, char *hash);
-void hash_extra_groestl(const void *data, size_t length, char *hash);
-void hash_extra_jh(const void *data, size_t length, char *hash);
-void hash_extra_skein(const void *data, size_t length, char *hash);
-
-static void (*const extra_hashes[4])(const void *, size_t, char *) = {
-	hash_extra_blake, hash_extra_groestl, hash_extra_jh, hash_extra_skein
-};
+#define MEMORY		(1 << 21) /* 2 MiB */
+#define ITER		(1 << 20)
+#define AES_BLOCK_SIZE	16
+#define AES_KEY_SIZE	32
+#define INIT_SIZE_BLK	8
+#define INIT_SIZE_BYTE	(INIT_SIZE_BLK * AES_BLOCK_SIZE)
 
 void hash_extra_blake(const void *data, size_t length, char *hash)
 {
-	blake256_hash((uint8_t*)hash, data, length);
+	blake256_hash((uint8_t *)hash, data, length);
 }
 
 void hash_extra_groestl(const void *data, size_t length, char *hash)
 {
-	groestl(data, length * 8, (uint8_t*)hash);
+	groestl(data, length * 8, (uint8_t *)hash);
 }
 
 void hash_extra_jh(const void *data, size_t length, char *hash)
 {
-	jh_hash(HASH_SIZE * 8, data, 8 * length, (uint8_t*)hash);
+	jh_hash(256, data, 8 * length, (uint8_t *)hash);
 }
 
 void hash_extra_skein(const void *data, size_t length, char *hash)
@@ -68,15 +55,12 @@ void hash_extra_skein(const void *data, size_t length, char *hash)
 
 	sph_skein256_init(&ctx);
 	sph_skein256(&ctx, data, length);
-	sph_skein256_close(&ctx, (unsigned char*)hash);
+	sph_skein256_close(&ctx, (unsigned char *)hash);
 }
 
-#define MEMORY         (1 << 21) /* 2 MiB */
-#define ITER           (1 << 20)
-#define AES_BLOCK_SIZE  16
-#define AES_KEY_SIZE    32 /*16*/
-#define INIT_SIZE_BLK   8
-#define INIT_SIZE_BYTE (INIT_SIZE_BLK * AES_BLOCK_SIZE)
+static void (*const extra_hashes[4])(const void *, size_t, char *) = {
+	hash_extra_blake, hash_extra_groestl, hash_extra_jh, hash_extra_skein
+};
 
 typedef union {
 	uint8_t b[AES_BLOCK_SIZE];
@@ -134,15 +118,14 @@ static inline void xor_blocks(block *a, const block *b) {
 #endif
 }
 
-#pragma pack(push, 1)
-union cn_slow_hash_state {
-	union hash_state hs;
+union hash_state {
+	uint8_t b[200];
+	uint64_t w[25];
 	struct {
 		uint64_t k[8];
 		uint8_t init[INIT_SIZE_BYTE];
 	};
 };
-#pragma pack(pop)
 
 void hash_permutation(union hash_state *state)
 {
@@ -181,16 +164,16 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 	const int have_aesni = mbedtls_aesni_has_support(MBEDTLS_AESNI_AES);
 #endif
 	block *long_state = memory; // This is 2 MiB, too large for stack
-	union cn_slow_hash_state state;
+	union hash_state state;
 	block text[INIT_SIZE_BLK];
 	block a, b, c, d;
 	size_t i, j;
 
-	hash_process(&state.hs, data, length);
+	hash_process(&state, data, length);
 	memcpy(text, state.init, INIT_SIZE_BYTE);
 
 	OAES_CTX *aes_ctx = oaes_alloc();
-	if (!aes_ctx || oaes_key_import_data(aes_ctx, state.hs.b, AES_KEY_SIZE))
+	if (!aes_ctx || oaes_key_import_data(aes_ctx, state.b, AES_KEY_SIZE))
 		goto fail;
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 	const uint8_t *aes_exp_data = oaes_get_exp_data(aes_ctx);
@@ -261,7 +244,7 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 	}
 
 	memcpy(text, state.init, INIT_SIZE_BYTE);
-	if (oaes_key_import_data(aes_ctx, &state.hs.b[32], AES_KEY_SIZE))
+	if (oaes_key_import_data(aes_ctx, &state.b[32], AES_KEY_SIZE))
 		goto fail;
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 	aes_exp_data = oaes_get_exp_data(aes_ctx);
@@ -281,10 +264,11 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 		}
 	}
 	memcpy(state.init, text, INIT_SIZE_BYTE);
-	hash_permutation(&state.hs);
-	extra_hashes[state.hs.b[0] & 3](&state, 200, hash);
+	hash_permutation(&state);
+	extra_hashes[state.b[0] & 3](&state, 200, hash);
 	oaes_free(&aes_ctx);
 	return 0;
+
 fail:
 	oaes_free(&aes_ctx);
 	return -1;
