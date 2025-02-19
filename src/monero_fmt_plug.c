@@ -63,7 +63,7 @@ static struct fmt_tests tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
-static char (*saved_slow_hash)[64];
+static char (*saved_slow_hash)[32];
 static int keys_changed, any_cracked, *cracked;
 static size_t cracked_size;
 
