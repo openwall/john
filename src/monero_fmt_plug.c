@@ -99,11 +99,22 @@ static void init(struct fmt_main *self)
 	cracked = mem_calloc(cracked_size, 1);
 }
 
-static void done(void)
+/*
+ * Free the tests' memory allocation before benchmark or actual cracking.
+ * Using memory allocated by tests slows multi-threaded benchmarks down on a
+ * certain CentOS 7 system (but not on a newer system).
+ * We only install this method into the format struct in OpenMP-enabled builds.
+ */
+static void reset(struct db_main *db)
 {
 	int i;
 	for (i = 0; i < max_threads; i++)
 		free_region(&memory[i]);
+}
+
+static void done(void)
+{
+	reset(NULL);
 	MEM_FREE(memory);
 
 	MEM_FREE(saved_key);
@@ -305,7 +316,11 @@ struct fmt_main fmt_monero = {
 	}, {
 		init,
 		done,
+#ifdef _OPENMP
+		reset,
+#else
 		fmt_default_reset,
+#endif
 		fmt_default_prepare,
 		valid,
 		fmt_default_split,
