@@ -18,6 +18,7 @@
 #include <immintrin.h>
 #endif
 
+#include "arch.h"
 #include "memory.h"
 #include "int-util.h"
 #include "oaes_lib.h"
@@ -79,13 +80,22 @@ void hash_extra_skein(const void *data, size_t length, char *hash)
 
 typedef union {
 	uint8_t b[AES_BLOCK_SIZE];
+	uint32_t u32[AES_BLOCK_SIZE / 4];
 	uint64_t u64[AES_BLOCK_SIZE / 8];
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 	__m128i v;
 #endif
 } block;
 
+#if 0 && MBEDTLS_AESNI_HAVE_CODE == 2
+static inline size_t e2i(block *a, size_t count) { return ((uint32_t)_mm_cvtsi128_si32(a->v) / AES_BLOCK_SIZE) & (count - 1); }
+#elif ARCH_LITTLE_ENDIAN && ARCH_BITS == 64
+/* On 64-bit little-endian, it may be more optimal to use 64-bit here */
 static inline size_t e2i(block *a, size_t count) { return (swap64le(a->u64[0]) / AES_BLOCK_SIZE) & (count - 1); }
+#else
+/* Otherwise, 32 bits is enough - no need to potentially swap 64 bits */
+static inline size_t e2i(block *a, size_t count) { return (swap32le(a->u32[0]) / AES_BLOCK_SIZE) & (count - 1); }
+#endif
 
 static inline void mul(const block *a, const block *b, block *res) {
 	uint64_t a0, b0;
