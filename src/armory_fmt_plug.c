@@ -149,7 +149,7 @@ static void done(void)
  * than the tests.  However, don't do this when proceeding from self-test to
  * benchmark, so that memory (de)allocation time doesn't affect the speeds.
  */
-void reset(struct db_main *db)
+static void reset(struct db_main *db)
 {
 	if (benchmark_running)
 		return;
