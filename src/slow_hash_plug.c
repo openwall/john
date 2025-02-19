@@ -196,13 +196,131 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 	b.u64[0] = state.k[2] ^ state.k[6];
 	b.u64[1] = state.k[3] ^ state.k[7];
 
+	i = ITER / 2;
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 	/* Dependency chain: address -> read value ------+
 	 * written value <-+ hard function (AES or MUL) <+
 	 * next address  <-+
 	 */
 	if (have_aesni)
-	for (i = 0; i < ITER / 2; i++) {
+#if 1 && __GNUC__ && __x86_64__ /* any asm */
+	__asm__ __volatile__(
+#if 1 && __AVX2__ /* or actually __AES__ && __AVX__ && __BMI__ */
+		"vmovdqa %1,%%xmm0\n\t"
+		"vmovdqa %2,%%xmm1\n\t"
+		"1:\n\t"
+		"vmovd %%xmm0,%%eax\n\t"
+		"andnl %%eax,%4,%%ecx\n\t"
+		"vmovdqa (%%rbx,%%rcx),%%xmm2\n\t"
+		"vaesenc %%xmm0,%%xmm2,%%xmm2\n\t"
+		"vpxor %%xmm2,%%xmm1,%%xmm1\n\t"
+		"vmovq %%xmm2,%%rax\n\t"
+		"vmovdqa %%xmm1,(%%rbx,%%rcx)\n\t"
+		"andnl %%eax,%4,%%ecx\n\t"
+		"mulq (%%rbx,%%rcx)\n\t"
+		"vmovq %%rdx,%%xmm3\n\t"
+		"vpinsrq $1,%%rax,%%xmm3,%%xmm3\n\t"
+		"vpaddq %%xmm3,%%xmm0,%%xmm0\n\t"
+		"vpxor (%%rbx,%%rcx),%%xmm0,%%xmm3\n\t"
+		"vmovdqa %%xmm0,(%%rbx,%%rcx)\n\t"
+		"vmovd %%xmm3,%%eax\n\t"
+		"andnl %%eax,%4,%%ecx\n\t"
+		"vmovdqa (%%rbx,%%rcx),%%xmm1\n\t"
+		"vaesenc %%xmm3,%%xmm1,%%xmm1\n\t"
+		"vpxor %%xmm1,%%xmm2,%%xmm2\n\t"
+		"vmovq %%xmm1,%%rax\n\t"
+		"vmovdqa %%xmm2,(%%rbx,%%rcx)\n\t"
+		"andnl %%eax,%4,%%ecx\n\t"
+		"mulq (%%rbx,%%rcx)\n\t"
+		"vmovq %%rdx,%%xmm0\n\t"
+		"vpinsrq $1,%%rax,%%xmm0,%%xmm0\n\t"
+		"vpaddq %%xmm0,%%xmm3,%%xmm3\n\t"
+		"vpxor (%%rbx,%%rcx),%%xmm3,%%xmm0\n\t"
+		"vmovdqa %%xmm3,(%%rbx,%%rcx)\n\t"
+		"subl $2,%%esi\n\t"
+		"jnz 1b\n\t"
+		: "+S" (i)
+		: "m" (a), "m" (b), "b" (long_state), "D" (~(uint32_t)(MEMORY - AES_BLOCK_SIZE))
+#else /* no BMI */
+#if 1 && __AVX__ /* or actually __AES__ && __AVX__ */
+		"vmovdqa %1,%%xmm0\n\t"
+		"vmovdqa %2,%%xmm1\n\t"
+		"1:\n\t"
+		"vmovd %%xmm0,%%ecx\n\t"
+		"andl %4,%%ecx\n\t"
+		"vmovdqa (%%rbx,%%rcx),%%xmm2\n\t"
+		"vaesenc %%xmm0,%%xmm2,%%xmm2\n\t"
+		"vpxor %%xmm2,%%xmm1,%%xmm1\n\t"
+		"vmovq %%xmm2,%%rax\n\t"
+		"vmovdqa %%xmm1,(%%rbx,%%rcx)\n\t"
+		"movl %%eax,%%ecx\n\t"
+		"andl %4,%%ecx\n\t"
+		"mulq (%%rbx,%%rcx)\n\t"
+		"vmovq %%rdx,%%xmm3\n\t"
+		"vpinsrq $1,%%rax,%%xmm3,%%xmm3\n\t"
+		"vpaddq %%xmm3,%%xmm0,%%xmm0\n\t"
+		"vpxor (%%rbx,%%rcx),%%xmm0,%%xmm3\n\t"
+		"vmovdqa %%xmm0,(%%rbx,%%rcx)\n\t"
+		"vmovd %%xmm3,%%ecx\n\t"
+		"andl %4,%%ecx\n\t"
+		"vmovdqa (%%rbx,%%rcx),%%xmm1\n\t"
+		"vaesenc %%xmm3,%%xmm1,%%xmm1\n\t"
+		"vpxor %%xmm1,%%xmm2,%%xmm2\n\t"
+		"vmovq %%xmm1,%%rax\n\t"
+		"vmovdqa %%xmm2,(%%rbx,%%rcx)\n\t"
+		"movl %%eax,%%ecx\n\t"
+		"andl %4,%%ecx\n\t"
+		"mulq (%%rbx,%%rcx)\n\t"
+		"vmovq %%rdx,%%xmm0\n\t"
+		"vpinsrq $1,%%rax,%%xmm0,%%xmm0\n\t"
+		"vpaddq %%xmm0,%%xmm3,%%xmm3\n\t"
+		"vpxor (%%rbx,%%rcx),%%xmm3,%%xmm0\n\t"
+		"vmovdqa %%xmm3,(%%rbx,%%rcx)\n\t"
+#else /* __AES__ && __SSE4_1__ && !__AVX__ (assume runtime AES-NI implies SSE4.1+) */
+		"movdqa %1,%%xmm0\n\t"
+		"movdqa %2,%%xmm1\n\t"
+		"1:\n\t"
+		"movd %%xmm0,%%ecx\n\t"
+		"andl %4,%%ecx\n\t"
+		"movdqa (%%rbx,%%rcx),%%xmm2\n\t"
+		"aesenc %%xmm0,%%xmm2\n\t"
+		"pxor %%xmm2,%%xmm1\n\t"
+		"movq %%xmm2,%%rax\n\t"
+		"movdqa %%xmm1,(%%rbx,%%rcx)\n\t"
+		"movl %%eax,%%ecx\n\t"
+		"andl %4,%%ecx\n\t"
+		"mulq (%%rbx,%%rcx)\n\t"
+		"movdqa (%%rbx,%%rcx),%%xmm1\n\t"
+		"movq %%rdx,%%xmm3\n\t"
+		"pinsrq $1,%%rax,%%xmm3\n\t"
+		"paddq %%xmm3,%%xmm0\n\t"
+		"movdqa %%xmm0,(%%rbx,%%rcx)\n\t"
+		"pxor %%xmm1,%%xmm0\n\t"
+		"movd %%xmm0,%%ecx\n\t"
+		"andl %4,%%ecx\n\t"
+		"movdqa (%%rbx,%%rcx),%%xmm1\n\t"
+		"aesenc %%xmm0,%%xmm1\n\t"
+		"pxor %%xmm1,%%xmm2\n\t"
+		"movq %%xmm1,%%rax\n\t"
+		"movdqa %%xmm2,(%%rbx,%%rcx)\n\t"
+		"movl %%eax,%%ecx\n\t"
+		"andl %4,%%ecx\n\t"
+		"mulq (%%rbx,%%rcx)\n\t"
+		"movdqa (%%rbx,%%rcx),%%xmm2\n\t"
+		"movq %%rdx,%%xmm3\n\t"
+		"pinsrq $1,%%rax,%%xmm3\n\t"
+		"paddq %%xmm3,%%xmm0\n\t"
+		"movdqa %%xmm0,(%%rbx,%%rcx)\n\t"
+		"pxor %%xmm2,%%xmm0\n\t"
+#endif
+		"subl $2,%%esi\n\t"
+		"jnz 1b\n\t"
+		: "+S" (i)
+		: "m" (a), "m" (b), "b" (long_state), "D" (MEMORY - AES_BLOCK_SIZE)
+#endif
+		: "ax", "cx", "dx", "xmm0", "xmm1", "xmm2", "xmm3", "memory", "cc");
+#else
+	do {
 		/* Iteration 1 */
 		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
 		c.v = _mm_aesenc_si128(long_state[j].v, a.v);
@@ -222,10 +340,11 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 		a.u64[0] = c.u64[0] ^ e.u64[0];
 		a.u64[1] = c.u64[1] ^ e.u64[1];
 #endif
-	}
+	} while (--i);
+#endif
 	else
 #endif
-	for (i = 0; i < ITER / 2; i++) {
+	do {
 		/* Iteration 1 */
 		j = e2i(&a, MEMORY / AES_BLOCK_SIZE);
 		c = long_state[j];
@@ -241,7 +360,7 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 		a.u64[0] ^= b.u64[0];
 		a.u64[1] ^= b.u64[1];
 		b = c;
-	}
+	} while (--i);
 
 	memcpy(text, state.init, INIT_SIZE_BYTE);
 	if (oaes_key_import_data(aes_ctx, &state.b[32], AES_KEY_SIZE))
