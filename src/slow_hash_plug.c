@@ -142,19 +142,27 @@ void hash_process(union hash_state *state, const uint8_t *buf, size_t count)
 #if MBEDTLS_AESNI_HAVE_CODE == 2
 static inline void aesni_pseudo_encrypt_ecb(const uint8_t *exp_data, block * restrict c)
 {
-	__m128i cv = c->v;
 	const __m128i *dv = (const __m128i *)exp_data;
-	cv = _mm_aesenc_si128(cv, dv[0]);
-	cv = _mm_aesenc_si128(cv, dv[1]);
-	cv = _mm_aesenc_si128(cv, dv[2]);
-	cv = _mm_aesenc_si128(cv, dv[3]);
-	cv = _mm_aesenc_si128(cv, dv[4]);
-	cv = _mm_aesenc_si128(cv, dv[5]);
-	cv = _mm_aesenc_si128(cv, dv[6]);
-	cv = _mm_aesenc_si128(cv, dv[7]);
-	cv = _mm_aesenc_si128(cv, dv[8]);
-	cv = _mm_aesenc_si128(cv, dv[9]);
-	c->v = cv;
+#define ENCRYPT_BLOCKS(key) \
+	c[0].v = _mm_aesenc_si128(c[0].v, key); \
+	c[1].v = _mm_aesenc_si128(c[1].v, key); \
+	c[2].v = _mm_aesenc_si128(c[2].v, key); \
+	c[3].v = _mm_aesenc_si128(c[3].v, key); \
+	c[4].v = _mm_aesenc_si128(c[4].v, key); \
+	c[5].v = _mm_aesenc_si128(c[5].v, key); \
+	c[6].v = _mm_aesenc_si128(c[6].v, key); \
+	c[7].v = _mm_aesenc_si128(c[7].v, key);
+	ENCRYPT_BLOCKS(dv[0])
+	ENCRYPT_BLOCKS(dv[1])
+	ENCRYPT_BLOCKS(dv[2])
+	ENCRYPT_BLOCKS(dv[3])
+	ENCRYPT_BLOCKS(dv[4])
+	ENCRYPT_BLOCKS(dv[5])
+	ENCRYPT_BLOCKS(dv[6])
+	ENCRYPT_BLOCKS(dv[7])
+	ENCRYPT_BLOCKS(dv[8])
+	ENCRYPT_BLOCKS(dv[9])
+#undef ENCRYPT_BLOCKS
 }
 #endif
 
@@ -179,8 +187,7 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 	const uint8_t *aes_exp_data = oaes_get_exp_data(aes_ctx);
 	if (have_aesni)
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
-		for (j = 0; j < INIT_SIZE_BLK; j++)
-			aesni_pseudo_encrypt_ecb(aes_exp_data, &text[j]);
+		aesni_pseudo_encrypt_ecb(aes_exp_data, text);
 		memcpy(&long_state[i * INIT_SIZE_BLK], text, INIT_SIZE_BYTE);
 	}
 	else
@@ -369,10 +376,9 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 	aes_exp_data = oaes_get_exp_data(aes_ctx);
 	if (have_aesni)
 	for (i = 0; i < MEMORY / INIT_SIZE_BYTE; i++) {
-		for (j = 0; j < INIT_SIZE_BLK; j++) {
+		for (j = 0; j < INIT_SIZE_BLK; j++)
 			xor_blocks(&text[j], &long_state[i * INIT_SIZE_BLK + j]);
-			aesni_pseudo_encrypt_ecb(aes_exp_data, &text[j]);
-		}
+		aesni_pseudo_encrypt_ecb(aes_exp_data, text);
 	}
 	else
 #endif
