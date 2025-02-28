@@ -20,7 +20,8 @@ john_register_one(&fmt_monero);
 #include <omp.h>
 #endif
 
-#define OMP_SCALE               1  // MKPC and OMP_SCALE tuned on i5-6500 CPU
+#define OMP_SCALE               1
+#define OMP_SCALE_AESNI         16
 
 #include "formats.h"
 #include "misc.h"
@@ -83,10 +84,11 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
-	if (cn_slow_hash_aesni())
+	if (cn_slow_hash_aesni()) {
 		self->params.algorithm_name = ALGORITHM_NAME_AESNI;
-
-	omp_autotune(self, OMP_SCALE);
+		omp_autotune(self, OMP_SCALE_AESNI);
+	} else
+		omp_autotune(self, OMP_SCALE);
 
 #ifdef _OPENMP
 	max_threads = omp_get_max_threads();
@@ -214,7 +216,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 
 #ifdef _OPENMP
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic,1)
 #endif
 	for (index = 0; index < count; index++) {
 		char *km = saved_slow_hash[index];
