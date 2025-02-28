@@ -34,7 +34,12 @@ john_register_one(&fmt_monero);
 #define FORMAT_NAME             "Monero Wallet"
 #define FORMAT_TAG              "$monero$"
 #define TAG_LENGTH              (sizeof(FORMAT_TAG) - 1)
-#define ALGORITHM_NAME          "Pseudo-AES / ChaCha / Various 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME          "Pseudo-AES/Keccak/BLAKE/Groestl/JH/Skein/ChaCha 8/" ARCH_BITS_STR
+#if __AVX__
+#define ALGORITHM_NAME_AESNI    "Pseudo-AES/Keccak/BLAKE/Groestl/JH/Skein/ChaCha 128/128 AVX AES-NI"
+#else
+#define ALGORITHM_NAME_AESNI    "Pseudo-AES/Keccak/BLAKE/Groestl/JH/Skein/ChaCha 128/128 SSE4.1 AES-NI"
+#endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        7
 #define PLAINTEXT_LENGTH        125
@@ -78,6 +83,9 @@ static struct custom_salt {
 
 static void init(struct fmt_main *self)
 {
+	if (cn_slow_hash_aesni())
+		self->params.algorithm_name = ALGORITHM_NAME_AESNI;
+
 	omp_autotune(self, OMP_SCALE);
 
 #ifdef _OPENMP

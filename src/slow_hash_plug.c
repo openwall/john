@@ -397,3 +397,12 @@ fail:
 	oaes_free(&aes_ctx);
 	return -1;
 }
+
+int cn_slow_hash_aesni(void)
+{
+#if MBEDTLS_AESNI_HAVE_CODE == 2
+	return mbedtls_aesni_has_support(MBEDTLS_AESNI_AES);
+#else
+	return 0;
+#endif
+}
