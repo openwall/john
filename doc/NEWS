@@ -413,7 +413,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Add oracle2john.py and fix the o5logon format to support passwords longer
   than 16.  [k4amos; 2024]
 
-- Optimize the Monero format, use AES-NI for a ~10x speedup.  [Solar; 2025]
+- Optimize the Monero format, speedup for one wallet is ~18x (mostly due to
+  AES-NI) and almost N times more than that for N wallets attacked concurrently
+  [Solar; 2025]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
