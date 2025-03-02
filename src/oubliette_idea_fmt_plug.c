@@ -195,7 +195,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #ifdef USE_SIMD
         int j;
         oubliette_state *s = &state[index];
-        
+
 #ifdef __SSE4_1__
         // Process passwords in SIMD_WIDTH chunks
         // Process SHA1 for all passwords in the chunk
@@ -206,13 +206,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
             SHA1_Final(s[j].padded_sha1, &ctx);
             memset(s[j].padded_sha1 + 20, 0xFF, 12);
         }
-        
+
         // Process IDEA operations in parallel
         for (j = 0; j < SIMD_WIDTH && (index + j) < count; j++) {
             JtR_idea_set_encrypt_key(s[j].padded_sha1, &s[j].ks);
             memset(s[j].iv, 0xFF, 8);
             JtR_idea_ecb_encrypt(s[j].iv, s[j].encrypted_iv, &s[j].ks);
-            
+
             unsigned char *out = (unsigned char*)crypt_out[index + j];
             JtR_idea_cbc_encrypt(s[j].padded_sha1, out, 32, &s[j].ks, s[j].encrypted_iv, IDEA_ENCRYPT);
         }
@@ -226,13 +226,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
             SHA1_Final(s[j].padded_sha1, &ctx);
             memset(s[j].padded_sha1 + 20, 0xFF, 12);
         }
-        
+
         // Process IDEA operations in parallel
         for (j = 0; j < SIMD_WIDTH && (index + j) < count; j++) {
             JtR_idea_set_encrypt_key(s[j].padded_sha1, &s[j].ks);
             memset(s[j].iv, 0xFF, 8);
             JtR_idea_ecb_encrypt(s[j].iv, s[j].encrypted_iv, &s[j].ks);
-            
+
             unsigned char *out = (unsigned char*)crypt_out[index + j];
             JtR_idea_cbc_encrypt(s[j].padded_sha1, out, 32, &s[j].ks, s[j].encrypted_iv, IDEA_ENCRYPT);
         }
@@ -241,16 +241,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
         // Original non-SIMD code
         oubliette_state *s = &state[index];
         SHA_CTX ctx;
-        
+
         SHA1_Init(&ctx);
         SHA1_Update(&ctx, saved_key[index], saved_len[index]);
         SHA1_Final(s->padded_sha1, &ctx);
-        
+
         memset(s->padded_sha1 + 20, 0xFF, 12);
         JtR_idea_set_encrypt_key(s->padded_sha1, &s->ks);
         memset(s->iv, 0xFF, 8);
         JtR_idea_ecb_encrypt(s->iv, s->encrypted_iv, &s->ks);
-        
+
         unsigned char *out = (unsigned char*)crypt_out[index];
         JtR_idea_cbc_encrypt(s->padded_sha1, out, 32, &s->ks, s->encrypted_iv, IDEA_ENCRYPT);
 #endif
@@ -339,4 +339,4 @@ struct fmt_main fmt_oubliette_idea = {
     }
 };
 
-#endif /* plugin stanza */ 
+#endif /* plugin stanza */

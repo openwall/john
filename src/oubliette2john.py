@@ -59,4 +59,4 @@ if __name__ == "__main__":
         usage()
 
     for filename in sys.argv[1:]:
-        process_file(filename) 
+        process_file(filename)
