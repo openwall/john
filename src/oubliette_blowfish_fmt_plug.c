@@ -21,21 +21,7 @@ john_register_one(&fmt_oubliette_blowfish);
 #include <omp.h>
 #endif
 
-#if defined(__SSE4_1__) || defined(__ARM_NEON)
-#define USE_SIMD
-#endif
-
-#ifdef USE_SIMD
-#ifdef __SSE4_1__
-#include <smmintrin.h>
-#define SIMD_WIDTH 4  // Process 4 passwords at once with SSE
-#elif defined(__ARM_NEON)
-#include <arm_neon.h>
-#define SIMD_WIDTH 4  // Process 4 passwords at once with NEON
-#endif
-#else
 #define SIMD_WIDTH 1  // No SIMD, process one at a time
-#endif
 
 #include "arch.h"
 #include "misc.h"
@@ -46,15 +32,7 @@ john_register_one(&fmt_oubliette_blowfish);
 #define FORMAT_NAME             "Oubliette Blowfish"
 #define FORMAT_TAG              "$oubliette-blowfish$"
 #define TAG_LENGTH             (sizeof(FORMAT_TAG)-1)
-#ifdef USE_SIMD
-#ifdef __SSE4_1__
-#define ALGORITHM_NAME          "SHA1 Blowfish 32/" ARCH_BITS_STR " SSE4.1"
-#else
-#define ALGORITHM_NAME          "SHA1 Blowfish 32/" ARCH_BITS_STR " NEON"
-#endif
-#else
 #define ALGORITHM_NAME          "SHA1 Blowfish 32/" ARCH_BITS_STR
-#endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
 #define PLAINTEXT_LENGTH        125
@@ -62,13 +40,8 @@ john_register_one(&fmt_oubliette_blowfish);
 #define BINARY_ALIGN           sizeof(uint32_t)
 #define SALT_SIZE              0
 #define SALT_ALIGN             1
-#ifdef USE_SIMD
-#define MIN_KEYS_PER_CRYPT     (16 * SIMD_WIDTH)
-#define MAX_KEYS_PER_CRYPT     (256 * SIMD_WIDTH)
-#else
 #define MIN_KEYS_PER_CRYPT     16
 #define MAX_KEYS_PER_CRYPT     256
-#endif
 #define OMP_SCALE              16
 
 // Aligned buffer for better cache performance
@@ -192,53 +165,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
     for (index = 0; index < count; index += SIMD_WIDTH) {
-#ifdef USE_SIMD
-        int j;
-        oubliette_state *s = &state[index];
-
-#ifdef __SSE4_1__
-        // Process passwords in SIMD_WIDTH chunks
-        // Process SHA1 for all passwords in the chunk
-        for (j = 0; j < SIMD_WIDTH && (index + j) < count; j++) {
-            SHA_CTX ctx;
-            SHA1_Init(&ctx);
-            SHA1_Update(&ctx, saved_key[index + j], saved_len[index + j]);
-            SHA1_Final(s[j].padded_sha1, &ctx);
-            memset(s[j].padded_sha1 + 20, 0xFF, 12);
-        }
-
-        // Process Blowfish operations in parallel
-        for (j = 0; j < SIMD_WIDTH && (index + j) < count; j++) {
-            BF_set_key(&s[j].bf_key, 32, s[j].padded_sha1);
-            memset(s[j].iv, 0xFF, 8);
-            BF_ecb_encrypt(s[j].iv, s[j].encrypted_iv, &s[j].bf_key, BF_ENCRYPT);
-
-            unsigned char *out = (unsigned char*)crypt_out[index + j];
-            BF_cbc_encrypt(s[j].padded_sha1, out, 32, &s[j].bf_key, s[j].encrypted_iv, BF_ENCRYPT);
-        }
-#elif defined(__ARM_NEON)
-        // Process passwords in SIMD_WIDTH chunks for NEON
-        // Process SHA1 for all passwords in the chunk
-        for (j = 0; j < SIMD_WIDTH && (index + j) < count; j++) {
-            SHA_CTX ctx;
-            SHA1_Init(&ctx);
-            SHA1_Update(&ctx, saved_key[index + j], saved_len[index + j]);
-            SHA1_Final(s[j].padded_sha1, &ctx);
-            memset(s[j].padded_sha1 + 20, 0xFF, 12);
-        }
-
-        // Process Blowfish operations in parallel
-        for (j = 0; j < SIMD_WIDTH && (index + j) < count; j++) {
-            BF_set_key(&s[j].bf_key, 32, s[j].padded_sha1);
-            memset(s[j].iv, 0xFF, 8);
-            BF_ecb_encrypt(s[j].iv, s[j].encrypted_iv, &s[j].bf_key, BF_ENCRYPT);
-
-            unsigned char *out = (unsigned char*)crypt_out[index + j];
-            BF_cbc_encrypt(s[j].padded_sha1, out, 32, &s[j].bf_key, s[j].encrypted_iv, BF_ENCRYPT);
-        }
-#endif
-#else
-        // Original non-SIMD code
         oubliette_state *s = &state[index];
         SHA_CTX ctx;
 
@@ -253,7 +179,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
         unsigned char *out = (unsigned char*)crypt_out[index];
         BF_cbc_encrypt(s->padded_sha1, out, 32, &s->bf_key, s->encrypted_iv, BF_ENCRYPT);
-#endif
     }
     return count;
 }
