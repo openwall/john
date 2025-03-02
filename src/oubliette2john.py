@@ -17,7 +17,7 @@ def process_file(filename):
             header = f.read(12)
             if len(header) != 12:
                 sys.stderr.write(f"{filename}: Invalid file size\n")
-                return -1
+                return 1
 
             # Unpack header fields
             magic = header[0:5].decode('ascii')
@@ -28,17 +28,17 @@ def process_file(filename):
 
             if magic != "OUBPF":
                 sys.stderr.write(f"{filename}: Invalid magic bytes\n")
-                return -2
+                return 2
 
             if algorithm not in [0, 1]:
                 sys.stderr.write(f"{filename}: Unknown algorithm {algorithm}\n")
-                return -3
+                return 3
 
             # Read the PasswordEncryptedHash
             password_hash = f.read(32)
             if len(password_hash) != 32:
                 sys.stderr.write(f"{filename}: Failed to read PasswordEncryptedHash\n")
-                return -4
+                return 4
 
             # Format output for John the Ripper with different tags for Blowfish and IDEA
             hex_hash = binascii.hexlify(password_hash).decode('ascii')
@@ -47,12 +47,12 @@ def process_file(filename):
             return 0
 
     except IOError as e:
-        sys.stderr.write(f"{filename}: {str(e)}\n")
-        return -5
+        sys.stderr.write(f"{filename}: {e}\n")
+        return 5
 
 def usage():
     sys.stderr.write("Usage: oubliette2john.py <oubliette files>\n")
-    sys.exit(-6)
+    sys.exit(6)
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
