@@ -1,11 +1,19 @@
 /*
  * Oubliette password manager IDEA format cracker for JtR.
  * Contributed by DavideDG github.com/davidedg
+ * 
+ * This software is Copyright (c) 2025 DavideDG, <delgrande.davide at gmail.com>, and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
+
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_oubliette_idea;
@@ -53,6 +61,8 @@ typedef struct {
     unsigned char iv[8] __attribute__((aligned(16)));
     unsigned char encrypted_iv[8] __attribute__((aligned(16)));
 } oubliette_state;
+
+#endif
 
 static struct fmt_tests tests[] = {
     {"$oubliette-idea$1.0$e82bb8b871ed9a2b7d77afce662325a2c522844e0e91bde104b8e4f68044e991", "12345678"},

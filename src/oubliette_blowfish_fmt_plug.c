@@ -1,11 +1,19 @@
 /*
  * Oubliette password manager Blowfish format cracker for JtR.
  * Contributed by DavideDG github.com/davidedg
+ * 
+ * This software is Copyright (c) 2025 DavideDG, <delgrande.davide at gmail.com>, and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
  *
  * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
+
+#if AC_BUILT
+#include "autoconfig.h"
+#endif
+
+#if HAVE_LIBCRYPTO
 
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_oubliette_blowfish;
@@ -53,6 +61,8 @@ typedef struct {
     unsigned char iv[8] __attribute__((aligned(16)));
     unsigned char encrypted_iv[8] __attribute__((aligned(16)));
 } oubliette_state;
+
+#endif
 
 static struct fmt_tests tests[] = {
     {"$oubliette-blowfish$1.0$16c863009dbc7a89fa26520aeeae5543beda0bbf41622be472d7c7320c8ea66f", "12345678"},
