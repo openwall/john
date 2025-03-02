@@ -1,6 +1,10 @@
 /*
- * Oubliette password manager IDEA format cracker for JtR.
+ * Oubliette password manager Blowfish format cracker for JtR.
  * Contributed by DavideDG github.com/davidedg
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
+ * There's ABSOLUTELY NO WARRANTY, express or implied.
  */
 
 #if FMT_EXTERNS_H
