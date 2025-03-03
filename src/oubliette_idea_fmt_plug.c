@@ -1,7 +1,7 @@
 /*
  * Oubliette password manager IDEA format cracker for JtR.
  * Contributed by DavideDG github.com/davidedg
- * 
+ *
  * This software is Copyright (c) 2025 DavideDG, <delgrande.davide at gmail.com>, and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
