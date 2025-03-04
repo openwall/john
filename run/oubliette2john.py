@@ -25,7 +25,6 @@ def process_file(filename):
             major_ver = header[5]
             minor_ver = header[6]
             algorithm = header[7]
-            data_size = struct.unpack("<I", header[8:12])[0]
 
             if magic != "OUBPF":
                 sys.stderr.write(f"{filename}: Invalid magic bytes\n")
@@ -34,6 +33,10 @@ def process_file(filename):
             if algorithm not in [0, 1]:
                 sys.stderr.write(f"{filename}: Unknown algorithm {algorithm}\n")
                 return 3
+
+            if major_ver not in [1,2,3]:
+                sys.stderr.write(f"{filename}: Unknown database version {major_ver}\n")
+                return 6
 
             # Read the PasswordEncryptedHash
             password_hash = f.read(32)
@@ -44,12 +47,12 @@ def process_file(filename):
             # Format output for John the Ripper with different tags for Blowfish and IDEA
             hex_hash = binascii.hexlify(password_hash).decode('ascii')
             format_tag = "oubliette-blowfish" if algorithm == 0 else "oubliette-idea"
-            print(f"${format_tag}${major_ver}.{minor_ver}${hex_hash}")
+            print(f"${format_tag}${hex_hash}")
             return 0
 
     except IOError as e:
         sys.stderr.write(f"{filename}: {e}\n")
-        return 5
+        return 99
 
 def usage():
     sys.stderr.write("Usage: oubliette2john.py <oubliette files>\n")

@@ -62,8 +62,8 @@ typedef struct {
 } oubliette_state;
 
 static struct fmt_tests tests[] = {
-	{"$oubliette-blowfish$1.0$16c863009dbc7a89fa26520aeeae5543beda0bbf41622be472d7c7320c8ea66f", "12345678"},
-	{"$oubliette-blowfish$1.0$82ea2c652362c380349d6ac0d5a06d2ae9b164becc5a75103c2744b4d27fe35d",
+	{"$oubliette-blowfish$16c863009dbc7a89fa26520aeeae5543beda0bbf41622be472d7c7320c8ea66f", "12345678"},
+	{"$oubliette-blowfish$82ea2c652362c380349d6ac0d5a06d2ae9b164becc5a75103c2744b4d27fe35d",
 	    "\xd1\xa2\x63\x5e\xac\x4e\x4a\x25\x48\xd5\x45\x73\xae\x79\x53\xb2\xe5\x69\xfc\x59\xce\x40\x21\x6a\x67\x54\x5c\xff\x5c\xfe\x7a\x52\xbe\x77\xd2\x77\xb8\x61\x39\x45\xf0\x2b\x3e\x4a\x3c\xa4\x2e\x53\xd8\xba\x71\xc8\x32\x26\x69\x37\x2f\xfa\x7d\xa1\xff\xdf\xd4\xba\x29\x4d\xd4\x72\x69\x40\xc3\x5c\x22\x2b\x79\x50\x21\x41\x5d\xc7\xdd\x6a\x3f\xed\x26\x7b\x34\x7e\xb9\x21"},
 	{NULL}
 };
@@ -94,7 +94,6 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	char *p;
 	char *ctcopy;
 	char *keeptr;
-	int version, minor;
 
 	if (strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH) != 0)
 		return 0;
@@ -103,15 +102,9 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	keeptr = ctcopy;
 	ctcopy += TAG_LENGTH;
 
-	if ((p = strtokm(ctcopy, "$")) == NULL)	/* version */
-		goto err;
-	if (sscanf(p, "%d.%d", &version, &minor) != 2)
-		goto err;
-	if (version < 1 || version > 3)
+	if ((p = strtokm(ctcopy, "$")) == NULL)	/* hash */
 		goto err;
 
-	if ((p = strtokm(NULL, "$")) == NULL)	/* hash */
-		goto err;
 	if (hexlenl(p, NULL) != BINARY_SIZE * 2)
 		goto err;
 
