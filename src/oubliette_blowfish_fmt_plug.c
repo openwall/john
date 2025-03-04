@@ -107,7 +107,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (sscanf(p, "%d.%d", &version, &minor) != 2)
 		goto err;
-	if (version != 1 || minor != 0)
+	if (version < 1 || version > 3)
 		goto err;
 
 	if ((p = strtokm(NULL, "$")) == NULL)	/* hash */
