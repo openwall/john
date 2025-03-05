@@ -9,6 +9,7 @@ import plistlib
 import os
 import argparse
 import sys
+import re
 
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -24,6 +25,7 @@ except ImportError:
 HEX_CORE_STORAGE_TYPE_GUID = '53746F72-6167-11AA-AA11-00306543ECAC'
 HEX_APPLE_BOOT_STORAGE_TYPE_GUID = '426F6F74-0000-11AA-AA11-00306543ECAC'
 LOCAL_USER_TYPE_ID = 0x10060002
+BOOT_DIR_REGEX = re.compile(r'com.apple.boot.(?P<boot_letter>[A-Z])')
 
 def uint_to_int(b):
     return int(b[::-1].hex(), 16)
@@ -133,41 +135,27 @@ def load_plist_dict(pt):
     d = plistlib.loads(plist_str)
     return d
 
-# Recursive traversal - Recovery HD partition does not contain a lot of files, and so this approach is fine
-def traverse_filesystem(fs_object, target_file, path='/'):
-    for entry in fs_object.open_dir(path):
-        if entry.info.name.name in [b'.', b'..']:
-            continue
-
-        file_path = os.path.join(path, entry.info.name.name.decode('utf-8'))
-
-        if entry.info.meta and entry.info.meta.type == pytsk3.TSK_FS_META_TYPE_REG:
-            if entry.info.name.name == target_file.encode():
-                file_data = recover_file(fs_object, file_path)
-
-                # this returns to previous call i.e. the dir layer
-                return file_data
-
-        # Traverse lower layer if entry is a dir
-        elif entry.info.meta and entry.info.meta.type == pytsk3.TSK_FS_META_TYPE_DIR:
-            file_data = traverse_filesystem(fs_object, target_file, file_path)
-
-            if file_data:
-                return file_data
+# get upper directory name e.g. com.apple.boot.P
+def get_boot_dir(fs_object):
+    for entry in fs_object.open_dir():
+        entry_name = entry.info.name.name.decode()
+        if re.match(BOOT_DIR_REGEX, entry_name):
+            return entry_name
 
 def recover_file(fs_object, file_path):
     file_obj = fs_object.open(file_path)
     size = file_obj.info.meta.size
     offset = 0
     data = file_obj.read_random(offset, size)
-
     return data
 
 def get_EncryptedRoot_plist_wipekey(image_file, start_pos):
     img = pytsk3.Img_Info(image_file)
     fs = pytsk3.FS_Info(img, offset=start_pos)
-    target_file = 'EncryptedRoot.plist.wipekey'
-    EncryptedRoot_data = traverse_filesystem(fs, target_file)
+    boot_dir = get_boot_dir(fs)
+
+    file_path = os.path.join(f"{boot_dir}/System/Library/Caches/com.apple.corestorage/EncryptedRoot.plist.wipekey")
+    EncryptedRoot_data = recover_file(fs, file_path)
 
     if not EncryptedRoot_data:
         sys.stderr.write("EncryptedRoot.plist.wipekey not found in image file, exiting.")
@@ -230,7 +218,6 @@ def main():
                             full_name_info, username_info = name_info[0].decode(), name_info[1].decode()
 
                         full_name_info = format_hash_str(full_name_info)
-                        username_info  = format_hash_str(username_info)
                         passphrase_hint = format_hash_str(passphrase_hint)
 
                         # Hash info stored in the PassphraseWrappedKEKStruct in decrypted plist
