@@ -439,6 +439,11 @@ case "$simd" in
     SIMD_NAME="Altivec2"
     ;;
   dnl Handle known cases of --enable-simd=foo --> -mfoo
+  avx512|avx512bw)
+    SIMD_NAME="avx512bw"
+    AC_MSG_NOTICE([Trying to force $SIMD_NAME using default method (--enable-simd=$simd).])
+    JTR_FLAG_CHECK_LINK([-mavx512bw -mavx512vl -mavx512dq], 2)
+    ;;
   mmx|sse*|ssse3|avx*|xop*)
     SIMD_NAME=`echo $simd | tr a-z A-Z`
     AC_MSG_NOTICE([Trying to force $SIMD_NAME using default method (--enable-simd=$simd).])

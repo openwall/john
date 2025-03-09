@@ -1651,9 +1651,15 @@ DES_bs_crypt_plain_loop:
 #define CX_XOP                  $0x00000800
 
 /* Leaf 7 */
+// 	0x00010000	/* AVX512 foundation */
+// 	0x00020000	/* AVX512 Doubleword and Quadword Instructions */
+// 	0x40000000	/* AVX512BW */
+// 	0x80000000	/* AVX512VL */
 #define C7_AVX2                 $0x00000020 /* AVX2 */
 #define C7_AVX512F              $0x00010000
 #define C7_AVX512BW             $0x40010000 /* AVX512BW + AVX512F */
+#define C7_AVX512VL             $0xC0010000 /* AVX512BW + AVX512VL + AVX512F */
+#define C7_AVX512DQ             $0xC0030000 /* AVX512BW + AVX512DQ + AVX512VL + AVX512F */
 
 .text
 
@@ -1713,7 +1719,7 @@ CPU_detect:
 #endif
 
 /* Finally, leaf 7 tests (if required) */
-#if CPU_REQ_AVX2 || CPU_REQ_AVX512F || CPU_REQ_AVX512BW
+#if CPU_REQ_AVX2 || CPU_REQ_AVX512F || CPU_REQ_AVX512BW || CPU_REQ_AVX512VL || CPU_REQ_AVX512DQ
 	xorl %eax,%eax
 	cpuid
 	movl $7,%edx
@@ -1722,7 +1728,15 @@ CPU_detect:
 	xchgl %edx,%eax
 	xorl %ecx,%ecx
 	cpuid
-#if CPU_REQ_AVX512BW
+#if CPU_REQ_AVX512DQ
+	andl C7_AVX512DQ,%ebx
+	cmpl C7_AVX512DQ,%ebx
+	jne CPU_detect_fail
+#elif CPU_REQ_AVX512VL
+	andl C7_AVX512VL,%ebx
+	cmpl C7_AVX512VL,%ebx
+	jne CPU_detect_fail
+#elif CPU_REQ_AVX512BW
 	andl C7_AVX512BW,%ebx
 	cmpl C7_AVX512BW,%ebx
 	jne CPU_detect_fail

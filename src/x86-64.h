@@ -78,7 +78,9 @@
 #define CPU_DETECT			1
 #define CPU_REQ				1
 #define CPU_REQ_AVX512BW		1
-#define CPU_NAME			"AVX512BW"
+#define CPU_REQ_AVX512VL		1
+#define CPU_REQ_AVX512DQ		1
+#define CPU_NAME			"AVX512(BW+VL+DQ)"
 #if CPU_FALLBACK && !defined(CPU_FALLBACK_BINARY)
 #define CPU_FALLBACK_BINARY		"john-non-avx512bw"
 #define CPU_FALLBACK_BINARY_DEFAULT

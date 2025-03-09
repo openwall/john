@@ -9224,7 +9224,62 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     SIMD_NAME="Altivec2"
     ;;
-    mmx|sse*|ssse3|avx*|xop*)
+    avx512|avx512bw)
+    SIMD_NAME="avx512bw"
+    { $as_echo "$as_me:${as_lineno-$LINENO}: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&5
+$as_echo "$as_me: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&6;}
+    if test 2 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mavx512bw -mavx512vl -mavx512dq w/ linking" >&5
+$as_echo_n "checking if $CC supports -mavx512bw -mavx512vl -mavx512dq w/ linking... " >&6; }
+fi
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+  ac_saved_cflags="$CFLAGS"
+  CFLAGS="-Werror -mavx512bw -mavx512vl -mavx512dq"
+  cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+int
+main ()
+{
+
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  if test "2" -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
+fi
+      CFLAGS_EX="$CFLAGS_EX -mavx512bw -mavx512vl -mavx512dq"
+
+else
+  if test 2 -gt 0; then :
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+    if test "2" = 2; then :
+  as_fn_error $? "Not supported by compiler/linker" "$LINENO" 5
+fi
+
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+  CFLAGS="$ac_saved_cflags"
+  ac_ext=c
+ac_cpp='$CPP $CPPFLAGS'
+ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
+ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
+ac_compiler_gnu=$ac_cv_c_compiler_gnu
+
+
+    ;;
+  mmx|sse*|ssse3|avx*|xop*)
     SIMD_NAME=`echo $simd | tr a-z A-Z`
     { $as_echo "$as_me:${as_lineno-$LINENO}: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&5
 $as_echo "$as_me: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&6;}
@@ -11485,10 +11540,10 @@ fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  CFLAGS="$CFLAGS_BACKUP -mavx512bw -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
+  CFLAGS="$CFLAGS_BACKUP -mavx512bw -mavx512vl -mavx512dq -P $EXTRA_AS_FLAGS $CPPFLAGS $CFLAGS_EXTRA $CPUID_ASM"
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX512BW" >&5
-$as_echo_n "checking for AVX512BW... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX512BW + AVX512VL + AVX512DQ" >&5
+$as_echo_n "checking for AVX512BW + AVX512VL + AVX512DQ... " >&6; }
   if test "$cross_compiling" = yes; then :
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
@@ -11503,7 +11558,7 @@ extern int CPU_detect(void); extern char CPU_req_name[];
 
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
-  CPU_BEST_FLAGS="-mavx512bw"
+  CPU_BEST_FLAGS="-mavx512bw -mavx512vl -mavx512dq"
      SIMD_NAME="AVX512BW"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
@@ -11810,20 +11865,21 @@ fi
 
   if test "x$CPU_NOTFOUND" = x0; then :
 
-  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX512BW" >&5
-$as_echo_n "checking for AVX512BW... " >&6; }
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for AVX512BW + AVX512VL + AVX512DQ" >&5
+$as_echo_n "checking for AVX512BW + AVX512VL + AVX512DQ... " >&6; }
   cat confdefs.h - <<_ACEOF >conftest.$ac_ext
 /* end confdefs.h.  */
 
     #include <immintrin.h>
         #include <stdio.h>
         extern void exit(int);
-        int main(){__m512i t=_mm512_slli_epi16(_mm512_set1_epi16(1),1);exit(!(_mm_cvtsi128_si64x(_mm512_extracti32x4_epi32(t,0))==0x2000200020002ULL));}
+        int main(){__m512i t=_mm512_slli_epi16(_mm512_set1_epi16(1),1);__int64_t ret_value=(!(_mm_cvtsi128_si64x(_mm512_extracti32x4_epi32(t,0))==0x2000200020002ULL));
+                   __m128i u, t1;*((long long*)&u)=1;t1=u;u=_mm_rol_epi32(t1,1);if((*(long long*)&t)==88)printf(".");exit(ret_value);}
 
 
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
-  CPU_BEST_FLAGS="-mavx512bw"
+  CPU_BEST_FLAGS="-mavx512bw -mavx512vl -mavx512dq"
      SIMD_NAME="AVX512BW"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
