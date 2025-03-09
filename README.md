@@ -173,6 +173,7 @@ the recommended order of reading:
 * [FAQ](doc/FAQ) - guess
 * [CHANGES](doc/CHANGES) (*) - history of changes
 * [CONTACT](doc/CONTACT) (*) - how to contact the author or otherwise obtain support
+* git clone
 * [CREDITS](doc/CREDITS) (*) - credits
 * [LICENSE](doc/LICENSE) - copyrights and licensing terms
 * [COPYING](doc/COPYING) - GNU GPL version 2, as referenced by LICENSE above
