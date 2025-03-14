@@ -9225,7 +9225,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
     SIMD_NAME="Altivec2"
     ;;
     avx512|avx512bw)
-    SIMD_NAME="avx512bw"
+    SIMD_NAME="AVX512BW"
     { $as_echo "$as_me:${as_lineno-$LINENO}: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&5
 $as_echo "$as_me: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&6;}
     if test 2 -gt 0; then :
@@ -11168,6 +11168,11 @@ fi
 esac
 CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
 
+ALREADY_TESTED=0
+case "$simd" in
+  mmx|sse*|ssse3|avx*|xop*) ALREADY_TESTED=1 ;;
+esac
+
 if test "x$simd" != xno; then
  if test "x$enable_native_tests" != xno && test "x$simd" = xyes; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: Testing build host's native CPU features" >&5
@@ -11575,6 +11580,11 @@ fi
 
 
 fi
+
+ elif test "x$ALREADY_TESTED" = x1; then
+
+   # The $CFLAGS_EX already contains the required compiler flags
+   CPU_NOTFOUND=0 #nothing to do here
 
  else
 

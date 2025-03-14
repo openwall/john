@@ -79,6 +79,11 @@ dnl ======================================================================
   )
 CFLAGS="$CFLAGS $SIMD_FLAGS -O0"
 
+ALREADY_TESTED=0
+case "$simd" in
+  mmx|sse*|ssse3|avx*|xop*) ALREADY_TESTED=1 ;;
+esac
+
 if test "x$simd" != xno; then
  if test "x$enable_native_tests" != xno && test "x$simd" = xyes; then
   AC_MSG_NOTICE([Testing build host's native CPU features])
@@ -283,6 +288,14 @@ if test "x$simd" != xno; then
     )
   ]
   )
+
+ elif test "x$ALREADY_TESTED" = x1; then
+
+dnl ======================================================================
+dnl               the CPU support was tested elsewhere
+dnl ======================================================================
+   # The $CFLAGS_EX already contains the required compiler flags
+   CPU_NOTFOUND=0 #nothing to do here
 
  else
 
