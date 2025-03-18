@@ -2038,6 +2038,7 @@ static void ldr_fill_user_words(struct db_main *db)
 int ldr_fix_database(struct db_main *db)
 {
 	int total = db->password_count;
+	int cracked = 0;
 
 	ldr_init_salts(db);
 	MEM_FREE(db->password_hash);
@@ -2047,20 +2048,34 @@ int ldr_fix_database(struct db_main *db)
 		MEM_FREE(db->salt_hash);
 
 	if (!ldr_loading_testdb) {
+		FILE *out_file = options.loader.showuncracked ? stderr : stdout;
+
 		if (db->options->best_pps) {
 			ldr_sort_salts(db, 1);
 			ldr_filter_n_best_salts(db);
 		} else
 			ldr_filter_salts(db);
+		int filtered = total - db->password_count;
+		if (filtered && john_main_process) {
+			fprintf(out_file, "Removed %d password hash%s due to --salts\n",
+			       filtered, filtered != 1 ? "es" : "");
+		}
+
+		total = db->password_count;
 		ldr_filter_costs(db);
+		filtered = total - db->password_count;
+		if (filtered && john_main_process) {
+			fprintf(out_file, "Removed %d password hash%s due to --cost\n",
+			       filtered, filtered != 1 ? "es" : "");
+		}
+
 		total = db->password_count;
 		ldr_remove_marked(db);
+		cracked = total - db->password_count;
 		if (options.loader.showuncracked) {
-			int cracked = total - db->password_count;
-			if (john_main_process)
-				fprintf(stderr, "%s%d password hash%s cracked,"
-					" %d left\n", cracked ? "\n" : "", cracked,
-					cracked != 1 ? "es" : "", db->password_count);
+			fprintf(stderr, "%s%d password hash%s cracked, %d left\n",
+			        cracked ? "\n" : "", cracked,
+			        cracked != 1 ? "es" : "", db->password_count);
 			exit(0);
 		}
 	}
@@ -2076,7 +2091,7 @@ int ldr_fix_database(struct db_main *db)
 	if (!ldr_loading_testdb && options.seed_per_user)
 		ldr_fill_user_words(db);
 
-	return total;
+	return cracked;
 }
 
 static int ldr_cracked_hash(char *ciphertext)

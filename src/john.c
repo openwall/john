@@ -1084,7 +1084,7 @@ static void john_load(void)
 	}
 
 	if (options.flags & FLG_PASSWD) {
-		int total;
+		int total, cracked;
 		int i = 0;
 
 		if (options.flags & FLG_SHOW_CHK) {
@@ -1241,16 +1241,16 @@ static void john_load(void)
  */
 		load_extra_pots(&database, &ldr_load_pot_file);
 
-		total = ldr_fix_database(&database);
+		total = database.password_count;
+		cracked = ldr_fix_database(&database);
 
 		if (database.password_count && options.regen_lost_salts)
 			build_fake_salts_for_regen_lost(&database);
 
-		if (john_main_process && database.password_count < total) {
-			int count = total - database.password_count;
+		if (john_main_process && cracked) {
 			printf("Cracked %d password hash%s%s%s%s, use \"--show\"\n",
-			    count, count != 1 ? "es" : "",
-			    loaded_extra_pots ? "" : (count != 1 ? " (are in " : " (is in "),
+			    cracked, cracked != 1 ? "es" : "",
+			    loaded_extra_pots ? "" : (cracked != 1 ? " (are in " : " (is in "),
 			    loaded_extra_pots ? "" : path_expand(options.activepot),
 			    loaded_extra_pots ? "" : ")");
 		}

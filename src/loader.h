@@ -305,8 +305,7 @@ extern void ldr_load_pot_file(struct db_main *db, char *name);
 /*
  * Finalizes the database after loading, which includes removal of salts and
  * hashes that don't meet criteria, as well as of hashes marked as previously
- * cracked.  Returns the number of hashes that were in the database after
- * removal of those not meeting criteria, but before removal of those cracked.
+ * cracked.  Returns the number of hashes that were cracked.
  */
 extern int ldr_fix_database(struct db_main *db);
 
