@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020-2021, magnum
+ * Copyright (c) 2020-2025, magnum
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -58,11 +58,24 @@ static MAYBE_INLINE char *mgetl(char *line)
 #endif
 
 	/* One char at a time */
-	while (*map_pos != '\n' && map_pos < map_end && pos < line + LINE_BUFFER_SIZE - 1)
-		*pos++ = *map_pos++;
+	if (map_end - map_pos >= LINE_BUFFER_SIZE - (pos - line)) {
+		/* Need only check write */
+		while (*map_pos != '\n' && pos < line + LINE_BUFFER_SIZE - 1)
+			*pos++ = *map_pos++;
+
+		/* Line may be longer than our buffer, discard extra. */
+		if (pos >= line + LINE_BUFFER_SIZE - 1) {
+			while (map_pos < map_end && *map_pos != '\n')
+				map_pos++;
+		}
+	} else
+		/* Need only check read */
+		while (map_pos < map_end && *map_pos != '\n')
+			*pos++ = *map_pos++;
+
 	map_pos++;
 
-	/* Replace LF with NULL */
+	/* Replace LF (or missing last line LF) with NULL */
 	*pos = 0;
 
 	/* Handle CRLF too */
