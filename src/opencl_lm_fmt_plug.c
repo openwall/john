@@ -43,6 +43,7 @@ static struct fmt_tests tests[] = {
 	{"$LM$5ecd9236d21095ce", "YOKOHAM"},
 	{"$LM$A5E6066DE61C3E35", "ZZZZZZZ"}, /* uppercase encoding */
 	{"$LM$1FB363feB834C12D", "ZZZZZZ"}, /* mixed case encoding */
+	{"$LM$C6A3396B0AEF1EF9", "S\x9aTI"}, /* 8-bit character, "SÜTI" in CP852 */
 	{NULL}
 };
 
