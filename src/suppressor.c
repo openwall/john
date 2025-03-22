@@ -155,17 +155,20 @@ static int suppressor_process_key(char *key)
 		filter[i][j] = hash;
 	}
 
-	if (!(++status.suppressor_miss & 0x3ffffff) && !(flags & SUPPRESSOR_FORCE)) {
-		double ps_rate_threshold = 5000000.0 * status.suppressor_hit / status.suppressor_miss;
-		static unsigned long misses_at_non_update;
+	if (!(++status.suppressor_miss & 0x1ffffff) && !(flags & SUPPRESSOR_FORCE)) {
+		double ps_rate_threshold = 5000000.0 * status.suppressor_hit / (status.suppressor_hit + status.suppressor_miss);
+		static unsigned long long misses_at_non_update;
 		if (!(flags & SUPPRESSOR_UPDATE)) {
 			if (misses_at_non_update)
 				ps_rate_threshold /= 1 + ((status.suppressor_miss - misses_at_non_update) / ((double)N * K));
 			else
 				misses_at_non_update = status.suppressor_miss;
 		}
+		if (ps_rate_threshold > 1000000)
+			ps_rate_threshold = 1000000;
 		unsigned int time = status_get_time() - status.suppressor_start_time;
-		if (time > 9 && status.suppressor_miss / time > ps_rate_threshold)
+		if (time > 9 && (status.suppressor_miss / time > ps_rate_threshold ||
+		    (status.suppressor_hit + status.suppressor_miss) / time > 2000000))
 			suppressor_done();
 	}
 
