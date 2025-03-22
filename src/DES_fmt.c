@@ -32,6 +32,26 @@ static struct fmt_tests tests[] = {
 	{"CC4rMpbg9AMZ.", "U*U***U*"},
 	{"XXxzOu6maQKqQ", "*U*U*U*U"},
 	{"SDbsugeBiC58A", ""},
+	{"wH6YCxz1hfT9g", "12345678"},
+	{"khYkT6jaCaO7A", "1234567"},
+	{"VTb0BiUKhqhjU", "123456"},
+	{"gLaclh3quwBXs", "12345"},
+	{"oQz1vttf53NAs", "1234"},
+	{"dVWI4r16OAmdE", "123"},
+	{"12wGUVd8lAOJY", "12"},
+	{"6ZPJCnzzwFT46", "1"},
+	{"..X8NBuQ4l6uQ", ""},
+	{"bbc1MMnm9AB52", "########"},
+	{"zzfERZdZxZJeg", "11111111"},
+	{"..4Xmrg11Z3jU", "00000000"},
+	{"////////FevBg", "-/<0S]"},
+	{"///.......Lb2", "i*]cYae"},
+	{"//..////..8/c", "#?Ez|?r"},
+	{"35LSBeq/uVetI", "==*d2{^6"},
+	{"hiH9IOyyrrl4k", "cqjmide"}, /* collisions */
+	{"hiH9IOyyrrl4k", "ifpqgio"}, /* James M. Hall, 2010 */
+	{"Tycho2izX8zFg", "?SaO9L2"},
+	{"Tycho2izX8zFg", "g[k-gRo"}, /* @hops_ch */
 	{NULL}
 };
 
