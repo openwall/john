@@ -420,43 +420,60 @@ typedef unsigned ARCH_WORD kvtype;
 	kvtype v7 = *(kvtype *)&vp[7];
 #endif
 
+#ifdef vlut3
+#define kvand_or(dst, src, mask) \
+	dst = vlut3(dst, src, mask, 0xf8)
+
 #define kvand_shl1_or(dst, src, mask) \
-	kvand(tmp, src, mask); \
+	kvshl1(tmp, src); \
+	kvand_or(dst, tmp, mask)
+
+#define kvand_shl_or(dst, src, mask, shift) \
+	kvshl(tmp, src, shift); \
+	kvand_or(dst, tmp, mask)
+
+#define kvand_shr_or(dst, src, mask, shift) \
+	kvshr(tmp, src, shift); \
+	kvand_or(dst, tmp, mask)
+#else
+#define kvand_or(dst, src, mask) \
+	kvand(tmp, src, m); \
+	kvor(dst, dst, tmp)
+
+#define kvand_shl1_or(dst, src, mask) \
+	kvand(tmp, src, m); \
 	kvshl1(tmp, tmp); \
 	kvor(dst, dst, tmp)
 
 #define kvand_shl_or(dst, src, mask, shift) \
-	kvand(tmp, src, mask); \
+	kvand(tmp, src, m); \
 	kvshl(tmp, tmp, shift); \
 	kvor(dst, dst, tmp)
 
-#define kvand_shl1(dst, src, mask) \
-	kvand(tmp, src, mask); \
-	kvshl1(dst, tmp)
-
-#define kvand_or(dst, src, mask) \
-	kvand(tmp, src, mask); \
-	kvor(dst, dst, tmp)
-
 #define kvand_shr_or(dst, src, mask, shift) \
-	kvand(tmp, src, mask); \
+	kvand(tmp, src, m); \
 	kvshr(tmp, tmp, shift); \
 	kvor(dst, dst, tmp)
+#endif
+
+#define kvand_shl1(dst, src, mask) \
+	kvand(tmp, src, m); \
+	kvshl1(dst, tmp)
 
 #define kvand_shr(dst, src, mask, shift) \
-	kvand(tmp, src, mask); \
+	kvand(tmp, src, m); \
 	kvshr(dst, tmp, shift)
 
 #define FINALIZE_NEXT_KEY_BIT_0 { \
 	kvtype m = mask01, va, vb, tmp; \
 	kvand(va, v0, m); \
 	kvand_shl1(vb, v1, m); \
-	kvand_shl_or(va, v2, m, 2); \
-	kvand_shl_or(vb, v3, m, 3); \
-	kvand_shl_or(va, v4, m, 4); \
-	kvand_shl_or(vb, v5, m, 5); \
-	kvand_shl_or(va, v6, m, 6); \
-	kvand_shl_or(vb, v7, m, 7); \
+	kvand_shl_or(va, v2, mask04, 2); \
+	kvand_shl_or(vb, v3, mask08, 3); \
+	kvand_shl_or(va, v4, mask10, 4); \
+	kvand_shl_or(vb, v5, mask20, 5); \
+	kvand_shl_or(va, v6, mask40, 6); \
+	kvand_shl_or(vb, v7, mask80, 7); \
 	kvor(*(kvtype *)kp, va, vb); \
 	kp++; \
 }
@@ -465,12 +482,12 @@ typedef unsigned ARCH_WORD kvtype;
 	kvtype m = mask02, va, vb, tmp; \
 	kvand_shr(va, v0, m, 1); \
 	kvand(vb, v1, m); \
-	kvand_shl1_or(va, v2, m); \
-	kvand_shl_or(vb, v3, m, 2); \
-	kvand_shl_or(va, v4, m, 3); \
-	kvand_shl_or(vb, v5, m, 4); \
-	kvand_shl_or(va, v6, m, 5); \
-	kvand_shl_or(vb, v7, m, 6); \
+	kvand_shl1_or(va, v2, mask04); \
+	kvand_shl_or(vb, v3, mask08, 2); \
+	kvand_shl_or(va, v4, mask10, 3); \
+	kvand_shl_or(vb, v5, mask20, 4); \
+	kvand_shl_or(va, v6, mask40, 5); \
+	kvand_shl_or(vb, v7, mask80, 6); \
 	kvor(*(kvtype *)kp, va, vb); \
 	kp++; \
 }
@@ -480,11 +497,11 @@ typedef unsigned ARCH_WORD kvtype;
 	kvand_shr(va, v0, m, 2); \
 	kvand_shr(vb, v1, m, 1); \
 	kvand_or(va, v2, m); \
-	kvand_shl1_or(vb, v3, m); \
-	kvand_shl_or(va, v4, m, 2); \
-	kvand_shl_or(vb, v5, m, 3); \
-	kvand_shl_or(va, v6, m, 4); \
-	kvand_shl_or(vb, v7, m, 5); \
+	kvand_shl1_or(vb, v3, mask08); \
+	kvand_shl_or(va, v4, mask10, 2); \
+	kvand_shl_or(vb, v5, mask20, 3); \
+	kvand_shl_or(va, v6, mask40, 4); \
+	kvand_shl_or(vb, v7, mask80, 5); \
 	kvor(*(kvtype *)kp, va, vb); \
 	kp++; \
 }
@@ -493,12 +510,12 @@ typedef unsigned ARCH_WORD kvtype;
 	kvtype m = mask08, va, vb, tmp; \
 	kvand_shr(va, v0, m, 3); \
 	kvand_shr(vb, v1, m, 2); \
-	kvand_shr_or(va, v2, m, 1); \
+	kvand_shr_or(va, v2, mask04, 1); \
 	kvand_or(vb, v3, m); \
-	kvand_shl1_or(va, v4, m); \
-	kvand_shl_or(vb, v5, m, 2); \
-	kvand_shl_or(va, v6, m, 3); \
-	kvand_shl_or(vb, v7, m, 4); \
+	kvand_shl1_or(va, v4, mask10); \
+	kvand_shl_or(vb, v5, mask20, 2); \
+	kvand_shl_or(va, v6, mask40, 3); \
+	kvand_shl_or(vb, v7, mask80, 4); \
 	kvor(*(kvtype *)kp, va, vb); \
 	kp++; \
 }
@@ -507,12 +524,12 @@ typedef unsigned ARCH_WORD kvtype;
 	kvtype m = mask10, va, vb, tmp; \
 	kvand_shr(va, v0, m, 4); \
 	kvand_shr(vb, v1, m, 3); \
-	kvand_shr_or(va, v2, m, 2); \
-	kvand_shr_or(vb, v3, m, 1); \
+	kvand_shr_or(va, v2, mask04, 2); \
+	kvand_shr_or(vb, v3, mask08, 1); \
 	kvand_or(va, v4, m); \
-	kvand_shl1_or(vb, v5, m); \
-	kvand_shl_or(va, v6, m, 2); \
-	kvand_shl_or(vb, v7, m, 3); \
+	kvand_shl1_or(vb, v5, mask20); \
+	kvand_shl_or(va, v6, mask40, 2); \
+	kvand_shl_or(vb, v7, mask80, 3); \
 	kvor(*(kvtype *)kp, va, vb); \
 	kp++; \
 }
@@ -521,12 +538,12 @@ typedef unsigned ARCH_WORD kvtype;
 	kvtype m = mask20, va, vb, tmp; \
 	kvand_shr(va, v0, m, 5); \
 	kvand_shr(vb, v1, m, 4); \
-	kvand_shr_or(va, v2, m, 3); \
-	kvand_shr_or(vb, v3, m, 2); \
-	kvand_shr_or(va, v4, m, 1); \
+	kvand_shr_or(va, v2, mask04, 3); \
+	kvand_shr_or(vb, v3, mask08, 2); \
+	kvand_shr_or(va, v4, mask10, 1); \
 	kvand_or(vb, v5, m); \
-	kvand_shl1_or(va, v6, m); \
-	kvand_shl_or(vb, v7, m, 2); \
+	kvand_shl1_or(va, v6, mask40); \
+	kvand_shl_or(vb, v7, mask80, 2); \
 	kvor(*(kvtype *)kp, va, vb); \
 	kp++; \
 }
@@ -535,12 +552,12 @@ typedef unsigned ARCH_WORD kvtype;
 	kvtype m = mask40, va, vb, tmp; \
 	kvand_shr(va, v0, m, 6); \
 	kvand_shr(vb, v1, m, 5); \
-	kvand_shr_or(va, v2, m, 4); \
-	kvand_shr_or(vb, v3, m, 3); \
-	kvand_shr_or(va, v4, m, 2); \
-	kvand_shr_or(vb, v5, m, 1); \
+	kvand_shr_or(va, v2, mask04, 4); \
+	kvand_shr_or(vb, v3, mask08, 3); \
+	kvand_shr_or(va, v4, mask10, 2); \
+	kvand_shr_or(vb, v5, mask20, 1); \
 	kvand_or(va, v6, m); \
-	kvand_shl1_or(vb, v7, m); \
+	kvand_shl1_or(vb, v7, mask80); \
 	kvor(*(kvtype *)kp, va, vb); \
 	kp++; \
 }
@@ -549,11 +566,11 @@ typedef unsigned ARCH_WORD kvtype;
 	kvtype m = mask80, va, vb, tmp; \
 	kvand_shr(va, v0, m, 7); \
 	kvand_shr(vb, v1, m, 6); \
-	kvand_shr_or(va, v2, m, 5); \
-	kvand_shr_or(vb, v3, m, 4); \
-	kvand_shr_or(va, v4, m, 3); \
-	kvand_shr_or(vb, v5, m, 2); \
-	kvand_shr_or(va, v6, m, 1); \
+	kvand_shr_or(va, v2, mask04, 5); \
+	kvand_shr_or(vb, v3, mask08, 4); \
+	kvand_shr_or(va, v4, mask10, 3); \
+	kvand_shr_or(vb, v5, mask20, 2); \
+	kvand_shr_or(va, v6, mask40, 1); \
 	kvand_or(vb, v7, m); \
 	kvor(*(kvtype *)kp, va, vb); \
 	kp++; \
