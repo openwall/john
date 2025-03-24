@@ -40,12 +40,16 @@
 #include "opencl_misc.h"
 #include "opencl_sha1.h"
 
+#ifndef SHA1_DATA_LENGTH_TYPE
+#define SHA1_DATA_LENGTH_TYPE	uint
+#endif
+
 /*
  * SHA-1 context setup
  */
 
 typedef struct {
-	uint total;        /* number of bytes processed  */
+	SHA1_DATA_LENGTH_TYPE total;    /* number of bytes processed  */
 	uint state[5];     /* intermediate digest state  */
 	uchar buffer[64];  /* data block being processed */
 } SHA_CTX;
@@ -125,7 +129,7 @@ INLINE void _sha1_process(SHA_CTX *ctx, const uchar data[64])
 /*
  * SHA-1 process buffer
  */
-INLINE void SHA1_Update(SHA_CTX *ctx, const uchar *input, uint ilen)
+INLINE void SHA1_Update(SHA_CTX *ctx, const uchar *input, SHA1_DATA_LENGTH_TYPE ilen)
 {
 	uint fill;
 	uint left;

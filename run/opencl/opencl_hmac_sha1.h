@@ -24,8 +24,12 @@
 #define HMAC_OUT_TYPE
 #endif
 
+#ifndef SHA1_DATA_LENGTH_TYPE
+#define SHA1_DATA_LENGTH_TYPE	uint
+#endif
+
 INLINE void hmac_sha1(HMAC_KEY_TYPE void *_key, uint key_len,
-                      HMAC_MSG_TYPE void *_data, uint data_len,
+                      HMAC_MSG_TYPE void *_data, SHA1_DATA_LENGTH_TYPE data_len,
                       HMAC_OUT_TYPE void *_digest, uint digest_len)
 {
 	HMAC_KEY_TYPE uchar *key = _key;
@@ -74,7 +78,7 @@ INLINE void hmac_sha1(HMAC_KEY_TYPE void *_key, uint key_len,
 	SHA1_Update(&ctx, u.buf, 64);
 #ifdef USE_DATA_BUF
 	HMAC_MSG_TYPE uint *data32 = (HMAC_MSG_TYPE uint*)_data;
-	uint blocks = data_len / 64;
+	SHA1_DATA_LENGTH_TYPE blocks = data_len / 64;
 	data_len -= 64 * blocks;
 	data += 64 * blocks;
 	ctx.total += 64 * blocks;

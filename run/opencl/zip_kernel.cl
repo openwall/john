@@ -8,6 +8,7 @@
 #include "opencl_misc.h"
 #define HMAC_MSG_TYPE __global const
 #define HMAC_OUT_TYPE __global
+#define SHA1_DATA_LENGTH_TYPE uint64_t
 #include "opencl_hmac_sha1.h"
 #include "opencl_sha1.h"
 
@@ -275,7 +276,7 @@ kernel void zip_final(__global const uchar *pwbuf,
 	const uint early_skip = 2 * salt->key_len / BLK_SZ * BLK_SZ;
 	const uint late_skip = salt->key_len / BLK_SZ * BLK_SZ;
 	const uint late_size = early_skip - late_skip;
-	const uint comp_len = salt->autotune ? MIN(salt->comp_len, 0x1000000) : salt->comp_len;
+	const uint64_t comp_len = salt->autotune ? MIN(salt->comp_len, 0x1000000) : salt->comp_len;
 	uchar password[PLAINTEXT_LENGTH];
 	uchar pwd_ver[3 * BLK_SZ];
 
