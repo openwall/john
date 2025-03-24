@@ -27,6 +27,9 @@ static int suppressor_process_key(char *key);
 
 void suppressor_init(unsigned int new_flags)
 {
+	if (old_process_key)
+		return;
+
 	if (!flags) {
 		if (!(new_flags & SUPPRESSOR_UPDATE))
 			return;
