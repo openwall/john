@@ -94,10 +94,16 @@ INLINE void hmac_sha1(HMAC_KEY_TYPE void *_key, uint key_len,
 	SHA1_Final(local_digest, &ctx);
 	for (i = 0; i < 16; i++)
 		u.pW[i] ^= (0x36363636 ^ 0x5c5c5c5c);
+#if gpu_amd(DEVICE_INFO)
+/* Workaround miscompile with AMD-APP 2766.4 */
+	SHA_CTX ctx2;
+#define ctx ctx2
+#endif
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, u.buf, 64);
 	SHA1_Update(&ctx, local_digest, 20);
 	SHA1_Final(local_digest, &ctx);
+#undef ctx
 
 	memcpy_macro(digest, local_digest, digest_len);
 }
