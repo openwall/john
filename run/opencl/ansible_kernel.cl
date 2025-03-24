@@ -35,5 +35,10 @@ __kernel void ansible_final(__global crack_t *out,
 
 	pbkdf2_sha256_final(out, &salt->pbkdf2, state);
 
+#if gpu_amd(DEVICE_INFO)
+/* Workaround miscompile with AMD-APP 2766.4 */
+	(void) *(volatile __global uint *)out[ix].hash;
+#endif
+
 	hmac_sha256(out[ix].hash, 32, salt->blob, salt->bloblen, out[ix].hash, 16);
 }
