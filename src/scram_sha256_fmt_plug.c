@@ -1,14 +1,17 @@
 /*
- * This software is Copyright (c) 2016, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is Copyright (c) 2025, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
+ *
+ * https://github.com/mongodb/specifications/blob/master/source/auth/auth.md
+ * https://datatracker.ietf.org/doc/html/rfc7677
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_mongodb_scram;
+extern struct fmt_main fmt_mongodb_scram_sha256;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_mongodb_scram);
+john_register_one(&fmt_mongodb_scram_sha256);
 #else
 
 #include <string.h>
@@ -27,25 +30,24 @@ john_register_one(&fmt_mongodb_scram);
 #include "base64_convert.h"
 #include "hmac_sha.h"
 #include "simd-intrinsics.h"
-#include "pbkdf2_hmac_sha1.h"
-#include "md5.h"
+#include "pbkdf2_hmac_sha256.h"
 
 #if defined SIMD_COEF_32
-#define SIMD_KEYS		(SIMD_COEF_32 * SIMD_PARA_SHA1)
+#define SIMD_KEYS		(SIMD_COEF_32 * SIMD_PARA_SHA256)
 #endif
 
-#define FORMAT_LABEL            "scram"
+#define FORMAT_LABEL            "scram-pbkdf2-sha256"
 #define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "SCRAM PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "SCRAM PBKDF2-SHA256 " SHA256_ALGORITHM_NAME
 #define PLAINTEXT_LENGTH        125
-#define HASH_LENGTH             28
+#define HASH_LENGTH             44
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
-#define BINARY_SIZE             20
+#define BINARY_SIZE             32
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
-#define FORMAT_TAG              "$scram$"
+#define FORMAT_TAG              "$scram-pbkdf2-sha256$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
 #define MAX_USERNAME_LENGTH     128
 
@@ -62,8 +64,9 @@ john_register_one(&fmt_mongodb_scram);
 #endif
 
 static struct fmt_tests tests[] = {
-	{"$scram$someadmin$10000$wf42AF7JaU1NSeBaSmkKzw==$H6A5RF0qz6DrcWNNX4xe+wIeVEw=", "secret"},
-	{"$scram$admin$10000$ouQdw5om9Uc5gxulO9F/8w==$DSnATYsgoE8InL5Petfjp8MWGh4=", "test@12345"},
+	/* MongoDB 8.0.6 hashes */
+	{"$scram-pbkdf2-sha256$accountAdmin16$15000$OxAPvANwV/ZQXqgiW6s6o2+wPM+gfZNthjpUjw==$MenSdE9VmSij4sIKMKfRs+bHy9vkareAopWM8MB+364=", "openwall"},
+	{"$scram-pbkdf2-sha256$user$15000$0sWhCP4Z0gjI7KY6WJ7z/Hs3SEcxC+PUSkv4og==$qnttlssP81IuwtcoZ4TV/M0SMCajePUhPP3mRrnv0aA=", "openwall@1234567890"},
 	{NULL}
 };
 
@@ -71,7 +74,7 @@ static struct custom_salt {
 	int saltlen;
 	int iterations;
 	char username[MAX_USERNAME_LENGTH + 1];
-	unsigned char salt[18 + 1]; /* base64 decoding, 24 / 4 * 3 = 18 */
+	unsigned char salt[28 + 4 + 1]; // 4 bytes for 'startKey'
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
@@ -96,6 +99,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
+
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH) != 0)
 		return 0;
 	ctcopy = xstrdup(ciphertext);
@@ -111,7 +115,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p)-2 != base64_valid_length(p, e_b64_mime, flg_Base64_MIME_TRAIL_EQ, 0) || strlen(p) > 24)
+	if (strlen(p)-2 != base64_valid_length(p, e_b64_mime, flg_Base64_MIME_TRAIL_EQ, 0) || strlen(p) > 40)
 		goto err;
 	if ((p = strtokm(NULL, "")) == NULL)	/* hash */
 		goto err;
@@ -141,6 +145,11 @@ static void *get_salt(char *ciphertext)
 	cs.iterations = atoi(p);
 	p = strtokm(NULL, "$");
 	base64_convert(p, e_b64_mime, strlen(p), (char*)cs.salt, e_b64_raw, sizeof(cs.salt), flg_Base64_NO_FLAGS, 0);
+	cs.salt[28] = 0;
+	cs.salt[29] = 0;
+	cs.salt[30] = 0;
+	cs.salt[31] = 1;
+
 	MEM_FREE(keeptr);
 
 	return (void *)&cs;
@@ -169,16 +178,6 @@ static void set_salt(void *salt)
 #define COMMON_GET_HASH_VAR crypt_out
 #include "common-get-hash.h"
 
-inline static void hex_encode(unsigned char *str, int len, unsigned char *out)
-{
-	int i;
-	for (i = 0; i < len; ++i) {
-		out[0] = itoa16[str[i]>>4];
-		out[1] = itoa16[str[i]&0xF];
-		out += 2;
-	}
-}
-
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	int index;
@@ -189,58 +188,32 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index += MIN_KEYS_PER_CRYPT) {
 #if !defined (SIMD_COEF_32)
-		SHA_CTX ctx;
-		MD5_CTX mctx;
-		unsigned char hexhash[32];
-		unsigned char hash[16];
-		unsigned char out[BINARY_SIZE];
+		unsigned char output[BINARY_SIZE];
 
-		MD5_Init(&mctx);
-		MD5_Update(&mctx, cur_salt->username, strlen((char*)cur_salt->username));
-		MD5_Update(&mctx, ":mongo:", 7);
-		MD5_Update(&mctx, saved_key[index], strlen(saved_key[index]));
-		MD5_Final(hash, &mctx);
-		hex_encode(hash, 16, hexhash);
-
-		pbkdf2_sha1(hexhash, 32, cur_salt->salt, 16,
-				cur_salt->iterations, out, BINARY_SIZE, 0);
-
-		hmac_sha1(out, BINARY_SIZE, (unsigned char*)"Client Key", 10, out, BINARY_SIZE);
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, out, BINARY_SIZE);
-		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
+		pbkdf2_sha256((unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, 28, cur_salt->iterations, output, BINARY_SIZE, 0);
+		// ServerKey := HMAC(SaltedPassword, "Server Key")
+		hmac_sha256(output, BINARY_SIZE, (unsigned char*)"Server Key", 10, (unsigned char*)crypt_out[index], BINARY_SIZE);
 #else
-		SHA_CTX ctx;
-		MD5_CTX mctx;
 		int i;
-		unsigned char hexhash_[SIMD_KEYS][32], *hexhash[SIMD_KEYS];
-		unsigned char hash[16];
-		int lens[SIMD_KEYS];
-		unsigned char out_[SIMD_KEYS][BINARY_SIZE], *out[SIMD_KEYS];
+		int lens[MIN_KEYS_PER_CRYPT];
+		unsigned char *pin[MIN_KEYS_PER_CRYPT];
+		union {
+			uint32_t *pout[MIN_KEYS_PER_CRYPT];
+			unsigned char *poutc;
+		} x;
 
-		for (i = 0; i < SIMD_KEYS; ++i) {
-			MD5_Init(&mctx);
-			MD5_Update(&mctx, cur_salt->username, strlen((char*)cur_salt->username));
-			MD5_Update(&mctx, ":mongo:", 7);
-			MD5_Update(&mctx, saved_key[index+i], strlen(saved_key[index+i]));
-			MD5_Final(hash, &mctx);
-			hexhash[i] = hexhash_[i];
-			hex_encode(hash, 16, hexhash[i]);
-			lens[i] = 32;
-			out[i] = out_[i];
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			x.pout[i] = crypt_out[i+index];
 		}
-
-		pbkdf2_sha1_sse((const unsigned char **)hexhash, lens, cur_salt->salt, 16,
-				cur_salt->iterations, out, BINARY_SIZE, 0);
-
-		for (i = 0; i < SIMD_KEYS; ++i) {
-			hmac_sha1(out[i], BINARY_SIZE, (unsigned char*)"Client Key", 10, out[i], BINARY_SIZE);
-			SHA1_Init(&ctx);
-			SHA1_Update(&ctx, out[i], BINARY_SIZE);
-			SHA1_Final((unsigned char*)crypt_out[index+i], &ctx);
+		pbkdf2_sha256_sse((const unsigned char**)pin, lens, cur_salt->salt, 28, cur_salt->iterations, &(x.poutc), 32, 0);
+		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
+			hmac_sha256((unsigned char*)&crypt_out[i+index], BINARY_SIZE, (unsigned char*)"Server Key", 10, (unsigned char *)&crypt_out[index+i], BINARY_SIZE);
 		}
 #endif
 	}
+
 	return count;
 }
 
@@ -274,7 +247,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main fmt_mongodb_scram = {
+struct fmt_main fmt_mongodb_scram_sha256 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
