@@ -150,9 +150,12 @@ __kernel void tc_ripemd_aesxts(__global const pbkdf2_password *inbuffer,
 {
 	__local aes_local_t lt;
 	uint idx = get_global_id(0);
-	uint key[64 / 4];
+	union {
+		uint u32[64 / 4];
+		uchar uc[64];
+	} key;
 
-	pbkdf2(inbuffer[idx].v, inbuffer[idx].length, salt->salt, key);
+	pbkdf2(inbuffer[idx].v, inbuffer[idx].length, salt->salt, key.u32);
 
-	AES_256_XTS_first_sector(salt->bin, outbuffer[idx].v, (uchar*)key, &lt);
+	AES_256_XTS_first_sector(salt->bin, outbuffer[idx].v, key.uc, &lt);
 }
