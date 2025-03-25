@@ -4,6 +4,9 @@
  */
 
 #include <stdint.h>
+#ifdef __unix__
+#include <sys/mman.h>
+#endif
 
 #include "common.h"
 #include "memory.h"
@@ -18,6 +21,7 @@
 #define K 8
 
 static uint32_t N, Klock;
+static region_t memory;
 static uint64_t (*filter)[K];
 static unsigned int flags;
 
@@ -61,7 +65,25 @@ void suppressor_init(unsigned int new_flags)
 			fprintf(stderr, "%s%d MiB%s\n", msg, size, suffix);
 		}
 
-		filter = mem_calloc_align(N, sizeof(*filter), MEM_ALIGN_CACHE);
+		init_region(&memory);
+		filter = alloc_region(&memory, (size_t)size << 20);
+		if (!filter) {
+			const char *msg = "Failed to allocate memory for duplicate candidate password suppressor";
+			log_event("%s", msg);
+			if (NODES > 1)
+				fprintf(stderr, "%d: %s\n", NODE, msg);
+			else
+				fprintf(stderr, "%s\n", msg);
+			return;
+		}
+
+/*
+ * alloc_region() uses mmap() when MAP_ANON is available, so we only have to
+ * perform our own zeroization otherwise.
+ */
+#ifndef MAP_ANON
+		memset(filter, 0, (size_t)size << 20);
+#endif
 
 		status.suppressor_start = status.cands + 1;
 		status.suppressor_start_time = status_get_time();
@@ -85,7 +107,7 @@ static void suppressor_done(void)
 	else
 		fprintf(stderr, "%s\n", msg);
 
-	MEM_FREE(filter);
+	free_region(&memory);
 
 	flags = SUPPRESSOR_OFF;
 	status.suppressor_end = status.cands;
