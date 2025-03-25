@@ -55,9 +55,10 @@ void suppressor_init(unsigned int new_flags)
 			Klock = K / 2;
 
 		if (john_main_process) {
-			const char *msg = "Enabling duplicate candidate password suppressor";
-			log_event("%s", msg);
-			fprintf(stderr, "%s\n", msg);
+			const char *msg = "Enabling duplicate candidate password suppressor using ";
+			const char *suffix = options.fork ? " per process" : "";
+			log_event("%s%d MiB%s", msg, size, suffix);
+			fprintf(stderr, "%s%d MiB%s\n", msg, size, suffix);
 		}
 
 		filter = mem_calloc_align(N, sizeof(*filter), MEM_ALIGN_CACHE);
