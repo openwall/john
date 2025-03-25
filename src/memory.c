@@ -653,6 +653,9 @@ alloc_region(region_t * region, size_t size)
 #ifdef MAP_NOCORE
 	    MAP_NOCORE |
 #endif
+#ifdef MAP_POPULATE
+	    MAP_POPULATE |
+#endif
 	    MAP_ANON | MAP_PRIVATE;
 #if defined(MAP_HUGETLB) && defined(HUGEPAGE_SIZE)
 	size_t new_size = size;
