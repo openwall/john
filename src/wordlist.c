@@ -303,7 +303,7 @@ static double get_progress(void)
 	        (rule_count * size * mask_mult));
 }
 
-static char *dummy_rules_apply(char *word, char *rule, int split, char *last)
+static char *dummy_rules_apply(char *word, char *rule, int split)
 {
 	return word;
 }
@@ -459,18 +459,17 @@ static MAYBE_INLINE int wbuf_unique(char *line)
 void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 {
 	union {
-		char buffer[2][LINE_BUFFER_SIZE + CACHE_BANK_SHIFT];
+		char buffer[LINE_BUFFER_SIZE];
 #if MGETL_HAS_SIMD
 		vtype dummy;
 #else
 		ARCH_WORD dummy;
 #endif
 	} aligned;
-	char *line = aligned.buffer[0];
-	char *last = aligned.buffer[1];
+	char *line = aligned.buffer;
 	struct rpp_context ctx;
 	char *prerule="", *rule="", *word="";
-	char *(*apply)(char *word, char *rule, int split, char *last) = NULL;
+	char *(*apply)(char *word, char *rule, int split) = NULL;
 	int dist_switch=0;
 	uint64_t my_words=0, their_words=0, my_words_left=0;
 	int64_t i, file_len = 0;
@@ -1085,11 +1084,6 @@ REDO_AFTER_LMLOOP:
 	if (rules)
 		prerule = rpp_next(&ctx);
 
-/* A string that can't be produced by fgetl(). */
-	last = aligned.buffer[1];
-	last[0] = '\n';
-	last[1] = 0;
-
 	dist_rules = 0;
 	dist_switch = rule_count; /* never */
 	my_words = ~0UL; /* all */
@@ -1151,7 +1145,7 @@ REDO_AFTER_LMLOOP:
 				    for_node > options.node_max)
 					goto next_rule;
 			}
-			if ((rule = rules_reject(prerule, -1, last, db))) {
+			if ((rule = rules_reject(prerule, -1, db))) {
 				if (strcmp(prerule, rule)) {
 					if (!rules_mute)
 					log_event("- Rule #%d: '%.100s'"
@@ -1186,8 +1180,7 @@ REDO_AFTER_LMLOOP:
 				}
 			}
 			loop_line_no++;
-			if ((word = apply(joined->data, rule, -1, last))) {
-				last = word;
+			if ((word = apply(joined->data, rule, -1))) {
 #if HAVE_REXGEN
 				if (regex) {
 					if (do_regex_hybrid_crack(db, regex,
@@ -1255,8 +1248,7 @@ REDO_AFTER_LMLOOP:
 #endif
 			line_number++;
 
-			if ((word = apply(line, rule, -1, last))) {
-				last = word;
+			if ((word = apply(line, rule, -1))) {
 #if HAVE_REXGEN
 				if (regex) {
 					if (do_regex_hybrid_crack(db, regex,
@@ -1326,16 +1318,9 @@ process_word:
 							goto next_word;
 					}
 					line[length] = 0;
-
-					if (!strcmp(line, last))
-						goto next_word;
 				}
 
-				if ((word = apply(line, rule, -1, last))) {
-					if (rules)
-						last = word;
-					else
-						strcpy(last, word);
+				if ((word = apply(line, rule, -1))) {
 #if HAVE_REXGEN
 					if (regex) {
 						if (do_regex_hybrid_crack(

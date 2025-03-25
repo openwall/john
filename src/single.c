@@ -674,7 +674,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	do {
 		if (first == global_head)
 			first_global = 1;
-		if ((key = rules_apply(first->data, rule, 0, NULL)))
+		if ((key = rules_apply(first->data, rule, 0)))
 		if (ext_filter(key))
 		if (single_add_key(salt, key, 0))
 			return 1;
@@ -701,7 +701,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 				strnzcpy(pair, first->data, RULE_WORD_SIZE);
 				strnzcat(pair, second->data, RULE_WORD_SIZE);
 
-				if ((key = rules_apply(pair, rule, split, NULL)))
+				if ((key = rules_apply(pair, rule, split)))
 				if (ext_filter(key))
 				if (single_add_key(salt, key, 0))
 					return 1;
@@ -716,7 +716,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 				pair[1] = 0;
 				strnzcat(pair, second->data, RULE_WORD_SIZE);
 
-				if ((key = rules_apply(pair, rule, 1, NULL)))
+				if ((key = rules_apply(pair, rule, 1)))
 				if (ext_filter(key))
 				if (single_add_key(salt, key, 0))
 					return 1;
@@ -817,7 +817,7 @@ static void single_run(void)
 				}
 			}
 
-			if (!(rule = rules_reject(prerule, 0, NULL, single_db))) {
+			if (!(rule = rules_reject(prerule, 0, single_db))) {
 				rule_number++;
 				if (options.verbosity >= VERB_DEFAULT &&
 				    !rules_mute &&

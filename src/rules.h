@@ -60,11 +60,8 @@ extern void rules_init(struct db_main *db, int max_length);
  *
  * split == 0	"single crack" mode rules allowed
  * split < 0	"single crack" mode rules are invalid
- *
- * last may specify which internal buffer must not be touched.
  */
-extern char *rules_reject(char *rule, int split, char *last,
-	struct db_main *db);
+extern char *rules_reject(char *rule, int split, struct db_main *db);
 
 /*
  * Applies rule to a word. Returns the updated word, or NULL if rejected or
@@ -73,13 +70,8 @@ extern char *rules_reject(char *rule, int split, char *last,
  * split > 0	"single crack" mode, split is the second word's position
  * split == 0	"single crack" mode, only one word
  * split < 0	other cracking modes, "single crack" mode rules are invalid
- *
- * If last is non-NULL, it should be the previous mangled word and it is
- * assumed to be properly aligned for ARCH_WORD accesses (pointers returned by
- * rules_apply() are properly aligned).  If the new mangled word matches the
- * previous one, it will be rejected (rules_apply() will return NULL).
  */
-extern char *rules_apply(char *word, char *rule, int split, char *last);
+extern char *rules_apply(char *word, char *rule, int split);
 
 /*
  * Similar to rules_check(), but displays a message and does not return on

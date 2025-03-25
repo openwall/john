@@ -107,12 +107,10 @@ static struct {
  */
 	int pass;
 /*
- * Some rule commands may temporarily double the length, and we skip a few
- * machine words to avoid cache bank conflicts when copying data between the
- * buffers.  We need three buffers because some rule commands require separate
- * input and output buffers and we also need a buffer either for leaving the
- * previous mangled word intact for a subsequent comparison (in wordlist mode)
- * or for switching between two input words (in "single crack" mode).
+ * Some rule commands may temporarily double the length.
+ * We need three buffers because some rule commands require separate input and
+ * output buffers and we also need a buffer for switching between two input
+ * words in "single crack" mode.
  * rules_apply() tries to minimize data copying, and thus it may return a
  * pointer to any of the three buffers.
  *
@@ -576,7 +574,7 @@ int rules_init_stack(char *ruleset, rule_stack *stack_ctx,
 		do {
 			rule_number++;
 
-			if ((rule = rules_reject(prerule, -1, NULL, db))) {
+			if ((rule = rules_reject(prerule, -1, db))) {
 				list_add(stack_ctx->stack_rule, rule);
 				active_rules++;
 
@@ -642,7 +640,7 @@ void rules_init(struct db_main *db, int max_length)
 	rules_stacked_after = (options.flags & (FLG_RULES_CHK | FLG_SINGLE_CHK | FLG_BATCH_CHK)) && (options.flags & FLG_RULES_STACK_CHK);
 }
 
-char *rules_reject(char *rule, int split, char *last, struct db_main *db)
+char *rules_reject(char *rule, int split, struct db_main *db)
 {
 	static char out_rule[RULE_BUFFER_SIZE];
 
@@ -748,7 +746,7 @@ char *rules_reject(char *rule, int split, char *last, struct db_main *db)
 accept:
 	rules_pass--;
 	strnzcpy(out_rule, rule - 1, sizeof(out_rule));
-	rules_apply(safe_null_string, out_rule, split, last);
+	rules_apply(safe_null_string, out_rule, split);
 	rules_pass++;
 
 	return out_rule;
@@ -756,7 +754,7 @@ accept:
 
 #define STACK_MAXLEN (rules_stacked_after ? RULE_WORD_SIZE : rules_max_length)
 
-char *rules_apply(char *word_in, char *rule, int split, char *last)
+char *rules_apply(char *word_in, char *rule, int split)
 {
 	union {
 		char aligned[PLAINTEXT_BUFFER_SIZE];
@@ -776,8 +774,6 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 		memory = word = word_in;
 
 	in = buffer[0][STAGE];
-	if (in == last)
-		in = buffer[2][STAGE];
 
 	length = 0;
 	while (length < RULE_WORD_SIZE) {
@@ -797,8 +793,6 @@ char *rules_apply(char *word_in, char *rule, int split, char *last)
 		REJECT
 
 	alt = buffer[1][STAGE];
-	if (alt == last)
-		alt = buffer[2][STAGE];
 
 /*
  * This assumes that RULE_WORD_SIZE is small enough that length can't reach or
@@ -1771,22 +1765,6 @@ out_OK:
 		length = strlen(in);
 	}
 
-	if (last) {
-		if (length > STACK_MAXLEN)
-			length = STACK_MAXLEN;
-		if (length >= ARCH_SIZE - 1) {
-			if (*(ARCH_WORD *)in != *(ARCH_WORD *)last)
-				return in;
-			if (strcmp(&in[ARCH_SIZE - 1], &last[ARCH_SIZE - 1]))
-				return in;
-			return NULL;
-		}
-		if (last[length])
-			return in;
-		if (memcmp(in, last, length))
-			return in;
-		return NULL;
-	}
 	return in;
 
 out_which:
@@ -1849,11 +1827,6 @@ int rules_advance_stack(rule_stack *ctx, int quiet)
  */
 char *rules_process_stack(char *key, rule_stack *ctx)
 {
-	static union {
-		char buf[LINE_BUFFER_SIZE];
-		ARCH_WORD dummy;
-	} aligned;
-	static char *last = aligned.buf;
 	char *word;
 
 	if (!ctx->rule) {
@@ -1865,8 +1838,7 @@ char *rules_process_stack(char *key, rule_stack *ctx)
 
 	rules_stacked_after = 0;
 
-	if ((word = rules_apply(key, ctx->rule->data, -1, last)))
-		last = word;
+	word = rules_apply(key, ctx->rule->data, -1);
 
 	rules_stacked_after = !!(options.flags & (FLG_RULES_CHK | FLG_SINGLE_CHK | FLG_BATCH_CHK));
 
@@ -1878,11 +1850,6 @@ char *rules_process_stack(char *key, rule_stack *ctx)
  */
 char *rules_process_stack_all(char *key, rule_stack *ctx)
 {
-	static union {
-		char buf[LINE_BUFFER_SIZE];
-		ARCH_WORD dummy;
-	} aligned;
-	static char *last = aligned.buf;
 	char *word;
 
 	if (!ctx->rule) {
@@ -1896,10 +1863,8 @@ char *rules_process_stack_all(char *key, rule_stack *ctx)
 	rules_stacked_after = 0;
 
 	while (ctx->rule) {
-		if ((word = rules_apply(key, ctx->rule->data, -1, last))) {
-			last = word;
+		if ((word = rules_apply(key, ctx->rule->data, -1)))
 			return word;
-		} else
 		if ((ctx->rule = ctx->rule->next)) {
 			rules_stacked_number++;
 			if (!stack_rules_mute)
@@ -1943,7 +1908,7 @@ static int rules_check(struct rpp_context *start, int split)
 
 	rules_pass = -1; /* rules_reject() will turn this into -2 */
 	while ((rule = rpp_next(&ctx))) {
-		rules_reject(rule, split, NULL, NULL);
+		rules_reject(rule, split, NULL);
 		if (rules_errno) break;
 
 		if (ctx.input) rules_line = ctx.input->number;
@@ -1981,7 +1946,7 @@ static void rules_load_normalized_list(struct cfg_line *pLine)
 			/*
 			 * this will 'reduce' the rule by stripping no-op's.
 			 */
-			char *rule = rules_reject(pLine->data, -1, NULL, NULL);
+			char *rule = rules_reject(pLine->data, -1, NULL);
 			if (rule) {
 				rules_normalize_add_line(rule, pLine->id);
 				++rules_tmp_dup_removal_cnt;

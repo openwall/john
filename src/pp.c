@@ -1192,11 +1192,6 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
   setmode (fileno (stdout), O_BINARY);
   #endif
 #else
-  union {
-    char buffer[LINE_BUFFER_SIZE];
-    ARCH_WORD dummy;
-  } aligned;
-  char *last = aligned.buffer;
   int loopback = (options.flags & FLG_PRINCE_LOOPBACK) ? 1 : 0;
   int mask_mult = MAX(1, mask_num_qw);
   int our_fmt_len = (db->format->params.plaintext_length + ((mask_mult - 1) * mask_add_len)) / mask_mult - mask_add_len;
@@ -1371,7 +1366,7 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
     do {
       char *rule;
 
-      if ((rule = rules_reject(prerule, -1, last, db)))
+      if ((rule = rules_reject(prerule, -1, db)))
       {
         list_add(rule_list, rule);
         active_rules++;
@@ -2334,8 +2329,7 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
               do {
                 char *word;
 
-                if ((word = rules_apply(pw_buf, rule->data, -1, last))) {
-                  last = word;
+                if ((word = rules_apply(pw_buf, rule->data, -1))) {
 #if HAVE_REXGEN
                   if (regex) {
                     if ((jtr_done = do_regex_hybrid_crack(db, regex, word,
