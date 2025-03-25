@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2022 by Solar Designer
+ * Copyright (c) 2022,2025 by Solar Designer
  */
 
 /*
@@ -10,10 +10,10 @@
 #ifndef _JOHN_SUPPRESSOR_H
 #define _JOHN_SUPPRESSOR_H
 
-#define SUPPRESSOR_OFF		0
 #define SUPPRESSOR_UPDATE	1
 #define SUPPRESSOR_CHECK	2
 #define SUPPRESSOR_FORCE	4
+#define SUPPRESSOR_OFF		8
 
 /*
  * Initializes the suppressor.  Must be called after crk_init(), first with

@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2022 by Solar Designer
+ * Copyright (c) 2022,2025 by Solar Designer
  */
 
 #include <stdint.h>
@@ -27,6 +27,9 @@ static int suppressor_process_key(char *key);
 
 void suppressor_init(unsigned int new_flags)
 {
+	if (flags & SUPPRESSOR_OFF)
+		return;
+
 	if (!flags) {
 		if (!(new_flags & SUPPRESSOR_UPDATE))
 			return;
@@ -66,8 +69,10 @@ void suppressor_init(unsigned int new_flags)
 	flags = new_flags;
 	status.suppressor_end = 0;
 	status.suppressor_end_time = 0;
-	old_process_key = crk_process_key;
-	crk_process_key = suppressor_process_key;
+	if (crk_process_key != suppressor_process_key) {
+		old_process_key = crk_process_key;
+		crk_process_key = suppressor_process_key;
+	}
 }
 
 static void suppressor_done(void)
