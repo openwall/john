@@ -265,7 +265,7 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
 	 * Resetting crk_process_key above disables the suppressor, but it can
 	 * possibly be re-enabled by a cracking mode.
 	 */
-	if (status.suppressor_start) {
+	if (status.suppressor_start && !status.suppressor_end) {
 		status.suppressor_end = status.cands;
 		status.suppressor_end_time = status_get_time();
 	}
