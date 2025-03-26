@@ -1,8 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003,2004,2006,2009,2013,2017 by Solar Designer
- *
- * Heavily modified by JimF, magnum and maybe by others.
+ * Copyright (c) 2009-2025, magnum
+ * Copyright (c) 2009-2018, JimF
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -456,6 +456,49 @@ static MAYBE_INLINE int wbuf_unique(char *line)
 	return 1;
 }
 
+#ifdef HAVE_MMAP
+static int mmap_init(int64_t file_len)
+{
+	if (mem_map)
+		return 1;
+
+	int mmap_max = cfg_get_int(SECTION_OPTIONS, NULL, "WordlistMemoryMapMaxSize");
+
+	if (mmap_max == -1)
+		mmap_max = 1 << 10;
+
+	if (mmap_max && mmap_max >= (file_len >> 20)) {
+		if (john_main_process)
+			log_event("- Memory mapping wordlist (%"PRIu64" bytes)",
+			          (uint64_t)file_len);
+#if (SIZEOF_SIZE_T < 8)
+/*
+ * Now even though we are 64 bit file size, we must still deal with some
+ * 32 bit functions ;)
+ */
+		mem_map = MAP_FAILED;
+		if (file_len < ((1LL)<<32))
+#endif
+			mem_map = mmap(NULL, file_len,
+			               PROT_READ, MAP_SHARED,
+			               fileno(word_file), 0);
+		if (mem_map == MAP_FAILED) {
+			mem_map = NULL;
+			log_event("- Memory mapping failed (%s) - but we'll do fine without it.",
+			          strerror(errno));
+		} else {
+			map_pos = mem_map;
+			map_end = mem_map + file_len;
+#if MGETL_HAS_SIMD
+			map_scan_end = map_end - VSCANSZ;
+#endif
+		}
+	}
+
+	return mem_map != NULL;
+}
+#endif
+
 void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 {
 	union {
@@ -594,14 +637,6 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 	if (name && !file_is_fifo) {
 		char *cp, csearch;
 		int64_t ourshare = 0;
-#ifdef HAVE_MMAP
-		int mmap_max =
-			cfg_get_int(SECTION_OPTIONS, NULL,
-			            "WordlistMemoryMapMaxSize");
-
-		if (mmap_max == -1)
-			mmap_max = 1 << 10;
-#endif
 		jtr_fseek64(word_file, 0, SEEK_END);
 		if ((file_len = jtr_ftell64(word_file)) == -1)
 			pexit(STR_MACRO(jtr_ftell64));
@@ -612,49 +647,17 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			error();
 		}
 
-#ifdef HAVE_MMAP
-		if (mmap_max && mmap_max >= (file_len >> 20)) {
-			if (john_main_process)
-				log_event("- Memory mapping wordlist (%"PRId64" bytes)",
-				          (int64_t)file_len);
-#if (SIZEOF_SIZE_T < 8)
-/*
- * Now even though we are 64 bit file size, we must still deal with some
- * 32 bit functions ;)
- */
-			mem_map = MAP_FAILED;
-			if (file_len < ((1LL)<<32))
-#endif
-			mem_map = mmap(NULL, file_len,
-			               PROT_READ, MAP_SHARED,
-			               fileno(word_file), 0);
-			if (mem_map == MAP_FAILED) {
-				mem_map = NULL;
-#ifdef DEBUG
-				fprintf(stderr, "wordlist: memory mapping failed (%s) (non-fatal)\n",
-				        strerror(errno));
-#endif
-				log_event("- Memory mapping failed (%s) - but we'll do fine without it.",
-				          strerror(errno));
-			} else {
-				map_pos = mem_map;
-				map_end = mem_map + file_len;
-#if MGETL_HAS_SIMD
-				map_scan_end = map_end - VSCANSZ;
-#endif
-			}
-		}
-#endif
-
 		ourshare = file_len;
 
+#ifdef HAVE_MMAP
 		// Load only this node's share of words to memory
-		if (mem_map && options.node_count > 1 &&
+		if (options.node_count > 1 &&
 		    (file_len > options.node_count * (length * 100))) {
-			ourshare = (file_len / options.node_count) *
-				(options.node_max - options.node_min + 1);
+			if (mmap_init(file_len))
+				ourshare = (file_len / options.node_count) *
+					(options.node_max - options.node_min + 1);
 		}
-
+#endif
 		if (ourshare <= options.max_wordfile_memory &&
 		    mem_saving_level < 2 &&
 		    (options.flags & FLG_RULES_CHK))
@@ -706,7 +709,6 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 
 					if (!mgetl(line))
 						break;
-					check_bom(line);
 					if (!strncmp(line, "#!comment", 9))
 						continue;
 					lp = convert(line);
@@ -883,6 +885,10 @@ skip:
 			MEM_FREE(buffer.data);
 			nWordFileLines = i;
 		}
+#ifdef HAVE_MMAP
+		else
+			mmap_init(file_len);
+#endif
 	} else {
 /*
  * Ok, we can be in --stdin or --pipe mode.  In --stdin, we simply copy over
