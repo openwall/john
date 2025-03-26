@@ -615,7 +615,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 #ifdef HAVE_MMAP
 		if (mmap_max && mmap_max >= (file_len >> 20)) {
 			if (john_main_process)
-				log_event("- memory mapping wordlist (%"PRId64" bytes)",
+				log_event("- Memory mapping wordlist (%"PRId64" bytes)",
 				          (int64_t)file_len);
 #if (SIZEOF_SIZE_T < 8)
 /*
@@ -634,7 +634,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 				fprintf(stderr, "wordlist: memory mapping failed (%s) (non-fatal)\n",
 				        strerror(errno));
 #endif
-				log_event("- memory mapping failed (%s) - but we'll do fine without it.",
+				log_event("- Memory mapping failed (%s) - but we'll do fine without it.",
 				          strerror(errno));
 			} else {
 				map_pos = mem_map;
@@ -728,15 +728,15 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 				if (nWordFileLines != myWordFileLines)
 					fprintf(stderr, "Warning: wordlist changed as"
 					        " we read it\n");
-				log_event("- loaded this node's share of "
-				          "wordfile %s into memory "
+				log_event("- Loaded this node's share of "
+				          "wordlist %s into memory "
 				          "(%"PRIu64" bytes of %"PRId64", max_size="Zu
 				          " avg/node)", name, my_size,
 				          (int64_t)file_len,
 				          options.max_wordfile_memory);
 				if (john_main_process)
 				fprintf(stderr,"Each node loaded 1/%d "
-				        "of wordfile to memory (about "
+				        "of wordlist to memory (about "
 				        "%"PRIu64" %s/node)\n",
 				        options.node_count,
 				        my_size > 1<<23 ?
@@ -746,13 +746,13 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			}
 			else {
 				if (john_main_process) {
-					log_event("- loading wordfile %s into memory "
+					log_event("- Loading wordlist %s into memory "
 					          "(%"PRId64" bytes, max_size="Zu")",
 					          name, (int64_t)file_len,
 					          options.max_wordfile_memory);
 					if (options.node_count > 1)
 						fprintf(stderr,"Each node loaded the whole "
-						        "wordfile to memory\n");
+						        "wordlist to memory\n");
 				}
 				word_file_str =
 					mem_alloc_tiny((size_t)file_len +
@@ -788,7 +788,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			if (aep[-1] != csearch)
 				++nWordFileLines;
 			words = mem_alloc((nWordFileLines + 1) * sizeof(char*));
-			log_event("- wordfile had %"PRId64" lines and required %"PRId64
+			log_event("- Wordlist had %"PRId64" lines and required %"PRId64
 			          " bytes for index.",
 			          (int64_t)nWordFileLines,
 			          (int64_t)(nWordFileLines * sizeof(char*)));
@@ -806,7 +806,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 					hash_log++;
 				hash_size = (1 << hash_log);
 				hash_mask = (hash_size - 1);
-				log_event("- dupe suppression: hash size %u, "
+				log_event("- Dupe suppression: hash size %u, "
 					"temporarily allocating %"PRId64" bytes",
 					hash_size,
 					(hash_size * sizeof(unsigned int)) +
@@ -876,7 +876,7 @@ skip:
 				if (ec == '\n' && *cp == '\r') cp++;
 			} while (cp < aep);
 			if ((int64_t)nWordFileLines - i > 0)
-				log_event("- suppressed %"PRId64" duplicate lines "
+				log_event("- Suppressed %"PRId64" duplicate lines "
 				          "and/or comments from wordlist.",
 				          (int64_t)nWordFileLines - i);
 			MEM_FREE(buffer.hash);
