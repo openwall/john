@@ -1142,7 +1142,8 @@ static char *get_build_opts(int sequential_id, const char *opts)
 #ifdef __APPLE__
 	        "-D__OS_X__ ",
 #else
-	        (options.verbosity >= VERB_LEGACY &&
+	        (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "NvidiaShowPtxas", 1) &&
+	         options.verbosity >= VERB_LEGACY &&
 	         gpu_nvidia(device_info[sequential_id])) ?
 	         "-cl-nv-verbose " : "",
 #endif
@@ -1272,6 +1273,13 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	uint64_t end = john_get_nano();
 	log_event("- build time: %ss", ns2string(end - start));
 
+	char *cleaned_log = build_log;
+	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "MuteBogusWarnings", 1) &&
+	    options.verbosity < VERB_DEBUG) {
+		while (!strncmp(cleaned_log, "(): Warning: Function ", 22) && strstr(cleaned_log + 23, " is a kernel, so overriding noinline attribute. The function may be inlined when called."))
+			while (*cleaned_log && *cleaned_log++ != '\n');
+	}
+
 	// Report build errors and warnings
 	// Nvidia may return a single '\n' that we ignore
 	if (build_code != CL_SUCCESS) {
@@ -1279,19 +1287,20 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 		if (options.verbosity <= VERB_LEGACY)
 			fprintf(stderr, "Options used: %s %s\n",
 			        build_opts, kernel_source_file);
-		if (strlen(build_log) > 1) {
+		if (strlen(cleaned_log) > 1) {
 			fprintf(stderr, "Build time: %ss\n", ns2string(end - start));
-			fprintf(stderr, "Build log: %s\n", build_log);
+			fprintf(stderr, "Build log: %s\n", cleaned_log);
 		} else if (options.verbosity >= VERB_MAX)
 			fprintf(stderr, "Build time: %ss\n", ns2string(end - start));
 		fprintf(stderr, "Error building kernel %s. DEVICE_INFO=%d\n",
 		        kernel_source_file, device_info[sequential_id]);
 		HANDLE_CLERROR(build_code, "clBuildProgram");
 	}
-	else if (options.verbosity >= LOG_VERB) {
-		if (strlen(build_log) > 1) {
+	else if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "AlwaysShowBuildWarnings", 1) ||
+	         options.verbosity >= LOG_VERB) {
+		if (strlen(cleaned_log) > 1) {
 			fprintf(stderr, "Build time: %ss\n", ns2string(end - start));
-			fprintf(stderr, "Build log: %s\n", build_log);
+			fprintf(stderr, "Build log: %s\n", cleaned_log);
 		} else if (options.verbosity >= VERB_MAX)
 			fprintf(stderr, "Build time: %ss\n", ns2string(end - start));
 	}
