@@ -278,6 +278,12 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+static unsigned int tunable_cost_type(void *_salt)
+{
+	struct custom_salt *salt = (struct custom_salt *)_salt;
+	return salt->type;
+}
+
 struct fmt_main fmt_bitshares = {
 	{
 		FORMAT_LABEL,
@@ -294,7 +300,7 @@ struct fmt_main fmt_bitshares = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
-		{ NULL },
+		{"type [0:wallet 1:backup]"},
 		{ FORMAT_TAG },
 		tests
 	}, {
@@ -306,7 +312,7 @@ struct fmt_main fmt_bitshares = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-		{ NULL },
+		{tunable_cost_type},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
