@@ -1876,12 +1876,12 @@ char *rules_process_stack_all(char *key, rule_stack *ctx)
 
 	rules_stacked_after = !!(options.flags & (FLG_RULES_CHK | FLG_SINGLE_CHK | FLG_BATCH_CHK));
 
-	if (!stack_rules_mute && options.verbosity <= VERB_DEFAULT) {
+	if (!stack_rules_mute && options.verbosity < VERB_DEBUG) {
 		stack_rules_mute = 1;
 		if (john_main_process) {
 			log_event(
 "- Some rule logging suppressed. Re-enable with --verbosity=%d or greater",
-			          VERB_LEGACY);
+			          VERB_DEBUG);
 		}
 	}
 
@@ -2118,12 +2118,12 @@ int rules_count(struct rpp_context *start, int split)
 	}
 
 	if (((options.flags & FLG_PIPE_CHK) && count1 >= RULES_MUTE_THR) &&
-	    options.verbosity < VERB_LEGACY) {
+	    options.verbosity < VERB_DEBUG) {
 		rules_mute = 1;
 		if (john_main_process) {
 			log_event(
 "- Some rule logging suppressed. Re-enable with --verbosity=%d or greater",
-			          VERB_LEGACY);
+			          VERB_DEBUG);
 		}
 	}
 	return count1;

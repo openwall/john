@@ -896,12 +896,12 @@ static void single_run(void)
 		if (rules_stacked_after) {
 			saved_min[0] = rule_number = 0;
 			rpp_init(rule_ctx, options.activesinglerules);
-			if (!rules_mute && options.verbosity <= VERB_DEFAULT) {
+			if (!rules_mute && options.verbosity < VERB_DEBUG) {
 				rules_mute = 1;
 				if (john_main_process) {
 					log_event(
 "- Some rule logging suppressed. Re-enable with --verbosity=%d or greater",
-					          VERB_LEGACY);
+					          VERB_DEBUG);
 				}
 			}
 		}
