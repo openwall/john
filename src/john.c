@@ -1,8 +1,9 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2024 by Solar Designer
- *
- * ...with changes in jumbo by JimF, magnum, Claudio, and several others
+ * Copyright (c) 2009-2025, magnum
+ * Copyright (c) 2021, Claudio
+ * Copyright (c) 2009-2018, JimF
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -1947,6 +1948,7 @@ static void john_done(void)
 			/* We already printed to stderr from signals.c */
 			log_event("%s", abort_msg);
 		} else if (children_ok) {
+			log_event("Candidates tried: %"PRIu64"p", status.cands);
 			log_event("Session completed");
 			if (john_main_process) {
 				fprintf(stderr, "Session completed. %s\n", mode_exit_message);
