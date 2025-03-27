@@ -1858,6 +1858,13 @@ char *rules_process_stack_all(char *key, rule_stack *ctx)
 		if (!stack_rules_mute)
 			log_event("+ Stacked Rule #%u: '%.100s' accepted",
 			          rules_stacked_number + 1, ctx->rule->data);
+	} else {
+		if ((ctx->rule = ctx->rule->next)) {
+			rules_stacked_number++;
+			if (!stack_rules_mute)
+				log_event("+ Stacked Rule #%u: '%.100s' accepted",
+				          rules_stacked_number + 1, ctx->rule->data);
+		}
 	}
 
 	rules_stacked_after = 0;
