@@ -1,8 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003,2005,2009,2010,2015,2016 by Solar Designer
- *
- * With heavy changes in Jumbo, by JimF and magnum
+ * Copyright (c) 2009-2025, magnum
+ * Copyright (c) 2009-2018, JimF
  */
 
 #include <stdio.h>
@@ -1855,28 +1855,22 @@ char *rules_process_stack_all(char *key, rule_stack *ctx)
 	if (!ctx->rule) {
 		ctx->rule = ctx->stack_rule->head;
 		rules_stacked_number = 0;
-		if (!stack_rules_mute)
-			log_event("+ Stacked Rule #%u: '%.100s' accepted",
-			          rules_stacked_number + 1, ctx->rule->data);
 	} else {
 		if ((ctx->rule = ctx->rule->next)) {
 			rules_stacked_number++;
-			if (!stack_rules_mute)
-				log_event("+ Stacked Rule #%u: '%.100s' accepted",
-				          rules_stacked_number + 1, ctx->rule->data);
 		}
 	}
 
 	rules_stacked_after = 0;
 
 	while (ctx->rule) {
+		if (!stack_rules_mute)
+			log_event("+ Stacked Rule #%u: '%.100s' accepted",
+			          rules_stacked_number + 1, ctx->rule->data);
 		if ((word = rules_apply(key, ctx->rule->data, -1)))
 			return word;
 		if ((ctx->rule = ctx->rule->next)) {
 			rules_stacked_number++;
-			if (!stack_rules_mute)
-			    log_event("+ Stacked Rule #%u: '%.100s' accepted",
-			          rules_stacked_number + 1, ctx->rule->data);
 		}
 	}
 
