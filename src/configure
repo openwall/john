@@ -9224,10 +9224,7 @@ ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
     SIMD_NAME="Altivec2"
     ;;
-    avx512|avx512bw)
-    SIMD_NAME="AVX512BW"
-    { $as_echo "$as_me:${as_lineno-$LINENO}: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&5
-$as_echo "$as_me: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&6;}
+  avx512)
     if test 2 -gt 0; then :
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking if $CC supports -mavx512bw -mavx512vl -mavx512dq w/ linking" >&5
 $as_echo_n "checking if $CC supports -mavx512bw -mavx512vl -mavx512dq w/ linking... " >&6; }
@@ -9278,8 +9275,9 @@ ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
 
+    SIMD_NAME="AVX-512"
     ;;
-  mmx|sse*|ssse3|avx*|xop*)
+    mmx|sse*|ssse3|avx*|xop*)
     SIMD_NAME=`echo $simd | tr a-z A-Z`
     { $as_echo "$as_me:${as_lineno-$LINENO}: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&5
 $as_echo "$as_me: Trying to force $SIMD_NAME using default method (--enable-simd=$simd)." >&6;}
@@ -11564,7 +11562,7 @@ extern int CPU_detect(void); extern char CPU_req_name[];
 _ACEOF
 if ac_fn_c_try_run "$LINENO"; then :
   CPU_BEST_FLAGS="-mavx512bw -mavx512vl -mavx512dq"
-     SIMD_NAME="AVX512BW"
+     SIMD_NAME="AVX-512"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -11890,7 +11888,7 @@ $as_echo_n "checking for AVX512BW + AVX512VL + AVX512DQ... " >&6; }
 _ACEOF
 if ac_fn_c_try_link "$LINENO"; then :
   CPU_BEST_FLAGS="-mavx512bw -mavx512vl -mavx512dq"
-     SIMD_NAME="AVX512BW"
+     SIMD_NAME="AVX-512"
      { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
@@ -15353,7 +15351,11 @@ fi
 rm -f confcache
 
 if test "x$simd" != xno ; then
-  CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${SIMD_NAME} | tr .a-z _A-Z)
+  if test "x$SIMD_NAME" == "xAVX-512"; then
+    CPU_BEST_FLAGS_MAIN+="-DJOHN_AVX512BW"
+  else
+    CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${SIMD_NAME} | tr .a-z _A-Z)
+  fi
 fi
 
 CC_CPU="${CPU_BEST_FLAGS}"

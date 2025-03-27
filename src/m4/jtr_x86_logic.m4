@@ -282,7 +282,7 @@ if test "x$simd" != xno; then
       int main(int argc, char **argv) { return !CPU_detect(); }
     ]])],
      [CPU_BEST_FLAGS="-mavx512bw -mavx512vl -mavx512dq"]
-     [SIMD_NAME="AVX512BW"]
+     [SIMD_NAME="AVX-512"]
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
     )
@@ -488,7 +488,7 @@ dnl ======================================================================
                    __m128i u, t1;*((long long*)&u)=1;t1=u;u=_mm_rol_epi32(t1,1);if((*(long long*)&t)==88)printf(".");exit(ret_value);}]]
     )]
     ,[CPU_BEST_FLAGS="-mavx512bw -mavx512vl -mavx512dq"]
-     [SIMD_NAME="AVX512BW"]
+     [SIMD_NAME="AVX-512"]
      [AC_MSG_RESULT([yes])]
     ,[AC_MSG_RESULT([no])]
     )

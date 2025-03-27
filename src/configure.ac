@@ -438,12 +438,11 @@ case "$simd" in
     JTR_FLAG_CHECK_LINK([-mpower8vector], 2)
     SIMD_NAME="Altivec2"
     ;;
-  dnl Handle known cases of --enable-simd=foo --> -mfoo
-  avx512|avx512bw)
-    SIMD_NAME="AVX512BW"
-    AC_MSG_NOTICE([Trying to force $SIMD_NAME using default method (--enable-simd=$simd).])
+  avx512)
     JTR_FLAG_CHECK_LINK([-mavx512bw -mavx512vl -mavx512dq], 2)
+    SIMD_NAME="AVX-512"
     ;;
+  dnl Handle known cases of --enable-simd=foo --> -mfoo
   mmx|sse*|ssse3|avx*|xop*)
     SIMD_NAME=`echo $simd | tr a-z A-Z`
     AC_MSG_NOTICE([Trying to force $SIMD_NAME using default method (--enable-simd=$simd).])
@@ -907,7 +906,11 @@ AC_CHECK_FUNCS([posix_memalign aligned_alloc memalign __mingw_aligned_malloc _al
 AC_CACHE_SAVE
 
 if test "x$simd" != xno ; then
-  CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${SIMD_NAME} | tr .a-z _A-Z)
+  if test "x$SIMD_NAME" == "xAVX-512"; then
+    CPU_BEST_FLAGS_MAIN+="-DJOHN_AVX512BW"
+  else
+    CPU_BEST_FLAGS_MAIN=-DJOHN_$(echo ${SIMD_NAME} | tr .a-z _A-Z)
+  fi
 fi
 
 AC_SUBST([CC_CPU],["${CPU_BEST_FLAGS}"])
