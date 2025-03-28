@@ -149,6 +149,10 @@ static void *get_salt(char *ciphertext)
 	cs.type = atoi(p);
 	p = strtokm(NULL, "*");
 	cs.ctlen = strlen(p) / 2;
+	if (cs.type == 0) {
+		p += 2 * (cs.ctlen - 32);
+		cs.ctlen = 32;
+	}
 	for (i = 0; i < cs.ctlen; i++)
 		cs.ct[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
 
