@@ -21,7 +21,7 @@ struct fmt_main fmt_bitshares;
 #include <omp.h>
 #endif
 
-#define OMP_SCALE               32  // MKPC and OMP_SCALE tuned on i5-6500 CPU
+#define OMP_SCALE               4
 
 #include "formats.h"
 #include "misc.h"
@@ -45,7 +45,7 @@ struct fmt_main fmt_bitshares;
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      16
+#define MAX_KEYS_PER_CRYPT      1024
 
 #define MAX_CIPHERTEXT_LENGTH   1024
 
@@ -64,7 +64,9 @@ static struct fmt_tests tests[] = {
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *saved_len;
-static int any_cracked, *cracked;
+static AES_KEY *saved_aes_key;
+static unsigned char (*saved_hash)[32];
+static int keys_changed, any_cracked, *cracked;
 static size_t cracked_size;
 
 static secp256k1_context *ctxs;
@@ -81,9 +83,11 @@ static void init(struct fmt_main *self)
 	omp_autotune(self, OMP_SCALE);
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
+	saved_aes_key = mem_calloc(sizeof(*saved_aes_key), self->params.max_keys_per_crypt);
+	saved_hash = mem_calloc(sizeof(*saved_hash), self->params.max_keys_per_crypt);
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
-	any_cracked = 0;
 	cracked = mem_calloc(cracked_size, 1);
+	keys_changed = any_cracked = 0;
 
 	ctxs = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 }
@@ -92,6 +96,8 @@ static void done(void)
 {
 	MEM_FREE(saved_key);
 	MEM_FREE(saved_len);
+	MEM_FREE(saved_aes_key);
+	MEM_FREE(saved_hash);
 	MEM_FREE(cracked);
 
 	secp256k1_context_destroy(ctxs);
@@ -179,6 +185,7 @@ static void set_salt(void *salt)
 static void set_key(char *key, int index)
 {
 	saved_len[index] = strnzcpyn(saved_key[index], key, PLAINTEXT_LENGTH + 1);
+	keys_changed = 3;
 }
 
 static char *get_key(int index)
@@ -212,17 +219,19 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++) {
 		SHA512_CTX ctx;
-		AES_KEY aes_decrypt_key;
 		unsigned char km[64], iv[16], out[16];
 
 		if (cur_salt->type == 0) {
-			SHA512_Init(&ctx);
-			SHA512_Update(&ctx, saved_key[index], saved_len[index]);
-			SHA512_Final(km, &ctx);
+			if (keys_changed & 1) {
+				SHA512_Init(&ctx);
+				SHA512_Update(&ctx, saved_key[index], saved_len[index]);
+				SHA512_Final(km, &ctx);
 
-			AES_set_decrypt_key(km, 256, &aes_decrypt_key);
+				AES_set_decrypt_key(km, 256, &saved_aes_key[index]);
+			}
+
 			memcpy(iv, cur_salt->ct, 16);
-			AES_cbc_encrypt(cur_salt->ct + 16, out, 16, &aes_decrypt_key, iv, AES_DECRYPT);
+			AES_cbc_encrypt(cur_salt->ct + 16, out, 16, &saved_aes_key[index], iv, AES_DECRYPT);
 
 			if (out[0] == 16 && memcmp(out, "\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10", 16) == 0) {
 				cracked[index] = 1;
@@ -232,18 +241,21 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				any_cracked |= 1;
 			}
 		} else {
+			AES_KEY aes_decrypt_key;
 			secp256k1_pubkey pubkey;
 			SHA256_CTX sctx;
 			unsigned char output[128];
 			size_t outlen = 33;
 			int padbyte;
 
-			SHA256_Init(&sctx);
-			SHA256_Update(&sctx, saved_key[index], saved_len[index]);
-			SHA256_Final(km, &sctx);
+			if (keys_changed & 2) {
+				SHA256_Init(&sctx);
+				SHA256_Update(&sctx, saved_key[index], saved_len[index]);
+				SHA256_Final(saved_hash[index], &sctx);
+			}
 
 			pubkey = cur_salt->pubkey;
-			secp256k1_ec_pubkey_tweak_mul(ctxs, &pubkey, km);
+			secp256k1_ec_pubkey_tweak_mul(ctxs, &pubkey, saved_hash[index]);
 			secp256k1_ec_pubkey_serialize(ctxs, output, &outlen, &pubkey, SECP256K1_EC_UNCOMPRESSED);
 
 			SHA512_Init(&ctx);
@@ -288,6 +300,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			}
 		}
 	}
+
+	keys_changed &= ~(1 << cur_salt->type);
 
 	return count;
 }
