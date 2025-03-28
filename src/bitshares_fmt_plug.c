@@ -13,6 +13,7 @@ extern struct fmt_main fmt_bitshares;
 #elif FMT_REGISTERS_H
 john_register_one(&fmt_bitshares);
 #else
+struct fmt_main fmt_bitshares;
 
 #include <string.h>
 
@@ -263,13 +264,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					SHA256_Init(&sctx);
 					SHA256_Update(&sctx, out_full + 4, dlen - 4 - padbyte);
 					SHA256_Final(km, &sctx);
-					if (memcmp(km, out_full, 4) == 0) {
+					if (padbyte >= 6 || memcmp(km, out_full, 4) == 0) {
 						cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
 #endif
 						any_cracked |= 1;
 
+						if (memcmp(km, out_full, 4) != 0) {
+							fprintf(stderr, "Warning: " FORMAT_LABEL ": Good padding, but bad checksum"
+							    " (corrupted data or false positive?) - will keep guessing\n");
+							fmt_bitshares.params.flags |= FMT_NOT_EXACT;
+						}
 					}
 				}
 			}
