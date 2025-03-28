@@ -112,12 +112,19 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "*")) == NULL)   // ciphertext
 		goto err;
 	value = hexlenl(p, &extra);
-	if (type == 0) {
-		if (value > MAX_CIPHERTEXT_LENGTH * 2 || value < 32 * 2 || extra)
+	if (value > MAX_CIPHERTEXT_LENGTH * 2 || extra)
+		goto err;
+	switch (type) {
+	case 0:
+		if (value < 32 * 2 || (value & 31))
 			goto err;
-	} else {
-		if (value > MAX_CIPHERTEXT_LENGTH * 2 || value < 256 * 2 || extra)  // rough check!
+		break;
+	case 1:
+		if (value < 256 * 2 || ((value - 66) & 31)) // rough check!
 			goto err;
+		break;
+	default:
+		goto err;
 	}
 
 	MEM_FREE(keeptr);
