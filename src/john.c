@@ -1954,6 +1954,9 @@ static void john_done(void)
 			/* We already printed to stderr from signals.c */
 			log_event("%s", abort_msg);
 		} else if (children_ok) {
+			log_event("Candidates tried: %"PRIu64"p", status.cands);
+			log_event("Suppressor's hits: %llu", status.suppressor_hit);
+			log_event("Suppressor's misses: %llu", status.suppressor_miss);
 			log_event("Session completed");
 			if (john_main_process) {
 				fprintf(stderr, "Session completed. %s\n", mode_exit_message);
