@@ -34,6 +34,12 @@
 #define mask40 0x40404040
 #define mask80 0x80808080
 
+/*
+ * LUT3 did not do any good in our testing (2025-03) and the binary size
+ * for DEScrypt kernel grew a little, so this is defined out for now.
+ */
+#undef HAVE_LUT3
+
 #if HAVE_LUT3
 #define kvand_or(dst, src, mask)			\
 	dst = vlut3(dst, src, mask, 0xf8)
