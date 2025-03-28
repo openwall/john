@@ -4,94 +4,57 @@
  *
  * O5LOGON is used since version 11g. CVE-2012-3137 applies to Oracle 11.1
  * and 11.2 databases. Oracle has "fixed" the problem in version 11.2.0.3.
+ * Oracle 12 support is now added as well.
  *
- * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * This software is
+ * Copyright (c) 2025 magnum
+ * Copyright (c) 2014 Harrison Neal
+ * Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
  */
 
-/*
- * Modifications (c) 2014 Harrison Neal.
- *
- * SHA-1 hashes are now computed with OpenCL.
- * Modifications are based on opencl_rawsha1_fmt.c and sha1_kernel.cl
- * and thus are licensed under the GPLv2.
- * Original files are (c) 2011 Samuele Giovanni Tonon and (c) 2012 magnum.
- */
-
 #ifdef HAVE_OPENCL
 
-#if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_o5logon;
-#elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_o5logon);
+#define FORMAT_STRUCT fmt_opencl_o5logon
+
+#if FMT_REGISTERS_H
+john_register_one(&FORMAT_STRUCT);
 #else
+extern struct fmt_main FORMAT_STRUCT;
 
-#include <string.h>
-
-#include "arch.h"
-#include "sha.h"
-#include "misc.h"
-#include "common.h"
-#include "formats.h"
-#include "params.h"
-#include "options.h"
+#include "o5logon_common.h"
 #include "opencl_common.h"
+#include "mask_ext.h"
+#include "opencl_helper_macros.h"
 
-#define FORMAT_LABEL            "o5logon-opencl"
-#define FORMAT_NAME             "Oracle O5LOGON protocol"
-#define FORMAT_TAG              "$o5logon$"
-#define FORMAT_TAG_LEN          (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME          "SHA1 AES OpenCL"
-#define BENCHMARK_COMMENT       ""
-#define BENCHMARK_LENGTH        0x107
-#define PLAINTEXT_LENGTH        32
-#define CIPHERTEXT_LENGTH       48
-#define SALT_LENGTH             10
-#define BINARY_SIZE             0
-#define SALT_SIZE               sizeof(struct custom_salt)
-#define BINARY_ALIGN            1
-#define SALT_ALIGN              MEM_ALIGN_WORD
-
-#define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1
-
-static struct fmt_tests o5logon_tests[] = {
-	{"$o5logon$566499330E8896301A1D2711EFB59E756D41AF7A550488D82FE7C8A418E5BE08B4052C0DC404A805C1D7D43FE3350873*4F739806EBC1D7742BC6", "password"},
-	{"$o5logon$3BB71A77E1DBB5FFCCC8FC8C4537F16584CB5113E4CCE3BAFF7B66D527E32D29DF5A69FA747C4E2C18C1837F750E5BA6*4F739806EBC1D7742BC6", "password"},
-	{"$o5logon$ED91B97A04000F326F17430A65DACB30CD1EF788E6EC310742B811E32112C0C9CC39554C9C01A090CB95E95C94140C28*7FD52BC80AA5836695D4", "test1"},
-	{"$o5logon$B7711CC7E805520CEAE8C1AC459F745639E6C9338F192F92204A9518B226ED39851C154CB384E4A58C444A6DF26146E4*3D14D54520BC9E6511F4", "openwall"},
-	{"$o5logon$76F9BBAEEA9CF70F2A660A909F85F374F16F0A4B1BE1126A062AE9F0D3268821EF361BF08EBEF392F782F2D6D0192FD6*3D14D54520BC9E6511F4", "openwall"},
-	{NULL}
-};
-
-static struct custom_salt {
-	// Change the below to round up to the nearest uint boundary
-	unsigned char salt[((SALT_LENGTH + 3)/4)*4]; /* AUTH_VFR_DATA */
-	unsigned char ct[CIPHERTEXT_LENGTH]; /* AUTH_SESSKEY */
-} cur_salt;
+#define FORMAT_LABEL        "o5logon-opencl"
+#define ALGORITHM_NAME      "MD5 SHA1 AES OpenCL"
+#define MIN_KEYS_PER_CRYPT  1
+#define MAX_KEYS_PER_CRYPT  1
 
 // Shared auto-tune stuff
-#define STEP                    0
-#define SEED                    65536
-#define ROUNDS                  1
+#define STEP                0
+#define SEED                1024
+#define ROUNDS              1
 
 static const char * warn[] = {
-	"pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", result xfer: "
+	"pass xfer: ",  ", index xfer: ",  ", crypt: ",  ", res xfer: "
 };
 
-// Maximum UINT32s used by plaintext being SHA1'd
-#define BUFSIZE                         ((PLAINTEXT_LENGTH+3)/4*4)
+static char *key_buf;
+static unsigned int *key_idx, key_buf_end;
+static unsigned int crack_count_ret, *out_index;
+static size_t key_offset, idx_offset;
+static cl_mem cl_key_buf, cl_key_idx, cl_salt, cl_crack_count_ret, cl_out_index;
+static cl_mem pinned_key_buf, pinned_key_idx, pinned_out_index;
+static cl_mem pinned_saved_int_key_loc, cl_buffer_int_keys, cl_saved_int_key_loc;
+static cl_uint *saved_int_key_loc;
+static int static_gpu_locations[MASK_FMT_INT_PLHDR];
+static const cl_uint zero = 0;
 
-static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_result, buffer_out;
-static cl_mem buffer_keys, buffer_idx;
-static cl_mem salt_buffer;
-static cl_uint *result;
 static int new_keys;
-static unsigned int *saved_plain, *saved_idx;
-static unsigned int key_idx;
-static struct fmt_main *self;
 
 #include "opencl_autotune.h" // Must come after auto-tune definitions
 
@@ -106,56 +69,39 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 {
 	release_clobj();
 
-	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	saved_plain = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_keys, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, BUFSIZE * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_plain");
+	CLCREATEPINNED(key_buf, CL_RO, PLAINTEXT_LENGTH * gws);
+	CLCREATEPINNED(key_idx, CL_RO, sizeof(cl_uint) * (gws + 1));
+	CLCREATEPINNED(out_index, CL_RW, sizeof(cl_uint) * gws * mask_int_cand.num_int_cand);
+	CLCREATEBUFFER(cl_salt, CL_RO, sizeof(o5logon_salt));
+	CLCREATEBUFFER(cl_crack_count_ret, CL_RW, sizeof(cl_uint));
 
-	pinned_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, 4 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_saved_idx");
-	saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_saved_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, 4 * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_idx");
+	/* For GPU-side mask */
+	CLCREATEPINNED(saved_int_key_loc, CL_RO, sizeof(cl_uint) * gws);
+	CLCREATEBUFCOPY(cl_buffer_int_keys, CL_RO, 4 * mask_int_cand.num_int_cand,
+	                mask_int_cand.int_cand ? mask_int_cand.int_cand : (void*)&zero);
 
-	pinned_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory");
-	result = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory result");
+	crack_count_ret = 0;
+	CLWRITE(cl_crack_count_ret, CL_TRUE, 0, sizeof(cl_uint), &crack_count_ret, NULL);
 
-	buffer_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, BUFSIZE * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer keys argument");
-	buffer_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, 4 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_idx");
-
-	// Modification to add salt buffer
-	salt_buffer = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cur_salt), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument salt");
-
-	buffer_out = clCreateBuffer(context[gpu_id], CL_MEM_WRITE_ONLY, sizeof(cl_uint) * 5 * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer out argument");
-
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(buffer_keys), (void *) &buffer_keys), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(salt_buffer), (void *) &salt_buffer), "Error setting argument 1");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(buffer_idx), (void *) &buffer_idx), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(buffer_out), (void *) &buffer_out), "Error setting argument 3");
+	CLKERNELARG(crypt_kernel, 0, cl_key_buf);
+	CLKERNELARG(crypt_kernel, 1, cl_key_idx);
+	CLKERNELARG(crypt_kernel, 2, cl_salt);
+	CLKERNELARG(crypt_kernel, 3, cl_crack_count_ret);
+	CLKERNELARG(crypt_kernel, 4, cl_out_index);
+	CLKERNELARG(crypt_kernel, 5, cl_saved_int_key_loc);
+	CLKERNELARG(crypt_kernel, 6, cl_buffer_int_keys);
 }
 
 static void release_clobj(void)
 {
-	if (pinned_result) {
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, result, 0,NULL,NULL), "Error Unmapping result");
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_keys, saved_plain, 0, NULL, NULL), "Error Unmapping saved_plain");
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_saved_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
-		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
-
-		HANDLE_CLERROR(clReleaseMemObject(buffer_keys), "Error Releasing buffer_keys");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_idx), "Error Releasing buffer_idx");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_out), "Error Releasing buffer_out");
-		HANDLE_CLERROR(clReleaseMemObject(salt_buffer), "Error Releasing salt_buffer");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_idx), "Error Releasing pinned_saved_idx");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_saved_keys), "Error Releasing pinned_saved_keys");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Error Releasing pinned_result");
-
-		pinned_result = NULL;
+	if (cl_salt) {
+		CLRELEASEPINNED(out_index);
+		CLRELEASEPINNED(key_buf);
+		CLRELEASEPINNED(key_idx);
+		CLRELEASEPINNED(saved_int_key_loc);
+		CLRELEASEBUFFER(cl_crack_count_ret);
+		CLRELEASEBUFFER(cl_salt);
+		CLRELEASEBUFFER(cl_buffer_int_keys);
 	}
 }
 
@@ -167,152 +113,238 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(crypt_kernel), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
+		crypt_kernel = NULL;
 		program[gpu_id] = NULL;
 	}
 }
 
-static void init(struct fmt_main *_self)
+static void init(struct fmt_main *self)
 {
-	self = _self;
-
 	opencl_prepare_dev(gpu_id);
+
+	// Tuned on 2080ti
+	mask_int_cand_target = opencl_speed_index(gpu_id) / 2048;
 }
 
 static void reset(struct db_main *db)
 {
-	if (!program[gpu_id]) {
-		opencl_init("$JOHN/opencl/o5logon_kernel.cl", gpu_id, NULL);
+	char build_opts[256];
+	size_t gws_limit = UINT_MAX / PLAINTEXT_LENGTH;
+	int i;
 
-		// create kernel to execute
-		crypt_kernel = clCreateKernel(program[gpu_id], "o5logon_kernel", &ret_code);
-		HANDLE_CLERROR(ret_code, "Error creating kernel. Double-check kernel name?");
+	if (crypt_kernel)
+		done();
+
+	for (i = 0; i < MASK_FMT_INT_PLHDR; i++)
+		if (mask_skip_ranges && mask_skip_ranges[i] != -1)
+			static_gpu_locations[i] = mask_int_cand.int_cpu_mask_ctx->
+				ranges[mask_skip_ranges[i]].pos;
+		else
+			static_gpu_locations[i] = -1;
+
+	snprintf(build_opts, sizeof(build_opts),
+	         "-DPLAINTEXT_LENGTH=%u -DCIPHERTEXT_LENGTH=%u -DSALT_LENGTH=%u"
+	         " -DLOC_0=%d"
+#if MASK_FMT_INT_PLHDR > 1
+	         " -DLOC_1=%d"
+#endif
+#if MASK_FMT_INT_PLHDR > 2
+	         " -DLOC_2=%d"
+#endif
+#if MASK_FMT_INT_PLHDR > 3
+	         " -DLOC_3=%d"
+#endif
+	         " -DNUM_INT_KEYS=%u -DIS_STATIC_GPU_MASK=%d",
+	         PLAINTEXT_LENGTH,
+	         CIPHERTEXT_LENGTH,
+	         SALT_LENGTH,
+	         static_gpu_locations[0],
+#if MASK_FMT_INT_PLHDR > 1
+	         static_gpu_locations[1],
+#endif
+#if MASK_FMT_INT_PLHDR > 2
+	         static_gpu_locations[2],
+#endif
+#if MASK_FMT_INT_PLHDR > 3
+	         static_gpu_locations[3],
+#endif
+	         mask_int_cand.num_int_cand, mask_gpu_is_static
+		);
+
+	if (!program[gpu_id])
+		opencl_init("$JOHN/opencl/o5logon_kernel.cl", gpu_id, build_opts);
+
+	/* create kernels to execute */
+	if (!crypt_kernel)
+		CLCREATEKERNEL(crypt_kernel, "o5logon_kernel");
+
+	// Initialize openCL tuning (library) for this format.
+	opencl_init_auto_setup(SEED, 0, NULL, warn, 2, &FORMAT_STRUCT, create_clobj,
+	                       release_clobj, PLAINTEXT_LENGTH, gws_limit, db);
+
+	// Auto tune execution from shared/included code.
+	autotune_run(&FORMAT_STRUCT, 1, gws_limit, 200);
+}
+
+static void clear_keys(void)
+{
+	key_buf_end = 0;
+	key_idx[0] = 0;
+	key_offset = 0;
+	idx_offset = 0;
+}
+
+static void set_key(char *key, int index)
+{
+	if (mask_int_cand.num_int_cand > 1 && !mask_gpu_is_static) {
+		int i;
+
+		saved_int_key_loc[index] = 0;
+		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
+			if (mask_skip_ranges[i] != -1)  {
+				saved_int_key_loc[index] |= ((mask_int_cand.
+				int_cpu_mask_ctx->ranges[mask_skip_ranges[i]].offset +
+				mask_int_cand.int_cpu_mask_ctx->
+				ranges[mask_skip_ranges[i]].pos) & 0xff) << (i << 3);
+			}
+			else
+				saved_int_key_loc[index] |= 0x80 << (i << 3);
+		}
 	}
 
-	// Current key_idx can only hold 26 bits of offset so
-	// we can't reliably use a GWS higher than 4M or so.
-	size_t gws_limit = MIN((1 << 26) * 4 / BUFSIZE,
-	                       get_max_mem_alloc_size(gpu_id) / BUFSIZE);
+	//printf("\n%s(%d) '%s'\n", __FUNCTION__, index, key);
 
-	//Initialize openCL tuning (library) for this format.
-	opencl_init_auto_setup(SEED, 0, NULL, warn, 2,
-	                       self, create_clobj, release_clobj,
-	                       2 * BUFSIZE, gws_limit, db);
+	while (*key)
+		key_buf[key_buf_end++] = *key++;
 
-	//Auto tune execution from shared/included code.
-	autotune_run(self, ROUNDS, gws_limit, 200);
+	key_idx[index + 1] = key_buf_end;
+	new_keys = 1;
+
+	/* Early partial transfer to GPU */
+	if (index && !(index & (256 * 1024 - 1))) {
+		CLWRITE(cl_key_buf, CL_FALSE, key_offset, key_buf_end - key_offset, key_buf + key_offset, NULL);
+		CLWRITE(cl_key_idx, CL_FALSE, idx_offset, 4 * (index + 2) - idx_offset, key_idx + (idx_offset / 4), NULL);
+
+		if (!mask_gpu_is_static)
+			CLWRITE(cl_saved_int_key_loc, CL_FALSE, idx_offset, 4 * (index + 1) - idx_offset, saved_int_key_loc + (idx_offset / 4), NULL);
+
+		HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
+
+		key_offset = key_buf_end;
+		idx_offset = 4 * (index + 1);
+		new_keys = 0;
+	}
 }
 
-static int valid(char *ciphertext, struct fmt_main *self)
+static char *get_key(int index)
 {
-	char *ctcopy;
-	char *keeptr;
-	char *p;
-	int extra;
-	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN))
-		return 0;
-	ctcopy = xstrdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LEN;
-	if ((p = strtokm(ctcopy, "*")) == NULL) /* ciphertext */
-		goto err;
-	if (hexlenu(p, &extra) != CIPHERTEXT_LENGTH * 2 || extra)
-		goto err;
-	if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
-		goto err;
-	if (hexlenu(p, &extra) != SALT_LENGTH * 2 || extra)
-		goto err;
-	MEM_FREE(keeptr);
-	return 1;
+	static char out[PLAINTEXT_LENGTH + 1];
+	char *key;
+	int i, len;
+	int int_index = 0;
 
-err:
-	MEM_FREE(keeptr);
-	return 0;
-}
+	if (crack_count_ret)
+		index = out_index[index];
+	if (mask_int_cand.num_int_cand) {
+		int_index = index % mask_int_cand.num_int_cand;
+		index /= mask_int_cand.num_int_cand;
+	}
 
-static void *get_salt(char *ciphertext)
-{
-	char *ctcopy = xstrdup(ciphertext);
-	char *keeptr = ctcopy;
-	char *p;
-	int i;
-	static struct custom_salt cs;
+	key = &key_buf[key_idx[index]];
+	len = key_idx[index + 1] - key_idx[index];
 
-	memset(&cs, 0, sizeof(cs));
-	ctcopy += FORMAT_TAG_LEN;	/* skip over "$o5logon$" */
-	p = strtokm(ctcopy, "*");
-	for (i = 0; i < CIPHERTEXT_LENGTH; i++)
-		cs.ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	p = strtokm(NULL, "*");
-	for (i = 0; i < SALT_LENGTH; i++)
-		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	for (i = 0; i < len; i++)
+		out[i] = *key++;
+	out[i] = 0;
 
-	cs.salt[SALT_LENGTH] = 0x80;
-	memset(&cs.salt[SALT_LENGTH+1], 0, sizeof(cs.salt)-(SALT_LENGTH+1));
+	/* Re-apply GPU-side mask */
+	if (len && mask_skip_ranges && mask_int_cand.num_int_cand > 1) {
+		for (i = 0; i < MASK_FMT_INT_PLHDR && mask_skip_ranges[i] != -1; i++)
+			if (mask_gpu_is_static)
+				out[static_gpu_locations[i]] =
+					mask_int_cand.int_cand[int_index].x[i];
+			else
+				out[(saved_int_key_loc[index] & (0xff << (i * 8))) >> (i * 8)] =
+					mask_int_cand.int_cand[int_index].x[i];
+	}
 
-	MEM_FREE(keeptr);
-	return (void *)&cs;
+	return out;
 }
 
 static void set_salt(void *salt)
 {
-	memcpy(&cur_salt, salt, sizeof(cur_salt));
-
-	HANDLE_CLERROR(
-		clEnqueueWriteBuffer(queue[gpu_id], salt_buffer, CL_FALSE, 0,
-		                     sizeof(cur_salt), &cur_salt, 0, NULL, NULL),
-		"Error updating contents of salt_buffer");
-
-	HANDLE_CLERROR(
-		clFlush(queue[gpu_id]),
-		"Failed in clFlush");
+	CLWRITE(cl_salt, CL_FALSE, 0, sizeof(o5logon_salt), salt, NULL);
+	CLFLUSH();
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	const int count = *pcount;
-	size_t gws;
+	int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
+	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
 
-	gws = GET_NEXT_MULTIPLE(count, local_work_size);
+	*pcount *= mask_int_cand.num_int_cand;
 
-	if (new_keys && key_idx) {
-		BENCH_CLERROR(
-			clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, 0, 4 * key_idx, saved_plain, 0, NULL, multi_profilingEvent[0]),
-			"failed in clEnqueueWriteBuffer buffer_keys");
+	//printf("\n%s(%d) %zu/%zu\n", __FUNCTION__, count, gws, local_work_size);
+	if (new_keys) {
+		/* Self-test kludge */
+		if (idx_offset > 4 * (count + 1))
+			idx_offset = 0;
 
-		BENCH_CLERROR(
-			clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, 0, 4 * gws, saved_idx, 0, NULL, multi_profilingEvent[1]),
-			"failed in clEnqueueWriteBuffer buffer_idx");
+		/* Safety for when count < GWS */
+		for (int i = count; i <= gws; i++)
+			key_idx[i] = key_buf_end;
+
+		CLWRITE_CRYPT(cl_key_buf, CL_FALSE, key_offset, key_buf_end - key_offset, key_buf + key_offset, multi_profilingEvent[0]);
+		CLWRITE_CRYPT(cl_key_idx, CL_FALSE, idx_offset, 4 * (gws + 1) - idx_offset, key_idx + (idx_offset / 4), multi_profilingEvent[1]);
+
+		if (!mask_gpu_is_static)
+			CLWRITE_CRYPT(cl_saved_int_key_loc, CL_FALSE, idx_offset, 4 * gws - idx_offset, saved_int_key_loc + (idx_offset / 4), NULL);
 
 		new_keys = 0;
 	}
 
-	BENCH_CLERROR(
-		clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]),
-		"failed in clEnqueueNDRangeKernel");
+	WAIT_INIT(gws)
+	BENCH_CLERROR(clEnqueueNDRangeKernel(queue[gpu_id], crypt_kernel, 1, NULL, &gws, lws, 0, NULL, multi_profilingEvent[2]), "Failed running crypt kernel");
+	CLFLUSH();
+	WAIT_SLEEP
+	WAIT_UPDATE
+	CLREAD_CRYPT(cl_crack_count_ret, CL_TRUE, 0, sizeof(cl_uint), &crack_count_ret, multi_profilingEvent[3]);
+	WAIT_DONE
 
-	BENCH_CLERROR(
-		clEnqueueReadBuffer(queue[gpu_id], buffer_out, CL_TRUE, 0, sizeof(cl_uint) * gws, result, 0, NULL, multi_profilingEvent[3]),
-		"failed in reading data back");
+	if (crack_count_ret) {
+		/*
+		 * This is benign - may happen when gws > count due to
+		 * GET_NEXT_MULTIPLE(), particularly during self-test.
+		 */
+		if (crack_count_ret > *pcount)
+			crack_count_ret = *pcount;
 
-	return count;
+		CLREAD_CRYPT(cl_out_index, CL_TRUE, 0, sizeof(cl_uint) * crack_count_ret, out_index, NULL);
+
+		CLWRITE_CRYPT(cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &zero, NULL);
+	}
+
+	return crack_count_ret;
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int i;
-
-	for (i = 0; i < count; i++)
-		if (result[i])
-			return 1;
-	return 0;
+	return count;
 }
 
+/*
+ * This confuses me at times, so documenting for myself:
+ * If we got here, it's *always* a crack - but the 'index' is a mapped one.
+ * So how does core know /what/ hash is cracked? Simple - this is a salt-only
+ * format with no binary so there can only be one!
+ * The subsequent call to get_key() will map the out-index back to original
+ * and re-apply the GPU-side mask so we know what candidate cracked it.
+ * -- magnum
+ */
 static int cmp_one(void *binary, int index)
 {
-	return result[index];
+	return crack_count_ret;
 }
 
 static int cmp_exact(char *source, int index)
@@ -320,41 +352,7 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
-static void clear_keys(void)
-{
-	key_idx = 0;
-}
-
-static void set_key(char *_key, int index)
-{
-	const uint32_t *key = (uint32_t*)_key;
-	int len = strlen(_key);
-
-	saved_idx[index] = (key_idx << 6) | len;
-
-	while (len > 4) {
-		saved_plain[key_idx++] = *key++;
-		len -= 4;
-	}
-	if (len)
-		saved_plain[key_idx++] = *key & (0xffffffffU >> (32 - (len << 3)));
-
-	new_keys = 1;
-}
-
-static char *get_key(int index)
-{
-	static char out[PLAINTEXT_LENGTH + 1];
-	int i, len = saved_idx[index] & 63;
-	char *key = (char*)&saved_plain[saved_idx[index] >> 6];
-
-	for (i = 0; i < len; i++)
-		out[i] = key[i];
-	out[i] = 0;
-	return out;
-}
-
-struct fmt_main fmt_opencl_o5logon = {
+struct fmt_main FORMAT_STRUCT = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
@@ -369,19 +367,19 @@ struct fmt_main fmt_opencl_o5logon = {
 		SALT_ALIGN,
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
-		FMT_CASE | FMT_8_BIT, // Changed for OpenCL
+		FMT_CASE | FMT_8_BIT | FMT_MASK,
 		{ NULL },
 		{ FORMAT_TAG },
 		o5logon_tests
 	}, {
 		init,
-		done, // Changed for OpenCL
+		done,
 		reset,
 		fmt_default_prepare,
-		valid,
+		o5logon_valid,
 		fmt_default_split,
 		fmt_default_binary,
-		get_salt,
+		o5logon_get_salt,
 		{ NULL },
 		fmt_default_source,
 		{
@@ -390,9 +388,9 @@ struct fmt_main fmt_opencl_o5logon = {
 		fmt_default_salt_hash,
 		NULL,
 		set_salt,
-		set_key, // Changed for OpenCL
+		set_key,
 		get_key,
-		clear_keys, // Changed for OpenCL
+		clear_keys,
 		crypt_all,
 		{
 			fmt_default_get_hash
