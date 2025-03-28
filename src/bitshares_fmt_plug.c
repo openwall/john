@@ -67,7 +67,10 @@ static int *saved_len;
 static int any_cracked, *cracked;
 static size_t cracked_size;
 
+static secp256k1_context *ctxs;
+
 static struct custom_salt {
+	secp256k1_pubkey pubkey;
 	uint32_t ctlen;
 	int type;
 	unsigned char ct[MAX_CIPHERTEXT_LENGTH];
@@ -81,6 +84,8 @@ static void init(struct fmt_main *self)
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	any_cracked = 0;
 	cracked = mem_calloc(cracked_size, 1);
+
+	ctxs = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
 }
 
 static void done(void)
@@ -88,6 +93,8 @@ static void done(void)
 	MEM_FREE(saved_key);
 	MEM_FREE(saved_len);
 	MEM_FREE(cracked);
+
+	secp256k1_context_destroy(ctxs);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -159,6 +166,8 @@ static void *get_salt(char *ciphertext)
 
 	MEM_FREE(keeptr);
 
+	secp256k1_ec_pubkey_parse(ctxs, &cs.pubkey, cs.ct, 33);
+
 	return &cs;
 }
 
@@ -223,7 +232,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				any_cracked |= 1;
 			}
 		} else {
-			secp256k1_context *ctxs;
 			secp256k1_pubkey pubkey;
 			SHA256_CTX sctx;
 			unsigned char output[128];
@@ -234,11 +242,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA256_Update(&sctx, saved_key[index], saved_len[index]);
 			SHA256_Final(km, &sctx);
 
-			ctxs = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-			secp256k1_ec_pubkey_parse(ctxs, &pubkey, cur_salt->ct, 33);
+			pubkey = cur_salt->pubkey;
 			secp256k1_ec_pubkey_tweak_mul(ctxs, &pubkey, km);
 			secp256k1_ec_pubkey_serialize(ctxs, output, &outlen, &pubkey, SECP256K1_EC_UNCOMPRESSED);
-			secp256k1_context_destroy(ctxs);
+
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, output + 1, 32);
 			SHA512_Final(km, &ctx);
