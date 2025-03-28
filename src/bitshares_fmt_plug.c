@@ -202,10 +202,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++) {
 		SHA512_CTX ctx;
-		unsigned char km[64];
 		AES_KEY aes_decrypt_key;
-		unsigned char out[MAX_CIPHERTEXT_LENGTH];
-		unsigned char iv[16] = { 0 }; // does not matter
+		unsigned char km[64], iv[16], out[16];
 
 		if (cur_salt->type == 0) {
 			SHA512_Init(&ctx);
@@ -213,9 +211,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA512_Final(km, &ctx);
 
 			AES_set_decrypt_key(km, 256, &aes_decrypt_key);
-			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctlen - 32, out, 32, &aes_decrypt_key, iv, AES_DECRYPT);
+			memcpy(iv, cur_salt->ct, 16);
+			AES_cbc_encrypt(cur_salt->ct + 16, out, 16, &aes_decrypt_key, iv, AES_DECRYPT);
 
-			if (memcmp(out + 16, "\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10", 16) == 0) {
+			if (out[0] == 16 && memcmp(out, "\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10", 16) == 0) {
 				cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -229,7 +228,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			unsigned char output[128];
 			size_t outlen = 33;
 			int padbyte;
-			int dlen = cur_salt->ctlen - outlen;
 
 			SHA256_Init(&sctx);
 			SHA256_Update(&sctx, saved_key[index], saved_len[index]);
@@ -248,18 +246,24 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA512_Init(&ctx);
 			SHA512_Update(&ctx, output, 128);
 			SHA512_Final(km, &ctx);
-			AES_set_decrypt_key(km, 256, &aes_decrypt_key);
-			AES_cbc_encrypt(cur_salt->ct + 33, out, dlen, &aes_decrypt_key, km + 32, AES_DECRYPT);
 
-			padbyte = out[dlen - 1];
+			AES_set_decrypt_key(km, 256, &aes_decrypt_key);
+			memcpy(iv, cur_salt->ct + cur_salt->ctlen - 32, 16);
+			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctlen - 16, out, 16, &aes_decrypt_key, iv, AES_DECRYPT);
+
+			padbyte = out[15];
 			if (padbyte <= 16) {
 				// check padding!
-				if (check_pkcs_pad(out, dlen, 16) >= 0) {
+				if (check_pkcs_pad(out, 16, 16) >= 0) {
+					// decrypt the whole thing
+					unsigned char out_full[MAX_CIPHERTEXT_LENGTH];
+					int dlen = cur_salt->ctlen - 33;
+					AES_cbc_encrypt(cur_salt->ct + 33, out_full, dlen, &aes_decrypt_key, km + 32, AES_DECRYPT);
 					// check checksum
 					SHA256_Init(&sctx);
-					SHA256_Update(&sctx, out + 4, dlen - 4 - padbyte);
+					SHA256_Update(&sctx, out_full + 4, dlen - 4 - padbyte);
 					SHA256_Final(km, &sctx);
-					if (memcmp(km, out, 4) == 0) {
+					if (memcmp(km, out_full, 4) == 0) {
 						cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
