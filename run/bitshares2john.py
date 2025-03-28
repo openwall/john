@@ -75,7 +75,7 @@ def process_file(filename):
         if "encryption_key" not in data:
             continue
         encryption_key = data["encryption_key"]
-        sys.stdout.write("%s:$BitShares$0*%s\n" % (name, encryption_key))
+        sys.stdout.write("%s:$BitShares$0*%s\n" % (name, encryption_key[-64:]))
 
 
 if __name__ == "__main__":

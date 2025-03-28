@@ -52,6 +52,7 @@ static struct fmt_tests tests[] = {
 	// BitShares.Setup.2.0.180115.exe
 	{"$BitShares$0*ec415018f26e7182a273655aef7cec47966306c48956604462f5b9e1613b3b70ebaaed4d7600b24a424ddb7d4cd56e55", "openwall"},
 	{"$BitShares$0*3bebbec17f0643ee9d3d5e48f04451bf7e38765f3bf2fa6ea12f680d60da121bb04ced9f76681744f3730322082c7ec7", "äbc12345"},
+	{"$BitShares$0*966306c48956604462f5b9e1613b3b70ebaaed4d7600b24a424ddb7d4cd56e55", "openwall"},
 	// Google Chrome -> https://wallet.bitshares.org in January, 2018
 	{"$BitShares$0*97452e44d43818099fbd2cc7539588c2c2dbc4e06e1b18831ded86b7e68e51d2da2c2b81054863032248a9da93ea1943", "openwall123"},
 	// Backup (.bin) files from February, 2018
