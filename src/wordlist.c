@@ -467,7 +467,7 @@ static int mmap_init(int64_t file_len)
 	if (mmap_max == -1)
 		mmap_max = 1 << 10;
 
-	if (mmap_max && mmap_max >= (file_len >> 20)) {
+	if (file_len <= ((uint64_t)mmap_max << 20)) {
 		if (john_main_process)
 			log_event("- Memory mapping wordlist (%"PRIu64" bytes)",
 			          (uint64_t)file_len);
