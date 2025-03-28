@@ -422,7 +422,11 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Use AVX512VL XOP-like bit rotates for scrypt's Salsa20.  [Solar; 2025]
 
-- When we use AVX512BW, also enable usage of AVX512VL and AVX512DQ.  [Claudio André; 2025]
+- When we use AVX512BW, also enable usage of AVX512VL and AVX512DQ.  [Claudio
+  André; 2025]
+
+- Deprecate and ignore the --prince-mmap option. It was too problematic to fix.
+  [magnum; 2025]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
