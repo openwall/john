@@ -430,6 +430,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Add support for auditing SCRAM PBKDF2-SHA256 hashes.  [Dhiru; 2025]
 
+- Add support for (Win)ZIP archives larger than 4 GiB.  Prior to this they
+  ended up with false positives.  [magnum; 2025]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
