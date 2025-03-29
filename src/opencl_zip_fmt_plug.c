@@ -374,13 +374,6 @@ static int cmp_exact(char *source, int index)
 }
 
 
-static unsigned int cost_hmac_len(void *salt)
-{
-	winzip_salt *s = *((winzip_salt**)salt);
-
-	return s->comp_len;
-}
-
 struct fmt_main fmt_opencl_zip = {
 	{
 		FORMAT_LABEL,
@@ -398,7 +391,7 @@ struct fmt_main fmt_opencl_zip = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_DYNA_SALT | FMT_HUGE_INPUT,
 		{
-			"HMAC size"
+			"HMAC size [KiB]"
 		},
 		{ WINZIP_FORMAT_TAG },
 		winzip_common_tests
@@ -412,7 +405,7 @@ struct fmt_main fmt_opencl_zip = {
 		winzip_common_binary,
 		winzip_common_get_salt,
 		{
-			cost_hmac_len
+			winzip_common_cost_hmac_len
 		},
 		fmt_default_source,
 		{

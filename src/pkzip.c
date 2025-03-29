@@ -248,3 +248,10 @@ void *winzip_common_binary(char *ciphertext) {
 	}
 	return bin;
 }
+
+unsigned int winzip_common_cost_hmac_len(void *salt)
+{
+	winzip_salt *s = *((winzip_salt**)salt);
+
+	return (s->comp_len + 1023) / 1024;
+}

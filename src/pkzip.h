@@ -106,6 +106,7 @@ extern int winzip_common_valid(char *ciphertext, struct fmt_main *self);
 extern char *winzip_common_split(char *ciphertext, int index, struct fmt_main *self);
 extern void *winzip_common_binary(char *ciphertext);
 extern void *winzip_common_get_salt(char *ciphertext);
+extern unsigned int winzip_common_cost_hmac_len(void *salt);
 
 extern struct fmt_tests winzip_common_tests[];
 
