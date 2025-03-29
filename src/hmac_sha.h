@@ -16,19 +16,19 @@
 
 #ifndef _JTR_HMAC_SHA_H
 
-extern void JTR_hmac_sha1(const unsigned char *key, int key_len, const unsigned char *data, uint64_t data_len, unsigned char *digest, int digest_len);
+extern void JTR_hmac_sha1(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len);
 #define hmac_sha1(key,keylen,data,datalen,dgst,dgstlen) JTR_hmac_sha1(key,keylen,data,datalen,dgst,dgstlen)
 
-extern void JTR_hmac_sha256(const unsigned char *key, int key_len, const unsigned char *data, uint64_t data_len, unsigned char *digest, int digest_len);
+extern void JTR_hmac_sha256(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len);
 #define hmac_sha256(key,keylen,data,datalen,dgst,dgstlen) JTR_hmac_sha256(key,keylen,data,datalen,dgst,dgstlen)
 
-extern void JTR_hmac_sha512(const unsigned char *key, int key_len, const unsigned char *data, uint64_t data_len, unsigned char *digest, int digest_len);
+extern void JTR_hmac_sha512(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len);
 #define hmac_sha512(key,keylen,data,datalen,dgst,dgstlen) JTR_hmac_sha512(key,keylen,data,datalen,dgst,dgstlen)
 
-extern void JTR_hmac_sha224(const unsigned char *key, int key_len, const unsigned char *data, uint64_t data_len, unsigned char *digest, int digest_len);
+extern void JTR_hmac_sha224(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len);
 #define hmac_sha224(key,keylen,data,datalen,dgst,dgstlen) JTR_hmac_sha224(key,keylen,data,datalen,dgst,dgstlen)
 
-extern void JTR_hmac_sha384(const unsigned char *key, int key_len, const unsigned char *data, uint64_t data_len, unsigned char *digest, int digest_len);
+extern void JTR_hmac_sha384(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len);
 #define hmac_sha384(key,keylen,data,datalen,dgst,dgstlen) JTR_hmac_sha384(key,keylen,data,datalen,dgst,dgstlen)
 
 #endif /* _JTR_HMAC_SHA_H */

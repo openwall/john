@@ -34,7 +34,7 @@
 #define HMAC_SHA_OPAD_XOR (0x36363636^0x5c5c5c5c)
 #endif
 
-void JTR_hmac_sha1(const unsigned char *key, int key_len, const unsigned char *data, uint64_t data_len, unsigned char *digest, int digest_len) {
+void JTR_hmac_sha1(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len) {
 	JTR_ALIGN(8) unsigned char buf[64];
 	unsigned char local_digest[20];
 	ARCH_WORD *pW = (ARCH_WORD *)buf;
@@ -72,7 +72,7 @@ void JTR_hmac_sha1(const unsigned char *key, int key_len, const unsigned char *d
 	}
 }
 
-void JTR_hmac_sha256(const unsigned char *key, int key_len, const unsigned char *data, uint64_t data_len, unsigned char *digest, int digest_len) {
+void JTR_hmac_sha256(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len) {
 	JTR_ALIGN(8) unsigned char buf[64];
 	unsigned char local_digest[32];
 	ARCH_WORD *pW = (ARCH_WORD *)buf;
@@ -111,7 +111,7 @@ void JTR_hmac_sha256(const unsigned char *key, int key_len, const unsigned char 
 	}
 }
 
-void JTR_hmac_sha224(const unsigned char *key, int key_len, const unsigned char *data, uint64_t data_len, unsigned char *digest, int digest_len) {
+void JTR_hmac_sha224(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len) {
 	JTR_ALIGN(8) unsigned char buf[64];
 	unsigned char local_digest[28];
 	ARCH_WORD *pW = (ARCH_WORD *)buf;
@@ -151,7 +151,7 @@ void JTR_hmac_sha224(const unsigned char *key, int key_len, const unsigned char 
 	}
 }
 
-void JTR_hmac_sha512(const unsigned char *key, int key_len, const unsigned char *data, uint64_t data_len, unsigned char *digest, int digest_len) {
+void JTR_hmac_sha512(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len) {
 	JTR_ALIGN(8) unsigned char buf[128];
 	unsigned char local_digest[64];
 	ARCH_WORD *pW = (ARCH_WORD *)buf;
@@ -190,7 +190,7 @@ void JTR_hmac_sha512(const unsigned char *key, int key_len, const unsigned char 
 	}
 }
 
-void JTR_hmac_sha384(const unsigned char *key, int key_len, const unsigned char *data, uint64_t data_len, unsigned char *digest, int digest_len) {
+void JTR_hmac_sha384(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len) {
 	JTR_ALIGN(8) unsigned char buf[128];
 	unsigned char local_digest[48];
 	ARCH_WORD *pW = (ARCH_WORD *)buf;
