@@ -1,6 +1,7 @@
 /*
  * Common "variable" code for the SSH format.
  */
+#define EC_KEY_WITH_AES256  (cur_salt->cipher == 5 && cur_salt->ctl == 224 && cur_salt->sl == 16)
 
 static struct fmt_tests ssh_tests[] = {
 	/* FIXME: All of these hashcat test vectors fail here */

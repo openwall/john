@@ -16,7 +16,7 @@
 int ssh_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int len, cipher, extra;
+	int len, cipher, extra, ctl, sl;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -33,6 +33,7 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
+	sl = len;
 	if (len > 16 || len < 8)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
@@ -44,6 +45,7 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	len = atoi(p);
+	ctl = len;
 	if (len > N)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ciphertext */
@@ -69,10 +71,17 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	}
 
-	if (strcasestr(self->params.label, "-opencl") && (cipher == 2 || cipher == 6)) {
-		fprintf(stderr, "[%s] cipher value of %d is not yet supported with OpenCL!\n",
-		        self->params.label, cipher);
-		goto err;
+	if (strcasestr(self->params.label, "-opencl")) {
+		if (cipher == 2 || cipher == 6) {
+			fprintf(stderr, "[%s] cipher value of %d is not yet supported with OpenCL!\n",
+			        self->params.label, cipher);
+			goto err;
+		} else if (cipher == 5 && ctl == 224 && sl == 16) {
+			// See also the EC_KEY_WITH_AES256 heuristic defined in src/ssh_variable_code.h
+			fprintf(stderr, "[%s] cipher value of %d (if EC_KEY_WITH_AES256) is not yet supported with OpenCL!\n",
+				self->params.label, cipher);
+			goto err;
+		}
 	}
 
 	MEM_FREE(keeptr);

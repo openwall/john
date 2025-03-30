@@ -69,7 +69,6 @@ john_register_one(&fmt_ssh);
 #define SALT_ALIGN          sizeof(int)
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  8
-#define EC_KEY_WITH_AES256  (cur_salt->cipher == 5 && cur_salt->ctl == 224 && cur_salt->sl == 16)
 
 /*
  * For cost 1 using core i7, MKPC=8 and OMP_SCALE 128 works fine but that
