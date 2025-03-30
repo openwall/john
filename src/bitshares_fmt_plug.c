@@ -45,7 +45,7 @@ struct fmt_main fmt_bitshares;
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      1024
+#define MAX_KEYS_PER_CRYPT      512
 
 #define MAX_CIPHERTEXT_LENGTH   1024
 
