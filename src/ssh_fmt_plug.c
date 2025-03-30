@@ -145,7 +145,7 @@ inline static int check_structure_bcrypt(unsigned char *out, int length)
 	return memcmp(out, out + 4, 4);
 }
 
-inline static int check_padding_and_structure(unsigned char *out, int length, int strict_mode, int blocksize)
+inline static int check_padding_and_structure(unsigned char *out, int length, int blocksize)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
@@ -181,39 +181,9 @@ inline static int check_padding_and_structure(unsigned char *out, int length, in
 
 	// INTEGER (big one for RSA) or OCTET STRING (EC)
 	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
-			hdr.class != ASN1_CLASS_UNIVERSAL ||
-			(hdr.tag != ASN1_TAG_INTEGER && hdr.tag != ASN1_TAG_OCTETSTRING)) {
+	    hdr.class != ASN1_CLASS_UNIVERSAL ||
+	    (hdr.tag != ASN1_TAG_INTEGER && hdr.tag != ASN1_TAG_OCTETSTRING && hdr.tag != ASN1_TAG_SEQUENCE))
 		goto bad;
-	}
-	pos = hdr.payload + hdr.length;
-	if (hdr.length < 8) // "secp112r1" curve uses 112 bit prime field, rest are bigger
-		goto bad;
-	/* NOTE: now this integer has to be big, is this always true?
-	 * RSA (as used in ssh) uses big prime numbers, so this check should be OK
-	 */
-	if (hdr.length < 64 && hdr.tag == ASN1_TAG_INTEGER)
-		goto bad;
-
-	if (strict_mode) {
-		// INTEGER (small one)
-		if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
-				hdr.class != ASN1_CLASS_UNIVERSAL ||
-				hdr.tag != ASN1_TAG_INTEGER) {
-			goto bad;
-		}
-		pos = hdr.payload + hdr.length;
-
-		// INTEGER (big one again)
-		if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
-				hdr.class != ASN1_CLASS_UNIVERSAL ||
-				hdr.tag != ASN1_TAG_INTEGER) {
-			goto bad;
-		}
-		pos = hdr.payload + hdr.length;
-		if (hdr.length < 32) {
-			goto bad;
-		}
-	}
 
 	return 0;
 bad:
@@ -390,22 +360,22 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		if (cur_salt->cipher == 0) { // 3DES
 			cracked[index] =
-				!check_padding_and_structure(out, cur_salt->ctl, 0, 8);
+				!check_padding_and_structure(out, cur_salt->ctl, 8);
 		} else if (cur_salt->cipher == 1) {
 			cracked[index] =
-				!check_padding_and_structure(out, cur_salt->ctl, 0, 16);
+				!check_padding_and_structure(out, cur_salt->ctl, 16);
 		} else if (cur_salt->cipher == 2 || cur_salt->cipher == 6) {  // new ssh key format handling
 			cracked[index] =
 				!check_structure_bcrypt(out, cur_salt->ctl);
 		} else if (cur_salt->cipher == 3) { // EC keys
 			cracked[index] =
-				!check_padding_and_structure(out, cur_salt->ctl, 0, 16);
+				!check_padding_and_structure(out, cur_salt->ctl, 16);
 		} else if (cur_salt->cipher == 4) {  // AES-192
 			cracked[index] =
-				!check_padding_and_structure(out, cur_salt->ctl, 0, 16);
+				!check_padding_and_structure(out, cur_salt->ctl, 16);
 		} else if (cur_salt->cipher == 5) {  // AES-256 maybe EC or not
 			cracked[index] =
-				!check_padding_and_structure(out, cur_salt->ctl, 0, 16);
+				!check_padding_and_structure(out, cur_salt->ctl, 16);
 		}
 
 		if (cracked[index])
@@ -427,25 +397,7 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	unsigned char out[N];
-
-	common_crypt_code(saved_key[index], out, 1); // do full decryption!
-
-	if (cur_salt->cipher == 0) { // 3DES
-		return !check_padding_and_structure(out, cur_salt->ctl, 1, 8);
-	} else if (cur_salt->cipher == 1) {
-		return !check_padding_and_structure(out, cur_salt->ctl, 1, 16);
-	} else if (cur_salt->cipher == 2 || cur_salt->cipher == 6) {  /* new ssh key format handling */
-		return 1; // XXX add more checks!
-	} else if (cur_salt->cipher == 3) { // EC keys
-		return 1;
-	} else if (cur_salt->cipher == 4) {
-		return !check_padding_and_structure(out, cur_salt->ctl, 1, 16);
-	} else if (cur_salt->cipher == 5) {
-		return 1;
-	}
-
-	return 0;
+	return 1;
 }
 
 #undef set_key /* OpenSSL DES clash */
