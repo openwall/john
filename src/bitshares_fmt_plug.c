@@ -149,6 +149,19 @@ err:
 	return 0;
 }
 
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char out[TAG_LENGTH + 2 + 64 + 1];
+
+	if (ciphertext[TAG_LENGTH] == '0' && strlen(ciphertext) > sizeof(out)) {
+		memcpy(out, ciphertext, TAG_LENGTH + 2);
+		memcpy(out + TAG_LENGTH + 2, ciphertext + strlen(ciphertext) - 64, 65);
+		return out;
+	}
+
+	return ciphertext;
+}
+
 static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
@@ -163,10 +176,6 @@ static void *get_salt(char *ciphertext)
 	cs.type = atoi(p);
 	p = strtokm(NULL, "*");
 	cs.ctlen = strlen(p) / 2;
-	if (cs.type == 0) {
-		p += 2 * (cs.ctlen - 32);
-		cs.ctlen = 32;
-	}
 	for (i = 0; i < cs.ctlen; i++)
 		cs.ct[i] = (atoi16[ARCH_INDEX(p[2 * i])] << 4) | atoi16[ARCH_INDEX(p[2 * i + 1])];
 
@@ -352,7 +361,7 @@ struct fmt_main fmt_bitshares = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		fmt_default_binary,
 		get_salt,
 		{tunable_cost_type},
