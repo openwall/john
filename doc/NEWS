@@ -433,6 +433,11 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Add support for (Win)ZIP archives larger than 4 GiB.  Prior to this they
   ended up with false negatives.  [magnum; 2025]
 
+- bitshares2john.py: Produce less revealing wallet non-hashes.  [Solar; 2025]
+
+- BitShares format: Improve speeds, especially when attacking multiple wallets
+  concurrently.  [Solar; 2025]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
