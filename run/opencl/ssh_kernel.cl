@@ -70,65 +70,14 @@ INLINE void generate_key_bytes(int nbytes, uchar *password, uint32_t len, uchar 
 	}
 }
 
-INLINE int check_padding_and_structure_EC(uchar *out, int length)
+INLINE int check_padding_and_structure(unsigned char *out, int length, int blocksize)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
 
 	// First check padding
-	if (check_pkcs_pad(out, length, 16) < 0)
-		return 0;
-
-	/* check BER decoding, EC private key file contains:
-	 *
-	 * SEQUENCE, INTEGER (length 1), OCTET STRING, cont, OBJECT, cont, BIT STRING
-	 *
-	 * $ ssh-keygen -t ecdsa -f unencrypted_ecdsa_sample.key  # don't use a password for testing
-	 * $ openssl asn1parse -in unencrypted_ecdsa_sample.key  # see the underlying structure
-	*/
-
-	// SEQUENCE
-	if (asn1_get_next(out, length, &hdr) < 0 ||
-			hdr.class != ASN1_CLASS_UNIVERSAL ||
-			hdr.tag != ASN1_TAG_SEQUENCE) {
-		return 0;
-	}
-	pos = hdr.payload;
-	end = pos + hdr.length;
-
-	// version Version (Version ::= INTEGER)
-	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
-			hdr.class != ASN1_CLASS_UNIVERSAL ||
-			hdr.tag != ASN1_TAG_INTEGER) {
-		return 0;
-	}
-	pos = hdr.payload + hdr.length;
-	if (hdr.length != 1)
-		return 0;
-
-	// OCTET STRING
-	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
-			hdr.class != ASN1_CLASS_UNIVERSAL ||
-			hdr.tag != ASN1_TAG_OCTETSTRING) {
-		return 0;
-	}
-	pos = hdr.payload + hdr.length;
-	if (hdr.length < 8) // "secp112r1" curve uses 112 bit prime field, rest are bigger
-		return 0;
-
-	// XXX add more structure checks!
-
-	return 1;
-}
-
-INLINE int check_padding_and_structure(uchar *out, uint length, uint strict_mode, uint block_size)
-{
-	struct asn1_hdr hdr;
-	const uint8_t *pos, *end;
-
-	// First check padding
-	if (check_pkcs_pad(out, length, block_size) < 0)
-		return 0;
+	if (check_pkcs_pad(out, length, blocksize) < 0)
+		return -1;
 
 	/* check BER decoding, private key file contains:
 	 *
@@ -142,7 +91,7 @@ INLINE int check_padding_and_structure(uchar *out, uint length, uint strict_mode
 	if (asn1_get_next(out, length, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_SEQUENCE) {
-		return 0;
+		return -1;
 	}
 	pos = hdr.payload;
 	end = pos + hdr.length;
@@ -151,47 +100,17 @@ INLINE int check_padding_and_structure(uchar *out, uint length, uint strict_mode
 	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_INTEGER) {
-		return 0;
+		return -1;
 	}
 	pos = hdr.payload + hdr.length;
 
-	// INTEGER (big one)
+	// INTEGER (big one for RSA) or OCTET STRING (EC)
 	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
-			hdr.class != ASN1_CLASS_UNIVERSAL ||
-			hdr.tag != ASN1_TAG_INTEGER) {
-		return 0;
-	}
-	pos = hdr.payload + hdr.length;
-	/* NOTE: now this integer has to be big, is this always true?
-	 * RSA (as used in ssh) uses big prime numbers, so this check should be OK
-	 */
-	if (hdr.length < 64) {
-		return 0;
-	}
+	    hdr.class != ASN1_CLASS_UNIVERSAL ||
+	    (hdr.tag != ASN1_TAG_INTEGER && hdr.tag != ASN1_TAG_OCTETSTRING && hdr.tag != ASN1_TAG_SEQUENCE))
+		return -1;
 
-	if (strict_mode) {
-		// INTEGER (small one)
-		if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
-				hdr.class != ASN1_CLASS_UNIVERSAL ||
-				hdr.tag != ASN1_TAG_INTEGER) {
-			return 0;
-		}
-		pos = hdr.payload + hdr.length;
-
-		// INTEGER (big one again)
-		if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
-				hdr.class != ASN1_CLASS_UNIVERSAL ||
-				hdr.tag != ASN1_TAG_INTEGER) {
-			return 0;
-		}
-		pos = hdr.payload + hdr.length;
-		if (hdr.length < 32) {
-			return 0;
-		}
-	}
-
-
-	return 1;
+	return 0;
 }
 
 INLINE void common_crypt_code(uchar *password, uint len, __constant ssh_salt *osalt, uchar *out, uint full_decrypt, __local aes_local_t *lt)
@@ -231,6 +150,7 @@ INLINE void common_crypt_code(uchar *password, uint len, __constant ssh_salt *os
 			AES_cbc_decrypt(osalt->ct + osalt->ctl - 16, out + osalt->ctl - 16, 16, &akey, iv);
 		}
 #if 0
+	} else if (osalt->cipher == -1){  // DES-CBC, not yet supported
 	} else if (osalt->cipher == 2) {  // bcrypt + AES256-CBC, not yet supported
 	} else if (osalt->cipher == 6) {  // bcrypt + AES256-CTR, not yet supported
 #endif
@@ -257,7 +177,7 @@ INLINE void common_crypt_code(uchar *password, uint len, __constant ssh_salt *os
 			memcpy_macro(iv, osalt->ct + osalt->ctl - 32, 16);
 			AES_cbc_decrypt(osalt->ct + osalt->ctl - 16, out + osalt->ctl - 16, 16, &akey, iv);
 		}
-	} else if (osalt->cipher == 5) {  // RSA/DSA keys with AES-256
+	} else if (osalt->cipher == 5) {  // AES-256 maybe EC or not
 		uchar key[32];
 		uchar iv[16];
 
@@ -273,8 +193,6 @@ INLINE void common_crypt_code(uchar *password, uint len, __constant ssh_salt *os
 		}
 	}
 }
-
-#define QUICK 0
 #define FULL 1
 
 INLINE int ssh_decrypt(uchar *password, uint len, __constant ssh_salt *osalt, __global ssh_out *output, __local aes_local_t *lt)
@@ -282,17 +200,9 @@ INLINE int ssh_decrypt(uchar *password, uint len, __constant ssh_salt *osalt, __
 	uchar out[CTLEN];
 	int block_size = osalt->cipher == 0 ? 8 : 16;
 
-	common_crypt_code(password, len, osalt, out, QUICK, lt);
-
-	if (osalt->cipher == 3)  // EC keys with AES-128
-		return check_padding_and_structure_EC(out, osalt->ctl);
-
-	if (!check_padding_and_structure(out, osalt->ctl, QUICK, block_size))
-		return 0;
-
 	common_crypt_code(password, len, osalt, out, FULL, lt);
 
-	return check_padding_and_structure(out, osalt->ctl, FULL, block_size);
+	return !check_padding_and_structure(out, osalt->ctl, block_size);
 }
 
 __kernel void ssh(__global const ssh_password *inbuffer,
