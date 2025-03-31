@@ -139,6 +139,7 @@ extern cl_kernel crypt_kernel;
 extern size_t local_work_size;
 extern size_t global_work_size;
 extern size_t max_group_size;
+extern int lws_set_by_user;
 extern unsigned int ocl_v_width;
 extern unsigned long long global_speed;
 
@@ -166,6 +167,10 @@ void opencl_done(void);
  * affect the return value.
  */
 unsigned int opencl_get_vector_width(int sequential_id, int size);
+
+/* Returns true if the end user has specified a value for local_work_size
+ * using 'LWS=', '-lws', or the configuration file. */
+int get_lws_set_by_user(void);
 
 /* Returns number of selected devices */
 int get_number_of_devices_in_use(void);

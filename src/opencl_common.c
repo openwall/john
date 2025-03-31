@@ -119,6 +119,7 @@ cl_kernel crypt_kernel;
 size_t local_work_size;
 size_t global_work_size;
 size_t max_group_size;
+int lws_set_by_user = 0;
 unsigned int ocl_v_width = 1;
 unsigned long long global_speed;
 
@@ -154,6 +155,11 @@ void opencl_process_event(void)
 			event_pending = (event_abort || event_poll_files || event_reload);
 		}
 	}
+}
+
+int get_lws_set_by_user()
+{
+	return (lws_set_by_user != 0);
 }
 
 int get_number_of_available_platforms()
@@ -815,6 +821,7 @@ void opencl_load_environment(void)
 		int i;
 		const char *cmdline_devices[MAX_GPU_DEVICES];
 
+		local_work_size = global_work_size = duration_time = 0;
 		nvidia_probe();
 		amd_probe();
 
@@ -1036,6 +1043,11 @@ void opencl_get_user_preferences(const char *format)
 		local_work_size = options.lws;
 	else if ((tmp_value = getenv("LWS")))
 		local_work_size = atoi(tmp_value);
+
+	if (local_work_size)
+		lws_set_by_user = 1;
+	else
+		lws_set_by_user = 0;
 
 	if (format && (tmp_value = (char*)cfg_get_param(SECTION_OPTIONS, SUBSECTION_OPENCL,
 			opencl_get_config_name(fmt_base_name, GWS_CONFIG_NAME))))
