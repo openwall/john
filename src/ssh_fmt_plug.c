@@ -61,7 +61,7 @@ john_register_one(&fmt_ssh);
 #define FORMAT_NAME         "SSH private key"
 #define FORMAT_TAG          "$sshng$"
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME      "RSA/DSA/EC/OPENSSH 3DES/AES 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME      "MD5/bcrypt-pbkdf/[3]DES/AES 32/" ARCH_BITS_STR
 #define PLAINTEXT_LENGTH    125
 #define BINARY_SIZE         0
 #define SALT_SIZE           sizeof(struct custom_salt)
@@ -443,7 +443,7 @@ struct fmt_main fmt_ssh = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE | FMT_HUGE_INPUT,
 		{
-			"KDF/cipher [0=MD5/AES 1=MD5/[3]DES 2=Bcrypt/AES]",
+			"KDF/cipher [0:MD5/AES 1:MD5/[3]DES 2:bcrypt-pbkdf/AES]",
 			"iteration count",
 		},
 		{ FORMAT_TAG },
