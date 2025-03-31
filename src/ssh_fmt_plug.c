@@ -182,21 +182,28 @@ static inline int check_padding_and_structure(unsigned char *out, int length, in
 	return 0;
 }
 
+#ifndef MBEDTLS_CIPHER_MODE_CTR
 static void handleErrors(void)
 {
 	ERR_print_errors_fp(stderr);
 	error();
 }
+#endif
 
-static inline int AES_ctr_decrypt(unsigned char *ciphertext,
-                                  int ciphertext_len, unsigned char *key,
-                                  unsigned char *iv, unsigned char *plaintext)
+static inline void AES_ctr_decrypt(unsigned char *ciphertext,
+                                   int ciphertext_len, unsigned char *key,
+                                   unsigned char *iv, unsigned char *plaintext)
 {
+#ifdef MBEDTLS_CIPHER_MODE_CTR
+	size_t nc_off = 0;
+	mbedtls_aes_context ctx;
+	mbedtls_aes_init(&ctx);
+	mbedtls_aes_setkey_enc(&ctx, key, 256);
+	mbedtls_aes_crypt_ctr(&ctx, ciphertext_len, &nc_off, iv, iv, ciphertext, plaintext);
+#else
 	EVP_CIPHER_CTX *ctx;
 
 	int len;
-
-	int plaintext_len;
 
 	if (!(ctx = EVP_CIPHER_CTX_new()))
 		handleErrors();
@@ -208,15 +215,12 @@ static inline int AES_ctr_decrypt(unsigned char *ciphertext,
 
 	if (EVP_DecryptUpdate(ctx, plaintext, &len, ciphertext, ciphertext_len) != 1)
 		handleErrors();
-	plaintext_len = len;
 
 	if (EVP_DecryptFinal_ex(ctx, plaintext + len, &len) != 1)
 		handleErrors();
-	plaintext_len += len;
 
 	EVP_CIPHER_CTX_free(ctx);
-
-	return plaintext_len;
+#endif
 }
 
 static void common_crypt_code(char *password, unsigned char *out, int full_decrypt)
