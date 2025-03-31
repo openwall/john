@@ -48,6 +48,7 @@ john_register_one(&fmt_ssh);
 #include "jumbo.h"
 #include "common.h"
 #include "formats.h"
+#include "misc.h"
 #include "params.h"
 #include "options.h"
 #include "md5.h"
@@ -187,7 +188,7 @@ inline static int check_padding_and_structure(unsigned char *out, int length, in
 inline static void handleErrors(void)
 {
 	ERR_print_errors_fp(stderr);
-	abort();
+	error();
 }
 
 inline static int AES_ctr_decrypt(unsigned char *ciphertext,
