@@ -389,17 +389,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		switch (cur_salt->cipher) {
 		case -1: /* DES */
 		case 0: /* 3DES */
-			cracked[index] = !check_padding_and_structure(out, cur_salt->ctl, 8);
+			if (!check_padding_and_structure(out, cur_salt->ctl, 8))
+				cracked[index] = 1;
 			break;
 		case 1:
 		case 3: /* EC keys */
 		case 4: /* AES-192 */
 		case 5: /* AES-256 maybe EC or not */
-			cracked[index] = !check_padding_and_structure(out, cur_salt->ctl, 16);
+			if (!check_padding_and_structure(out, cur_salt->ctl, 16))
+				cracked[index] = 1;
 			break;
 		case 2:
 		case 6: /* new ssh key format handling */
-			cracked[index] = !check_structure_bcrypt(out, cur_salt->ctl);
+			if (!check_structure_bcrypt(out, cur_salt->ctl))
+				cracked[index] = 1;
 			break;
 		default:
 			error();
