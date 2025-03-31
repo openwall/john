@@ -164,30 +164,24 @@ inline static int check_padding_and_structure(unsigned char *out, int length, in
 
 	// SEQUENCE
 	if (asn1_get_next(out, length, &hdr) < 0 ||
-			hdr.class != ASN1_CLASS_UNIVERSAL ||
-			hdr.tag != ASN1_TAG_SEQUENCE) {
-		goto bad;
-	}
+	    hdr.class != ASN1_CLASS_UNIVERSAL || hdr.tag != ASN1_TAG_SEQUENCE)
+		return -1;
 	pos = hdr.payload;
 	end = pos + hdr.length;
 
 	// version Version (Version ::= INTEGER)
 	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
-			hdr.class != ASN1_CLASS_UNIVERSAL ||
-			hdr.tag != ASN1_TAG_INTEGER) {
-		goto bad;
-	}
+	    hdr.class != ASN1_CLASS_UNIVERSAL || hdr.tag != ASN1_TAG_INTEGER)
+		return -1;
 	pos = hdr.payload + hdr.length;
 
 	// INTEGER (big one for RSA) or OCTET STRING (EC)
 	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
 	    hdr.class != ASN1_CLASS_UNIVERSAL ||
 	    (hdr.tag != ASN1_TAG_INTEGER && hdr.tag != ASN1_TAG_OCTETSTRING && hdr.tag != ASN1_TAG_SEQUENCE))
-		goto bad;
+		return -1;
 
 	return 0;
-bad:
-	return -1;
 }
 
 inline static void handleErrors(void)
