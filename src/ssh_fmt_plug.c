@@ -332,6 +332,21 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 			memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 		}
+	} else if (cur_salt->cipher == -1) {
+		DES_cblock key;
+		DES_cblock iv;
+		DES_key_schedule ks;
+
+		memcpy(iv, cur_salt->salt, 8);
+		generate_key_bytes(8, (unsigned char *)password, (unsigned char *)key);
+		DES_set_key_unchecked((DES_cblock *) key, &ks);
+		if (full_decrypt) {
+			DES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &ks, &iv, DES_DECRYPT);
+		} else {
+			DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &iv, DES_DECRYPT);
+			memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
+			DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + cur_salt->ctl - 8, 8, &ks, &iv, DES_DECRYPT);
+		}
 	}
 }
 
@@ -358,7 +373,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// don't do full decryption (except for EC keys)
 		common_crypt_code(saved_key[index], out, 0);
 
-		if (cur_salt->cipher == 0) { // 3DES
+		if (cur_salt->cipher == 0 || cur_salt->cipher == -1) { // 3DES or DES
 			cracked[index] =
 				!check_padding_and_structure(out, cur_salt->ctl, 8);
 		} else if (cur_salt->cipher == 1) {
@@ -428,7 +443,7 @@ struct fmt_main fmt_ssh = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_SPLIT_UNIFIES_CASE | FMT_HUGE_INPUT,
 		{
-			"KDF/cipher [0=MD5/AES 1=MD5/3DES 2=Bcrypt/AES]",
+			"KDF/cipher [0=MD5/AES 1=MD5/[3]DES 2=Bcrypt/AES]",
 			"iteration count",
 		},
 		{ FORMAT_TAG },
