@@ -381,6 +381,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++) {
 		unsigned char out[N];
 
+#ifdef DEBUG
+		memset(out, 0x55, sizeof(out));
+#endif
+
 		// don't do full decryption (except for EC keys)
 		common_crypt_code(saved_key[index], out, 0);
 
