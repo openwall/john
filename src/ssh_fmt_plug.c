@@ -224,7 +224,8 @@ static inline int AES_ctr_decrypt(unsigned char *ciphertext,
 
 static void common_crypt_code(char *password, unsigned char *out, int full_decrypt)
 {
-	if (cur_salt->cipher == 0) {
+	switch (cur_salt->cipher) {
+	case 0: {
 		unsigned char key[24];
 		DES_cblock key1, key2, key3;
 		DES_cblock iv;
@@ -245,7 +246,9 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 			memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
 			DES_ede3_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + cur_salt->ctl - 8, 8, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
 		}
-	} else if (cur_salt->cipher == 1) {
+		break;
+	}
+	case 1: {
 		unsigned char key[16];
 		AES_KEY akey;
 		unsigned char iv[16];
@@ -261,7 +264,9 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 			memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 		}
-	} else if (cur_salt->cipher == 2) {  /* new ssh key format handling with aes256-cbc */
+		break;
+	}
+	case 2: { /* new ssh key format handling with aes256-cbc */
 		unsigned char key[32 + 16];
 		AES_KEY akey;
 		unsigned char iv[16];
@@ -275,17 +280,19 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 		// Padding check is unreliable for this type
 		// memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 		// AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
-	} else if (cur_salt->cipher == 6) {  /* new ssh key format handling with aes256-ctr */
+		break;
+	}
+	case 6: { /* new ssh key format handling with aes256-ctr */
 		unsigned char key[32 + 16];
 		unsigned char iv[16];
 
 		// derive (key length + iv length) bytes
-		bcrypt_pbkdf(password, strlen((const char *)password), cur_salt->salt, 16, key,
-		             32 + 16, cur_salt->rounds);
+		bcrypt_pbkdf(password, strlen((const char *)password), cur_salt->salt, 16, key, 32 + 16, cur_salt->rounds);
 		memcpy(iv, key + 32, 16);
-		AES_ctr_decrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, 16, key, iv,
-		                out);
-	} else if (cur_salt->cipher == 3) { // EC keys with AES-128
+		AES_ctr_decrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, 16, key, iv, out);
+		break;
+	}
+	case 3: { /* EC keys with AES-128 */
 		unsigned char key[16];
 		AES_KEY akey;
 		unsigned char iv[16];
@@ -295,7 +302,9 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 		AES_set_decrypt_key(key, 128, &akey);
 		// full decrypt
 		AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
-	} else if (cur_salt->cipher == 4) { // RSA/DSA keys with AES-192
+		break;
+	}
+	case 4: { /* RSA/DSA keys with AES-192 */
 		unsigned char key[24];
 		AES_KEY akey;
 		unsigned char iv[16];
@@ -311,7 +320,9 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 			memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 		}
-	} else if (cur_salt->cipher == 5) { // RSA/DSA keys with AES-256
+		break;
+	}
+	case 5: { /* RSA/DSA keys with AES-256 */
 		unsigned char key[32];
 		AES_KEY akey;
 		unsigned char iv[16];
@@ -327,7 +338,9 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 			memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 			AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 		}
-	} else if (cur_salt->cipher == -1) {
+		break;
+	}
+	case -1: {
 		DES_cblock key;
 		DES_cblock iv;
 		DES_key_schedule ks;
@@ -342,6 +355,10 @@ static void common_crypt_code(char *password, unsigned char *out, int full_decry
 			memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
 			DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + cur_salt->ctl - 8, 8, &ks, &iv, DES_DECRYPT);
 		}
+		break;
+	}
+	default:
+		error();
 	}
 }
 
@@ -368,24 +385,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// don't do full decryption (except for EC keys)
 		common_crypt_code(saved_key[index], out, 0);
 
-		if (cur_salt->cipher == 0 || cur_salt->cipher == -1) { // 3DES or DES
-			cracked[index] =
-				!check_padding_and_structure(out, cur_salt->ctl, 8);
-		} else if (cur_salt->cipher == 1) {
-			cracked[index] =
-				!check_padding_and_structure(out, cur_salt->ctl, 16);
-		} else if (cur_salt->cipher == 2 || cur_salt->cipher == 6) {  // new ssh key format handling
-			cracked[index] =
-				!check_structure_bcrypt(out, cur_salt->ctl);
-		} else if (cur_salt->cipher == 3) { // EC keys
-			cracked[index] =
-				!check_padding_and_structure(out, cur_salt->ctl, 16);
-		} else if (cur_salt->cipher == 4) {  // AES-192
-			cracked[index] =
-				!check_padding_and_structure(out, cur_salt->ctl, 16);
-		} else if (cur_salt->cipher == 5) {  // AES-256 maybe EC or not
-			cracked[index] =
-				!check_padding_and_structure(out, cur_salt->ctl, 16);
+		switch (cur_salt->cipher) {
+		case -1: /* DES */
+		case 0: /* 3DES */
+			cracked[index] = !check_padding_and_structure(out, cur_salt->ctl, 8);
+			break;
+		case 1:
+		case 3: /* EC keys */
+		case 4: /* AES-192 */
+		case 5: /* AES-256 maybe EC or not */
+			cracked[index] = !check_padding_and_structure(out, cur_salt->ctl, 16);
+			break;
+		case 2:
+		case 6: /* new ssh key format handling */
+			cracked[index] = !check_structure_bcrypt(out, cur_salt->ctl);
+			break;
+		default:
+			error();
 		}
 
 		if (cracked[index])
