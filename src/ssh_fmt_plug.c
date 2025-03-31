@@ -10,11 +10,8 @@
  * Copyright (C) 2011  Jeff Forcier <jeff@bitprophet.org>
  *
  * This software is Copyright (c) 2012, Dhiru Kholia <dhiru.kholia at gmail.com>,
- * and it is hereby released to the general public under the following terms:
- * Redistribution and use in source and binary forms, with or without modification,
- * are permitted.
- *
- * This software is Copyright (c) 2020 Valeriy Khromov <valery.khromov at gmail.com>,
+ * Copyright (c) 2020 Valeriy Khromov <valery.khromov at gmail.com>,
+ * Copyright (c) 2025 Solar Designer,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
