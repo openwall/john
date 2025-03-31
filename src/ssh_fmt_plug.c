@@ -82,7 +82,8 @@ john_register_one(&fmt_ssh);
 #define SAFETY_FACTOR       16  // enough to verify the initial ASN.1 structure (SEQUENCE, INTEGER, Big INTEGER) of RSA, and DSA keys?
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static int *cracked;
+static int any_cracked, *cracked;
+static size_t cracked_size;
 
 static struct custom_salt *cur_salt;
 
@@ -92,8 +93,9 @@ static void init(struct fmt_main *self)
 
 	saved_key = mem_calloc(self->params.max_keys_per_crypt,
 	                       sizeof(*saved_key));
-	cracked   = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*cracked));
+	any_cracked = 0;
+	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
+	cracked = mem_calloc(cracked_size, 1);
 }
 
 static void done(void)
@@ -368,6 +370,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int index;
 
+	if (any_cracked) {
+		memset(cracked, 0, cracked_size);
+		any_cracked = 0;
+	}
+
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -397,6 +404,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				!check_padding_and_structure(out, cur_salt->ctl, 0, 16);
 		}
 
+		if (cracked[index])
+			any_cracked = 1;
 	}
 
 	return count;
@@ -404,12 +413,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	int index;
-
-	for (index = 0; index < count; index++)
-		if (cracked[index])
-			return 1;
-	return 0;
+	return any_cracked;
 }
 
 static int cmp_one(void *binary, int index)
