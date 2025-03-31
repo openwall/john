@@ -110,7 +110,7 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-inline static void generate_key_bytes(int nbytes, unsigned char *password, unsigned char *key)
+static inline void generate_key_bytes(int nbytes, unsigned char *password, unsigned char *key)
 {
 	unsigned char digest[16];
 	int len = strlen((const char*)password);
@@ -141,12 +141,12 @@ inline static void generate_key_bytes(int nbytes, unsigned char *password, unsig
 	}
 }
 
-inline static int check_structure_bcrypt(unsigned char *out, int length)
+static inline int check_structure_bcrypt(unsigned char *out, int length)
 {
 	return memcmp(out, out + 4, 4);
 }
 
-inline static int check_padding_and_structure(unsigned char *out, int length, int blocksize)
+static inline int check_padding_and_structure(unsigned char *out, int length, int blocksize)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
@@ -185,13 +185,13 @@ inline static int check_padding_and_structure(unsigned char *out, int length, in
 	return 0;
 }
 
-inline static void handleErrors(void)
+static void handleErrors(void)
 {
 	ERR_print_errors_fp(stderr);
 	error();
 }
 
-inline static int AES_ctr_decrypt(unsigned char *ciphertext,
+static inline int AES_ctr_decrypt(unsigned char *ciphertext,
                                   int ciphertext_len, unsigned char *key,
                                   unsigned char *iv, unsigned char *plaintext)
 {
