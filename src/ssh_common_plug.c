@@ -144,6 +144,10 @@ unsigned int ssh_iteration_count(void *salt)
 	struct custom_salt *cur_salt = salt;
 
 	switch (cur_salt->cipher) {
+	case -1:
+		return 1; // generate 8 bytes of key + DES
+	case 0:
+		return 2; // generate 24 bytes of key + 3DES
 	case 1:
 	case 3:
 		return 1; // generate 16 bytes of key + AES-128
@@ -151,10 +155,6 @@ unsigned int ssh_iteration_count(void *salt)
 		return 2; // generate 24 bytes of key + AES-192
 	case 5:
 		return 2; // generate 32 bytes of key + AES-256
-	case 0:
-		return 2; // generate 24 bytes of key + 3DES
-	case -1:
-		return 1; // generate 8 bytes of key + DES
 	default:
 		return cur_salt->rounds; // bcrypt KDF + AES-256 (ed25519)
 	}

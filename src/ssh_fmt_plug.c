@@ -276,6 +276,21 @@ static int common_crypt_code(char *password)
 #endif
 
 	switch (cur_salt->cipher) {
+	case -1: {
+		DES_cblock key;
+		DES_cblock iv;
+		DES_key_schedule ks;
+
+		generate_key_bytes(8, (unsigned char *)password, (unsigned char *)key);
+		DES_set_key_unchecked((DES_cblock *) key, &ks);
+		memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
+		DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + cur_salt->ctl - 8, 8, &ks, &iv, DES_DECRYPT);
+		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 8)) < 0)
+			return -1;
+		memcpy(iv, cur_salt->salt, 8);
+		DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &iv, DES_DECRYPT);
+		return check_structure_asn1(out, cur_salt->ctl, real_len);
+	}
 	case 0: {
 		unsigned char key[24];
 		DES_cblock key1, key2, key3;
@@ -378,21 +393,6 @@ static int common_crypt_code(char *password)
 			return -1;
 		memcpy(iv, cur_salt->salt, 16);
 		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
-		return check_structure_asn1(out, cur_salt->ctl, real_len);
-	}
-	case -1: {
-		DES_cblock key;
-		DES_cblock iv;
-		DES_key_schedule ks;
-
-		generate_key_bytes(8, (unsigned char *)password, (unsigned char *)key);
-		DES_set_key_unchecked((DES_cblock *) key, &ks);
-		memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
-		DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + cur_salt->ctl - 8, 8, &ks, &iv, DES_DECRYPT);
-		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 8)) < 0)
-			return -1;
-		memcpy(iv, cur_salt->salt, 8);
-		DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &iv, DES_DECRYPT);
 		return check_structure_asn1(out, cur_salt->ctl, real_len);
 	}
 	default:
