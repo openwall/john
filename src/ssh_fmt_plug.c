@@ -312,13 +312,18 @@ static int common_crypt_code(char *password)
 		DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
 		return check_structure_asn1(out, cur_salt->ctl, real_len);
 	}
-	case 1: {
-		unsigned char key[16];
+	case 1:   /* RSA/DSA keys with AES-128 */
+	case 3:   /* EC keys with AES-128 */
+	case 4:   /* RSA/DSA keys with AES-192 */
+	case 5: { /* RSA/DSA keys with AES-256 */
+		const unsigned int keybytes_all[5] = {16, 0, 16, 24, 32};
+		unsigned int keybytes = keybytes_all[cur_salt->cipher - 1];
+		unsigned char key[32];
 		AES_KEY akey;
 		unsigned char iv[16];
 
-		generate_key_bytes(16, (unsigned char*)password, key);
-		AES_set_decrypt_key(key, 128, &akey);
+		generate_key_bytes(keybytes, (unsigned char*)password, key);
+		AES_set_decrypt_key(key, keybytes << 3, &akey);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
 		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 16)) < 0)
@@ -327,7 +332,8 @@ static int common_crypt_code(char *password)
 		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
 		return check_structure_asn1(out, cur_salt->ctl, real_len);
 	}
-	case 2: { /* new ssh key format handling with aes256-cbc */
+	case 2:   /* new ssh key format handling with aes256-cbc */
+	case 6: { /* new ssh key format handling with aes256-ctr */
 		unsigned char key[32 + 16];
 		AES_KEY akey;
 		unsigned char iv[16];
@@ -337,63 +343,11 @@ static int common_crypt_code(char *password)
 		AES_set_decrypt_key(key, 256, &akey);
 		memcpy(iv, key + 32, 16);
 		// decrypt one block for "check bytes" check
-		AES_cbc_encrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, out, 16, &akey, iv, AES_DECRYPT);
+		if (cur_salt->cipher == 2)
+			AES_cbc_encrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, out, 16, &akey, iv, AES_DECRYPT);
+		else
+			AES_ctr_decrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, 16, key, iv, out);
 		return check_structure_bcrypt(out, cur_salt->ctl);
-	}
-	case 6: { /* new ssh key format handling with aes256-ctr */
-		unsigned char key[32 + 16];
-		unsigned char iv[16];
-
-		// derive (key length + iv length) bytes
-		bcrypt_pbkdf(password, strlen((const char *)password), cur_salt->salt, 16, key, 32 + 16, cur_salt->rounds);
-		memcpy(iv, key + 32, 16);
-		AES_ctr_decrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, 16, key, iv, out);
-		return check_structure_bcrypt(out, cur_salt->ctl);
-	}
-	case 3: { /* EC keys with AES-128 */
-		unsigned char key[16];
-		AES_KEY akey;
-		unsigned char iv[16];
-
-		generate_key_bytes(16, (unsigned char*)password, key);
-		AES_set_decrypt_key(key, 128, &akey);
-		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
-		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
-		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 16)) < 0)
-			return -1;
-		memcpy(iv, cur_salt->salt, 16);
-		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
-		return check_structure_asn1(out, cur_salt->ctl, real_len);
-	}
-	case 4: { /* RSA/DSA keys with AES-192 */
-		unsigned char key[24];
-		AES_KEY akey;
-		unsigned char iv[16];
-
-		generate_key_bytes(24, (unsigned char*)password, key);
-		AES_set_decrypt_key(key, 192, &akey);
-		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
-		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
-		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 16)) < 0)
-			return -1;
-		memcpy(iv, cur_salt->salt, 16);
-		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
-		return check_structure_asn1(out, cur_salt->ctl, real_len);
-	}
-	case 5: { /* RSA/DSA keys with AES-256 */
-		unsigned char key[32];
-		AES_KEY akey;
-		unsigned char iv[16];
-
-		generate_key_bytes(32, (unsigned char*)password, key);
-		AES_set_decrypt_key(key, 256, &akey);
-		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
-		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
-		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 16)) < 0)
-			return -1;
-		memcpy(iv, cur_salt->salt, 16);
-		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
-		return check_structure_asn1(out, cur_salt->ctl, real_len);
 	}
 	default:
 		error();
