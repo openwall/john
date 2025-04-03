@@ -59,18 +59,22 @@ struct asn1_hdr {
     unsigned int tag, length;
 };
 
+#if 0
 #define ASN1_MAX_OID_LEN 20
 struct asn1_oid {
     unsigned long oid[ASN1_MAX_OID_LEN];
     size_t len;
 };
+#endif
 
 
-int asn1_get_next(const uint8_t *buf, size_t len, struct asn1_hdr *hdr);
+int asn1_get_next(const uint8_t *buf, size_t len_have, size_t len_full, struct asn1_hdr *hdr);
+#if 0
 int asn1_parse_oid(const uint8_t *buf, size_t len, struct asn1_oid *oid);
 int asn1_get_oid(const uint8_t *buf, size_t len, struct asn1_oid *oid,
                  const uint8_t **next);
 void asn1_oid_to_str(struct asn1_oid *oid, char *buf, size_t len);
 unsigned long asn1_bit_string_to_long(const uint8_t *buf, size_t len);
+#endif
 
 #endif /* ASN1_H */

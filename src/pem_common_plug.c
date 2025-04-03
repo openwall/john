@@ -227,7 +227,7 @@ int pem_decrypt(unsigned char *key, unsigned char *iv, unsigned char *data, stru
 	/* check message structure, http://lapo.it/asn1js/ is the best tool for learning this stuff */
 
 	// SEQUENCE
-	if (asn1_get_next(out, length, &hdr) < 0 ||
+	if (asn1_get_next(out, length, length, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_SEQUENCE) {
 		goto bad;
@@ -236,7 +236,7 @@ int pem_decrypt(unsigned char *key, unsigned char *iv, unsigned char *data, stru
 	end = pos + hdr.length;
 
 	// version Version (Version ::= INTEGER)
-	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
+	if (asn1_get_next(pos, end - pos, end - pos, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_INTEGER) {
 		goto bad;
@@ -250,7 +250,7 @@ int pem_decrypt(unsigned char *key, unsigned char *iv, unsigned char *data, stru
 		goto bad;
 
 	// SEQUENCE
-	if (asn1_get_next(pos, length, &hdr) < 0 ||
+	if (asn1_get_next(pos, length, length, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_SEQUENCE) {
 		goto bad;
@@ -258,7 +258,7 @@ int pem_decrypt(unsigned char *key, unsigned char *iv, unsigned char *data, stru
 	pos = hdr.payload; /* go inside this sequence */
 
 	// OBJECT IDENTIFIER (with value 1.2.840.113549.1.1.1, 1.2.840.10040.4.1 for DSA)
-	if (asn1_get_next(pos, length, &hdr) < 0 ||
+	if (asn1_get_next(pos, length, length, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_OID) {
 		goto bad;

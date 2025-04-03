@@ -145,14 +145,21 @@ static inline int check_structure_bcrypt(unsigned char *out, int length)
 
 static inline int check_padding_and_structure(unsigned char *out, int length, int blocksize)
 {
+	int real_len;
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
 
-	// First check padding
-	if (check_pkcs_pad(out, length, blocksize) < 0)
+	/* First check padding */
+	if ((real_len = check_pkcs_pad(out, length, blocksize)) < 0)
 		return -1;
 
-	/* check BER decoding, private key file contains:
+	const unsigned int pad_byte = out[length - 1];
+	unsigned int pad_need = 7; /* This many padding bytes is good enough on its own */
+	if (pad_byte >= pad_need && !self_test_running)
+		return 0;
+
+	/*
+	 * Check BER decoding, private key file contains:
 	 *
 	 * RSAPrivateKey = { version = 0, n, e, d, p, q, d mod p-1, d mod q-1, q**-1 mod p }
 	 * DSAPrivateKey = { version = 0, p, q, g, y, x }
@@ -160,25 +167,66 @@ static inline int check_padding_and_structure(unsigned char *out, int length, in
 	 * openssl asn1parse -in test_rsa.key # this shows the structure nicely!
 	 */
 
-	// SEQUENCE
-	if (asn1_get_next(out, length, &hdr) < 0 ||
-	    hdr.class != ASN1_CLASS_UNIVERSAL || hdr.tag != ASN1_TAG_SEQUENCE)
+	/*
+	 * "For tags with a number ranging from zero to 30 (inclusive), the
+	 * identifier octets shall comprise a single octet" (X.690 BER spec),
+	 * so we disallow (hdr.identifier & 0x1f) == 0x1f as that means the tag
+	 * was extracted from multiple octets.  Since this is part of BER spec,
+	 * we could as well patch an equivalent check into asn1_get_next().
+	 *
+	 * "In the long form, it is a sender's option whether to use more
+	 * length octets than the minimum necessary." (BER), but "The definite
+	 * form of length encoding shall be used, encoded in the minimum number
+	 * of octets." (DER), so we could also impose this kind of check for
+	 * lengths (if we assume this is indeed DER), but we currently don't.
+	 */
+
+	/* The content is a SEQUENCE, which per BER spec is always constructed */
+	if (asn1_get_next(out, MIN(real_len, SAFETY_FACTOR), real_len, &hdr) < 0 ||
+	    hdr.class != ASN1_CLASS_UNIVERSAL || hdr.tag != ASN1_TAG_SEQUENCE ||
+	    !hdr.constructed ||
+	    (hdr.identifier & 0x1f) == 0x1f)
 		return -1;
+
+	if (pad_byte >= --pad_need && !self_test_running)
+		return 0;
+
+	/* The SEQUENCE must occupy the rest of space until padding */
+	if (hdr.payload - out + hdr.length != real_len)
+		return -1;
+
+	if (hdr.payload - out == 4) /* We extracted hdr.length from 2 bytes */
+		pad_need--;
+	if (pad_byte >= --pad_need && !self_test_running)
+		return 0;
+
 	pos = hdr.payload;
 	end = pos + hdr.length;
 
-	// version Version (Version ::= INTEGER)
-	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
-	    hdr.class != ASN1_CLASS_UNIVERSAL || hdr.tag != ASN1_TAG_INTEGER)
+	/* Version ::= INTEGER, which per BER spec is always primitive */
+	if (asn1_get_next(pos, MIN(hdr.length, SAFETY_FACTOR), hdr.length, &hdr) < 0 ||
+	    hdr.class != ASN1_CLASS_UNIVERSAL || hdr.tag != ASN1_TAG_INTEGER ||
+	    hdr.constructed || hdr.length != 1 ||
+	    (hdr.identifier & 0x1f) == 0x1f)
 		return -1;
+
+	if (pad_byte >= pad_need - 2 && !self_test_running)
+		return 0;
+
 	pos = hdr.payload + hdr.length;
-
-	// INTEGER (big one for RSA) or OCTET STRING (EC)
-	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
-	    hdr.class != ASN1_CLASS_UNIVERSAL ||
-	    (hdr.tag != ASN1_TAG_INTEGER && hdr.tag != ASN1_TAG_OCTETSTRING && hdr.tag != ASN1_TAG_SEQUENCE))
+	if (pos - out >= SAFETY_FACTOR)
 		return -1;
 
+	/* INTEGER (big one for RSA) or OCTET STRING (EC) or SEQUENCE */
+	/* OCTET STRING per DER spec is always constructed for <= 1000 octets */
+	if (asn1_get_next(pos, MIN(end - pos, SAFETY_FACTOR), end - pos, &hdr) < 0 ||
+	    hdr.class != ASN1_CLASS_UNIVERSAL ||
+	    (hdr.tag != ASN1_TAG_INTEGER && hdr.tag != ASN1_TAG_OCTETSTRING && hdr.tag != ASN1_TAG_SEQUENCE) ||
+	    hdr.constructed != (hdr.tag == ASN1_TAG_SEQUENCE) ||
+	    (hdr.identifier & 0x1f) == 0x1f)
+		return -1;
+
+	/* We've also checked 1 padding byte */
 	return 0;
 }
 

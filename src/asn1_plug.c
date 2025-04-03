@@ -20,14 +20,14 @@
 
 #define wpa_printf(...)
 
-int asn1_get_next(const uint8_t *buf, size_t len, struct asn1_hdr *hdr)
+int asn1_get_next(const uint8_t *buf, size_t len_have, size_t len_full, struct asn1_hdr *hdr)
 {
     const uint8_t *pos, *end;
     uint8_t tmp;
 
     memset(hdr, 0, sizeof(*hdr));
     pos = buf;
-    end = buf + len;
+    end = buf + len_have;
 
     hdr->identifier = *pos++;
     hdr->class = hdr->identifier >> 6;
@@ -75,7 +75,7 @@ int asn1_get_next(const uint8_t *buf, size_t len, struct asn1_hdr *hdr)
         hdr->length = tmp;
     }
 
-    if (end < pos || hdr->length > (unsigned int) (end - pos)) {
+    if (end < pos || hdr->length > (unsigned int) (end - pos + (len_full - len_have))) {
         wpa_printf("ASN.1: Contents underflow");
         return -1;
     }
@@ -84,6 +84,9 @@ int asn1_get_next(const uint8_t *buf, size_t len, struct asn1_hdr *hdr)
     return 0;
 }
 
+
+#if 0
+#define asn1_get_next(buf, len, hdr) asn1_get_next(buf, len, len, hdr)
 
 int asn1_parse_oid(const uint8_t *buf, size_t len, struct asn1_oid *oid)
 {
@@ -214,3 +217,4 @@ unsigned long asn1_bit_string_to_long(const uint8_t *buf, size_t len)
 
     return val;
 }
+#endif
