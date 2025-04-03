@@ -143,15 +143,10 @@ static inline int check_structure_bcrypt(unsigned char *out, int length)
 	return memcmp(out, out + 4, 4);
 }
 
-static inline int check_padding_and_structure(unsigned char *out, int length, int blocksize)
+static inline int check_structure_asn1(unsigned char *out, int length, int real_len)
 {
-	int real_len;
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
-
-	/* First check padding */
-	if ((real_len = check_pkcs_pad(out, length, blocksize)) < 0)
-		return -1;
 
 	const unsigned int pad_byte = out[length - 1];
 	unsigned int pad_need = 7; /* This many padding bytes is good enough on its own */
@@ -273,6 +268,7 @@ static inline void AES_ctr_decrypt(unsigned char *ciphertext,
 
 static int common_crypt_code(char *password)
 {
+	int real_len;
 	unsigned char out[N];
 
 #ifdef DEBUG
@@ -286,7 +282,6 @@ static int common_crypt_code(char *password)
 		DES_cblock iv;
 		DES_key_schedule ks1, ks2, ks3;
 
-		memcpy(iv, cur_salt->salt, 8);
 		generate_key_bytes(24, (unsigned char*)password, key);
 		memcpy(key1, key, 8);
 		memcpy(key2, key + 8, 8);
@@ -294,23 +289,28 @@ static int common_crypt_code(char *password)
 		DES_set_key_unchecked((DES_cblock *) key1, &ks1);
 		DES_set_key_unchecked((DES_cblock *) key2, &ks2);
 		DES_set_key_unchecked((DES_cblock *) key3, &ks3);
-		DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
 		DES_ede3_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + cur_salt->ctl - 8, 8, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
-		return check_padding_and_structure(out, cur_salt->ctl, 8);
+		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 8)) < 0)
+			return -1;
+		memcpy(iv, cur_salt->salt, 8);
+		DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
+		return check_structure_asn1(out, cur_salt->ctl, real_len);
 	}
 	case 1: {
 		unsigned char key[16];
 		AES_KEY akey;
 		unsigned char iv[16];
 
-		memcpy(iv, cur_salt->salt, 16);
 		generate_key_bytes(16, (unsigned char*)password, key);
 		AES_set_decrypt_key(key, 128, &akey);
-		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
-		return check_padding_and_structure(out, cur_salt->ctl, 16);
+		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 16)) < 0)
+			return -1;
+		memcpy(iv, cur_salt->salt, 16);
+		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
+		return check_structure_asn1(out, cur_salt->ctl, real_len);
 	}
 	case 2: { /* new ssh key format handling with aes256-cbc */
 		unsigned char key[32 + 16];
@@ -340,51 +340,60 @@ static int common_crypt_code(char *password)
 		AES_KEY akey;
 		unsigned char iv[16];
 
-		memcpy(iv, cur_salt->salt, 16);
 		generate_key_bytes(16, (unsigned char*)password, key);
 		AES_set_decrypt_key(key, 128, &akey);
-		// full decrypt
-		AES_cbc_encrypt(cur_salt->ct, out, cur_salt->ctl, &akey, iv, AES_DECRYPT);
-		return check_padding_and_structure(out, cur_salt->ctl, 16);
+		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
+		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
+		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 16)) < 0)
+			return -1;
+		memcpy(iv, cur_salt->salt, 16);
+		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
+		return check_structure_asn1(out, cur_salt->ctl, real_len);
 	}
 	case 4: { /* RSA/DSA keys with AES-192 */
 		unsigned char key[24];
 		AES_KEY akey;
 		unsigned char iv[16];
 
-		memcpy(iv, cur_salt->salt, 16);
 		generate_key_bytes(24, (unsigned char*)password, key);
 		AES_set_decrypt_key(key, 192, &akey);
-		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
-		return check_padding_and_structure(out, cur_salt->ctl, 16);
+		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 16)) < 0)
+			return -1;
+		memcpy(iv, cur_salt->salt, 16);
+		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
+		return check_structure_asn1(out, cur_salt->ctl, real_len);
 	}
 	case 5: { /* RSA/DSA keys with AES-256 */
 		unsigned char key[32];
 		AES_KEY akey;
 		unsigned char iv[16];
 
-		memcpy(iv, cur_salt->salt, 16);
 		generate_key_bytes(32, (unsigned char*)password, key);
 		AES_set_decrypt_key(key, 256, &akey);
-		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
-		return check_padding_and_structure(out, cur_salt->ctl, 16);
+		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 16)) < 0)
+			return -1;
+		memcpy(iv, cur_salt->salt, 16);
+		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
+		return check_structure_asn1(out, cur_salt->ctl, real_len);
 	}
 	case -1: {
 		DES_cblock key;
 		DES_cblock iv;
 		DES_key_schedule ks;
 
-		memcpy(iv, cur_salt->salt, 8);
 		generate_key_bytes(8, (unsigned char *)password, (unsigned char *)key);
 		DES_set_key_unchecked((DES_cblock *) key, &ks);
-		DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &iv, DES_DECRYPT);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
 		DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + cur_salt->ctl - 8, 8, &ks, &iv, DES_DECRYPT);
-		return check_padding_and_structure(out, cur_salt->ctl, 8);
+		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 8)) < 0)
+			return -1;
+		memcpy(iv, cur_salt->salt, 8);
+		DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &iv, DES_DECRYPT);
+		return check_structure_asn1(out, cur_salt->ctl, real_len);
 	}
 	default:
 		error();
