@@ -1,6 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2006,2008,2010-2013,2015 by Solar Designer
+ * Copyright (c) 2011-2025, magnum
+ * Copyright (c) 2009-2018, JimF
  */
 
 #if AC_BUILT
@@ -902,6 +904,30 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			    format->methods.get_hash[size] !=
 			    fmt_default_get_hash)
 				return "get_hash method not allowed for FMT_HUGE_INPUT";
+		}
+	}
+
+	if (format->params.flags & FMT_BLOB) {
+		/*
+		 * BLOB formats can't use the default binary_hash_[0-6] functions.
+		 */
+		if (format->methods.binary_hash[0] == fmt_default_binary_hash_0)
+			return "default binary_hash_[0-6] method not allowed for FMT_BLOB";
+	}
+
+	if (format->params.binary_size == 0) {
+		for (size = 0; size < PASSWORD_HASH_SIZES; size++) {
+			/*
+			 * Salt-only formats can't have binary hash functions.
+			 */
+			if (format->methods.binary_hash[size] &&
+			    format->methods.binary_hash[size] !=
+			    fmt_default_binary_hash)
+				return "binary_hash method not allowed for salt-only formats";
+			if (format->methods.get_hash[size] &&
+			    format->methods.get_hash[size] !=
+			    fmt_default_get_hash)
+				return "get_hash method not allowed for salt-only formats";
 		}
 	}
 
