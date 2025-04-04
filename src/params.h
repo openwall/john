@@ -359,6 +359,12 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define LDR_HASH_COLLISIONS_MAX		1000
 
 /*
+ * Same as above but for salt-only formats, higher because they can't currently
+ * be "fixed" for the issue but still used for explaining the long load time.
+ */
+#define LDR_HASH_COLLISIONS_SALT_ONLY	10000
+
+/*
  * How many bitmap entries should the cracker prefetch at once.  Set this to 0
  * to disable prefetching.
  */

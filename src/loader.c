@@ -1,8 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2000,2003,2005,2010-2012,2015 by Solar Designer
- *
- * ...with heavy changes in the jumbo patch, by magnum and various authors
+ * Copyright (c) 2012-2025, magnum
+ * Copyright (c) 2009-2018, JimF
  */
 #if AC_BUILT
 #include "autoconfig.h"
@@ -996,6 +996,9 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 
 		if (!(db->options->flags & DB_WORDS) && dupe_checking) {
 			int collisions = 0;
+			int hash_collisions_max = format->params.binary_size ?
+				LDR_HASH_COLLISIONS_MAX : LDR_HASH_COLLISIONS_SALT_ONLY;
+
 			if ((current_pw = db->password_hash[pw_hash]))
 			do {
 				if (!fmt_bincmp(binary, current_pw->binary, format) &&
@@ -1004,7 +1007,7 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 					db->options->flags |= DB_NODUP;
 					break;
 				}
-				if (++collisions <= LDR_HASH_COLLISIONS_MAX)
+				if (++collisions <= hash_collisions_max)
 					continue;
 
 				if (john_main_process) {
