@@ -1,8 +1,10 @@
 /*
- * Office 2007-2013 cracker patch for JtR, common code. 2014 by JimF
- * This file takes replicated but common code, shared between the CPU
- * office format, and the GPU office formats, and places it into one
- * common location (with some tiny tweaks, for things like valid).
+ * Office 2007-2013 cracker patch for JtR, common code. This software is
+ * Copyright (c) 2014 by JimF
+ * Copyright (c) 2012-2025 magnum
+ * and is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #include "arch.h"
@@ -145,3 +147,23 @@ unsigned int ms_office_common_version(void *salt)
 {
 	return ((ms_office_custom_salt*)salt)->version;
 }
+
+static int ms_office_binary_hash(void *binary, uint32_t mask)
+{
+	fmt_data *blob = binary;
+	ms_office_binary_blob *verifiers = blob->blob;
+	uint8_t *encryptedVerifier = verifiers->encryptedVerifier;
+	uint32_t hash;
+
+	memcpy(&hash, encryptedVerifier, sizeof(hash));
+
+	return hash & mask;
+}
+
+int ms_office_binary_hash_0(void *binary) { return ms_office_binary_hash(binary, PH_MASK_0); }
+int ms_office_binary_hash_1(void *binary) { return ms_office_binary_hash(binary, PH_MASK_1); }
+int ms_office_binary_hash_2(void *binary) { return ms_office_binary_hash(binary, PH_MASK_2); }
+int ms_office_binary_hash_3(void *binary) { return ms_office_binary_hash(binary, PH_MASK_3); }
+int ms_office_binary_hash_4(void *binary) { return ms_office_binary_hash(binary, PH_MASK_4); }
+int ms_office_binary_hash_5(void *binary) { return ms_office_binary_hash(binary, PH_MASK_5); }
+int ms_office_binary_hash_6(void *binary) { return ms_office_binary_hash(binary, PH_MASK_6); }

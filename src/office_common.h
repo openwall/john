@@ -1,14 +1,10 @@
 /*
  * Office 2007-2013 cracker patch for JtR, common code. This software is
  * Copyright (c) 2014 by JimF
- * Copyright (c) 2012-2019 magnum
+ * Copyright (c) 2012-2025 magnum
  * and is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
- *
- * This file takes replicated but common code, shared between the CPU
- * office format, and the GPU office formats, and places it into one
- * common location.
  */
 
 #include "formats.h"
@@ -35,10 +31,17 @@ typedef struct ms_office_binary_blob_t {
 	uint8_t encryptedVerifierHash[32];
 } ms_office_binary_blob;
 
-void *ms_office_common_get_salt(char *ciphertext);
-void *ms_office_common_binary(char *ciphertext);
-int ms_office_common_valid(char *ciphertext, struct fmt_main *self);
+extern void *ms_office_common_get_salt(char *ciphertext);
+extern void *ms_office_common_binary(char *ciphertext);
+extern int ms_office_common_valid(char *ciphertext, struct fmt_main *self);
 
 /* other 'common' functions for MSOffice */
-unsigned int ms_office_common_iteration_count(void *salt);
-unsigned int ms_office_common_version(void *salt);
+extern unsigned int ms_office_common_iteration_count(void *salt);
+extern unsigned int ms_office_common_version(void *salt);
+extern int ms_office_binary_hash_0(void *binary);
+extern int ms_office_binary_hash_1(void *binary);
+extern int ms_office_binary_hash_2(void *binary);
+extern int ms_office_binary_hash_3(void *binary);
+extern int ms_office_binary_hash_4(void *binary);
+extern int ms_office_binary_hash_5(void *binary);
+extern int ms_office_binary_hash_6(void *binary);

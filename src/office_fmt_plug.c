@@ -1,7 +1,7 @@
 /*
  * Office 2007 cracker patch for JtR. This software is
  * Copyright (c) 2012 Dhiru Kholia <dhiru.kholia at gmail.com>.
- * Copyright (c) 2012-2021 magnum
+ * Copyright (c) 2012-2025 magnum
  * and is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -802,13 +802,13 @@ struct fmt_main fmt_office = {
 		},
 		fmt_default_source,
 		{
-			fmt_default_binary_hash_0,
-			fmt_default_binary_hash_1,
-			fmt_default_binary_hash_2,
-			fmt_default_binary_hash_3,
-			fmt_default_binary_hash_4,
-			fmt_default_binary_hash_5,
-			fmt_default_binary_hash_6
+			ms_office_binary_hash_0,
+			ms_office_binary_hash_1,
+			ms_office_binary_hash_2,
+			ms_office_binary_hash_3,
+			ms_office_binary_hash_4,
+			ms_office_binary_hash_5,
+			ms_office_binary_hash_6
 		},
 		fmt_default_salt_hash,
 		NULL,
