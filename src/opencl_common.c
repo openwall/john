@@ -1136,8 +1136,11 @@ static char *get_build_opts(int sequential_id, const char *opts)
 			global_opts = OPENCLBUILDOPTIONS;
 
 	snprintf(build_opts, LINE_BUFFER_SIZE,
-	         "-I opencl %s %s%s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
+	         "-I opencl %s %s%s%s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
 	        global_opts,
+	        options.verbosity >= VERB_DEBUG &&
+	        get_platform_vendor_id(get_platform_id(sequential_id)) ==
+	         PLATFORM_POCL ? "-g " : "",
 	        get_device_version(sequential_id) >= 200 ? "-cl-std=CL1.2 " : "",
 #ifdef __APPLE__
 	        "-D__OS_X__ ",
