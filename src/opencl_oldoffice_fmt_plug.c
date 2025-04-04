@@ -530,6 +530,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (idx_offset > 4 * (gws + 1))
 			idx_offset = 0;
 
+		/* Safety for when count < GWS */
+		for (int i = count; i <= gws; i++)
+			saved_idx[i] = key_idx;
+
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
 

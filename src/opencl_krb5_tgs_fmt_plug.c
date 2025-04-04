@@ -400,6 +400,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 	*pcount *= mask_int_cand.num_int_cand;
 
+	/* Safety for when count < GWS */
+	for (int i = count; i <= gws; i++)
+		saved_idx[i] = key_idx;
+
 	if (new_keys) {
 		/* Self-test kludge */
 		if (idx_offset > idxsize)
