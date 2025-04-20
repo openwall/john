@@ -44,7 +44,7 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	clen = atoi(p);
-	if (clen > N)
+	if (clen < 128 || clen > N)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ciphertext */
 		goto err;
