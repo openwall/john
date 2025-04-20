@@ -140,9 +140,21 @@ static inline void generate_key_bytes(int nbytes, char *password, size_t passwor
 	}
 }
 
-static inline int check_structure_bcrypt(unsigned char *out, int length)
+static inline int check_structure_bcrypt(unsigned char *out)
 {
-	return memcmp(out, out + 4, 4);
+/*
+ * OpenSSH PROTOCOL.key file says:
+ *
+ * uint32  checkint
+ * uint32  checkint
+ * byte[]  privatekey1
+ *
+ * where each private key is encoded using the same rules as used for SSH agent
+ *
+ * Apparently, it starts with a 32-bit length field, so we check that two most
+ * significant bytes of that field are 0, and that the checkint fields match.
+ */
+	return out[8] || out[9] || memcmp(out, out + 4, 4);
 }
 
 static inline int check_structure_asn1(unsigned char *out, int length, int real_len)
@@ -349,7 +361,7 @@ static int common_crypt_code(char *password, size_t password_len)
 			AES_cbc_encrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, out, 16, &akey, iv, AES_DECRYPT);
 		else
 			AES_ctr_decrypt(cur_salt->ct + cur_salt->ciphertext_begin_offset, 16, key, iv, out);
-		return check_structure_bcrypt(out, cur_salt->ctl);
+		return check_structure_bcrypt(out);
 	}
 	default:
 		error();
