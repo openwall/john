@@ -438,8 +438,15 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - BitShares format: Improve speeds, especially when attacking multiple wallets
   concurrently.  [Solar; 2025]
 
-- Add support for EC SSH keys encrypted with AES-256-CBC. [@peshev,
+- Add support for EC SSH keys encrypted with AES-256-CBC.  [Peter Peshev,
   Richard Schwab; 2024-2025]
+
+- Rework the SSH CPU format's detection of correct SSH key decryption to avoid
+  false negatives yet keep false positives low.  [Solar; 2025]
+
+- Hack around the SSH key "hash" "type 6" clash we ran into with the hashcat
+  project in August 2020 by supporting (and distinguishing) both our meaning
+  (bcrypt-pbkdf + AES-256-CTR) and theirs (MD5 + single DES).  [Solar; 2025]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
