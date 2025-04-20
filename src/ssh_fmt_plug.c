@@ -110,34 +110,24 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static inline void generate_key_bytes(int nbytes, char *password, size_t password_len, unsigned char *key)
+/* NB: keybytes is rounded up to a multiple of 16, need extra space for key */
+static inline void generate_key(char *password, size_t password_len, unsigned char *key, int keybytes)
 {
-	unsigned char digest[16];
-	int keyidx = 0;
-	int digest_inited = 0;
+	unsigned char *p = key;
 
-	while (nbytes > 0) {
+	do {
 		MD5_CTX ctx;
-		int i, size;
 
 		MD5_Init(&ctx);
-		if (digest_inited) {
-			MD5_Update(&ctx, digest, 16);
-		}
+		if (p > key)
+			MD5_Update(&ctx, p - 16, 16);
 		MD5_Update(&ctx, password, password_len);
 		/* use first 8 bytes of salt */
 		MD5_Update(&ctx, cur_salt->salt, 8);
-		MD5_Final(digest, &ctx);
-		digest_inited = 1;
-		if (nbytes > 16)
-			size = 16;
-		else
-			size = nbytes;
-		/* copy part of digest to keydata */
-		for (i = 0; i < size; i++)
-			key[keyidx++] = digest[i];
-		nbytes -= size;
-	}
+		MD5_Final(p, &ctx);
+		p += 16;
+		keybytes -= 16;
+	} while (keybytes > 0);
 }
 
 static inline int check_structure_bcrypt(unsigned char *out)
@@ -291,42 +281,40 @@ static int common_crypt_code(char *password, size_t password_len)
 
 	switch (cur_salt->cipher) {
 	case -1: {
-		DES_cblock key;
-		DES_cblock iv;
+		struct {
+			DES_cblock key, iv;
+		} s;
 		DES_key_schedule ks;
 
-		generate_key_bytes(8, password, password_len, (unsigned char *)key);
-		DES_set_key_unchecked((DES_cblock *) key, &ks);
-		memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
-		DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + sizeof(out) - 8, 8, &ks, &iv, DES_DECRYPT);
+		generate_key(password, password_len, (unsigned char *)&s, 8);
+		DES_set_key_unchecked(&s.key, &ks);
+		memcpy(s.iv, cur_salt->ct + cur_salt->ctl - 16, 8);
+		DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + sizeof(out) - 8, 8, &ks, &s.iv, DES_DECRYPT);
 		if ((real_len = check_pkcs_pad(out, sizeof(out), 8)) < 0)
 			return -1;
 		real_len += cur_salt->ctl - sizeof(out);
-		memcpy(iv, cur_salt->salt, 8);
-		DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &iv, DES_DECRYPT);
+		memcpy(s.iv, cur_salt->salt, 8);
+		DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &s.iv, DES_DECRYPT);
 		return check_structure_asn1(out, sizeof(out), real_len);
 	}
 	case 0: {
-		unsigned char key[24];
-		DES_cblock key1, key2, key3;
-		DES_cblock iv;
+		struct {
+			DES_cblock key1, key2, key3, iv;
+		} s;
 		DES_key_schedule ks1, ks2, ks3;
 
-		generate_key_bytes(24, password, password_len, key);
-		memcpy(key1, key, 8);
-		memcpy(key2, key + 8, 8);
-		memcpy(key3, key + 16, 8);
-		DES_set_key_unchecked((DES_cblock *) key1, &ks1);
-		DES_set_key_unchecked((DES_cblock *) key2, &ks2);
-		DES_set_key_unchecked((DES_cblock *) key3, &ks3);
-		memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
+		generate_key(password, password_len, (unsigned char *)&s, 24);
+		DES_set_key_unchecked(&s.key1, &ks1);
+		DES_set_key_unchecked(&s.key2, &ks2);
+		DES_set_key_unchecked(&s.key3, &ks3);
+		memcpy(s.iv, cur_salt->ct + cur_salt->ctl - 16, 8);
 		DES_ede3_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + sizeof(out) - 8, 8,
-		    &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
+		    &ks1, &ks2, &ks3, &s.iv, DES_DECRYPT);
 		if ((real_len = check_pkcs_pad(out, sizeof(out), 8)) < 0)
 			return -1;
 		real_len += cur_salt->ctl - sizeof(out);
-		memcpy(iv, cur_salt->salt, 8);
-		DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
+		memcpy(s.iv, cur_salt->salt, 8);
+		DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &s.iv, DES_DECRYPT);
 		return check_structure_asn1(out, sizeof(out), real_len);
 	}
 	case 1:   /* RSA/DSA keys with AES-128 */
@@ -339,7 +327,7 @@ static int common_crypt_code(char *password, size_t password_len)
 		AES_KEY akey;
 		unsigned char iv[16];
 
-		generate_key_bytes(keybytes, password, password_len, key);
+		generate_key(password, password_len, key, keybytes);
 		AES_set_decrypt_key(key, keybytes << 3, &akey);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + sizeof(out) - 16, 16, &akey, iv, AES_DECRYPT);
