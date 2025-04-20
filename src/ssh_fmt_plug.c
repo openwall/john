@@ -283,7 +283,7 @@ static inline void AES_ctr_decrypt(unsigned char *ciphertext,
 static int common_crypt_code(char *password, size_t password_len)
 {
 	int real_len;
-	unsigned char out[N];
+	unsigned char out[SAFETY_FACTOR + 16];
 
 #ifdef DEBUG
 	memset(out, 0x55, sizeof(out));
@@ -298,12 +298,13 @@ static int common_crypt_code(char *password, size_t password_len)
 		generate_key_bytes(8, password, password_len, (unsigned char *)key);
 		DES_set_key_unchecked((DES_cblock *) key, &ks);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
-		DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + cur_salt->ctl - 8, 8, &ks, &iv, DES_DECRYPT);
-		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 8)) < 0)
+		DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + sizeof(out) - 8, 8, &ks, &iv, DES_DECRYPT);
+		if ((real_len = check_pkcs_pad(out, sizeof(out), 8)) < 0)
 			return -1;
+		real_len += cur_salt->ctl - sizeof(out);
 		memcpy(iv, cur_salt->salt, 8);
 		DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &iv, DES_DECRYPT);
-		return check_structure_asn1(out, cur_salt->ctl, real_len);
+		return check_structure_asn1(out, sizeof(out), real_len);
 	}
 	case 0: {
 		unsigned char key[24];
@@ -319,12 +320,14 @@ static int common_crypt_code(char *password, size_t password_len)
 		DES_set_key_unchecked((DES_cblock *) key2, &ks2);
 		DES_set_key_unchecked((DES_cblock *) key3, &ks3);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
-		DES_ede3_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + cur_salt->ctl - 8, 8, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
-		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 8)) < 0)
+		DES_ede3_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + sizeof(out) - 8, 8,
+		    &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
+		if ((real_len = check_pkcs_pad(out, sizeof(out), 8)) < 0)
 			return -1;
+		real_len += cur_salt->ctl - sizeof(out);
 		memcpy(iv, cur_salt->salt, 8);
 		DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &iv, DES_DECRYPT);
-		return check_structure_asn1(out, cur_salt->ctl, real_len);
+		return check_structure_asn1(out, sizeof(out), real_len);
 	}
 	case 1:   /* RSA/DSA keys with AES-128 */
 	case 3:   /* EC keys with AES-128 */
@@ -339,12 +342,13 @@ static int common_crypt_code(char *password, size_t password_len)
 		generate_key_bytes(keybytes, password, password_len, key);
 		AES_set_decrypt_key(key, keybytes << 3, &akey);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
-		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
-		if ((real_len = check_pkcs_pad(out, cur_salt->ctl, 16)) < 0)
+		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + sizeof(out) - 16, 16, &akey, iv, AES_DECRYPT);
+		if ((real_len = check_pkcs_pad(out, sizeof(out), 16)) < 0)
 			return -1;
+		real_len += cur_salt->ctl - sizeof(out);
 		memcpy(iv, cur_salt->salt, 16);
 		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
-		return check_structure_asn1(out, cur_salt->ctl, real_len);
+		return check_structure_asn1(out, sizeof(out), real_len);
 	}
 	case 2:   /* new ssh key format handling with aes256-cbc */
 	case 6: { /* new ssh key format handling with aes256-ctr */
