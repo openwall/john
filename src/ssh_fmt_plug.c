@@ -79,7 +79,11 @@ john_register_one(&fmt_ssh);
 // openssl asn1parse -in test_dsa.key; openssl asn1parse -in test_rsa.key
 #define SAFETY_FACTOR       16  // enough to verify the initial ASN.1 structure (SEQUENCE, INTEGER, Big INTEGER) of RSA, and DSA keys?
 
-static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static struct {
+	uint8_t len;
+	char key[PLAINTEXT_LENGTH + 1];
+	char pad; /* to 128 bytes */
+} *saved_key;
 static int any_cracked, *cracked;
 static size_t cracked_size;
 
@@ -89,8 +93,7 @@ static void init(struct fmt_main *self)
 {
 	omp_autotune(self, OMP_SCALE);
 
-	saved_key = mem_calloc(self->params.max_keys_per_crypt,
-	                       sizeof(*saved_key));
+	saved_key = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_key));
 	any_cracked = 0;
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	cracked = mem_calloc(cracked_size, 1);
@@ -107,10 +110,9 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static inline void generate_key_bytes(int nbytes, unsigned char *password, unsigned char *key)
+static inline void generate_key_bytes(int nbytes, char *password, size_t password_len, unsigned char *key)
 {
 	unsigned char digest[16];
-	int len = strlen((const char*)password);
 	int keyidx = 0;
 	int digest_inited = 0;
 
@@ -122,7 +124,7 @@ static inline void generate_key_bytes(int nbytes, unsigned char *password, unsig
 		if (digest_inited) {
 			MD5_Update(&ctx, digest, 16);
 		}
-		MD5_Update(&ctx, password, len);
+		MD5_Update(&ctx, password, password_len);
 		/* use first 8 bytes of salt */
 		MD5_Update(&ctx, cur_salt->salt, 8);
 		MD5_Final(digest, &ctx);
@@ -266,7 +268,7 @@ static inline void AES_ctr_decrypt(unsigned char *ciphertext,
 #endif
 }
 
-static int common_crypt_code(char *password)
+static int common_crypt_code(char *password, size_t password_len)
 {
 	int real_len;
 	unsigned char out[N];
@@ -281,7 +283,7 @@ static int common_crypt_code(char *password)
 		DES_cblock iv;
 		DES_key_schedule ks;
 
-		generate_key_bytes(8, (unsigned char *)password, (unsigned char *)key);
+		generate_key_bytes(8, password, password_len, (unsigned char *)key);
 		DES_set_key_unchecked((DES_cblock *) key, &ks);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 16, 8);
 		DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + cur_salt->ctl - 8, 8, &ks, &iv, DES_DECRYPT);
@@ -297,7 +299,7 @@ static int common_crypt_code(char *password)
 		DES_cblock iv;
 		DES_key_schedule ks1, ks2, ks3;
 
-		generate_key_bytes(24, (unsigned char*)password, key);
+		generate_key_bytes(24, password, password_len, key);
 		memcpy(key1, key, 8);
 		memcpy(key2, key + 8, 8);
 		memcpy(key3, key + 16, 8);
@@ -322,7 +324,7 @@ static int common_crypt_code(char *password)
 		AES_KEY akey;
 		unsigned char iv[16];
 
-		generate_key_bytes(keybytes, (unsigned char*)password, key);
+		generate_key_bytes(keybytes, password, password_len, key);
 		AES_set_decrypt_key(key, keybytes << 3, &akey);
 		memcpy(iv, cur_salt->ct + cur_salt->ctl - 32, 16);
 		AES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 16, out + cur_salt->ctl - 16, 16, &akey, iv, AES_DECRYPT);
@@ -339,7 +341,7 @@ static int common_crypt_code(char *password)
 		unsigned char iv[16];
 
 		// derive (key length + iv length) bytes
-		bcrypt_pbkdf(password, strlen((const char*)password), cur_salt->salt, 16, key, 32 + 16, cur_salt->rounds);
+		bcrypt_pbkdf(password, password_len, cur_salt->salt, 16, key, 32 + 16, cur_salt->rounds);
 		AES_set_decrypt_key(key, 256, &akey);
 		memcpy(iv, key + 32, 16);
 		// decrypt one block for "check bytes" check
@@ -368,7 +370,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-		if (!common_crypt_code(saved_key[index])) {
+		if (!common_crypt_code(saved_key[index].key, saved_key[index].len)) {
 			cracked[index] = 1;
 			any_cracked = 1;
 		}
@@ -395,12 +397,12 @@ static int cmp_exact(char *source, int index)
 #undef set_key /* OpenSSL DES clash */
 static void set_key(char *key, int index)
 {
-	strnzcpy(saved_key[index], key, sizeof(*saved_key));
+	saved_key[index].len = strnzcpyn(saved_key[index].key, key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)
 {
-	return saved_key[index];
+	return saved_key[index].key;
 }
 
 struct fmt_main fmt_ssh = {
