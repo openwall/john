@@ -147,7 +147,7 @@ static MAYBE_INLINE int check_structure_bcrypt(unsigned char *out)
 	return out[8] || out[9] || memcmp(out, out + 4, 4);
 }
 
-static int check_structure_asn1(unsigned char *out, int length, int real_len)
+static MAYBE_INLINE int check_structure_asn1(unsigned char *out, int length, int real_len)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
@@ -297,7 +297,7 @@ static MAYBE_INLINE int common_crypt_code(char *password, size_t password_len)
 		real_len += cur_salt->ctl - sizeof(out);
 		memcpy(u.iv, cur_salt->salt, 8);
 		DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &u.iv, DES_DECRYPT);
-		return check_structure_asn1(out, sizeof(out), real_len);
+		break;
 	}
 	case 0: { /* RSA/DSA keys with 3DES */
 		union {
@@ -320,7 +320,7 @@ static MAYBE_INLINE int common_crypt_code(char *password, size_t password_len)
 		real_len += cur_salt->ctl - sizeof(out);
 		memcpy(u.iv, cur_salt->salt, 8);
 		DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &u.iv, DES_DECRYPT);
-		return check_structure_asn1(out, sizeof(out), real_len);
+		break;
 	}
 	case 1:   /* RSA/DSA keys with AES-128 */
 	case 3:   /* EC keys with AES-128 */
@@ -341,7 +341,7 @@ static MAYBE_INLINE int common_crypt_code(char *password, size_t password_len)
 		real_len += cur_salt->ctl - sizeof(out);
 		memcpy(iv, cur_salt->salt, 16);
 		AES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &akey, iv, AES_DECRYPT);
-		return check_structure_asn1(out, sizeof(out), real_len);
+		break;
 	}
 	case 2:   /* new ssh key format handling with aes256-cbc */
 	case 6: { /* new ssh key format handling with aes256-ctr */
@@ -363,6 +363,8 @@ static MAYBE_INLINE int common_crypt_code(char *password, size_t password_len)
 	default:
 		error();
 	}
+
+	return check_structure_asn1(out, sizeof(out), real_len);
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)
