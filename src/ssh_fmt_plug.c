@@ -111,7 +111,7 @@ static void set_salt(void *salt)
 }
 
 /* NB: keybytes is rounded up to a multiple of 16, need extra space for key */
-static inline void generate_key(char *password, size_t password_len, unsigned char *key, int keybytes)
+static MAYBE_INLINE void generate_key(char *password, size_t password_len, unsigned char *key, int keybytes)
 {
 	unsigned char *p = key;
 
@@ -130,7 +130,7 @@ static inline void generate_key(char *password, size_t password_len, unsigned ch
 	} while (keybytes > 0);
 }
 
-static inline int check_structure_bcrypt(unsigned char *out)
+static MAYBE_INLINE int check_structure_bcrypt(unsigned char *out)
 {
 /*
  * OpenSSH PROTOCOL.key file says:
@@ -147,7 +147,7 @@ static inline int check_structure_bcrypt(unsigned char *out)
 	return out[8] || out[9] || memcmp(out, out + 4, 4);
 }
 
-static inline int check_structure_asn1(unsigned char *out, int length, int real_len)
+static int check_structure_asn1(unsigned char *out, int length, int real_len)
 {
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
@@ -237,9 +237,8 @@ static void handleErrors(void)
 }
 #endif
 
-static inline void AES_ctr_decrypt(unsigned char *ciphertext,
-                                   int ciphertext_len, unsigned char *key,
-                                   unsigned char *iv, unsigned char *plaintext)
+static MAYBE_INLINE void AES_ctr_decrypt(unsigned char *ciphertext, int ciphertext_len,
+    unsigned char *key, unsigned char *iv, unsigned char *plaintext)
 {
 #ifdef MBEDTLS_CIPHER_MODE_CTR
 	size_t nc_off = 0;
@@ -270,7 +269,7 @@ static inline void AES_ctr_decrypt(unsigned char *ciphertext,
 #endif
 }
 
-static int common_crypt_code(char *password, size_t password_len)
+static MAYBE_INLINE int common_crypt_code(char *password, size_t password_len)
 {
 	int real_len;
 	unsigned char out[SAFETY_FACTOR + 16];
