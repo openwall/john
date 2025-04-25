@@ -50,10 +50,18 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (hexlen(p, &extra) != clen * 2 || extra)
 		goto err;
+
+	if (cipher < 0 || cipher > 6) {
+		fprintf(stderr, "%s: Cipher value of %d is not supported\n",
+		        self->params.label, cipher);
+		goto err;
+	}
+
 	if (cipher == 2 || cipher == 6) {
 		if ((p = strtokm(NULL, "$")) == NULL) {	/* rounds */
 			if (cipher != 6 || slen != 8) /* MD5 + single DES */
 				goto err;
+			cipher = 7;
 		} else { /* bcrypt-pbkdf + AES-256-CBC or -CTR */
 			if (!isdec(p))
 				goto err;
@@ -66,14 +74,16 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 		}
 	}
 
-	if (cipher < 0 || cipher > 6) {
-		fprintf(stderr, "[%s] cipher value of %d is not supported!\n",
-		        self->params.label, cipher);
+#if !HAVE_LIBCRYPTO
+	if (!strcasestr(self->params.label, "-opencl") && (cipher == 0 || cipher == 7)) {
+		fprintf(stderr, "%s: [3]DES is not supported in this build (need OpenSSL)\n",
+		        self->params.label);
 		goto err;
 	}
+#endif
 
 	if (strcasestr(self->params.label, "-opencl") && (cipher == 2 || cipher == 6)) {
-		fprintf(stderr, "[%s] cipher value of %d is not yet supported with OpenCL!\n",
+		fprintf(stderr, "%s: Cipher value of %d is not yet supported with OpenCL\n",
 		        self->params.label, cipher);
 		goto err;
 	}

@@ -21,8 +21,6 @@
 #include "autoconfig.h"
 #endif
 
-#if HAVE_LIBCRYPTO
-
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_ssh;
 #elif FMT_REGISTERS_H
@@ -31,17 +29,23 @@ john_register_one(&fmt_ssh);
 
 #include <string.h>
 #include <stdint.h>
-#include <openssl/conf.h>
+#if HAVE_LIBCRYPTO
 #include <openssl/des.h>
-#include <openssl/err.h>
-#include <openssl/evp.h>
+#endif
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
-#include "arch.h"
 #include "aes.h"
+
+#ifndef MBEDTLS_CIPHER_MODE_CTR
+#include <openssl/conf.h>
+#include <openssl/err.h>
+#include <openssl/evp.h>
+#endif
+
+#include "arch.h"
 #include "jumbo.h"
 #include "common.h"
 #include "formats.h"
@@ -279,6 +283,7 @@ static MAYBE_INLINE int common_crypt_code(char *password, size_t password_len)
 #endif
 
 	switch (cur_salt->cipher) {
+#if HAVE_LIBCRYPTO
 	case 7: { /* RSA/DSA keys with DES */
 		union {
 			unsigned char uc[16];
@@ -322,6 +327,7 @@ static MAYBE_INLINE int common_crypt_code(char *password, size_t password_len)
 		DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &u.iv, DES_DECRYPT);
 		break;
 	}
+#endif
 	case 1:   /* RSA/DSA keys with AES-128 */
 	case 3:   /* EC keys with AES-128 */
 	case 4:   /* RSA/DSA keys with AES-192 */
@@ -472,4 +478,3 @@ struct fmt_main fmt_ssh = {
 };
 
 #endif /* plugin stanza */
-#endif /* HAVE_LIBCRYPTO */
