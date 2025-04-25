@@ -281,40 +281,46 @@ static int common_crypt_code(char *password, size_t password_len)
 
 	switch (cur_salt->cipher) {
 	case -1: {
-		struct {
-			DES_cblock key, iv;
-		} s;
+		union {
+			unsigned char uc[16];
+			struct {
+				DES_cblock key, iv;
+			};
+		} u;
 		DES_key_schedule ks;
 
-		generate_key(password, password_len, (unsigned char *)&s, 8);
-		DES_set_key_unchecked(&s.key, &ks);
-		memcpy(s.iv, cur_salt->ct + cur_salt->ctl - 16, 8);
-		DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + sizeof(out) - 8, 8, &ks, &s.iv, DES_DECRYPT);
+		generate_key(password, password_len, u.uc, 8);
+		DES_set_key_unchecked(&u.key, &ks);
+		memcpy(u.iv, cur_salt->ct + cur_salt->ctl - 16, 8);
+		DES_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + sizeof(out) - 8, 8, &ks, &u.iv, DES_DECRYPT);
 		if ((real_len = check_pkcs_pad(out, sizeof(out), 8)) < 0)
 			return -1;
 		real_len += cur_salt->ctl - sizeof(out);
-		memcpy(s.iv, cur_salt->salt, 8);
-		DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &s.iv, DES_DECRYPT);
+		memcpy(u.iv, cur_salt->salt, 8);
+		DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &u.iv, DES_DECRYPT);
 		return check_structure_asn1(out, sizeof(out), real_len);
 	}
 	case 0: {
-		struct {
-			DES_cblock key1, key2, key3, iv;
-		} s;
+		union {
+			unsigned char uc[32];
+			struct {
+				DES_cblock key1, key2, key3, iv;
+			};
+		} u;
 		DES_key_schedule ks1, ks2, ks3;
 
-		generate_key(password, password_len, (unsigned char *)&s, 24);
-		DES_set_key_unchecked(&s.key1, &ks1);
-		DES_set_key_unchecked(&s.key2, &ks2);
-		DES_set_key_unchecked(&s.key3, &ks3);
-		memcpy(s.iv, cur_salt->ct + cur_salt->ctl - 16, 8);
+		generate_key(password, password_len, u.uc, 24);
+		DES_set_key_unchecked(&u.key1, &ks1);
+		DES_set_key_unchecked(&u.key2, &ks2);
+		DES_set_key_unchecked(&u.key3, &ks3);
+		memcpy(u.iv, cur_salt->ct + cur_salt->ctl - 16, 8);
 		DES_ede3_cbc_encrypt(cur_salt->ct + cur_salt->ctl - 8, out + sizeof(out) - 8, 8,
-		    &ks1, &ks2, &ks3, &s.iv, DES_DECRYPT);
+		    &ks1, &ks2, &ks3, &u.iv, DES_DECRYPT);
 		if ((real_len = check_pkcs_pad(out, sizeof(out), 8)) < 0)
 			return -1;
 		real_len += cur_salt->ctl - sizeof(out);
-		memcpy(s.iv, cur_salt->salt, 8);
-		DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &s.iv, DES_DECRYPT);
+		memcpy(u.iv, cur_salt->salt, 8);
+		DES_ede3_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks1, &ks2, &ks3, &u.iv, DES_DECRYPT);
 		return check_structure_asn1(out, sizeof(out), real_len);
 	}
 	case 1:   /* RSA/DSA keys with AES-128 */
