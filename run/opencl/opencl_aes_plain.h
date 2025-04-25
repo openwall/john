@@ -25,10 +25,10 @@
 #endif
 
 /*
- * This ruins Intel auto-vectorizing and slows AMD down - doesn't seem to make
- * much of a difference elsewhere.
+ * This slows AMD down - doesn't make much of a difference elsewhere except it
+ * seems to work around some auto-vectorizer bug in old Intel CPU runtimes.
  */
-#if gpu_nvidia(DEVICE_INFO)
+#if gpu_nvidia(DEVICE_INFO) || cpu_intel(DEVICE_INFO)
 #define FULL_UNROLL
 #endif
 
