@@ -17,9 +17,6 @@
 char *krb5_asrep_split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char *ptr, *keeptr;
-	unsigned char etype = 0;
-	char *p = ciphertext;
-	int i;
 
 	if (strnlen(ciphertext, LINE_BUFFER_SIZE) < LINE_BUFFER_SIZE &&
 	    strstr(ciphertext, "$SOURCE_HASH$"))
@@ -34,20 +31,23 @@ char *krb5_asrep_split(char *ciphertext, int index, struct fmt_main *self)
 		memcpy(ptr, "23$", ETYPE_TAG_LEN); // old hashes
 		ptr += ETYPE_TAG_LEN;
 	} else { // new format hashes (with FORMAT_TAG)
-		p = ciphertext + FORMAT_TAG_LEN;
+		unsigned char etype = 0;
+		char *p = ciphertext + FORMAT_TAG_LEN;
+
 		if (!strncmp(p, "23$", ETYPE_TAG_LEN))
 			etype = 23;
 		else if (!strncmp(p, "17$", ETYPE_TAG_LEN))
 			etype = 17;
 		else if (!strncmp(p, "18$", ETYPE_TAG_LEN))
 			etype = 18;
+
 		if (etype != 23) {
 			// skip over salt
 			p = strchr(ciphertext + FORMAT_TAG_LEN + ETYPE_TAG_LEN + 1, '$') + 1;
-			for (i = 0; i < p - ciphertext; i++)
-				ptr[i] = ARCH_INDEX(ciphertext[i]);
-			ptr += i;
-			ciphertext += i;
+			size_t salt_len = p - ciphertext;
+			memcpy(ptr, ciphertext, salt_len);
+			ptr += salt_len;
+			ciphertext = p;
 		}
 	}
 
