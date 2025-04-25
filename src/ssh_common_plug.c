@@ -127,7 +127,7 @@ void *ssh_get_salt(char *ciphertext)
 	if (cs.cipher == 2 || cs.cipher == 6) {
 		p = strtokm(NULL, "$");
 		if (!p && cs.cipher == 6 && cs.sl == 8) {
-			cs.cipher = -1;
+			cs.cipher = 7;
 		} else {
 			cs.rounds = atoi(p);
 			p = strtokm(NULL, "$");
@@ -144,7 +144,7 @@ unsigned int ssh_iteration_count(void *salt)
 	struct custom_salt *cur_salt = salt;
 
 	switch (cur_salt->cipher) {
-	case -1:
+	case 7:
 		return 1; // generate 8 bytes of key + DES
 	case 0:
 		return 2; // generate 24 bytes of key + 3DES
@@ -166,7 +166,7 @@ unsigned int ssh_kdf(void *salt)
 
 	switch (cur_salt->cipher) {
 	case 0:
-	case -1:
+	case 7:
 		return 1; // MD5 KDF + 3DES or DES
 	case 2:
 	case 6:

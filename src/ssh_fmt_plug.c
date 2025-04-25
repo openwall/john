@@ -280,7 +280,7 @@ static int common_crypt_code(char *password, size_t password_len)
 #endif
 
 	switch (cur_salt->cipher) {
-	case -1: {
+	case 7: { /* RSA/DSA keys with DES */
 		union {
 			unsigned char uc[16];
 			struct {
@@ -300,7 +300,7 @@ static int common_crypt_code(char *password, size_t password_len)
 		DES_cbc_encrypt(cur_salt->ct, out, SAFETY_FACTOR, &ks, &u.iv, DES_DECRYPT);
 		return check_structure_asn1(out, sizeof(out), real_len);
 	}
-	case 0: {
+	case 0: { /* RSA/DSA keys with 3DES */
 		union {
 			unsigned char uc[32];
 			struct {
