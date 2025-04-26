@@ -275,6 +275,12 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static unsigned int tunable_cost_iterations(void *_salt)
+{
+	struct custom_salt *salt = (struct custom_salt *)_salt;
+	return salt->iterations;
+}
+
 struct fmt_main fmt_scram_sha256 = {
 	{
 		FORMAT_LABEL,
@@ -291,7 +297,7 @@ struct fmt_main fmt_scram_sha256 = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },
+		{"iterations"},
 		{ FORMAT_TAG, FORMAT_TAG_PG },
 		tests
 	}, {
@@ -303,7 +309,7 @@ struct fmt_main fmt_scram_sha256 = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-		{ NULL },
+		{tunable_cost_iterations},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,
