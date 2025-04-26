@@ -6,9 +6,9 @@
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_mongodb_scram;
+extern struct fmt_main fmt_scram_sha1_mongodb;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_mongodb_scram);
+john_register_one(&fmt_scram_sha1_mongodb);
 #else
 
 #include <string.h>
@@ -34,16 +34,16 @@ john_register_one(&fmt_mongodb_scram);
 #define SIMD_KEYS		(SIMD_COEF_32 * SIMD_PARA_SHA1)
 #endif
 
-#define FORMAT_LABEL            "scram"
+#define FORMAT_LABEL            "SCRAM-PBKDF2-SHA1-MongoDB"
 #define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "SCRAM PBKDF2-SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME          "PBKDF2-SHA1/MD5/SCRAM " SHA1_ALGORITHM_NAME
 #define PLAINTEXT_LENGTH        125
 #define HASH_LENGTH             28
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
 #define BINARY_SIZE             20
 #define BINARY_ALIGN            sizeof(uint32_t)
-#define BENCHMARK_COMMENT       ""
+#define BENCHMARK_COMMENT       " (old MongoDB)"
 #define BENCHMARK_LENGTH        0x107
 #define FORMAT_TAG              "$scram$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
@@ -276,7 +276,7 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
-struct fmt_main fmt_mongodb_scram = {
+struct fmt_main fmt_scram_sha1_mongodb = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
