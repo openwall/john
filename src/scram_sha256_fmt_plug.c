@@ -1,5 +1,6 @@
 /*
  * This software is Copyright (c) 2025, Dhiru Kholia <dhiru.kholia at gmail.com>,
+ * Copyright (c) 2025 by Solar Designer (PostgreSQL SCRAM verifiers support)
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without modification,
  * are permitted.
@@ -49,6 +50,8 @@ john_register_one(&fmt_mongodb_scram_sha256);
 #define BENCHMARK_LENGTH        0x107
 #define FORMAT_TAG              "$scram-pbkdf2-sha256$"
 #define FORMAT_TAG_LENGTH       (sizeof(FORMAT_TAG) - 1)
+#define FORMAT_TAG_PG           "SCRAM-SHA-256$"
+#define FORMAT_TAG_PG_LENGTH    (sizeof(FORMAT_TAG_PG) - 1)
 #define MAX_USERNAME_LENGTH     128
 
 #ifndef OMP_SCALE
@@ -67,6 +70,10 @@ static struct fmt_tests tests[] = {
 	/* MongoDB 8.0.6 hashes */
 	{"$scram-pbkdf2-sha256$accountAdmin16$15000$OxAPvANwV/ZQXqgiW6s6o2+wPM+gfZNthjpUjw==$MenSdE9VmSij4sIKMKfRs+bHy9vkareAopWM8MB+364=", "openwall"},
 	{"$scram-pbkdf2-sha256$user$15000$0sWhCP4Z0gjI7KY6WJ7z/Hs3SEcxC+PUSkv4og==$qnttlssP81IuwtcoZ4TV/M0SMCajePUhPP3mRrnv0aA=", "openwall@1234567890"},
+	/* PostgreSQL verifiers as converted by our prepare() */
+	{"$scram-pbkdf2-sha256$$4096$Wn/IWH721Aj+HbEQRJiD3A==$EyLID0avoAyy1JzKwD7yKQ9HuWQ0VlSurm180/sQFYE=", "P123"},
+	{"$scram-pbkdf2-sha256$$4096$p2j/1lMdQF6r1dD9I9f7PQ==$5xU6Wj/GNg3UnN2uQIx3ezx7uZyzGeM5NrvSJRIxnlw=", "test"},
+	{"$scram-pbkdf2-sha256$$4096$L6Nhfyy6pos5mpvTRXQOTQ==$/aRx7mRpU0txwFSzZ5lcj/u/FHCc503fUfGrF12nGx0=", "test"},
 	{NULL}
 };
 
@@ -94,6 +101,31 @@ static void done(void)
 {
 	MEM_FREE(crypt_out);
 	MEM_FREE(saved_key);
+}
+
+static char *prepare(char *fields[10], struct fmt_main *self)
+{
+/*
+SCRAM-SHA-256$4096:Wn/IWH721Aj+HbEQRJiD3A==$xtjWYz23fPW4dXUZMzTup6bUOqSAVzlChcrhHCfIXfo=:EyLID0avoAyy1JzKwD7yKQ9HuWQ0VlSurm180/sQFYE=
+SCRAM-SHA-256$4096:p2j/1lMdQF6r1dD9I9f7PQ==$H3xt5yh7lwSq9zUPYwHovRu3FyUCCXchG/skydJRa9o=:5xU6Wj/GNg3UnN2uQIx3ezx7uZyzGeM5NrvSJRIxnlw=
+SCRAM-SHA-256$4096:L6Nhfyy6pos5mpvTRXQOTQ==$RMoA1BGLjB/LmVJ2iP5N91E0ri/9siV5E3D5DEvfqXU=:/aRx7mRpU0txwFSzZ5lcj/u/FHCc503fUfGrF12nGx0=
+*/
+	for (int i = 0; i < 2; i++) /* allow for username:hash or bare hash */
+	if (!strncmp(fields[i], FORMAT_TAG_PG, FORMAT_TAG_PG_LENGTH)) {
+		static char out[FORMAT_TAG_LENGTH + 1 + 10 + 1 + MAX_SALT_LENGTH + 1 + HASH_LENGTH + 1];
+		char *saltend = strchr(fields[i + 1], '$');
+		if (!saltend || !isdec(fields[i] + FORMAT_TAG_PG_LENGTH))
+			break;
+		if ((size_t)snprintf(out, sizeof(out), FORMAT_TAG "$%s$%.*s$%s",
+		    fields[i] + FORMAT_TAG_PG_LENGTH, /* iterations */
+		    (int)(saltend - fields[i + 1]), /* salt length */
+		    fields[i + 1], /* salt */
+		    fields[i + 2]) /* serverKey */ >= sizeof(out))
+			break;
+		return out;
+	}
+
+	return fields[1];
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -266,13 +298,13 @@ struct fmt_main fmt_mongodb_scram_sha256 = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
 		{ NULL },
-		{ FORMAT_TAG },
+		{ FORMAT_TAG, FORMAT_TAG_PG },
 		tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		fmt_default_split,
 		get_binary,

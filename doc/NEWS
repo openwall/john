@@ -428,7 +428,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Deprecate and ignore the --prince-mmap option. It was too problematic to fix.
   [magnum; 2025]
 
-- Add support for auditing SCRAM PBKDF2-SHA256 hashes.  [Dhiru; 2025]
+- Add support for MongoDB and PostgreSQL SCRAM-SHA-256 verifiers.  For MongoDB,
+  extract them with mongodb2john.js first.  For PostgreSQL, pass them into john
+  directly (optionally prefixed by "username:").  [Dhiru, Solar; 2025]
 
 - Add support for (Win)ZIP archives larger than 4 GiB.  Prior to this they
   ended up with false negatives.  [magnum; 2025]
