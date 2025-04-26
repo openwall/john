@@ -86,7 +86,7 @@ try {
 		}
 		if (c['credentials']['SCRAM-SHA-256']) {
 			s = c['credentials']['SCRAM-SHA-256'];
-			shash = '$scram-pbkdf2-sha256$' + c['user'] + '$' + s['iterationCount'] + '$' + s['salt'] + '$' + s['serverKey'];
+			shash = '$scram-pbkdf2-sha256$' + s['iterationCount'] + '$' + s['salt'] + '$' + s['serverKey'];
 			print(c['user'] + '-' + c['db'] + ':' + shash);
 		}
 

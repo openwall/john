@@ -68,12 +68,12 @@ john_register_one(&fmt_mongodb_scram_sha256);
 
 static struct fmt_tests tests[] = {
 	/* MongoDB 8.0.6 hashes */
-	{"$scram-pbkdf2-sha256$accountAdmin16$15000$OxAPvANwV/ZQXqgiW6s6o2+wPM+gfZNthjpUjw==$MenSdE9VmSij4sIKMKfRs+bHy9vkareAopWM8MB+364=", "openwall"},
-	{"$scram-pbkdf2-sha256$user$15000$0sWhCP4Z0gjI7KY6WJ7z/Hs3SEcxC+PUSkv4og==$qnttlssP81IuwtcoZ4TV/M0SMCajePUhPP3mRrnv0aA=", "openwall@1234567890"},
+	{"$scram-pbkdf2-sha256$15000$OxAPvANwV/ZQXqgiW6s6o2+wPM+gfZNthjpUjw==$MenSdE9VmSij4sIKMKfRs+bHy9vkareAopWM8MB+364=", "openwall"},
+	{"$scram-pbkdf2-sha256$15000$0sWhCP4Z0gjI7KY6WJ7z/Hs3SEcxC+PUSkv4og==$qnttlssP81IuwtcoZ4TV/M0SMCajePUhPP3mRrnv0aA=", "openwall@1234567890"},
 	/* PostgreSQL verifiers as converted by our prepare() */
-	{"$scram-pbkdf2-sha256$$4096$Wn/IWH721Aj+HbEQRJiD3A==$EyLID0avoAyy1JzKwD7yKQ9HuWQ0VlSurm180/sQFYE=", "P123"},
-	{"$scram-pbkdf2-sha256$$4096$p2j/1lMdQF6r1dD9I9f7PQ==$5xU6Wj/GNg3UnN2uQIx3ezx7uZyzGeM5NrvSJRIxnlw=", "test"},
-	{"$scram-pbkdf2-sha256$$4096$L6Nhfyy6pos5mpvTRXQOTQ==$/aRx7mRpU0txwFSzZ5lcj/u/FHCc503fUfGrF12nGx0=", "test"},
+	{"$scram-pbkdf2-sha256$4096$Wn/IWH721Aj+HbEQRJiD3A==$EyLID0avoAyy1JzKwD7yKQ9HuWQ0VlSurm180/sQFYE=", "P123"},
+	{"$scram-pbkdf2-sha256$4096$p2j/1lMdQF6r1dD9I9f7PQ==$5xU6Wj/GNg3UnN2uQIx3ezx7uZyzGeM5NrvSJRIxnlw=", "test"},
+	{"$scram-pbkdf2-sha256$4096$L6Nhfyy6pos5mpvTRXQOTQ==$/aRx7mRpU0txwFSzZ5lcj/u/FHCc503fUfGrF12nGx0=", "test"},
 	{NULL}
 };
 
@@ -112,11 +112,11 @@ SCRAM-SHA-256$4096:L6Nhfyy6pos5mpvTRXQOTQ==$RMoA1BGLjB/LmVJ2iP5N91E0ri/9siV5E3D5
 */
 	for (int i = 0; i < 2; i++) /* allow for username:hash or bare hash */
 	if (!strncmp(fields[i], FORMAT_TAG_PG, FORMAT_TAG_PG_LENGTH)) {
-		static char out[FORMAT_TAG_LENGTH + 1 + 10 + 1 + MAX_SALT_LENGTH + 1 + HASH_LENGTH + 1];
+		static char out[FORMAT_TAG_LENGTH + 10 + 1 + MAX_SALT_LENGTH + 1 + HASH_LENGTH + 1];
 		char *saltend = strchr(fields[i + 1], '$');
 		if (!saltend || !isdec(fields[i] + FORMAT_TAG_PG_LENGTH))
 			break;
-		if ((size_t)snprintf(out, sizeof(out), FORMAT_TAG "$%s$%.*s$%s",
+		if ((size_t)snprintf(out, sizeof(out), FORMAT_TAG "%s$%.*s$%s",
 		    fields[i] + FORMAT_TAG_PG_LENGTH, /* iterations */
 		    (int)(saltend - fields[i + 1]), /* salt length */
 		    fields[i + 1], /* salt */
@@ -137,11 +137,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;;
 	ctcopy += FORMAT_TAG_LENGTH;
-	if ((p = strtokm(ctcopy, "$")) == NULL)	/* username */
-		goto err;
-	if (strlen(p) >= MAX_USERNAME_LENGTH)
-		goto err;
-	if ((p = strtokm(NULL, "$")) == NULL)	/* iterations */
+	if ((p = strtokm(ctcopy, "$")) == NULL)	/* iterations */
 		goto err;
 	if (!isdec(p))
 		goto err;
@@ -172,8 +168,6 @@ static void *get_salt(char *ciphertext)
 	keeptr = ctcopy;;
 	ctcopy += FORMAT_TAG_LENGTH;
 	p = strtokm(ctcopy, "$");
-	/* skip username */
-	p = strtokm(NULL, "$");
 	cs.iterations = atoi(p);
 	p = strtokm(NULL, "$");
 	cs.saltlen = base64_convert(p, e_b64_mime, strlen(p), (char *)cs.salt, e_b64_raw, sizeof(cs.salt), flg_Base64_NO_FLAGS, 0);
