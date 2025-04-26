@@ -73,7 +73,7 @@ static struct fmt_tests tests[] = {
 static struct custom_salt {
 	int saltlen;
 	int iterations;
-	char username[MAX_USERNAME_LENGTH + 1];
+#define MAX_SALT_LENGTH 40 /* base64 encoded */
 	unsigned char salt[28 + 4 + 1]; // 4 bytes for 'startKey'
 } *cur_salt;
 
@@ -115,11 +115,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p)-2 != base64_valid_length(p, e_b64_mime, flg_Base64_MIME_TRAIL_EQ, 0) || strlen(p) > 40)
+	if (strlen(p)-2 != base64_valid_length(p, e_b64_mime, flg_Base64_MIME_TRAIL_EQ, 0) || strlen(p) > MAX_SALT_LENGTH)
 		goto err;
 	if ((p = strtokm(NULL, "")) == NULL)	/* hash */
 		goto err;
-	if (strlen(p)-1 != base64_valid_length(p, e_b64_mime, flg_Base64_MIME_TRAIL_EQ, 0) || strlen(p) > HASH_LENGTH)
+	if (strlen(p)-1 != base64_valid_length(p, e_b64_mime, flg_Base64_MIME_TRAIL_EQ, 0) || strlen(p) != HASH_LENGTH)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -140,11 +140,11 @@ static void *get_salt(char *ciphertext)
 	keeptr = ctcopy;;
 	ctcopy += FORMAT_TAG_LENGTH;
 	p = strtokm(ctcopy, "$");
-	strncpy(cs.username, p, 128);
+	/* skip username */
 	p = strtokm(NULL, "$");
 	cs.iterations = atoi(p);
 	p = strtokm(NULL, "$");
-	base64_convert(p, e_b64_mime, strlen(p), (char*)cs.salt, e_b64_raw, sizeof(cs.salt), flg_Base64_NO_FLAGS, 0);
+	cs.saltlen = base64_convert(p, e_b64_mime, strlen(p), (char *)cs.salt, e_b64_raw, sizeof(cs.salt), flg_Base64_NO_FLAGS, 0);
 	cs.salt[28] = 0;
 	cs.salt[29] = 0;
 	cs.salt[30] = 0;
@@ -190,7 +190,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #if !defined (SIMD_COEF_32)
 		unsigned char output[BINARY_SIZE];
 
-		pbkdf2_sha256((unsigned char *)saved_key[index], strlen(saved_key[index]), cur_salt->salt, 28, cur_salt->iterations, output, BINARY_SIZE, 0);
+		pbkdf2_sha256((unsigned char *)saved_key[index], strlen(saved_key[index]),
+		    cur_salt->salt, cur_salt->saltlen, cur_salt->iterations, output, BINARY_SIZE, 0);
 		// ServerKey := HMAC(SaltedPassword, "Server Key")
 		hmac_sha256(output, BINARY_SIZE, (unsigned char*)"Server Key", 10, (unsigned char*)crypt_out[index], BINARY_SIZE);
 #else
@@ -207,7 +208,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			pin[i] = (unsigned char*)saved_key[index+i];
 			x.pout[i] = crypt_out[i+index];
 		}
-		pbkdf2_sha256_sse((const unsigned char**)pin, lens, cur_salt->salt, 28, cur_salt->iterations, &(x.poutc), 32, 0);
+		pbkdf2_sha256_sse((const unsigned char **)pin, lens,
+		    cur_salt->salt, cur_salt->saltlen, cur_salt->iterations, &(x.poutc), 32, 0);
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			hmac_sha256((unsigned char*)&crypt_out[i+index], BINARY_SIZE, (unsigned char*)"Server Key", 10, (unsigned char *)&crypt_out[index+i], BINARY_SIZE);
 		}

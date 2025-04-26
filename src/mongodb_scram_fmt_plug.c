@@ -70,7 +70,9 @@ static struct fmt_tests tests[] = {
 static struct custom_salt {
 	int saltlen;
 	int iterations;
+	int userlen;
 	char username[MAX_USERNAME_LENGTH + 1];
+#define MAX_SALT_LENGTH 24 /* base64 encoded */
 	unsigned char salt[18 + 1]; /* base64 decoding, 24 / 4 * 3 = 18 */
 } *cur_salt;
 
@@ -111,11 +113,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 		goto err;
-	if (strlen(p)-2 != base64_valid_length(p, e_b64_mime, flg_Base64_MIME_TRAIL_EQ, 0) || strlen(p) > 24)
+	if (strlen(p)-2 != base64_valid_length(p, e_b64_mime, flg_Base64_MIME_TRAIL_EQ, 0) || strlen(p) > MAX_SALT_LENGTH)
 		goto err;
 	if ((p = strtokm(NULL, "")) == NULL)	/* hash */
 		goto err;
-	if (strlen(p)-1 != base64_valid_length(p, e_b64_mime, flg_Base64_MIME_TRAIL_EQ, 0) || strlen(p) > HASH_LENGTH)
+	if (strlen(p)-1 != base64_valid_length(p, e_b64_mime, flg_Base64_MIME_TRAIL_EQ, 0) || strlen(p) != HASH_LENGTH)
 		goto err;
 
 	MEM_FREE(keeptr);
@@ -136,11 +138,11 @@ static void *get_salt(char *ciphertext)
 	keeptr = ctcopy;;
 	ctcopy += FORMAT_TAG_LENGTH;
 	p = strtokm(ctcopy, "$");
-	strncpy(cs.username, p, 128);
+	cs.userlen = strnzcpyn(cs.username, p, sizeof(cs.username));
 	p = strtokm(NULL, "$");
 	cs.iterations = atoi(p);
 	p = strtokm(NULL, "$");
-	base64_convert(p, e_b64_mime, strlen(p), (char*)cs.salt, e_b64_raw, sizeof(cs.salt), flg_Base64_NO_FLAGS, 0);
+	cs.saltlen = base64_convert(p, e_b64_mime, strlen(p), (char *)cs.salt, e_b64_raw, sizeof(cs.salt), flg_Base64_NO_FLAGS, 0);
 	MEM_FREE(keeptr);
 
 	return (void *)&cs;
@@ -196,13 +198,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		unsigned char out[BINARY_SIZE];
 
 		MD5_Init(&mctx);
-		MD5_Update(&mctx, cur_salt->username, strlen((char*)cur_salt->username));
+		MD5_Update(&mctx, cur_salt->username, cur_salt->userlen);
 		MD5_Update(&mctx, ":mongo:", 7);
 		MD5_Update(&mctx, saved_key[index], strlen(saved_key[index]));
 		MD5_Final(hash, &mctx);
 		hex_encode(hash, 16, hexhash);
 
-		pbkdf2_sha1(hexhash, 32, cur_salt->salt, 16,
+		pbkdf2_sha1(hexhash, 32, cur_salt->salt, cur_salt->saltlen,
 				cur_salt->iterations, out, BINARY_SIZE, 0);
 
 		hmac_sha1(out, BINARY_SIZE, (unsigned char*)"Client Key", 10, out, BINARY_SIZE);
@@ -220,7 +222,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		for (i = 0; i < SIMD_KEYS; ++i) {
 			MD5_Init(&mctx);
-			MD5_Update(&mctx, cur_salt->username, strlen((char*)cur_salt->username));
+			MD5_Update(&mctx, cur_salt->username, cur_salt->userlen);
 			MD5_Update(&mctx, ":mongo:", 7);
 			MD5_Update(&mctx, saved_key[index+i], strlen(saved_key[index+i]));
 			MD5_Final(hash, &mctx);
@@ -230,7 +232,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			out[i] = out_[i];
 		}
 
-		pbkdf2_sha1_sse((const unsigned char **)hexhash, lens, cur_salt->salt, 16,
+		pbkdf2_sha1_sse((const unsigned char **)hexhash, lens, cur_salt->salt, cur_salt->saltlen,
 				cur_salt->iterations, out, BINARY_SIZE, 0);
 
 		for (i = 0; i < SIMD_KEYS; ++i) {
