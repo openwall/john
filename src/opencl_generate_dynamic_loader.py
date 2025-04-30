@@ -134,12 +134,12 @@ static void load_opencl_dll(void)
 
 	/* Names to try to load */
 	const char * const opencl_names[] = {
+		"libOpenCL.so.1",	/* Linux/others */
 		"libOpenCL.so",		/* Linux/others, hack via "development" sub-package's symlink */
 		"OpenCL",		/* _WIN */
 		"/System/Library/Frameworks/OpenCL.framework/OpenCL", /* __APPLE__ */
 		"opencl.dll",		/* __CYGWIN__ */
-		"cygOpenCL-1.dll",	/* __CYGWIN__ */
-		"libOpenCL.so.1"	/* Linux/others, no "development" sub-package installed */
+		"cygOpenCL-1.dll"	/* __CYGWIN__ */
 	};
 
 	for (i = 0; i < sizeof(opencl_names)/sizeof(opencl_names[0]); i++) {
