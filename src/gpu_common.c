@@ -126,7 +126,9 @@ void nvidia_probe(void)
 	if (nvml_lib)
 		return;
 
-	if (!(nvml_lib = dlopen("libnvidia-ml.so", RTLD_LAZY|RTLD_GLOBAL)))
+	if (!(nvml_lib = dlopen("libnvidia-ml.so.1", RTLD_LAZY|RTLD_GLOBAL)) &&
+	    !(nvml_lib = dlopen("libnvidia-ml.so", RTLD_LAZY|RTLD_GLOBAL)) &&
+	    !(nvml_lib = dlopen("nvml.dll", RTLD_LAZY|RTLD_GLOBAL)))
 		return;
 
 	nvmlInit = (NVMLINIT) dlsym(nvml_lib, "nvmlInit");
@@ -160,14 +162,10 @@ void amd_probe(void)
 	if (adl_lib)
 		return;
 
-#if HAVE_WINDOWS_H
-	if (!(adl_lib = dlopen("atiadlxx.dll", RTLD_LAZY|RTLD_GLOBAL)) &&
+	if (!(adl_lib = dlopen("libatiadlxx.so", RTLD_LAZY|RTLD_GLOBAL)) &&
+	    !(adl_lib = dlopen("atiadlxx.dll", RTLD_LAZY|RTLD_GLOBAL)) &&
 	    !(adl_lib = dlopen("atiadlxy.dll", RTLD_LAZY|RTLD_GLOBAL)))
 		return;
-#else
-	if (!(adl_lib = dlopen("libatiadlxx.so", RTLD_LAZY|RTLD_GLOBAL)))
-		return;
-#endif
 
 	env = getenv("COMPUTE");
 	if (env && *env)
