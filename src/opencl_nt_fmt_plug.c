@@ -636,10 +636,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (key_idx)
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_keys, CL_FALSE, key_offset, 4 * key_idx - key_offset, saved_plain + key_offset / 4, 0, NULL, multi_profilingEvent[0]), "failed in clEnqueueWriteBuffer buffer_keys.");
 
-	/* Safety for when count < GWS */
-	for (int i = count; i <= gws; i++)
-		saved_idx[i] = key_idx;
-
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_idx, CL_FALSE, idx_offset, 4 * gws - idx_offset, saved_idx + idx_offset / 4, 0, NULL, multi_profilingEvent[1]), "failed in clEnqueueWriteBuffer buffer_idx.");
 
 	if (!mask_gpu_is_static)
