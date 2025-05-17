@@ -30,6 +30,7 @@ import binascii
 import logging
 import struct
 import sys
+import sqlite3
 
 try:
     from bsddb.db import *
@@ -114,7 +115,28 @@ class BCDataStream(object):
                 self.read_cursor += struct.calcsize(format)
                 return i
 
+class Sqlite3DB:
+        def __init__(self, walletfile):
+                self.cx = sqlite3.connect(walletfile)
+
+        def is_sqlite3(self):
+                try:
+                        self.cx.execute("PRAGMA quick_check")
+                        return True
+                except sqlite3.DatabaseError:
+                        return False
+
+        def close(self):
+                self.cx.close()
+
+        def items(self):
+                return list(self.cx.execute('SELECT key,value FROM main'))
+
 def open_wallet(walletfile):
+        db = Sqlite3DB(walletfile)
+        if db.is_sqlite3():
+                return db
+
         db = DB()
         DB_TYPEOPEN = DB_RDONLY
         flags = DB_THREAD | DB_TYPEOPEN
