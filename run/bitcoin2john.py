@@ -33,15 +33,22 @@ import struct
 import sys
 import sqlite3
 
-try:
-    from bsddb.db import *
-except:
-    try:
-        from bsddb3.db import *
-    except:
-        sys.stderr.write("Error: This script needs bsddb3 to be installed!\n")
-        sys.exit(1)
 
+bsddb_db = None
+
+def do_import_bsddb():
+        global bsddb_db
+        if bsddb_db is not None:
+                return
+
+        try:
+            import bsddb.db as bsddb_db
+        except:
+            try:
+                import bsddb3.db as bsddb_db
+            except:
+                sys.stderr.write("Error: This script needs bsddb3 to be installed!\n")
+                sys.exit(1)
 
 json_db = {}
 
@@ -138,12 +145,13 @@ def open_wallet(walletfile):
         if db.is_sqlite3():
                 return db
 
-        db = DB()
-        DB_TYPEOPEN = DB_RDONLY
-        flags = DB_THREAD | DB_TYPEOPEN
+        do_import_bsddb()
+        db = bsddb_db.DB()
+        DB_TYPEOPEN = bsddb_db.DB_RDONLY
+        flags = bsddb_db.DB_THREAD | DB_TYPEOPEN
         try:
-                r = db.open(walletfile, "main", DB_BTREE, flags)
-        except DBError as e:
+                r = db.open(walletfile, "main", bsddb_db.DB_BTREE, flags)
+        except bsddb_db.DBError as e:
                 logging.error(e)
                 r = True
 

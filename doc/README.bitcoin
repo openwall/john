@@ -17,6 +17,9 @@ This procedure also works with many altcoins historically forked from Bitcoin.
 
 The bitcoin2john.py script is compatible with both Python 2 and Python 3.
 
+Bitcoin Core 0.21.0 and above uses SQLite3 for new wallets. In this case,
+Berkeley DB support is not required.
+
 Since Python 3 no longer provides Berkeley DB support out of the box, to get
 the script to work with Python 3 you need to install the corresponding module:
 
