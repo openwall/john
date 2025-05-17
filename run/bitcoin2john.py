@@ -4,6 +4,7 @@
 # Copyright (c) 2012-2018 Dhiru Kholia <dhiru at openwall.com>
 # Copyright (c) 2019 Solar Designer
 # Copyright (c) 2019 exploide
+# Copyright (c) 2025 Maxim Kuleshov <mmcx@mail.ru>
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.  (This is a heavily cut-down "BSD license".)
 #
