@@ -339,6 +339,13 @@ extern uint8_t *yescrypt_encode_params_r(const yescrypt_params_t *params,
 extern uint8_t *yescrypt_encode_params(const yescrypt_params_t *params,
     const uint8_t *src, size_t srclen);
 
+/*
+ * JtR hack: these functions are made non-static for reuse with non-yescrypt.
+ */
+extern void *alloc_region(yescrypt_region_t *region, size_t size);
+extern void init_region(yescrypt_region_t *region);
+extern int free_region(yescrypt_region_t *region);
+
 #ifdef __cplusplus
 }
 #endif

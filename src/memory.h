@@ -306,13 +306,7 @@ extern void alter_endianity_w64(void *x, unsigned int count);
 #endif
 #endif
 
-typedef struct {
-	void * base, * aligned;
-	size_t base_size, aligned_size;
-} region_t;
-
-extern void* alloc_region(region_t * region, size_t size);
-extern void init_region(region_t * region);
-extern int free_region(region_t * region);
+#include "yescrypt/yescrypt.h"
+typedef yescrypt_region_t region_t;
 
 #endif
