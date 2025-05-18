@@ -638,6 +638,17 @@ void alter_endianity_w64(void *_x, unsigned int count) {
 #include <linux/mman.h> /* for MAP_HUGE_2MB */
 #endif
 
+/*
+ * JtR hack: on old systems like RHEL6, do use huge pages if available even at
+ * the risk of failing on munmap() if the kernel is reconfigured to use a
+ * non-default huge page size.  In upstream yescrypt, this tradeoff is resolved
+ * the other way around because failure of a critical system library like
+ * libxcrypt is deemed unacceptable.
+ */
+#ifndef MAP_HUGE_2MB
+#define MAP_HUGE_2MB 0
+#endif
+
 #define HUGEPAGE_THRESHOLD		(2 * 1024 * 1024)
 
 #ifdef __x86_64__
