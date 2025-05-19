@@ -340,6 +340,11 @@ extern uint8_t *yescrypt_encode_params(const yescrypt_params_t *params,
     const uint8_t *src, size_t srclen);
 
 /*
+ * JtR hack: huge page status and reporting is a JtR addition.
+ */
+extern const char *hugepage_report(void);
+
+/*
  * JtR hack: these functions are made non-static for reuse with non-yescrypt.
  */
 extern void *alloc_region(yescrypt_region_t *region, size_t size);

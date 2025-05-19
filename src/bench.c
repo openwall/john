@@ -1094,6 +1094,12 @@ next:
 #endif
 	} while ((format = format->next) && !event_abort);
 
+	{
+		const char *msg = hugepage_report();
+		if (msg)
+			puts(msg);
+	}
+
 #ifdef HAVE_OPENCL
 /*
  * Allow OpenCL build's "--test" to run on no-OpenCL systems.

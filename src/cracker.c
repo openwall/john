@@ -789,6 +789,17 @@ static void crk_poll_files(void)
 
 static int crk_process_event(void)
 {
+	static int hugepage_reported;
+	if (!hugepage_reported) {
+		const char *msg = hugepage_report();
+		if (msg) {
+			log_event("%s", msg);
+			if (john_main_process)
+				fprintf(stderr, "%s\n", msg);
+		}
+		hugepage_reported = 1;
+	}
+
 #ifdef HAVE_MPI
 	if (event_mpiprobe) {
 		event_mpiprobe = 0;

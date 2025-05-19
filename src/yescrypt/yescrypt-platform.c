@@ -50,6 +50,33 @@
 #endif
 
 /*
+ * JtR hack: record if we tried and succeeded or failed to use huge pages (in
+ * three separate variables in hope of atomicity of their writes).
+ */
+#if defined(MAP_HUGETLB) && defined(MAP_HUGE_2MB) && defined(HUGEPAGE_SIZE)
+static unsigned int hugepage_status[3];
+const char *hugepage_report(void)
+{
+	if (hugepage_status[0]) {
+		const char *msg[3] = {
+			"Successfully using huge pages",
+			"Failed to use huge pages (not pre-allocated via sysctl? that's fine)",
+			"Partially using huge pages (too few pre-allocated via sysctl? that's weird)"
+		};
+		unsigned int msg_id = hugepage_status[1] | (hugepage_status[2] << 1);
+		if (--msg_id < 3)
+			return msg[msg_id];
+	}
+	return NULL;
+}
+#else
+const char *hugepage_report(void)
+{
+	return NULL;
+}
+#endif
+
+/*
  * JtR hack: these functions are made non-static for reuse with non-yescrypt.
  */
 
@@ -85,9 +112,13 @@ void *alloc_region(yescrypt_region_t *region, size_t size)
 	base = mmap(NULL, new_size, PROT_READ | PROT_WRITE, flags, -1, 0);
 	if (base != MAP_FAILED) {
 		base_size = new_size;
+		if (flags & MAP_HUGETLB)
+			hugepage_status[0] = hugepage_status[1] = 1;
 	} else if (flags & MAP_HUGETLB) {
 		flags &= ~(MAP_HUGETLB | MAP_HUGE_2MB);
 		base = mmap(NULL, size, PROT_READ | PROT_WRITE, flags, -1, 0);
+		if (base != MAP_FAILED)
+			hugepage_status[0] = hugepage_status[2] = 1;
 	}
 
 #else
