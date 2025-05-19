@@ -1816,7 +1816,7 @@ int rules_advance_stack(rule_stack *ctx, int quiet)
 		rules_stacked_number++;
 		if (!quiet)
 			log_event("+ Stacked Rule #%u: '%.100s' accepted",
-			          rules_stacked_number, ctx->rule->data);
+			          rules_stacked_number + 1, ctx->rule->data);
 	}
 
 	return !ctx->done;
