@@ -10,6 +10,22 @@ entire range of logical CPUs and explicitly allocating huge pages.  Such tuning
 is especially important on large systems and with large memory settings of the
 target wallets.
 
+The below part of this file is very slightly out of date, using a code revision
+as of 2024-01-12, whereas some relevant code changes were made since.  These
+include some further optimizations (so hopefully current speeds would be a bit
+higher), reporting on (non-)usage of huge pages, and also usage of huge pages
+by the duplicate candidate password suppressor.  The latter means that you'll
+probably want to allocate more huge pages than the absolute minimum number (for
+the 192 vCPU AVX-512 machine) shown in the example below.  That number was
+calculated as: 32 MiB * 512/64 elements per AVX-512 vector * 192 vCPUs / 2 MiB
+per page = 24576 pages.  For the suppressor at 256 MiB (and when not using
+"--fork"), you'll need to add 128 more pages for a total of 24704.  Indeed,
+you'll need to recalculate this for other sizes of wallets, machines, and/or
+the suppressor, or just over-allocate a bit and make sure you see the
+"Successfully using huge pages" message (part of the reporting added in 2025).
+It is not recommended to over-allocate a lot since that memory then becomes
+unavailable for other uses, including by John the Ripper.
+
 Example speeds when cracking our test 32 MiB, 3 iterations wallet on AWS
 c7i.48xlarge running our "John the Ripper in the cloud" AMI (based on Amazon
 Linux 2), but with John the Ripper itself freshly pulled from GitHub and
