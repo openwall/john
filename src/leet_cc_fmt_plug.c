@@ -157,7 +157,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 {
 	char* cp;
 
-	if (!split_fields[0])
+	if (!split_fields[0][0] || !strcmp(split_fields[0], "?"))
 		return split_fields[1];
 	if (strnlen(split_fields[1], BINARY_SIZE * 2 + 1) != BINARY_SIZE * 2)
 		return split_fields[1];

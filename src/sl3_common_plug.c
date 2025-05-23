@@ -28,7 +28,7 @@ char *sl3_prepare(char *split_fields[10], struct fmt_main *self)
 	if (strlen(split_fields[1]) != 2 * BINARY_SIZE)
 		return split_fields[1];
 
-	if (!split_fields[0])
+	if (!split_fields[0][0] || !strcmp(split_fields[0], "?"))
 		return split_fields[1];
 
 	len = strlen(split_fields[0]);

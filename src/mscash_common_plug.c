@@ -143,7 +143,7 @@ char *mscash1_common_prepare(char *split_fields[10], struct fmt_main *self)
 	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
 
-	if (!split_fields[0])
+	if (!split_fields[0][0] || !strcmp(split_fields[0], "?"))
 		return split_fields[1];
 
 	// ONLY check, if this string split_fields[1], is ONLY a 32 byte hex string.
@@ -391,7 +391,7 @@ char *mscash2_common_prepare(char *split_fields[10], struct fmt_main *self)
 		MEM_FREE(cp);
 		return split_fields[1];
 	}
-	if (!split_fields[0])
+	if (!split_fields[0][0] || !strcmp(split_fields[0], "?"))
 		return split_fields[1];
 
 	// ONLY check, if this string split_fields[1], is ONLY a 32 byte hex string.
