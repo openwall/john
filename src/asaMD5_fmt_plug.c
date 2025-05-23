@@ -103,7 +103,7 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 		return split_fields[1];
 
 	if (!valid(split_fields[1], self)) {
-		if (split_fields[1] && strlen(split_fields[1]) == 16) {
+		if (strlen(split_fields[1]) == 16) {
 			char username[4+1] = "";
 
 			strncat(username, split_fields[0], 4);

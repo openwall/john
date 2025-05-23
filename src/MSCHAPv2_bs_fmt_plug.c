@@ -281,13 +281,11 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt)
 			}
 		}
 	}
-	else if (split_fields[0] && split_fields[3] && split_fields[4] && split_fields[5] &&
-	        strlen(split_fields[3]) == CHALLENGE_LENGTH/2 &&
+	else if (strlen(split_fields[3]) == CHALLENGE_LENGTH/2 &&
 	        strlen(split_fields[4]) == CIPHERTEXT_LENGTH &&
 	        strlen(split_fields[5]) == CHALLENGE_LENGTH/2)
 		ret = prepare_long(split_fields);
-	else if (split_fields[0] && split_fields[3] && split_fields[4] &&
-	        strlen(split_fields[3]) == CHALLENGE_LENGTH/4 &&
+	else if (strlen(split_fields[3]) == CHALLENGE_LENGTH/4 &&
 	        strlen(split_fields[4]) == CIPHERTEXT_LENGTH)
 		ret = prepare_short(split_fields);
 	else

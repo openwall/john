@@ -183,7 +183,9 @@ static char *prepare(char *split_fields[10], struct fmt_main *self)
 
 	if (!strncmp(split_fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
 		return split_fields[1];
-	if (!login || !uid || !srv_challenge || !nethashv2 || !cli_challenge)
+	if (!login[0] || !strcmp(login, "?"))
+		return split_fields[1];
+	if (!srv_challenge[0] || !nethashv2[0] || !cli_challenge[0])
 		return split_fields[1];
 
 	/* DOMAIN\USER: -or- USER::DOMAIN: */

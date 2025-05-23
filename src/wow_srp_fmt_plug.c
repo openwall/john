@@ -256,6 +256,10 @@ static char *prepare(char *split_fields[10], struct fmt_main *pFmt) {
 		}
 		return split_fields[1];
 	}
+
+	if (!split_fields[0][0] || !strcmp(split_fields[0], "?"))
+		return split_fields[1];
+
 	if (strnlen(split_fields[1], 129) <= 128) {
 		strnzcpy(ct, split_fields[1], 128);
 		cp = &ct[strlen(ct)];

@@ -106,14 +106,12 @@ error:
 /* uid field may contain a meet-in-the-middle hash */
 char *oldoffice_prepare(char *split_fields[10], struct fmt_main *self)
 {
-	if (split_fields[0] && oldoffice_valid(split_fields[0], self) &&
-	    split_fields[1] &&
-	    hexlen(split_fields[1], 0) == 10) {
+	if (oldoffice_valid(split_fields[0], self) && hexlen(split_fields[1], 0) == 10) {
 		mitm_catcher.ct_hash = hex_hash(split_fields[0]);
 		memcpy(mitm_catcher.mitm, split_fields[1], 10);
 		return split_fields[0];
 	}
-	else if (oldoffice_valid(split_fields[1], self) && split_fields[2] &&
+	else if (oldoffice_valid(split_fields[1], self) &&
 	         hexlen(split_fields[2], 0) == 10) {
 		mitm_catcher.ct_hash = hex_hash(split_fields[1]);
 		memcpy(mitm_catcher.mitm, split_fields[2], 10);
