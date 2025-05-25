@@ -397,7 +397,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index++) {
 		const uint32_t rounds = cur_salt->rfact * 100 - 1;
 		uint32_t x, n, n_key, ml;
-		hash_output *t1f = mem_alloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
+		hash_output *t1p, *t1f = mem_alloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
 		hash_output h, t1;
 		union {
 			unsigned char uc[52];
@@ -433,15 +433,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			t1f[n] = t1;
 		}
 
+		t1p = &t1;
 		memcpy(m.uc + HASH_OUTPUT_SIZE, "\x00\x00\x00\x01", 4);
 		for (n = 0; n < cur_salt->mfact; n++) {
-			n_key = (((uint32_t)t1.uc[30] << 8) | t1.uc[31]) & (cur_salt->mfact - 1);
+			n_key = (((uint32_t)t1p->uc[30] << 8) | t1p->uc[31]) & (cur_salt->mfact - 1);
 			m.h = t1f[n_key];
-			hmac_sha256_full(t1.uc, HASH_OUTPUT_SIZE, m.uc, HASH_OUTPUT_SIZE + 4, t1.uc);
-			t1f[n] = t1;
+			hmac_sha256_full(t1p->uc, HASH_OUTPUT_SIZE, m.uc, HASH_OUTPUT_SIZE + 4, t1f[n].uc);
+			t1p = &t1f[n];
 		}
 
-		hmac_sha256_start(&ctx, t1.uc, HASH_OUTPUT_SIZE);
+		hmac_sha256_start(&ctx, t1p->uc, HASH_OUTPUT_SIZE);
 		hmac_sha256_finish_const(&ctx, t1f->uc, ml, h.uc);
 
 		memcpy(t1f[cur_salt->mfact-1].uc, "\x00\x00\x00\x01", 4);
