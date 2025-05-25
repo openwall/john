@@ -156,13 +156,14 @@ static void done(void)
 	MEM_FREE(crypt_out);
 }
 
+static void *get_salt(char *ciphertext);
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy;
 	char *keeptr;
 	char *p, *q;
 	char *c;
-	int res;
 
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
 		return 0;
@@ -184,10 +185,14 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (strncmp(c + 1, HEADER, HEADER_LEN))  // header check
 		goto err;
 
-	res = !*q && q - p == CIPHERTEXT_LENGTH;
+	if (!*q && q - p == CIPHERTEXT_LENGTH) {
+		struct custom_salt *cs = get_salt(ciphertext);
+		if (!cs->mfact || !cs->rfact)
+			goto err;
 
-	MEM_FREE(keeptr);
-	return res;
+		MEM_FREE(keeptr);
+		return 1;
+	}
 
 err:
 	MEM_FREE(keeptr);
@@ -218,11 +223,11 @@ static void *get_binary(char *ciphertext)
 static void *get_salt(char *ciphertext)
 {
 	static struct custom_salt cs;
-
 	char *ctcopy = xstrdup(ciphertext);
 	char *keeptr = ctcopy, *username;
-	char *c, *p;
-	char mf[5], rf[5] = "0x0";
+	char *p;
+	char hexstr[5];
+	unsigned long v;
 	int i;
 
 	memset(&cs, 0, sizeof(cs));
@@ -235,28 +240,31 @@ static void *get_salt(char *ciphertext)
 	ascii2ebcdic(cs.userid);
 	process_userid(cs.userid);
 
-	c = strrchr(ciphertext,'*');
-	strncpy((char*)mf, c + HEADER_LEN + 1, 4);
-	mf[sizeof(mf)-1] = 0;
-	cs.mfact = (2 << (strtol((char*)mf, NULL, 16)-1)) / HASH_OUTPUT_SIZE;
+	p = strrchr(ciphertext, '*');
 
-	strncpy((char*)rf, c + HEADER_LEN + 1 + 4, 4);
-	cs.rfact = strtol((char*)rf, NULL, 16);
+	memcpy(hexstr, p + HEADER_LEN + 1, 4);
+	hexstr[4] = 0;
+	v = strtoul(hexstr, NULL, 16);
+	if (v < 32) {
+		cs.mfact = v = (1U << v) / HASH_OUTPUT_SIZE;
+		if (cs.mfact != v)
+			cs.mfact = 0;
+	}
 
-	p = strrchr(ciphertext, '*') + 33;
-	for (i = 0; i < MAX_SALT_SIZE; i++) { cs.salt[i] = (atoi16[ARCH_INDEX(*p)] << 4) |
-		atoi16[ARCH_INDEX(p[1])];
+	memcpy(hexstr, p + HEADER_LEN + 1 + 4, 4);
+	cs.rfact = v = strtoul(hexstr, NULL, 16);
+	if (cs.rfact != v)
+		cs.rfact = 0;
+
+	p += 33;
+	for (i = 0; i < MAX_SALT_SIZE; i++) {
+		cs.salt[i] = (atoi16[ARCH_INDEX(*p)] << 4) | atoi16[ARCH_INDEX(p[1])];
 		p += 2;
 	}
-	for ( i = MAX_SALT_SIZE; i < MAX_SALT_SIZE+7; i++) {
-		cs.salt[i] = strtol("00", NULL, 16);
-	}
-	if (cs.mfact > 255) {
-		cs.salt[MAX_SALT_SIZE+2] = (cs.mfact >> 8);
-		cs.salt[MAX_SALT_SIZE+3] = (cs.mfact & 0xff);
-	} else {
-		cs.salt[MAX_SALT_SIZE+3] = cs.mfact;
-	}
+	for (; i < MAX_SALT_SIZE+7; i++)
+		cs.salt[i] = 0;
+	cs.salt[MAX_SALT_SIZE+2] = (cs.mfact >> 8);
+	cs.salt[MAX_SALT_SIZE+3] = (cs.mfact & 0xff);
 	cs.salt[MAX_SALT_SIZE+7] = 1;
 	cs.length = MAX_SALT_SIZE + 8;
 
