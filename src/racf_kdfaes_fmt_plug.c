@@ -132,15 +132,14 @@ static struct fmt_tests racf_kdfaes_tests[] = {
 };
 
 static struct custom_salt {
-	unsigned char userid[8 + 1];
+	unsigned char userid[16]; /* 8 chars padded to AES block */
 	uint16_t mfact;
 	uint32_t rfact;
-	uint8_t length;
-	uint8_t salt[MAX_SALT_SIZE + HASH_OUTPUT_SIZE];
+	uint8_t salt[MAX_SALT_SIZE + 8];
 } *cur_salt;
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
-static uint32_t (*crypt_out)[SHA256_DIGEST_LENGTH/ sizeof(uint32_t)];
+static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
@@ -236,7 +235,6 @@ static void *get_salt(char *ciphertext)
 	username = strtok(ctcopy, "*");
 
 	strncpy((char*)cs.userid, username, 8);
-	cs.userid[8] = 0;
 	ascii2ebcdic(cs.userid);
 	process_userid(cs.userid);
 
@@ -266,7 +264,6 @@ static void *get_salt(char *ciphertext)
 	cs.salt[MAX_SALT_SIZE+2] = (cs.mfact >> 8);
 	cs.salt[MAX_SALT_SIZE+3] = (cs.mfact & 0xff);
 	cs.salt[MAX_SALT_SIZE+7] = 1;
-	cs.length = MAX_SALT_SIZE + 8;
 
 	MEM_FREE(keeptr);
 	return (void *)&cs;
@@ -297,12 +294,7 @@ static void set_salt(void *salt)
 
 static void racf_kdfaes_set_key(char *key, int index)
 {
-	int saved_key_length = strlen(key);
-
-	if (saved_key_length > PLAINTEXT_LENGTH)
-		saved_key_length = PLAINTEXT_LENGTH;
-	memcpy(saved_key[index], key, saved_key_length);
-	saved_key[index][saved_key_length] = 0;
+	strnzcpy(saved_key[index], key, sizeof(*saved_key));
 }
 
 static char *get_key(int index)
@@ -331,27 +323,21 @@ static void get_des_hash(char *key, unsigned char *dhash)
 
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
-	int count = *pcount;
-	int index = 0;
+	const int count = *pcount;
+	int index;
 
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
 		int x, i, n, n_key, ml;
-		char mac1[32] = { 0 };
-		char t1[32] = { 0 };
-		unsigned char key[32];
-		unsigned char m[MAX_SALT_SIZE + HASH_OUTPUT_SIZE + 32];
 		unsigned char *t1f = mem_alloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
-		unsigned char *h_out = (unsigned char*)crypt_out[index];
-		unsigned char plaint[16];
-		AES_KEY akey;
-		unsigned char zeroiv[16];
+		unsigned char m[52];
 		unsigned char dh[8];
+		unsigned char h_out[32], t1[32], key[32];
+		AES_KEY akey;
 
-		ml = cur_salt->length;
-		memset(key, 0, sizeof(key));
+		ml = sizeof(cur_salt->salt);
 		memcpy(m, cur_salt->salt, ml);
 
 		// get des hash
@@ -364,29 +350,27 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			ml = 32;
 			memcpy(t1, h_out, HASH_OUTPUT_SIZE);
 			for (x = 0; x < (cur_salt->rfact*100)-1 ; x++) {
-				memcpy(mac1, h_out, HASH_OUTPUT_SIZE);
+				memcpy(m, h_out, 16);
 				JTR_hmac_sha256(dh, 8, h_out, ml, h_out, HASH_OUTPUT_SIZE);
 				for (i = 0; i < HASH_OUTPUT_SIZE; i++)
 					t1[i] ^= h_out[i];
 			}
 
-			memcpy(m, mac1, 16);
 			memcpy(m+16, t1, HASH_OUTPUT_SIZE);
 			memcpy(m+48, "\x00\x00\x00\x01", 4);
 			ml = 52;
 			memcpy(t1f+(n*HASH_OUTPUT_SIZE), t1, HASH_OUTPUT_SIZE);
 		}
 
-		memcpy(key, t1, 32);
-
 		for (n = 0; n < cur_salt->mfact; n++) {
-			n_key = (((uint32_t)key[30] << 8) | key[31]) & (cur_salt->mfact - 1);
+			n_key = (((uint32_t)t1[30] << 8) | t1[31]) & (cur_salt->mfact - 1);
 			memcpy(m, t1f + (n_key * HASH_OUTPUT_SIZE), HASH_OUTPUT_SIZE);
 			memcpy(m + HASH_OUTPUT_SIZE, "\x00\x00\x00\x01", 4);
-			JTR_hmac_sha256(key, HASH_OUTPUT_SIZE, m, HASH_OUTPUT_SIZE + 4, h_out, HASH_OUTPUT_SIZE);
-			memcpy(t1f + (n*HASH_OUTPUT_SIZE), h_out, HASH_OUTPUT_SIZE);
-			memcpy(key, h_out, HASH_OUTPUT_SIZE);
+			JTR_hmac_sha256(t1, HASH_OUTPUT_SIZE, m, HASH_OUTPUT_SIZE + 4, t1, HASH_OUTPUT_SIZE);
+			memcpy(t1f + (n*HASH_OUTPUT_SIZE), t1, HASH_OUTPUT_SIZE);
 		}
+
+		memcpy(key, t1, 32);
 
 		memcpy(t1f + (HASH_OUTPUT_SIZE * (cur_salt->mfact-1)), "\x00\x00\x00\x01", 4);
 		ml = (HASH_OUTPUT_SIZE * (cur_salt->mfact-1))+4;
@@ -399,14 +383,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			for (i = 0; i < HASH_OUTPUT_SIZE; i++)
 				t1[i] ^= h_out[i];
 		}
-		memcpy(h_out, t1, HASH_OUTPUT_SIZE);
 
 		// encrypt user name
-		memset(plaint, '\x00', sizeof(plaint));
-		memcpy(plaint, cur_salt->userid, 8);
-		memset(zeroiv, 0, 16);
-		AES_set_encrypt_key((unsigned char*)crypt_out[index], 256, &akey);
-		AES_cbc_encrypt(plaint, (unsigned char*)crypt_out[index], 16, &akey, zeroiv, AES_ENCRYPT);
+		AES_set_encrypt_key(t1, 256, &akey);
+		AES_encrypt(cur_salt->userid, (unsigned char *)crypt_out[index], &akey);
 
 		MEM_FREE(t1f);
 	}
