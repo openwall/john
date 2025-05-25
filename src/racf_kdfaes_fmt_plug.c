@@ -368,6 +368,11 @@ static MAYBE_INLINE void hmac_sha256_finish(hmac_sha256_ctx *ctx, const unsigned
 	SHA256_Final(digest, &ctx->octx);
 }
 
+static MAYBE_INLINE void hmac_sha256_finish_const(const hmac_sha256_ctx *ctx, const unsigned char *data, size_t data_len, unsigned char *digest) {
+	hmac_sha256_ctx tmp = *ctx;
+	hmac_sha256_finish(&tmp, data, data_len, digest);
+}
+
 static MAYBE_INLINE void hmac_sha256_full(const unsigned char *key, size_t key_len, const unsigned char *data, size_t data_len, unsigned char *digest) {
 	hmac_sha256_ctx ctx;
 
@@ -393,8 +398,9 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		const uint32_t rounds = cur_salt->rfact * 100 - 1;
 		uint32_t x, n, n_key, ml;
 		hash_output *t1f = mem_alloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
-		hash_output h, t1, key;
+		hash_output h, t1;
 		unsigned char m[52];
+		hmac_sha256_ctx ctx;
 		unsigned char dh[8];
 		AES_KEY akey;
 
@@ -405,17 +411,18 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		get_des_hash(saved_key[index], dh);  // k1
 
 		// kdf
+		hmac_sha256_start(&ctx, dh, 8);
 		memcpy(m+48, "\x00\x00\x00\x01", 4);
 		for (n = 0; n < cur_salt->mfact; n++) {
-			hmac_sha256_full(dh, 8, m, ml, h.uc);
+			hmac_sha256_finish_const(&ctx, m, ml, h.uc);
 
 			t1 = h;
 			for (x = 1; x < rounds; x++) {
-				hmac_sha256_full(dh, 8, h.uc, 32, h.uc);
+				hmac_sha256_finish_const(&ctx, h.uc, 32, h.uc);
 				hash_xor(t1, h);
 			}
 			memcpy(m, h.uc, 16);
-			hmac_sha256_full(dh, 8, h.uc, 32, h.uc);
+			hmac_sha256_finish_const(&ctx, h.uc, 32, h.uc);
 			hash_xor(t1, h);
 
 			memcpy(m+16, t1.uc, HASH_OUTPUT_SIZE);
@@ -431,15 +438,16 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			t1f[n] = t1;
 		}
 
-		key = t1;
+		hmac_sha256_start(&ctx, t1.uc, HASH_OUTPUT_SIZE);
+		hmac_sha256_finish_const(&ctx, t1f->uc, ml, h.uc);
 
 		memcpy(t1f[cur_salt->mfact-1].uc, "\x00\x00\x00\x01", 4);
 		ml = (HASH_OUTPUT_SIZE * (cur_salt->mfact-1))+4;
-		hmac_sha256_full(key.uc, HASH_OUTPUT_SIZE, t1f->uc, ml, h.uc);
+		hmac_sha256_finish_const(&ctx, t1f->uc, ml, h.uc);
 
 		t1 = h;
 		for (x = 0; x < rounds; x++) {
-			hmac_sha256_full(key.uc, HASH_OUTPUT_SIZE, h.uc, 32, h.uc);
+			hmac_sha256_finish_const(&ctx, h.uc, 32, h.uc);
 			hash_xor(t1, h);
 		}
 
