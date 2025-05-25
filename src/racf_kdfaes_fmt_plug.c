@@ -146,10 +146,14 @@ static void init(struct fmt_main *self)
 {
 	omp_autotune(self, OMP_SCALE);
 
-	saved_key = mem_calloc_tiny(sizeof(*saved_key) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
-	crypt_out = mem_calloc_tiny(sizeof(*crypt_out) *
-			self->params.max_keys_per_crypt, MEM_ALIGN_WORD);
+	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
+	crypt_out = mem_calloc(sizeof(*crypt_out), self->params.max_keys_per_crypt);
+}
+
+static void done(void)
+{
+	MEM_FREE(saved_key);
+	MEM_FREE(crypt_out);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -445,7 +449,7 @@ struct fmt_main fmt_racf_kdfaes = {
 		racf_kdfaes_tests
 	}, {
 		init,
-		fmt_default_done,
+		done,
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
