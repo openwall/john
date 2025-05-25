@@ -321,6 +321,17 @@ static void get_des_hash(char *key, unsigned char *dhash)
 	DES_cbc_encrypt(cur_salt->userid, dhash, 8, &schedule, &ivec, DES_ENCRYPT);
 }
 
+typedef union {
+	unsigned char uc[32];
+	uint64_t u64[4];
+} hash_output;
+
+#define hash_xor(a, b) \
+	a.u64[0] ^= b.u64[0]; \
+	a.u64[1] ^= b.u64[1]; \
+	a.u64[2] ^= b.u64[2]; \
+	a.u64[3] ^= b.u64[3];
+
 static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
@@ -330,11 +341,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #pragma omp parallel for
 #endif
 	for (index = 0; index < count; index++) {
-		int x, i, n, n_key, ml;
-		unsigned char *t1f = mem_alloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
+		const uint32_t rounds = cur_salt->rfact * 100 - 1;
+		uint32_t x, n, n_key, ml;
+		hash_output *t1f = mem_alloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
+		hash_output h, t1, key;
 		unsigned char m[52];
 		unsigned char dh[8];
-		unsigned char h_out[32], t1[32], key[32];
 		AES_KEY akey;
 
 		ml = sizeof(cur_salt->salt);
@@ -344,48 +356,46 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		get_des_hash(saved_key[index], dh);  // k1
 
 		// kdf
+		memcpy(m+48, "\x00\x00\x00\x01", 4);
 		for (n = 0; n < cur_salt->mfact; n++) {
-			JTR_hmac_sha256(dh, 8, m, ml, h_out, HASH_OUTPUT_SIZE);
+			JTR_hmac_sha256(dh, 8, m, ml, h.uc, HASH_OUTPUT_SIZE);
 
-			ml = 32;
-			memcpy(t1, h_out, HASH_OUTPUT_SIZE);
-			for (x = 0; x < (cur_salt->rfact*100)-1 ; x++) {
-				memcpy(m, h_out, 16);
-				JTR_hmac_sha256(dh, 8, h_out, ml, h_out, HASH_OUTPUT_SIZE);
-				for (i = 0; i < HASH_OUTPUT_SIZE; i++)
-					t1[i] ^= h_out[i];
+			t1 = h;
+			for (x = 1; x < rounds; x++) {
+				JTR_hmac_sha256(dh, 8, h.uc, 32, h.uc, HASH_OUTPUT_SIZE);
+				hash_xor(t1, h);
 			}
+			memcpy(m, h.uc, 16);
+			JTR_hmac_sha256(dh, 8, h.uc, 32, h.uc, HASH_OUTPUT_SIZE);
+			hash_xor(t1, h);
 
-			memcpy(m+16, t1, HASH_OUTPUT_SIZE);
-			memcpy(m+48, "\x00\x00\x00\x01", 4);
+			memcpy(m+16, t1.uc, HASH_OUTPUT_SIZE);
 			ml = 52;
-			memcpy(t1f+(n*HASH_OUTPUT_SIZE), t1, HASH_OUTPUT_SIZE);
+			t1f[n] = t1;
 		}
 
+		memcpy(m + HASH_OUTPUT_SIZE, "\x00\x00\x00\x01", 4);
 		for (n = 0; n < cur_salt->mfact; n++) {
-			n_key = (((uint32_t)t1[30] << 8) | t1[31]) & (cur_salt->mfact - 1);
-			memcpy(m, t1f + (n_key * HASH_OUTPUT_SIZE), HASH_OUTPUT_SIZE);
-			memcpy(m + HASH_OUTPUT_SIZE, "\x00\x00\x00\x01", 4);
-			JTR_hmac_sha256(t1, HASH_OUTPUT_SIZE, m, HASH_OUTPUT_SIZE + 4, t1, HASH_OUTPUT_SIZE);
-			memcpy(t1f + (n*HASH_OUTPUT_SIZE), t1, HASH_OUTPUT_SIZE);
+			n_key = (((uint32_t)t1.uc[30] << 8) | t1.uc[31]) & (cur_salt->mfact - 1);
+			memcpy(m, t1f[n_key].uc, HASH_OUTPUT_SIZE);
+			JTR_hmac_sha256(t1.uc, HASH_OUTPUT_SIZE, m, HASH_OUTPUT_SIZE + 4, t1.uc, HASH_OUTPUT_SIZE);
+			t1f[n] = t1;
 		}
 
-		memcpy(key, t1, 32);
+		key = t1;
 
-		memcpy(t1f + (HASH_OUTPUT_SIZE * (cur_salt->mfact-1)), "\x00\x00\x00\x01", 4);
+		memcpy(t1f[cur_salt->mfact-1].uc, "\x00\x00\x00\x01", 4);
 		ml = (HASH_OUTPUT_SIZE * (cur_salt->mfact-1))+4;
-		JTR_hmac_sha256(key, HASH_OUTPUT_SIZE, t1f, ml, h_out, HASH_OUTPUT_SIZE);
+		JTR_hmac_sha256(key.uc, HASH_OUTPUT_SIZE, t1f->uc, ml, h.uc, HASH_OUTPUT_SIZE);
 
-		ml = 32;
-		memcpy(t1, h_out, HASH_OUTPUT_SIZE);
-		for (x = 0; x < (cur_salt->rfact*100)-1; x++) {
-			JTR_hmac_sha256(key, HASH_OUTPUT_SIZE, h_out, ml, h_out, HASH_OUTPUT_SIZE);
-			for (i = 0; i < HASH_OUTPUT_SIZE; i++)
-				t1[i] ^= h_out[i];
+		t1 = h;
+		for (x = 0; x < rounds; x++) {
+			JTR_hmac_sha256(key.uc, HASH_OUTPUT_SIZE, h.uc, 32, h.uc, HASH_OUTPUT_SIZE);
+			hash_xor(t1, h);
 		}
 
 		// encrypt user name
-		AES_set_encrypt_key(t1, 256, &akey);
+		AES_set_encrypt_key(t1.uc, 256, &akey);
 		AES_encrypt(cur_salt->userid, (unsigned char *)crypt_out[index], &akey);
 
 		MEM_FREE(t1f);
