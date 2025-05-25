@@ -318,44 +318,56 @@ static void get_des_hash(char *key, unsigned char *dhash)
 	DES_cbc_encrypt(cur_salt->userid, dhash, 8, &schedule, &ivec, DES_ENCRYPT);
 }
 
-#if ARCH_BITS==64
 #define HMAC_SHA32_COUNT  8
 #define HMAC_SHA_IPAD_XOR 0x3636363636363636ULL
 #define HMAC_SHA_OPAD_XOR (0x3636363636363636ULL^0x5c5c5c5c5c5c5c5cULL)
-#else
-#define HMAC_SHA32_COUNT  16
-#define HMAC_SHA_IPAD_XOR 0x36363636
-#define HMAC_SHA_OPAD_XOR (0x36363636^0x5c5c5c5c)
-#endif
 
-static MAYBE_INLINE void hmac_sha256_full(const unsigned char *key, size_t key_len, const unsigned char *data, size_t data_len, unsigned char *digest) {
-	JTR_ALIGN(8) unsigned char buf[64];
-	unsigned char local_digest[32];
-	ARCH_WORD *pW = (ARCH_WORD *)buf;
-	unsigned i;
-	SHA256_CTX ctx;
-
-	/* assert(key_len <= 64); */
-	memcpy(buf, key, key_len);
-	memset(&buf[key_len], 0, 64-key_len);
-	for (i = 0; i < HMAC_SHA32_COUNT; ++i)
-		pW[i] ^= HMAC_SHA_IPAD_XOR;
-	SHA256_Init(&ctx);
-	SHA256_Update(&ctx, buf, 64);
-	SHA256_Update(&ctx, data, data_len);
-	SHA256_Final(local_digest, &ctx);
-	for (i = 0; i < HMAC_SHA32_COUNT; ++i)
-		pW[i] ^= HMAC_SHA_OPAD_XOR;
-	SHA256_Init(&ctx);
-	SHA256_Update(&ctx, buf, 64);
-	SHA256_Update(&ctx, local_digest, 32);
-	SHA256_Final(digest, &ctx);
-}
+typedef union {
+	unsigned char uc[64];
+	uint64_t u64[8];
+} hash_input;
 
 typedef union {
 	unsigned char uc[32];
 	uint64_t u64[4];
 } hash_output;
+
+typedef struct {
+	SHA256_CTX ictx, octx;
+} hmac_sha256_ctx;
+
+static MAYBE_INLINE void hmac_sha256_start(hmac_sha256_ctx *ctx, const unsigned char *key, size_t key_len) {
+	hash_input buf;
+	unsigned i;
+
+	/* assert(key_len <= 64); */
+	memcpy(buf.uc, key, key_len);
+	memset(&buf.uc[key_len], 0, 64 - key_len);
+	for (i = 0; i < HMAC_SHA32_COUNT; ++i)
+		buf.u64[i] ^= HMAC_SHA_IPAD_XOR;
+	SHA256_Init(&ctx->ictx);
+	SHA256_Update(&ctx->ictx, buf.uc, 64);
+	for (i = 0; i < HMAC_SHA32_COUNT; ++i)
+		buf.u64[i] ^= HMAC_SHA_OPAD_XOR;
+	SHA256_Init(&ctx->octx);
+	SHA256_Update(&ctx->octx, buf.uc, 64);
+}
+
+static MAYBE_INLINE void hmac_sha256_finish(hmac_sha256_ctx *ctx, const unsigned char *data, size_t data_len, unsigned char *digest) {
+	hash_output local_digest;
+
+	SHA256_Update(&ctx->ictx, data, data_len);
+	SHA256_Final(local_digest.uc, &ctx->ictx);
+	SHA256_Update(&ctx->octx, local_digest.uc, sizeof(local_digest));
+	SHA256_Final(digest, &ctx->octx);
+}
+
+static MAYBE_INLINE void hmac_sha256_full(const unsigned char *key, size_t key_len, const unsigned char *data, size_t data_len, unsigned char *digest) {
+	hmac_sha256_ctx ctx;
+
+	hmac_sha256_start(&ctx, key, key_len);
+	hmac_sha256_finish(&ctx, data, data_len, digest);
+}
 
 #define hash_xor(a, b) \
 	a.u64[0] ^= b.u64[0]; \
