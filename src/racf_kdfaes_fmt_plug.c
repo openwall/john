@@ -399,42 +399,45 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		uint32_t x, n, n_key, ml;
 		hash_output *t1f = mem_alloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
 		hash_output h, t1;
-		unsigned char m[52];
+		union {
+			unsigned char uc[52];
+			hash_output h;
+		} m;
 		hmac_sha256_ctx ctx;
 		unsigned char dh[8];
 		AES_KEY akey;
 
 		ml = sizeof(cur_salt->salt);
-		memcpy(m, cur_salt->salt, ml);
+		memcpy(m.uc, cur_salt->salt, ml);
 
 		// get des hash
 		get_des_hash(saved_key[index], dh);  // k1
 
 		// kdf
 		hmac_sha256_start(&ctx, dh, 8);
-		memcpy(m+48, "\x00\x00\x00\x01", 4);
+		memcpy(m.uc+48, "\x00\x00\x00\x01", 4);
 		for (n = 0; n < cur_salt->mfact; n++) {
-			hmac_sha256_finish_const(&ctx, m, ml, h.uc);
+			hmac_sha256_finish_const(&ctx, m.uc, ml, h.uc);
 
 			t1 = h;
 			for (x = 1; x < rounds; x++) {
 				hmac_sha256_finish_const(&ctx, h.uc, 32, h.uc);
 				hash_xor(t1, h);
 			}
-			memcpy(m, h.uc, 16);
+			memcpy(m.uc, h.uc, 16);
 			hmac_sha256_finish_const(&ctx, h.uc, 32, h.uc);
 			hash_xor(t1, h);
 
-			memcpy(m+16, t1.uc, HASH_OUTPUT_SIZE);
+			memcpy(m.uc+16, t1.uc, HASH_OUTPUT_SIZE);
 			ml = 52;
 			t1f[n] = t1;
 		}
 
-		memcpy(m + HASH_OUTPUT_SIZE, "\x00\x00\x00\x01", 4);
+		memcpy(m.uc + HASH_OUTPUT_SIZE, "\x00\x00\x00\x01", 4);
 		for (n = 0; n < cur_salt->mfact; n++) {
 			n_key = (((uint32_t)t1.uc[30] << 8) | t1.uc[31]) & (cur_salt->mfact - 1);
-			memcpy(m, t1f[n_key].uc, HASH_OUTPUT_SIZE);
-			hmac_sha256_full(t1.uc, HASH_OUTPUT_SIZE, m, HASH_OUTPUT_SIZE + 4, t1.uc);
+			m.h = t1f[n_key];
+			hmac_sha256_full(t1.uc, HASH_OUTPUT_SIZE, m.uc, HASH_OUTPUT_SIZE + 4, t1.uc);
 			t1f[n] = t1;
 		}
 
