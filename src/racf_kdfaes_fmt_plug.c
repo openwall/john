@@ -133,8 +133,7 @@ static struct fmt_tests racf_kdfaes_tests[] = {
 
 static struct custom_salt {
 	unsigned char userid[16]; /* 8 chars padded to AES block */
-	uint16_t mfact;
-	uint32_t rfact;
+	uint32_t mfact_log2, mfact, rfact;
 	uint8_t salt[MAX_SALT_SIZE + 8];
 } *cur_salt;
 
@@ -243,16 +242,15 @@ static void *get_salt(char *ciphertext)
 	memcpy(hexstr, p + HEADER_LEN + 1, 4);
 	hexstr[4] = 0;
 	v = strtoul(hexstr, NULL, 16);
-	if (v < 32) {
+	if (v >= 8 && v <= 16) {
+		cs.mfact_log2 = v;
 		cs.mfact = v = (1U << v) / HASH_OUTPUT_SIZE;
-		if (cs.mfact != v)
-			cs.mfact = 0;
 	}
 
 	memcpy(hexstr, p + HEADER_LEN + 1 + 4, 4);
-	cs.rfact = v = strtoul(hexstr, NULL, 16);
-	if (cs.rfact != v)
-		cs.rfact = 0;
+	v = strtoul(hexstr, NULL, 16);
+	if (v >= 50 && v <= 1000)
+		cs.rfact = v;
 
 	p += 33;
 	for (i = 0; i < MAX_SALT_SIZE; i++) {
@@ -429,7 +427,7 @@ static int cmp_exact(char *source, int index)
 static unsigned int tunable_cost_mfact(void *_salt)
 {
 	struct custom_salt *salt = (struct custom_salt *)_salt;
-	return salt->mfact;
+	return salt->mfact_log2;
 }
 
 static unsigned int tunable_cost_rfact(void *_salt)
@@ -454,7 +452,7 @@ struct fmt_main fmt_racf_kdfaes = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{"m", "r"},
+		{"PMEM", "PREP"},
 		{ FORMAT_TAG },
 		racf_kdfaes_tests
 	}, {
