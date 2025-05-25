@@ -428,6 +428,18 @@ static int cmp_exact(char *source, int index)
 	return 1;
 }
 
+static unsigned int tunable_cost_mfact(void *_salt)
+{
+	struct custom_salt *salt = (struct custom_salt *)_salt;
+	return salt->mfact;
+}
+
+static unsigned int tunable_cost_rfact(void *_salt)
+{
+	struct custom_salt *salt = (struct custom_salt *)_salt;
+	return salt->rfact;
+}
+
 struct fmt_main fmt_racf_kdfaes = {
 	{
 		FORMAT_LABEL,
@@ -444,7 +456,7 @@ struct fmt_main fmt_racf_kdfaes = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },
+		{"m", "r"},
 		{ FORMAT_TAG },
 		racf_kdfaes_tests
 	}, {
@@ -456,7 +468,7 @@ struct fmt_main fmt_racf_kdfaes = {
 		fmt_default_split,
 		get_binary,
 		get_salt,
-		{ NULL },
+		{tunable_cost_mfact, tunable_cost_rfact},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash_0,
