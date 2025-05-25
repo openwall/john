@@ -320,53 +320,36 @@ static void get_des_hash(char *key, unsigned char *dhash)
 
 #if ARCH_BITS==64
 #define HMAC_SHA32_COUNT  8
-#define HMAC_SHA64_COUNT  16
 #define HMAC_SHA_IPAD_XOR 0x3636363636363636ULL
 #define HMAC_SHA_OPAD_XOR (0x3636363636363636ULL^0x5c5c5c5c5c5c5c5cULL)
 #else
 #define HMAC_SHA32_COUNT  16
-#define HMAC_SHA64_COUNT  32
 #define HMAC_SHA_IPAD_XOR 0x36363636
 #define HMAC_SHA_OPAD_XOR (0x36363636^0x5c5c5c5c)
 #endif
 
-static void JTR_hmac_sha256(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len) {
+static MAYBE_INLINE void hmac_sha256_full(const unsigned char *key, size_t key_len, const unsigned char *data, size_t data_len, unsigned char *digest) {
 	JTR_ALIGN(8) unsigned char buf[64];
 	unsigned char local_digest[32];
 	ARCH_WORD *pW = (ARCH_WORD *)buf;
 	unsigned i;
 	SHA256_CTX ctx;
 
-	if (key_len > 64) {
-		SHA256_Init(&ctx);
-		SHA256_Update(&ctx, key, key_len);
-		SHA256_Final(buf, &ctx);
-		for (i = 0; i < HMAC_SHA32_COUNT/2; ++i)
-			pW[i] ^= HMAC_SHA_IPAD_XOR;
-		for (; i < HMAC_SHA32_COUNT; ++i)
-			pW[i] = HMAC_SHA_IPAD_XOR;
-	} else {
-		memcpy(buf, key, key_len);
-		memset(&buf[key_len], 0, 64-key_len);
-		for (i = 0; i < HMAC_SHA32_COUNT; ++i)
-			pW[i] ^= HMAC_SHA_IPAD_XOR;
-	}
+	/* assert(key_len <= 64); */
+	memcpy(buf, key, key_len);
+	memset(&buf[key_len], 0, 64-key_len);
+	for (i = 0; i < HMAC_SHA32_COUNT; ++i)
+		pW[i] ^= HMAC_SHA_IPAD_XOR;
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, buf, 64);
-	if (data_len)
-		SHA256_Update(&ctx, data, data_len);
+	SHA256_Update(&ctx, data, data_len);
 	SHA256_Final(local_digest, &ctx);
 	for (i = 0; i < HMAC_SHA32_COUNT; ++i)
 		pW[i] ^= HMAC_SHA_OPAD_XOR;
 	SHA256_Init(&ctx);
 	SHA256_Update(&ctx, buf, 64);
 	SHA256_Update(&ctx, local_digest, 32);
-	if (digest_len >= 32)
-		SHA256_Final(digest, &ctx);
-	else {
-		SHA256_Final(local_digest, &ctx);
-		memcpy(digest, local_digest, digest_len);
-	}
+	SHA256_Final(digest, &ctx);
 }
 
 typedef union {
@@ -406,15 +389,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// kdf
 		memcpy(m+48, "\x00\x00\x00\x01", 4);
 		for (n = 0; n < cur_salt->mfact; n++) {
-			JTR_hmac_sha256(dh, 8, m, ml, h.uc, HASH_OUTPUT_SIZE);
+			hmac_sha256_full(dh, 8, m, ml, h.uc);
 
 			t1 = h;
 			for (x = 1; x < rounds; x++) {
-				JTR_hmac_sha256(dh, 8, h.uc, 32, h.uc, HASH_OUTPUT_SIZE);
+				hmac_sha256_full(dh, 8, h.uc, 32, h.uc);
 				hash_xor(t1, h);
 			}
 			memcpy(m, h.uc, 16);
-			JTR_hmac_sha256(dh, 8, h.uc, 32, h.uc, HASH_OUTPUT_SIZE);
+			hmac_sha256_full(dh, 8, h.uc, 32, h.uc);
 			hash_xor(t1, h);
 
 			memcpy(m+16, t1.uc, HASH_OUTPUT_SIZE);
@@ -426,7 +409,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (n = 0; n < cur_salt->mfact; n++) {
 			n_key = (((uint32_t)t1.uc[30] << 8) | t1.uc[31]) & (cur_salt->mfact - 1);
 			memcpy(m, t1f[n_key].uc, HASH_OUTPUT_SIZE);
-			JTR_hmac_sha256(t1.uc, HASH_OUTPUT_SIZE, m, HASH_OUTPUT_SIZE + 4, t1.uc, HASH_OUTPUT_SIZE);
+			hmac_sha256_full(t1.uc, HASH_OUTPUT_SIZE, m, HASH_OUTPUT_SIZE + 4, t1.uc);
 			t1f[n] = t1;
 		}
 
@@ -434,11 +417,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		memcpy(t1f[cur_salt->mfact-1].uc, "\x00\x00\x00\x01", 4);
 		ml = (HASH_OUTPUT_SIZE * (cur_salt->mfact-1))+4;
-		JTR_hmac_sha256(key.uc, HASH_OUTPUT_SIZE, t1f->uc, ml, h.uc, HASH_OUTPUT_SIZE);
+		hmac_sha256_full(key.uc, HASH_OUTPUT_SIZE, t1f->uc, ml, h.uc);
 
 		t1 = h;
 		for (x = 0; x < rounds; x++) {
-			JTR_hmac_sha256(key.uc, HASH_OUTPUT_SIZE, h.uc, 32, h.uc, HASH_OUTPUT_SIZE);
+			hmac_sha256_full(key.uc, HASH_OUTPUT_SIZE, h.uc, 32, h.uc);
 			hash_xor(t1, h);
 		}
 
