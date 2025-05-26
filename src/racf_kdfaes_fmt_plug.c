@@ -38,7 +38,6 @@ john_register_one(&fmt_racf_kdfaes);
 #include "options.h"
 #include "aes.h"
 #include "sha2.h"
-#include "hmac_sha.h"
 #include "memory.h"
 
 #define FORMAT_LABEL            "RACF-KDFAES"
@@ -317,6 +316,57 @@ static void get_des_hash(char *key, unsigned char *dhash)
 
 	memset(ivec, 0, 8);
 	DES_cbc_encrypt(cur_salt->userid, dhash, 8, &schedule, &ivec, DES_ENCRYPT);
+}
+
+#if ARCH_BITS==64
+#define HMAC_SHA32_COUNT  8
+#define HMAC_SHA64_COUNT  16
+#define HMAC_SHA_IPAD_XOR 0x3636363636363636ULL
+#define HMAC_SHA_OPAD_XOR (0x3636363636363636ULL^0x5c5c5c5c5c5c5c5cULL)
+#else
+#define HMAC_SHA32_COUNT  16
+#define HMAC_SHA64_COUNT  32
+#define HMAC_SHA_IPAD_XOR 0x36363636
+#define HMAC_SHA_OPAD_XOR (0x36363636^0x5c5c5c5c)
+#endif
+
+static void JTR_hmac_sha256(const unsigned char *key, int key_len, const unsigned char *data, size_t data_len, unsigned char *digest, int digest_len) {
+	JTR_ALIGN(8) unsigned char buf[64];
+	unsigned char local_digest[32];
+	ARCH_WORD *pW = (ARCH_WORD *)buf;
+	unsigned i;
+	SHA256_CTX ctx;
+
+	if (key_len > 64) {
+		SHA256_Init(&ctx);
+		SHA256_Update(&ctx, key, key_len);
+		SHA256_Final(buf, &ctx);
+		for (i = 0; i < HMAC_SHA32_COUNT/2; ++i)
+			pW[i] ^= HMAC_SHA_IPAD_XOR;
+		for (; i < HMAC_SHA32_COUNT; ++i)
+			pW[i] = HMAC_SHA_IPAD_XOR;
+	} else {
+		memcpy(buf, key, key_len);
+		memset(&buf[key_len], 0, 64-key_len);
+		for (i = 0; i < HMAC_SHA32_COUNT; ++i)
+			pW[i] ^= HMAC_SHA_IPAD_XOR;
+	}
+	SHA256_Init(&ctx);
+	SHA256_Update(&ctx, buf, 64);
+	if (data_len)
+		SHA256_Update(&ctx, data, data_len);
+	SHA256_Final(local_digest, &ctx);
+	for (i = 0; i < HMAC_SHA32_COUNT; ++i)
+		pW[i] ^= HMAC_SHA_OPAD_XOR;
+	SHA256_Init(&ctx);
+	SHA256_Update(&ctx, buf, 64);
+	SHA256_Update(&ctx, local_digest, 32);
+	if (digest_len >= 32)
+		SHA256_Final(digest, &ctx);
+	else {
+		SHA256_Final(local_digest, &ctx);
+		memcpy(digest, local_digest, digest_len);
+	}
 }
 
 typedef union {
