@@ -396,7 +396,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 	for (index = 0; index < count; index++) {
 		const uint32_t rounds = cur_salt->rfact * 100 - 1;
-		uint32_t x, n, n_key, ml;
+		const uint32_t mask = cur_salt->mfact - 1;
+		uint32_t r, n, ml;
 		hash_output *t1p, *t1f = mem_alloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
 		hash_output h, t1;
 		union {
@@ -416,28 +417,30 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// kdf
 		hmac_sha256_start(&ctx, dh, 8);
 		memcpy(m.uc+48, "\x00\x00\x00\x01", 4);
-		for (n = 0; n < cur_salt->mfact; n++) {
+		t1p = t1f;
+		n = cur_salt->mfact;
+		do {
 			hmac_sha256_finish_const(&ctx, m.uc, ml, h.uc);
 
 			t1 = h;
-			for (x = 1; x < rounds; x++) {
-				hmac_sha256_finish_const(&ctx, h.uc, 32, h.uc);
+			r = rounds - 1;
+			do {
+				hmac_sha256_finish_const(&ctx, h.uc, HASH_OUTPUT_SIZE, h.uc);
 				hash_xor(t1, h);
-			}
+			} while (--r);
 			memcpy(m.uc, h.uc, 16);
-			hmac_sha256_finish_const(&ctx, h.uc, 32, h.uc);
+			hmac_sha256_finish_const(&ctx, h.uc, HASH_OUTPUT_SIZE, h.uc);
 			hash_xor(t1, h);
 
 			memcpy(m.uc+16, t1.uc, HASH_OUTPUT_SIZE);
 			ml = 52;
-			t1f[n] = t1;
-		}
+			*t1p++ = t1;
+		} while (--n);
 
 		t1p = &t1;
 		memcpy(m.uc + HASH_OUTPUT_SIZE, "\x00\x00\x00\x01", 4);
-		for (n = 0; n < cur_salt->mfact; n++) {
-			n_key = (((uint32_t)t1p->uc[30] << 8) | t1p->uc[31]) & (cur_salt->mfact - 1);
-			m.h = t1f[n_key];
+		for (n = 0; n <= mask; n++) {
+			m.h = t1f[(((uint32_t)t1p->uc[30] << 8) | t1p->uc[31]) & mask];
 			hmac_sha256_full(t1p->uc, HASH_OUTPUT_SIZE, m.uc, HASH_OUTPUT_SIZE + 4, t1f[n].uc);
 			t1p = &t1f[n];
 		}
@@ -445,15 +448,15 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		hmac_sha256_start(&ctx, t1p->uc, HASH_OUTPUT_SIZE);
 		hmac_sha256_finish_const(&ctx, t1f->uc, ml, h.uc);
 
-		memcpy(t1f[cur_salt->mfact-1].uc, "\x00\x00\x00\x01", 4);
-		ml = (HASH_OUTPUT_SIZE * (cur_salt->mfact-1))+4;
-		hmac_sha256_finish_const(&ctx, t1f->uc, ml, h.uc);
+		memcpy(t1f[mask].uc, "\x00\x00\x00\x01", 4);
+		hmac_sha256_finish_const(&ctx, t1f->uc, (HASH_OUTPUT_SIZE * mask) + 4, h.uc);
 
 		t1 = h;
-		for (x = 0; x < rounds; x++) {
-			hmac_sha256_finish_const(&ctx, h.uc, 32, h.uc);
+		r = rounds;
+		do {
+			hmac_sha256_finish_const(&ctx, h.uc, HASH_OUTPUT_SIZE, h.uc);
 			hash_xor(t1, h);
-		}
+		} while (--r);
 
 		// encrypt user name
 		AES_set_encrypt_key(t1.uc, 256, &akey);
