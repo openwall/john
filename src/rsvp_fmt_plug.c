@@ -306,7 +306,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (len < 64)
 					MD5_Update(&ipad_mctx[index], ipad_constant_block, 64-len);
 				for (i = 0; i < len; ++i) {
-					pad[i] = p[i] ^ 0x5C;
+					pad[i] ^= 0x36 ^ 0x5C;
 				}
 				MD5_Init(&opad_mctx[index]);
 				MD5_Update(&opad_mctx[index], pad, len);
@@ -342,7 +342,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (len < 64)
 					SHA1_Update(&ipad_ctx[index], ipad_constant_block, 64-len);
 				for (i = 0; i < len; ++i) {
-					pad[i] = p[i] ^ 0x5C;
+					pad[i] ^= 0x36 ^ 0x5C;
 				}
 				SHA1_Init(&opad_ctx[index]);
 				SHA1_Update(&opad_ctx[index], pad, len);
@@ -380,7 +380,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (len < 64)
 					SHA224_Update(&ipad_ctx_224[index], ipad_constant_block, 64-len);
 				for (i = 0; i < len; ++i) {
-					pad[i] = p[i] ^ 0x5C;
+					pad[i] ^= 0x36 ^ 0x5C;
 				}
 				SHA224_Init(&opad_ctx_224[index]);
 				SHA224_Update(&opad_ctx_224[index], pad, len);
@@ -416,7 +416,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (len < 64)
 					SHA256_Update(&ipad_ctx_256[index], ipad_constant_block, 64-len);
 				for (i = 0; i < len; ++i) {
-					pad[i] = p[i] ^ 0x5C;
+					pad[i] ^= 0x36 ^ 0x5C;
 				}
 				SHA256_Init(&opad_ctx_256[index]);
 				SHA256_Update(&opad_ctx_256[index], pad, len);
@@ -452,7 +452,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (len < 128)
 					SHA384_Update(&ipad_ctx_384[index], ipad_constant_block, 128-len);
 				for (i = 0; i < len; ++i) {
-					pad[i] = p[i] ^ 0x5C;
+					pad[i] ^= 0x36 ^ 0x5C;
 				}
 				SHA384_Init(&opad_ctx_384[index]);
 				SHA384_Update(&opad_ctx_384[index], pad, len);
@@ -488,7 +488,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				if (len < 128)
 					SHA512_Update(&ipad_ctx_512[index], ipad_constant_block, 128-len);
 				for (i = 0; i < len; ++i) {
-					pad[i] = p[i] ^ 0x5C;
+					pad[i] ^= 0x36 ^ 0x5C;
 				}
 				SHA512_Init(&opad_ctx_512[index]);
 				SHA512_Update(&opad_ctx_512[index], pad, len);

@@ -454,11 +454,9 @@ static void hmac_sha256_vector(const u8 *key, size_t key_len, size_t num_elem,
 	}
 	sha256_vector(1 + num_elem, _addr, _len, mac);
 
-	memset(k_pad, 0, sizeof(k_pad));
-	memcpy(k_pad, key, key_len);
 	/* XOR key with opad values */
 	for (i = 0; i < 64; i++)
-		k_pad[i] ^= 0x5c;
+		k_pad[i] ^= 0x36 ^ 0x5c;
 
 	/* perform outer SHA256 */
 	_addr[0] = k_pad;

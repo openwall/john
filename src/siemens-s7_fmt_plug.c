@@ -205,7 +205,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			SHA1_Update(&ipad_ctx[index], pad, 20);
 			SHA1_Update(&ipad_ctx[index], "\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36\x36", 44);
 			for (i = 0; i < 20; ++i) {
-				pad[i] = buf[i] ^ 0x5C;
+				pad[i] ^= 0x36 ^ 0x5C;
 			}
 			SHA1_Init(&opad_ctx[index]);
 			SHA1_Update(&opad_ctx[index], pad, 20);
