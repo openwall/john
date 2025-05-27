@@ -19,7 +19,7 @@ typedef struct {
 	uchar buffer[64];  /* data block being processed */
 } MD4_CTX;
 
-inline void _md4_process(MD4_CTX *ctx, const uchar data[64])
+INLINE void _md4_process(MD4_CTX *ctx, const uchar data[64])
 {
 	uint W[16], A, B, C, D MD4_G_VARS;
 
@@ -78,7 +78,7 @@ inline void _md4_process(MD4_CTX *ctx, const uchar data[64])
 /*
  * MD4 context setup
  */
-inline void MD4_Init(MD4_CTX *ctx)
+INLINE void MD4_Init(MD4_CTX *ctx)
 {
 	ctx->total = 0;
 
@@ -91,7 +91,7 @@ inline void MD4_Init(MD4_CTX *ctx)
 /*
  * MD4 process buffer
  */
-inline void MD4_Update(MD4_CTX *ctx, const uchar *input, uint ilen)
+INLINE void MD4_Update(MD4_CTX *ctx, const uchar *input, uint ilen)
 {
 	uint fill;
 	uint left;
@@ -129,7 +129,7 @@ inline void MD4_Update(MD4_CTX *ctx, const uchar *input, uint ilen)
 /*
  * MD4 final digest
  */
-inline void MD4_Final(uchar output[20], MD4_CTX *ctx)
+INLINE void MD4_Final(uchar output[20], MD4_CTX *ctx)
 {
 	uint last, padn;
 	ulong bits;

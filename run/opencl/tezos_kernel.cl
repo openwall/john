@@ -20,7 +20,7 @@ typedef struct {
 	uchar pkh[20];
 } tezos_salt_t;
 
-inline void _tezos_preproc_(const ulong *key, uint keylen,
+INLINE void _tezos_preproc_(const ulong *key, uint keylen,
                             ulong *state, ulong mask)
 {
 	uint i, j;
@@ -55,7 +55,7 @@ inline void _tezos_preproc_(const ulong *key, uint keylen,
 	state[7] = H + SHA512_INIT_H;
 }
 
-inline void _tezos_hmac_(ulong *output, ulong *ipad_state, ulong *opad_state, ulong *salt, uint saltlen)
+INLINE void _tezos_hmac_(ulong *output, ulong *ipad_state, ulong *opad_state, ulong *salt, uint saltlen)
 {
 	uint i, j;
 	ulong W[16] = { 0 };

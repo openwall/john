@@ -54,7 +54,7 @@ __constant uint64_t RC[24] =
   REPEAT5(e; v += s;)
 
 /*** Keccak-f[1600] ***/
-inline void keccakf(void* state)
+INLINE void keccakf(void* state)
 {
 	uint64_t* a = (uint64_t*)state;
 	uint64_t b[5] = { 0 };
@@ -106,14 +106,14 @@ inline void keccakf(void* state)
   _(for (uint i = 0; i < L; i += ST) { S; })
 
 #define mkapply_ds(NAME, S)                                          \
-  inline void NAME(uint8_t* dst,                                     \
+  INLINE void NAME(uint8_t* dst,                                     \
                    const uint8_t* src,                               \
                    uint len) {                                       \
       FOR(i, 1, len, S);                                             \
   }
 
 #define mkapply_sd(NAME, S)                                          \
-  inline void NAME(const uint8_t* src,                               \
+  INLINE void NAME(const uint8_t* src,                               \
                    uint8_t* dst,                                     \
                    uint len) {                                       \
       FOR(i, 1, len, S);                                             \
@@ -135,7 +135,7 @@ mkapply_sd(setout, dst[i] = src[i])  // setout
   }
 
 /** The sponge-based hash construction. **/
-inline void hash(uint8_t* out, uint outlen, const uint8_t* in, uint inlen,
+INLINE void hash(uint8_t* out, uint outlen, const uint8_t* in, uint inlen,
                  uint rate, uint8_t delim)
 {
 	uint8_t a[Plen] = { 0 };
@@ -156,19 +156,19 @@ inline void hash(uint8_t* out, uint outlen, const uint8_t* in, uint inlen,
 
 /*** Helper macros to define SHA3 and SHAKE instances. ***/
 #define defshake(bits)                                            \
-  inline void shake##bits(uint8_t* out, uint outlen,              \
+  INLINE void shake##bits(uint8_t* out, uint outlen,              \
                           const uint8_t* in, uint inlen) {        \
       hash(out, outlen, in, inlen, 200 - (bits / 4), 0x1f);       \
   }
 
 #define defsha3(bits)                                             \
-  inline void sha3_##bits(uint8_t* out, uint outlen,              \
+  INLINE void sha3_##bits(uint8_t* out, uint outlen,              \
                           const uint8_t* in, uint inlen) {        \
       hash(out, outlen, in, inlen, 200 - (bits / 4), 0x06);       \
   }
 
 #define defkeccak(bits)                                           \
-  inline void keccak_##bits(uint8_t* out, uint outlen,            \
+  INLINE void keccak_##bits(uint8_t* out, uint outlen,            \
                             const uint8_t* in, uint inlen) {      \
       hash(out, outlen, in, inlen, 200 - (bits / 4), 0x01);       \
   }

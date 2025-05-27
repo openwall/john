@@ -41,7 +41,7 @@ typedef struct {
  * For some reason, ptext_size is ignored and we only use 16. That's just
  * how the CPU code works, I have no idea why.
  */
-inline void dk(uchar *key_out, uchar *key_in, uint key_size,
+INLINE void dk(uchar *key_out, uchar *key_in, uint key_size,
                __constant uchar *ptext, uint ptext_size, __local aes_local_t *lt)
 {
 	uchar iv[16] = { 0 };
@@ -54,7 +54,7 @@ inline void dk(uchar *key_out, uchar *key_in, uint key_size,
 	AES_cbc_encrypt(plaintext, key_out, key_size, &ekey, iv);
 }
 
-inline void krb_decrypt(MAYBE_CONSTANT uchar *ciphertext, uint ctext_size,
+INLINE void krb_decrypt(MAYBE_CONSTANT uchar *ciphertext, uint ctext_size,
                         __global uchar *plaintext, const uchar *key,
                         uint key_size, __local aes_local_t *lt)
 {

@@ -80,7 +80,7 @@ typedef unsigned WORD vtype;
 	for (bit = bits; bit < k; bit++)		\
 		hash |= ((((uint)B[32 + bit]) >> x) & 1) << bit;
 
-inline void cmp_final(unsigned lm_vector *B,
+INLINE void cmp_final(unsigned lm_vector *B,
 		      unsigned int *binary,
 		      __global unsigned int *offset_table,
 		      __global unsigned int *hash_table,
@@ -116,7 +116,7 @@ inline void cmp_final(unsigned lm_vector *B,
 	}
 }
 
-inline void cmp( unsigned lm_vector *B,
+INLINE void cmp( unsigned lm_vector *B,
 		 __global unsigned int *offset_table,
 		 __global unsigned int *hash_table,
 		  __global unsigned int *bitmaps,

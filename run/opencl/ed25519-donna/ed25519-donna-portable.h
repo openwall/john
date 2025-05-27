@@ -4,7 +4,7 @@
 #define ALIGN(x) __attribute__((aligned(x)))
 
 /* endian */
-inline uint32_t U8TO32_LE(const unsigned char *p) {
+INLINE uint32_t U8TO32_LE(const unsigned char *p) {
 	return
 	(((uint32_t)(p[0])      ) |
 	 ((uint32_t)(p[1]) <<  8) |

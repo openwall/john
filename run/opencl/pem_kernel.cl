@@ -24,7 +24,7 @@ typedef struct {
 	uchar ciphertext[CTLEN];
 } pem_salt;
 
-inline int pem_decrypt(__global uchar *key, MAYBE_CONSTANT pem_salt *salt, __local aes_local_t *lt)
+INLINE int pem_decrypt(__global uchar *key, MAYBE_CONSTANT pem_salt *salt, __local aes_local_t *lt)
 {
 	uchar out[CTLEN];
 	struct asn1_hdr hdr;

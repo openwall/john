@@ -29,7 +29,7 @@ typedef struct {
 	unsigned char data[16];
 } enpass_salt;
 
-inline uint verify_page(uchar *data)
+INLINE uint verify_page(uchar *data)
 {
 	uint32_t pageSize;
 	uint32_t usableSize;
@@ -104,7 +104,7 @@ void enpass5_final(MAYBE_CONSTANT enpass_salt *salt,
 	}
 }
 
-inline void _e6_preproc(__global const uint *key,
+INLINE void _e6_preproc(__global const uint *key,
                         ulong *state, ulong padding)
 {
 	uint i;
