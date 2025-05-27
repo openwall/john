@@ -319,17 +319,17 @@ static void get_des_hash(char *key, unsigned char *dhash)
 }
 
 #define HMAC_SHA_IPAD_XOR 0x3636363636363636ULL
-#define HMAC_SHA_OPAD_XOR (0x3636363636363636ULL^0x5c5c5c5c5c5c5c5cULL)
+#define HMAC_SHA_OPAD_XOR 0x5c5c5c5c5c5c5c5cULL
 
-#define hash_xor_input(a, b) \
+#define hash_xor_input(a, b, c) \
 	a[0] ^= b; \
 	a[1] ^= b; \
 	a[2] ^= b; \
 	a[3] ^= b; \
-	a[4] ^= b; \
-	a[5] ^= b; \
-	a[6] ^= b; \
-	a[7] ^= b;
+	a[4] = c; \
+	a[5] = c; \
+	a[6] = c; \
+	a[7] = c;
 
 typedef union {
 	unsigned char uc[64];
@@ -348,13 +348,13 @@ typedef struct {
 static MAYBE_INLINE void hmac_sha256_start(hmac_sha256_ctx *ctx, const unsigned char *key, size_t key_len) {
 	hash_input buf;
 
-	/* assert(key_len <= 64); */
+	/* assert(key_len <= 32); */
 	memcpy(buf.uc, key, key_len);
-	memset(&buf.uc[key_len], 0, 64 - key_len);
-	hash_xor_input(buf.u64, HMAC_SHA_IPAD_XOR);
+	memset(&buf.uc[key_len], 0, 32 - key_len);
+	hash_xor_input(buf.u64, HMAC_SHA_IPAD_XOR, HMAC_SHA_IPAD_XOR);
 	SHA256_Init(&ctx->ictx);
 	SHA256_Update(&ctx->ictx, buf.uc, 64);
-	hash_xor_input(buf.u64, HMAC_SHA_OPAD_XOR);
+	hash_xor_input(buf.u64, HMAC_SHA_IPAD_XOR ^ HMAC_SHA_OPAD_XOR, HMAC_SHA_OPAD_XOR);
 	SHA256_Init(&ctx->octx);
 	SHA256_Update(&ctx->octx, buf.uc, 64);
 }
