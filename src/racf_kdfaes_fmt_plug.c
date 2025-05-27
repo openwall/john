@@ -398,8 +398,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		const uint32_t rounds = cur_salt->rfact * 100 - 1;
 		const uint32_t mask = cur_salt->mfact - 1;
 		uint32_t r, n, ml;
-		hash_output *t1p, *t1f = mem_alloc(HASH_OUTPUT_SIZE * cur_salt->mfact);
-		hash_output h, t1;
+		hash_output h, t1, *t1p, t1f[0x10000 / HASH_OUTPUT_SIZE];
 		union {
 			unsigned char uc[52];
 			hash_output h;
@@ -461,8 +460,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// encrypt user name
 		AES_set_encrypt_key(t1.uc, 256, &akey);
 		AES_encrypt(cur_salt->userid, (unsigned char *)crypt_out[index], &akey);
-
-		MEM_FREE(t1f);
 	}
 
 	return count;
