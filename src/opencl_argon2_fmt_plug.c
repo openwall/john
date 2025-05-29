@@ -1003,6 +1003,16 @@ static void kp_set_salt(void *salt)
 // Compare result hashes with db hashes
 static int cmp_all(void *binary, int count)
 {
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (*(uint8_t *)binary == crypted[i][0] && !memcmp(binary, crypted[i], saved_salt.hash_size))
+			return 1;
+	return 0;
+}
+
+static int kp_cmp_all(void *binary, int count)
+{
 	return 1;
 }
 
@@ -1328,7 +1338,7 @@ struct fmt_main fmt_opencl_keepass_argon2 = {
 		{
 			fmt_default_get_hash
 		},
-		cmp_all,
+		kp_cmp_all,
 		kp_cmp_one,
 		cmp_exact
 	}
