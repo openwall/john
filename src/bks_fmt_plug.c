@@ -89,6 +89,8 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static size_t *saved_len;
 static int *cracked, any_cracked;  // "cracked array" approach is required for UBER keystores
 
+struct fmt_main fmt_bks; /* patched by crypt_all() */
+
 static void init(struct fmt_main *self)
 {
 	omp_autotune(self, OMP_SCALE);
@@ -267,6 +269,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 			if (!memcmp(store_hmac_calculated, cur_salt->store_hmac, 20))
 			{
+				if (mackeylen < 7)
+					fmt_bks.params.flags |= FMT_NOT_EXACT;
 				cracked[index] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
@@ -342,6 +346,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 				if (!memcmp(store_hmac_calculated, cur_salt->store_hmac, 20))
 				{
+					if (mackeylen < 7)
+						fmt_bks.params.flags |= FMT_NOT_EXACT;
 					cracked[index+j] = 1;
 #ifdef _OPENMP
 #pragma omp atomic
