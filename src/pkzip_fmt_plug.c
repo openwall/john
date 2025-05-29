@@ -110,6 +110,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static u32  *K12;
 static PKZ_SALT *salt;
 static u8 *chk;
+static int any_cracked;
 static int dirty=1;
 #if USE_PKZIP_MAGIC
 static ZIP_SIGS SIGS[256];
@@ -350,6 +351,7 @@ static void init(struct fmt_main *self)
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
 	K12 = mem_calloc(sizeof(*K12) * 3, self->params.max_keys_per_crypt);
 	chk = mem_calloc(sizeof(*chk), self->params.max_keys_per_crypt);
+	any_cracked = 0;
 
 	/*
 	 * Precompute the multiply mangling, within several parts of the hash. There is a pattern,
@@ -708,15 +710,12 @@ static char *get_key(int index)
 
 static int cmp_one(void *binary, int idx)
 {
-	return chk[idx] == 1;
+	return chk[idx];
 }
 
 static int cmp_all(void *binary, int count)
 {
-	int i,j;
-	for (i=j=0; i<count; ++i)
-		j+=chk[i]; /* hopefully addition like this is faster than 'count' conditional if statments */
-	return j;
+	return any_cracked;
 }
 
 /* this function is used by cmp_exact_loadfile.  It will load the next
@@ -1355,6 +1354,11 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 	++CNT;
 #endif
 
+	if (any_cracked) {
+		memset(chk, 0, sizeof(*chk) * _count);
+		any_cracked = 0;
+	}
+
 	// pkzip kinda sucks a little for multi-threading, since there is different amount of work to be
 	// done, depenging upon the password.  Thus, we pack in OMP_MOD passwords into each thread, and
 	// hopefully some of the differnces will even themselves out in the end.  If we have 2 threads
@@ -1676,12 +1680,12 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		/* We load the proper checksum value for the gethash */
 	KnownSuccess: ;
 		chk[idx] = 1;
-
+		any_cracked = 1;
 		continue;
 
 	Failed_Bailout: ;
 		/* We load the wrong checksum value for the gethash */
-		chk[idx] = 0;
+		//chk[idx] = 0;
 	}
 
 	/* clear the 'dirty' flag.  Then on multiple different salt calls, we will not have to */
