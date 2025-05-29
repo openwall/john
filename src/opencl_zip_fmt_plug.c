@@ -364,7 +364,12 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 static int cmp_all(void *binary, int count)
 {
-	return crack_count_ret;
+	int i;
+
+	for (i = 0; i < count; i++)
+		if (*(uint8_t *)binary == outbuffer[i].v[0] && !memcmp(outbuffer[i].v, binary, WINZIP_BINARY_SIZE))
+			return 1;
+	return 0;
 }
 
 static int cmp_one(void *binary, int index)
