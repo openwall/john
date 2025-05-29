@@ -339,7 +339,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					keys, lens, cur_salt->salt,
 					cur_salt->saltlen, mackey, mackeylen);
 
-			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+			for (j = 0; j < SSE_GROUP_SZ_SHA1 && index+j < count; ++j) {
 				hmac_sha1(mackey[j], mackeylen, cur_salt->store_data,
 						cur_salt->store_data_length,
 						store_hmac_calculated, 20);
@@ -380,7 +380,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 					keys,
 					lens, cur_salt->salt,
 					cur_salt->saltlen, ckey, 32);
-			for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+			for (j = 0; j < SSE_GROUP_SZ_SHA1 && index+j < count; ++j) {
 				unsigned char compute_checkum[20];
 				Twofish_prepare_key(ckey[j], 32, &tkey);
 				datalen = Twofish_Decrypt(&tkey, cur_salt->store_data, store_data_decrypted, cur_salt->store_data_length, iv[j]);
