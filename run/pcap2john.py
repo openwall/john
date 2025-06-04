@@ -1290,6 +1290,89 @@ def pcap_parser_http_authorization(fname):
                         pkt["HTTPRequest"].Method.decode('ascii'), opts["uri"],
                         opts["nonce"], opts["nc"], opts["cnonce"], opts["qop"]))
 
+def pcap_parser_snmpv3(fname):
+    """
+    Parse SNMPv3 packets to extract authentication and privacy information.
+    Supports SNMPv3 with authentication (authNoPriv) and authentication
+    with privacy (authPriv). See:
+    https://tools.ietf.org/html/rfc3414
+    https://www.0x0ff.info/2013/snmpv3-authentification/
+    Note: it sets authProto to 0 which makes JtR try both
+          MD5 and SHA-1 for authentication. If you know the
+          authProto, you can change it to 1 (MD5) or 2 (SHA-1).
+          net-snmp supports MD5|SHA1|SHA224|SHA256|SHA384|SHA512
+          but currently only MD5 and SHA1 are supported in JtR.
+    """
+    import re
+    import dpkt
+    import binascii
+
+    with open(fname, 'rb') as f:
+        pcap = dpkt.pcap.Reader(f)
+
+        for ts, buf in pcap:
+            try:
+                eth = dpkt.ethernet.Ethernet(buf)
+                if not isinstance(eth.data, dpkt.ip.IP):
+                    continue
+                ip = eth.data
+                if not isinstance(ip.data, dpkt.udp.UDP):
+                    continue
+                udp = ip.data
+                if udp.dport != 161:
+                    continue
+
+                data = bytearray(udp.data)
+
+                # Find username (only supports printable ASCII usernames)
+                matches = re.findall(rb'\x04[\x01-\x20]([ -~]{3,32})', data)
+                if not matches:
+                    continue
+                username = matches[0].decode('ascii', 'ignore')
+
+                # Extract engineID
+                engid_index = data.find(b'\x04\x0b')
+                if engid_index == -1 or len(data) < engid_index + 13:
+                    continue
+                engine_id = data[engid_index+2:engid_index+13]
+
+                # Extract authParameters
+                auth_index = data.find(b'\x04\x0c')
+                if auth_index == -1 or len(data) < auth_index + 14:
+                    continue
+
+                auth_digest = data[auth_index+2:auth_index+14]
+                data[auth_index+2:auth_index+14] = b'\x00' * 12
+
+                # Extract privParameters (optional)
+                priv_index = data.find(b'\x04\x08')
+                priv_params = b''
+                if priv_index != -1 and len(data) >= priv_index + 10:
+                    priv_params = data[priv_index+2:priv_index+10]
+
+                # Build output
+                snmpv3_pdu_hex = binascii.hexlify(data).decode('ascii')
+                engine_id_hex = binascii.hexlify(engine_id).decode('ascii')
+                auth_digest_hex = binascii.hexlify(auth_digest).decode('ascii')
+                auth_proto_id = 0  # Let JtR try both MD5 and SHA1
+
+                if priv_params:
+                    priv_proto_id = 4
+                    priv_hex = binascii.hexlify(priv_params).decode('ascii')
+                    print('$SNMPv3$%d$%d$%s$%s$%s$%s' % (
+                        auth_proto_id, priv_proto_id,
+                        snmpv3_pdu_hex, engine_id_hex,
+                        auth_digest_hex, priv_hex))
+                else:
+                    priv_proto_id = 3
+                    print('$SNMPv3$%d$%d$%s$%s$%s' % (
+                        auth_proto_id, priv_proto_id,
+                        snmpv3_pdu_hex, engine_id_hex,
+                        auth_digest_hex))
+
+            except Exception:
+                pass  # Skip malformed packets silently
+
 
 ############################################################
 # original main, but now calls multiple 2john routines, all
@@ -1376,4 +1459,8 @@ if __name__ == "__main__":
             pcap_parser_s7(sys.argv[i])
         except:
             # sys.stderr.write("DEBUG: s7 parser could not handle input\n")
+            pass
+        try:
+            pcap_parser_snmpv3(sys.argv[i])
+        except:
             pass
