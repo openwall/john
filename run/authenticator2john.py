@@ -33,3 +33,4 @@ for filename in filenames:
     iv = hexlify(iv).decode("ascii")
     encrypted_data = hexlify(encrypted_data).decode("ascii")
     sys.stdout.write("%s:$authenticator$0$%s$%s\n" % (bname, iv, encrypted_data))
+    sys.stderr.write("Note: JtR doesn't have a format for cracking this yet.\n")
