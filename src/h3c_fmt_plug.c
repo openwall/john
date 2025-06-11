@@ -51,8 +51,8 @@ john_register_one(&fmt_h3c);
 #else
 #define PLAINTEXT_LENGTH   125
 #endif
-#define BINARY_SIZE        8
-#define BINARY_ALIGN       4
+#define BINARY_SIZE        DIGEST_SIZE
+#define BINARY_ALIGN       8
 #define SALT_SIZE          16
 #define SALT_ALIGN         1
 #define MIN_KEYS_PER_CRYPT NBKEYS
@@ -168,9 +168,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	for (index = 0; index < count; index += NBKEYS) {
 #ifdef SIMD_COEF_64
 		unsigned char _in[8 * 16 * MIN_KEYS_PER_CRYPT + MEM_ALIGN_SIMD];
-		unsigned char _out[8 * 8 * MIN_KEYS_PER_CRYPT + MEM_ALIGN_SIMD];
 		uint64_t *in = (uint64_t *) mem_align(_in, MEM_ALIGN_SIMD);
-		uint64_t *out = (uint64_t *) mem_align(_out, MEM_ALIGN_SIMD);
 
 		for (int i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			int x80_off = (saved_len[index + i] << 1) + 2 + SALT_SIZE;
@@ -185,13 +183,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 			in[i * 16 + 15] = x80_off << 3;
 		}
 
-		SIMDSHA512body(in, out, NULL, SSEi_FLAT_IN | SSEi_FLAT_OUT);
-
-		for (int i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
-			for (int j = 0; j < DIGEST_SIZE / sizeof(uint64_t); ++j) {
-				crypt_out[index + i][j] = out[i * (DIGEST_SIZE / sizeof(uint64_t)) + j];
-			}
-		}
+		SIMDSHA512body(in, crypt_out[index], NULL, SSEi_FLAT_IN | SSEi_FLAT_OUT);
 #else
 		SHA512_CTX ctx;
 
@@ -228,24 +220,12 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return *(uint64_t *) binary == crypt_out[index][0];
+	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
 }
 
 static int cmp_exact(char *source, int index)
 {
-	uint64_t *binary = get_binary(source);
-	char *key = get_key(index);
-	char *salt = get_salt(source);
-	SHA512_CTX ctx;
-	uint64_t crypt_out[DIGEST_SIZE / sizeof(uint64_t)];
-
-	SHA512_Init(&ctx);
-	SHA512_Update(&ctx, key, strlen(key) + 1);      // include null byte
-	SHA512_Update(&ctx, salt, SALT_SIZE);
-	SHA512_Update(&ctx, key, strlen(key) + 1);      // include null byte
-	SHA512_Final((unsigned char *)crypt_out, &ctx);
-
-	return !memcmp(binary, crypt_out, DIGEST_SIZE);
+	return 1;
 }
 
 
