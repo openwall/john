@@ -7,18 +7,20 @@
 #include "formats.h"
 #include "memory.h"
 #include "base64_convert.h"
+#include "jumbo.h"
 #include "sl3_common.h"
 
 struct fmt_tests sl3_tests[] = {
 	{"$sl3$35831503698405$d8f6b336a4df3336bf7de58a38b1189f6c5ce1e8", "621888462499899"},
-	{"", "123456789012345", {"112233445566778", "545fabcb0af7d923a56431c9131bfa644c408b47"}},
+	{"", "123456789012345", {"112233445566773", "545fabcb0af7d923a56431c9131bfa644c408b47"}},
 	{NULL}
 };
 
 /*
- * prepare() will put login field as a hex salt in the internal format of
- * $sl3$<imei>$<hash> and any 15th digit of the IMEI will be gone at that point
- * if it was ever present.
+ * If login field looks like an IMEI, prepare() will put use it in the internal
+ * format of $sl3$<imei>$<hash> and any 15th digit (Luhn) of it will be stripped
+ * if it was present.  If Luhn was present but incorrect, the hash will be ignored
+ * here and thus rejected by valid().
  */
 char *sl3_prepare(char *split_fields[10], struct fmt_main *self)
 {
@@ -33,7 +35,7 @@ char *sl3_prepare(char *split_fields[10], struct fmt_main *self)
 
 	len = strlen(split_fields[0]);
 
-	if (len < 14 || len > 15)
+	if (len < 14 || len > 15 || (len == 15 && !valid_luhn(split_fields[0])))
 		return split_fields[1];
 
 	sprintf(out, "%s", SL3_MAGIC);
@@ -56,7 +58,9 @@ char *sl3_prepare(char *split_fields[10], struct fmt_main *self)
 
 /*
  * At this point in the flow we only accept the internal format of
- * "$sl3$<imei>$<hash>".  Only lower-case hex is allowed.
+ * "$sl3$<imei>$<hash>" with a 14 digit IMEI (i.e. Luhn digit removed).
+ * Only lower-case hex is allowed in the hash.  Only base-10 digits are
+ * allowed in the IMEI even though it's later parsed as hex.
  */
 int sl3_valid(char *ciphertext, struct fmt_main *self)
 {
