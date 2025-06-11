@@ -470,3 +470,39 @@ char *replace(char *string, char c, char n)
 
 	return string;
 }
+
+/*
+ * This is based on the pseudo-code from wikipedia and not meant to be fast.
+ */
+int valid_luhn(char *s)
+{
+	if (s == NULL)
+		return 0;
+
+	int len;
+	if ((len = strlen(s)) < 2)
+		return 0;
+
+	uint8_t expected = s[--len];
+	if (expected < '0' || expected > '9')
+		return 0;
+	expected -= '0';
+
+	int parity = len % 2;
+	int i, sum = 0;
+
+	for (i = 0; i < len; i++) {
+		if (s[i] < '0' || s[i] > '9')
+			return 0;
+		int digit = s[i] - '0';
+		if ((i + 1) % 2 != parity)
+			sum += digit;
+		else if (digit > 4)
+			sum += 2 * digit - 9;
+		else
+			sum += 2 * digit;
+	}
+	sum = (10 - (sum % 10)) % 10;
+
+	return (sum == expected);
+}

@@ -440,4 +440,11 @@ extern int check_pkcs_pad(const unsigned char* data, size_t len, int blocksize);
  */
 extern char *replace(char *string, char c, char n);
 
+/*
+ * Input is a string of digits supposedly ending with a Luhn digit.
+ * Output is true if the string is digits-only and the Luhn digit is correct,
+ * and false otherwise including for empty or NULL string.
+ */
+extern int valid_luhn(char *s);
+
 #endif /* _JTR_JUMBO_H */
