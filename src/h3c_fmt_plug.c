@@ -137,9 +137,6 @@ static void *get_binary(char *ciphertext)
 	ciphertext += TAG_LENGTH + SALT_SIZE + 1;
 	base64_convert(ciphertext, e_b64_mime, strlen(ciphertext), realcipher, e_b64_raw, sizeof(x.out), flg_Base64_NO_FLAGS, 0);
 
-#if defined(SIMD_COEF_64) && ARCH_LITTLE_ENDIAN==1
-	alter_endianity_to_BE64(realcipher, DIGEST_SIZE / 8);
-#endif
 	return (void *)realcipher;
 }
 
@@ -192,11 +189,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		for (int i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
 			for (int j = 0; j < DIGEST_SIZE / sizeof(uint64_t); ++j) {
-#if ARCH_LITTLE_ENDIAN==1
-				crypt_out[index + i][j] = JOHNSWAP64(out[i * (DIGEST_SIZE / sizeof(uint64_t)) + j]);
-#else
 				crypt_out[index + i][j] = out[i * (DIGEST_SIZE / sizeof(uint64_t)) + j];
-#endif
 			}
 		}
 #else
@@ -252,11 +245,6 @@ static int cmp_exact(char *source, int index)
 	SHA512_Update(&ctx, key, strlen(key) + 1);      // include null byte
 	SHA512_Final((unsigned char *)crypt_out, &ctx);
 
-#ifdef SIMD_COEF_64
-#if ARCH_LITTLE_ENDIAN==1
-	alter_endianity_to_BE64(crypt_out, DIGEST_SIZE / 8);
-#endif
-#endif
 	return !memcmp(binary, crypt_out, DIGEST_SIZE);
 }
 
