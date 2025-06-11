@@ -38,7 +38,7 @@ john_register_one(&fmt_h3c);
 
 #ifdef SIMD_COEF_64
 #define ALGORITHM_NAME     SHA512_ALGORITHM_NAME
-#define NBKEYS                     (SIMD_COEF_64*SIMD_PARA_SHA512)
+#define NBKEYS             (SIMD_COEF_64*SIMD_PARA_SHA512)
 #else
 #define ALGORITHM_NAME     "64/" ARCH_BITS_STR
 #define NBKEYS             1
@@ -47,7 +47,7 @@ john_register_one(&fmt_h3c);
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   0x107
 #ifdef SIMD_COEF_64
-#define PLAINTEXT_LENGTH   ((128-16-8-1)/2-1)
+#define PLAINTEXT_LENGTH   46
 #else
 #define PLAINTEXT_LENGTH   125
 #endif
@@ -85,6 +85,16 @@ static struct fmt_tests h3c_tests[] = {
 		FORMAT_TAG "abcdefghijklmnop$jp3hDbVlf/L1GNDE4n6x4wqvHnFiEr4YrtM6ax1aFXFb6pdu4Nfmpp09pZFOGOH8ID9vw2AOKQA4q8lByhlG4A==",
 		"password"
 	},
+	{
+		FORMAT_TAG "z)`6LE)4lBPKdDEr$MlUS0GBjnwzMOzFEhniVm+F9S9/YxdAKUy04NPCH5eXckRdk6fhH3gEGQmllhtrppRcGymdCxCrs9sBQJj2jbw==",
+		"1234567890123456789012345678901234567890123456"
+	},
+#ifndef SIMD_COEF_64
+	{
+		FORMAT_TAG "aIYeQUH63hnhJ1lK$7CqVJE2q/Es8B8Fqnp5349OQdrdv/kUYHTNiU7Aq+Am8LZG9u+Gawnn5SVEqn8N89n+agG449J0W0wlSk/cuvw==",
+		"12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345"
+	},
+#endif
 	{ NULL }
 };
 
