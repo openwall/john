@@ -131,7 +131,7 @@ void krb5pa_md5_final(const uint *K,
 	uint block[16];
 	uint plain[36/4];
 	uchar *cleartext = (uchar*)plain;
-	uint K1[4], K3[4], ihash[4];
+	uint K1[4], K3[4], inner[4];
 
 	/*
 	 * K = MD4(UTF-16LE(password)), ordinary 16-byte NTLM hash
@@ -141,7 +141,11 @@ void krb5pa_md5_final(const uint *K,
 		block[i] = 0x36363636 ^ K[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
-	md5_single(uint, block, ihash); /* md5_update(ipad, 64) */
+	md5_single(uint, block, inner); /* md5_update(ipad, 64) */
+
+	for (i = 0; i < 16; i++)
+		block[i] ^= (0x36363636 ^ 0x5c5c5c5c);
+	md5_single(uint, block, K1); /* md5_update(opad, 64) */
 
 	block[0] = 0x01;    /* little endian "one", 4 bytes */
 	block[1] = 0x80;
@@ -149,22 +153,16 @@ void krb5pa_md5_final(const uint *K,
 		block[i] = 0;
 	block[14] = (64 + 4) << 3;
 	block[15] = 0;
-	md5_block(uint, block, ihash); /* md5_update(one, 4), md5_final() */
+	md5_block(uint, block, inner); /* md5_update(one, 4), md5_final(inner) */
 
 	for (i = 0; i < 4; i++)
-		block[i] = 0x5c5c5c5c ^ K[i];
-	for (i = 4; i < 16; i++)
-		block[i] = 0x5c5c5c5c;
-	md5_single(uint, block, K1); /* md5_update(opad, 64) */
-
-	for (i = 0; i < 4; i++)
-		block[i] = ihash[i];
+		block[i] = inner[i];
 	block[4] = 0x80;
 	for (i = 5; i < 14; i++)
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
-	md5_block(uint, block, K1); /* md5_update(ihash, 16), md5_final() */
+	md5_block(uint, block, K1); /* md5_update(inner, 16), md5_final(outer) */
 
 	/*
 	 * 2nd HMAC K3 = HMAC-MD5(K1, CHECKSUM)
@@ -173,7 +171,11 @@ void krb5pa_md5_final(const uint *K,
 		block[i] = 0x36363636 ^ K1[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
-	md5_single(uint, block, ihash); /* md5_update(ipad, 64) */
+	md5_single(uint, block, inner); /* md5_update(ipad, 64) */
+
+	for (i = 0; i < 16; i++)
+		block[i] ^= (0x36363636 ^ 0x5c5c5c5c);
+	md5_single(uint, block, K3); /* md5_update(opad, 64) */
 
 	for (i = 0; i < 4; i++)
 		block[i] = *salts++; /* checksum, 16 bytes */
@@ -182,22 +184,16 @@ void krb5pa_md5_final(const uint *K,
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
-	md5_block(uint, block, ihash); /* md5_update(cs, 16), md5_final() */
+	md5_block(uint, block, inner); /* md5_update(cs, 16), md5_final(inner) */
 
 	for (i = 0; i < 4; i++)
-		block[i] = 0x5c5c5c5c ^ K1[i];
-	for (i = 4; i < 16; i++)
-		block[i] = 0x5c5c5c5c;
-	md5_single(uint, block, K3); /* md5_update(opad, 64) */
-
-	for (i = 0; i < 4; i++)
-		block[i] = ihash[i];
+		block[i] = inner[i];
 	block[4] = 0x80;
 	for (i = 5; i < 14; i++)
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
-	md5_block(uint, block, K3); /* md5_update(ihash, 16), md5_final() */
+	md5_block(uint, block, K3); /* md5_update(inner, 16), md5_final(outer) */
 
 	/* Salts now point to encrypted timestamp. */
 	/* K3 is our RC4 key. */
@@ -230,7 +226,11 @@ void krb5pa_md5_final(const uint *K,
 		block[i] = 0x36363636 ^ K1[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
-	md5_single(uint, block, ihash); /* md5_update(ipad, 64) */
+	md5_single(uint, block, inner); /* md5_update(ipad, 64) */
+
+	for (i = 0; i < 16; i++)
+		block[i] ^= (0x36363636 ^ 0x5c5c5c5c);
+	md5_single(uint, block, K2); /* md5_update(opad, 64) */
 
 	for (i = 0; i < 9; i++)
 		block[i] = plain[i]; /* timestamp, 36 bytes */
@@ -239,22 +239,16 @@ void krb5pa_md5_final(const uint *K,
 		block[i] = 0;
 	block[14] = (64 + 36) << 3;
 	block[15] = 0;
-	md5_block(uint, block, ihash); /* md5_update(cs, 16), md5_final() */
+	md5_block(uint, block, inner); /* md5_update(cs, 16), md5_final(inner) */
 
 	for (i = 0; i < 4; i++)
-		block[i] = 0x5c5c5c5c ^ K1[i];
-	for (i = 4; i < 16; i++)
-		block[i] = 0x5c5c5c5c;
-	md5_single(uint, block, K2); /* md5_update(opad, 64) */
-
-	for (i = 0; i < 4; i++)
-		block[i] = ihash[i];
+		block[i] = inner[i];
 	block[4] = 0x80;
 	for (i = 5; i < 14; i++)
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
-	md5_block(uint, block, K2); /* md5_update(ihash, 16), md5_final() */
+	md5_block(uint, block, K2); /* md5_update(inner, 16), md5_final(outer) */
 }
 
 INLINE

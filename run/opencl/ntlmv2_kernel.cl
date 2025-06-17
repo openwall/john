@@ -120,62 +120,58 @@ INLINE
 void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 {
 	uint block[16];
-	uint hash[4];
+	uint inner[4];
 	uint challenge_size;
 	uint i;
 
 	/* 1st HMAC */
-	md5_init(output);
-
 	for (i = 0; i < 4; i++)
 		block[i] = 0x36363636 ^ nthash[i];
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
-	md5_block(uint, block, output); /* md5_update(ipad, 64) */
+	md5_init(inner);
+	md5_block(uint, block, inner); /* md5_update(ipad, 64) */
+
+	for (i = 0; i < 16; i++)
+		block[i] ^= (0x36363636 ^ 0x5c5c5c5c);
+	md5_init(output);
+	md5_block(uint, block, output); /* md5_update(opad, 64) */
 
 	/* challenge == identity[32].len,server_chal.client_chal[len] */
 	/* Salt buffer is prepared with 0x80, zero-padding and length,
 	 * it can be one or two blocks */
 	for (i = 0; i < 16; i++)
 		block[i] = *challenge++;
-	md5_block(uint, block, output); /* md5_update(salt, saltlen), md5_final() */
+	md5_block(uint, block, inner); /* md5_update(salt, saltlen), md5_final(inner) */
 
 	if (challenge[14]) { /* salt longer than 27 characters */
 		for (i = 0; i < 16; i++)
 			block[i] = *challenge++;
-		md5_block(uint, block, output); /* alternate final */
+		md5_block(uint, block, inner); /* alternate final */
 	} else
 		challenge += 16;
 
 	for (i = 0; i < 4; i++)
-		hash[i] = output[i];
-	for (i = 0; i < 4; i++)
-		block[i] = 0x5c5c5c5c ^ nthash[i];
-
-	md5_init(output);
-	for (i = 4; i < 16; i++)
-		block[i] = 0x5c5c5c5c;
-	md5_block(uint, block, output); /* md5_update(opad, 64) */
-
-	for (i = 0; i < 4; i++)
-		block[i] = hash[i];
+		block[i] = inner[i];
 	block[4] = 0x80;
 	for (i = 5; i < 14; i++)
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
-	md5_block(uint, block, output); /* md5_update(hash, 16), md5_final() */
+	md5_block(uint, block, output); /* md5_update(hash, 16), md5_final(outer) */
 
 	/* 2nd HMAC */
 	for (i = 0; i < 4; i++)
-		hash[i] = output[i];
-	for (i = 0; i < 4; i++)
 		block[i] = 0x36363636 ^ output[i];
-
-	md5_init(output);
 	for (i = 4; i < 16; i++)
 		block[i] = 0x36363636;
-	md5_block(uint, block, output); /* md5_update(ipad, 64) */
+	md5_init(inner);
+	md5_block(uint, block, inner); /* md5_update(ipad, 64) */
+
+	for (i = 0; i < 16; i++)
+		block[i] ^= (0x36363636 ^ 0x5c5c5c5c);
+	md5_init(output);
+	md5_block(uint, block, output); /* md5_update(opad, 64) */
 
 	/* Challenge:  blocks (of MD5),
 	 * Server Challenge + Client Challenge (Blob) +
@@ -186,27 +182,17 @@ void ntlmv2_final(uint *nthash, MAYBE_CONSTANT uint *challenge, uint *output)
 	while (challenge_size--) {
 		for (i = 0; i < 16; i++)
 			block[i] = *challenge++;
-		md5_block(uint, block, output); /* md5_update(challenge, len), md5_final() */
+		md5_block(uint, block, inner); /* md5_update(challenge, len), md5_final(inner) */
 	}
 
 	for (i = 0; i < 4; i++)
-		block[i] = 0x5c5c5c5c ^ hash[i];
-	for (i = 0; i < 4; i++)
-		hash[i] = output[i];
-
-	md5_init(output);
-	for (i = 4; i < 16; i++)
-		block[i] = 0x5c5c5c5c;
-	md5_block(uint, block, output); /* md5_update(opad, 64) */
-
-	for (i = 0; i < 4; i++)
-		block[i] = hash[i];
+		block[i] = inner[i];
 	block[4] = 0x80;
 	for (i = 5; i < 14; i++)
 		block[i] = 0;
 	block[14] = (64 + 16) << 3;
 	block[15] = 0;
-	md5_block(uint, block, output); /* md5_update(hash, 16), md5_final() */
+	md5_block(uint, block, output); /* md5_update(hash, 16), md5_final(outer) */
 }
 
 INLINE
