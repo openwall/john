@@ -4,4 +4,4 @@ scapy
 parsimonious
 asn1crypto
 dpkt
-pyhanko==0.20.1
+pyhanko

@@ -8,13 +8,14 @@
 
 import argparse
 import logging
+import sys
 
 try:
     from pyhanko.pdf_utils.misc import PdfReadError
     from pyhanko.pdf_utils.reader import PdfFileReader
 except ImportError:
-    print("pyhanko is missing, run 'pip install --user pyhanko==0.20.1' to install it!")
-    exit(1)
+    print("pyhanko is missing, run 'pip install --user pyhanko' to install it!", file=sys.stderr)
+    sys.exit(1)
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ class PdfHashExtractor:
 
         with open(file_name, "rb") as doc:
             self.pdf = PdfFileReader(doc, strict=strict)
-            self.encrypt_dict = self.pdf._get_encryption_params()
+            self.encrypt_dict = self.pdf.encrypt_dict
 
             if not self.encrypt_dict:
                 raise RuntimeError("File not encrypted")
@@ -138,12 +139,9 @@ if __name__ == "__main__":
             print(pdf_hash)
 
             if args.debug:
-                if extractor.encrypt_dict:
-                    print("Encryption Dictionary:")
-                    for key, value in extractor.encrypt_dict.items():
-                        print(f"{key}: {value}")
-                else:
-                    print("No encryption dictionary found in the PDF.")
+                print(f"Encryption Dictionary for file '{filename}':", file=sys.stderr)
+                for key, value in extractor.encrypt_dict.items():
+                    print(f"  {key}: {value}", file=sys.stderr)
 
-        except PdfReadError as error:
-            logger.error("%s : %s", filename, error, exc_info=True)
+        except (PdfReadError, RuntimeError) as error:
+            logger.error("Error: %s -- %s", filename, error)
