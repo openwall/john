@@ -61,7 +61,7 @@ INLINE int pem_decrypt(__global uchar *key, MAYBE_CONSTANT pem_salt *salt, __loc
 		return 0;
 
 	// SEQUENCE
-	if (asn1_get_next(out, length, &hdr) < 0 ||
+	if (asn1_get_next(out, length, length, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_SEQUENCE) {
 		return 0;
@@ -70,7 +70,7 @@ INLINE int pem_decrypt(__global uchar *key, MAYBE_CONSTANT pem_salt *salt, __loc
 	end = pos + hdr.length;
 
 	// version Version (Version ::= INTEGER)
-	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
+	if (asn1_get_next(pos, end - pos, end - pos, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_INTEGER) {
 		return 0;
@@ -84,7 +84,7 @@ INLINE int pem_decrypt(__global uchar *key, MAYBE_CONSTANT pem_salt *salt, __loc
 		return 0;
 
 	// SEQUENCE
-	if (asn1_get_next(pos, length, &hdr) < 0 ||
+	if (asn1_get_next(pos, length, length, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_SEQUENCE) {
 		return 0;
@@ -92,7 +92,7 @@ INLINE int pem_decrypt(__global uchar *key, MAYBE_CONSTANT pem_salt *salt, __loc
 	pos = hdr.payload; /* go inside this sequence */
 
 	// OBJECT IDENTIFIER (with value 1.2.840.113549.1.1.1, 1.2.840.10040.4.1 for DSA)
-	if (asn1_get_next(pos, length, &hdr) < 0 ||
+	if (asn1_get_next(pos, length, length, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_OID) {
 		return 0;

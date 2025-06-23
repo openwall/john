@@ -51,22 +51,15 @@ struct asn1_hdr {
     uint tag, length;
 };
 
-#define ASN1_MAX_OID_LEN 20
-
-struct asn1_oid {
-    ulong oid[ASN1_MAX_OID_LEN];
-    size_t len;
-};
-
 INLINE
-int asn1_get_next(const uint8_t *buf, size_t len, struct asn1_hdr *hdr)
+int asn1_get_next(const uint8_t *buf, size_t len_have, size_t len_full, struct asn1_hdr *hdr)
 {
     const uint8_t *pos, *end;
     uint8_t tmp;
 
     memset_p(hdr, 0, sizeof(*hdr));
     pos = buf;
-    end = buf + len;
+    end = buf + len_have;
 
     hdr->identifier = *pos++;
     hdr->class = hdr->identifier >> 6;
@@ -105,7 +98,7 @@ int asn1_get_next(const uint8_t *buf, size_t len, struct asn1_hdr *hdr)
         hdr->length = tmp;
     }
 
-    if (end < pos || hdr->length > (uint) (end - pos)) {
+    if (end < pos || hdr->length > (unsigned int) (end - pos + (len_full - len_have))) {
         return -1;
     }
 

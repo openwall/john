@@ -88,7 +88,7 @@ INLINE int check_padding_and_structure_EC(uchar *out, int length)
 	*/
 
 	// SEQUENCE
-	if (asn1_get_next(out, length, &hdr) < 0 ||
+	if (asn1_get_next(out, length, length, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_SEQUENCE) {
 		return 0;
@@ -97,7 +97,7 @@ INLINE int check_padding_and_structure_EC(uchar *out, int length)
 	end = pos + hdr.length;
 
 	// version Version (Version ::= INTEGER)
-	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
+	if (asn1_get_next(pos, end - pos, end - pos, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_INTEGER) {
 		return 0;
@@ -107,7 +107,7 @@ INLINE int check_padding_and_structure_EC(uchar *out, int length)
 		return 0;
 
 	// OCTET STRING
-	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
+	if (asn1_get_next(pos, end - pos, end - pos, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_OCTETSTRING) {
 		return 0;
@@ -139,7 +139,7 @@ INLINE int check_padding_and_structure(uchar *out, uint length, uint strict_mode
 	 */
 
 	// SEQUENCE
-	if (asn1_get_next(out, length, &hdr) < 0 ||
+	if (asn1_get_next(out, length, length, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_SEQUENCE) {
 		return 0;
@@ -148,7 +148,7 @@ INLINE int check_padding_and_structure(uchar *out, uint length, uint strict_mode
 	end = pos + hdr.length;
 
 	// version Version (Version ::= INTEGER)
-	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
+	if (asn1_get_next(pos, end - pos, end - pos, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_INTEGER) {
 		return 0;
@@ -156,7 +156,7 @@ INLINE int check_padding_and_structure(uchar *out, uint length, uint strict_mode
 	pos = hdr.payload + hdr.length;
 
 	// INTEGER (big one)
-	if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
+	if (asn1_get_next(pos, end - pos, end - pos, &hdr) < 0 ||
 			hdr.class != ASN1_CLASS_UNIVERSAL ||
 			hdr.tag != ASN1_TAG_INTEGER) {
 		return 0;
@@ -171,7 +171,7 @@ INLINE int check_padding_and_structure(uchar *out, uint length, uint strict_mode
 
 	if (strict_mode) {
 		// INTEGER (small one)
-		if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
+		if (asn1_get_next(pos, end - pos, end - pos, &hdr) < 0 ||
 				hdr.class != ASN1_CLASS_UNIVERSAL ||
 				hdr.tag != ASN1_TAG_INTEGER) {
 			return 0;
@@ -179,7 +179,7 @@ INLINE int check_padding_and_structure(uchar *out, uint length, uint strict_mode
 		pos = hdr.payload + hdr.length;
 
 		// INTEGER (big one again)
-		if (asn1_get_next(pos, end - pos, &hdr) < 0 ||
+		if (asn1_get_next(pos, end - pos, end - pos, &hdr) < 0 ||
 				hdr.class != ASN1_CLASS_UNIVERSAL ||
 				hdr.tag != ASN1_TAG_INTEGER) {
 			return 0;
