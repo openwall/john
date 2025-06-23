@@ -34,7 +34,7 @@ john_register_one(&fmt_opencl_ssh);
 
 #define FORMAT_LABEL            "ssh-opencl"
 #define FORMAT_NAME             "SSH private key"
-#define ALGORITHM_NAME          "RSA/DSA/EC 3DES/AES OpenCL"
+#define ALGORITHM_NAME          "MD5/[3]DES/AES OpenCL"
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               sizeof(*cur_salt)
@@ -286,7 +286,7 @@ struct fmt_main fmt_opencl_ssh = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE | FMT_HUGE_INPUT,
 		{
-			"KDF/cipher [0=MD5/AES 1=MD5/3DES 2=Bcrypt/AES]",
+			"KDF/cipher [0:MD5/AES 1:MD5/[3]DES]",
 			"iteration count",
 		},
 		{ FORMAT_TAG },
