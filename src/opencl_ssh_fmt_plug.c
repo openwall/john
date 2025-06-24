@@ -62,6 +62,7 @@ typedef struct {
 	int sl;
 	int rounds;
 	int ciphertext_begin_offset;
+	int self_test_running;
 } ssh_salt;
 
 static ssh_out *output;
@@ -192,6 +193,8 @@ static void set_salt(void *salt)
 
 	memcpy((char*)currentsalt.salt, cur_salt->salt, currentsalt.sl);
 	memcpy((char*)currentsalt.ct, cur_salt->ct, currentsalt.ctl);
+
+	currentsalt.self_test_running = self_test_running;
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_setting,
 		CL_FALSE, 0, settingsize, &currentsalt, 0, NULL, NULL),

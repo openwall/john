@@ -34,6 +34,7 @@ typedef struct {
 	uint sl;
 	uint rounds;
 	uint ciphertext_begin_offset;
+	uint self_test_running;
 } ssh_salt;
 
 // output
@@ -61,9 +62,8 @@ INLINE void generate_key(uchar *password, size_t password_len, uchar *salt, ucha
 	} while (keybytes > 0);
 }
 
-INLINE int check_structure_asn1(unsigned char *out, int length, int real_len)
+INLINE int check_structure_asn1(unsigned char *out, int length, int real_len, uint self_test_running)
 {
-	uint self_test_running = 0;
 	struct asn1_hdr hdr;
 	const uint8_t *pos, *end;
 
@@ -212,7 +212,7 @@ INLINE int common_crypt_code(uchar *password, size_t password_len, __constant ss
 		return -1;
 	}
 
-	return check_structure_asn1(out, sizeof(out), real_len);
+	return check_structure_asn1(out, sizeof(out), real_len, cur_salt->self_test_running);
 }
 
 __kernel void ssh(__global const ssh_password *inbuffer,
