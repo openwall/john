@@ -127,35 +127,37 @@ def parse_VMK(VMK_data):
     print(f"Protection type: {hex(protection_type)} = {PROTECTION_TYPES.get(protection_type)}")
 
     # only try parse properties if correct protection type
-    if protection_type in [0x2000, 0x800]:
+    protection_type_str = PROTECTION_TYPES.get(protection_type)
+    if protection_type_str in ['VMK protected with password', 'VMK protected with recovery password']:
         current_pos = 28
         while current_pos < len(properties):
             current_pos, data, value_type = parse_fve_metadata_entry(current_pos, VMK_data[current_pos:])
-            if value_type == 0x3:
+            value_type_str = FVE_VALUE_TYPES.get(value_type)
+            if value_type_str == 'Stretch key':
                 salt, strech_nonce, stretch_mac, stretch_enc_data = parse_stretch_key(data)
-            if value_type == 0x5:
+            if value_type_str == 'AES-CCM encrypted key':
                 nonce, mac, enc_data = parse_aes_ccm_encrypted_key(data)
+                # salt is needed generating hash - with the assumption a stretch key will come before the CCM key so we have the salt
                 generate_hash(salt, nonce, mac, enc_data, protection_type)
 
     return
 
 def parse_fve_metadata_block(block):
     print('\nParsing FVE block...')
-    signature = block[0:8]
-    fve_metadata_header = block[64:64+48]
-    metadata_size = parse_fve_metadata_header(fve_metadata_header)
+    metadata_size = len(block)
 
     entry_size = uint_to_int(block[112:114])
     current_pos = 112
     while current_pos < metadata_size:
         current_pos, data, value_type = parse_fve_metadata_entry(current_pos, block[current_pos:current_pos+entry_size])
-        if value_type == 0x2:
+        fve_value_str = FVE_VALUE_TYPES.get(value_type)
+        if fve_value_str == 'UTF-16 string':
             parse_description(data)
-        if value_type == 0x5:
+        if fve_value_str == 'AES-CCM encrypted key':
             parse_aes_ccm_encrypted_key(data)
-        if value_type == 0x8:
+        if fve_value_str == 'VMK':
             parse_VMK(data)
-        if value_type == 0xf:
+        if fve_value_str == 'Offset and size':
             parse_volume_header_block(data)
 
         try:
@@ -178,6 +180,13 @@ def parse_fve_metadata_entry(current_pos, block):
     current_pos = current_pos + entry_size
 
     return current_pos, data, value_type
+
+
+def parse_fve_metadata_header_data(header_data):
+    signature = header_data[0:8]
+    fve_metadata_header = header_data[64:64+48]
+    metadata_size = parse_fve_metadata_header(fve_metadata_header)
+    return metadata_size
 
 def parse_fve_metadata_header(block):
     print("\nParsing FVE metadata header...")
@@ -240,7 +249,11 @@ def main():
         for f in FVE_metadata_offsets:
 
             fp.seek(int(f, 16))
-            FVE_metadata_block = try_read_fp(fp, 2048)
+            FVE_metadata_header = try_read_fp(fp, 64+48)
+            FVE_metadata_size = parse_fve_metadata_header_data(FVE_metadata_header)
+
+            fp.seek(int(f, 16))
+            FVE_metadata_block = try_read_fp(fp, FVE_metadata_size)
             parse_fve_metadata_block(FVE_metadata_block)
 
             break
