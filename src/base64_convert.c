@@ -1085,8 +1085,10 @@ static void do_convert_wholefile(char *fname, char *outfname, b64_convert_type i
 	fseek(fp, 0, SEEK_END);
 	in_len = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	if (in_len == 0)
+	if (in_len == 0) {
+		fclose(fp);
 		return;
+	}
 	in_str = (char*)mem_calloc(1, in_len+4);
 	if (fread(in_str, 1, in_len, fp) != in_len) {
 		MEM_FREE(in_str);

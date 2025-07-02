@@ -265,6 +265,7 @@ static void process_KDBX2_database(FILE *fp, char* encryptedDatabase)
 	datasize = filesize - 124;
 	if (datasize < 0) {
 		warn("%s: Error in validating datasize.", encryptedDatabase);
+		if (kfp) fclose(kfp);
 		return;
 	}
 	printf("%s:$keepass$*1*%d*%d*", dbname, key_transf_rounds, algorithm);

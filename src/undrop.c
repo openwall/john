@@ -42,12 +42,14 @@ int undrop(int argc, char *argv[]) {
     }
 
 
-    if (fgets(t_line, sizeof(t_line) - 1, userfile) == NULL)
+    if (fgets(t_line, sizeof(t_line) - 1, userfile) == NULL) {
+	if (userfile != stdin) fclose(userfile);
 	return 1;
+    }
 
     if (strncmp(t_line, USERFILE_HEADER, strlen(USERFILE_HEADER)) != 0) {
 	fprintf(stderr, "usefile format is wrong\n");
-	fclose(userfile);
+	if (userfile != stdin) fclose(userfile);
 	return 1;
     } else {
 	printf("# userfile format OK\n\n");
