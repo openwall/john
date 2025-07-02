@@ -10,10 +10,6 @@
 #include <string.h>
 #include <sys/time.h>
 
-#if _OPENMP
-#include <omp.h>
-#endif
-
 #include "options.h"
 #include "opencl_DES_bs.h"
 #include "../run/opencl/opencl_DES_hst_dev_shared.h"
@@ -253,12 +249,7 @@ static void init_kernel(WORD salt_val, int id_gpu, int save_binary, int force_bu
 
 	kernels[id_gpu][salt_val] = clCreateKernel(program, "DES_bs_25", &err_code);
 	HANDLE_CLERROR(err_code, "Create Kernel DES_bs_25 failed.\n");
-#if _OPENMP
-#pragma omp critical
-#endif
-{
 	HANDLE_CLERROR(clSetKernelArg(kernels[id_gpu][salt_val], 0, sizeof(cl_mem), &buffer_map), "Failed setting kernel argument buffer_map, kernel DES_bs_25.\n");
-}
 	marked_salts[salt_val] = salt_val;
 
 	HANDLE_CLERROR(clReleaseProgram(program), "Error releasing Program");
@@ -715,18 +706,11 @@ static void reset(struct db_main *db)
 		if (num_salts > 10 && !ocl_any_test_running && john_main_process)
 			fprintf(stderr, "Building %d per-salt kernels, one dot per three salts done: ", num_salts);
 
-#if _OPENMP && PARALLEL_BUILD
-#pragma omp parallel for
-#endif
 		for (i = 0; i < num_salts; i++) {
 			init_kernel(salt_list[i], gpu_id, 1, 0, forced_global_keys ? 0 :local_work_size);
 
-#if _OPENMP && PARALLEL_BUILD
-			if (omp_get_thread_num() == 0)
-#endif
-			{
-				opencl_process_event();
-			}
+			opencl_process_event();
+
 			if (num_salts > 10 && (i % 3) == 2 && !ocl_any_test_running && john_main_process)
 				fprintf(stderr, ".");
 		}

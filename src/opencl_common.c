@@ -1268,10 +1268,10 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
  * pathnames differently than the OpenCL backend would for the includes).
  *
  * Saving and restoring of the current directory here is incompatible with
- * concurrent kernel builds by multiple threads, like we'd do with the
- * PARALLEL_BUILD setting in descrypt-opencl (currently disabled and considered
- * unsupported).  We'd probably need to save and restore the directory
- * before/after all kernel builds, not before/after each.
+ * concurrent kernel builds by multiple threads, like we did for a while with
+ * the PARALLEL_BUILD setting in descrypt-opencl (which was first disabled and
+ * later removed altogether).  We'd probably need to save and restore the
+ * directory before/after all kernel builds, not before/after each.
  *
  * We primarily use open()/fchdir(), falling back to getcwd()/chdir() when
  * open() or/and fchdir() fails.
