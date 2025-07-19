@@ -1,5 +1,13 @@
 /*
  * Format for cracking BackDrop CMS database passwords
+ * Hash logic in python is like:
+ * 
+ * count = 2**NITER
+ * result = hashlib.sha512(salt + password).digest()
+ * while count > 0:
+ *     result = hashlib.sha512(result + password).digest()
+ *     count -= 1
+ * return result
  *
  */
 
@@ -43,19 +51,20 @@ john_register_one(&fmt_backdrop);
 #define SALT_LENGTH             8
 #define PLAINTEXT_LENGTH        25
 #define MIN_KEYS_PER_CRYPT      1
-#define MAX_KEYS_PER_CRYPT      8
-#define MAX_ENCRYPTED_LEN       55-12  //Hash is truncated to 55 character, prefix is 12 char long
+#define MAX_KEYS_PER_CRYPT      8   /* Otherwise, pre-test is too long to complete */
+#define MAX_ENCRYPTED_LEN       55-12   /* Hash is truncated to 55 character, prefix is 12 char long */
 #define BACKDROP_MAX_HASH_COUNT 30
 
 #define SHA512_LEN              64
 
 #ifndef OMP_SCALE
-#define OMP_SCALE               1 // Tuned w/ MKPC for core i7
+#define OMP_SCALE               1   /* Otherwise, pre-test is too long to complete */
 #endif
 
 #define B64_ALPHABET            "./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 
 static struct fmt_tests backdrop_tests[] = {
+    /* RAW backdrop CMS format is $S$EEAGFzd8HSQ/IzwpqI79aJgRvqZnH4JSKLv2C83wUphw0nuoTY8v*/
     {"$backdrop$S$EEAGFzd8HSQ/IzwpqI79aJgRvqZnH4JSKLv2C83wUphw0nuoTY8v", "BackDropJ2024DS2024"},
     {"$backdrop$S$GqX57SsAfRin5BjWbWU2fVPyn7g6OXhIQNp8F3r53DItd/DH79rm", "openwall"},
     {NULL}
@@ -72,10 +81,10 @@ static int *saved_len;
 static int *cracked, cracked_count;
 
 static struct custom_salt {
-    uint32_t type; // 1 for SHA512
-    uint64_t nb_iter;  // number of hash iterations
-    unsigned char salt[8];  // salt value
-    unsigned char encrypted_bytes[MAX_ENCRYPTED_LEN];  //encrypted password value
+    uint32_t type; /* 1 for SHA512 */
+    uint64_t nb_iter;  /* number of hash iterations */
+    unsigned char salt[8];  /* salt value */
+    unsigned char encrypted_bytes[MAX_ENCRYPTED_LEN];  /* encrypted password value */
 } *cur_salt;
 
 
@@ -83,9 +92,9 @@ int get_letter_position(const char *str, char letter)
 {
     char *pos = strchr(str, letter);
     if (pos != NULL) {
-        return pos - str;  // pointer arithmetic gives index
+        return pos - str;  /* pointer arithmetic gives index */
     } else {
-        return -1;  // not found
+        return -1;  /* not found */
     }
 }
 
@@ -149,7 +158,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
         return 1;
         
     }
-    else { // Other hash type not supported.
+    else { /* Other hash type not supported. */
         goto err;
     }
 
@@ -221,7 +230,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
         memset(tmpBuf, 0, sizeof(tmpBuf));
 
         if (cur_salt->type == 0) {
-            printf("UNSUPPORTED");
+            /* Case not supported, put here for potential future evolution */
         } else if (cur_salt->type == 1) {
             SHA512_CTX ctx;
             SHA512_Init(&ctx);
