@@ -53,6 +53,7 @@ john_register_one(&fmt_backdrop);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      8   /* Otherwise, pre-test is too long to complete */
 #define MAX_ENCRYPTED_LEN       55-12   /* Hash is truncated to 55 character, prefix is 12 char long */
+#define MAX_ENCRYPTED_BYTES_LEN 32
 #define BACKDROP_MAX_HASH_COUNT 30
 
 #define SHA512_LEN              64
@@ -243,8 +244,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
                 SHA512_Final(tmpBuf, &ctx);
             }
         }
-
-        if (memcmp(tmpBuf, cur_salt->encrypted_bytes, strlen((char *)cur_salt->encrypted_bytes)) == 0) {
+        if (memcmp(tmpBuf, cur_salt->encrypted_bytes, MAX_ENCRYPTED_BYTES_LEN) == 0) {
             cracked[index] = 1;
         }
         else {
