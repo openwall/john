@@ -236,7 +236,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
             SHA512_Init(&ctx);
             SHA512_Update(&ctx, saved_key[index], saved_len[index]+SALT_LENGTH);
             SHA512_Final(tmpBuf, &ctx);
-            for (u_int64_t i=0; i<cur_salt->nb_iter; i++) {
+            for (unsigned long i=0; i<cur_salt->nb_iter; i++) {
                 memcpy(saved_internal_key[index], tmpBuf, SHA512_LEN);
                 SHA512_Init(&ctx);
                 SHA512_Update(&ctx, saved_internal_key[index], saved_len[index]+SHA512_LEN);
@@ -315,7 +315,7 @@ struct fmt_main fmt_backdrop = {
         SALT_ALIGN,
         MIN_KEYS_PER_CRYPT,
         MAX_KEYS_PER_CRYPT,
-        FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_ENC,
+        FMT_8_BIT | FMT_OMP | FMT_UNICODE | FMT_ENC | FMT_CASE,
         { NULL },
         { FORMAT_TAG },
         backdrop_tests
