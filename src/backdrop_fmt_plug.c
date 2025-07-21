@@ -77,13 +77,14 @@ static char (*orig_key)[PLAINTEXT_LENGTH + 1];
 static char (*saved_key)[PLAINTEXT_LENGTH + SALT_LENGTH + 1];
 /* SHA512 internal salted password */
 static char (*saved_internal_key)[PLAINTEXT_LENGTH + SHA512_LEN + 1];
+/* Final hash to be compared */
+static uint8_t (*final_hashes)[MAX_ENCRYPTED_BYTES_LEN];
 /* Length of current original password */
 static int *saved_len;
-static int *cracked, cracked_count;
 
 static struct custom_salt {
 	uint32_t type; /* 1 for SHA512 */
-	uint64_t nb_iter;  /* number of hash iterations */
+	unsigned long nb_iter;  /* number of hash iterations */
 	unsigned char salt[8];  /* salt value */
 	unsigned char encrypted_bytes[MAX_ENCRYPTED_LEN];  /* encrypted password value */
 } *cur_salt;
@@ -109,8 +110,7 @@ static void init(struct fmt_main *self)
 
 	saved_len = mem_calloc(sizeof(*saved_len), self->params.max_keys_per_crypt);
 
-	cracked = mem_calloc(sizeof(*cracked), self->params.max_keys_per_crypt);
-	cracked_count = self->params.max_keys_per_crypt;
+	final_hashes = mem_calloc(sizeof(*final_hashes), self->params.max_keys_per_crypt);
 }
 
 static void done(void)
@@ -119,7 +119,7 @@ static void done(void)
 	MEM_FREE(saved_key);
 	MEM_FREE(saved_internal_key);
 	MEM_FREE(saved_len);
-	MEM_FREE(cracked);
+	MEM_FREE(final_hashes);
 }
 
 static int valid(char *ciphertext, struct fmt_main *self)
@@ -218,9 +218,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	int index = 0;
 
-	memset(cracked, 0, sizeof(cracked[0]) * cracked_count);
-
-
 #ifdef _OPENMP
 #pragma omp parallel for
 #endif
@@ -242,13 +239,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 				SHA512_Update(&ctx, saved_internal_key[index], saved_len[index]+SHA512_LEN);
 				SHA512_Final(tmpBuf, &ctx);
 			}
-		}
-
-		if (memcmp(tmpBuf, cur_salt->encrypted_bytes, MAX_ENCRYPTED_BYTES_LEN) == 0) {
-			cracked[index] = 1;
-		}
-		else {
-			cracked[index] = 0;
+			memcpy(final_hashes[index], tmpBuf, MAX_ENCRYPTED_BYTES_LEN);
 		}
 	}
 	return count;
@@ -259,7 +250,7 @@ static int cmp_all(void *binary, int count)
 	int index=0;
 
 	for (index = 0; index < count; index++) {
-		if (cracked[index]) {
+		if (memcmp(cur_salt->encrypted_bytes, final_hashes[index], MAX_ENCRYPTED_BYTES_LEN) == 0) {
 			return 1;
 		}
 	}
@@ -268,7 +259,7 @@ static int cmp_all(void *binary, int count)
 
 static int cmp_one(void *binary, int index)
 {
-	return cracked[index];
+	return !memcmp(cur_salt->encrypted_bytes, final_hashes[index], MAX_ENCRYPTED_BYTES_LEN);
 }
 
 static int cmp_exact(char *source, int index)
