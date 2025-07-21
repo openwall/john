@@ -677,4 +677,6 @@ INLINE void des3_crypt_cbc(des3_context *ctx, int mode, size_t length,
 }
 #endif
 
+#undef SWAP
+
 #endif                          /* OPENCL_DES_H */

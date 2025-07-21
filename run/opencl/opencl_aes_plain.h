@@ -1,7 +1,8 @@
 /*
  * AES OpenCL functions
  *
- * Copyright (c) 2017-2024, magnum.
+ * Copyright (c) 2017-2025, magnum. Kudos to Br0kenUK for the reverse
+ * T-tables in decryption key schedule.
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
@@ -18,7 +19,17 @@
 #define _AES_PLAIN
 
 /*
- * Copy tables to local memory.
+ * Use inverse T-tables. This *should* boost AES_set_decrypt_key() by halving
+ * the number of table lookups. Except it doesn't, until we find out how to
+ * tweak memory accesses or whatever is holding it back.
+ */
+#if 0
+#define AES_INVERSE_TABLES
+#endif
+
+/*
+ * Copy tables to local memory. Pointless for CPU (so a regression) but a huge
+ * boost for most any GPU.
  */
 #if gpu(DEVICE_INFO)
 #define AES_LOCAL_TABLES
@@ -69,9 +80,6 @@ typedef struct aes_key_st {
 #define GETU32(pt) (((u32)(pt)[0] << 24) ^ ((u32)(pt)[1] << 16) ^ ((u32)(pt)[2] <<  8) ^ ((u32)(pt)[3]))
 #define PUTU32(ct, st) { (ct)[0] = (u8)((st) >> 24); (ct)[1] = (u8)((st) >> 16); (ct)[2] = (u8)((st) >>  8); (ct)[3] = (u8)(st); }
 
-#define MAXKC   (256/32)
-#define MAXKB   (256/8)
-
 #ifdef AES_LOCAL_TABLES
 
 #define THREAD      get_local_id(0)
@@ -80,23 +88,32 @@ typedef struct aes_key_st {
 /**
  * Copy tables to local memory
  */
-INLINE void aes_table_init(__local aes_local_t *lt)
+INLINE void aes_enc_table_init(__local aes_local_t *lt)
 {
 	for (uint i = THREAD; i < 256; i += LWS) {
 		lt->Te0[i] = Te0[i];
 		lt->Te1[i] = Te1[i];
 		lt->Te2[i] = Te2[i];
 		lt->Te3[i] = Te3[i];
+		if (i < 10)
+			lt->rcon[i] = rcon[i];
+	}
+	barrier(CLK_LOCAL_MEM_FENCE);
+}
+
+INLINE void aes_dec_table_init(__local aes_local_t *lt)
+{
+	for (uint i = THREAD; i < 256; i += LWS) {
 		lt->Td0[i] = Td0[i];
 		lt->Td1[i] = Td1[i];
 		lt->Td2[i] = Td2[i];
 		lt->Td3[i] = Td3[i];
 		lt->Td4[i] = Td4[i];
-		if (i < 10)
-			lt->rcon[i] = rcon[i];
 	}
-
-	barrier(CLK_LOCAL_MEM_FENCE);
+	/*
+	 * Intentionally no barrier here - it's in aes_enc_table_init() which
+	 * is always called after this one, via AES_set_encrypt_key().
+	 */
 }
 
 /* Do not move from this spot */
@@ -126,7 +143,8 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 
 #ifdef AES_LOCAL_TABLES
 	__local aes_local_t *lt = key->lt;
-	aes_table_init(lt);
+
+	aes_enc_table_init(lt);
 #endif
 
 	rk = key->rd_key;
@@ -222,48 +240,105 @@ INLINE void AES_set_decrypt_key(AES_KEY_TYPE void *_userKey,
 {
 	AES_KEY_TYPE uchar *userKey = _userKey;
 	u32 *rk;
-	int i, j;
-	u32 temp;
 #ifdef AES_LOCAL_TABLES
 	__local aes_local_t *lt = key->lt;
-#endif
+
+#ifdef AES_INVERSE_TABLES
+	__local u32 lt_Inv0[256];
+	__local u32 lt_Inv1[256];
+	__local u32 lt_Inv2[256];
+	__local u32 lt_Inv3[256];
+
+	for (uint i = THREAD; i < 256; i += LWS) {
+		lt_Inv0[i] = Inv0[i];
+		lt_Inv1[i] = Inv1[i];
+		lt_Inv2[i] = Inv2[i];
+		lt_Inv3[i] = Inv3[i];
+	}
+	/*
+	 * Intentionally no barrier here - it's in aes_enc_table_init() which
+	 * is called later down, via AES_set_encrypt_key().
+	 */
+
+#define Inv0	lt_Inv0
+#define Inv1	lt_Inv1
+#define Inv2	lt_Inv2
+#define Inv3	lt_Inv3
+
+#endif	/* AES_INVERSE_TABLES */
+
+	aes_dec_table_init(lt);
+
+#endif	/* AES_LOCAL_TABLES */
 
 	/* first, start with an encryption schedule */
 	AES_set_encrypt_key(userKey, bits, key);
 
 	rk = key->rd_key;
 
-	/* invert the order of the round keys: */
-	for (i = 0, j = 4*(key->rounds); i < j; i += 4, j -= 4) {
-		temp = rk[i    ]; rk[i    ] = rk[j    ]; rk[j    ] = temp;
-		temp = rk[i + 1]; rk[i + 1] = rk[j + 1]; rk[j + 1] = temp;
-		temp = rk[i + 2]; rk[i + 2] = rk[j + 2]; rk[j + 2] = temp;
-		temp = rk[i + 3]; rk[i + 3] = rk[j + 3]; rk[j + 3] = temp;
+#define SWAP(a, b)	do { u32 t = a; a = b; b = t; } while (0)
+
+	const int rk_last = key->rounds << 2;
+
+	/* 2) Swap first 4 elements of rk with the last 4 (no T-box on these) */
+	SWAP(rk[0], rk[rk_last + 0]);
+	SWAP(rk[1], rk[rk_last + 1]);
+	SWAP(rk[2], rk[rk_last + 2]);
+	SWAP(rk[3], rk[rk_last + 3]);
+
+#ifdef AES_INVERSE_TABLES
+
+	/* Use inverse T-box tables, halving the number of table lookups. */
+#define INV(w)	  \
+	( Inv0[ (w) >> 24] ^ \
+	  Inv1[((w) >> 16) & 0xff] ^ \
+	  Inv2[((w) >>  8) & 0xff] ^ \
+	  Inv3[ (w)        & 0xff] )
+
+#else
+
+	/* The same but using the existing tables. */
+#define INV(w)	  \
+	( Td0[Te1[((w) >> 24)       ] & 0xff] ^ \
+	  Td1[Te1[((w) >> 16) & 0xff] & 0xff] ^ \
+	  Td2[Te1[((w) >>  8) & 0xff] & 0xff] ^ \
+	  Td3[Te1[ (w)        & 0xff] & 0xff] )
+
+#endif	/* AES_INVERSE_TABLES */
+
+	/*
+	 * Apply the inverse MixColumn transform to all round keys but the first
+	 * and the last.
+	 */
+	for (int b = 0; b < (key->rounds - 2) / 2; b++) {
+		const int i = 4  + (b << 2);
+		const int j = rk_last - 4 - (b << 2);
+
+		/* load both halves */
+		u32 a0 = rk[i + 0], a1 = rk[i + 1], a2 = rk[i + 2], a3 = rk[i + 3];
+		u32 b0 = rk[j + 0], b1 = rk[j + 1], b2 = rk[j + 2], b3 = rk[j + 3];
+
+		/* write back swapped + inverted */
+		rk[i + 0] = INV(b0);
+		rk[i + 1] = INV(b1);
+		rk[i + 2] = INV(b2);
+		rk[i + 3] = INV(b3);
+
+		rk[j + 0] = INV(a0);
+		rk[j + 1] = INV(a1);
+		rk[j + 2] = INV(a2);
+		rk[j + 3] = INV(a3);
 	}
-	/* apply the inverse MixColumn transform to all round keys but the first and the last: */
-	for (i = 1; i < (key->rounds); i++) {
-		rk += 4;
-		rk[0] =
-			Td0[Te1[(rk[0] >> 24)       ] & 0xff] ^
-			Td1[Te1[(rk[0] >> 16) & 0xff] & 0xff] ^
-			Td2[Te1[(rk[0] >>  8) & 0xff] & 0xff] ^
-			Td3[Te1[(rk[0]      ) & 0xff] & 0xff];
-		rk[1] =
-			Td0[Te1[(rk[1] >> 24)       ] & 0xff] ^
-			Td1[Te1[(rk[1] >> 16) & 0xff] & 0xff] ^
-			Td2[Te1[(rk[1] >>  8) & 0xff] & 0xff] ^
-			Td3[Te1[(rk[1]      ) & 0xff] & 0xff];
-		rk[2] =
-			Td0[Te1[(rk[2] >> 24)       ] & 0xff] ^
-			Td1[Te1[(rk[2] >> 16) & 0xff] & 0xff] ^
-			Td2[Te1[(rk[2] >>  8) & 0xff] & 0xff] ^
-			Td3[Te1[(rk[2]      ) & 0xff] & 0xff];
-		rk[3] =
-			Td0[Te1[(rk[3] >> 24)       ] & 0xff] ^
-			Td1[Te1[(rk[3] >> 16) & 0xff] & 0xff] ^
-			Td2[Te1[(rk[3] >>  8) & 0xff] & 0xff] ^
-			Td3[Te1[(rk[3]      ) & 0xff] & 0xff];
-	}
+
+	/*
+	 * Finally invert the middle four words:
+	 * These were never touched by the swap above.
+	 */
+	for (int k = rk_last >> 1; k < (rk_last >> 1) + 4; k++)
+		rk[k] = INV(rk[k]);
+
+#undef INV
+#undef SWAP
 }
 
 /*
