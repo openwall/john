@@ -44,14 +44,25 @@
 #endif
 
 /*
- * Declare td4 as 32-bit repeated values, and use logical 'and' instead of shift
+ * Declare Te4 and use it instead of Te0..Te3 for last round encryption.
+ * Does no good on GPU.
+ */
+#if cpu(DEVICE_INFO)
+#define USE_TE4
+#endif
+
+/*
+ * Declare Te4/Td4, if used, as 32-bit repeated values, and use logical 'and'
+ * instead of shift. Does no good on nvidia.
  */
 #if gpu_amd(DEVICE_INFO)
+#define TE4_32_BIT
 #define TD4_32_BIT
 #endif
 
 #include "opencl_aes_tables.h"
 
+/* AES-128 has 10 rounds, AES-192 has 12 and AES-256 has 14 rounds. */
 #define AES_MAXNR   14
 
 typedef struct aes_tables {
@@ -59,6 +70,13 @@ typedef struct aes_tables {
 	u32 Te1[256];
 	u32 Te2[256];
 	u32 Te3[256];
+#ifdef USE_TE4
+#ifdef TE4_32_BIT
+	u32 Te4[256];
+#else
+	u8 Te4[256];
+#endif
+#endif
 	u32 Td0[256];
 	u32 Td1[256];
 	u32 Td2[256];
@@ -95,6 +113,9 @@ INLINE void aes_enc_table_init(__local aes_local_t *lt)
 		lt->Te1[i] = Te1[i];
 		lt->Te2[i] = Te2[i];
 		lt->Te3[i] = Te3[i];
+#ifdef USE_TE4
+		lt->Te4[i] = Te4[i];
+#endif
 		if (i < 10)
 			lt->rcon[i] = rcon[i];
 	}
@@ -121,6 +142,9 @@ INLINE void aes_dec_table_init(__local aes_local_t *lt)
 #define Te1	lt->Te1
 #define Te2	lt->Te2
 #define Te3	lt->Te3
+#ifdef USE_TE4
+#define Te4	lt->Te4
+#endif
 #define Td0	lt->Td0
 #define Td1	lt->Td1
 #define Td2	lt->Td2
@@ -499,6 +523,67 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	 * apply last round and
 	 * map cipher state to byte array block:
 	 */
+#ifdef USE_TE4
+#ifdef TE4_32_BIT
+	s0 =
+		(Te4[(t0 >> 24)       ] & 0xff000000) ^
+		(Te4[(t1 >> 16) & 0xff] & 0x00ff0000) ^
+		(Te4[(t2 >>  8) & 0xff] & 0x0000ff00) ^
+		(Te4[(t3      ) & 0xff] & 0x000000ff) ^
+		rk[0];
+	PUTU32(out     , s0);
+	s1 =
+		(Te4[(t1 >> 24)       ] & 0xff000000) ^
+		(Te4[(t2 >> 16) & 0xff] & 0x00ff0000) ^
+		(Te4[(t3 >>  8) & 0xff] & 0x0000ff00) ^
+		(Te4[(t0      ) & 0xff] & 0x000000ff) ^
+		rk[1];
+	PUTU32(out +  4, s1);
+	s2 =
+		(Te4[(t2 >> 24)       ] & 0xff000000) ^
+		(Te4[(t3 >> 16) & 0xff] & 0x00ff0000) ^
+		(Te4[(t0 >>  8) & 0xff] & 0x0000ff00) ^
+		(Te4[(t1      ) & 0xff] & 0x000000ff) ^
+		rk[2];
+	PUTU32(out +  8, s2);
+	s3 =
+		(Te4[(t3 >> 24)       ] & 0xff000000) ^
+		(Te4[(t0 >> 16) & 0xff] & 0x00ff0000) ^
+		(Te4[(t1 >>  8) & 0xff] & 0x0000ff00) ^
+		(Te4[(t2      ) & 0xff] & 0x000000ff) ^
+		rk[3];
+	PUTU32(out + 12, s3);
+#else
+	s0 =
+		( ((uint)(Te4[(t0 >> 24)])) << 24) ^
+		(Te4[(t1 >> 16) & 0xff] << 16) ^
+		(Te4[(t2 >>  8) & 0xff] <<  8) ^
+		(Te4[(t3      ) & 0xff])       ^
+		rk[0];
+	PUTU32(out     , s0);
+	s1 =
+		( ((uint)(Te4[(t1 >> 24)])) << 24) ^
+		(Te4[(t2 >> 16) & 0xff] << 16) ^
+		(Te4[(t3 >>  8) & 0xff] <<  8) ^
+		(Te4[(t0      ) & 0xff])       ^
+		rk[1];
+	PUTU32(out +  4, s1);
+	s2 =
+		( ((uint)(Te4[(t2 >> 24)])) << 24) ^
+		(Te4[(t3 >> 16) & 0xff] << 16) ^
+		(Te4[(t0 >>  8) & 0xff] <<  8) ^
+		(Te4[(t1      ) & 0xff])       ^
+		rk[2];
+	PUTU32(out +  8, s2);
+	s3 =
+		( ((uint)(Te4[(t3 >> 24)])) << 24) ^
+		(Te4[(t0 >> 16) & 0xff] << 16) ^
+		(Te4[(t1 >>  8) & 0xff] <<  8) ^
+		(Te4[(t2      ) & 0xff])       ^
+		rk[3];
+	PUTU32(out + 12, s3);
+#endif	/* TE4_32_BIT */
+#else
 	s0 =
 		(Te2[(t0 >> 24)       ] & 0xff000000) ^
 		(Te3[(t1 >> 16) & 0xff] & 0x00ff0000) ^
@@ -527,6 +612,7 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		(Te1[(t2      ) & 0xff] & 0x000000ff) ^
 		rk[3];
 	PUTU32(out + 12, s3);
+#endif	/* USE_TE4 */
 }
 
 /*
@@ -540,7 +626,6 @@ INLINE void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	__local aes_local_t *lt = key->lt;
 #endif
 
-//	assert(in && out && key);
 	rk = key->rd_key;
 
 	/*
@@ -746,7 +831,7 @@ INLINE void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		(Td4[(t0      ) & 0xff])       ^
 		rk[3];
 	PUTU32(out + 12, s3);
-#endif
+#endif	/* TD4_32_BIT */
 }
 
 #endif /* _AES_PLAIN */
