@@ -86,7 +86,6 @@ typedef struct aes_tables {
 #else
 	u8 Td4[256];
 #endif
-	u32 rcon[10];
 } aes_local_t;
 
 typedef struct aes_key_st {
@@ -116,8 +115,6 @@ INLINE void aes_enc_table_init(__local aes_local_t *lt)
 #ifdef USE_TE4
 		lt->Te4[i] = Te4[i];
 #endif
-		if (i < 10)
-			lt->rcon[i] = rcon[i];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 }
@@ -150,7 +147,6 @@ INLINE void aes_dec_table_init(__local aes_local_t *lt)
 #define Td2	lt->Td2
 #define Td3	lt->Td3
 #define Td4	lt->Td4
-#define rcon lt->rcon
 
 #endif	/* AES_LOCAL_TABLES */
 
@@ -173,19 +169,14 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 
 	rk = key->rd_key;
 
-	if (bits==128)
-		key->rounds = 10;
-	else if (bits==192)
-		key->rounds = 12;
-	else
-		key->rounds = 14;
-
 	rk[0] = GETU32(userKey     );
 	rk[1] = GETU32(userKey +  4);
 	rk[2] = GETU32(userKey +  8);
 	rk[3] = GETU32(userKey + 12);
 	if (bits == 128) {
-		while (1) {
+		key->rounds = 10;
+#pragma unroll
+		for (i = 0; i < 10; i++) {
 			temp  = rk[3];
 			rk[4] = rk[0] ^
 				(Te2[(temp >> 16) & 0xff] & 0xff000000) ^
@@ -196,16 +187,17 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 			rk[5] = rk[1] ^ rk[4];
 			rk[6] = rk[2] ^ rk[5];
 			rk[7] = rk[3] ^ rk[6];
-			if (++i == 10) {
-				return;
-			}
+
 			rk += 4;
 		}
+		return;
 	}
 	rk[4] = GETU32(userKey + 16);
 	rk[5] = GETU32(userKey + 20);
 	if (bits == 192) {
-		while (1) {
+		key->rounds = 12;
+#pragma unroll
+		for (i = 0; i < 8; i++) {
 			temp = rk[ 5];
 			rk[ 6] = rk[ 0] ^
 				(Te2[(temp >> 16) & 0xff] & 0xff000000) ^
@@ -216,18 +208,21 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 			rk[ 7] = rk[ 1] ^ rk[ 6];
 			rk[ 8] = rk[ 2] ^ rk[ 7];
 			rk[ 9] = rk[ 3] ^ rk[ 8];
-			if (++i == 8) {
-				return;
+			if (i < 7) {
+				rk[10] = rk[ 4] ^ rk[ 9];
+				rk[11] = rk[ 5] ^ rk[10];
+
+				rk += 6;
 			}
-			rk[10] = rk[ 4] ^ rk[ 9];
-			rk[11] = rk[ 5] ^ rk[10];
-			rk += 6;
 		}
+		return;
 	}
 	rk[6] = GETU32(userKey + 24);
 	rk[7] = GETU32(userKey + 28);
 	if (bits == 256) {
-		while (1) {
+		key->rounds = 14;
+#pragma unroll
+		for (i = 0; i < 7; i++) {
 			temp = rk[ 7];
 			rk[ 8] = rk[ 0] ^
 				(Te2[(temp >> 16) & 0xff] & 0xff000000) ^
@@ -238,21 +233,21 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 			rk[ 9] = rk[ 1] ^ rk[ 8];
 			rk[10] = rk[ 2] ^ rk[ 9];
 			rk[11] = rk[ 3] ^ rk[10];
-			if (++i == 7) {
-				return;
-			}
-			temp = rk[11];
-			rk[12] = rk[ 4] ^
-				(Te2[(temp >> 24)       ] & 0xff000000) ^
-				(Te3[(temp >> 16) & 0xff] & 0x00ff0000) ^
-				(Te0[(temp >>  8) & 0xff] & 0x0000ff00) ^
-				(Te1[(temp      ) & 0xff] & 0x000000ff);
-			rk[13] = rk[ 5] ^ rk[12];
-			rk[14] = rk[ 6] ^ rk[13];
-			rk[15] = rk[ 7] ^ rk[14];
+			if (i < 6) {
+				temp = rk[11];
+				rk[12] = rk[ 4] ^
+					(Te2[(temp >> 24)       ] & 0xff000000) ^
+					(Te3[(temp >> 16) & 0xff] & 0x00ff0000) ^
+					(Te0[(temp >>  8) & 0xff] & 0x0000ff00) ^
+					(Te1[(temp      ) & 0xff] & 0x000000ff);
+				rk[13] = rk[ 5] ^ rk[12];
+				rk[14] = rk[ 6] ^ rk[13];
+				rk[15] = rk[ 7] ^ rk[14];
 
-			rk += 8;
+				rk += 8;
+			}
 		}
+		return;
 	}
 }
 
