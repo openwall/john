@@ -213,6 +213,10 @@ AC_DEFUN([JTR_SET_OPENCL_INCLUDES],
    AC_MSG_CHECKING([additional paths for OpenCL])
    ADD_LDFLAGS=""
    ADD_CFLAGS=""
+   if test -d /usr/local/cuda; then
+      ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/cuda/targets/x86_64-linux/include"
+      ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/cuda/targets/x86_64-linux/lib"
+   fi
    if test -n "$AMDAPPSDKROOT"; then
       if test -d "$AMDAPPSDKROOT/include"; then
          ADD_CFLAGS="$ADD_CFLAGS -I$AMDAPPSDKROOT/include"

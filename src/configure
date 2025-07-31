@@ -13614,6 +13614,10 @@ if test "x$cross_compiling" = xno -a "x$enable_opencl" != xno; then :
 $as_echo_n "checking additional paths for OpenCL... " >&6; }
    ADD_LDFLAGS=""
    ADD_CFLAGS=""
+   if test -d /usr/local/cuda; then
+      ADD_CFLAGS="$ADD_CFLAGS -I/usr/local/cuda/targets/x86_64-linux/include"
+      ADD_LDFLAGS="$ADD_LDFLAGS -L/usr/local/cuda/targets/x86_64-linux/lib"
+   fi
    if test -n "$AMDAPPSDKROOT"; then
       if test -d "$AMDAPPSDKROOT/include"; then
          ADD_CFLAGS="$ADD_CFLAGS -I$AMDAPPSDKROOT/include"
