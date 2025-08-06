@@ -215,6 +215,7 @@ cl_uint get_max_compute_units(int sequential_id);
 cl_uint get_processors_count(int sequential_id);
 cl_uint get_processor_family(int sequential_id);
 char* get_device_name_(int sequential_id);
+uint32_t get_device_warp_size(int sequential_id);
 
 /* Vendor id for hardware */
 int get_vendor_id(int sequential_id);

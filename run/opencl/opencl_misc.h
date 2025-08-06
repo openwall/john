@@ -86,6 +86,12 @@ typedef struct dyna_salt_t {
 #define MAX(a,b) ((a)>(b)?(a):(b))
 #endif
 
+#define LWS         get_local_size(0)
+#define THREAD      get_local_id(0)
+
+/* Host side always pass -DWARP_SIZE (after some heuristics) */
+#define WARP_MASK   (WARP_SIZE - 1)
+
 /*
  * Host code may pass -DV_WIDTH=2 or some other width.
  */

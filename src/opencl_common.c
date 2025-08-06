@@ -928,6 +928,31 @@ void opencl_load_environment(void)
 	}
 }
 
+/* Returns wavefront/warp size, if known, and otherwise 32 */
+uint32_t get_device_warp_size(int sequential_id)
+{
+	uint32_t warp_size = 0;
+
+	/* Try finding out for sure */
+	int ret = clGetDeviceInfo(devices[sequential_id],
+	                          CL_DEVICE_WARP_SIZE_NV,
+	                          sizeof(warp_size), &warp_size, NULL);
+	if (ret != CL_SUCCESS)
+		ret = clGetDeviceInfo(devices[sequential_id],
+		                      CL_DEVICE_WAVEFRONT_WIDTH_AMD,
+		                      sizeof(warp_size), &warp_size, NULL);
+	if (ret == CL_SUCCESS)
+		return warp_size;
+
+	/* Fallback to an educated guess */
+	if (gpu_amd(device_info[sequential_id]))
+		warp_size = 64;
+	else
+		warp_size = 32;
+
+	return warp_size;
+}
+
 /*
  * Get the device preferred vector width.  The --force-scalar option, or
  * john.conf ForceScalar boolean, is taken care of in john.c and converted
@@ -1148,7 +1173,7 @@ static char *get_build_opts(int sequential_id, const char *opts)
 			global_opts = OPENCLBUILDOPTIONS;
 
 	snprintf(build_opts, LINE_BUFFER_SIZE,
-	         "-I opencl %s %s%s%s%s%s%s%d %s%d %s -D_OPENCL_COMPILER %s",
+	         "-I opencl %s %s%s%s%s%s%s%d %s%d %s -D_OPENCL_COMPILER -DWARP_SIZE=%u -DSHARED_MEM_SIZE=%u %s",
 	        global_opts,
 	        options.verbosity >= VERB_DEBUG &&
 	        get_platform_vendor_id(get_platform_id(sequential_id)) ==
@@ -1175,6 +1200,8 @@ static char *get_build_opts(int sequential_id, const char *opts)
 	        "-DDEVICE_INFO=", device_info[sequential_id],
 	        "-D__SIZEOF_HOST_SIZE_T__=", (int)sizeof(size_t),
 	        opencl_driver_ver(sequential_id),
+	        get_device_warp_size(sequential_id),
+	        (uint32_t)get_local_memory_size(sequential_id),
 	        opts ? opts : "");
 
 	return build_opts;
