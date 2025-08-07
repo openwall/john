@@ -73,6 +73,12 @@
 #define TD4_32_BIT	1
 #endif
 
+/*
+ * Back Te4/Td4, if used, in shared memory.
+ */
+#define TE4_LOCAL	1
+#define TD4_LOCAL	1
+
 #include "opencl_aes_tables.h"
 #if AES_ROTATE_TABLES
 #include "opencl_rotate.h"
@@ -88,7 +94,7 @@ typedef struct aes_tables {
 	u32 Te2[256];
 	u32 Te3[256];
 #endif
-#if USE_TE4
+#if USE_TE4 && TE4_LOCAL
 #if TE4_32_BIT
 	u32 Te4[256];
 #else
@@ -101,10 +107,12 @@ typedef struct aes_tables {
 	u32 Td2[256];
 	u32 Td3[256];
 #endif
+#if TD4_LOCAL
 #if TD4_32_BIT
 	u32 Td4[256];
 #else
 	u8 Td4[256];
+#endif
 #endif
 } aes_local_t;
 
@@ -137,7 +145,7 @@ INLINE void aes_enc_table_init(__local aes_local_t *lt)
 			lt->Te2[i] = Te2[i];
 			lt->Te3[i] = Te3[i];
 #endif
-#if USE_TE4
+#if USE_TE4 && TE4_LOCAL
 			lt->Te4[i] = Te4[i];
 #endif
 		}
@@ -157,7 +165,9 @@ INLINE void aes_dec_table_init(__local aes_local_t *lt)
 			lt->Td2[i] = Td2[i];
 			lt->Td3[i] = Td3[i];
 #endif
+#if TD4_LOCAL
 			lt->Td4[i] = Td4[i];
+#endif
 		}
 	}
 	/*
@@ -171,14 +181,16 @@ INLINE void aes_dec_table_init(__local aes_local_t *lt)
 #define Te1	lt->Te1
 #define Te2	lt->Te2
 #define Te3	lt->Te3
-#if USE_TE4
+#if USE_TE4 && TE4_LOCAL
 #define Te4	lt->Te4
 #endif
 #define Td0	lt->Td0
 #define Td1	lt->Td1
 #define Td2	lt->Td2
 #define Td3	lt->Td3
+#if TD4_LOCAL
 #define Td4	lt->Td4
+#endif
 #endif	/* AES_LOCAL_TABLES */
 
 #if AES_ROTATE_TABLES
