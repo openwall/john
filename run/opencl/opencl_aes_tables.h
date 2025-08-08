@@ -85,7 +85,7 @@ __constant u32 Te0[256] = {
 	0x7bb0b0cbU, 0xa85454fcU, 0x6dbbbbd6U, 0x2c16163aU,
 };
 
-#if !AES_ROTATE_TABLES
+#if !AES_LOCAL_TABLES
 /* This is ror(Te0, 8) */
 __constant u32 Te1[256] = {
 	0xa5c66363U, 0x84f87c7cU, 0x99ee7777U, 0x8df67b7bU,
@@ -289,10 +289,10 @@ __constant u32 Te3[256] = {
 	0x4141c382U, 0x9999b029U, 0x2d2d775aU, 0x0f0f111eU,
 	0xb0b0cb7bU, 0x5454fca8U, 0xbbbbd66dU, 0x16163a2cU,
 };
-#endif	/* !AES_ROTATE_TABLES */
+#endif	/* !AES_LOCAL_TABLES */
 
-#ifdef USE_TE4
-#ifdef TE4_32_BIT
+#if USE_TE4
+#if TE4_32_BIT
 /* This is the AES S-box */
 __constant u32 Te4[256] = {
 	0x63636363U, 0x7c7c7c7cU, 0x77777777U, 0x7b7b7b7bU,
@@ -465,7 +465,7 @@ __constant u32 Td0[256] = {
 	0x7bcb8461U, 0xd532b670U, 0x486c5c74U, 0xd0b85742U,
 };
 
-#if !AES_ROTATE_TABLES
+#if !AES_LOCAL_TABLES
 /* This is ror(Td0, 8) */
 __constant u32 Td1[256] = {
 	0x5051f4a7U, 0x537e4165U, 0xc31a17a4U, 0x963a275eU,
@@ -669,9 +669,9 @@ __constant u32 Td3[256] = {
 	0xa8017139U, 0x0cb3de08U, 0xb4e49cd8U, 0x56c19064U,
 	0xcb84617bU, 0x32b670d5U, 0x6c5c7448U, 0xb85742d0U,
 };
-#endif	/* !AES_ROTATE_TABLES */
+#endif	/* !AES_LOCAL_TABLES */
 
-#ifdef TD4_32_BIT
+#if TD4_32_BIT
 /* This is the AES S-box for decryption */
 __constant u32 Td4[256] = {
 	0x52525252U, 0x09090909U, 0x6a6a6a6aU, 0xd5d5d5d5U,
@@ -776,7 +776,6 @@ __constant u8 Td4[256] = {
 };
 #endif	/* TD4_32_BIT */
 
-#ifdef AES_INVERSE_TABLES
 __constant u32 Inv0[256] = {
 	0x00000000U, 0x0e090d0bU, 0x1c121a16U, 0x121b171dU,
 	0x3824342cU, 0x362d3927U, 0x24362e3aU, 0x2a3f2331U,
@@ -844,7 +843,7 @@ __constant u32 Inv0[256] = {
 	0x9f5d80beU, 0x91548db5U, 0x834f9aa8U, 0x8d4697a3U,
 };
 
-#if !AES_ROTATE_TABLES
+#if !AES_LOCAL_TABLES
 /* This is ror(Inv0, 8) */
 __constant u32 Inv1[256] = {
 	0x00000000U, 0x0b0e090dU, 0x161c121aU, 0x1d121b17U,
@@ -1048,8 +1047,7 @@ __constant u32 Inv3[256] = {
 	0x79b492a7U, 0x70b999a9U, 0x6bae84bbU, 0x62a38fb5U,
 	0x5d80be9fU, 0x548db591U, 0x4f9aa883U, 0x4697a38dU,
 };
-#endif	/* !AES_ROTATE_TABLES */
-#endif	/* AES_INVERSE_TABLES */
+#endif	/* !AES_LOCAL_TABLES */
 
 __constant u32 rcon[10] = {
 	0x01000000U, 0x02000000U, 0x04000000U, 0x08000000U,
