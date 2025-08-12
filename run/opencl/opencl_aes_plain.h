@@ -59,14 +59,14 @@
  * This slows AMD down and boosts nvidia. It also seems to work around some
  * auto-vectorizer bug in old Intel CPU runtimes.
  */
-#define FULL_UNROLL	1
+#define AES_FULL_UNROLL	1
 
 /*
  * Declare Te4 and use it instead of Te0..Te3 for last round encryption.
  * There is no equivalent opt-out for Td4.
  */
 #if !gpu(DEVICE_INFO)
-#define USE_TE4	1
+#define AES_USE_TE4	1
 #endif
 
 /*
@@ -78,8 +78,8 @@
 #if AES_LOCAL_TABLES
 #define TE4_LOCAL	1
 #define TE4_32_BIT	1
-#define TD4_LOCAL	1
-#define TD4_32_BIT	1
+#define TD4_LOCAL	0
+#define TD4_32_BIT	0
 #endif
 
 #include "opencl_aes_tables.h"
@@ -190,6 +190,13 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 	rk[1] = GETU32(userKey +  4);
 	rk[2] = GETU32(userKey +  8);
 	rk[3] = GETU32(userKey + 12);
+
+#if AES_FULL_UNROLL
+
+
+
+#else	/* !AES_FULL_UNROLL */
+
 	if (bits == 128) {
 		key->rounds = 10;
 #pragma unroll
@@ -266,6 +273,7 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 		}
 		return;
 	}
+#endif	/* AES_FULL_UNROLL */
 }
 
 /**
@@ -380,7 +388,7 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	s1 = GETU32(in +  4) ^ rk[1];
 	s2 = GETU32(in +  8) ^ rk[2];
 	s3 = GETU32(in + 12) ^ rk[3];
-#if FULL_UNROLL
+#if AES_FULL_UNROLL
 	/* round 1: */
 	t0 = TE0(s0 >> 24) ^ TE1((s1 >> 16) & 0xff) ^ TE2((s2 >>  8) & 0xff) ^ TE3(s3 & 0xff) ^ rk[ 4];
 	t1 = TE0(s1 >> 24) ^ TE1((s2 >> 16) & 0xff) ^ TE2((s3 >>  8) & 0xff) ^ TE3(s0 & 0xff) ^ rk[ 5];
@@ -451,7 +459,7 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		}
 	}
 	rk += key->rounds << 2;
-#else  /* !FULL_UNROLL */
+#else  /* !AES_FULL_UNROLL */
 	/*
 	 * Nr - 1 full rounds:
 	 */
@@ -512,12 +520,12 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 			TE3((t2      ) & 0xff) ^
 			rk[3];
 	}
-#endif /* ?FULL_UNROLL */
+#endif /* ?AES_FULL_UNROLL */
 	/*
 	 * apply last round and
 	 * map cipher state to byte array block:
 	 */
-#if USE_TE4
+#if AES_USE_TE4
 #if AES_LOCAL_TABLES && TE4_LOCAL
 	if (lt->content != TE4) {
 		if (THREAD < AES_SHARED_THREADS)
@@ -590,7 +598,7 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		rk[3];
 	PUTU32(out + 12, s3);
 #endif	/* TE4_32_BIT */
-#else	/* !USE_TE4 */
+#else	/* !AES_USE_TE4 */
 	s0 =
 		(TE2((t0 >> 24)       ) & 0xff000000) ^
 		(TE3((t1 >> 16) & 0xff) & 0x00ff0000) ^
@@ -619,7 +627,7 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		(TE1((t2      ) & 0xff) & 0x000000ff) ^
 		rk[3];
 	PUTU32(out + 12, s3);
-#endif	/* ?USE_TE4 */
+#endif	/* ?AES_USE_TE4 */
 }
 
 /*

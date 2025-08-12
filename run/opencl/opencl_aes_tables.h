@@ -291,7 +291,7 @@ __constant u32 Te3[256] = {
 };
 #endif	/* !AES_LOCAL_TABLES */
 
-#if USE_TE4
+#if AES_USE_TE4
 #if TE4_32_BIT
 /* This is the AES S-box */
 __constant u32 Te4[256] = {
@@ -396,7 +396,7 @@ __constant u8 Te4[256] = {
 	0x41U, 0x99U, 0x2dU, 0x0fU, 0xb0U, 0x54U, 0xbbU, 0x16U,
 };
 #endif	/* TE4_32_BIT */
-#endif	/* USE_TE4 */
+#endif	/* AES_USE_TE4 */
 
 __constant u32 Td0[256] = {
 	0x51f4a750U, 0x7e416553U, 0x1a17a4c3U, 0x3a275e96U,
