@@ -34,8 +34,9 @@
 #define AES_SHARED_THREADS_MASK	(AES_SHARED_THREADS - 1)
 
 /*
- * Copy tables to local memory. Pointless for CPU (so a regression) but a huge
- * boost for most any GPU.
+ * Copy Tx0/Inv0 (and optionally Tx4) tables to local memory. Pointless for CPU
+ * (so a regression) but a huge boost for most any GPU.  We'll infer Tx1..Tx3
+ * and Inv1..Inv3 using rotates, which is faster as we avoid bank conflicts.
  */
 #if gpu(DEVICE_INFO)
 #define AES_LOCAL_TABLES	1
@@ -43,13 +44,10 @@
 
 /*
  * Use barriers for the local table. If not, we're declaring it volatile.
- * From nvidia docs:
- * "In situations when all you need is a memory consistency, but threads do
- * not need to stop all together at 1 common point, then declaring a shared
- * buffer as volatile usually provides better performance than using barrier"
- *
- * This is more risky on AMD and definitely can't be used if we had to decrease
- * AES_SHARED_THREADS because then we don't have a column for every thread.
+ * The latter is officially supported on nvidia but not on any other device.
+ * It MAY work fine on AMD because of how we do stuff but it definitely can't
+ * be used if we had to decrease AES_SHARED_THREADS because then we don't
+ * have a column for every thread.
  */
 #if !gpu_nvidia(DEVICE_INFO) || AES_SHARED_THREADS_DECREASED
 #define AES_LOCAL_BARRIER	1
@@ -62,7 +60,7 @@
 #define AES_FULL_UNROLL	1
 
 /*
- * Declare Te4 and use it instead of Te0..Te3 for last round encryption.
+ * Declare Te4 table and use it instead of Te0..Te3 for last round encryption.
  * There is no equivalent opt-out for Td4.
  */
 #if !gpu(DEVICE_INFO)
@@ -70,16 +68,24 @@
 #endif
 
 /*
- * Declare Te4 (if used) and Td4 as 32-bit repeated values, and use logical
- * 'and' instead of shift.  This avoids shared memory bank conflicts for those
- * tables because they are otherwise uchar arrays which messes the thread->bank
- * mapping royally.
+ * Use shared memory backing for Tx4 also. Ignored unless AES_LOCAL_TABLES
+ * and TE4_LOCAL is also (obviously) ignored unless AES_USE_TE4
  */
 #if AES_LOCAL_TABLES
 #define TE4_LOCAL	1
+#define TD4_LOCAL	1
+#endif
+
+/*
+ * Declare Te4 (if used) and Td4 as 32-bit repeated values. This avoids shared
+ * memory bank conflicts for those tables because they are otherwise uchar
+ * arrays which messes up the thread->bank mapping leading to bank conflicts.
+ */
+#if TE4_LOCAL
 #define TE4_32_BIT	1
-#define TD4_LOCAL	0
-#define TD4_32_BIT	0
+#endif
+#if TD4_LOCAL
+#define TD4_32_BIT	1
 #endif
 
 #include "opencl_aes_tables.h"
