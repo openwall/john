@@ -54,10 +54,12 @@
 #endif
 
 /*
- * This slows AMD down and boosts nvidia. It also seems to work around some
- * auto-vectorizer bug in old Intel CPU runtimes.
+ * Unroll key schedule, encryption and decryption. This has no adverse effects
+ * on any device I've tested.
  */
-#define AES_FULL_UNROLL	1
+#define AES_FULL_UNROLL_SCHEDULE 1
+#define AES_FULL_UNROLL_ENCRYPT  1
+#define AES_FULL_UNROLL_DECRYPT  1
 
 /*
  * Declare Te4 table and use it instead of Te0..Te3 for last round encryption.
@@ -174,8 +176,6 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 {
 	AES_KEY_TYPE uchar *userKey = _userKey;
 	u32 *rk;
-	int i = 0;
-	u32 temp;
 
 #if AES_LOCAL_TABLES
 	__local aes_local_t *lt = key->lt;
@@ -197,15 +197,328 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 	rk[2] = GETU32(userKey +  8);
 	rk[3] = GETU32(userKey + 12);
 
-#if AES_FULL_UNROLL
-
-
-
-#else	/* !AES_FULL_UNROLL */
+#if AES_FULL_UNROLL_SCHEDULE
 
 	if (bits == 128) {
 		key->rounds = 10;
-#pragma unroll
+
+		rk[4] = rk[0] ^
+			(TE2((rk[3] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[3] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[3]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[3] >> 24)       ) & 0x000000ff) ^
+			0x01000000;
+		rk[5] = rk[1] ^ rk[4];
+		rk[6] = rk[2] ^ rk[5];
+		rk[7] = rk[3] ^ rk[6];
+		rk[8] = rk[4] ^
+			(TE2((rk[7] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[7] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[7]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[7] >> 24)       ) & 0x000000ff) ^
+			0x02000000;
+		rk[9] = rk[5] ^ rk[8];
+		rk[10] = rk[6] ^ rk[9];
+		rk[11] = rk[7] ^ rk[10];
+		rk[12] = rk[8] ^
+			(TE2((rk[11] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[11] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[11]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[11] >> 24)       ) & 0x000000ff) ^
+			0x04000000;
+		rk[13] = rk[9] ^ rk[12];
+		rk[14] = rk[10] ^ rk[13];
+		rk[15] = rk[11] ^ rk[14];
+		rk[16] = rk[12] ^
+			(TE2((rk[15] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[15] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[15]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[15] >> 24)       ) & 0x000000ff) ^
+			0x08000000;
+		rk[17] = rk[13] ^ rk[16];
+		rk[18] = rk[14] ^ rk[17];
+		rk[19] = rk[15] ^ rk[18];
+		rk[20] = rk[16] ^
+			(TE2((rk[19] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[19] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[19]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[19] >> 24)       ) & 0x000000ff) ^
+			0x10000000;
+		rk[21] = rk[17] ^ rk[20];
+		rk[22] = rk[18] ^ rk[21];
+		rk[23] = rk[19] ^ rk[22];
+		rk[24] = rk[20] ^
+			(TE2((rk[23] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[23] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[23]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[23] >> 24)       ) & 0x000000ff) ^
+			0x20000000;
+		rk[25] = rk[21] ^ rk[24];
+		rk[26] = rk[22] ^ rk[25];
+		rk[27] = rk[23] ^ rk[26];
+		rk[28] = rk[24] ^
+			(TE2((rk[27] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[27] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[27]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[27] >> 24)       ) & 0x000000ff) ^
+			0x40000000;
+		rk[29] = rk[25] ^ rk[28];
+		rk[30] = rk[26] ^ rk[29];
+		rk[31] = rk[27] ^ rk[30];
+		rk[32] = rk[28] ^
+			(TE2((rk[31] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[31] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[31]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[31] >> 24)       ) & 0x000000ff) ^
+			0x80000000;
+		rk[33] = rk[29] ^ rk[32];
+		rk[34] = rk[30] ^ rk[33];
+		rk[35] = rk[31] ^ rk[34];
+		rk[36] = rk[32] ^
+			(TE2((rk[35] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[35] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[35]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[35] >> 24)       ) & 0x000000ff) ^
+			0x1b000000;
+		rk[37] = rk[33] ^ rk[36];
+		rk[38] = rk[34] ^ rk[37];
+		rk[39] = rk[35] ^ rk[38];
+		rk[40] = rk[36] ^
+			(TE2((rk[39] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[39] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[39]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[39] >> 24)       ) & 0x000000ff) ^
+			0x36000000;
+		rk[41] = rk[37] ^ rk[40];
+		rk[42] = rk[38] ^ rk[41];
+		rk[43] = rk[39] ^ rk[42];
+		return;
+	}
+
+	rk[4] = GETU32(userKey + 16);
+	rk[5] = GETU32(userKey + 20);
+
+	if (bits == 192) {
+		key->rounds = 12;
+
+		rk[6] = rk[0] ^
+			(TE2((rk[5] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[5] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[5]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[5] >> 24)       ) & 0x000000ff) ^
+			0x01000000;
+		rk[7] = rk[1] ^ rk[6];
+		rk[8] = rk[2] ^ rk[7];
+		rk[9] = rk[3] ^ rk[8];
+		rk[10] = rk[4] ^ rk[9];
+		rk[11] = rk[5] ^ rk[10];
+		rk[12] = rk[6] ^
+			(TE2((rk[11] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[11] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[11]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[11] >> 24)       ) & 0x000000ff) ^
+			0x02000000;
+		rk[13] = rk[7] ^ rk[12];
+		rk[14] = rk[8] ^ rk[13];
+		rk[15] = rk[9] ^ rk[14];
+		rk[16] = rk[10] ^ rk[15];
+		rk[17] = rk[11] ^ rk[16];
+		rk[18] = rk[12] ^
+			(TE2((rk[17] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[17] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[17]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[17] >> 24)       ) & 0x000000ff) ^
+			0x04000000;
+		rk[19] = rk[13] ^ rk[18];
+		rk[20] = rk[14] ^ rk[19];
+		rk[21] = rk[15] ^ rk[20];
+		rk[22] = rk[16] ^ rk[21];
+		rk[23] = rk[17] ^ rk[22];
+		rk[24] = rk[18] ^
+			(TE2((rk[23] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[23] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[23]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[23] >> 24)       ) & 0x000000ff) ^
+			0x08000000;
+		rk[25] = rk[19] ^ rk[24];
+		rk[26] = rk[20] ^ rk[25];
+		rk[27] = rk[21] ^ rk[26];
+		rk[28] = rk[22] ^ rk[27];
+		rk[29] = rk[23] ^ rk[28];
+		rk[30] = rk[24] ^
+			(TE2((rk[29] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[29] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[29]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[29] >> 24)       ) & 0x000000ff) ^
+			0x10000000;
+		rk[31] = rk[25] ^ rk[30];
+		rk[32] = rk[26] ^ rk[31];
+		rk[33] = rk[27] ^ rk[32];
+		rk[34] = rk[28] ^ rk[33];
+		rk[35] = rk[29] ^ rk[34];
+		rk[36] = rk[30] ^
+			(TE2((rk[35] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[35] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[35]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[35] >> 24)       ) & 0x000000ff) ^
+			0x20000000;
+		rk[37] = rk[31] ^ rk[36];
+		rk[38] = rk[32] ^ rk[37];
+		rk[39] = rk[33] ^ rk[38];
+		rk[40] = rk[34] ^ rk[39];
+		rk[41] = rk[35] ^ rk[40];
+		rk[42] = rk[36] ^
+			(TE2((rk[41] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[41] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[41]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[41] >> 24)       ) & 0x000000ff) ^
+			0x40000000;
+		rk[43] = rk[37] ^ rk[42];
+		rk[44] = rk[38] ^ rk[43];
+		rk[45] = rk[39] ^ rk[44];
+		rk[46] = rk[40] ^ rk[45];
+		rk[47] = rk[41] ^ rk[46];
+		rk[48] = rk[42] ^
+			(TE2((rk[47] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[47] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[47]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[47] >> 24)       ) & 0x000000ff) ^
+			0x80000000;
+		rk[49] = rk[43] ^ rk[48];
+		rk[50] = rk[44] ^ rk[49];
+		rk[51] = rk[45] ^ rk[50];
+
+		return;
+	}
+
+	rk[6] = GETU32(userKey + 24);
+	rk[7] = GETU32(userKey + 28);
+
+	if (bits == 256) {
+		key->rounds = 14;
+
+		rk[8] = rk[0] ^
+			(TE2((rk[7] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[7] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[7]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[7] >> 24)       ) & 0x000000ff) ^
+			0x01000000;
+		rk[9] = rk[1] ^ rk[8];
+		rk[10] = rk[2] ^ rk[9];
+		rk[11] = rk[3] ^ rk[10];
+		rk[12] = rk[4] ^
+			(TE2((rk[11] >> 24)       ) & 0xff000000) ^
+			(TE3((rk[11] >> 16) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[11] >>  8) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[11]      ) & 0xff) & 0x000000ff);
+		rk[13] = rk[5] ^ rk[12];
+		rk[14] = rk[6] ^ rk[13];
+		rk[15] = rk[7] ^ rk[14];
+		rk[16] = rk[8] ^
+			(TE2((rk[15] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[15] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[15]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[15] >> 24)       ) & 0x000000ff) ^
+			0x02000000;
+		rk[17] = rk[9] ^ rk[16];
+		rk[18] = rk[10] ^ rk[17];
+		rk[19] = rk[11] ^ rk[18];
+		rk[20] = rk[12] ^
+			(TE2((rk[19] >> 24)       ) & 0xff000000) ^
+			(TE3((rk[19] >> 16) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[19] >>  8) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[19]      ) & 0xff) & 0x000000ff);
+		rk[21] = rk[13] ^ rk[20];
+		rk[22] = rk[14] ^ rk[21];
+		rk[23] = rk[15] ^ rk[22];
+		rk[24] = rk[16] ^
+			(TE2((rk[23] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[23] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[23]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[23] >> 24)       ) & 0x000000ff) ^
+			0x04000000;
+		rk[25] = rk[17] ^ rk[24];
+		rk[26] = rk[18] ^ rk[25];
+		rk[27] = rk[19] ^ rk[26];
+		rk[28] = rk[20] ^
+			(TE2((rk[27] >> 24)       ) & 0xff000000) ^
+			(TE3((rk[27] >> 16) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[27] >>  8) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[27]      ) & 0xff) & 0x000000ff);
+		rk[29] = rk[21] ^ rk[28];
+		rk[30] = rk[22] ^ rk[29];
+		rk[31] = rk[23] ^ rk[30];
+		rk[32] = rk[24] ^
+			(TE2((rk[31] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[31] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[31]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[31] >> 24)       ) & 0x000000ff) ^
+			0x08000000;
+		rk[33] = rk[25] ^ rk[32];
+		rk[34] = rk[26] ^ rk[33];
+		rk[35] = rk[27] ^ rk[34];
+		rk[36] = rk[28] ^
+			(TE2((rk[35] >> 24)       ) & 0xff000000) ^
+			(TE3((rk[35] >> 16) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[35] >>  8) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[35]      ) & 0xff) & 0x000000ff);
+		rk[37] = rk[29] ^ rk[36];
+		rk[38] = rk[30] ^ rk[37];
+		rk[39] = rk[31] ^ rk[38];
+		rk[40] = rk[32] ^
+			(TE2((rk[39] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[39] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[39]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[39] >> 24)       ) & 0x000000ff) ^
+			0x10000000;
+		rk[41] = rk[33] ^ rk[40];
+		rk[42] = rk[34] ^ rk[41];
+		rk[43] = rk[35] ^ rk[42];
+		rk[44] = rk[36] ^
+			(TE2((rk[43] >> 24)       ) & 0xff000000) ^
+			(TE3((rk[43] >> 16) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[43] >>  8) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[43]      ) & 0xff) & 0x000000ff);
+		rk[45] = rk[37] ^ rk[44];
+		rk[46] = rk[38] ^ rk[45];
+		rk[47] = rk[39] ^ rk[46];
+		rk[48] = rk[40] ^
+			(TE2((rk[47] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[47] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[47]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[47] >> 24)       ) & 0x000000ff) ^
+			0x20000000;
+		rk[49] = rk[41] ^ rk[48];
+		rk[50] = rk[42] ^ rk[49];
+		rk[51] = rk[43] ^ rk[50];
+		rk[52] = rk[44] ^
+			(TE2((rk[51] >> 24)       ) & 0xff000000) ^
+			(TE3((rk[51] >> 16) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[51] >>  8) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[51]      ) & 0xff) & 0x000000ff);
+		rk[53] = rk[45] ^ rk[52];
+		rk[54] = rk[46] ^ rk[53];
+		rk[55] = rk[47] ^ rk[54];
+		rk[56] = rk[48] ^
+			(TE2((rk[55] >> 16) & 0xff) & 0xff000000) ^
+			(TE3((rk[55] >>  8) & 0xff) & 0x00ff0000) ^
+			(TE0((rk[55]      ) & 0xff) & 0x0000ff00) ^
+			(TE1((rk[55] >> 24)       ) & 0x000000ff) ^
+			0x40000000;
+		rk[57] = rk[49] ^ rk[56];
+		rk[58] = rk[50] ^ rk[57];
+		rk[59] = rk[51] ^ rk[58];
+
+		return;
+	}
+
+#else	/* !AES_FULL_UNROLL_SCHEDULE */
+
+	int i = 0;
+	u32 temp;
+
+	if (bits == 128) {
+		key->rounds = 10;
 		for (i = 0; i < 10; i++) {
 			temp  = rk[3];
 			rk[4] = rk[0] ^
@@ -226,7 +539,6 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 	rk[5] = GETU32(userKey + 20);
 	if (bits == 192) {
 		key->rounds = 12;
-#pragma unroll
 		for (i = 0; i < 8; i++) {
 			temp = rk[ 5];
 			rk[ 6] = rk[ 0] ^
@@ -251,7 +563,6 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 	rk[7] = GETU32(userKey + 28);
 	if (bits == 256) {
 		key->rounds = 14;
-#pragma unroll
 		for (i = 0; i < 7; i++) {
 			temp = rk[ 7];
 			rk[ 8] = rk[ 0] ^
@@ -279,7 +590,7 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 		}
 		return;
 	}
-#endif	/* AES_FULL_UNROLL */
+#endif	/* ?AES_FULL_UNROLL_SCHEDULE */
 }
 
 /**
@@ -394,7 +705,9 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	s1 = GETU32(in +  4) ^ rk[1];
 	s2 = GETU32(in +  8) ^ rk[2];
 	s3 = GETU32(in + 12) ^ rk[3];
-#if AES_FULL_UNROLL
+
+#if AES_FULL_UNROLL_ENCRYPT
+
 	/* round 1: */
 	t0 = TE0(s0 >> 24) ^ TE1((s1 >> 16) & 0xff) ^ TE2((s2 >>  8) & 0xff) ^ TE3(s3 & 0xff) ^ rk[ 4];
 	t1 = TE0(s1 >> 24) ^ TE1((s2 >> 16) & 0xff) ^ TE2((s3 >>  8) & 0xff) ^ TE3(s0 & 0xff) ^ rk[ 5];
@@ -465,7 +778,9 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		}
 	}
 	rk += key->rounds << 2;
-#else  /* !AES_FULL_UNROLL */
+
+#else  /* !AES_FULL_UNROLL_ENCRYPT */
+
 	/*
 	 * Nr - 1 full rounds:
 	 */
@@ -526,7 +841,8 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 			TE3((t2      ) & 0xff) ^
 			rk[3];
 	}
-#endif /* ?AES_FULL_UNROLL */
+#endif /* ?AES_FULL_UNROLL_ENCRYPT */
+
 	/*
 	 * apply last round and
 	 * map cipher state to byte array block:
@@ -669,7 +985,9 @@ INLINE void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	s1 = GETU32(in +  4) ^ rk[1];
 	s2 = GETU32(in +  8) ^ rk[2];
 	s3 = GETU32(in + 12) ^ rk[3];
-#if FULL_UNROLL
+
+#if AES_FULL_UNROLL_DECRYPT
+
 	/* round 1: */
 	t0 = TD0(s0 >> 24) ^ TD1((s3 >> 16) & 0xff) ^ TD2((s2 >>  8) & 0xff) ^ TD3(s1 & 0xff) ^ rk[ 4];
 	t1 = TD0(s1 >> 24) ^ TD1((s0 >> 16) & 0xff) ^ TD2((s3 >>  8) & 0xff) ^ TD3(s2 & 0xff) ^ rk[ 5];
@@ -740,7 +1058,9 @@ INLINE void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		}
 	}
 	rk += key->rounds << 2;
-#else  /* !FULL_UNROLL */
+
+#else  /* !AES_FULL_UNROLL_DECRYPT */
+
 	/*
 	 * Nr - 1 full rounds:
 	 */
@@ -801,7 +1121,8 @@ INLINE void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 			TD3((t0      ) & 0xff) ^
 			rk[3];
 	}
-#endif /* ?FULL_UNROLL */
+#endif /* ?AES_FULL_UNROLL_DECRYPT */
+
 	/*
 	 * apply last round and
 	 * map cipher state to byte array block:
