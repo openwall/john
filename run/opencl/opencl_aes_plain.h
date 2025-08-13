@@ -38,7 +38,7 @@
  * (so a regression) but a huge boost for most any GPU.  We'll infer Tx1..Tx3
  * and Inv1..Inv3 using rotates, which is faster as we avoid bank conflicts.
  */
-#if gpu(DEVICE_INFO)
+#if !defined AES_LOCAL_TABLES && gpu(DEVICE_INFO)
 #define AES_LOCAL_TABLES	1
 #endif
 
@@ -65,7 +65,7 @@
  * Declare Te4 table and use it instead of Te0..Te3 for last round encryption.
  * There is no equivalent opt-out for Td4.
  */
-#if !gpu(DEVICE_INFO) || AES_LOCAL_TABLES
+#if !defined AES_USE_TE4 && (!gpu(DEVICE_INFO) || AES_LOCAL_TABLES)
 #define AES_USE_TE4	1
 #endif
 
@@ -74,14 +74,19 @@
  * and TE4_LOCAL is also (obviously) ignored unless AES_USE_TE4
  */
 #if AES_LOCAL_TABLES
+#if !defined TE4_LOCAL
 #define TE4_LOCAL	1
+#endif
+#if !defined TD4_LOCAL
 #define TD4_LOCAL	1
 #endif
-
-#define TE4_INIT_IN_SET_KEY	0
-#define TD4_INIT_IN_SET_KEY	1
-
 #endif
+
+#ifndef TE4_INIT_IN_SET_KEY
+#define TE4_INIT_IN_SET_KEY	0
+#endif
+#ifndef TD4_INIT_IN_SET_KEY
+#define TD4_INIT_IN_SET_KEY	1
 #endif
 
 #include "opencl_aes_tables.h"
