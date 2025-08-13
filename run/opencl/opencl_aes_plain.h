@@ -65,12 +65,12 @@
  * Declare Te4 table and use it instead of Te0..Te3 for last round encryption.
  * There is no equivalent opt-out for Td4.
  */
-#if !gpu(DEVICE_INFO)
+#if !gpu(DEVICE_INFO) || AES_LOCAL_TABLES
 #define AES_USE_TE4	1
 #endif
 
 /*
- * Use shared memory backing for Tx4 also. Ignored unless AES_LOCAL_TABLES
+ * Use shared memory backing for Tx4 also. Ignored unless AES_LOCAL_TABLES,
  * and TE4_LOCAL is also (obviously) ignored unless AES_USE_TE4
  */
 #if AES_LOCAL_TABLES
@@ -78,16 +78,21 @@
 #define TD4_LOCAL	1
 #endif
 
+#define TE4_INIT_IN_SET_KEY	0
+#define TD4_INIT_IN_SET_KEY	1
+
 /*
- * Declare Te4 (if used) and Td4 as 32-bit repeated values. This avoids shared
- * memory bank conflicts for those tables because they are otherwise uchar
- * arrays which messes up the thread->bank mapping leading to bank conflicts.
+ * Declare Te4 (if used) and Td4 as 32-bit repeated values. This used to avoid
+ * shared memory bank conflicts for those tables because they were otherwise uchar
+ * arrays which messes up the thread->bank mapping leading to bank conflicts. The
+ * latest code uses what amounts to uchar4 instead, solving the conflict problem
+ * while reducing size enough to keep it in a separate shared tables.
  */
-#if TE4_LOCAL
-#define TE4_32_BIT	1
+#if !TE4_LOCAL
+#define TE4_32_BIT	0
 #endif
-#if TD4_LOCAL
-#define TD4_32_BIT	1
+#if !TD4_LOCAL
+#define TD4_32_BIT	0
 #endif
 
 #include "opencl_aes_tables.h"
@@ -104,14 +109,18 @@ typedef struct aes_tables {
 #if AES_LOCAL_TABLES
 #if AES_LOCAL_BARRIER
 	u32 T0[256][AES_SHARED_THREADS];
+	u8 T4[64][AES_SHARED_THREADS][4];
 #else
 	volatile u32 T0[256][AES_SHARED_THREADS];
+	volatile u8 T4[64][AES_SHARED_THREADS][4];
 #endif
 #endif	/* AES_LOCAL_TABLES */
 #if AES_LOCAL_BARRIER
-	enum table content;
+	enum table content0;
+	enum table content4;
 #else
-	volatile enum table content;
+	volatile enum table content0;
+	volatile enum table content4;
 #endif
 } aes_local_t;
 
@@ -131,7 +140,7 @@ typedef struct aes_key_st {
 #define TE2(i)	ror32(TE0(i), 16)
 #define TE3(i)	ror32(TE0(i), 24)
 #if TE4_LOCAL
-#define TE4(i)	lt->T0[i][THREAD & AES_SHARED_THREADS_MASK]
+#define TE4(i)	lt->T4[(i) >> 2][THREAD & AES_SHARED_THREADS_MASK][(i) & 3]
 #else
 #define TE4(i)	Te4[i]
 #endif
@@ -140,7 +149,7 @@ typedef struct aes_key_st {
 #define TD2(i)	ror32(TD0(i), 16)
 #define TD3(i)	ror32(TD0(i), 24)
 #if TD4_LOCAL
-#define TD4(i)	lt->T0[i][THREAD & AES_SHARED_THREADS_MASK]
+#define TD4(i)	lt->T4[(i) >> 2][THREAD & AES_SHARED_THREADS_MASK][(i) & 3]
 #else
 #define TD4(i)	Td4[i]
 #endif
@@ -182,9 +191,18 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 
 	if (THREAD < AES_SHARED_THREADS)
 		for (uint i = 0; i < 256; i++)
-			lt->T0[i][THREAD] = Te0[i];
+			TE0(i) = Te0[i];
 	if (THREAD == 0)
-		lt->content = TE0;
+		lt->content0 = TE0;
+#if TE4_LOCAL && TE4_INIT_IN_SET_KEY
+	if (lt->content4 != TE4) {
+		if (THREAD < AES_SHARED_THREADS)
+			for (uint i = 0; i < 256; i++)
+				TE4(i) = Te4[i];
+		if (THREAD == 0)
+			lt->content4 = TE4;
+	}
+#endif	/* TE4_LOCAL && TE4_INIT_IN_SET_KEY */
 #if AES_LOCAL_BARRIER
 	barrier(CLK_LOCAL_MEM_FENCE);
 #endif
@@ -612,9 +630,18 @@ INLINE void AES_set_decrypt_key(AES_KEY_TYPE void *_userKey,
 
 	if (THREAD < AES_SHARED_THREADS)
 		for (uint i = 0; i < 256; i++)
-			lt->T0[i][THREAD] = Inv0[i];
+			INV0(i) = Inv0[i];
 	if (THREAD == 0)
-		lt->content = INV;
+		lt->content0 = INV;
+#if TD4_LOCAL && TD4_INIT_IN_SET_KEY
+	if (lt->content4 != TD4) {
+		if (THREAD < AES_SHARED_THREADS)
+			for (uint i = 0; i < 256; i++)
+				TD4(i) = Td4[i];
+		if (THREAD == 0)
+			lt->content4 = TD4;
+	}
+#endif	/* TD4_LOCAL && TD4_INIT_IN_SET_KEY */
 #if AES_LOCAL_BARRIER
 	barrier(CLK_LOCAL_MEM_FENCE);
 #endif
@@ -685,12 +712,12 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 #if AES_LOCAL_TABLES
 	__local aes_local_t *lt = key->lt;
 
-	if (lt->content != TE0) {
+	if (lt->content0 != TE0) {
 		if (THREAD < AES_SHARED_THREADS)
 			for (uint i = 0; i < 256; i++)
-				lt->T0[i][THREAD] = Te0[i];
+				TE0(i) = Te0[i];
 		if (THREAD == 0)
-			lt->content = TE0;
+			lt->content0 = TE0;
 #if AES_LOCAL_BARRIER
 		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
@@ -850,18 +877,18 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	 * map cipher state to byte array block:
 	 */
 #if AES_USE_TE4
-#if AES_LOCAL_TABLES && TE4_LOCAL
-	if (lt->content != TE4) {
+#if AES_LOCAL_TABLES && TE4_LOCAL && !TE4_INIT_IN_SET_KEY
+	if (lt->content4 != TE4) {
 		if (THREAD < AES_SHARED_THREADS)
 			for (uint i = 0; i < 256; i++)
-				lt->T0[i][THREAD] = Te4[i];
+				TE4(i) = Te4[i];
 		if (THREAD == 0)
-			lt->content = TE4;
+			lt->content4 = TE4;
 #if AES_LOCAL_BARRIER
 		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
 	}
-#endif	/* AES_LOCAL_TABLES */
+#endif	/* AES_LOCAL_TABLES && TE4_LOCAL && !TE4_INIT_IN_SET_KEY */
 
 #if TE4_32_BIT
 	s0 =
@@ -965,12 +992,12 @@ INLINE void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 #if AES_LOCAL_TABLES
 	__local aes_local_t *lt = key->lt;
 
-	if (lt->content != TD0) {
+	if (lt->content0 != TD0) {
 		if (THREAD < AES_SHARED_THREADS)
 			for (uint i = 0; i < 256; i++)
-				lt->T0[i][THREAD] = Td0[i];
+				TD0(i) = Td0[i];
 		if (THREAD == 0)
-			lt->content = TD0;
+			lt->content0 = TD0;
 #if AES_LOCAL_BARRIER
 		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
@@ -1129,18 +1156,18 @@ INLINE void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	 * apply last round and
 	 * map cipher state to byte array block:
 	 */
-#if AES_LOCAL_TABLES && TD4_LOCAL
-	if (lt->content != TD4) {
+#if AES_LOCAL_TABLES && TD4_LOCAL && !TD4_INIT_IN_SET_KEY
+	if (lt->content4 != TD4) {
 		if (THREAD < AES_SHARED_THREADS)
 			for (uint i = 0; i < 256; i++)
-				lt->T0[i][THREAD] = Td4[i];
+				TD4(i) = Td4[i];
 		if (THREAD == 0)
-			lt->content = TD4;
+			lt->content4 = TD4;
 #if AES_LOCAL_BARRIER
 		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
 	}
-#endif	/* AES_LOCAL_TABLES && TD4_LOCAL */
+#endif	/* AES_LOCAL_TABLES && TD4_LOCAL && !TD4_INIT_IN_SET_KEY */
 
 #if TD4_32_BIT
 	s0 =
