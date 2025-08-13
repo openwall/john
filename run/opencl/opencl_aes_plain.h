@@ -53,14 +53,6 @@
 #define AES_LOCAL_BARRIER	1
 #endif
 
-/*
- * Declare Te4 table and use it instead of Te0..Te3 for last round encryption.
- * There is no equivalent opt-out for Td4.
- */
-#if !defined AES_USE_TE4 && (!gpu(DEVICE_INFO) || AES_LOCAL_TABLES)
-#define AES_USE_TE4	1
-#endif
-
 #ifndef TE4_INIT_IN_SET_KEY
 #define TE4_INIT_IN_SET_KEY	0
 #endif
@@ -691,7 +683,6 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	 * apply last round and
 	 * map cipher state to byte array block:
 	 */
-#if AES_USE_TE4
 #if AES_LOCAL_TABLES && !TE4_INIT_IN_SET_KEY
 	if (lt->content4 != TE4) {
 		if (THREAD < AES_SHARED_THREADS)
@@ -734,37 +725,6 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		rk[3];
 	PUTU32(out + 12, s3);
 
-#else	/* !AES_USE_TE4 */
-
-	s0 =
-		(TE2((t0 >> 24)       ) & 0xff000000) ^
-		(TE3((t1 >> 16) & 0xff) & 0x00ff0000) ^
-		(TE0((t2 >>  8) & 0xff) & 0x0000ff00) ^
-		(TE1((t3      ) & 0xff) & 0x000000ff) ^
-		rk[0];
-	PUTU32(out     , s0);
-	s1 =
-		(TE2((t1 >> 24)       ) & 0xff000000) ^
-		(TE3((t2 >> 16) & 0xff) & 0x00ff0000) ^
-		(TE0((t3 >>  8) & 0xff) & 0x0000ff00) ^
-		(TE1((t0      ) & 0xff) & 0x000000ff) ^
-		rk[1];
-	PUTU32(out +  4, s1);
-	s2 =
-		(TE2((t2 >> 24)       ) & 0xff000000) ^
-		(TE3((t3 >> 16) & 0xff) & 0x00ff0000) ^
-		(TE0((t0 >>  8) & 0xff) & 0x0000ff00) ^
-		(TE1((t1      ) & 0xff) & 0x000000ff) ^
-		rk[2];
-	PUTU32(out +  8, s2);
-	s3 =
-		(TE2((t3 >> 24)       ) & 0xff000000) ^
-		(TE3((t0 >> 16) & 0xff) & 0x00ff0000) ^
-		(TE0((t1 >>  8) & 0xff) & 0x0000ff00) ^
-		(TE1((t2      ) & 0xff) & 0x000000ff) ^
-		rk[3];
-	PUTU32(out + 12, s3);
-#endif	/* ?AES_USE_TE4 */
 }
 
 /*
