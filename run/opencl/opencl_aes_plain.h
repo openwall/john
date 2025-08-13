@@ -19,16 +19,14 @@
 #define _AES_PLAIN
 
 /*
- * Even with 64K shared memory, an AMD device can't fit an exclusive table to
- * every thread in a wavefront, so we have to decrease it. Actually 64K would
- * be barely enough if it wasn't for the fact some of it is wasted on a pointer
- * or some other overhead.
+ * Even with 64K LDS, an AMD device can't fit exclusive tables to every thread
+ * in a wavefront, so we have to decrease the number.
  */
-#if SHARED_MEM_SIZE < (WARP_SIZE * 1024 + 4)
-#define AES_SHARED_THREADS	(SHARED_MEM_SIZE / (1024 + 4) / 32 * 32)
-#define AES_SHARED_THREADS_DECREASED	1
+#if SHARED_MEM_SIZE < (WARP_SIZE * (256*4 + 256) + 2*4 + 4)
+#define AES_SHARED_THREADS_DECREASED  1
+#define AES_SHARED_THREADS            (WARP_SIZE >> 1)
 #else
-#define AES_SHARED_THREADS	WARP_SIZE
+#define AES_SHARED_THREADS            WARP_SIZE
 #endif
 
 #define AES_SHARED_THREADS_MASK	(AES_SHARED_THREADS - 1)
