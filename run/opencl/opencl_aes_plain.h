@@ -81,18 +81,7 @@
 #define TE4_INIT_IN_SET_KEY	0
 #define TD4_INIT_IN_SET_KEY	1
 
-/*
- * Declare Te4 (if used) and Td4 as 32-bit repeated values. This used to avoid
- * shared memory bank conflicts for those tables because they were otherwise uchar
- * arrays which messes up the thread->bank mapping leading to bank conflicts. The
- * latest code uses what amounts to uchar4 instead, solving the conflict problem
- * while reducing size enough to keep it in a separate shared tables.
- */
-#if !TE4_LOCAL
-#define TE4_32_BIT	0
 #endif
-#if !TD4_LOCAL
-#define TD4_32_BIT	0
 #endif
 
 #include "opencl_aes_tables.h"
@@ -890,36 +879,6 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	}
 #endif	/* AES_LOCAL_TABLES && TE4_LOCAL && !TE4_INIT_IN_SET_KEY */
 
-#if TE4_32_BIT
-	s0 =
-		(TE4((t0 >> 24)       ) & 0xff000000) ^
-		(TE4((t1 >> 16) & 0xff) & 0x00ff0000) ^
-		(TE4((t2 >>  8) & 0xff) & 0x0000ff00) ^
-		(TE4((t3      ) & 0xff) & 0x000000ff) ^
-		rk[0];
-	PUTU32(out     , s0);
-	s1 =
-		(TE4((t1 >> 24)       ) & 0xff000000) ^
-		(TE4((t2 >> 16) & 0xff) & 0x00ff0000) ^
-		(TE4((t3 >>  8) & 0xff) & 0x0000ff00) ^
-		(TE4((t0      ) & 0xff) & 0x000000ff) ^
-		rk[1];
-	PUTU32(out +  4, s1);
-	s2 =
-		(TE4((t2 >> 24)       ) & 0xff000000) ^
-		(TE4((t3 >> 16) & 0xff) & 0x00ff0000) ^
-		(TE4((t0 >>  8) & 0xff) & 0x0000ff00) ^
-		(TE4((t1      ) & 0xff) & 0x000000ff) ^
-		rk[2];
-	PUTU32(out +  8, s2);
-	s3 =
-		(TE4((t3 >> 24)       ) & 0xff000000) ^
-		(TE4((t0 >> 16) & 0xff) & 0x00ff0000) ^
-		(TE4((t1 >>  8) & 0xff) & 0x0000ff00) ^
-		(TE4((t2      ) & 0xff) & 0x000000ff) ^
-		rk[3];
-	PUTU32(out + 12, s3);
-#else
 	s0 =
 		(TE4((t0 >> 24)       ) << 24) ^
 		(TE4((t1 >> 16) & 0xff) << 16) ^
@@ -948,8 +907,9 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		(TE4((t2      ) & 0xff))       ^
 		rk[3];
 	PUTU32(out + 12, s3);
-#endif	/* TE4_32_BIT */
+
 #else	/* !AES_USE_TE4 */
+
 	s0 =
 		(TE2((t0 >> 24)       ) & 0xff000000) ^
 		(TE3((t1 >> 16) & 0xff) & 0x00ff0000) ^
@@ -1169,36 +1129,6 @@ INLINE void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	}
 #endif	/* AES_LOCAL_TABLES && TD4_LOCAL && !TD4_INIT_IN_SET_KEY */
 
-#if TD4_32_BIT
-	s0 =
-		(TD4((t0 >> 24)       ) & 0xff000000U) ^
-		(TD4((t3 >> 16) & 0xff) & 0x00ff0000U) ^
-		(TD4((t2 >>  8) & 0xff) & 0x0000ff00U) ^
-		(TD4((t1      ) & 0xff) & 0x000000ffU) ^
-		rk[0];
-	PUTU32(out     , s0);
-	s1 =
-		(TD4((t1 >> 24)       ) & 0xff000000U) ^
-		(TD4((t0 >> 16) & 0xff) & 0x00ff0000U) ^
-		(TD4((t3 >>  8) & 0xff) & 0x0000ff00U) ^
-		(TD4((t2      ) & 0xff) & 0x000000ffU) ^
-		rk[1];
-	PUTU32(out +  4, s1);
-	s2 =
-		(TD4((t2 >> 24)       ) & 0xff000000U) ^
-		(TD4((t1 >> 16) & 0xff) & 0x00ff0000U) ^
-		(TD4((t0 >>  8) & 0xff) & 0x0000ff00U) ^
-		(TD4((t3      ) & 0xff) & 0x000000ffU) ^
-		rk[2];
-	PUTU32(out +  8, s2);
-	s3 =
-		(TD4((t3 >> 24)       ) & 0xff000000U) ^
-		(TD4((t2 >> 16) & 0xff) & 0x00ff0000U) ^
-		(TD4((t1 >>  8) & 0xff) & 0x0000ff00U) ^
-		(TD4((t0      ) & 0xff) & 0x000000ffU) ^
-		rk[3];
-	PUTU32(out + 12, s3);
-#else	/* !TD4_32_BIT */
 	s0 =
 		(TD4((t0 >> 24)       ) << 24) ^
 		(TD4((t3 >> 16) & 0xff) << 16) ^
@@ -1227,7 +1157,6 @@ INLINE void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		(TD4((t0      ) & 0xff))       ^
 		rk[3];
 	PUTU32(out + 12, s3);
-#endif	/* TD4_32_BIT */
 }
 
 #endif /* _AES_PLAIN */
