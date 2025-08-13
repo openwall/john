@@ -51,13 +51,6 @@
 #define AES_LOCAL_BARRIER	1
 #endif
 
-#ifndef TE4_INIT_IN_SET_KEY
-#define TE4_INIT_IN_SET_KEY	0
-#endif
-#ifndef TD4_INIT_IN_SET_KEY
-#define TD4_INIT_IN_SET_KEY	1
-#endif
-
 #include "opencl_aes_tables.h"
 #if AES_LOCAL_TABLES
 #include "opencl_rotate.h"
@@ -149,15 +142,6 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 			TE0(i) = Te0[i];
 	if (THREAD == 0)
 		lt->content0 = TE0;
-#if TE4_INIT_IN_SET_KEY
-	if (lt->content4 != TE4) {
-		if (THREAD < AES_SHARED_THREADS)
-			for (uint i = 0; i < 256; i++)
-				TE4(i) = Te4[i];
-		if (THREAD == 0)
-			lt->content4 = TE4;
-	}
-#endif	/* TE4_INIT_IN_SET_KEY */
 #if AES_LOCAL_BARRIER
 	barrier(CLK_LOCAL_MEM_FENCE);
 #endif
@@ -499,20 +483,18 @@ INLINE void AES_set_decrypt_key(AES_KEY_TYPE void *_userKey,
 #if AES_LOCAL_TABLES
 	__local aes_local_t *lt = key->lt;
 
-	if (THREAD < AES_SHARED_THREADS)
+	if (THREAD < AES_SHARED_THREADS) {
 		for (uint i = 0; i < 256; i++)
 			INV0(i) = Inv0[i];
-	if (THREAD == 0)
-		lt->content0 = INV;
-#if TD4_INIT_IN_SET_KEY
-	if (lt->content4 != TD4) {
-		if (THREAD < AES_SHARED_THREADS)
+		if (THREAD == 0)
+			lt->content0 = INV;
+		if (lt->content4 != TD4) {
 			for (uint i = 0; i < 256; i++)
 				TD4(i) = Td4[i];
-		if (THREAD == 0)
-			lt->content4 = TD4;
+			if (THREAD == 0)
+				lt->content4 = TD4;
+		}
 	}
-#endif	/* TD4_INIT_IN_SET_KEY */
 #if AES_LOCAL_BARRIER
 	barrier(CLK_LOCAL_MEM_FENCE);
 #endif
@@ -681,7 +663,7 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	 * apply last round and
 	 * map cipher state to byte array block:
 	 */
-#if AES_LOCAL_TABLES && !TE4_INIT_IN_SET_KEY
+#if AES_LOCAL_TABLES
 	if (lt->content4 != TE4) {
 		if (THREAD < AES_SHARED_THREADS)
 			for (uint i = 0; i < 256; i++)
@@ -692,7 +674,7 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
 	}
-#endif	/* AES_LOCAL_TABLES && !TE4_INIT_IN_SET_KEY */
+#endif	/* AES_LOCAL_TABLES */
 
 	s0 =
 		(TE4((t0 >> 24)       ) << 24) ^
@@ -834,18 +816,6 @@ INLINE void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	 * apply last round and
 	 * map cipher state to byte array block:
 	 */
-#if AES_LOCAL_TABLES && !TD4_INIT_IN_SET_KEY
-	if (lt->content4 != TD4) {
-		if (THREAD < AES_SHARED_THREADS)
-			for (uint i = 0; i < 256; i++)
-				TD4(i) = Td4[i];
-		if (THREAD == 0)
-			lt->content4 = TD4;
-#if AES_LOCAL_BARRIER
-		barrier(CLK_LOCAL_MEM_FENCE);
-#endif
-	}
-#endif	/* AES_LOCAL_TABLES && !TD4_INIT_IN_SET_KEY */
 
 	s0 =
 		(TD4((t0 >> 24)       ) << 24) ^
