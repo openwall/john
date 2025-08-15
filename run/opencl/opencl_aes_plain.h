@@ -19,6 +19,15 @@
 #define _AES_PLAIN
 
 /*
+ * Copy Tx0/Inv0, and separetely Tx4, tables to local memory. Pointless for CPU
+ * (so a regression) but a huge boost for most any GPU.  We'll infer Tx1..Tx3
+ * and Inv1..Inv3 using rotates, which is faster as we avoid bank conflicts.
+ */
+#if !defined AES_LOCAL_TABLES && gpu(DEVICE_INFO)
+#define AES_LOCAL_TABLES	1
+#endif
+
+/*
  * Even with 64K LDS, an AMD device can't fit exclusive tables to every thread
  * in a wavefront, so we have to decrease the number.
  * A format can force this if it uses two or more keys at once. (diskcryptor
@@ -35,28 +44,6 @@
 
 #define AES_SHARED_THREADS_MASK	(AES_SHARED_THREADS - 1)
 
-/*
- * Copy Tx0/Inv0 (and optionally Tx4) tables to local memory. Pointless for CPU
- * (so a regression) but a huge boost for most any GPU.  We'll infer Tx1..Tx3
- * and Inv1..Inv3 using rotates, which is faster as we avoid bank conflicts.
- */
-#if !defined AES_LOCAL_TABLES && gpu(DEVICE_INFO)
-#define AES_LOCAL_TABLES	1
-#endif
-
-/*
- * We don't use barriers for nvidia where not strictly needed. When not, we're
- * declaring it volatile instead. This is officially supported on nvidia but
- * not on any other device I know of. It MAY work fine on AMD because of how
- * we do stuff but it definitely can't be used if we had to decrease
- * AES_SHARED_THREADS because then we don't have a column for every thread.
- *
- * Note that some barriers will be left anyway - they are still needed.
- */
-#if !gpu_nvidia(DEVICE_INFO) || AES_SHARED_THREADS_DECREASED
-#define AES_ALWAYS_BARRIER	1
-#endif
-
 #include "opencl_aes_tables.h"
 #if AES_LOCAL_TABLES
 #include "opencl_rotate.h"
@@ -65,20 +52,17 @@
 /* AES-128 has 10 rounds, AES-192 has 12 and AES-256 has 14 rounds. */
 #define AES_MAXNR   14
 
-enum table { TE0, TE4, TD0, TD4, INV, NEED_INIT };
+enum table { TE0, TE4, TD0, TD4, INV };
 
 typedef struct aes_tables {
 #if AES_LOCAL_TABLES
-#if AES_ALWAYS_BARRIER
 	u32 T0[256][AES_SHARED_THREADS];
 	u8 T4[64][AES_SHARED_THREADS][4];
-#else
-	volatile u32 T0[256][AES_SHARED_THREADS];
-	volatile u8 T4[64][AES_SHARED_THREADS][4];
-#endif
-#endif	/* AES_LOCAL_TABLES */
 	enum table content0;
 	enum table content4;
+#else	/* !AES_LOCAL_TABLES */
+	u32 dummy;
+#endif
 } aes_local_t;
 
 typedef struct aes_key_st {
@@ -126,11 +110,18 @@ typedef struct aes_key_st {
 
 #endif	/* AES_LOCAL_TABLES */
 
+/*
+ * Entry point for normal callers. The real function is called
+ * directly by AES_set_decrypt_key.
+ */
+#define AES_set_encrypt_key(key, bits, akey)	  \
+	do { AES_set_enc_key(key, bits, akey, 0); } while (0)
+
 /**
  * Expand the cipher key into the encryption key schedule.
  */
-INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
-                                const int bits, AES_KEY *key)
+INLINE void AES_set_enc_key(AES_KEY_TYPE void *_userKey,
+                            const int bits, AES_KEY *key, int decrypt)
 {
 	AES_KEY_TYPE uchar *userKey = _userKey;
 	u32 *rk;
@@ -138,14 +129,28 @@ INLINE void AES_set_encrypt_key(AES_KEY_TYPE void *_userKey,
 #if AES_LOCAL_TABLES
 	__local aes_local_t *lt = key->lt;
 
+	/* Barrier needed in case decryption ran right before */
+	barrier(CLK_LOCAL_MEM_FENCE);
 	if (THREAD < AES_SHARED_THREADS)
 		for (uint i = 0; i < 256; i++)
 			TE0(i) = Te0[i];
-#if AES_ALWAYS_BARRIER
-	barrier(CLK_LOCAL_MEM_FENCE);
-#endif
 	if (THREAD == 0)
 		lt->content0 = TE0;
+
+	if (!decrypt) {
+		/*
+		 * We init T0 table for encrypt here so that function runs as fast as
+		 * possible at all with multiple blocks, with no init nor barriers.
+		 */
+		if (THREAD < AES_SHARED_THREADS)
+#pragma unroll 4
+			for (uint i = 0; i < 256; i++)
+				TE4(i) = Te4[i];
+
+		if (THREAD == 0)
+			lt->content4 = TE4;
+	}
+	/* Needed for the content0 flag so unconditional */
 	barrier(CLK_LOCAL_MEM_FENCE);
 #endif	/* AES_LOCAL_TABLES */
 
@@ -480,31 +485,22 @@ INLINE void AES_set_decrypt_key(AES_KEY_TYPE void *_userKey,
 	u32 *rk;
 
 	/* first, start with an encryption schedule */
-	AES_set_encrypt_key(userKey, bits, key);
+	AES_set_enc_key(userKey, bits, key, 1);
 
 #if AES_LOCAL_TABLES
 	__local aes_local_t *lt = key->lt;
 
-	if (THREAD == 0 && lt->content4 != TD4)
-		lt->content4 = NEED_INIT;
 	barrier(CLK_LOCAL_MEM_FENCE);
-
-	if (THREAD < AES_SHARED_THREADS)
+	if (THREAD < AES_SHARED_THREADS) {
 		for (uint i = 0; i < 256; i++)
 			INV0(i) = Inv0[i];
-#if AES_ALWAYS_BARRIER
-	barrier(CLK_LOCAL_MEM_FENCE);
-#endif
-	if (THREAD == 0)
-		lt->content0 = INV;
-	if (lt->content4 == NEED_INIT) {
+#pragma unroll 4
 		for (uint i = 0; i < 256; i++)
 			TD4(i) = Td4[i];
-#if AES_ALWAYS_BARRIER
-		barrier(CLK_LOCAL_MEM_FENCE);
-#endif
-		if (THREAD == 0)
-			lt->content4 = TD4;
+	}
+	if (THREAD == 0) {
+		lt->content0 = INV;
+		lt->content4 = TD4;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 #endif	/* AES_LOCAL_TABLES */
@@ -561,6 +557,19 @@ INLINE void AES_set_decrypt_key(AES_KEY_TYPE void *_userKey,
 
 #undef INV
 #undef SWAP
+#if AES_LOCAL_TABLES
+	/*
+	 * We init T0 table for decrypt here so that function runs as fast as
+	 * possible at all with multiple blocks, with no init nor barriers.
+	 */
+	barrier(CLK_LOCAL_MEM_FENCE);
+	if (THREAD < AES_SHARED_THREADS)
+		for (uint i = 0; i < 256; i++)
+			TD0(i) = Td0[i];
+	if (THREAD == 0)
+		lt->content0 = TD0;
+	barrier(CLK_LOCAL_MEM_FENCE);
+#endif	/* AES_LOCAL_TABLES */
 }
 
 /*
@@ -573,23 +582,7 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 
 #if AES_LOCAL_TABLES
 	__local aes_local_t *lt = key->lt;
-
-	if (THREAD == 0 && lt->content0 != TE0)
-		lt->content0 = NEED_INIT;
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	if (lt->content0 == NEED_INIT) {
-		if (THREAD < AES_SHARED_THREADS)
-			for (uint i = 0; i < 256; i++)
-				TE0(i) = Te0[i];
-#if AES_ALWAYS_BARRIER
-		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
-		if (THREAD == 0)
-			lt->content0 = TE0;
-		barrier(CLK_LOCAL_MEM_FENCE);
-	}
-#endif	/* AES_LOCAL_TABLES */
 
 	rk = key->rd_key;
 
@@ -677,24 +670,6 @@ INLINE void AES_encrypt(const uchar *in, uchar *out, const AES_KEY *key)
 	 * apply last round and
 	 * map cipher state to byte array block:
 	 */
-#if AES_LOCAL_TABLES
-	if (THREAD == 0 && lt->content4 != TE4)
-		lt->content4 = NEED_INIT;
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	if (lt->content4 == NEED_INIT) {
-		if (THREAD < AES_SHARED_THREADS)
-			for (uint i = 0; i < 256; i++)
-				TE4(i) = Te4[i];
-#if AES_ALWAYS_BARRIER
-		barrier(CLK_LOCAL_MEM_FENCE);
-#endif
-		if (THREAD == 0)
-			lt->content4 = TE4;
-		barrier(CLK_LOCAL_MEM_FENCE);
-	}
-#endif	/* AES_LOCAL_TABLES */
-
 	s0 =
 		(TE4((t0 >> 24)       ) << 24) ^
 		(TE4((t1 >> 16) & 0xff) << 16) ^
@@ -736,23 +711,7 @@ INLINE void AES_decrypt(const uchar *in, uchar *out, const AES_KEY *key)
 
 #if AES_LOCAL_TABLES
 	__local aes_local_t *lt = key->lt;
-
-	if (THREAD == 0 && lt->content0 != TD0)
-			lt->content0 = NEED_INIT;
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	if (lt->content0 == NEED_INIT) {
-		if (THREAD < AES_SHARED_THREADS)
-			for (uint i = 0; i < 256; i++)
-				TD0(i) = Td0[i];
-#if AES_ALWAYS_BARRIER
-		barrier(CLK_LOCAL_MEM_FENCE);
 #endif
-		if (THREAD == 0)
-			lt->content0 = TD0;
-		barrier(CLK_LOCAL_MEM_FENCE);
-	}
-#endif	/* AES_LOCAL_TABLES */
 
 	rk = key->rd_key;
 
