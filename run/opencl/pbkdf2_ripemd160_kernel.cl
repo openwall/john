@@ -11,7 +11,6 @@
 
 #include "opencl_misc.h"
 #include "opencl_ripemd.h"
-#define AES_BITSLICE // Somehow this kernel bugs out with the table based kernel
 #define AES_SRC_TYPE __constant
 #define AES_DST_TYPE __global
 /*
