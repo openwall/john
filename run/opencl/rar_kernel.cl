@@ -246,9 +246,10 @@ INLINE int check_rar(__global rar_file *cur_file, __global uint *_key, __global 
 	uchar plain[16 + 8]; /* Some are safety margin for check_huffman() */
 	__global uchar *key = (__global uchar*)_key;
 
+	AES_set_decrypt_key(key, 128, &aes_ctx);
+
 	if (cur_file->type == 0) {	/* rar-hp mode */
 		memcpy_gp(iv, _iv, 16);
-		AES_set_decrypt_key(key, 128, &aes_ctx);
 		AES_cbc_decrypt(cur_file->data, plain, 16, &aes_ctx, iv);
 
 		return !memcmp_pc(plain, "\xc4\x3d\x7b\x00\x40\x07\x00", 7);
@@ -267,7 +268,6 @@ INLINE int check_rar(__global rar_file *cur_file, __global uint *_key, __global 
 				else
 					memcpy_gp(iv, cur_file->last_iv, 16);
 
-				AES_set_decrypt_key(key, 128, &aes_ctx);
 				AES_cbc_decrypt(cur_file->last_data, plain, 16, &aes_ctx, iv);
 
 				if (memcmp_pc(&plain[pad_start], "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", pad_size))
@@ -283,7 +283,6 @@ INLINE int check_rar(__global rar_file *cur_file, __global uint *_key, __global 
 
 			/* Full decryption with CRC check */
 			memcpy_gp(iv, _iv, 16);
-			AES_set_decrypt_key(key, 128, &aes_ctx);
 			CRC32_Init(&crc);
 
 			while (size) {
@@ -303,7 +302,6 @@ INLINE int check_rar(__global rar_file *cur_file, __global uint *_key, __global 
 
 			/* Decrypt just one block for early rejection */
 			memcpy_gp(iv, _iv, 16);
-			AES_set_decrypt_key(key, 128, &aes_ctx);
 			AES_cbc_decrypt(cur_file->data, plain, 16, &aes_ctx, iv);
 
 			if (plain[0] & 0x80) {
