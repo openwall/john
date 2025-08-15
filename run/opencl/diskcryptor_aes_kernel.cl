@@ -9,6 +9,17 @@
 #define AES_SRC_TYPE MAYBE_CONSTANT
 
 #include "pbkdf2_hmac_sha512_kernel.cl"
+
+/*
+ * AES_256_XTS uses two AES keys at once so need double the
+ * shared memory.
+ */
+#define AES_SHARED_THREADS_DECREASED  1
+#if gpu_amd(DEVICE_INFO)
+#define AES_SHARED_THREADS            (WARP_SIZE >> 2)
+#else
+#define AES_SHARED_THREADS            (WARP_SIZE >> 1)
+#endif
 #include "opencl_aes.h"
 
 typedef struct {
@@ -24,7 +35,8 @@ __kernel void diskcryptor_final(__global crack_t *pbkdf2,
                          __constant diskcryptor_salt_t *salt,
                          __global out_t *out)
 {
-	__local aes_local_t lt;
+	__local aes_local_t lt1;
+	__local aes_local_t lt2;
 
 	uint gid = get_global_id(0);
 
@@ -50,7 +62,7 @@ __kernel void diskcryptor_final(__global crack_t *pbkdf2,
 	for (i = 0; i < 8; i++)
 		key.u[i] = SWAP64(pbkdf2[gid].hash[i]);
 
-	AES_256_XTS_DiskCryptor(salt->header, output, key.c, 96, &lt);
+	AES_256_XTS_DiskCryptor(salt->header, output, key.c, 96, &lt1, &lt2);
 	memcpy_pp(version.c, output + 72, 2);
 	memcpy_pp(algorithm.c, output + 82, 4);
 	if ((!memcmp_pc(output + 64, "DCRP", 4)) && (version.value == 2 || version.value == 1) && (algorithm.value >= 0 && algorithm.value <= 7)) {

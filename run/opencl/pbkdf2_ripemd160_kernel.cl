@@ -14,6 +14,16 @@
 #define AES_BITSLICE // Somehow this kernel bugs out with the table based kernel
 #define AES_SRC_TYPE __constant
 #define AES_DST_TYPE __global
+/*
+ * AES_256_XTS uses two AES keys at once so need double the
+ * shared memory. These two are only needed if we re-test with table AES
+ */
+#define AES_SHARED_THREADS_DECREASED  1
+#if gpu_amd(DEVICE_INFO)
+#define AES_SHARED_THREADS            (WARP_SIZE >> 2)
+#else
+#define AES_SHARED_THREADS            (WARP_SIZE >> 1)
+#endif
 #include "opencl_aes.h"
 
 #define ITERATIONS 2000
@@ -148,7 +158,8 @@ __kernel void tc_ripemd_aesxts(__global const pbkdf2_password *inbuffer,
                                __global tc_hash *outbuffer,
                                __constant tc_salt *salt)
 {
-	__local aes_local_t lt;
+	__local aes_local_t lt1;
+	__local aes_local_t lt2;
 	uint idx = get_global_id(0);
 	union {
 		uint u32[64 / 4];
@@ -157,5 +168,5 @@ __kernel void tc_ripemd_aesxts(__global const pbkdf2_password *inbuffer,
 
 	pbkdf2(inbuffer[idx].v, inbuffer[idx].length, salt->salt, key.u32);
 
-	AES_256_XTS_first_sector(salt->bin, outbuffer[idx].v, key.uc, &lt);
+	AES_256_XTS_first_sector(salt->bin, outbuffer[idx].v, key.uc, &lt1, &lt2);
 }

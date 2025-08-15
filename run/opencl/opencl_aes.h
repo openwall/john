@@ -314,13 +314,13 @@ INLINE void AES_cfb_decrypt(AES_SRC_TYPE void *_in,
 }
 
 INLINE void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in, AES_DST_TYPE uint *out,
-                                     AES_KEY_TYPE uchar *double_key, __local aes_local_t *lt)
+                                     AES_KEY_TYPE uchar *double_key,
+                                     __local aes_local_t *lt1, __local aes_local_t *lt2)
 {
 	uint tweak[4] = { 0 };
 	uint buf[4];
 	int i;
-	AES_KEY akey1; akey1.lt = lt;
-	AES_KEY akey2; akey2.lt = lt;
+	AES_KEY akey1, akey2; akey1.lt = lt1; akey2.lt = lt2;
 
 	AES_set_decrypt_key(double_key, 256, &akey1);
 	AES_set_encrypt_key(double_key + 32, 256, &akey2);
@@ -337,12 +337,13 @@ INLINE void AES_256_XTS_first_sector(AES_SRC_TYPE uint *in, AES_DST_TYPE uint *o
 }
 
 INLINE void AES_256_XTS_DiskCryptor(AES_SRC_TYPE uchar *data, AES_DST_TYPE uchar *output,
-                                    AES_KEY_TYPE uchar *double_key, int len, __local aes_local_t *lt)
+                                    AES_KEY_TYPE uchar *double_key, int len,
+                                    __local aes_local_t *lt1, __local aes_local_t *lt2)
 {
 	uchar buf[16];
 	int i, j, cnt;
-	AES_KEY key1; key1.lt = lt;
-	AES_KEY key2; key2.lt = lt;
+	AES_KEY key1; key1.lt = lt1;
+	AES_KEY key2; key2.lt = lt2;
 	int bits = 256;
 	uchar buffer[96];
 	uchar *out = buffer;
