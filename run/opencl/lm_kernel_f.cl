@@ -515,11 +515,8 @@ __kernel void lm_bs_f(__global opencl_lm_transfer *lm_raw_keys, // Do not change
 #else
 		    __global
 #endif
-		    unsigned int *lm_int_keys /* Memory allocated on host side must not exceed CONST_CACHE_SIZE if constant is used. */
-#if !defined(__OS_X__) && USE_CONST_CACHED_INT_KEYS && gpu_amd(DEVICE_INFO)
-		__attribute__((max_constant_size ((ACTIVE_PLACEHOLDER * 32 * ITER_COUNT))))
-#endif
-		    , __global unsigned int *offset_table,
+		    unsigned int *lm_int_keys,
+		    __global unsigned int *offset_table,
 		    __global unsigned int *hash_table,
 		    __global unsigned int *bitmaps,
                     volatile __global uint *hash_ids,

@@ -123,11 +123,8 @@
 	SWAP(31, 63);  	\
 }
 
-__kernel void DES_bs_25( constant uint *key_map
-#if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
-                         __attribute__((max_constant_size(3072)))
-#endif
-                         , __global DES_bs_vector *des_bs_key,
+__kernel void DES_bs_25( constant uint *key_map,
+                         __global DES_bs_vector *des_bs_key,
                          __global vtype *unchecked_hashes) {
 
 		int section = get_global_id(0);

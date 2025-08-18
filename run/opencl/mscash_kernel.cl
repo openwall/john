@@ -448,21 +448,15 @@ INLINE void cmp(uint gid,
  * words. MD4 hash of a key is 128 bit (uint4). */
 __kernel void mscash(__global uint *keys,
 		  __global uint *index,
-		  constant uint *salt
-#if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
-		__attribute__((max_constant_size(17 * sizeof(uint))))
-#endif
-		  , __global uint *int_key_loc,
+		  constant uint *salt,
+		  __global uint *int_key_loc,
 #if USE_CONST_CACHE
 		  constant
 #else
 		  __global
 #endif
-		  uint *int_keys
-#if !defined(__OS_X__) && USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
-		__attribute__((max_constant_size (NUM_INT_KEYS * 4)))
-#endif
-		 , __global uint *bitmaps,
+		  uint *int_keys,
+		  __global uint *bitmaps,
 		  __global uint *offset_table,
 		  __global uint *hash_table,
 		  __global uint *return_hashes,

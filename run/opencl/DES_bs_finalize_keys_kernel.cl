@@ -230,11 +230,8 @@ __kernel void DES_bs_finalize_keys(__global opencl_DES_bs_transfer *des_raw_keys
 #else
 				   __global
 #endif
-				   unsigned int *des_int_keys
-#if !defined(__OS_X__) && USE_CONST_CACHED_INT_KEYS && gpu_amd(DEVICE_INFO)
-				   __attribute__((max_constant_size((ACTIVE_PLACEHOLDER * 32 * ITER_COUNT))))
-#endif
-				   , __global unsigned int *des_int_key_loc,
+				   unsigned int *des_int_keys,
+				   __global unsigned int *des_int_key_loc,
 				   __global DES_bs_vector *des_bs_keys) {
 
 	int section = get_global_id(0);

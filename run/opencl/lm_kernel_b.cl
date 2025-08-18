@@ -140,20 +140,14 @@ __kernel void lm_bs_b(__global opencl_lm_transfer *lm_raw_keys,
 #if (WORK_GROUP_SIZE == 0)
 		    __global lm_vector *lm_keys,
 #endif
-		   constant uint *lm_key_idx
-#if !defined(__OS_X__) && gpu_amd(DEVICE_INFO)
-                   __attribute__((max_constant_size(3072)))
-#endif
+		    constant uint *lm_key_idx,
 #if USE_CONST_CACHED_INT_KEYS
-		    , constant
+		    constant
 #else
-		    , __global
+		    __global
 #endif
-		    unsigned int *lm_int_keys /* Memory allocated on host side must not exceed CONST_CACHE_SIZE if constant is used. */
-#if !defined(__OS_X__) && USE_CONST_CACHED_INT_KEYS && gpu_amd(DEVICE_INFO)
-		__attribute__((max_constant_size ((ACTIVE_PLACEHOLDER * 32 * ITER_COUNT))))
-#endif
-		   , __global unsigned int *offset_table,
+		    unsigned int *lm_int_keys,
+		    __global unsigned int *offset_table,
 		   __global unsigned int *hash_table,
 		   __global unsigned int *bitmaps,
                    volatile __global uint *hash_ids,

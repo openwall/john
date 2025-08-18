@@ -553,11 +553,7 @@ void oldoffice(__global const uchar *password,
 #else
                __global
 #endif
-               uint *int_keys
-#if !defined(__OS_X__) && USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
-               __attribute__((max_constant_size (NUM_INT_KEYS * 4)))
-#endif
-               )
+               uint *int_keys)
 {
 #ifdef RC4_USE_LOCAL
 	__local

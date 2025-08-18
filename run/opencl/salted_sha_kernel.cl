@@ -144,11 +144,7 @@ void sha1(__global uint *keys,
 #else
           __global
 #endif
-#if !defined(__OS_X__) && USE_CONST_CACHE && gpu_amd(DEVICE_INFO)
-          uint *int_keys __attribute__((max_constant_size (NUM_INT_KEYS * 4))),
-#else
           uint *int_keys,
-#endif
           __constant uchar *salt,
           __global uint *bitmaps,
           __global uint *offset_table,
