@@ -35,7 +35,7 @@ john_register_one(&fmt_opencl_axcrypt);
 
 #define FORMAT_LABEL            "axcrypt-opencl"
 #define FORMAT_NAME             ""
-#define ALGORITHM_NAME          "SHA1 AES OpenCL"
+#define ALGORITHM_NAME          "AES SHA1 OpenCL"
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            MEM_ALIGN_NONE
 #define SALT_SIZE               sizeof(struct custom_salt *)
