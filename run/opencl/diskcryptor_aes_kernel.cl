@@ -9,18 +9,7 @@
 #define AES_SRC_TYPE MAYBE_CONSTANT
 
 #include "pbkdf2_hmac_sha512_kernel.cl"
-
-/*
- * AES_256_XTS uses two AES keys at once so need double the
- * shared memory.
- */
-#define AES_SHARED_THREADS_DECREASED  1
-#if gpu_amd(DEVICE_INFO)
-#define AES_SHARED_THREADS            (WARP_SIZE >> 2)
-#else
-#define AES_SHARED_THREADS            (WARP_SIZE >> 1)
-#endif
-#include "opencl_aes.h"
+#include "opencl_aes_xts.h"
 
 typedef struct {
 	salt_t pbkdf2;
