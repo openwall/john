@@ -28,21 +28,25 @@
 #endif
 
 /*
- * Even with 64K LDS, an AMD device can't fit exclusive tables to every thread
- * in a wavefront, so we have to decrease the number.
- * A format can force this if it uses two or more keys at once. (diskcryptor
- * does)
+ * Formats using two or more keys at once (AES-XTS uses two) must set this. It
+ * needs to be a power of two so is named and used as a shift.
  */
-#ifndef AES_SHARED_THREADS_DECREASED
-#if SHARED_MEM_SIZE < (WARP_SIZE * (256*4 + 256) + 2*4 + 4)
-#define AES_SHARED_THREADS_DECREASED  1
-#define AES_SHARED_THREADS            (WARP_SIZE >> 1)
-#else
-#define AES_SHARED_THREADS            WARP_SIZE
+#ifndef AES_SIMULTANEOUS_CTX_SHIFT
+#define AES_SIMULTANEOUS_CTX_SHIFT    0
 #endif
-#endif	/* AES_SHARED_THREADS_DECREASED */
 
-#define AES_SHARED_THREADS_MASK	(AES_SHARED_THREADS - 1)
+/*
+ * Even with 64K LDS, an AMD device can't fit exclusive tables to every thread
+ * in a wavefront of 64 threads, so we have to decrease the number.
+ * Also, the number of simultaneous AES contexts need to be considered per above.
+ */
+#if SHARED_MEM_SIZE < (WARP_SIZE * (256*4 + 256) + 2*4 + 4)
+#define AES_SHARED_THREADS            (WARP_SIZE >> (AES_SIMULTANEOUS_CTX_SHIFT + 1))
+#else
+#define AES_SHARED_THREADS            (WARP_SIZE >> (AES_SIMULTANEOUS_CTX_SHIFT))
+#endif
+
+#define AES_SHARED_THREADS_MASK       (AES_SHARED_THREADS - 1)
 
 #include "opencl_aes_tables.h"
 #if AES_LOCAL_TABLES
