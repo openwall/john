@@ -150,9 +150,10 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 			break;
 
 		case 1:
-			// Set from OpenCL query (warp size)
+			// Set from OpenCL query (kernel max. vs. preferred multiple)
 			local_work_size =
-				get_kernel_preferred_multiple(gpu_id, crypt_kernel);
+				GET_EXACT_MULTIPLE(get_task_max_work_group_size(),
+					get_kernel_preferred_multiple(gpu_id, crypt_kernel));
 			break;
 
 		default:
