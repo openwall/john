@@ -1,5 +1,5 @@
 /*
- * RIPEMD-160 implementation. Copyright (c) 2015-2025, magnum
+ * RIPEMD-160 implementation. Copyright (c) 2015, magnum
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
@@ -11,6 +11,19 @@
 
 #include "opencl_misc.h"
 #include "opencl_ripemd.h"
+#define AES_SRC_TYPE __constant
+#define AES_DST_TYPE __global
+/*
+ * AES_256_XTS uses two AES keys at once so need double the
+ * shared memory. These two are only needed if we re-test with table AES
+ */
+#define AES_SHARED_THREADS_DECREASED  1
+#if gpu_amd(DEVICE_INFO)
+#define AES_SHARED_THREADS            (WARP_SIZE >> 2)
+#else
+#define AES_SHARED_THREADS            (WARP_SIZE >> 1)
+#endif
+#include "opencl_aes.h"
 
 #define ITERATIONS 2000
 
@@ -18,6 +31,15 @@ typedef struct {
 	uint length;
 	uchar v[KEYLEN];
 } pbkdf2_password;
+
+typedef struct {
+	uint v[16 / 4];
+} tc_hash;
+
+typedef struct {
+	uint salt[SALTLEN / 4];
+	uint bin[(512 - 64) / 4];
+} tc_salt;
 
 INLINE void preproc(__global const uchar *key, uint keylen, uint *state,
                     uint padding)
@@ -129,4 +151,21 @@ INLINE void pbkdf2(__global const uchar *pass, uint passlen,
 		for (i = 0; i < 20 && t < (OUTLEN + 3) / 4 * 4; i++, t++)
 			PUTCHAR(out, t, ((uchar*)tmp_out)[i]);
 	}
+}
+
+__kernel void tc_ripemd_aesxts(__global const pbkdf2_password *inbuffer,
+                               __global tc_hash *outbuffer,
+                               __constant tc_salt *salt)
+{
+	__local aes_local_t lt1;
+	__local aes_local_t lt2;
+	uint idx = get_global_id(0);
+	union {
+		uint u32[64 / 4];
+		uchar uc[64];
+	} key;
+
+	pbkdf2(inbuffer[idx].v, inbuffer[idx].length, salt->salt, key.u32);
+
+	AES_256_XTS_first_sector(salt->bin, outbuffer[idx].v, key.uc, &lt1, &lt2);
 }
