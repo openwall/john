@@ -121,7 +121,12 @@ static const char *warn[] = {
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
 {
-	return autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	size_t s;
+
+	s = autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel);
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel_sha256));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, crypt_kernel_sha512));
+	return s;
 }
 
 static void release_clobj(void);
