@@ -1099,22 +1099,21 @@ void opencl_get_user_preferences(const char *format)
 
 void opencl_get_sane_lws_gws_values()
 {
-	if (self_test_running) {
-		local_work_size = 7;
-		global_work_size = 49;
-	}
 
-	if (!local_work_size) {
+	if (!local_work_size || self_test_running) {
 		if (cpu(device_info[gpu_id]))
 			local_work_size =
-				get_platform_vendor_id(platform_id) == DEV_INTEL ?
-			8 : 1;
+				get_platform_vendor_id(platform_id) == DEV_INTEL ? 8 : 1;
+		else if (self_test_running)
+			local_work_size = get_device_max_lws(gpu_id);
 		else
-			local_work_size = 64;
+			local_work_size = 2 * get_device_warp_size(gpu_id);
 	}
 
-	if (!global_work_size)
-		global_work_size = 768;
+	if (self_test_running)
+		global_work_size = local_work_size;
+	else if (!global_work_size)
+		global_work_size = 12 * local_work_size;
 }
 
 char* get_device_name_(int sequential_id)

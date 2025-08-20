@@ -112,10 +112,12 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	if (options.flags & FLG_SHOW_CHK)
 		return;
 
-	// FIXME add optional test-same-sizes
 	if (self_test_running) {
-		local_work_size = 7;
-		global_work_size = 49;
+		if (cpu(device_info[gpu_id]))
+			local_work_size = get_platform_vendor_id(platform_id) == DEV_INTEL ? 8 : 1;
+		else
+			local_work_size = get_device_max_lws(gpu_id);
+		global_work_size = local_work_size;
 	}
 
 	ocl_autotune_running = 1;
