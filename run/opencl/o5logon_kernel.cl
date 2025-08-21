@@ -15,6 +15,7 @@
 #include "opencl_sha1.h"
 #include "opencl_md5_ctx.h"
 #include "opencl_mask.h"
+#define AES_BITSLICE
 #include "opencl_aes.h"
 
 typedef struct {
