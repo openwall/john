@@ -943,24 +943,23 @@ static void single_done(void)
 	crk_done();
 }
 
-char* do_single_crack(struct db_main *db)
+void do_single_crack(struct db_main *db)
 {
 	struct rpp_context ctx;
-	int initial_num_salts;
 
 	single_db = db;
-	initial_num_salts = db->salt_count;
 	rule_ctx = &ctx;
 	single_init();
 	single_run();
 	single_done();
 	rule_ctx = NULL; /* Just for good measure */
 
-	if (initial_num_salts > 1 && status.guess_count && !retest_guessed) {
+	if (john_main_process && db->salt_count > 1 &&
+	    status.guess_count && !retest_guessed) {
 		if (single_disabled_recursion)
-			return "Warning: Disabled SingleRetestGuessed due to deep recursion. Consider running '--loopback --rules=none' next.";
+			fprintf(stderr, "Warning: Disabled SingleRetestGuessed due to deep recursion. Consider running '--loopback --rules=none' next.\n");
 		else
-			return "Consider running '--loopback --rules=none' next.";
-	} else
-		return "";
+			fprintf(stderr, "Consider running '--loopback --rules=none' next.\n");
+	}
+	return;
 }

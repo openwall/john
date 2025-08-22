@@ -20,6 +20,6 @@ extern struct list_main *single_seed;
 /*
  * Runs the cracker.
  */
-extern char* do_single_crack(struct db_main *db);
+extern void do_single_crack(struct db_main *db);
 
 #endif

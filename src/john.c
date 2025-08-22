@@ -196,7 +196,6 @@ static struct db_main database;
 static int loaded_extra_pots;
 static struct fmt_main dummy_format;
 
-static char *mode_exit_message = "";
 static int exit_status = 0;
 
 static void john_register_one(struct fmt_main *format)
@@ -1833,7 +1832,7 @@ static void john_run(void)
 			event_pending = event_status = 1;
 
 		if (options.flags & FLG_SINGLE_CHK)
-			mode_exit_message = do_single_crack(&database);
+			do_single_crack(&database);
 		else
 		if (options.flags & FLG_WORDLIST_CHK)
 			do_wordlist_crack(&database, options.wordlist,
@@ -1962,9 +1961,8 @@ static void john_done(void)
 			log_event("%s", abort_msg);
 		} else if (children_ok) {
 			log_event("Session completed");
-			if (john_main_process) {
-				fprintf(stderr, "Session%s completed. %s\n", john_session_name, mode_exit_message);
-			}
+			if (john_main_process)
+				fprintf(stderr, "Session%s completed\n", john_session_name);
 		} else {
 			log_event("Main process session completed, but some child processes failed");
 			fprintf(stderr, "Main process session%s completed, but some child processes failed\n", john_session_name);
