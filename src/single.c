@@ -190,27 +190,18 @@ static void single_init(void)
 	 *
 	 * Bodge for deprecated syntax. When dropping it we'll drop this interim variable
 	 */
-	int option_retest = 0;
+	int option_retest = parse_bool(options.single_retest_guess);
 
-	option_retest = parse_bool(options.single_retest_guess);
-
-	if ((retest_guessed = option_retest) == -1) {
-
+	if ((retest_guessed = option_retest) == -1)
 		retest_guessed = cfg_get_bool(SECTION_OPTIONS, NULL, "SingleRetestGuessed", 1);
 
-		if (!retest_guessed && single_db->salt_count == 1) {
-			retest_guessed = 0;
-			if (john_main_process)
-				fprintf(stderr, "Note: Ignoring SingleRetestGuessed option because only one salt is loaded.\n"
-				                "      You can force it with --single-retest-guess\n");
-		}
+	if (john_main_process && single_db->salt_count > 1) {
+		if (!retest_guessed)
+			fprintf(stderr, "Will not try cracked passwords against other salts\n");
+
+		if (options.seed_per_user && !retest_guessed && option_retest == -1)
+			fprintf(stderr, "Note: You might want --single-retest-guess when using --single-user-seed\n");
 	}
-
-	if (!retest_guessed && john_main_process)
-		fprintf(stderr, "Will not try cracked passwords against other salts\n");
-
-	if (options.seed_per_user && retest_guessed && option_retest == -1)
-		fprintf(stderr, "Note: You might want --single-retest-guess when using --single-user-seed\n");
 
 	if ((words_pair_max = options.single_pair_max) < 0)
 	if ((words_pair_max = cfg_get_int(SECTION_OPTIONS, NULL, "SingleWordsPairMax")) < 0)
