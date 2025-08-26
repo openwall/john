@@ -21,6 +21,8 @@
 .DS_Store
 *.pyc
 
+Makefile.dep
+
 Makefile
 john-local.conf
 
@@ -71,6 +73,9 @@ run/unshadow
 run/vncpcap2john
 run/wpapcap2john
 run/zip2john
+
+.deps
+.deps/
 
 src/.gdbinit
 src/mbedtls/aes.a
