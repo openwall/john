@@ -471,4 +471,5 @@ struct fmt_main fmt_nsec3 = {
 		cmp_exact
 	}
 };
-#endif  /* plugin */
+
+#endif	/* plugin stanza */

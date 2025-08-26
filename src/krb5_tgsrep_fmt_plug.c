@@ -258,5 +258,5 @@ struct fmt_main fmt_krb5tgs_aes = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */
 #endif /* HAVE_LIBCRYPTO */

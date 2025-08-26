@@ -21,8 +21,9 @@
 
 #if FMT_REGISTERS_H
 john_register_one(&FORMAT_STRUCT);
-#else
+#elif FMT_EXTERNS_H
 extern struct fmt_main FORMAT_STRUCT;
+#else
 
 #include "o5logon_common.h"
 #include "opencl_common.h"
@@ -55,6 +56,8 @@ static int static_gpu_locations[MASK_FMT_INT_PLHDR];
 static const cl_uint zero = 0;
 
 static int new_keys;
+
+extern struct fmt_main FORMAT_STRUCT;
 
 #include "opencl_autotune.h" // Must come after auto-tune definitions
 
@@ -402,5 +405,4 @@ struct fmt_main FORMAT_STRUCT = {
 };
 
 #endif /* plugin stanza */
-
 #endif /* HAVE_OPENCL */

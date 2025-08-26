@@ -28,14 +28,6 @@
  * up the crypts A LOT (~3x faster).
  */
 
-#include <string.h>
-
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
-#include "arch.h"
-
 #if FMT_EXTERNS_H
 extern struct fmt_main fmt_truecrypt;
 extern struct fmt_main fmt_truecrypt_ripemd160;
@@ -50,6 +42,13 @@ john_register_one(&fmt_truecrypt_sha512);
 john_register_one(&fmt_truecrypt_whirlpool);
 #else
 
+#include <string.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#include "arch.h"
 #include "xts.h"
 #include "misc.h"
 #include "memory.h"

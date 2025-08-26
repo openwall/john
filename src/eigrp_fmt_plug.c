@@ -382,4 +382,4 @@ struct fmt_main fmt_eigrp = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */

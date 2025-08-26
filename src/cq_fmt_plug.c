@@ -526,4 +526,4 @@ struct fmt_main fmt_cq = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */

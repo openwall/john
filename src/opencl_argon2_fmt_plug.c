@@ -1344,5 +1344,5 @@ struct fmt_main fmt_opencl_keepass_argon2 = {
 	}
 };
 
-#endif	/* FMT_EXTERNS_H */
+#endif	/* plugin stanza */
 #endif	/* HAVE_OPENCL */

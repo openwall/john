@@ -263,4 +263,4 @@ struct fmt_main fmt_dahua = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */

@@ -10,7 +10,7 @@
 extern struct fmt_main fmt_restic;
 #elif FMT_REGISTERS_H
 john_register_one(&fmt_restic);
-#endif
+#else
 
 #include <string.h>
 
@@ -370,3 +370,5 @@ struct fmt_main fmt_restic = {
 		cmp_exact
 	}
 };
+
+#endif /* plugin stanza */

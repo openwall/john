@@ -346,4 +346,4 @@ struct fmt_main fmt_axcrypt =
 	}
 };
 
-#endif
+#endif	/* plugin stanza */

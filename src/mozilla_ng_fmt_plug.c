@@ -457,5 +457,5 @@ struct fmt_main fmt_mozilla = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */
 #endif /* HAVE_LIBCRYPTO */

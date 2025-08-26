@@ -403,5 +403,5 @@ struct fmt_main fmt_krb5asrep = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */
 #endif /* HAVE_LIBCRYPTO */

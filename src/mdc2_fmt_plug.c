@@ -240,5 +240,5 @@ struct fmt_main fmt_mdc2 = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */
 #endif /* HAVE_LIBCRYPTO */

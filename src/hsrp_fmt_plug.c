@@ -302,4 +302,4 @@ struct fmt_main fmt_hsrp = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */

@@ -609,4 +609,4 @@ struct fmt_main fmt_rsvp = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */

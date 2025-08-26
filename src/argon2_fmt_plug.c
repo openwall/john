@@ -503,4 +503,4 @@ struct fmt_main fmt_argon2 = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */

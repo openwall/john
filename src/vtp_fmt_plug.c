@@ -435,4 +435,4 @@ struct fmt_main fmt_vtp = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */

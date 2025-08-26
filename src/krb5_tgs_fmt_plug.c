@@ -249,4 +249,4 @@ struct fmt_main fmt_krb5tgs = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */

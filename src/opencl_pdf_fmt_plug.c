@@ -10,8 +10,9 @@
 
 #if FMT_REGISTERS_H
 john_register_one(&FORMAT_STRUCT);
-#else
+#elif FMT_EXTERNS_H
 extern struct fmt_main FORMAT_STRUCT;
+#else
 
 #include "pdf_common.h"
 #include "opencl_common.h"
@@ -41,6 +42,8 @@ static char *kernel_name[4] = { "pdf_r2", "pdf_r34", "pdf_r5", "pdf_r6" };
 
 #define STEP			0
 #define SEED			1024
+
+extern struct fmt_main FORMAT_STRUCT;
 
 // This file contains auto-tuning routine(s). Has to be included after formats definitions.
 #include "opencl_autotune.h"

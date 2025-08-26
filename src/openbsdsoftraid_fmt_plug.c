@@ -248,4 +248,4 @@ struct fmt_main fmt_openbsd_softraid = {
 	}
 };
 
-#endif
+#endif	/* plugin stanza */
