@@ -688,7 +688,7 @@ all:
 	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
 	done && test -z "$$fail"
 
-distclean: clean
+distclean: clean kernel-cache-clean-john
 	$(RM) -r $(DEPDIR)
 	$(RM) -r autom4te.cache
 	@for dir in ${subdirs}; do \
