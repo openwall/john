@@ -114,7 +114,7 @@ john_register_one(&fmt_rar);
 #include <omp.h>
 #endif
 
-#include "rar_common.c"
+#include "rar_common.h"
 
 // these are supposed to be stack arrays; however gcc cannot correctly align
 // stack arrays so we have to use global arrays; we may switch back to stack

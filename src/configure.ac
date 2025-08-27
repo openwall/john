@@ -64,7 +64,6 @@ AC_ARG_ENABLE([asan], [AS_HELP_STRING([--enable-asan], [* Build with AddressSani
 AC_ARG_ENABLE([ubsan], [AS_HELP_STRING([--enable-ubsan], [* Build with UndefinedBehaviorSanitizer])], [ubsan=$enableval], [ubsan=no])
 AC_ARG_ENABLE([ubsantrap], [AS_HELP_STRING([--enable-ubsantrap], [* Build with UndefinedBehaviorSanitizer, crashes on failure])], [ubsantrap=$enableval], [ubsantrap=no])
 AC_ARG_ENABLE([simd], [AS_HELP_STRING([--disable-simd, --enable-simd=foo], [* Build forcing SIMD logic to be disabled, or force use of "foo" for SIMD (eg. --enable-simd=altivec)])], [simd=$enableval], [simd=yes])
-AC_ARG_ENABLE([plugin-dependencies], [AS_HELP_STRING([--disable-plugin-dependencies], [Do not create best-effort Makefile dependencies for plugins])], [plug_deps=$enableval], [plug_deps=yes])
 
 AC_ARG_ENABLE([werror], [AS_HELP_STRING([--enable-werror], [Treat warnings as errors])], [werror=$enableval], [werror=no])
 
@@ -1047,30 +1046,6 @@ dnl      AC_DEFINE([DYNAMIC_DISABLED], 1, [Disables Dynamic format completely])
 dnl   fi
 dnl fi
 
-dnl ======================================================================
-dnl Code  to create @PLUGFORMATS_OBJS@ and
-dnl john_buildrule.h moved from Makefile.in to here.
-dnl don't build opencl_*plug.c unless an opencl build
-dnl ======================================================================
-if test x$using_cl = xyes ; then
-  AC_MSG_NOTICE([creating *_plug.c and OpenCL object rules])
-else
-  AC_MSG_NOTICE([creating *_plug.c rules])
-fi
-if test "`echo *_plug.c`" != "*_plug.c"; then
-   AC_SUBST([PLUGFORMATS_OBJS],[`echo *_plug.c | sed 's/opencl[[A-Za-z0-9_\-]]*\.c //g;s/\.c/.o/g'`])
-   AC_SUBST([OPENCL_PLUGFORMATS_OBJS],[`echo opencl*_plug.c | sed 's/\.c/.o/g'`])
-   if test "x$plug_deps" = xyes -a "x$PERL" != x ; then
-      AC_MSG_NOTICE([creating Makefile dependencies])
-
-      dnl   The "plugin_deps.pl" script isn't clever enough to detect when
-      dnl   #include statements are ifdef'ed out, so we direct the warnings
-      dnl   to /dev/null. The mbedTLS directory has lots of inactive code
-      dnl   which otherwise triggering warnings for "missing" files.
-      AC_SUBST([PLUGFORMATS_DEPS],[`$PERL ./plugin_deps.pl 2>/dev/null *_plug.c`])
-   fi
-fi
-
 AC_MSG_NOTICE([creating ./john_build_rule.h])
 echo "#define JOHN_BLD \"${host_os} ${CPU_BIT_STR}-bit${using_x32} ${host_cpu} ${SIMD_NAME} AC\"" > john_build_rule.h
 
@@ -1091,50 +1066,6 @@ dnl This actually writes Makefile et al.
 AC_OUTPUT(,echo "timestamp from configure.in" > autoconfig-stamp-h)
 
 CFLAGS_EXTRA=$CFLAGS_EXTRA_BACKUP
-
-dnl ======================================================================
-dnl Create fmt_externs.h and fmt_registers.h
-dnl This needs arch.h to be linked so can't happen before
-dnl AC_OUTPUT
-dnl ======================================================================
-AC_MSG_NOTICE([creating ./fmt_externs.h])
-rm -f fmt_externs.h
-
-CFLAGS_EX2=
-if test "x$simd" = xno ; then
-   CFLAGS_EX2=-DJOHN_NO_SIMD
-fi
-
-if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_EXTERNS_H *_fmt_plug.c | LC_ALL=C $GREP "extern struct fmt_main" | LC_ALL=C $SORT -f > fmt_externs.h
-fi
-dnl if the file was not created, then bail.
-if test -f fmt_externs.h -a ! -s fmt_externs.h; then
-  cp Makefile.stub Makefile
-  AC_MSG_ERROR([The build of fmt_externs.h failed. Can not continue!])
-fi
-dnl if file does not exist, then create a blank one (i.e. no *_plug.c files)
-if test ! -f fmt_externs.h; then
-  echo >fmt_externs.h
-fi
-AC_MSG_NOTICE([creating ./fmt_registers.h])
-rm -f fmt_registers.h
-if test "`echo *_fmt_plug.c`" != "*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H *_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f > fmt_registers.h
-fi
-dnl if the file was not created, then bail.
-if test -f fmt_registers.h -a ! -s fmt_registers.h; then
-  cp Makefile.stub Makefile
-  AC_MSG_ERROR([The build of fmt_registers.h failed. Can not continue!])
-fi
-dnl if file does not exist, then create a blank one (i.e. no *_plug.c files)
-if test ! -f fmt_registers.h; then
-  echo >fmt_registers.h
-fi
-
-if test "`echo opencl_*_fmt_plug.c`" != "opencl_*_fmt_plug.c"; then
-   $CPP -P -DAC_BUILT $CFLAGS_EX2 $CPPFLAGS $CPU_BEST_FLAGS $CFLAGS $HAVE_OPENCL $CFLAGS_EXTRA $OPENMP_CFLAGS $OPENSSL_CFLAGS -DFMT_REGISTERS_H opencl_*_fmt_plug.c | LC_ALL=C $GREP "john_register_one" | LC_ALL=C $SORT -f >> fmt_registers.h
-fi
 
 dnl ======================================================================
 dnl            ONLY _COSMETICAL_ OUTPUT STUFF BELOW THIS LINE

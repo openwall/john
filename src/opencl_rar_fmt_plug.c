@@ -129,7 +129,7 @@ static size_t max_blob_size;
 static int salt_single;
 
 #define RAR_OPENCL_FORMAT
-#include "rar_common.c"
+#include "rar_common.h"
 
 static void release_clobj(void);
 

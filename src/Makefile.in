@@ -32,7 +32,7 @@ TR = tr
 SED = @SED@
 FIND = @FIND@
 NULL = /dev/null
-SORT = @SORT@
+SORT = LC_ALL=C @SORT@
 STRIP = @STRIP@
 PEFLAGS = peflags --dynamicbase=true --nxcompat=true
 
@@ -72,7 +72,11 @@ OPT_NORMAL = @OPT_NORMAL_FLAGS@
 OPT_INLINE = @OPT_INLINE_FLAGS@
 #
 
-PLUGFORMATS_OBJS = @PLUGFORMATS_OBJS@
+PLUGFORMATS_SRCS := $(filter-out opencl_%_fmt_plug.c, $(wildcard *_fmt_plug.c))
+PLUGIN_OBJS := $(filter-out opencl_%_plug.c, $(wildcard *_plug.c))
+PLUGIN_OBJS := $(PLUGIN_OBJS:.c=.o)
+OPENCL_PLUGIN_OBJS := $(wildcard opencl*_plug.c)
+OPENCL_PLUGIN_OBJS := $(OPENCL_PLUGIN_OBJS:.c=.o)
 
 JOHN_OBJS = \
 	jumbo.o john_mpi.o \
@@ -100,7 +104,7 @@ JOHN_OBJS = \
 	@UNRAR_OBJS@ \
 	rar2john.o \
 	zip2john.o pkzip.o \
-	$(PLUGFORMATS_OBJS) \
+	$(PLUGIN_OBJS) \
 	dyna_salt.o dummy.o \
 	gost.o \
 	gpu_common.o \
@@ -125,9 +129,7 @@ JOHN_OBJS = \
 	showformats.o \
 	color.o
 
-OCL_OBJS = opencl_common.o opencl_dynamic_loader.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
-
-OPENCL_PLUGFORMATS_OBJS = @OPENCL_PLUGFORMATS_OBJS@
+OPENCL_OBJS = opencl_common.o opencl_dynamic_loader.o opencl_autotune.o bt.o bt_hash_type_64.o bt_hash_type_128.o bt_hash_type_192.o bt_twister.o
 
 ZTEX_OBJS = ztex_descrypt.o ztex_bcrypt.o ztex_sha512crypt.o ztex_drupal7.o ztex_sha256crypt.o ztex_md5crypt.o ztex_phpass.o ztex_common.o
 
@@ -154,7 +156,8 @@ WITH_OPENCL=@CL_LIBS@
 ifdef WITH_OPENCL
 CFLAGS += -DHAVE_OPENCL @CL_CFLAGS@
 CFLAGS_MAIN += -DHAVE_OPENCL @CL_CFLAGS@
-JOHN_OBJS += $(OCL_OBJS) $(OPENCL_PLUGFORMATS_OBJS)
+PLUGFORMATS_SRCS += $(wildcard opencl_*_fmt_plug.c)
+JOHN_OBJS += $(OPENCL_OBJS) $(OPENCL_PLUGIN_OBJS)
 
 # core OpenCL dependencies
 CL_DEVICE_HEADER = ../run/opencl/opencl_device_info.h
@@ -191,7 +194,6 @@ endif
 #
 #########################################################
 default:
-	$(MAKE) find_version
 	@$(MAKE) $(PROJ) \
 		JOHN_OBJS="$(JOHN_OBJS) @CC_ASM_OBJS@"
 
@@ -234,15 +236,30 @@ options.o: options.c options.h version.h
 
 listconf.o: listconf.c listconf.h version.h
 
-version.h: find_version
+# Phony without the side-effects
+FORCE:
 
-find_version:
-	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > version.h.new
-	diff >/dev/null 2>/dev/null version.h.new version.h && $(RM) version.h.new || $(MV) version.h.new version.h
+version.h.new: FORCE
+	echo "#define JTR_GIT_VERSION $(JTR_GIT_VERSION)" > $@
+
+version.h: version.h.new
+	cmp -s $@.new $@ && $(RM) $@.new || $(MV) $@.new $@
+
+# Rebuild the list of plugins, but don't bump timestamp unless content changed.
+.plugin_fmt_list: FORCE
+	@echo $(PLUGFORMATS_SRCS) > $@.new
+	cmp -s $@.new $@ && $(RM) $@.new || $(MV) $@.new $@
+
+# These are SLOW nowadays, lots of plugins.
+fmt_externs.h: .plugin_fmt_list
+	$(CC) -DFMT_EXTERNS_H -E -P $(CFLAGS) $(PLUGFORMATS_SRCS) | grep -F "extern struct fmt_main" | $(SORT) -f > $@
+
+fmt_registers.h: .plugin_fmt_list
+	$(CC) -DFMT_REGISTERS_H -E -P $(CFLAGS) $(PLUGFORMATS_SRCS) | grep -F "john_register_one" | $(SORT) -f > $@
+
+.PHONY: subdirs $(SUBDIRS)
 
 SUBDIRS = mbedtls secp256k1 ed25519-donna poly1305-donna @ZTEX_SUBDIRS@
-
-.PHONY: subdirs $(SUBDIRS) find_version
 
 subdirs: $(SUBDIRS)
 
@@ -415,7 +432,7 @@ poly1305-donna/poly1305-donna.a:
 ../run/tgtsnarf@EXE_EXT@: tgtsnarf.o
 	$(LD) tgtsnarf.o $(LDFLAGS) @OPENMP_CFLAGS@ -o $@
 
-john.o:	john.c autoconfig.h os.h os-autoconf.h jumbo.h arch.h params.h openssl_local_overrides.h misc.h path.h memory.h list.h tty.h signals.h common.h idle.h formats.h dyna_salt.h loader.h logger.h status.h recovery.h options.h getopt.h config.h bench.h fuzz.h charset.h single.h wordlist.h prince.h inc.h mask.h mkv.h mkvlib.h external.h compiler.h batch.h dynamic.h simd-intrinsics.h pseudo_intrinsics.h aligned.h simd-intrinsics-load-flags.h dynamic_compiler.h fake_salts.h listconf.h crc32.h john_mpi.h regex.h unicode.h $(CL_COMMON_HEADER) $(CL_DEVICE_HEADER) john_build_rule.h fmt_externs.h fmt_registers.h subsets.h
+john.o: john.c john.h fmt_externs.h fmt_registers.h
 	$(CC) $(CFLAGS_MAIN) $(OPT_NORMAL) -O1 $*.c
 
 path.o: path.c path.h autoconfig.h arch.h params.h misc.h memory.h
@@ -695,11 +712,11 @@ distclean: clean kernel-cache-clean-john
 	  (cd $$dir && $(MAKE) distclean) \
 	  || case "$(MFLAGS)" in *k*) fail=yes;; *) exit 1;; esac; \
 	done && test -z "$$fail"
-	$(RM) Makefile autoconfig.h config.status config.cache \
-		config.log autoconfig-stamp-h autoconfig-stamp-h-in stamp-h1
+	$(RM) Makefile autoconfig.h config.status config.cache arch.h \
+		config.log autoconfig-stamp-h autoconfig-stamp-h-in stamp-h1 \
+		fmt_registers.h fmt_externs.h dynamic_big_crypt.c john_build_rule.h \
+		version.h .plugin_fmt_list
 	$(LN) Makefile.stub Makefile
-	$(RM) arch.h
-	$(RM) fmt_registers.h fmt_externs.h dynamic_big_crypt.c john_build_rule.h version.h version.h.new
 
 strip: default
 	@echo Stripping executables.
