@@ -227,6 +227,16 @@ if test "x$ubsantrap" = xyes ; then
    LDFLAGS=${LDFLAGS_BAK}
 fi
 
+   dnl Enable auto dependency generation if supported by the compiler
+   CFLAGS_EX=""
+   JTR_FLAG_CHECK([-MMD -MP -MF conftest.d], 1)
+   if test "x${CFLAGS_EX}" != x ; then
+      if test $(grep -Ec "conftest.o: +conftest.c" conftest.d) = 1; then
+         AC_SUBST([DEPFLAGS],['-MMD -MP -MF $(DEPDIR)/$(notdir $*).d'])
+      else
+         AC_MSG_RESULT([Unexpected conftest.d content, disabling auto dependency generation])
+      fi
+   fi
 
    dnl now fill out CFLAGS
    CFLAGS_EX=""

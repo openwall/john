@@ -59,21 +59,11 @@ ifdef JTR_RAW_BINARY
 JTR_GIT_VERSION = JUMBO_VERSION \"-stabilized\"
 endif
 
-GCC_OR_CLANG := $(shell $(CC) -v 2>&1 | grep -E '(gcc|clang)' || true)
-ifneq ($(GCC_OR_CLANG),)
-  ##### Auto dependency generation
-  DEPDIR := .deps
-  DEPFLAGS = -MMD -MP -MF $(DEPDIR)/$(notdir $*).d
-else
-  ##### No auto dependency generation (more portable)
-  DEPFLAGS =
-endif
-
 CPPFLAGS = @CPPFLAGS@
 CFLAGSX = -c @CFLAGS@ @JOHN_NO_SIMD@ @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ $(CPPFLAGS)
 # CFLAGS for use on the main john.c file only
-CFLAGS_MAIN = $(DEPFLAGS) -DAC_BUILT @CC_MAIN_CPU@ $(CFLAGSX)
-CFLAGS = $(DEPFLAGS) -DAC_BUILT @CC_CPU@ @CC_MAIN_CPU@ $(CFLAGSX)
+CFLAGS_MAIN = @DEPFLAGS@ -DAC_BUILT @CC_MAIN_CPU@ $(CFLAGSX)
+CFLAGS = @DEPFLAGS@ -DAC_BUILT @CC_CPU@ @CC_MAIN_CPU@ $(CFLAGSX)
 ASFLAGS = -DAC_BUILT @ASFLAGS@ @JOHN_NO_SIMD@ @CC_CPU@ @CC_MAIN_CPU@ -c @OPENMP_CFLAGS@ @HAVE_MPI@ @EXTRA_AS_FLAGS@
 LIBS = @LIBS@
 LDFLAGS = -g @LDFLAGS@ $(LIBS) @HAVE_MPI@
@@ -235,7 +225,7 @@ digipaq-alpha.o: alpha.S
 	$(RM) tmp.s
 
 princeprocessor:
-	$(CC) $(DEPFLAGS) @CFLAGS@ @JOHN_NO_SIMD@ @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ $(CPPFLAGS) $(OPT_NORMAL) -DLINUX pp.c $(LDFLAGS) -o ../run/pp
+	$(CC) @DEPFLAGS@ @CFLAGS@ @JOHN_NO_SIMD@ @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ @HAVE_MPI@ @PTHREAD_CFLAGS@ $(CPPFLAGS) $(OPT_NORMAL) -DLINUX pp.c $(LDFLAGS) -o ../run/pp
 
 pp.o:	pp.c autoconfig.h arch.h mem_map.h os.h os-autoconf.h jumbo.h mmap-windows.c memory.h mpz_int128.h int128.h misc.h config.h params.h common.h path.h signals.h loader.h list.h formats.h logger.h status.h recovery.h options.h getopt.h external.h compiler.h cracker.h john.h unicode.h prince.h rpp.h rules.h mask.h
 	$(CC) $(CFLAGS) $(OPT_NORMAL) -DJTR_MODE -c pp.c
@@ -385,22 +375,22 @@ poly1305-donna/poly1305-donna.a:
 	$(LD) SIPdump.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o $@
 
 ../run/vncpcap2john@EXE_EXT@: vncpcap2john.o
-	$(CC) $(DEPFLAGS) -DAC_BUILT -Wall vncpcap2john.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o $@
+	$(CC) @DEPFLAGS@ -DAC_BUILT -Wall vncpcap2john.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o $@
 
 ../run/eapmd5tojohn@EXE_EXT@: eapmd5tojohn.o
-	$(CC) $(DEPFLAGS) -DAC_BUILT -Wall eapmd5tojohn.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o $@
+	$(CC) @DEPFLAGS@ -DAC_BUILT -Wall eapmd5tojohn.o $(LDFLAGS) @PCAP_LIBS@ @OPENMP_CFLAGS@ -o $@
 
 ../run/uaf2john@EXE_EXT@: uaf2john.o uaf_encode.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ uaf2john.o uaf_encode.o @OPENMP_CFLAGS@ -o $@
 
 ../run/keepass2john@EXE_EXT@: keepass2john.c jumbo.c base64_convert.c misc.c common.c memory.c sha2.o
-	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ $(DEPFLAGS) @CFLAGS@ @OPENSSL_CFLAGS@ @CFLAGS_EXTRA@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ keepass2john.c jumbo.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c sha2.o $(LDFLAGS) @OPENMP_CFLAGS@ @OPENSSL_LIBS@ -o $@
+	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @DEPFLAGS@ @CFLAGS@ @OPENSSL_CFLAGS@ @CFLAGS_EXTRA@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ keepass2john.c jumbo.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c sha2.o $(LDFLAGS) @OPENMP_CFLAGS@ @OPENSSL_LIBS@ -o $@
 
 ../run/dmg2john@EXE_EXT@: dmg2john.o jumbo.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ dmg2john.o jumbo.o @OPENMP_CFLAGS@ -o $@
 
 ../run/bitlocker2john@EXE_EXT@: bitlocker2john.c jumbo.c base64_convert.c misc.c common.o memory.c
-	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ $(DEPFLAGS) @CFLAGS@ @OPENSSL_CFLAGS@ @CFLAGS_EXTRA@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ bitlocker2john.c jumbo.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c  $(LDFLAGS) @OPENMP_CFLAGS@ @OPENSSL_LIBS@ -o $@
+	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @DEPFLAGS@ @CFLAGS@ @OPENSSL_CFLAGS@ @CFLAGS_EXTRA@ @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ bitlocker2john.c jumbo.c base64_convert.c -D_JOHN_MISC_NO_LOG misc.c common.c memory.c  $(LDFLAGS) @OPENMP_CFLAGS@ @OPENSSL_LIBS@ -o $@
 
 ../run/racf2john@EXE_EXT@: racf2john.o jumbo.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ racf2john.o jumbo.o @OPENMP_CFLAGS@ -o $@
@@ -417,7 +407,7 @@ poly1305-donna/poly1305-donna.a:
 
 # Note, this one is NOT build by default. To get it, do a make ../run/dynacomptest (or ../run/dynacomptest.exe for cygwin/mingw builds)
 ../run/dynacomptest@EXE_EXT@: dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha1.o sha2.o
-	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ $(DEPFLAGS) @CFLAGS@ @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha1.o sha2.o $(LDFLAGS)  @OPENSSL_LIBS@ -o $@
+	$(CC) -DAC_BUILT -Wall -O2 @CPPFLAGS@ @DEPFLAGS@ @CFLAGS@ @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ @OPENMP_CFLAGS@ -DWITH_MAIN -D_JOHN_MISC_NO_LOG -DUNICODE_NO_OPTIONS dynamic_compiler.c dynamic_compiler_lib.c dynamic_utils.c misc.c unicode.c base64_convert.o base64.o common.o crc32.o KeccakDuplex.o KeccakF-1600-opt64.o KeccakHash.o KeccakSponge.o gost.o jumbo.o memory.o ripemd.o tiger.o haval.o skein.o md2.o panama.o whirlpool.o sha1.o sha2.o $(LDFLAGS)  @OPENSSL_LIBS@ -o $@
 
 ../run/cprepair@EXE_EXT@: cprepair.c autoconfig.h unicode.c unicode.h options.h misc.h misc.c
 	$(CC) -DAC_BUILT -Wall -O3 @CFLAGS_EXTRA@ @OPENSSL_CFLAGS@ -DNOT_JOHN -D_JOHN_MISC_NO_LOG $(CPPFLAGS) cprepair.c unicode.c misc.c memory.c -o $@
@@ -435,22 +425,24 @@ path.o: path.c path.h autoconfig.h arch.h params.h misc.h memory.h
 unrarppm.o:	unrarppm.c arch.h aes.h autoconfig.h unrar.h unrarhlp.h memory.h jumbo.h unrarppm.h unrarvm.h unrarcmd.h unrarfilter.h common.h os.h os-autoconf.h
 	$(CC) -DAC_BUILT $(CFLAGS) $< -o $@
 
-GCC_OR_CLANG := $(shell $(CC) -v 2>&1 | grep -E '(gcc|clang)' || true)
-ifneq ($(GCC_OR_CLANG),)
+AUTODEP=@DEPFLAGS@
+ifdef AUTODEP
 
 ##### Auto dependency generation
-%.o: %.c | $(DEPDIR)
-	$(CC) $(CFLAGS) $(OPT_NORMAL) -c $< -o $@
+DEPDIR := .deps
 
 $(DEPDIR):
 	@mkdir -p $@
+
+%.o: %.c | $(DEPDIR)
+	$(CC) $(CFLAGS) $(OPT_NORMAL) -c $< -o $@
 
 DEPFILES := $(JOHN_OBJS:%.o=$(DEPDIR)/$(notdir %.d))
 include $(wildcard $(DEPFILES))
 
 else
 
-##### No auto dependency generation (more portable)
+##### Auto dependency generation not supported by compiler
 .c.o:
 	$(CC) $(CFLAGS) $(OPT_NORMAL) $< -o $@
 
