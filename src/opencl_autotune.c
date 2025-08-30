@@ -87,23 +87,6 @@ size_t autotune_get_task_max_work_group_size(int use_local_memory,
 	return max_available;
 }
 
-/* Can be used to select a 'good' default gws size */
-size_t autotune_get_task_max_size(int multiplier, int keys_per_core_cpu,
-                                int keys_per_core_gpu, cl_kernel crypt_kernel)
-{
-	size_t max_available;
-
-	max_available = get_max_compute_units(gpu_id);
-
-	if (cpu(device_info[gpu_id]))
-		return max_available * keys_per_core_cpu;
-	else if (gpu_intel(device_info[gpu_id]))
-		return 0;
-	else
-		return max_available * multiplier * keys_per_core_gpu *
-			get_kernel_max_lws(gpu_id, crypt_kernel);
-}
-
 /* --
    This function could be used to calculated the best local
    group size for the given format
