@@ -966,6 +966,10 @@ static void print_and_cleanup(zip_context *ctx)
 			"If that is not the case, the hash may be uncrackable. To avoid this, use\n"
 			"option -o to pick a file at a time.\n");
 
+	// Give warning to user for potentially large output of zip2john
+	fprintf(stderr,
+		"Note: It is normal for some outputs to be very large\n");
+
 	for (i = 0; i < ctx->num_candidates; ++i) {
 		MEM_FREE(ctx->best_files[i].hash_data);
 		MEM_FREE(ctx->best_files[i].file_name);
