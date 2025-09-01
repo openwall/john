@@ -83,6 +83,7 @@ static xsha512_hash *ghash;
 static xsha512_salt gsalt;
 static uint8_t new_keys;
 static uint8_t hash_copy_back;
+static uint32_t zero;
 
 //OpenCL variables:
 static cl_mem mem_in, mem_out, mem_salt, mem_binary, mem_cmp;
@@ -383,6 +384,10 @@ static int cmp_all(void *binary, int count)
 	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_binary,
 		CL_FALSE, 0, sizeof(uint64_t), ((uint64_t *) binary) + 3, 0,
 		NULL, multi_profilingEvent[2]), "Copy mem_binary");
+
+	// Clear result (race condition if done in kernel)
+	BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_cmp, CL_FALSE, 0,
+		sizeof(uint32_t), &zero, 0, NULL, NULL), "Clear result buffer");
 
 	///Run kernel
 	BENCH_CLERROR(clEnqueueNDRangeKernel
