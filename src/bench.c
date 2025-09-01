@@ -705,7 +705,7 @@ int benchmark_all(void)
 #ifndef BENCH_BUILD
 #if defined(WITH_ASAN) || defined(WITH_UBSAN) || defined(DEBUG)
 	if (benchmark_time)
-		puts_color(color_notice, "NOTE: This is a debug build, speed will be lower than normal");
+		puts_color(color_notice, "Note: This is a debug build, speed will be lower than normal");
 #endif
 
 	if ((options.flags & FLG_LOOPTEST_CHK) && system("which nvidia-smi >/dev/null") == 0) {

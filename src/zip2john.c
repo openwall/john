@@ -962,7 +962,7 @@ static void print_and_cleanup(zip_context *ctx)
 
 	if (ctx->num_candidates > 1 && !once++)
 		fprintf(stderr,
-			"NOTE: It is assumed that all files in each archive have the same password.\n"
+			"Note: It is assumed that all files in each archive have the same password.\n"
 			"If that is not the case, the hash may be uncrackable. To avoid this, use\n"
 			"option -o to pick a file at a time.\n");
 

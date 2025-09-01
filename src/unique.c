@@ -563,7 +563,7 @@ int unique(int argc, char **argv)
 "-ex_file_only=FILE assumes the input is already unique, and only checks\n"
 "                   against FILE (again the latter is not written to)\n"
 "\n"
-"NOTE that if you try to use more memory than actually available physical\n"
+"Note that if you try to use more memory than actually available physical\n"
 "memory, performance will just drop.\n\n",
 		        UNIQUE_HASH_LOG,
 			human_prefix(UNIQUE_HASH_SIZE * sizeof(buffer.hash) +
