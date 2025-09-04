@@ -403,7 +403,7 @@ static void single_init(void)
 	 */
 	if (words_pair_max && single_seed->count) {
 		words_pair_max += single_seed->count;
-		log_event("- SingleWordsPairMax increased for %d global seed words",
+		log_event("- SingleWordsPairMax increased for %ld global seed words",
 		          single_seed->count);
 	}
 	if (words_pair_max && log2(key_count) > words_pair_max) {

@@ -1335,12 +1335,12 @@ static void john_load(void)
 		} while ((current = current->next));
 
 		if (loop_db.plaintexts->count) {
-			log_event("- Reassembled %d split passwords for "
+			log_event("- Reassembled %ld split passwords for "
 			          "loopback", loop_db.plaintexts->count);
 			if (john_main_process &&
 			    options.verbosity >= VERB_DEFAULT)
 				fprintf(stderr,
-				        "Reassembled %d split passwords for "
+				        "Reassembled %ld split passwords for "
 				        "loopback\n",
 				        loop_db.plaintexts->count);
 		}

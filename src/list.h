@@ -31,7 +31,7 @@ struct list_entry {
 struct list_main {
 	struct list_entry *head, *tail;
 
-	int count;
+	long count;
 };
 
 /*
