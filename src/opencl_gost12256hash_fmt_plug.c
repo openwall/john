@@ -91,7 +91,7 @@ typedef struct {
 } statebuf;
 
 typedef struct {
-	uint64_t C[8][12];
+	uint64_t C[12][8];
 	uint64_t Ax[8][256];
 } localbuf;
 

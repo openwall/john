@@ -39,7 +39,7 @@
 #define STREEBOG_LOCAL_C    0
 #endif
 
-#define STREEBOG_VECTOR     1
+#define STREEBOG_VECTOR     0
 #define STREEBOG_UNROLL     0
 
 #if STREEBOG_LOCAL_AX
