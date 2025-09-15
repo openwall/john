@@ -924,10 +924,18 @@ static void print_and_cleanup(zip_context *ctx)
 	filenames = xstrdup(ctx->best_files[0].file_name);
 	bname = jtr_basename(ctx->archive.fname);
 
-	printf("%s%s%s:$pkzip$%x*%x*", bname,
-			 ctx->num_candidates == 1 ? "/" : "",
-			 ctx->num_candidates == 1 ? ctx->best_files[0].file_name : "",
-			 ctx->num_candidates, ctx->archive.check_bytes);
+	if (ctx->num_candidates == 1) {
+		/* sanitize here, as we don't need the raw file_name any more when exiting this function */
+		replace(ctx->best_files[0].file_name, ':', ' ');
+
+		printf("%s/%s:$pkzip$%x*%x*", bname,
+						ctx->best_files[0].file_name,
+						ctx->num_candidates,
+						ctx->archive.check_bytes);
+	} else {
+		printf("%s:$pkzip$%x*%x*", bname, ctx->num_candidates, ctx->archive.check_bytes);
+	}
+
 	if (checksum_only)
 		i = 0;
 	for (; i < ctx->num_candidates; ++i) {
