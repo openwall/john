@@ -66,9 +66,9 @@ void showformats_skipped(const char *origin, char **login, char **ciphertext,
 	int fs = db_opts->field_sep_char;
 
 	if (!db_opts->showformats_old) {
-		/* NOTE: closing "]" for JSON is in john.c. */
+		/* NOTE: outer "[" and "]" for JSON are printed in john.c. */
 		printf("%s{\"lineNo\":%d,",
-		       line_no == 1 ? "[" : ",\n",
+		       line_no == 1 ? "" : ",\n",
 		       line_no);
 		if (login && **login)
 			printf("\"login\":\"%s\",",
@@ -158,9 +158,9 @@ void showformats_regular(char **login, char **ciphertext,
 	 * by number of line.
 	 */
 	if (!db_opts->showformats_old) {
-		/* NOTE: closing "]" for JSON is in john.c. */
+		/* NOTE: outer "[" and "]" for JSON are printed in john.c. */
 		printf("%s{\"lineNo\":%d,",
-		       line_no == 1 ? "[" : ",\n",
+		       line_no == 1 ? "" : ",\n",
 		       line_no);
 		if (strcmp(*login, "?"))
 			printf("\"login\":\"%s\",",

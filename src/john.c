@@ -1094,7 +1094,10 @@ static void john_load(void)
 			options.loader.flags |= DB_CRACKED;
 			ldr_init_database(&database, &options.loader);
 
-			if (!options.loader.showformats) {
+			if (options.loader.showformats) {
+				if (!options.loader.showformats_old)
+					fputs("[", stdout);
+			} else {
 				ldr_show_pot_file(&database, options.activepot);
 /*
  * Load optional extra (read-only) pot files. If an entry is a directory,
