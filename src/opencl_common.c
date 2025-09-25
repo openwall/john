@@ -2576,17 +2576,19 @@ size_t get_kernel_preferred_multiple(int sequential_id, cl_kernel crypt_kernel)
 void get_compute_capability(int sequential_id, unsigned int *major,
                             unsigned int *minor)
 {
-	clGetDeviceInfo(devices[sequential_id],
-	                CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
-	                sizeof(cl_uint), major, NULL);
-	clGetDeviceInfo(devices[sequential_id],
-	                CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
-	                sizeof(cl_uint), minor, NULL);
-
-	if (!*major) {
+	ret_code = clGetDeviceInfo(devices[sequential_id],
+	                           CL_DEVICE_COMPUTE_CAPABILITY_MAJOR_NV,
+	                           sizeof(cl_uint), major, NULL);
+	if (ret_code == CL_SUCCESS) {
+		clGetDeviceInfo(devices[sequential_id],
+		                CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV,
+		                sizeof(cl_uint), minor, NULL);
+		return;
+	} else {
 /*
- * Apple, VCL and some other environments don't expose CL_DEVICE_COMPUTE_CAPABILITY_MINOR_NV
- * so we need this crap - which is incomplete, best effort matching.
+ * Apple, VCL and some other environments/drivers don't expose
+ * CL_DEVICE_COMPUTE_CAPABILITY_*_NV so we need this incomplete,
+ * best effort matching.
  * http://en.wikipedia.org/wiki/Comparison_of_Nvidia_graphics_processing_units
  */
 		char dname[MAX_OCLINFO_STRING_LEN];
@@ -2596,31 +2598,48 @@ void get_compute_capability(int sequential_id, unsigned int *major,
 		                               sizeof(dname), dname, NULL),
 		               "clGetDeviceInfo for CL_DEVICE_NAME");
 
-		// Ampere 8.0
+		// Blackwell 12.0
+		if (strstr(dname, "RTX 50")) {
+			*major = 12;
+		} else
+		// Ada Lovelace 8.9
+		if (strstr(dname, "RTX 40") || strstr(dname, "L40S")) {
+			*major = 8;
+			*minor = 9;
+		} else
+		// Ampere 8.6
 		if ((strstr(dname, "RTX 30") ||
 		           (strstr(dname, "RTX A") && (dname[5] >= '1' && dname[5] <= '9')) ||
-		     (dname[0] == 'A' && dname[1] >= '1' && dname[1] <= '9')))
+		     (dname[0] == 'A' && dname[1] >= '1' && dname[1] <= '9'))) {
 			*major = 8;
+			*minor = 6;
+		} else
 		// Volta 7.0, Turing 7.5
-		else if (strstr(dname, "TITAN V") || strstr(dname, "RTX 20")) {
+		if (strstr(dname, "TITAN V") || strstr(dname, "RTX 20")) {
 			*major = 7;
 			if (strstr(dname, "RTX 20"))
 				*minor = 5;
-		}
-		// Pascal 6.x
-		else if (strstr(dname, "GT 10") || strstr(dname, "GTX 10") || strcasestr(dname, "TITAN Xp"))
+		} else
+		// Pascal 6.1
+		if (strstr(dname, "GT 10") || strstr(dname, "GTX 10") || strcasestr(dname, "TITAN Xp")) {
 			*major = 6;
-		// Maxwell 5.x
-		else if (strstr(dname, "GT 9") || strstr(dname, "GTX 9") || strstr(dname, "GTX TITAN X"))
+			*minor = 1;
+		} else
+		// Maxwell 5.2
+		if (strstr(dname, "GT 9") || strstr(dname, "GTX 9") || strstr(dname, "GTX TITAN X")) {
 			*major = 5;
-		// Kepler 3.x
-		else if (strstr(dname, "GT 6") || strstr(dname, "GTX 6") ||
-		         strstr(dname, "GT 7") || strstr(dname, "GTX 7") ||
-		         strstr(dname, "GT 8") || strstr(dname, "GTX 8") ||
-		         strstr(dname, "GTX TITAN"))
+			*minor = 2;
+		// Kepler 3.5
+		} else
+		if (strstr(dname, "GT 6") || strstr(dname, "GTX 6") ||
+		    strstr(dname, "GT 7") || strstr(dname, "GTX 7") ||
+		    strstr(dname, "GT 8") || strstr(dname, "GTX 8") ||
+		    strstr(dname, "GTX TITAN")) {
 			*major = 3;
+			*minor = 5;
+		} else
 		// Fermi 2.0
-		else if (strstr(dname, "GT 5") || strstr(dname, "GTX 5"))
+		if (strstr(dname, "GT 5") || strstr(dname, "GTX 5"))
 			*major = 2;
 	}
 }
@@ -2641,19 +2660,19 @@ cl_uint get_processors_count(int sequential_id)
 		unsigned int major = 0, minor = 0;
 
 		get_compute_capability(sequential_id, &major, &minor);
-		if (major == 1)         // 1.x Tesla
+		if (major == 1)	// Tesla
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 8);
-		else if (major == 2 && minor == 0)  // 2.0 Fermi
+		else if (major == 2 && minor == 0)	// // 2.0 Fermi
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 32);
-		else if (major == 2 && minor >= 1)  // 2.1 Fermi
+		else if (major == 2 && minor >= 1)	// // 2.1 Fermi
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 48);
-		else if (major == 3)    // 3.x Kepler
+		else if (major == 3)	// 3.x Kepler
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 192);
-		else if (major == 5)    // 5.x Maxwell
+		else if (major == 5)	// 5.x Maxwell
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-		else if (major == 6)    // 6.x Pascal
+		else if (major == 6)	// Pascal
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 128);
-		else if (major >= 7)    // 7.0 Volta, 7.5 Turing, 8.x Ampere
+		else if (major >= 7) // Volta or newer, verified up to Blackwell (RTX 50xx)
 			core_count *= (ocl_device_list[sequential_id].cores_per_MP = 64);
 	} else if (gpu_intel(device_info[sequential_id])) {
 		// It seems all current models are x 8
