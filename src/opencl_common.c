@@ -3236,7 +3236,7 @@ void opencl_list_devices(void)
 				unsigned int major = 0, minor = 0;
 
 				get_compute_capability(sequence_nr, &major, &minor);
-				if (major && minor)
+				if (major)
 					printf("    Compute capability:     %u.%u "
 					       "(sm_%u%u)\n", major, minor, major, minor);
 			}
