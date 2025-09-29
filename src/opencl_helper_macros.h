@@ -17,38 +17,41 @@
 		HANDLE_CLERROR(ret_code, "Error allocating GPU memory"); } while(0)
 
 /*
- * This creates a pinned (non pageable, can't be swapped) buffer, ensuring
- * fastest possible DMA transfer.  When not using pinned memory, an extra
- * step will happen in the background, where your (pageable) buffer is first
- * transfered to a temporary pinned buffer, then to GPU by means of DMA. When
- * your buffer is already using pinned memory, the extra step doesn't occur.
+ * This creates a pinned (non pageable, can't be swapped) buffer if possible,
+ * ensuring fastest possible DMA transfer.  When not using pinned memory, an
+ * extra step will happen in the background where your (pageable) buffer is
+ * first transfered to a temporary pinned buffer, then to GPU by means of DMA.
+ * When your buffer is already using pinned memory, the extra step doesn't
+ * occur.
  *
  * It assumes you have defined three buffer variables with the same base
  * name. Example:
  *
- * unsigned char *data_blob;
- * cl_mem pinned_data_blob, cl_data_blob;
- * CLCREATEPINNED(data_blob, CL_RO, gws * some_size);
- * (...)
- * CLKERNELARG(crypt_kernel, 0, cl_data_blob);
- * (...)
- * CLWRITE(cl_data_blob, FALSE, 0, gws * some_size, data_blob, NULL);
+ * 	unsigned char *data_blob;
+ * 	cl_mem pinned_data_blob, cl_data_blob;
  *
- * If the buffer can't be pinned, we silently fallback to a normal buffer.
+ * 	CLCREATEPINNED(data_blob, CL_RO, gws * some_size);
+ * 		(...)
+ * 	CLKERNELARG(crypt_kernel, 0, cl_data_blob);
+ * 		(...)
+ * 	CLWRITE(cl_data_blob, FALSE, 0, gws * some_size, data_blob, NULL);
+ * 		(...)
+ * 	CLRELEASEPINNED(data_blob);
+ *
+ * If the buffer can't be pinned, we silently fallback to a normal buffer,
+ * handle it accordingly on release.
  */
 #define CLCREATEPINNED(VAR, FLAGS, SIZE)	  \
 	do { \
 		pinned_##VAR = clCreateBuffer(context[gpu_id], FLAGS | CL_ALLOC, SIZE, NULL, &ret_code); \
-		if (ret_code != CL_SUCCESS) { \
-			VAR = mem_alloc(SIZE); \
-			if (VAR == NULL) \
-				HANDLE_CLERROR(ret_code, "Error allocating pinned buffer"); \
+		if (ret_code == CL_SUCCESS) { \
+			VAR = clEnqueueMapBuffer(queue[gpu_id], pinned_##VAR, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, SIZE, 0, NULL, NULL, &ret_code); \
+			HANDLE_CLERROR(ret_code, "Error mapping pinned buffer"); \
 		} else { \
-			VAR = clEnqueueMapBuffer(queue[gpu_id], pinned_##VAR, CL_TRUE, \
-			                         CL_MAP_READ | CL_MAP_WRITE, 0, SIZE, 0, NULL, NULL, &ret_code); \
-			HANDLE_CLERROR(ret_code, "Error mapping buffer"); \
-			CLCREATEBUFFER(cl_##VAR, FLAGS, SIZE); \
+			pinned_##VAR = NULL; \
+			VAR = mem_alloc(SIZE); \
 		} \
+		CLCREATEBUFFER(cl_##VAR, FLAGS, SIZE); \
 	} while(0)
 
 #define CLCREATEBUFCOPY(VAR, FLAGS, SIZE, HOSTBUF)	  \
@@ -86,11 +89,12 @@
 		if (pinned_##VAR) { \
 			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_##VAR, VAR, 0, NULL, NULL), \
 			               "Error Unmapping buffer"); \
-			CLFINISH(); VAR = NULL; \
+			CLFINISH(); \
+			VAR = NULL; \
+			HANDLE_CLERROR(clReleaseMemObject(pinned_##VAR), "Error releasing pinned buffer"); \
+			pinned_##VAR = NULL; \
 		} else \
 			MEM_FREE(VAR); \
-		HANDLE_CLERROR(clReleaseMemObject(pinned_##VAR), "Error releasing pinned buffer"); \
-		pinned_##VAR = NULL; \
 		HANDLE_CLERROR(clReleaseMemObject(cl_##VAR), "Error releasing buffer"); \
 		cl_##VAR = NULL; \
 	} while(0);
