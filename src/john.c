@@ -202,7 +202,15 @@ static int exit_status = 0;
 static void john_register_one(struct fmt_main *format)
 {
 	if (options.format) {
-		if (options.format[0] == '-' && options.format[1]) {
+		if (options.format[0] == '/' && options.format[1]) {
+			static int drop = 1;
+
+			if (drop) {
+				if (fmt_match(&options.format[1], format, 1))
+					drop = 0;
+				return;
+			}
+		} else if (options.format[0] == '-' && options.format[1]) {
 			if (fmt_match(&options.format[1], format, 1))
 				return;
 		} else if (options.format[0] == '+' && options.format[1]) {
