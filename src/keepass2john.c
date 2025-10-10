@@ -209,12 +209,12 @@ static void process_KDBX2_database(FILE *fp, char* encryptedDatabase)
 
 	if (fread(final_randomseed, 16, 1, fp) != 1) {
 		warn("%s: Error: read failed: %s.", encryptedDatabase,
-			strerror(errno));
+			feof(fp) ? "Unexpected end of file" : strerror(errno));
 		return;
 	}
 	if (fread(enc_iv, 16, 1, fp) != 1) {
 		warn("%s: Error: read failed: %s.", encryptedDatabase,
-			strerror(errno));
+			feof(fp) ? "Unexpected end of file" : strerror(errno));
 		return;
 	}
 
@@ -225,12 +225,12 @@ static void process_KDBX2_database(FILE *fp, char* encryptedDatabase)
 
 	if (fread(contents_hash, 32, 1, fp) != 1) {
 		warn("%s: Error: read failed: %s.", encryptedDatabase,
-			strerror(errno));
+			feof(fp) ? "Unexpected end of file" : strerror(errno));
 		return;
 	}
 	if (fread(transf_randomseed, 32, 1, fp) != 1) {
 		warn("%s: Error: read failed: %s.", encryptedDatabase,
-			strerror(errno));
+			feof(fp) ? "Unexpected end of file" : strerror(errno));
 		return;
 	}
 
@@ -287,7 +287,7 @@ static void process_KDBX2_database(FILE *fp, char* encryptedDatabase)
 	fseek(fp, 124, SEEK_SET);
 	if (fread(buffer, datasize, 1, fp) != 1) {
 		warn("%s: Error: read failed: %s.",
-		          encryptedDatabase, strerror(errno));
+		          encryptedDatabase, feof(fp) ? "Unexpected end of file" : strerror(errno));
 		MEM_FREE(buffer);
 		return;
 	}
@@ -300,7 +300,7 @@ static void process_KDBX2_database(FILE *fp, char* encryptedDatabase)
 		printf("*1*64*"); /* inline keyfile content or hash - always 32 bytes */
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1) {
 			warn("%s: Error: read failed: %s.",
-				encryptedDatabase, strerror(errno));
+				encryptedDatabase, feof(kfp) ? "Unexpected end of file" : strerror(errno));
 			return;
 		}
 
@@ -851,7 +851,7 @@ static void process_database(char* encryptedDatabase)
 		printf("*1*64*"); /* inline keyfile content or hash - always 32 bytes */
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1) {
 			warn("%s: Error: read failed: %s.",
-				encryptedDatabase, strerror(errno));
+				encryptedDatabase, feof(kfp) ? "Unexpected end of file" : strerror(errno));
 			return;
 		}
 
