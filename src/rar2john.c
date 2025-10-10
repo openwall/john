@@ -275,7 +275,7 @@ static void process_file(const char *archive_name)
 	/* archive header block */
 	if (fread(archive_hdr_block, 13, 1, fp) != 1) {
 		fprintf(stderr, "%s: Error: read failed: %s.\n",
-			archive_name, strerror(errno));
+			archive_name, feof(fp) ? "Unexpected end of file" : strerror(errno));
 		goto err;
 	}
 	if (archive_hdr_block[2] != 0x73) {
@@ -346,7 +346,7 @@ next_file_header:
 		jtr_fseek64(fp, -24, SEEK_END);
 		if (fread(buf, 24, 1, fp) != 1) {
 			fprintf(stderr, "%s: Error: read failed: %s.\n",
-				archive_name, strerror(errno));
+				archive_name, feof(fp) ? "Unexpected end of file" : strerror(errno));
 			goto err;
 		}
 
@@ -413,7 +413,7 @@ next_file_header:
 			uint64_t ex;
 			if (fread(rejbuf, 4, 1, fp) != 1) {
 				fprintf(stderr, "\n! %s: Error: read failed: %s.\n",
-					archive_name, strerror(errno));
+					archive_name, feof(fp) ? "Unexpected end of file" : strerror(errno));
 				goto err;
 			}
 			if (verbose) {
@@ -431,7 +431,7 @@ next_file_header:
 
 			if (fread(rejbuf, 4, 1, fp) != 1) {
 				fprintf(stderr, "\n! %s: Error: read failed: %s.\n",
-					archive_name, strerror(errno));
+					archive_name, feof(fp) ? "Unexpected end of file" : strerror(errno));
 				goto err;
 			}
 			if (verbose) {
@@ -470,7 +470,7 @@ next_file_header:
 			goto err;
 		if (fread(file_name, file_name_size, 1, fp) != 1) {
 			fprintf(stderr, "! %s: Error: read failed: %s.\n",
-				archive_name, strerror(errno));
+				archive_name, feof(fp) ? "Unexpected end of file" : strerror(errno));
 			goto err;
 		}
 
@@ -514,7 +514,7 @@ next_file_header:
 			ext_time_size -= 8;
 			if (fread(salt, 8, 1, fp) != 1) {
 				fprintf(stderr, "! %s: Error: read failed: %s.\n",
-					archive_name, strerror(errno));
+					archive_name, feof(fp) ? "Unexpected end of file" : strerror(errno));
 				goto err;
 			}
 
@@ -532,7 +532,7 @@ next_file_header:
 
 			if (fread(rejbuf, ext_time_size, 1, fp) != 1) {
 				fprintf(stderr, "! %s: Error: read failed: %s.\n",
-					archive_name, strerror(errno));
+					archive_name, feof(fp) ? "Unexpected end of file" : strerror(errno));
 				goto err;
 			}
 		}
@@ -648,7 +648,7 @@ next_file_header:
 				to_read = bytes_left;
 			bytes_left -= to_read;
 			if (fread(bytes, 1, to_read, fp) != to_read)
-				fprintf(stderr, "! Error while reading archive: %s\n", strerror(errno));
+				fprintf(stderr, "! Error while reading archive: %s\n", feof(fp) ? "Unexpected end of file" : strerror(errno));
 			for (x = 0; x < to_read; ++x) {
 				s = bytes[x];
 				*p++ = itoa16[s >> 4];
