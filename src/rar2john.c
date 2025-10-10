@@ -647,8 +647,10 @@ next_file_header:
 			if (bytes_left < 64*1024)
 				to_read = bytes_left;
 			bytes_left -= to_read;
-			if (fread(bytes, 1, to_read, fp) != to_read)
+			if (fread(bytes, 1, to_read, fp) != to_read) {
 				fprintf(stderr, "! Error while reading archive: %s\n", feof(fp) ? "Unexpected end of file" : strerror(errno));
+				goto err;
+			}
 			for (x = 0; x < to_read; ++x) {
 				s = bytes[x];
 				*p++ = itoa16[s >> 4];
