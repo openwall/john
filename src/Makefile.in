@@ -257,10 +257,11 @@ version.h: version.h.new
 
 # These are SLOW nowadays, lots of plugins.
 fmt_externs.h: .plugin_fmt_list
-	$(CC) -DFMT_EXTERNS_H -E -P $(CFLAGS) $(PLUGFORMATS_SRCS) | grep -F "extern struct fmt_main" | $(SORT) -f > $@
+	$(CC) -DFMT_EXTERNS_H -E -P $(CFLAGS) $(PLUGFORMATS_SRCS) | grep -F "extern struct fmt_main" > $@ || true
 
 fmt_registers.h: .plugin_fmt_list
-	$(CC) -DFMT_REGISTERS_H -E -P $(CFLAGS) $(PLUGFORMATS_SRCS) | grep -F "john_register_one" | $(SORT) -f > $@
+	$(CC) -DFMT_REGISTERS_H -E -P $(CFLAGS) $(filter-out opencl_%_fmt_plug.c, $(wildcard *_fmt_plug.c)) | grep -F "john_register_one" | $(SORT) -f > $@ || true
+	$(CC) -DFMT_REGISTERS_H -E -P $(CFLAGS) $(wildcard opencl_*_fmt_plug.c) | grep -F "john_register_one" | $(SORT) -f >> $@ || true
 
 .PHONY: subdirs $(SUBDIRS)
 
