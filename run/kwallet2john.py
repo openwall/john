@@ -15,7 +15,7 @@ import os
 import struct
 from binascii import hexlify
 
-KWMAGIC = "KWALLET\n\r\0\r\n"
+KWMAGIC = b"KWALLET\n\r\0\r\n"
 KWMAGIC_LEN = 12
 KWALLET_VERSION_MAJOR = 0
 KWALLET_VERSION_MINOR = 0
@@ -107,19 +107,21 @@ def process_file(filename):
         # read salt
         salt_filename = os.path.splitext(filename)[0] + ".salt"
         try:
-            salt = open(salt_filename).read()
-        except:
-            sys.stderr.write("%s : unable to read salt from %s\n" % (filename, salt_filename))
+            with open(salt_filename, "rb") as f:
+                salt = f.read()
+        except FileNotFoundError:
+            sys.stderr.write("%s : cannot find file %s which is required to process a salted wallet\n" % (filename, salt_filename))
             sys.exit(8)
+
         salt_len = len(salt)
         iterations = PBKDF2_SHA512_ITERATIONS  # is this fixed?
         sys.stdout.write("%s:$kwallet$%ld$%s$%d$%d$%s$%s" %
                          (os.path.basename(filename), encrypted_size,
-                          hexlify(encrypted), kwallet_minor_version, salt_len,
-                          salt.encode("hex"), iterations))
+                          hexlify(encrypted).decode('ascii'), kwallet_minor_version, salt_len,
+                          hexlify(salt).decode('ascii'), iterations))
         sys.stdout.write(":::::%s\n" % filename)
     else:
-        sys.stdout.write("%s:$kwallet$%ld$%s" % (os.path.basename(filename), encrypted_size, hexlify(encrypted)))
+        sys.stdout.write("%s:$kwallet$%ld$%s" % (os.path.basename(filename), encrypted_size, hexlify(encrypted).decode('ascii')))
         sys.stdout.write(":::::%s\n" % filename)
 
     fd.close()
@@ -130,5 +132,5 @@ if __name__ == "__main__":
         sys.stderr.write("Usage: %s <.kwl file(s)>\n" % sys.argv[0])
         sys.exit(1)
 
-    for i in range(1, len(sys.argv)):
-        process_file(sys.argv[i])
+    for file in sys.argv[1:]:
+        process_file(file)
