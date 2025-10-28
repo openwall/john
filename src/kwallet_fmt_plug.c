@@ -250,12 +250,12 @@ static void set_salt(void *salt)
 }
 
 // Based on "BlowfishPersistHandler::read" in backendpersisthandler.cpp
-static int verify_key(unsigned char *key, int key_size)
+static int verify_key_body(unsigned char *key, int key_size, int not_even_wrong)
 {
 	SHA_CTX ctx;
 	BF_KEY bf_key;
 	int sz;
-	int i;
+	int i, n;
 	unsigned char testhash[20];
 	unsigned char buffer[0x10000]; // XXX respect the stack limits!
 	const char *t;
@@ -265,7 +265,8 @@ static int verify_key(unsigned char *key, int key_size)
 
 	/* Blowfish implementation in KWallet is wrong w.r.t endianness
 	 * Well, that is why we had bad_blowfish_plug.c originally ;) */
-	alter_endianity(buffer, cur_salt->ctlen);
+	if (!not_even_wrong)
+		alter_endianity(buffer, cur_salt->ctlen);
 
 	if (cur_salt->kwallet_minor_version == 0) {
 		BF_set_key(&bf_key, key_size, key);
@@ -280,7 +281,8 @@ static int verify_key(unsigned char *key, int key_size)
 		BF_cbc_encrypt(buffer, buffer, cur_salt->ctlen, &bf_key, ivec, 0);
 	}
 
-	alter_endianity(buffer, cur_salt->ctlen);
+	if (!not_even_wrong)
+		alter_endianity(buffer, cur_salt->ctlen);
 
 	/* verification stuff */
 	t = (char *) buffer;
@@ -302,6 +304,17 @@ static int verify_key(unsigned char *key, int key_size)
 		// file structure error
 		return -1;
 	}
+
+	for (i = n = 0; i < fsize && i < 52; i++)
+		if (!t[i])
+			n++;
+	if (n >= 12) /* actually seen was 30 to 32 zero bytes out of 52 */
+		return 0;
+
+	if (not_even_wrong)
+		return -2;
+
+	/* This only works for the original wrong code, not weirder */
 	SHA1_Init(&ctx);
 	SHA1_Update(&ctx, t, fsize);
 	SHA1_Final(testhash, &ctx);
@@ -314,6 +327,15 @@ static int verify_key(unsigned char *key, int key_size)
 	}
 
 	return 0;
+}
+
+static int verify_key(unsigned char *key, int key_size)
+{
+	if (!verify_key_body(key, key_size, 0))
+		return 0;
+	if (cur_salt->kwallet_minor_version == 1 && !verify_key_body(key, key_size, 1))
+		return 0;
+	return -1;
 }
 
 static int crypt_all(int *pcount, struct db_salt *salt)

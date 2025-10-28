@@ -206,7 +206,7 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   uncrackable hashes in the past.  [NecroMortis; 2021]
 
 - Python 3 compatibility and other improvements in various *2john.py scripts
-  [exploide; 2019-2024]
+  [exploide; 2019-2025]
 
 - Add new option --catch-up=NAME, for running a new session only until it
   reaches the candidates tried count of a different, existing and paused
@@ -460,6 +460,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Added gitea2john.py: Convert Gitea database fields to the pbkdf2-hmac-sha256
   format.  [isaac-app-dev; 2025]
+
+- KWallet format update to support files produced by newer distro builds of
+  KWalletManager with endianness-corrected Blowfish.  [Solar, exploide; 2025]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
