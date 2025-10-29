@@ -1100,6 +1100,7 @@ static void do_convert_wholefile(char *fname, char *outfname, b64_convert_type i
 
 	fp = fopen(outfname, "wb");
 	if (!fp) {
+		MEM_FREE(in_str);
 		fprintf(stderr, "Error, could not open file [%s]\n", outfname);
 		exit(-1);
 	}
