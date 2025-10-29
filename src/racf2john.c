@@ -174,6 +174,7 @@ static void process_file(const char *filename)
 
 	if (stat(filename, &sb) == -1) {
 		perror("stat");
+		fclose(fp);
 		exit(EXIT_FAILURE);
 	}
 
@@ -184,6 +185,7 @@ static void process_file(const char *filename)
 	buffer = (unsigned char *)malloc(size);
 	if (!buffer) {
 		fprintf(stderr, "malloc failed in process_file, aborting!\n");
+		fclose(fp);
 		exit(-1);
 	}
 	count = fread(buffer, size, 1, fp);
