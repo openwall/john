@@ -268,17 +268,27 @@ static int verify_key_body(unsigned char *key, int key_size, int not_even_wrong)
 	if (!not_even_wrong)
 		alter_endianity(buffer, cur_salt->ctlen);
 
+	/*
+	 * Potential optimization:
+	 * Most of the time we could decrypt just one block containing fsize,
+	 * and occasionally bytes 8 to 63, not the whole thing.
+	 * Potential security enhancement:
+	 * We could also revise the 2john script to omit the actual data and
+	 * SHA-1 (everything after initial 64 bytes), but this would be a
+	 * "hash" format change.
+	 */
 	if (cur_salt->kwallet_minor_version == 0) {
 		BF_set_key(&bf_key, key_size, key);
-		for (i = 0; i < cur_salt->ctlen; i += 8) {
+		for (i = 8; i < cur_salt->ctlen; i += 8) {
 			BF_ecb_encrypt(buffer + i, buffer + i, &bf_key, 0);
 		}
-
 	} else if (cur_salt->kwallet_minor_version == 1) {
-		unsigned char ivec[8] = { 0 };
 		key_size = 56;
 		BF_set_key(&bf_key, key_size, key);
-		BF_cbc_encrypt(buffer, buffer, cur_salt->ctlen, &bf_key, ivec, 0);
+		sz = cur_salt->ctlen;
+		if (not_even_wrong && sz > 64)
+			sz = 64; /* we'll skip the SHA-1 check anyway */
+		BF_cbc_encrypt(buffer + 8, buffer + 8, sz - 8, &bf_key, buffer, 0);
 	}
 
 	if (!not_even_wrong)
