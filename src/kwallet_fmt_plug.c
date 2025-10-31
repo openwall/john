@@ -125,7 +125,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (!res)
+	if (res < 64 || res > sizeof(cur_salt->ct) || (res & 7))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ct */
 		goto err;
@@ -133,20 +133,22 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 
 	if ((p = strtokm(NULL, "$")) != NULL) {
-		res = atoi(p); /* minor version */
-		if (res != 1) {
+		if (strcmp(p, "1")) /* minor version */
 			goto err;
-		}
 		if ((p = strtokm(NULL, "$")) == NULL)	/* saltlen */
 			goto err;
+		if (!isdec(p))
+			goto err;
 		res = atoi(p); /* saltlen */
-		if (res > 256)
+		if (res > sizeof(cur_salt->salt))
 			goto err;
 		if ((p = strtokm(NULL, "$")) == NULL)	/* salt */
 			goto err;
 		if (hexlenl(p, &extra) != res*2 || extra)
 			goto err;
 		if ((p = strtokm(NULL, "$")) == NULL)	/* iterations */
+			goto err;
+		if (!isdec(p) || atoi(p) < 1)
 			goto err;
 	}
 
@@ -257,7 +259,7 @@ static int verify_key_body(unsigned char *key, int key_size, int not_even_wrong)
 	int sz;
 	int i, n;
 	unsigned char testhash[20];
-	unsigned char buffer[0x10000]; // XXX respect the stack limits!
+	unsigned char buffer[sizeof(cur_salt->ct)]; // XXX respect the stack limits!
 	const char *t;
 	size_t fsize;
 
