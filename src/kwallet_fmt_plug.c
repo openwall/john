@@ -203,16 +203,16 @@ static void *get_salt(char *ciphertext)
 static void password2hash(const char *password, unsigned char *hash, int *key_size)
 {
 	SHA_CTX ctx;
-	unsigned char output[60];
+	unsigned char output[80];
 	unsigned char buf[20];
 	int i, j, oindex = 0;
 	int plength = strlen(password);
 
 	// divide the password into blocks of size 16 and hash the resulting
 	// individually!
-	for (i = 0; i <= plength; i += 16) {
+	for (i = 0; !i || i < plength; i += 16) {
 		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, password + i, MIN(plength - i, 16));
+		SHA1_Update(&ctx, password + i, oindex >= 60 ? plength - i : MIN(plength - i, 16));
 		SHA1_Final(buf, &ctx);
 		// To make brute force take longer
 		for (j = 1; j < 2000; j++) {
@@ -221,32 +221,32 @@ static void password2hash(const char *password, unsigned char *hash, int *key_si
 			SHA1_Final(buf, &ctx);
 		}
 		memcpy(output + oindex, buf, 20);
-		if (oindex >= 40)
+		if (oindex >= 60)
 			break;
 		oindex += 20;
 	}
 
-	if (plength < 16) {
+	if (plength <= 16) {
 		// key size is 20
 		memcpy(hash, output, 20);
 		*key_size = 20;
 	}
-	else if (plength < 32) {
+	else if (plength <= 32) {
 		// key size is 40 (20/20)
 		memcpy(hash, output, 40);
 		*key_size = 40;
 	}
-	else if (plength < 48) { /* XXX: Untested - no test vector */
+	else if (plength <= 48) {
 		// key size is 56 (20/20/16 split)
 		memcpy(hash, output, 56);
 		*key_size = 56;
 	}
-	else { /* XXX: Untested - no test vector */
-		/* XXX: This truncates at exactly 48, which may be wrong */
-		// key size is 56 (14/14/14 split)
+	else {
+		// key size is 56 (14/14/14/14 split)
 		memcpy(hash + 14 * 0, output +  0, 14);
 		memcpy(hash + 14 * 1, output + 20, 14);
 		memcpy(hash + 14 * 2, output + 40, 14);
+		memcpy(hash + 14 * 3, output + 60, 14);
 		*key_size = 56;
 	}
 }
