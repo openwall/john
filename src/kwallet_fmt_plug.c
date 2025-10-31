@@ -193,6 +193,7 @@ static void *get_salt(char *ciphertext)
 		// KWallet 4.13, from that point we use it to upgrade the hash
 		// to PBKDF2_SHA512
 		salt->kwallet_minor_version = 0;
+		salt->iterations = 2000;
 	}
 
 	MEM_FREE(keeptr);
@@ -425,6 +426,18 @@ static char *get_key(int index)
 	return saved_key[index];
 }
 
+static unsigned int tunable_cost_version(void *_salt)
+{
+	struct custom_salt *salt = (struct custom_salt *)_salt;
+	return salt->kwallet_minor_version;
+}
+
+static unsigned int tunable_cost_iterations(void *_salt)
+{
+	struct custom_salt *salt = (struct custom_salt *)_salt;
+	return salt->iterations;
+}
+
 struct fmt_main fmt_kwallet = {
 	{
 		FORMAT_LABEL,
@@ -441,7 +454,7 @@ struct fmt_main fmt_kwallet = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_HUGE_INPUT,
-		{ NULL },
+		{"version", "iterations"},
 		{ FORMAT_TAG },
 		kwallet_tests
 	}, {
@@ -453,7 +466,7 @@ struct fmt_main fmt_kwallet = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-		{ NULL },
+		{tunable_cost_version, tunable_cost_iterations},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
