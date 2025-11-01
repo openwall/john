@@ -99,8 +99,8 @@ def process_file(filename):
     encrypted = fd.read(encrypted_size)
     encrypted_size = len(encrypted)
 
-    if encrypted_size % 8 != 0:
-        sys.stderr.write("%s : invalid file structure!\n", filename)
+    if encrypted_size % 8 != 0 or encrypted_size < 88:
+        sys.stderr.write("%s : invalid file structure!\n" % filename)
         sys.exit(7)
 
     if new_version:
