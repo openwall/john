@@ -91,6 +91,10 @@ static struct fmt_tests kwallet_tests[] = {
 	{"$kwallet$88$69fca2d9a5004b6a8c4dc56e27e0046840a5b960121462270caf2d6b39db6e1d87b50d36e1bdfa6468e98c63de980d882af639a71e03438f6263864490a32c5cecb425c30fd216de5aa0af9e4cb8dad3a8ebece09dcf0884$1$56$d12685e20a1e7e9e87f357b78f72f5e059ad7b49295f159aa5af775ef11ec5de14bb978f0e1ab9aa29d365848e4b6f68260408fdfd0f43db$50000", "openwall"},
 	{"$kwallet$88$d93b084704e76898b1157b9965316e2c1f837d758e63005bf5f8865fcf929051b118cbda3aaffbff86cba4c715fc749c173368be796d0e37b327db7f832e20b7accb3e7ac519c38a13b056ad8ca03240da64deed72293634$1$56$bbe9dd83359eb451fc7759c91d457bbe9c74dab3ed30c10a3a8f0ef1e0bb2cfab32e6e68f6e8c1fb788f22073b76d03c98d52dc9a50a991e$50000", "openwall"},
 	{"$kwallet$520$d931157b758d2fcd343a9fd5823da60c79dc15b596389d61ac046a2f268f8660a87d1aaa001e66f1a24405f153921b79809043f214446ccfd5fdfd5d50e86efac53e1ce96b450af39062fc101eb1aa463acba15d870552aa3321468fa56c68e7c1b3b4a3f19c44c1ecc7b9c07a09a6e5bf3a41a811914b7f11a0e4afecbefb7621e0bf8ee0b38337c385ae86b92d1604d8824ed94a9bb53621b530463db60d5eff60d21cc79ee6fb2302d069c9a1fccf021dd88a9af299ed166112b162bcd4615dd2f759ab505db916e61b6486c835b4d57c7bd967cb3eaa23e9f8a70b9eff8ae5298318057deb092f3cb48c9e519548a807c894ea6070aedda33e5ae03d423f4b737e27f5f0738da7f25b29581e85fa8011190f3c3419298896c612082accb55b3ba5d280998c54ad1630edae05758a5584288d8c51803935b9f757f945e33f2b351dd8022b9f15d427a96e359e29e7fd569ee774d770baa9720f9717a3d882d693f9d3562428400bc40728a49180430d2d47f1a880ae22a3fd5d696607bf93db00df0d47d6058623a7c7f091c9ff47bb62b9ddaf9df56002cb542350f270d8302351359d68857bf13e5693ba111ffc45227af10572818d785cc115b0b6633371f4ef5baf7870ab33bc98b3bddb5f63d1decf8f85e3732b9b3a95dff93b2398809108ce236c268eeedfa14637b2d73ec507bff15b76d136ac601e8c5a9c3d4e2f94816fd4fcf01e$1$56$6278a23465d8cfc3d6117e97f684c3e13bf3c747b6681649103c373a3703512ee6a76080fd0019bbe4e1554e2397f435bce21b96ac5d27e8$50000", "eel-bronze-aghast-blissful-duh-duration-outrank-shrunk"},
+	// Pre-truncated
+	{"$kwallet$88$04ff141f0318b30b950a452514175886a16a64fd61bdc575912ab49fa6784a0ebe049d493c677d51b88f923bcfa4cf371337055215ff7f75b626ee3915b672a073$1$56$5a083da3e6f3917d3af71d1367738b103a296ea2240244c0935f378c49ca92a3002bd87419ea3d1ef18a77d069214e3dc75b0569bddeea11$50000", "openwall"},
+	{"$kwallet$112$25be8c9cdaa53f5404d7809ff48a37752b325c8ccd296fbd537440dfcef9d66f72940e97141d21702b325c8ccd296fbd537440dfcef9d66fcd953cf1e41904b0c4", "openwall"},
+
 	{NULL}
 };
 
@@ -98,7 +102,7 @@ static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int *cracked;
 
 static struct custom_salt {
-	unsigned char ct[0x10000];
+	unsigned char ct[64];
 	unsigned int ctlen;
 	// following fields are required to support modern KWallet files
 	int kwallet_minor_version;
@@ -126,7 +130,7 @@ static void done(void)
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
-	int res, extra;
+	int res, len, extra;
 	if (strncmp(ciphertext,  FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
 
@@ -138,11 +142,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (!isdec(p))
 		goto err;
 	res = atoi(p);
-	if (res < 64 || res > sizeof(cur_salt->ct) || (res & 7))
+	if (res < 64 || res > 0x1000000 || (res & 7))
 		goto err;
 	if ((p = strtokm(NULL, "$")) == NULL)	/* ct */
 		goto err;
-	if (hexlenl(p, &extra) != res*2 || extra)
+	len = hexlenl(p, &extra);
+	if ((len != res*2 && len != 130) || extra) /* 130 means truncated */
 		goto err;
 
 	if ((p = strtokm(NULL, "$")) != NULL) {
@@ -173,6 +178,33 @@ err:
 	return 0;
 }
 
+/* Truncate the main ciphertext field to 130 chars (65 bytes) */
+static char *split(char *ciphertext, int index, struct fmt_main *self)
+{
+	static char *out;
+	static size_t have;
+	size_t need, part1, part2;
+	char *p, *q;
+
+	p = strchr(ciphertext + FORMAT_TAG_LEN, '$') + 1;
+	q = strchr(p, '$');
+	if (!q)
+		q = p + strlen(p);
+	if (q - p == 130)
+		return ciphertext;
+
+	part1 = p + 130 - ciphertext;
+	part2 = strlen(q) + 1;
+	need = part1 + part2;
+	if (need > have)
+		out = mem_alloc_tiny(have = need * 2, MEM_ALIGN_NONE);
+
+	memcpy(out, ciphertext, part1);
+	memcpy(out + part1, q, part2);
+
+	return out;
+}
+
 static void *get_salt(char *ciphertext)
 {
 	char *ctcopy = xstrdup(ciphertext);
@@ -187,7 +219,7 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(ctcopy, "$");
 	salt->ctlen = atoi(p);
 	p = strtokm(NULL, "$");
-	for (i = 0; i < salt->ctlen; i++)
+	for (i = 0; i < 64; i++)
 		salt->ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
 
@@ -456,7 +488,7 @@ struct fmt_main fmt_kwallet = {
 		fmt_default_reset,
 		fmt_default_prepare,
 		valid,
-		fmt_default_split,
+		split,
 		fmt_default_binary,
 		get_salt,
 		{tunable_cost_version, tunable_cost_iterations},
