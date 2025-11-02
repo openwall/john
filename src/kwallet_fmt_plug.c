@@ -272,21 +272,18 @@ static void set_salt(void *salt)
 // Based on "BlowfishPersistHandler::read" in backendpersisthandler.cpp
 static int verify_key_body(unsigned char *key, int key_size, int not_even_wrong)
 {
-	SHA_CTX ctx;
 	BF_KEY bf_key;
-	int sz;
 	int i, n;
-	unsigned char testhash[20];
-	unsigned char buffer[sizeof(cur_salt->ct)]; // XXX respect the stack limits!
+	unsigned char buffer[64];
 	const char *t;
 	size_t fsize;
 
-	memcpy(buffer, cur_salt->ct, cur_salt->ctlen);
+	memcpy(buffer, cur_salt->ct, sizeof(buffer));
 
 	/* Blowfish implementation in KWallet is wrong w.r.t endianness
 	 * Well, that is why we had bad_blowfish_plug.c originally ;) */
 	if (!not_even_wrong)
-		alter_endianity(buffer, cur_salt->ctlen);
+		alter_endianity(buffer, sizeof(buffer));
 
 	/*
 	 * Potential optimization:
@@ -299,20 +296,17 @@ static int verify_key_body(unsigned char *key, int key_size, int not_even_wrong)
 	 */
 	if (cur_salt->kwallet_minor_version == 0) {
 		BF_set_key(&bf_key, key_size, key);
-		for (i = 8; i < cur_salt->ctlen; i += 8) {
+		for (i = 8; i <= sizeof(buffer) - 8; i += 8) {
 			BF_ecb_encrypt(buffer + i, buffer + i, &bf_key, 0);
 		}
 	} else if (cur_salt->kwallet_minor_version == 1) {
 		key_size = 56;
 		BF_set_key(&bf_key, key_size, key);
-		sz = cur_salt->ctlen;
-		if (not_even_wrong && sz > 64)
-			sz = 64; /* we'll skip the SHA-1 check anyway */
-		BF_cbc_encrypt(buffer + 8, buffer + 8, sz - 8, &bf_key, buffer, 0);
+		BF_cbc_encrypt(buffer + 8, buffer + 8, sizeof(buffer) - 8, &bf_key, buffer, 0);
 	}
 
 	if (!not_even_wrong)
-		alter_endianity(buffer, cur_salt->ctlen);
+		alter_endianity(buffer + 8, 4);
 
 	/* verification stuff */
 	t = (char *) buffer;
@@ -338,25 +332,7 @@ static int verify_key_body(unsigned char *key, int key_size, int not_even_wrong)
 	for (i = n = 0; i < fsize && i < 52; i++)
 		if (!t[i])
 			n++;
-	if (n >= 12) /* actually seen was 30 to 32 zero bytes out of 52 */
-		return 0;
-
-	if (not_even_wrong)
-		return -2;
-
-	/* This only works for the original wrong code, not weirder */
-	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, t, fsize);
-	SHA1_Final(testhash, &ctx);
-	// compare hashes
-	sz = cur_salt->ctlen;
-	for (i = 0; i < 20; i++) {
-		if (testhash[i] != buffer[sz - 20 + i]) {
-			return -2;
-		}
-	}
-
-	return 0;
+	return n < 12; /* actually seen was 30 to 32 zero bytes out of 52 */
 }
 
 static int verify_key(unsigned char *key, int key_size)
