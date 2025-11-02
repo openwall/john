@@ -103,6 +103,16 @@ def process_file(filename):
         sys.stderr.write("%s : invalid file structure!\n" % filename)
         sys.exit(7)
 
+    # Don't reveal most of the actual content.  We only need 64 bytes, but
+    # truncate at 65 to avoid false auto-detection as the "leet" format, and
+    # recent John the Ripper knows to expect exactly 65 (or non-truncated).
+    # Comment out the below line if you need a "hash" for an older version of
+    # John the Ripper (before Nov 2025), but please be aware that there were
+    # issues in the KWallet support in those older versions resulting in false
+    # negatives for many kinds of KWallet files and some password lengths, so
+    # this is strongly recommended against.
+    encrypted = encrypted[:65]
+
     if new_version:
         # read salt
         salt_filename = os.path.splitext(filename)[0] + ".salt"

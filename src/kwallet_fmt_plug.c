@@ -321,10 +321,6 @@ static int verify_key_body(unsigned char *key, int key_size, int not_even_wrong)
 	 * Potential optimization:
 	 * Most of the time we could decrypt just one block containing fsize,
 	 * and occasionally bytes 8 to 63, not the whole thing.
-	 * Potential security enhancement:
-	 * We could also revise the 2john script to omit the actual data and
-	 * SHA-1 (everything after initial 64 bytes), but this would be a
-	 * "hash" format change.
 	 */
 	if (cur_salt->kwallet_minor_version == 0) {
 		BF_set_key(&bf_key, key_size, key);

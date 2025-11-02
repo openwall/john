@@ -467,6 +467,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - KWallet format bug fix of the old KDF (ancient wallets) for password lengths
   that are multiples of 16 or longer than 48.  [Solar, exploide; 2025]
 
+- KWallet format and kwallet2john.py: Support and produce truncated "hashes"
+  that do not contain the actual encrypted data.  [Solar; 2025]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
