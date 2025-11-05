@@ -133,7 +133,7 @@ o5logon_kernel(__global const uchar* key_buf, __global const uint* const key_idx
 
 		union {
 			uchar c[192 / 8];
-			uint w[0];
+			uint w[192 / 8 / sizeof(uint)];
 		} key;
 		for (i = 0; i < 5; i++)
 			key.w[i] = SWAP32(output[i]);
@@ -193,7 +193,7 @@ o5logon_kernel(__global const uchar* key_buf, __global const uint* const key_idx
 		} else {
 			union {
 				uchar c[16];
-				ulong l[0];
+				ulong l[16 / sizeof(ulong)];
 			} pt;
 
 			memcpy_cp(iv, &salt->ct[16], 16);
