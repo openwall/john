@@ -26,9 +26,8 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0x107
 
-/* Max 125, but 95 typically produces fewer L1 data cache tag collisions */
 #define PLAINTEXT_LENGTH		95
-#define MAX_PLAINTEXT_LENGTH		(PLAINTEXT_BUFFER_SIZE - 3) // 125
+#define MAX_PLAINTEXT_LENGTH		(PLAINTEXT_BUFFER_SIZE - 1)
 
 typedef struct {
 	uint32_t hash;

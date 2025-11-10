@@ -797,9 +797,9 @@ void opt_init(char *name, int argc, char **argv)
 		error();
 	}
 	if (options.length < 0)
-		options.length = PLAINTEXT_BUFFER_SIZE - 3;
+		options.length = PLAINTEXT_BUFFER_SIZE - 1;
 	else
-	if (options.length < 1 || options.length > PLAINTEXT_BUFFER_SIZE - 3) {
+	if (options.length < 1 || options.length > PLAINTEXT_BUFFER_SIZE - 1) {
 		if (john_main_process)
 			fprintf(stderr, "Invalid plaintext length requested\n");
 		error();
@@ -819,7 +819,7 @@ void opt_init(char *name, int argc, char **argv)
 			        "than --max-length\n");
 		error();
 	}
-	if (options.req_maxlength < 0 || options.req_maxlength > PLAINTEXT_BUFFER_SIZE - 3) {
+	if (options.req_maxlength < 0 || options.req_maxlength > PLAINTEXT_BUFFER_SIZE - 1) {
 		if (john_main_process)
 			fprintf(stderr, "Invalid max length requested\n");
 		error();
@@ -842,8 +842,7 @@ void opt_init(char *name, int argc, char **argv)
 	 * Defaults until limited by format or other options
 	 */
 	options.eff_minlength = MAX(options.req_minlength, 0);
-	options.eff_maxlength =
-		options.req_maxlength ? options.req_maxlength : 125;
+	options.eff_maxlength = options.req_maxlength ? options.req_maxlength : (PLAINTEXT_BUFFER_SIZE - 1);
 
 	if (options.flags & FLG_STDOUT) options.flags &= ~FLG_PWD_REQ;
 
