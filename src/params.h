@@ -431,7 +431,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * Buffer size for words while applying rules, should be at least as large
  * as PLAINTEXT_BUFFER_SIZE.
  */
-#define RULE_WORD_SIZE			0x80
+#define RULE_WORD_SIZE			320
 
 /*
  * By default we mute some rules logging in pipe mode, if number of rules
@@ -442,12 +442,12 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 /*
  * Buffer size for plaintext passwords.
  */
-#define PLAINTEXT_BUFFER_SIZE		0x80
+#define PLAINTEXT_BUFFER_SIZE		320
 
 /*
  * Buffer size for fgets().
  */
-#define LINE_BUFFER_SIZE		0x400
+#define LINE_BUFFER_SIZE		(0x380 + PLAINTEXT_BUFFER_SIZE)
 
 /*
  * Max. ciphertext size that's sure to fit a line when cleartext field

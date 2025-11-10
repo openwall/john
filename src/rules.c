@@ -99,7 +99,7 @@ int rules_mute, stack_rules_mute;
 static int fmt_case;
 
 static struct {
-	unsigned char vars[0x100];
+	unsigned int vars[0x100];
 /*
  * pass == -2	initial syntax checking of rules
  * pass == -1	optimization of rules (no-ops are removed)
