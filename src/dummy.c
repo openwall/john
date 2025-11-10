@@ -26,7 +26,7 @@
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		0x107
 
-#define PLAINTEXT_LENGTH		95
+#define PLAINTEXT_LENGTH		MAX_PLAINTEXT_LENGTH
 
 typedef struct {
 	uint32_t hash;
@@ -39,7 +39,7 @@ typedef struct {
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		(0x4000 / (PLAINTEXT_LENGTH + 1))
+#define MAX_KEYS_PER_CRYPT		256
 
 static struct fmt_tests tests[] = {
 	{"$dummy$64756d6d79", "dummy"},

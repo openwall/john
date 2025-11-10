@@ -39,7 +39,7 @@ john_register_one(&fmt__hmacSHA384);
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		7
 
-#define PLAINTEXT_LENGTH		125
+#define PLAINTEXT_LENGTH		MAX_PLAINTEXT_LENGTH
 
 #define PAD_SIZE			128
 #define PAD_SIZE_W			(PAD_SIZE/8)

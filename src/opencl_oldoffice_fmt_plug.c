@@ -237,7 +237,7 @@ static void init(struct fmt_main *_self)
 
 	if (options.target_enc == UTF_8)
 		max_len = self->params.plaintext_length =
-			MIN(125, 3 * PLAINTEXT_LENGTH);
+			MIN(MAX_PLAINTEXT_LENGTH, 3 * PLAINTEXT_LENGTH);
 }
 
 static void reset(struct db_main *db)

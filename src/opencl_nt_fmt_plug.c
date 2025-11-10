@@ -57,7 +57,7 @@ john_register_one(&fmt_opencl_NT_long);
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0x107
 #define PLAINTEXT_LENGTH    27
-#define PLAINTEXT_LEN_LONG  125 /* 59, 91, 123, 125 are supported */
+#define PLAINTEXT_LEN_LONG  125 /* 59, 91, 123, 125, and maybe 127 are supported */
 /* At most 3 bytes of UTF-8 needed per character */
 #define UTF8_MAX_LENGTH     MIN(125, 3 * utf16len)
 #define BUFSIZE             ((UTF8_MAX_LENGTH + 3) / 4 * 4)

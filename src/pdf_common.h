@@ -29,7 +29,7 @@
 #define FORMAT_TAG_OLD_LEN  (sizeof(FORMAT_TAG_OLD)-1)
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0x507
-#define PLAINTEXT_LENGTH    125
+#define PLAINTEXT_LENGTH    MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE         0
 #define SALT_SIZE           sizeof(pdf_salt_type)
 #define BINARY_ALIGN        1

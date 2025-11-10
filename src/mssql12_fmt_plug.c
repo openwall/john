@@ -182,7 +182,7 @@ static void init(struct fmt_main *self)
 	                       sizeof(*saved_len));
 #endif
 	if (options.target_enc == UTF_8)
-		self->params.plaintext_length = MIN(125, PLAINTEXT_LENGTH * 3);
+		self->params.plaintext_length = MIN(MAX_PLAINTEXT_LENGTH, PLAINTEXT_LENGTH * 3);
 
 	if (options.target_enc != ISO_8859_1 && options.target_enc != ENC_RAW)
 		self->methods.set_key = set_key_enc;

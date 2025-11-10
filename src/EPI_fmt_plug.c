@@ -33,7 +33,7 @@ john_register_one(&fmt_EPI);
 #include "sha.h"
 
 #define CIPHERTEXT_LENGTH  105
-#define PLAINTEXT_LENGTH   125
+#define PLAINTEXT_LENGTH   MAX_PLAINTEXT_LENGTH
 #define BINARY_LENGTH      20
 #define BINARY_ALIGN       sizeof(uint32_t)
 #define SALT_LENGTH        30

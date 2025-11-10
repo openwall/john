@@ -49,7 +49,7 @@ john_register_one(&fmt_openbsd_softraid);
 #endif
 #define BENCHMARK_COMMENT           ""
 #define BENCHMARK_LENGTH            0x507
-#define PLAINTEXT_LENGTH            125
+#define PLAINTEXT_LENGTH            MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE                   sizeof(struct custom_salt)
 #define SALT_ALIGN                  4
 #ifdef SIMD_COEF_32

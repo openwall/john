@@ -8,6 +8,7 @@
 
 #include "krb5_common.h"
 #include "memory.h"
+#include "params.h"
 
 /* n-fold(k-bits):
  * l = lcm(n,k)
@@ -271,7 +272,7 @@ void des_cbc_mac_shishi(char key[8], char iv[8], unsigned char *in, size_t inlen
 int des_string_to_key_shishi(char *string, size_t stringlen,
 		char *salt, size_t saltlen, unsigned char *outkey)
 {
-	unsigned char s[125 + 256], s_copy[125 + 256];  // Sync. this with PLAINTEXT_LENGTH and MAX_SALT_SIZE in krb5_db_fmt_plug.c. More is OK, less is not.
+	unsigned char s[MAX_PLAINTEXT_LENGTH + 256], s_copy[MAX_PLAINTEXT_LENGTH + 256];  // Sync. this with PLAINTEXT_LENGTH and MAX_SALT_SIZE in krb5_db_fmt_plug.c. More is OK, less is not.
 	int n_s;
 	int odd;
 	char tempkey[8];

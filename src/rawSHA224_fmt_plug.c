@@ -52,7 +52,7 @@ john_register_one(&fmt_rawSHA224);
 #ifdef SIMD_COEF_32
 #define PLAINTEXT_LENGTH		55
 #else
-#define PLAINTEXT_LENGTH		125
+#define PLAINTEXT_LENGTH		MAX_PLAINTEXT_LENGTH
 #endif
 #define CIPHERTEXT_LENGTH       56
 

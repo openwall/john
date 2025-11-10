@@ -51,7 +51,7 @@ john_register_one(&fmt_agile_keychain);
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              sizeof(int)
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE               sizeof(struct custom_salt)
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1

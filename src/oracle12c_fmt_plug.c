@@ -36,7 +36,11 @@ john_register_one(&fmt_oracle12c);
 #else
 #define ALGORITHM_NAME		"PBKDF2-SHA512 32/" ARCH_BITS_STR
 #endif
-#define PLAINTEXT_LENGTH	125 // XXX
+#ifdef SIMD_COEF_64
+#define PLAINTEXT_LENGTH	(SHA_BUF_SIZ*sizeof(uint64_t) - 1)
+#else
+#define PLAINTEXT_LENGTH	MAX_PLAINTEXT_LENGTH
+#endif
 #define CIPHERTEXT_LENGTH	160
 #define SALT_SIZE		sizeof(struct custom_salt)
 #define SALT_ALIGN		sizeof(uint32_t)

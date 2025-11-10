@@ -92,7 +92,7 @@ static struct fmt_tests tests[] = {
 #define MAX_KEYS_PER_CRYPT		(NBKEYS * 16)
 #include "common-simd-getpos.h"
 #else
-#define PLAINTEXT_LENGTH		125
+#define PLAINTEXT_LENGTH		MAX_PLAINTEXT_LENGTH
 #define MIN_KEYS_PER_CRYPT		1
 #define MAX_KEYS_PER_CRYPT		256
 #endif

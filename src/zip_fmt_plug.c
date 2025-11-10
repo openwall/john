@@ -46,7 +46,7 @@ john_register_one(&fmt_zip);
 #else
 #define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
-#define PLAINTEXT_LENGTH    125
+#define PLAINTEXT_LENGTH    MAX_PLAINTEXT_LENGTH
 #define BINARY_ALIGN        sizeof(uint32_t)
 #define SALT_SIZE           sizeof(winzip_salt*)
 #define SALT_ALIGN          sizeof(winzip_salt*)

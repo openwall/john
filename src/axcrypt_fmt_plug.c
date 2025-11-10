@@ -41,7 +41,7 @@ john_register_one(&fmt_axcrypt);
 #define FORMAT_LABEL            "AxCrypt"
 #define FORMAT_NAME             ""
 #define ALGORITHM_NAME          "PBKDF2-SHA512/SHA1 AES 32/" ARCH_BITS_STR
-#define PLAINTEXT_LENGTH        125 /* actual max is 250 */
+#define PLAINTEXT_LENGTH        250 /* actual max is 250 */
 #define BINARY_SIZE             0
 #define SALT_SIZE               sizeof(struct custom_salt *)
 #define BINARY_ALIGN            MEM_ALIGN_NONE

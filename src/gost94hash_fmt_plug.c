@@ -37,7 +37,7 @@ john_register_one(&fmt_gost94hash);
 #define FORMAT_NAME             "Astra Linux $gost94hash$"
 #define ALGORITHM_NAME          "GOST R 34.11-94 32/" ARCH_BITS_STR
 
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 
 #define SALT_SIZE               sizeof(struct saltstruct)
 

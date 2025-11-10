@@ -45,7 +45,7 @@ john_register_one(&fmt_rawMD5f);
 #define MIN_KEYS_PER_CRYPT      NBKEYS
 #define MAX_KEYS_PER_CRYPT      (NBKEYS * 128)
 #else
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      32
 #endif

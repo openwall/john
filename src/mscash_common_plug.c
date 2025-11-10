@@ -245,7 +245,7 @@ void mscash2_adjust_tests(unsigned encoding, unsigned plain_len, unsigned salt_l
 	if (encoding == UTF_8) {
 		// UTF8 may be up to three bytes per character
 		// but core max. is 125 anyway
-		//self->params.plaintext_length = MIN(125, 3*PLAINTEXT_LENGTH);
+		//self->params.plaintext_length = MIN(MAX_PLAINTEXT_LENGTH, 3*PLAINTEXT_LENGTH);
 		mscash2_common_tests[1].plaintext = "\xc3\xbc";         // German u-umlaut in UTF-8
 		mscash2_common_tests[1].ciphertext = "$DCC2$10240#joe#bdb80f2c4656a8b8591bd27d39064a54";
 		mscash2_common_tests[2].plaintext = "\xe2\x82\xac\xe2\x82\xac"; // 2 x Euro signs

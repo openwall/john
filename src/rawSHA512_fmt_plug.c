@@ -52,7 +52,7 @@ john_register_one(&fmt_raw0_SHA512);
 #ifdef SIMD_COEF_64
 #define PLAINTEXT_LENGTH        111
 #else
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #endif
 
 #define BINARY_SIZE				8

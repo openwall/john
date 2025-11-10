@@ -60,7 +60,7 @@ INLINE void S2KItSaltedSHA1Generator(__global const uchar *password,
 #ifdef LEAN
 	uchar keybuf[128 + 64+1 + PLAINTEXT_LENGTH + SALT_LENGTH];
 #else
-	uchar keybuf[64 * (PLAINTEXT_LENGTH + SALT_LENGTH)];
+	uchar keybuf[65 * (PLAINTEXT_LENGTH + SALT_LENGTH) + 256];
 	uint bs;
 #endif
 

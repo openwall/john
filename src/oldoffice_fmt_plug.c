@@ -52,8 +52,8 @@ static void init(struct fmt_main *self)
 	omp_autotune(self, OMP_SCALE);
 
 	if (options.target_enc == UTF_8)
-		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > 125 ?
-			125 : 3 * PLAINTEXT_LENGTH;
+		self->params.plaintext_length = 3 * PLAINTEXT_LENGTH > MAX_PLAINTEXT_LENGTH ?
+			MAX_PLAINTEXT_LENGTH : 3 * PLAINTEXT_LENGTH;
 	saved_key = mem_alloc(self->params.max_keys_per_crypt *
 	                      sizeof(*saved_key));
 	saved_len = mem_alloc(self->params.max_keys_per_crypt *

@@ -981,7 +981,7 @@ static void init(struct fmt_main *self)
 	my = self;
 	if (options.target_enc == UTF_8) {
 		self->methods.set_key = set_key_utf8;
-		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
+		self->params.plaintext_length = MIN(MAX_PLAINTEXT_LENGTH, 3 * PLAINTEXT_LENGTH);
 	} else {
 		if (options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1)
 			self->methods.set_key = set_key_CP;

@@ -34,7 +34,7 @@ john_register_one(&fmt_zipmonster);
 #define ALGORITHM_NAME          "MD5-" MD5_ALGORITHM_NAME " x 50000"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE             16
 #define SALT_SIZE               0
 #define BINARY_ALIGN            sizeof(uint32_t)

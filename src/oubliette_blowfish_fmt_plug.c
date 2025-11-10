@@ -43,7 +43,7 @@ john_register_one(&fmt_oubliette_blowfish);
 #define ALGORITHM_NAME          "SHA1/Blowfish 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE             32
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               0

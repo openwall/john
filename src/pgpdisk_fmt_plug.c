@@ -43,7 +43,7 @@ john_register_one(&fmt_pgpdisk);
 
 #define FORMAT_LABEL            "pgpdisk"
 #define ALGORITHM_NAME          "SHA1 " ARCH_BITS_STR
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
 #define BINARY_SIZE             16

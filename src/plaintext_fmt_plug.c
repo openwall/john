@@ -45,8 +45,7 @@ john_register_one(&FMT_STRUCT);
 #define BENCHMARK_LENGTH		0x107
 
 #define PLAINTEXT_MIN_LENGTH		0
-/* Max 125, but 95 typically produces fewer L1 data cache tag collisions */
-#define PLAINTEXT_LENGTH		125
+#define PLAINTEXT_LENGTH		MAX_PLAINTEXT_LENGTH
 #define CIPHERTEXT_LENGTH		(PLAINTEXT_LENGTH + FORMAT_TAG_LEN)
 
 typedef struct {
@@ -60,7 +59,7 @@ typedef struct {
 #define SALT_ALIGN			1
 
 #define MIN_KEYS_PER_CRYPT		1
-#define MAX_KEYS_PER_CRYPT		(0x4000 / (PLAINTEXT_LENGTH + 1))
+#define MAX_KEYS_PER_CRYPT		256
 
 static struct fmt_tests tests[] = {
 	{"$0$cleartext", "cleartext"},

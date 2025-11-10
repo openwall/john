@@ -126,7 +126,7 @@ static void init(struct fmt_main *self)
 		self->params.max_keys_per_crypt, MEM_ALIGN_CACHE);
 
 	if (options.target_enc == UTF_8)
-		fmt_SybaseASE.params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
+		fmt_SybaseASE.params.plaintext_length = MIN(MAX_PLAINTEXT_LENGTH, 3 * PLAINTEXT_LENGTH);
 	// will simply set SIMD stuff here, even if not 'used'
 #ifdef SIMD_COEF_32
 	NULL_LIMB = mem_calloc_align(64, MAX_KEYS_PER_CRYPT, MEM_ALIGN_CACHE);

@@ -39,7 +39,7 @@ john_register_one(&fmt_sspr);
 #define ALGORITHM_NAME          "MD5/SHA1/SHA256/SHA512 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      4
 

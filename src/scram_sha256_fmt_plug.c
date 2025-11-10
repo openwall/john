@@ -40,7 +40,7 @@ john_register_one(&fmt_scram_sha256);
 #define FORMAT_LABEL            "SCRAM-PBKDF2-SHA256"
 #define FORMAT_NAME             ""
 #define ALGORITHM_NAME          "PBKDF2-SHA256/SCRAM " SHA256_ALGORITHM_NAME
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define HASH_LENGTH             44
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)

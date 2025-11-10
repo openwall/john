@@ -45,7 +45,7 @@ john_register_one(&fmt_ethereum);
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x507
 #define BINARY_SIZE             16
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE               sizeof(*cur_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(uint64_t)

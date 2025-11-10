@@ -36,7 +36,7 @@ john_register_one(&fmt_opencl_mscash2);
 #define FORMAT_NAME		   "MS Cache Hash 2 (DCC2)"
 #define KERNEL_NAME		   "PBKDF2"
 #define ALGORITHM_NAME		   "PBKDF2-SHA1 OpenCL"
-#define PLAINTEXT_LENGTH          125
+#define PLAINTEXT_LENGTH          125 /* maybe up to 127 */
 
 #define MAX_KEYS_PER_CRYPT        1
 #define MIN_KEYS_PER_CRYPT        1
@@ -76,8 +76,8 @@ static void init(struct fmt_main *__self)
 	mscash2_adjust_tests(options.target_enc, __self->params.plaintext_length, MAX_SALT_LENGTH);
 	if (options.target_enc == UTF_8) {
 		__self->params.plaintext_length *= 3;
-		if (__self->params.plaintext_length > 125)
-			__self->params.plaintext_length = 125;
+		if (__self->params.plaintext_length > PLAINTEXT_LENGTH)
+			__self->params.plaintext_length = PLAINTEXT_LENGTH;
 	}
 
 	self = __self;

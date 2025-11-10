@@ -64,9 +64,9 @@ john_register_one(&fmt_tezos);
 #define MIN_KEYS_PER_CRYPT      1
 #define MAX_KEYS_PER_CRYPT      4
 #endif
-#if !defined(PLAINTEXT_LENGTH) || PLAINTEXT_LENGTH > 125
+#if !defined(PLAINTEXT_LENGTH) || PLAINTEXT_LENGTH > MAX_PLAINTEXT_LENGTH
 #undef PLAINTEXT_LENGTH
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #endif
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];

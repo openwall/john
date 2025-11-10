@@ -44,7 +44,7 @@ john_register_one(&fmt_scram_sha1);
 #define FORMAT_LABEL            "SCRAM-PBKDF2-SHA1"
 #define FORMAT_NAME             ""
 #define ALGORITHM_NAME          "PBKDF2-SHA1/SCRAM " SHA1_ALGORITHM_NAME
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define HASH_LENGTH             28
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)

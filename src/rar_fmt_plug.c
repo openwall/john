@@ -138,7 +138,7 @@ static void init(struct fmt_main *self)
 	self->params.max_keys_per_crypt *= PLAINTEXT_LENGTH;
 
 	if (options.target_enc == UTF_8)
-		self->params.plaintext_length = MIN(125, 3 * PLAINTEXT_LENGTH);
+		self->params.plaintext_length = MIN(MAX_PLAINTEXT_LENGTH, 3 * PLAINTEXT_LENGTH);
 
 	unpack_data = mem_calloc(threads, sizeof(unpack_data_t));
 	cracked = mem_calloc(self->params.max_keys_per_crypt,

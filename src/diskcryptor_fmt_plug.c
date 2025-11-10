@@ -50,7 +50,7 @@ john_register_one(&fmt_diskcryptor);
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #ifdef SIMD_COEF_64
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA512
 #define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA512 * 4)

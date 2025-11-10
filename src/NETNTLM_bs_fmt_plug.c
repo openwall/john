@@ -74,7 +74,7 @@ john_register_one(&fmt_NETNTLM_old);
 #define ALGORITHM_NAME       "MD4 DES (ESS MD5) " DES_BS_ALGORITHM_NAME " naive"
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     7
-#define PLAINTEXT_LENGTH     125
+#define PLAINTEXT_LENGTH     MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE          24
 #define BINARY_ALIGN         4
 #define PARTIAL_BINARY_SIZE  8

@@ -63,7 +63,7 @@ john_register_one(&fmt_electrum);
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(uint32_t)
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 
 #ifndef OMP_SCALE
 #define OMP_SCALE               8

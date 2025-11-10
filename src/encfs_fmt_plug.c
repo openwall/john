@@ -41,7 +41,7 @@ john_register_one(&fmt_encfs);
 #define BENCHMARK_COMMENT   ""
 #define BENCHMARK_LENGTH    0x507
 #define BINARY_SIZE         0
-#define PLAINTEXT_LENGTH    125
+#define PLAINTEXT_LENGTH    MAX_PLAINTEXT_LENGTH
 #define BINARY_ALIGN        MEM_ALIGN_NONE
 #define SALT_SIZE           sizeof(*cur_salt)
 #define SALT_ALIGN          sizeof(int)

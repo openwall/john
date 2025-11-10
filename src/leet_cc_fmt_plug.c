@@ -68,7 +68,7 @@ john_register_one(&fmt_leet);
 #define PLAINTEXT_LENGTH        (111-32)
 #define MAX_SALT_LEN            32
 #else
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define MAX_SALT_LEN            256
 #endif
 

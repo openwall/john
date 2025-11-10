@@ -42,7 +42,7 @@ john_register_one(&fmt_mdc2);
 #define ALGORITHM_NAME          "MDC-2DES"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               0

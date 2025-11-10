@@ -51,7 +51,7 @@ john_register_one(&fmt_enpass);
 #define BENCHMARK_COMMENT    ""
 #define BENCHMARK_LENGTH     0x507
 #define BINARY_SIZE          0
-#define PLAINTEXT_LENGTH     125
+#define PLAINTEXT_LENGTH     MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE            sizeof(struct custom_salt)
 #define BINARY_ALIGN         1
 #define SALT_ALIGN           sizeof(unsigned int)

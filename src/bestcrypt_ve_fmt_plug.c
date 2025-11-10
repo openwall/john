@@ -62,7 +62,7 @@ john_register_one(&fmt_bestcrypt_ve);
 #define BENCHMARK_COMMENT       " (32768, 16, 1)"
 #define BENCHMARK_LENGTH        0x507
 #define BINARY_SIZE             0
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE               sizeof(*cur_salt)
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              sizeof(int)

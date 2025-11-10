@@ -62,7 +62,7 @@ john_register_one(&fmt_AzureAD);
 // For now, I will do md4() oSSL type for all passwords. There is so much
 // other overhead that adding the complexity to do SIMD md4 will gain us
 // almost nothing
-#define PLAINTEXT_LENGTH         125
+#define PLAINTEXT_LENGTH         MAX_PLAINTEXT_LENGTH
 #define MIN_KEYS_PER_CRYPT       NBKEYS
 #define MAX_KEYS_PER_CRYPT       (NBKEYS * 4)
 

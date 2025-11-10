@@ -53,7 +53,7 @@ john_register_one(&fmt_keystore);
 
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        7
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE               sizeof(struct keystore_salt *)
 #define SALT_ALIGN              sizeof(struct keystore_salt *)
 

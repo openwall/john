@@ -53,7 +53,7 @@ john_register_one(&fmt_cardano);
 #define MIN_KEYS_PER_CRYPT  1
 #define MAX_KEYS_PER_CRYPT  1
 #endif
-#define PLAINTEXT_LENGTH    125
+#define PLAINTEXT_LENGTH    MAX_PLAINTEXT_LENGTH
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
 static int any_cracked, *cracked;

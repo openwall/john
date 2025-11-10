@@ -94,7 +94,7 @@ john_register_one(&fmt_krb5asrep);
 #define ALGORITHM_NAME          "MD4 HMAC-MD5 RC4 / PBKDF2 HMAC-SHA1 AES 32/" ARCH_BITS_STR
 #endif
 #define MIN_PLAINTEXT_LENGTH    0
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #ifdef SIMD_COEF_32
 #define MIN_KEYS_PER_CRYPT      SSE_GROUP_SZ_SHA1
 #define MAX_KEYS_PER_CRYPT      (SSE_GROUP_SZ_SHA1 * 2)

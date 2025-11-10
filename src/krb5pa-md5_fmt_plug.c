@@ -73,7 +73,7 @@ john_register_one(&fmt_krb5pa_md5);
 #define ALGORITHM_NAME     "MD4 HMAC-MD5 RC4 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   7
-#define PLAINTEXT_LENGTH   125
+#define PLAINTEXT_LENGTH   MAX_PLAINTEXT_LENGTH
 #define MAX_REALMLEN       64
 #define MAX_USERLEN        64
 #define MAX_SALTLEN        128

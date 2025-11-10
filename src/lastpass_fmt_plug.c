@@ -43,7 +43,7 @@ john_register_one(&fmt_lastpass);
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        7
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_ALIGN              sizeof(int)

@@ -39,7 +39,7 @@ john_register_one(&fmt_skein_512);
 #define ALGORITHM_NAME          "Skein 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE256          32
 #define BINARY_SIZE512          64
 #define BINARY_ALIGN            4

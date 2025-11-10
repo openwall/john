@@ -470,6 +470,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - KWallet format and kwallet2john.py: Support and produce truncated "hashes"
   that do not contain the actual encrypted data.  [Solar; 2025]
 
+- Maximum supported password length for many formats increased from 125 to 319
+  bytes (but many other formats still have lower limits).  [Solar; 2025]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 

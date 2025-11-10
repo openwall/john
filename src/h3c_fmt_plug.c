@@ -49,7 +49,7 @@ john_register_one(&fmt_h3c);
 #ifdef SIMD_COEF_64
 #define PLAINTEXT_LENGTH   46
 #else
-#define PLAINTEXT_LENGTH   125
+#define PLAINTEXT_LENGTH   MAX_PLAINTEXT_LENGTH
 #endif
 #define BINARY_SIZE        DIGEST_SIZE
 #define BINARY_ALIGN       8

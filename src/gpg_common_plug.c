@@ -109,7 +109,7 @@ struct fmt_tests gpg_common_gpg_tests[] = {
 };
 
 // mul is at most (PLAINTEXT_LENGTH + SALT_LENGTH)
-#define KEYBUFFER_LENGTH ((PLAINTEXT_LENGTH + SALT_LENGTH) * 64)
+#define KEYBUFFER_LENGTH ((PLAINTEXT_LENGTH + SALT_LENGTH) * 65)
 
 // Returns the block size (in bytes) of a given cipher
 uint32_t gpg_common_blockSize(char algorithm)

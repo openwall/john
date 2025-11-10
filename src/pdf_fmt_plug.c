@@ -162,7 +162,7 @@ static void
 pdf_compute_hardened_hash_r6(unsigned char *password, int pwlen, unsigned char salt[8],
         unsigned char *ownerkey, unsigned char hash[32])
 {
-        unsigned char data[(128 + 64 + 48) * 64];
+        unsigned char data[(PLAINTEXT_LENGTH + 64) * 64];
         unsigned char block[64];
         int block_size = 32;
         int data_len = 0;

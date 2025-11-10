@@ -42,7 +42,7 @@ john_register_one(&fmt_lastpass_cli);
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        7 // FIXME: add costs (but this is OK)
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE             16
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(uint32_t)

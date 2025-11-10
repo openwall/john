@@ -35,7 +35,7 @@ john_register_one(&fmt__HAS160);
 #define BENCHMARK_COMMENT               ""
 #define BENCHMARK_LENGTH                0x107
 
-#define PLAINTEXT_LENGTH                125
+#define PLAINTEXT_LENGTH                MAX_PLAINTEXT_LENGTH
 #define CIPHERTEXT_LENGTH               40
 #define BINARY_SIZE                     20
 #define SALT_SIZE                       0

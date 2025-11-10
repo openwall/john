@@ -44,7 +44,7 @@ john_register_one(&fmt_restic);
 #define SCRYPT_ALGORITHM_NAME "Salsa20/8 32/" ARCH_BITS_STR
 #endif
 #define ALGORITHM_NAME "scrypt " SCRYPT_ALGORITHM_NAME ", Poly1305"
-#define PLAINTEXT_LENGTH 125
+#define PLAINTEXT_LENGTH MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE 16 /* MAC */
 #define BINARY_ALIGN sizeof(uint32_t)
 #define DATA_SIZE 160

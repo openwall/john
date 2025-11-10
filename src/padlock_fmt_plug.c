@@ -39,7 +39,7 @@ john_register_one(&fmt_padlock);
 #else
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES 32/" ARCH_BITS_STR
 #endif
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              sizeof(int)
 #define BINARY_SIZE             0

@@ -40,7 +40,7 @@ john_register_one(&fmt_vdi);
 #include "base64_convert.h"
 #include "pbkdf2_hmac_sha256.h"
 
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE               sizeof(struct vdi_salt)
 #define SALT_ALIGN              4
 #define BINARY_SIZE             32

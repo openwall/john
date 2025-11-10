@@ -77,7 +77,7 @@ john_register_one(&fmt_luks);
 #define ALGORITHM_NAME      "PBKDF2-SHA1 32/" ARCH_BITS_STR
 #endif
 #define BENCHMARK_COMMENT   ""
-#define PLAINTEXT_LENGTH    125
+#define PLAINTEXT_LENGTH    MAX_PLAINTEXT_LENGTH
 #define BENCHMARK_LENGTH    0x107
 #define BINARY_SIZE         LUKS_DIGESTSIZE
 #define BINARY_ALIGN        4

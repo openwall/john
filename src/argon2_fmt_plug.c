@@ -55,7 +55,7 @@ john_register_one(&fmt_argon2);
 
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
-#define PLAINTEXT_LENGTH        125 //only in john
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE             256 //only in john
 #define BINARY_ALIGN            sizeof(uint32_t)
 #define SALT_SIZE               64  //only in john
@@ -98,7 +98,7 @@ john_register_one(&fmt_argon2);
  * p = parallelism (a.k.a. threads, lanes)
  *
  * Password (message) length supported by Argon2 is 0..2^32.  This format
- * supports up to 125 due to limitations in core code.
+ * supports up to MAX_PLAINTEXT_LENGTH due to limitations in core code.
  * Output length (tag length) can be chosen between 4 and 2^32.  This format
  * supports up to 256 but you can just bump BINARY_SIZE above arbitrarily.
  * Salt length supported by Argon2 is 8..2^32.  This format supports up to

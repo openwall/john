@@ -20,7 +20,7 @@
 #define BINARY_ALIGN         MEM_ALIGN_WORD
 #define SALT_LENGTH          8
 #define SALT_ALIGN           (sizeof(void*))
-#define PLAINTEXT_LENGTH     125
+#define PLAINTEXT_LENGTH     MAX_PLAINTEXT_LENGTH
 
 // Minimum number of bits when checking the first BN
 #define MIN_BN_BITS 64

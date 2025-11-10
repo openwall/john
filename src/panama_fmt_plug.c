@@ -36,7 +36,7 @@ john_register_one(&fmt_panama_);
 #define ALGORITHM_NAME		"Panama 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0x107
-#define PLAINTEXT_LENGTH	125
+#define PLAINTEXT_LENGTH	MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE		32
 #define SALT_SIZE		0
 #define BINARY_ALIGN		4

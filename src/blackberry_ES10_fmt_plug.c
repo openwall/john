@@ -44,7 +44,7 @@ john_register_one(&fmt_blackberry1);
 
 #define BENCHMARK_COMMENT       " (101x)"
 #define BENCHMARK_LENGTH        7
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE             64
 #define BINARY_ALIGN            4
 #define MAX_SALT_SIZE           64

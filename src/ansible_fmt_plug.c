@@ -41,7 +41,7 @@ john_register_one(&fmt_ansible);
 #endif
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define BINARY_ALIGN            sizeof(uint32_t) // see cmp_all() and ansible_common_get_binary()
 #define SALT_ALIGN              sizeof(uint64_t)

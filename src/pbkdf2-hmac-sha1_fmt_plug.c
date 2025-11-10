@@ -56,7 +56,7 @@ john_register_one(&fmt_pbkdf2_hmac_sha1);
 #endif
 
 #define PAD_SIZE                64
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 
 static struct custom_salt {
 	unsigned int length;

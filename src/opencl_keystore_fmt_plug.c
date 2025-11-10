@@ -49,7 +49,7 @@ john_register_one(&fmt_opencl_keystore);
 #define ALGORITHM_NAME          "SHA1 OpenCL"
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        7
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        127
 #define BUFSIZE                 ((PLAINTEXT_LENGTH + 3) / 4 * 4)
 #define SALT_SIZE               sizeof(struct custom_salt)
 #define SALT_ALIGN              4

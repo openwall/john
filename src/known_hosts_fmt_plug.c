@@ -41,7 +41,7 @@ john_register_one(&fmt_known_hosts);
 #define ALGORITHM_NAME          "SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        7
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE             20
 #define BINARY_ENCODED_SIZE     28
 #define PAD_SIZE                64

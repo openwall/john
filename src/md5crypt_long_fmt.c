@@ -2,7 +2,7 @@
  * AIX smd5 cracker for JtR. Hacked together during April of 2013 by Dhiru
  * Kholia <dhiru at openwall.com>.
  *
- * Also supports standard md5crypt hashes (of lengths up to 125 unlike the
+ * Also supports standard md5crypt hashes (of lengths up to MAX_PLAINTEXT_LENGTH unlike the
  * optimized SIMD format) and now supports Apache $apr1$ hashes as well.
  *
  * This software is
@@ -41,7 +41,7 @@
 #define ALGORITHM_NAME          "MD5 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        0x107
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE             16
 #define BINARY_ALIGN            4
 #define SALT_SIZE               sizeof(struct custom_salt)

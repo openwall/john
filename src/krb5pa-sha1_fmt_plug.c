@@ -76,7 +76,7 @@ john_register_one(&fmt_krb5pa);
 #define BENCHMARK_LENGTH   0x507
 #define BINARY_SIZE        12
 #define BINARY_ALIGN       4
-#define PLAINTEXT_LENGTH   125
+#define PLAINTEXT_LENGTH   MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE          sizeof(struct custom_salt)
 #define SALT_ALIGN         4
 #ifdef SIMD_COEF_32

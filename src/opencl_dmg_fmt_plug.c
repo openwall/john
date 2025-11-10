@@ -26,7 +26,7 @@ john_register_one(&fmt_opencl_dmg);
 #include "opencl_common.h"
 #include "sha.h"
 #define OUTLEN 32
-#define PLAINTEXT_LENGTH	125
+#define PLAINTEXT_LENGTH	MAX_PLAINTEXT_LENGTH
 #include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 
 #define FORMAT_LABEL		"dmg-opencl"

@@ -42,7 +42,7 @@ john_register_one(&fmt_krb5tgs);
 
 #define FORMAT_LABEL         "krb5tgs"
 #define ALGORITHM_NAME       "MD4 HMAC-MD5 RC4"
-#define PLAINTEXT_LENGTH     125
+#define PLAINTEXT_LENGTH     MAX_PLAINTEXT_LENGTH
 #define MIN_KEYS_PER_CRYPT   1
 #define MAX_KEYS_PER_CRYPT   64
 

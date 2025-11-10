@@ -46,7 +46,7 @@ john_register_one(&fmt_gost12256hash);
 #define ALGORITHM_NAME          "GOST R 34.11-2012 " ARCH_BITS_STR "/" ARCH_BITS_STR
 #endif
 
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 
 #define SALT_SIZE               sizeof(struct saltstruct)
 

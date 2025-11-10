@@ -43,7 +43,7 @@ john_register_one(&fmt_fvde);
 #define ALGORITHM_NAME          "PBKDF2-SHA256 AES 32/" ARCH_BITS_STR
 #endif
 #define BINARY_SIZE             0
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define SALT_SIZE               sizeof(*cur_salt)
 #define BINARY_ALIGN            1
 #define SALT_ALIGN              sizeof(uint64_t)

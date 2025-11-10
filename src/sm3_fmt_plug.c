@@ -36,7 +36,7 @@ john_register_one(&fmt_sm3);
 #define ALGORITHM_NAME     "32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   0x107
-#define PLAINTEXT_LENGTH   125
+#define PLAINTEXT_LENGTH   MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE        sm3_hash_length
 #define BINARY_ALIGN       4
 #define SALT_SIZE          0

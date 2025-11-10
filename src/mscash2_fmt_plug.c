@@ -86,7 +86,7 @@ static unsigned iteration_cnt =	(ITERATIONS); /* this will get changed at runtim
 #define FORMAT_NAME			"MS Cache Hash 2 (DCC2)"
 
 #define MAX_SALT_LEN            128
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 
 #define SALT_SIZE			(MAX_SALT_LEN*2+4)
 

@@ -27,7 +27,7 @@ john_register_one(&fmt_opencl_pbkdf2_sha1);
 #include "options.h"
 #include "sha.h"
 #define OUTLEN 20
-#define PLAINTEXT_LENGTH	125
+#define PLAINTEXT_LENGTH	MAX_PLAINTEXT_LENGTH
 #include "../run/opencl/opencl_pbkdf2_hmac_sha1.h"
 #include "pbkdf2_hmac_common.h"
 

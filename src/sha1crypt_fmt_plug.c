@@ -45,7 +45,7 @@ john_register_one(&fmt_cryptsha1);
 #define ALGORITHM_NAME          "PBKDF1-SHA1 32/" ARCH_BITS_STR
 #endif
 
-#define PLAINTEXT_LENGTH            125
+#define PLAINTEXT_LENGTH            MAX_PLAINTEXT_LENGTH
 
 #define BINARY_ALIGN                4
 #define SALT_SIZE                   sizeof(struct saltstruct)

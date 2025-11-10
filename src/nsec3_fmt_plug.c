@@ -51,7 +51,7 @@ john_register_one(&fmt_nsec3);
 #define ALGORITHM_NAME                  "SHA1 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT               ""
 #define BENCHMARK_LENGTH                0x107
-#define PLAINTEXT_LENGTH                125
+#define PLAINTEXT_LENGTH                MAX_PLAINTEXT_LENGTH
 #define MIN_KEYS_PER_CRYPT              1
 #define MAX_KEYS_PER_CRYPT              128
 #define BINARY_SIZE                     20

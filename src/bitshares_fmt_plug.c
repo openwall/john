@@ -39,7 +39,7 @@ struct fmt_main fmt_bitshares;
 #define ALGORITHM_NAME          "SHA512/AES/secp256k1/SHA256 " ARCH_BITS_STR "/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT       ""
 #define BENCHMARK_LENGTH        7
-#define PLAINTEXT_LENGTH        125
+#define PLAINTEXT_LENGTH        MAX_PLAINTEXT_LENGTH
 #define BINARY_SIZE             0
 #define BINARY_ALIGN            1
 #define SALT_SIZE               sizeof(struct custom_salt)
