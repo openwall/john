@@ -864,7 +864,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 	if (format->methods.cmp_exact == NULL)  return "method cmp_exact NULL";
 
 	if (format->params.plaintext_length < 1 ||
-	    format->params.plaintext_length > PLAINTEXT_BUFFER_SIZE - 1)
+	    format->params.plaintext_length > MAX_PLAINTEXT_LENGTH)
 		return "plaintext_length";
 
 	if (format->params.benchmark_length < 0 ||

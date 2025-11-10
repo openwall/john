@@ -36,7 +36,7 @@ john_register_one(&fmt_opencl_mscash2);
 #define FORMAT_NAME		   "MS Cache Hash 2 (DCC2)"
 #define KERNEL_NAME		   "PBKDF2"
 #define ALGORITHM_NAME		   "PBKDF2-SHA1 OpenCL"
-#define MAX_PLAINTEXT_LENGTH      125
+#define PLAINTEXT_LENGTH          125
 
 #define MAX_KEYS_PER_CRYPT        1
 #define MIN_KEYS_PER_CRYPT        1
@@ -56,7 +56,7 @@ typedef struct {
 static cl_uint 		*dcc_hash_host ;
 static cl_uint 		*dcc2_hash_host ;
 static unsigned int    initialized;
-static unsigned char 	(*key_host)[MAX_PLAINTEXT_LENGTH + 1] ;
+static unsigned char 	(*key_host)[PLAINTEXT_LENGTH + 1] ;
 static ms_cash2_salt 	currentsalt ;
 static cl_uint          *hmac_sha1_out ;
 static struct fmt_main  *self = NULL;
@@ -117,7 +117,7 @@ static void DCC(unsigned char *salt, unsigned int username_len,
 	for (id = 0; id < count; id++) {
 		/* Proper Unicode conversion from UTF-8 or codepage */
 		password_len = enc_to_utf16((UTF16*)buffer,
-		                            MAX_PLAINTEXT_LENGTH,
+		                            PLAINTEXT_LENGTH,
 		                            (UTF8*)key_host[id],
 		                            strlen((const char*)key_host[id]));
 		/* Handle truncation */
@@ -188,7 +188,7 @@ static void set_key(char *key, int index) {
 static  char *get_key(int index) {
 	/* Ensure truncation due to over-length or invalid UTF-8 is made like in GPU code. */
 	if (options.target_enc == UTF_8)
-		truncate_utf8((UTF8*)key_host[index], MAX_PLAINTEXT_LENGTH);
+		truncate_utf8((UTF8*)key_host[index], PLAINTEXT_LENGTH);
 
 	return (char *)key_host[index] ;
 }
@@ -367,7 +367,7 @@ struct fmt_main fmt_opencl_mscash2 = {
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH | 0x100,
 		0,
-		MAX_PLAINTEXT_LENGTH,
+		PLAINTEXT_LENGTH,
 		GPU_BINARY_SIZE,
 		BINARY_ALIGN,
 		SALT_SIZE,

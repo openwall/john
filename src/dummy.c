@@ -27,7 +27,6 @@
 #define BENCHMARK_LENGTH		0x107
 
 #define PLAINTEXT_LENGTH		95
-#define MAX_PLAINTEXT_LENGTH		(PLAINTEXT_BUFFER_SIZE - 1)
 
 typedef struct {
 	uint32_t hash;

@@ -334,7 +334,7 @@ static void john_log_format(void)
 	log_event("- Algorithm: %.100s",
 	    database.format->params.algorithm_name);
 
-	if (cmp_len < PLAINTEXT_BUFFER_SIZE - 1 && (!options.force_maxlength || options.force_maxlength > cmp_len) &&
+	if (cmp_len < MAX_PLAINTEXT_LENGTH && (!options.force_maxlength || options.force_maxlength > cmp_len) &&
 	    (options.flags & (FLG_BATCH_CHK|FLG_SINGLE_CHK|FLG_WORDLIST_CHK|FLG_LOOPBACK_CHK|FLG_PRINCE_CHK|FLG_EXTERNAL_CHK)))
 		printf("Note: Passwords longer than %s %s%s\n", max_len_s,
 		    (database.format->params.flags & FMT_TRUNC) ?

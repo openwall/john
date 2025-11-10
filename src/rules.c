@@ -769,7 +769,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 	if (!(options.flags & FLG_SINGLE_CHK) && options.internal_cp != UTF_8 &&
 	    options.internal_cp != ENC_RAW && options.target_enc == UTF_8)
 		memory = word = utf8_to_cp_r(word_in, cpword,
-		                             PLAINTEXT_BUFFER_SIZE - 1);
+		                             MAX_PLAINTEXT_LENGTH);
 	else
 		memory = word = word_in;
 

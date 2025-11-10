@@ -443,6 +443,7 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
  * Buffer size for plaintext passwords.
  */
 #define PLAINTEXT_BUFFER_SIZE		320
+#define MAX_PLAINTEXT_LENGTH		(PLAINTEXT_BUFFER_SIZE - 1)
 
 /*
  * Buffer size for fgets().

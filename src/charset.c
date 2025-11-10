@@ -110,7 +110,7 @@ static unsigned long charset_filter_plaintexts(struct db_main *db,
  */
 				if (length >= PLAINTEXT_BUFFER_SIZE)
 					current->data
-					    [PLAINTEXT_BUFFER_SIZE - 1] = 0;
+					    [MAX_PLAINTEXT_LENGTH] = 0;
 				list_add_link(list, current);
 			}
 			count++;

@@ -142,7 +142,7 @@ static struct cfg_list *ext_source;
 static struct cfg_line *ext_line;
 static int ext_pos;
 static double progress = -1;
-static int maxlen = PLAINTEXT_BUFFER_SIZE - 1;
+static int maxlen = MAX_PLAINTEXT_LENGTH;
 
 static double get_progress(void)
 {
