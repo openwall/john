@@ -1036,10 +1036,10 @@ static void john_load(void)
 	umask(077);
 #endif
 
-	if (options.flags & FLG_EXTERNAL_CHK)
-		ext_init(options.external, NULL);
-
 	if (options.flags & FLG_MAKECHR_CHK) {
+		if (options.flags & FLG_EXTERNAL_CHK)
+			ext_init(options.external, NULL);
+
 		options.loader.flags |= DB_CRACKED;
 		ldr_init_database(&database, &options.loader);
 

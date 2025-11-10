@@ -197,23 +197,18 @@ int ext_has_function(const char *mode, const char *function)
 void ext_init(char *mode, struct db_main *db)
 {
 	ext_minlen = options.eff_minlength;
-	maxlen = options.eff_maxlength;
+	ext_maxlen = maxlen = options.eff_maxlength;
 	ext_cipher_limit = (db && db->format) ? db->format->params.plaintext_length : maxlen;
 	ext_target_utf8 = (options.target_enc <= CP_UNDEF || options.target_enc == UTF_8);
 
-	/* This is second time we are called, just update the above */
-	if (db && db->format)
-		return;
-
 	ext_time = (int) time(NULL);
-
-	ext_maxlen = options.req_maxlength;
 
 #if HAVE_REXGEN
 	/* Hybrid regex */
 	if ((regex = prepare_regex(options.regex, &regex_case, &regex_alpha))) {
 		if (maxlen)
 			maxlen--;
+		ext_maxlen = maxlen;
 		if (ext_minlen)
 			ext_minlen--;
 	}
