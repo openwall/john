@@ -1253,7 +1253,6 @@ MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left)
 				bits += 8;
 			}
 			here = distfix[hold & 0x1F];
-//          dodist:
 			op = (unsigned)(here.bits);
 			hold >>= op;
 			bits -= op;
@@ -1281,7 +1280,6 @@ MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left)
 				hold >>= op;
 				bits -= op;
 
-				//***** start of patched code from Pavel Semjanov (see original code below)
 				whave += len;
 			}
 			else
@@ -1296,43 +1294,8 @@ MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left)
 		else {
 			return 0; // invalid literal/length code.
 		}
-		//***** End of patched code from Pavel
 	}
 }
-
-// original code block (for above), prior to patch from Pavel Semjanov [pavel@semjanov.com]
-// this code would be a direct drop in between the comments starting and stopping with //***** above
-// also the dodist label was commented out (no longer used).
-#if 0
-				whave += dist;
-            }
-            else if ((op & 64) == 0) {	/* 2nd level distance code */
-                here = distfix[here.val + (hold & ((1U << op) - 1))];
-                goto dodist;
-            }
-            else
-				return 0;		/*invalid distance code*/
-        }
-		else if (op & 64) {
-			// 2nd level length code.
-            //here = lcode[here.val + (hold & ((1U << op) - 1))];
-            //goto dolen;
-
-			// this causes an infinite loop. Also, I VERY seriously doubt, this will EVER happen in the first
-			// 24 bytes of code.  NOTE, there may be problems, in the fact this causes a inf loop!, but for now,
-			// simply return 0, then debug later.
-			return 0;
-		}
-		else if (op & 32) {
-			// end of block  NOTE, we need to find out if we EVER hit the end of a block, at only 24 bytes???
-			// It is VERY likely we do SHOULD NOT EVER hit this. If that is the case, return that this block is bogus.
-			// check next OP (if we have enough bits left), if CODE=3, fail.  If code==0, check
-			return 0;
-		}
-		else {
-			return 0; // invalid literal/length code.
-		}
-#endif
 
 /*
  * Crypt_all simply performs the checksum .zip validatation of the data. It performs
@@ -1449,8 +1412,8 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 			// Ok, we now have validated this checksum.  We need to 'do some' extra pkzip validation work.
 			// What we do here, is to decrypt a little data (possibly only 1 byte), and perform a single
-			// 'inflate' check (if type is 8).  If type is 0 (stored), and we have a signature check, then
-			// we do that here.  Also, if the inflate code is a 0 (stored block), and we do sig check, then
+			// 'inflate' check (if type is 8).
+			// If the inflate code is a 0 (stored block), and we do sig check, then
 			// we can do that WITHOUT having to call inflate.  however, if there IS a sig check, we will have
 			// to call inflate on 'some' data, to get a few bytes (or error code). Also, if this is a type
 			// 2 or 3, then we do the FULL inflate, CRC check here.
@@ -1490,13 +1453,13 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 #endif
 				continue;
 			}
-#if 1
+
 			// https://github.com/openwall/john/issues/467
 			// Ok, if this is a code 3, we are done.
 			// Code moved to after the check for stored type.  (FIXED)  This check was INVALID for a stored type file.
 			if ((C & 6) == 6)
 				goto Failed_Bailout;
-#endif
+
 			if ((C & 6) == 0) {
 				// Check that checksum2 is 0 or 1.  If not, I 'think' we can be done
 				if (C > 1)
