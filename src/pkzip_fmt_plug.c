@@ -1,8 +1,9 @@
 /*
  * PKZIP patch for john to handle 'old' pkzip passwords (old 'native' format)
  *
- * This software is Copyright (c) 2011-2018 Jim Fougeron,
- * Copyright (c) 2013-2021 magnum,
+ * This software is
+ * Copyright (c) 2011-2018 Jim Fougeron,
+ * Copyright (c) 2013-2025 magnum,
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -34,6 +35,7 @@ john_register_one(&fmt_pkzip);
 #include "pkzip.h"
 #include "pkzip_inffixed.h"  // This file is a data file, taken from zlib
 #include "loader.h"
+#include "color.h"
 
 #define FORMAT_LABEL        "PKZIP"
 #define FORMAT_NAME         ""
@@ -751,7 +753,7 @@ static int cmp_exact(char *source, int index)
 		return 1;
 
 #ifdef ZIP_DEBUG
-	fprintf(stderr, "FULL zip test being done. (pass=%s)\n", saved_key[index]);
+	fprintf_color(color_notice, stderr, "FULL zip test being done. (pass=%s)\n", saved_key[index]);
 #endif
 
 	if (salt->fname[0] == 0) {
@@ -852,11 +854,19 @@ MAYBE_INLINE static int check_inflate_CODE2(u8 *next)
 	hold >>= 3;	// we already processed 3 bits
 	count = (u8*)ncount;
 
-	if (257+(hold&0x1F) > 286)
+	if (257+(hold&0x1F) > 286) {
+#ifdef ZIP_DEBUG
+		fprintf_color(color_notice, stderr, "nlen %s:%u\n", __FILE__, __LINE__);
+#endif
 		return 0;	// nlen, but we do not use it.
+	}
 	hold >>= 5;
-	if (1+(hold&0x1F) > 30)
+	if (1+(hold&0x1F) > 30) {
+#ifdef ZIP_DEBUG
+		fprintf_color(color_notice, stderr, "ndist %s:%u\n", __FILE__, __LINE__);
+#endif
 		return 0;		// ndist, but we do not use it.
+	}
 	hold >>= 5;
 	ncode = 4+(hold&0xF);
 	hold >>= 4;
@@ -891,8 +901,12 @@ MAYBE_INLINE static int check_inflate_CODE2(u8 *next)
 		bits += 8;
 	}
 	count[0] = 0;
-	if (!ncount[0] && !ncount[1])
+	if (!ncount[0] && !ncount[1]) {
+#ifdef ZIP_DEBUG
+		fprintf_color(color_notice, stderr, "no codes %s:%u\n", __FILE__, __LINE__);
+#endif
 		return 0; /* if no codes at all, then simply bail, that is invalid */
+	}
 
 	/* check for an over-subscribed or incomplete set of lengths */
 	/* this will catch about 319 out of 320 'bad' passwords that */
@@ -903,12 +917,23 @@ MAYBE_INLINE static int check_inflate_CODE2(u8 *next)
 	for (i = 1; i <= 7; ++i) {
 		left <<= 1;
 		left -= count[i];
-		if (left < 0)
+		if (left < 0) {
+#ifdef ZIP_DEBUG
+			fprintf_color(color_notice, stderr, "over-subscribed %s:%u\n", __FILE__, __LINE__);
+#endif
 			return 0;	/* over-subscribed */
+		}
 	}
-	if (left > 0)
+	if (left > 0) {
+#ifdef ZIP_DEBUG
+		fprintf_color(color_notice, stderr, "incomplete set %s:%u\n", __FILE__, __LINE__);
+#endif
 		return 0;		/* incomplete set */
+	}
 
+#ifdef ZIP_DEBUG
+	fprintf_color(color_notice, stderr, "passed CODE2 huffman checks %s:%u\n", __FILE__, __LINE__);
+#endif
 	return 1;			/* Passed this check! */
 }
 
@@ -936,8 +961,12 @@ MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left)
 	bits = 32-3;
 	for (;;) {
 		if (bits < 15) {
-			if (left < 2)
+			if (left < 2) {
+#ifdef ZIP_DEBUG
+				fprintf_color(color_notice, stderr, "Passed CODE1 huffman checks %s:%u\n", __FILE__, __LINE__);
+#endif
 				return 1;	// we are out of bytes.  Return we had no error.
+			}
 			left -= 2;
 			hold += (u32)(*++next) << bits;
 			bits += 8;
@@ -956,8 +985,12 @@ MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left)
 			op &= 15;							/* number of extra bits */
 			if (op) {
 				if (bits < op) {
-					if (!left)
+					if (!left) {
+#ifdef ZIP_DEBUG
+						fprintf_color(color_notice, stderr, "Passed CODE1 huffman checks %s:%u\n", __FILE__, __LINE__);
+#endif
 						return 1;	/*we are out of bytes.  Return we had no error.*/
+					}
 					--left;
 					hold += (u32)(*++next) << bits;
 					bits += 8;
@@ -967,8 +1000,12 @@ MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left)
 				bits -= op;
 			}
 			if (bits < 15) {
-				if (left < 2)
+				if (left < 2) {
+#ifdef ZIP_DEBUG
+					fprintf_color(color_notice, stderr, "Passed CODE1 huffman checks %s:%u\n", __FILE__, __LINE__);
+#endif
 					return 1;	/*we are out of bytes.  Return we had no error.*/
+				}
 				left -= 2;
 				hold += (u32)(*++next) << bits;
 				bits += 8;
@@ -984,37 +1021,64 @@ MAYBE_INLINE static int check_inflate_CODE1(u8 *next, int left)
 				u32 dist = (unsigned)(here.val);
 				op &= 15;                       /* number of extra bits */
 				if (bits < op) {
-					if (!left)
+					if (!left) {
+#ifdef ZIP_DEBUG
+						fprintf_color(color_notice, stderr, "Passed CODE1 huffman checks %s:%u\n", __FILE__, __LINE__);
+#endif
 						return 1;	/*we are out of bytes.  Return we had no error.*/
+					}
 					--left;
 					hold += (u32)(*++next) << bits;
 					bits += 8;
 					if (bits < op) {
-						if (!left)
+						if (!left) {
+#ifdef ZIP_DEBUG
+							fprintf_color(color_notice, stderr, "Passed CODE1 huffman checks %s:%u\n", __FILE__, __LINE__);
+#endif
 							return 1;	/*we are out of bytes.  Return we had no error.*/
+						}
 						--left;
 						hold += (u32)(*++next) << bits;
 						bits += 8;
 					}
 				}
 				dist += (unsigned)hold & ((1U << op) - 1);
-				if (dist > whave)
+				if (dist > whave) {
+#ifdef ZIP_DEBUG
+					fprintf_color(color_notice, stderr, "distance too far back %s:%u\n", __FILE__, __LINE__);
+#endif
 					return 0;  /*invalid distance too far back*/
+				}
 				hold >>= op;
 				bits -= op;
 
 				whave += len;
 			}
-			else
+			else {
+#ifdef ZIP_DEBUG
+				fprintf_color(color_notice, stderr, "distance invalid %s:%u\n", __FILE__, __LINE__);
+#endif
 				return 0;		/*invalid distance code*/
+			}
 		}
 		else if (op & 32) {
-			// end of block [may present in short sequences, but only at the end.] NOTE, we need to find out if we EVER hit the end of a block, at only 24 bytes???
-			if (left == 0)
+			// end of block [may present in short sequences, but only at the end.]
+			if (left == 0) {
+#ifdef ZIP_DEBUG
+				fprintf_color(color_notice, stderr, "Passed CODE1 huffman checks %s:%u\n", __FILE__, __LINE__);
+#endif
 				return 1;
-			return 0;
+			} else {
+#ifdef ZIP_DEBUG
+				fprintf_color(color_notice, stderr, "end of block with %d bytes left %s:%u\n", left, __FILE__, __LINE__);
+#endif
+				return 0;
+			}
 		}
 		else {
+#ifdef ZIP_DEBUG
+			fprintf_color(color_notice, stderr, "invalid literal/length code %s:%u\n", __FILE__, __LINE__);
+#endif
 			return 0; // invalid literal/length code.
 		}
 	}
@@ -1193,10 +1257,10 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 					if (!check_inflate_CODE2(curDecryBuf))
 						goto Failed_Bailout;
 #if (ZIP_DEBUG==2)
-					fprintf(stderr, "CODE2 Pass=%s  count = %u, found = %u\n", saved_key[idx], count, ++found);
+					fprintf_color(color_notice, stderr, "CODE2 Pass=%s  count = %u, found = %u\n", saved_key[idx], count, ++found);
 #endif
 				}
-				else {
+				else { // (C & 6) == 2, inflate 'code' 1  (fixed table)
 					int til;
 #if (ZIP_DEBUG==2)
 					static unsigned count, found;
@@ -1214,7 +1278,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 					if (!check_inflate_CODE1(curDecryBuf, til))
 						goto Failed_Bailout;
 #if (ZIP_DEBUG==2)
-					fprintf(stderr, "CODE1 Pass=%s  count = %u, found = %u\n", saved_key[idx], count, ++found);
+					fprintf_color(color_notice, stderr, "CODE1 Pass=%s  count = %u, found = %u\n", saved_key[idx], count, ++found);
 #endif
 				}
 			}
@@ -1247,7 +1311,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 
 					if (ret != Z_OK) {
 #if (ZIP_DEBUG==2)
-						fprintf(stderr, "fail=%d fail2=%d tot="LLd"\n", ++FAILED, FAILED2, ((long long)CNT)*_count);
+						fprintf_color(color_notice, stderr, "fail=%d fail2=%d tot="LLd"\n", ++FAILED, FAILED2, ((long long)CNT)*_count);
 #endif
 						goto Failed_Bailout;
 					}
