@@ -1275,7 +1275,7 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
 						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
 					}
-					if (!check_inflate_CODE1(curDecryBuf, til))
+					if (til >= 24 && !check_inflate_CODE1(curDecryBuf, til))
 						goto Failed_Bailout;
 #if (ZIP_DEBUG==2)
 					fprintf_color(color_notice, stderr, "CODE1 Pass=%s  count = %u, found = %u\n", saved_key[idx], count, ++found);
