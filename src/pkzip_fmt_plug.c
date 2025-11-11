@@ -31,7 +31,6 @@ john_register_one(&fmt_pkzip);
 #include "common.h"
 #include "misc.h"
 #include "formats.h"
-//#define USE_PKZIP_MAGIC 1
 #include "pkzip.h"
 #include "pkzip_inffixed.h"  // This file is a data file, taken from zlib
 #include "loader.h"
@@ -112,9 +111,6 @@ static PKZ_SALT *salt;
 static u8 *chk;
 static int any_cracked;
 static int dirty=1;
-#if USE_PKZIP_MAGIC
-static ZIP_SIGS SIGS[256];
-#endif
 #ifdef PKZIP_USE_MULT_TABLE
 static u8 mult_tab[16384];
 #define PKZ_MULT(b,w) b^mult_tab[(u16)(w.u)>>2]
@@ -333,15 +329,6 @@ static const char *ValidateZipContents(FILE *fp, long offset, u32 offex, int _le
 	return "We could NOT find the internal zip data in this ZIP file";
 }
 
-#if USE_PKZIP_MAGIC
-static u8 *buf_copy (char *p, int len)
-{
-	u8 *op = mem_alloc_tiny(len, MEM_ALIGN_NONE);
-	memcpy(op, p, len);
-	return op;
-}
-#endif
-
 static void init(struct fmt_main *self)
 {
 #ifdef PKZIP_USE_MULT_TABLE
@@ -369,105 +356,6 @@ static void init(struct fmt_main *self)
 #ifdef PKZIP_USE_MULT_TABLE
 	for (n = 0; n < 16384; n++)
 		mult_tab[n] = (((unsigned)(n*4+3) * (n*4+2)) >> 8) & 0xff;
-#endif
-
-#if USE_PKZIP_MAGIC
-
-	//static char *MagicTypes[]= { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", NULL };
-	//static int  MagicToEnum[] = {0,  1,    1,     1,     1,     2,     2,     3,     4,     4,     5,     6,     7,    7,     8,     8,     9,     10,    11,  0};
-	// decent sources of these:
-	// http://www.garykessler.net/library/file_sigs.html
-	// http://en.wikipedia.org/wiki/List_of_file_signatures
-	// http://toorcon.techpathways.com/uploads/headersig.txt
-	// 	not available, 2012-12-28)
-	// 	archive.org still has a version:
-	// 	http://web.archive.org/web/20110725085828/http://toorcon.techpathways.com/uploads/headersig.txt
-	// there are many more.
-
-//case 1: // DOC/XLS
-	SIGS[1].magic_signature[0] = (u8*)str_alloc_copy("\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1");
-	SIGS[1].magic_sig_len[0] = 8;
-	SIGS[1].magic_signature[1] = buf_copy("\x50\x4B\x03\x04\x14\x00\x06\x00\x08", 10);  // a .zip file 'sort of'
-	SIGS[1].magic_sig_len[1] = 9;
-	SIGS[1].magic_signature[2] = buf_copy("\x09\x04\x06\x00\x00\x00\x10\x00\xF6\x05\x5C\x00", 13); // older XLS format (office 95)
-	SIGS[1].magic_sig_len[2] = 12;
-	SIGS[1].magic_signature[3] = buf_copy("\x09\x02\x06\x00\x00\x00\x10\x00\xB9\x04\x5C\x00", 13); // older XLS v2
-	SIGS[1].magic_sig_len[3] = 12;
-	SIGS[1].magic_signature[4] = buf_copy("\x50\x4B\x03\x04\x14\x00\x00\x00\x00\x00", 11); //DOC Star Writer 6.0
-	SIGS[1].magic_sig_len[4] = 10;
-	SIGS[1].magic_signature[5] = buf_copy("\x31\xBE\x00\x00\x00\xAB\x00\x00", 9); //DOC MS Word for DOS v6 File
-	SIGS[1].magic_sig_len[5] = 8;
-	SIGS[1].magic_signature[6] = (u8*)str_alloc_copy("\x12\x34\x56\x78\x90\xFF"); //DOC MS Word 6.0 File
-	SIGS[1].magic_sig_len[6] = 6;
-	SIGS[1].magic_signature[7] = (u8*)str_alloc_copy("\x7F\xFE\x34\x0A");  //MS Word File
-	SIGS[1].magic_sig_len[7] = 4;
-	SIGS[1].magic_count = 8;
-	SIGS[1].max_len = 12;
-//case 2: // Win32/DOS exe file MZ
-	SIGS[2].magic_signature[0] = (u8*)str_alloc_copy("MZ");
-	SIGS[2].magic_sig_len[0] = 2;
-	SIGS[2].magic_count = 1;
-	SIGS[2].max_len = 2;
-//case 3: // PKZIP
-	SIGS[3].magic_signature[0] = (u8*)str_alloc_copy("\x50\x4B\x03\x04");
-	SIGS[3].magic_sig_len[0] = 4;
-	SIGS[3].magic_count = 1;
-	SIGS[3].max_len = 4;
-//case 4: // BMP
-	SIGS[4].magic_signature[0] = (u8*)str_alloc_copy("BM");
-	SIGS[4].magic_sig_len[0] = 2;
-	SIGS[4].magic_count = 1;
-	SIGS[4].max_len = 2;
-//case 5: // GIF
-	SIGS[5].magic_signature[0] = (u8*)str_alloc_copy("GIF87a");
-	SIGS[5].magic_sig_len[0] = 6;
-	SIGS[5].magic_signature[1] = (u8*)str_alloc_copy("GIF89a");
-	SIGS[5].magic_sig_len[1] = 6;
-	SIGS[5].magic_count = 2;
-	SIGS[5].max_len = 6;
-//case 6: // PDF
-	SIGS[6].magic_signature[0] = (u8*)str_alloc_copy("%PDF");
-	SIGS[6].magic_sig_len[0] = 4;
-	SIGS[6].magic_count = 1;
-	SIGS[6].max_len = 4;
-//case 7: // GZ
-	SIGS[7].magic_signature[0] = (u8*)str_alloc_copy("\x1F\x8B\x08");
-	SIGS[7].magic_sig_len[0] = 3;
-	SIGS[7].magic_count = 1;
-	SIGS[7].max_len = 3;
-//case 8: // BZ2  (there is a 'magic' pi, but byte 4 is 1 to 9, so skip the 'pi')
-	SIGS[8].magic_signature[0] = (u8*)str_alloc_copy("BZh");
-	SIGS[8].magic_sig_len[0] = 3;
-	SIGS[8].magic_signature[1] = (u8*)str_alloc_copy("BZ0");
-	SIGS[8].magic_sig_len[1] = 3;
-	SIGS[8].magic_count = 2;
-	SIGS[8].max_len = 3;
-//case 9: // FLV
-	SIGS[9].magic_signature[0] = (u8*)str_alloc_copy("FLV\x01");
-	SIGS[9].magic_sig_len[0] = 4;
-	SIGS[9].magic_count = 1;
-	SIGS[9].max_len = 4;
-//case 10: // SWF
-	SIGS[10].magic_signature[0] = (u8*)str_alloc_copy("FWS");
-	SIGS[10].magic_sig_len[0] = 3;
-	SIGS[10].magic_signature[1] = (u8*)str_alloc_copy("CWS");
-	SIGS[10].magic_sig_len[1] = 3;
-	SIGS[10].magic_signature[2] = (u8*)str_alloc_copy("ZWS");
-	SIGS[10].magic_sig_len[2] = 3;
-	SIGS[10].magic_count = 3;
-	SIGS[10].max_len = 3;
-//case 11: // MP3
-	SIGS[11].magic_signature[0] = (u8*)str_alloc_copy("ID3");
-	SIGS[11].magic_sig_len[0] = 3;
-	SIGS[11].magic_count = 1;
-	SIGS[11].max_len = 3;
-//case 12: // PST
-	SIGS[12].magic_signature[0] = (u8*)str_alloc_copy("!BDN");
-	SIGS[12].magic_sig_len[0] = 4;
-	SIGS[12].magic_count = 1;
-	SIGS[12].max_len = 4;
-
-	SIGS[255].max_len = 64;
 #endif
 }
 
@@ -542,15 +430,6 @@ static void *get_salt(char *ciphertext)
 		cp = strtokm(NULL, "*");
 		data_enum = *cp - '0';
 		cp = strtokm(NULL, "*");
-#if USE_PKZIP_MAGIC
-		{
-			// mingw can't handle %hhx.  Use 'normal' %x and assign back to uint_8 var
-			unsigned jnk;
-			sscanf(cp, "%x", &jnk);
-			salt->H[i].magic = (unsigned char)jnk;
-		}
-		salt->H[i].pSig = &SIGS[salt->H[i].magic];
-#endif
 
 		if (data_enum > 1) {
 			cp = strtokm(NULL, "*");
@@ -646,33 +525,6 @@ static void *get_salt(char *ciphertext)
 	}
 
 	MEM_FREE(cpalloc);
-
-#if USE_PKZIP_MAGIC
-	// Ok, we want to add some 'logic' to remove the magic testing, except for specific cases.
-	//  If the only file blobs we have are stored, and long blobs, then we want magic (3 file, 2 byte checksum does not need magic).
-	//  A single 1 byte file, even if deflated, we want to keep magic. (possibly).
-	j = 0;
-	for (i = 0; i < salt->cnt; ++i) {
-		if (salt->H[i].compType == 8) {
-			if (salt->cnt == 1 && salt->chk_bytes == 1)
-				j += 10;
-			else
-				break;
-		}
-		j += 1;
-	}
-	// ok, if j == 1, then we 'might' want to use magic. Otherwise, we want to 'clear' all magic values.
-	if (j >= 20)
-		j = 0;
-	if (j && salt->chk_bytes == 2 && salt->cnt > 1)
-		j = 0;  // we do not need to use magic, on 2 or 3 stored 2 byte checksum files.  We already have 2^32 or 2^48 in the checksum checking
-	if (j && salt->chk_bytes == 1 && salt->cnt == 3)
-		j = 0;  // we do not need to use magic, on 3 stored 2 byte checksum files.  We already have 2^32 or 2^48 in the checksum checking
-	if (!j) {
-		for (i = 0; i < salt->cnt; ++i)
-			salt->H[i].magic = 0;	// remove any 'magic' logic from this hash.
-	}
-#endif
 
 	tot_len = 0;
 	for (i = 0; i < salt->cnt; i++)
@@ -976,139 +828,6 @@ static int cmp_exact(char *source, int index)
 	return cmp_exact_loadfile(index);
 }
 
-#if USE_PKZIP_MAGIC
-const char exBytesUTF8[64] = {
-	1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-	2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2, 3,3,3,3,3,3,3,3,4,4,4,4,5,5,5,5
-};
-
-static int isLegalUTF8_char(const u8 *source, int length)
-{
-	u8 a;
-	int len;
-	const u8 *srcptr;
-
-	if (*source < 0xC0)
-		return 1;
-	len = exBytesUTF8[*source&0x3f];
-	srcptr = source+len;
-	if (len+1 > length)
-		return -1;
-
-	switch (len) {
-	default: return -1;
-		/* Everything else falls through when "true"... */
-	case 4: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
-	case 3: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
-	case 2: if ((a = (*--srcptr)) < 0x80 || a > 0xBF) return -1;
-
-		switch (*source) {
-			/* no fall-through in this inner switch */
-		case 0xE0: if (a < 0xA0) return -1;
-			break;
-		case 0xED: if (a > 0x9F) return -1;
-			break;
-		case 0xF0: if (a < 0x90) return -1;
-			break;
-		case 0xF4: if (a > 0x8F) return -1;
-		}
-
-	case 1: if (*source >= 0x80 && *source < 0xC2) return -1;
-	}
-	if (*source > 0xF4) return -1;
-	return len+1;
-}
-
-static int validate_ascii(const u8 *out, int inplen)
-{
-	int i;
-	int unicode=0;
-
-	for (i = 0; i < inplen-1; ++i) {
-		if (out[i] > 0x7E) {
-			// first check to 'see' if this is a valid utf8 character.  If so, let it 'pass'.
-			if (unicode)
-				return 0; // in unicode mode, we ONLY handle 'ascii' bytes in the low byte.
-
-			if (out[i] > 0xC0) {
-				int len;
-				if (i > inplen-4)
-					return 1;
-				len = isLegalUTF8_char(&out[i], 5);
-				if (len < 0) return 0;
-				i += (len-1);
-			}
-			else {
-				if (i) {
-					// check for utf8 BOM  \xEF \xBB \xBF
-					if (out[0] == 0xEF && out[1] == 0xBB && out[2] == 0xBF) {
-						i = 2;
-						continue;
-					}
-					/* check for Unicode BOM  (FF FE for utf16le, FE FF for utf16be, FF FE 00 00 for utf32le, not sure if 00 00 FE FF is utf32be, but likely is) */
-					if (out[0] == 0xFF && out[1] == 0xFE) {
-						unicode = 1;
-						i++;
-						continue;
-					}
-					/* unicode BE bom */
-					if (out[0] == 0xFE && out[1] == 0xFF) {
-						unicode = 1;
-						i += 2;
-						continue;
-					}
-					/* utf32 LE */
-					if (out[0] == 0xFF && out[1] == 0xFE && out[2] == 0 && out[3] == 0) {
-						unicode = 3;
-						i += 3;
-						continue;
-					}
-					/* utf32 BE bom */
-					if (out[0] == 0 && out[1] == 0 && out[2] == 0xFE && out[3] == 0xFF) {
-						unicode = 3;
-						i += 6;
-						continue;
-					}
-
-					// allow a 'single' byte > 0x7E as long as bytes following are ascii.
-					if (out[1] <= 0x7E && out[1] >= 0x20) {
-						++i;
-						continue;
-					}
-					return 0;
-				}
-			}
-		} else if (out[i] < 0x20) {
-			/* we do not need to deal with DOS EOF char 0x1a, since we will never have the 'end' of the file */
-			/* we do allow the ESC character for ANSI files, however, they are frequently also binary, so will fail in other places */
-			if (out[i]!='\n' && out[i]!='\r' && out[i]!='\t' && out[i]!=0x1B)
-				return 0;
-		}
-		i += unicode; // skip the null bytes
-	}
-	return 1;
-}
-
-static int CheckSigs(const u8 *p, int len, ZIP_SIGS *pSig)
-{
-	int i, j;
-
-	for (i = 0; i < pSig->magic_count; ++i) {
-		int fnd = 1;
-		u8 *pS = pSig->magic_signature[i];
-		for (j = 0; j < pSig->magic_sig_len[i]; ++j) {
-			if (p[j] != pS[j]) {
-				fnd = 0;
-				break;
-			}
-		}
-		if (fnd)
-			return 1;
-	}
-	return 0;
-}
-#endif
-
 /* note, Buf is the 'full' decrypted zip buffer (len bytes long). It DOES contain the first 3 bits, which have already
  * been decoded, and have told us we had a code 2 (var table block)
  * all done without BITS(), PULLBYTE(), BITSNEEDED() macros.  We 'know' the data we need, and we know that we have
@@ -1344,10 +1063,6 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		u8 C;
 		const u8 *b;
 		u8 curDecryBuf[256];
-#if USE_PKZIP_MAGIC
-		u8 curInfBuf[128];
-		int SigChecked;
-#endif
 		int k;
 		u16 e, v1, v2;
 		z_stream strm;
@@ -1427,37 +1142,8 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 			// First, we want to get the inflate CODE byte (the first one).
 
 			C = PKZ_MULT(*b++,key2);
-#if USE_PKZIP_MAGIC
-			SigChecked = 0;
-#endif
 			if (salt->H[cur_hash_idx].compType == 0) {
 				// handle a stored file.
-				// We can ONLY deal with these IF we are handling 'magic' testing.
-
-#if USE_PKZIP_MAGIC
-				// Ok, if we have a signature, check it here, WITHOUT having to call zLib's inflate.
-				if (salt->H[cur_hash_idx].pSig->max_len) {
-					int len = salt->H[cur_hash_idx].pSig->max_len;
-					if (len > salt->H[cur_hash_idx].datlen-12)
-						len = salt->H[cur_hash_idx].datlen-12;
-					SigChecked = 1;
-					curDecryBuf[0] = C;
-					for (; e < len;) {
-						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
-						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
-						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
-					}
-
-					if (salt->H[cur_hash_idx].magic == 255) {
-						if (!validate_ascii(&curDecryBuf[5], len-5))
-							goto Failed_Bailout;
-					} else {
-						if (!CheckSigs(curDecryBuf, len, salt->H[cur_hash_idx].pSig))
-							goto Failed_Bailout;
-					}
-				}
-#endif
 				continue;
 			}
 
@@ -1485,29 +1171,6 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 				v2 = curDecryBuf[3] | (((u16)curDecryBuf[4])<<8);
 				if (v1 != (v2^0xFFFF))
 					goto Failed_Bailout;
-#if USE_PKZIP_MAGIC
-				// Ok, if we have a signature, check it here, WITHOUT having to call zLib's inflate.
-				if (salt->H[cur_hash_idx].pSig->max_len) {
-					int len = salt->H[cur_hash_idx].pSig->max_len + 5;
-					if (len > salt->H[cur_hash_idx].datlen-12)
-						len = salt->H[cur_hash_idx].datlen-12;
-					SigChecked = 1;
-					for (; e < len;) {
-						key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
-						key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-						key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
-						curDecryBuf[++e] = PKZ_MULT(*b++,key2);
-					}
-
-					if (salt->H[cur_hash_idx].magic == 255) {
-						if (!validate_ascii(&curDecryBuf[5], len-5))
-							goto Failed_Bailout;
-					} else {
-						if (!CheckSigs(&curDecryBuf[5], len-5, salt->H[cur_hash_idx].pSig))
-							goto Failed_Bailout;
-					}
-				}
-#endif
 			}
 			else {
 				// Ok, now we have handled inflate code type 3 and inflate code 0 (50% of 'random' data)
@@ -1555,58 +1218,6 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 #endif
 				}
 			}
-#if USE_PKZIP_MAGIC
-			// Ok, now see if we need to check sigs, or do a FULL inflate/crc check.
-			if (!SigChecked && salt->H[cur_hash_idx].pSig->max_len) {
-				int til = 180;
-				if (salt->H[cur_hash_idx].datlen-12 < til)
-					til = salt->H[cur_hash_idx].datlen-12;
-				for (; e < til;) {
-					key0.u = jtr_crc32 (key0.u, curDecryBuf[e]);
-					key1.u = (key1.u + key0.c[KB1]) * 134775813 + 1;
-					key2.u = jtr_crc32 (key2.u, key1.c[KB2]);
-					curDecryBuf[++e] = PKZ_MULT(*b++,key2);
-				}
-				strm.zalloc = Z_NULL;
-				strm.zfree = Z_NULL;
-				strm.opaque = Z_NULL;
-				strm.next_in = Z_NULL;
-				strm.avail_in = til;
-
-				ret = inflateInit2(&strm, -15); /* 'raw', since we do not have gzip header, or gzip crc. .ZIP files are 'raw' implode data. */
-				if (ret != Z_OK)
-					perror("Error, initializing the libz inflateInit2() system\n");
-
-				strm.next_in = curDecryBuf;
-				strm.avail_out = sizeof(curInfBuf);
-				strm.next_out = curInfBuf;
-
-				ret = inflate(&strm, Z_SYNC_FLUSH);
-
-				inflateEnd(&strm);
-				if (ret != Z_OK) {
-					// we need to handle zips smaller than sizeof curInfBuf.  If we find a zip of this
-					// size, the return is Z_STREAM_END, BUT things are fine.
-					if (ret == Z_STREAM_END && salt->deCompLen == strm.total_out)
-						; // things are ok.
-					else
-						goto Failed_Bailout;
-				}
-				if (!strm.total_out)
-					goto Failed_Bailout;
-
-				ret = salt->H[cur_hash_idx].pSig->max_len;
-				if (salt->H[cur_hash_idx].magic == 255) {
-					if (!validate_ascii(curInfBuf, strm.total_out))
-						goto Failed_Bailout;
-				} else {
-					if (strm.total_out < ret)
-						goto Failed_Bailout;
-					if (!CheckSigs(curInfBuf, strm.total_out, salt->H[cur_hash_idx].pSig))
-						goto Failed_Bailout;
-				}
-			}
-#endif
 
 			if (salt->H[cur_hash_idx].full_zip) {
 				u8 inflateBufTmp[1024];

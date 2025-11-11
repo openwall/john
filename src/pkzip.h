@@ -34,29 +34,14 @@ u16 fget16LE(FILE *fp);
 #define PWD_VER_LENGTH      0
 #endif
 
-#if USE_PKZIP_MAGIC
-typedef struct zip_magic_signatures_t {
-	u8 *magic_signature[8];
-	u8  magic_sig_len[8];
-	u8  magic_count;
-	u8  max_len;
-} ZIP_SIGS;
-#endif
-
 typedef struct zip_hash_type_t {
 	u8 *h;						// at getsalt time, we leave these null.  Later in setsalt, we 'fix' them
 	u8 type;					// JtR hash version. Version 2 ($pkzip2$) is now the deprecated one.
 	u16 c;
 	u16 c2;
 	u64 datlen;
-#if USE_PKZIP_MAGIC
-	u8 magic;					// This is used as 'magic' signature type. Also, 255 is 'generic text'
-#endif
 	u8 full_zip;
 	u32 compType;				// the type of compression  0 or 8
-#if USE_PKZIP_MAGIC
-	ZIP_SIGS *pSig;
-#endif
 } ZIP_HASH;
 
 typedef struct winzip_salt_t {
