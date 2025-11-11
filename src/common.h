@@ -108,38 +108,48 @@ extern void common_init(void);
  **************************************************************/
 
 /* is string full valid hex string */
-int ishex(const char *q);
+extern int ishex(const char *q);
 /* Same as ishex(), BUT will still return true for an odd length string */
-int ishex_oddOK(const char *q);
+extern int ishex_oddOK(const char *q);
 /* is string full valid hex string (only upper case letters) */
-int ishexuc(const char *q);
+extern int ishexuc(const char *q);
 /* is string full valid hex string (only lower case letters) */
-int ishexlc(const char *q);
+extern int ishexlc(const char *q);
 /* same as ishexuc/lc except odd length is ok */
-int ishexuc_oddOK(const char *q);
-int ishexlc_oddOK(const char *q);
+extern int ishexuc_oddOK(const char *q);
+extern int ishexlc_oddOK(const char *q);
 /* provide a length field, so return true if 'n' bytes of the string are hex */
 /* the n is length q, so there is no need for a 'odd' field. If checking for */
 /* a 49 byte string, simply specify 49 */
-int ishexn(const char *q, int n);
-int ishexucn(const char *q, int n);
-int ishexlcn(const char *q, int n);
+extern int ishexn(const char *q, int n);
+extern int ishexucn(const char *q, int n);
+extern int ishexlcn(const char *q, int n);
 /* length of hex. if extra_chars not null, it will be 1 if there are more
  * non-hex characters after the length of valid hex chars returned.
  * NOTE, the return will always be an even number (rounded down). so if we
  * want the length of "ABCDE", it will be 4 not 5.
  */
-size_t hexlen(const char *q, int *extra_chars);
-size_t hexlenl(const char *q, int *extra_chars); /* lower cased only */
-size_t hexlenu(const char *q, int *extra_chars); /* upper cased only */
+extern size_t hexlen(const char *q, int *extra_chars);
+extern size_t hexlenl(const char *q, int *extra_chars); /* lower cased only */
+extern size_t hexlenu(const char *q, int *extra_chars); /* upper cased only */
 /* Is this a valid number <=10digits and in the range [0 .... <= 0x7fffffff]
  * ONLY positive numbers are valid. */
-int isdec(const char *q);
+extern int isdec(const char *q);
 /* Is this a valid number <=10digits.
  * Positive [0..<= 0x7fffffff] and negative [ <= 0x80000000] numbers are valid */
-int isdec_negok(const char *q);
+extern int isdec_negok(const char *q);
 /* Is this a valid number <=10digits.ONLY positive [0..<=0xffffffff] numbers are valid */
-int isdecu(const char *q);
+extern int isdecu(const char *q);
+
+/*
+ * Read integer from string, eg. "1024$deadcafe", up to the separator.
+ *
+ * Returns the positive integer, eg. 1024.
+ * If separator doesn't match or decimal is not positive int32_t, return -1.
+ * Note that an end of string instead of the separator is a non-match but if
+ * you do want to read to an expected end of a string, separator can be '\0'!
+ */
+extern int getdec(const char *string, char separator);
 
 #endif
 

@@ -225,3 +225,23 @@ int isdecu(const char *q)
 		return 0;
 	return isdec_len(q, "4294967295");
 }
+
+int getdec(const char *string, char separator)
+{
+	int i = 0;
+	char buf[11];
+
+	while (string[i] >= '0' && string[i] <= '9') {
+		buf[i] = string[i];
+		if (++i >= sizeof(buf) - 1)
+			break;
+	}
+	if (i == 0 || string[i] != separator)
+		return -1;
+	buf[i] = 0;
+
+	if (!isdec(buf))
+		return -1;
+
+	return atoi(buf);
+}
