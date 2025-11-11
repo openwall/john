@@ -31,7 +31,7 @@ john_register_one(&fmt_pkzip);
 #include "common.h"
 #include "misc.h"
 #include "formats.h"
-#define USE_PKZIP_MAGIC 1
+//#define USE_PKZIP_MAGIC 1
 #include "pkzip.h"
 #include "pkzip_inffixed.h"  // This file is a data file, taken from zlib
 #include "loader.h"
@@ -333,12 +333,14 @@ static const char *ValidateZipContents(FILE *fp, long offset, u32 offex, int _le
 	return "We could NOT find the internal zip data in this ZIP file";
 }
 
+#if USE_PKZIP_MAGIC
 static u8 *buf_copy (char *p, int len)
 {
 	u8 *op = mem_alloc_tiny(len, MEM_ALIGN_NONE);
 	memcpy(op, p, len);
 	return op;
 }
+#endif
 
 static void init(struct fmt_main *self)
 {
@@ -645,6 +647,7 @@ static void *get_salt(char *ciphertext)
 
 	MEM_FREE(cpalloc);
 
+#if USE_PKZIP_MAGIC
 	// Ok, we want to add some 'logic' to remove the magic testing, except for specific cases.
 	//  If the only file blobs we have are stored, and long blobs, then we want magic (3 file, 2 byte checksum does not need magic).
 	//  A single 1 byte file, even if deflated, we want to keep magic. (possibly).
@@ -669,6 +672,7 @@ static void *get_salt(char *ciphertext)
 		for (i = 0; i < salt->cnt; ++i)
 			salt->H[i].magic = 0;	// remove any 'magic' logic from this hash.
 	}
+#endif
 
 	tot_len = 0;
 	for (i = 0; i < salt->cnt; i++)
@@ -1342,8 +1346,9 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 		u8 curDecryBuf[256];
 #if USE_PKZIP_MAGIC
 		u8 curInfBuf[128];
+		int SigChecked;
 #endif
-		int k, SigChecked;
+		int k;
 		u16 e, v1, v2;
 		z_stream strm;
 		int ret;
@@ -1422,7 +1427,9 @@ static int crypt_all(int *pcount, struct db_salt *_salt)
 			// First, we want to get the inflate CODE byte (the first one).
 
 			C = PKZ_MULT(*b++,key2);
+#if USE_PKZIP_MAGIC
 			SigChecked = 0;
+#endif
 			if (salt->H[cur_hash_idx].compType == 0) {
 				// handle a stored file.
 				// We can ONLY deal with these IF we are handling 'magic' testing.

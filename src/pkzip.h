@@ -49,7 +49,9 @@ typedef struct zip_hash_type_t {
 	u16 c;
 	u16 c2;
 	u64 datlen;
+#if USE_PKZIP_MAGIC
 	u8 magic;					// This is used as 'magic' signature type. Also, 255 is 'generic text'
+#endif
 	u8 full_zip;
 	u32 compType;				// the type of compression  0 or 8
 #if USE_PKZIP_MAGIC
