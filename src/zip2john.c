@@ -54,7 +54,7 @@
  *     of the files limits it.
  * ARRAY of data starts here
  *   DT  is a "Data Type enum".  This will be 1 2 or 3.  1 is 'partial'. 2 and 3 are full file data (2 is inline, 3 is load from file).
- *   MT  Magic Type enum.  0 is no 'type'.  255 is 'text'. Other types (like MS Doc, GIF, etc), see source.
+ *   MT  Magic Type enum.  0 is no 'type' and other values are no longer valid.
  *     NOTE, CL, DL, CRC, OFF are only present if DT != 1
  *     CL  Compressed length of file blob data (includes 12 byte IV).
  *     UL  Uncompressed length of the file.
@@ -195,11 +195,8 @@ static int fexpect(FILE *stream, int c)
 	return d == c;
 }
 
-static int checksum_only, use_magic;
+static int checksum_only;
 static char *ascii_fname, *only_fname;
-
-static char *MagicTypes[] = { "", "DOC", "XLS", "DOT", "XLT", "EXE", "DLL", "ZIP", "BMP", "DIB", "GIF", "PDF", "GZ", "TGZ", "BZ2", "TZ2", "FLV", "SWF", "MP3", "PST", NULL };
-static int  MagicToEnum[] = {  0,   1,     1,     1,     1,     2,     2,     3,     4,     4,     5,     6,     7,    7,     8,     8,     9,     10,    11,  12, 0 };
 
 static void print_hex_inline(unsigned char *str, int len)
 {
@@ -212,7 +209,7 @@ static void print_hex_inline(unsigned char *str, int len)
 typedef struct _zip_ptr
 {
 	uint16_t      version, flags;
-	uint16_t      magic_type, cmptype;
+	uint16_t      cmptype;
 	char         *hash_data;
 	char         *file_name;
 	uint64_t      offset, offex;
@@ -354,7 +351,6 @@ static int process_aes(zip_file *zip, zip_ptr *p)
 		unsigned char salt[16];
 		char *bname;
 		int d;
-		int magic_enum = 0;  // reserved at 0 for now, we are not computing this (yet).
 		uint64_t i;
 		uint32_t salt_length;
 		uint16_t ef_remaining = p->extrafield_length;
@@ -414,8 +410,7 @@ static int process_aes(zip_file *zip, zip_ptr *p)
 		}
 
 		printf("%s/%s:$zip2$*0*%x*%x*",
-				bname, p->file_name, p->aes.strength,
-				magic_enum);
+				bname, p->file_name, p->aes.strength, 0);
 
 		// Print salt value
 		for (i = 0; i < salt_length; i++) {
@@ -559,27 +554,6 @@ static int process_aes(zip_file *zip, zip_ptr *p)
 		printf("*0*0*0*%s\n", p->file_name);
 		return 1;
 	}
-	return 0;
-}
-
-static int magic_type(const char *filename) {
-	char *Buf = str_alloc_copy((char*)filename), *cp;
-	int i;
-
-	if (!use_magic)
-		return 0;
-
-	strupr(Buf);
-	if (ascii_fname && !strcasecmp(Buf, ascii_fname))
-		return 255;
-
-	cp = strrchr(Buf, '.');
-	if (!cp)
-		return 0;
-	++cp;
-	for (i = 1; MagicTypes[i]; ++i)
-		if (!strcmp(cp, MagicTypes[i]))
-			return MagicToEnum[i];
 	return 0;
 }
 
@@ -728,7 +702,6 @@ static int load_local_header(zip_file *zfp, zip_ptr *p)
 	if (only_fname != NULL && strcmp(only_fname, (char*)p->file_name) != 0)
 		return 0; // Not interested in this one
 
-	p->magic_type = magic_type(p->file_name);
 	p->offex = 30 + filename_length + p->extrafield_length;
 	return 1;
 }
@@ -948,16 +921,14 @@ static void print_and_cleanup(zip_context *ctx)
 			strcat(filenames, ", ");
 			strcat(filenames, ctx->best_files[i].file_name);
 		}
-		if (ctx->best_files[i].magic_type)
-			len = 12+180;
 		if (len > ctx->best_files[i].cmp_len)
 			len = ctx->best_files[i].cmp_len; // even though we 'could' output a '2', we do not.  We only need one full inflate CRC check file.
-		printf("1*%x*%x*%"PRIx64"*%s*", ctx->best_files[i].magic_type, ctx->best_files[i].cmptype, (uint64_t)len, ctx->best_files[i].cs);
+		printf("1*%x*%x*%"PRIx64"*%s*", 0, ctx->best_files[i].cmptype, (uint64_t)len, ctx->best_files[i].cs);
 		print_hex((unsigned char*)ctx->best_files[i].hash_data, len);
 	}
 	// Ok, now output the 'little' one (the first).
 	if (!checksum_only) {
-		printf("%x*%x*%"PRIx64"*%"PRIx64"*%x*%"PRIx64"*%"PRIx64"*%x*", 2, ctx->best_files[0].magic_type, ctx->best_files[0].cmp_len, ctx->best_files[0].decomp_len, ctx->best_files[0].crc, ctx->best_files[0].offset, ctx->best_files[0].offex, ctx->best_files[0].cmptype);
+		printf("%x*%x*%"PRIx64"*%"PRIx64"*%x*%"PRIx64"*%"PRIx64"*%x*", 2, 0, ctx->best_files[0].cmp_len, ctx->best_files[0].decomp_len, ctx->best_files[0].crc, ctx->best_files[0].offset, ctx->best_files[0].offex, ctx->best_files[0].cmptype);
 		printf("%"PRIx64"*%s*", ctx->best_files[0].cmp_len, ctx->best_files[0].cs);
 		print_hex((unsigned char*)ctx->best_files[0].hash_data, ctx->best_files[0].cmp_len);
 	}
@@ -1166,8 +1137,6 @@ static int usage(char *name)
 	fprintf(stderr, "    files in the .zip file, then this may be an option, and there will be\n");
 	fprintf(stderr, "    enough data that false positives will not be seen.  Up to " MAX_FILES " files are\n");
 	fprintf(stderr, "    supported. These hashes do not reveal actual file data.\n");
-	fprintf(stderr, " -m Use \"file magic\" as known-plain if applicable. This can be faster but\n");
-	fprintf(stderr, "    not 100%% safe in all situations.\n");
 	fprintf(stderr, "\nNOTE: By default it is assumed that all files in each archive have the same\n");
 	fprintf(stderr, "password. If that's not the case, the produced hash may be uncrackable.\n");
 	fprintf(stderr, "To avoid this, use -o option to pick a file at a time.\n");
@@ -1194,10 +1163,6 @@ int zip2john(int argc, char **argv)
 		case 'c':
 			checksum_only = 1;
 			fprintf(stderr, "Outputing hashes that are 'checksum ONLY' hashes\n");
-			break;
-		case 'm':
-			use_magic = 1;
-			fprintf(stderr, "Using file 'magic' signatures if applicable (not 100%% safe)\n");
 			break;
 		case 's':
 			do_scan = 1;
