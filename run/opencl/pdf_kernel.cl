@@ -15,6 +15,9 @@
 #include "opencl_rc4.h"
 #include "opencl_aes.h"
 
+#define TRUNCATE_LENGTH_R234   32
+#define TRUNCATE_LENGTH_R5     127
+
 /*
  * RC4 key length other than 40 or 128 should be extremely rare but is supported
  * by the spec for rev. 3 and 4, in multiples of 4.  Disabling it may lead to better
@@ -50,9 +53,9 @@ INLINE uint prepare234(__global const uchar *pwbuf, __global const uint *index, 
 
 	pwbuf += base;
 
-	/* Work-around for self-tests not always calling set_key() like IRL */
-	if (len > PLAINTEXT_LENGTH)
-		len = 0;
+	/* R2..R4 truncates password to length 32 */
+	if (len > 32)
+		len = 32;
 
 	for (i = 0; i < len; i++)
 		((uchar*)password)[i] = pwbuf[i];
@@ -85,7 +88,7 @@ void pdf_r2(__global const uchar *pwbuf,
 	__local
 #endif
 	RC4_CTX rc4_ctx;
-	uint password[(PLAINTEXT_LENGTH + 3) / 4]; // Not null terminated
+	uint password[TRUNCATE_LENGTH_R234 / 4]; // Not null terminated, truncated and padded to 32
 	uint gid = get_global_id(0);
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
@@ -126,20 +129,24 @@ void pdf_r2(__global const uchar *pwbuf,
 
 		/* Apply GPU-side mask */
 #if NUM_INT_KEYS > 1
-		((uchar*)password)[GPU_LOC_0] = int_keys[mi] & 0xff;
+		if (GPU_LOC_0 < sizeof(password))
+			((uchar*)password)[GPU_LOC_0] = int_keys[mi] & 0xff;
 #if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
-		((uchar*)password)[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
+		if (GPU_LOC_1 < sizeof(password))
+			((uchar*)password)[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
-		((uchar*)password)[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
+		if (GPU_LOC_2 < sizeof(password))
+			((uchar*)password)[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
-		((uchar*)password)[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
+		if (GPU_LOC_3 < sizeof(password))
+			((uchar*)password)[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
 #endif
 #endif
 #endif
@@ -203,7 +210,7 @@ void pdf_r34(__global const uchar *pwbuf,
 	__local
 #endif
 	RC4_CTX rc4_ctx;
-	uint password[(PLAINTEXT_LENGTH + 3) / 4]; // Not null terminated
+	uint password[TRUNCATE_LENGTH_R234 / 4]; // Not null terminated, truncated and padded to 32
 	uint gid = get_global_id(0);
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
@@ -244,20 +251,24 @@ void pdf_r34(__global const uchar *pwbuf,
 
 		/* Apply GPU-side mask */
 #if NUM_INT_KEYS > 1
-		((uchar*)password)[GPU_LOC_0] = int_keys[mi] & 0xff;
+		if (GPU_LOC_0 < sizeof(password))
+			((uchar*)password)[GPU_LOC_0] = int_keys[mi] & 0xff;
 #if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
-		((uchar*)password)[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
+		if (GPU_LOC_1 < sizeof(password))
+			((uchar*)password)[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
-		((uchar*)password)[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
+		if (GPU_LOC_2 < sizeof(password))
+			((uchar*)password)[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
-		((uchar*)password)[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
+		if (GPU_LOC_3 < sizeof(password))
+			((uchar*)password)[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
 #endif
 #endif
 #endif
@@ -266,7 +277,7 @@ void pdf_r34(__global const uchar *pwbuf,
 		uint output[32 / 4];
 		uint key[MAX_KEY_SIZE / 8 / 4];
 		uint digest[16 / 4];
-		uint W[(32 + sizeof(pdf_salt->id) + 63 + 9) / 64 * 16]; // Max. 160 bytes, three limbs
+		uint W[(TRUNCATE_LENGTH_R234 + sizeof(pdf_salt->id) + 63 + 9) / 64 * 16]; // Max. 160 bytes, three limbs
 
 		md5_init(key);
 
@@ -391,7 +402,7 @@ void pdf_r34(__global const uchar *pwbuf,
 	}
 }
 
-INLINE uint prepare56(__global const uchar *pwbuf, __global const uint *index, uint *password)
+INLINE uint prepare56(__global const uchar *pwbuf, __global const uint *index, uint *password, uint max_len)
 {
 	uint i;
 	uint gid = get_global_id(0);
@@ -400,9 +411,9 @@ INLINE uint prepare56(__global const uchar *pwbuf, __global const uint *index, u
 
 	pwbuf += base;
 
-	/* Work-around for self-tests not always calling set_key() like IRL */
-	if (len > PLAINTEXT_LENGTH)
-		len = 0;
+	/* R5 truncates to 127, R6 does not truncate */
+	if (len > max_len)
+		len = max_len;
 
 	for (i = 0; i < len; i++)
 		((uchar*)password)[i] = pwbuf[i];
@@ -424,7 +435,7 @@ void pdf_r5(__global const uchar *pwbuf,
 #endif
             uint *int_keys)
 {
-	uint password[(PLAINTEXT_LENGTH + 3) / 4]; // Not null terminated
+	uint password[(TRUNCATE_LENGTH_R5 + 3) / 4]; // Truncated to 127
 	uint gid = get_global_id(0);
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
@@ -458,33 +469,44 @@ void pdf_r5(__global const uchar *pwbuf,
 #define GPU_LOC_3 LOC_3
 #endif
 
-	/* Prepare password */
-	uint pw_len = prepare56(pwbuf, index, password);
+	/* Prepare password, truncate to 127 */
+	uint pw_len = prepare56(pwbuf, index, password, 127);
 
 	for (uint mi = 0; mi < NUM_INT_KEYS; mi++) {
 
 		/* Apply GPU-side mask */
 #if NUM_INT_KEYS > 1
-		((uchar*)password)[GPU_LOC_0] = int_keys[mi] & 0xff;
+		if (GPU_LOC_0 < sizeof(password))
+			((uchar*)password)[GPU_LOC_0] = int_keys[mi] & 0xff;
 #if MASK_FMT_INT_PLHDR > 1
 #if LOC_1 >= 0
-		((uchar*)password)[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
+		if (GPU_LOC_1 < sizeof(password))
+			((uchar*)password)[GPU_LOC_1] = (int_keys[mi] & 0xff00) >> 8;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 2
 #if LOC_2 >= 0
-		((uchar*)password)[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
+		if (GPU_LOC_2 < sizeof(password))
+			((uchar*)password)[GPU_LOC_2] = (int_keys[mi] & 0xff0000) >> 16;
 #endif
 #endif
 #if MASK_FMT_INT_PLHDR > 3
 #if LOC_3 >= 0
-		((uchar*)password)[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
+		if (GPU_LOC_3 < sizeof(password))
+			((uchar*)password)[GPU_LOC_3] = (int_keys[mi] & 0xff000000) >> 24;
 #endif
 #endif
 #endif
 
 		uint gidx = gid * NUM_INT_KEYS + mi;
-		uint W[(PLAINTEXT_LENGTH + 8 + 63 + 9) / 64 * 16]; // Max. 133 bytes, three limbs
+		uint W[(TRUNCATE_LENGTH_R5 + 8 + 63 + 9) / 64 * 16];
+/*
+ * Work around a driver bug seen with rtx 5080 and 570.195.03.
+ * This does not affect performance.
+ */
+#if gpu_nvidia(DEVICE_INFO)
+		volatile
+#endif
 		uint *WP = W;
 		uint sha256[8];
 		const uint sha256len = pw_len + 8;
@@ -534,7 +556,7 @@ void pdf_r6(__global const uchar *pwbuf,
 #endif
             uint *int_keys)
 {
-	uint password[(PLAINTEXT_LENGTH + 3) / 4]; // Not null terminated
+	uint password[(PLAINTEXT_LENGTH + 3) / 4]; // Not null terminated, not truncated
 	uint gid = get_global_id(0);
 #if NUM_INT_KEYS > 1 && !IS_STATIC_GPU_MASK
 	uint ikl = int_key_loc[gid];
@@ -572,7 +594,7 @@ void pdf_r6(__global const uchar *pwbuf,
 	AES_KEY aes; aes.lt = &lt;
 
 	/* Prepare password */
-	uint pw_len = prepare56(pwbuf, index, password);
+	uint pw_len = prepare56(pwbuf, index, password, PLAINTEXT_LENGTH);
 
 	for (uint mi = 0; mi < NUM_INT_KEYS; mi++) {
 
@@ -597,7 +619,6 @@ void pdf_r6(__global const uchar *pwbuf,
 #endif
 
 		uint gidx = gid * NUM_INT_KEYS + mi;
-		// Max. 12096 bytes, up to 158x 32-bit or 95x 64-bit limbs
 		ulong data64[(((PLAINTEXT_LENGTH + 64) * 64) + 127 + 17) / 128 * 16];
 		uint *data32 = (uint*)data64;
 		uchar *data = (uchar*)data64;
