@@ -18,7 +18,7 @@ jobs:
       CC: gcc
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check

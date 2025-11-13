@@ -406,29 +406,30 @@ int blake2b_long(void *pout, size_t outlen, const void *in, size_t inlen) {
         TRY(blake2b_final(&blake_state, out, outlen));
     } else {
         uint32_t toproduce;
-        uint8_t out_buffer[BLAKE2B_OUTBYTES];
-        uint8_t in_buffer[BLAKE2B_OUTBYTES];
+        struct {
+            uint8_t b[BLAKE2B_OUTBYTES];
+        } out_buffer, in_buffer;
         TRY(blake2b_init(&blake_state, BLAKE2B_OUTBYTES));
         TRY(blake2b_update(&blake_state, outlen_bytes, sizeof(outlen_bytes)));
         TRY(blake2b_update(&blake_state, in, inlen));
-        TRY(blake2b_final(&blake_state, out_buffer, BLAKE2B_OUTBYTES));
-        memcpy(out, out_buffer, BLAKE2B_OUTBYTES / 2);
+        TRY(blake2b_final(&blake_state, out_buffer.b, BLAKE2B_OUTBYTES));
+        memcpy(out, out_buffer.b, BLAKE2B_OUTBYTES / 2);
         out += BLAKE2B_OUTBYTES / 2;
         toproduce = (uint32_t)outlen - BLAKE2B_OUTBYTES / 2;
 
         while (toproduce > BLAKE2B_OUTBYTES) {
-            memcpy(in_buffer, out_buffer, BLAKE2B_OUTBYTES);
-            TRY(blake2b(out_buffer, BLAKE2B_OUTBYTES, in_buffer,
+            in_buffer = out_buffer;
+            TRY(blake2b(out_buffer.b, BLAKE2B_OUTBYTES, in_buffer.b,
                         BLAKE2B_OUTBYTES, NULL, 0));
-            memcpy(out, out_buffer, BLAKE2B_OUTBYTES / 2);
+            memcpy(out, out_buffer.b, BLAKE2B_OUTBYTES / 2);
             out += BLAKE2B_OUTBYTES / 2;
             toproduce -= BLAKE2B_OUTBYTES / 2;
         }
 
-        memcpy(in_buffer, out_buffer, BLAKE2B_OUTBYTES);
-        TRY(blake2b(out_buffer, toproduce, in_buffer, BLAKE2B_OUTBYTES, NULL,
+        in_buffer = out_buffer;
+        TRY(blake2b(out_buffer.b, toproduce, in_buffer.b, BLAKE2B_OUTBYTES, NULL,
                     0));
-        memcpy(out, out_buffer, toproduce);
+        memcpy(out, out_buffer.b, toproduce);
     }
 fail:
     secure_zero_memory(&blake_state, sizeof(blake_state));

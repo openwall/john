@@ -119,7 +119,13 @@ static int secp256k1_pubkey_load(const secp256k1_context* ctx, secp256k1_ge* ge,
          * representation inside secp256k1_pubkey, as conversion is very fast.
          * Note that secp256k1_pubkey_save must use the same representation. */
         secp256k1_ge_storage s;
+#ifdef __SANITIZE_ADDRESS__
+/* Workaround ASan false positives seen in GitHub's Ubuntu 24.04 runner */
+        memcpy(&s, &pubkey->data[0], 32);
+        memcpy((uint8_t *)&s + 32, &pubkey->data[32], 32);
+#else
         memcpy(&s, &pubkey->data[0], 64);
+#endif
         secp256k1_ge_from_storage(ge, &s);
     } else {
         /* Otherwise, fall back to 32-byte big endian for X and Y. */
@@ -136,7 +142,13 @@ static void secp256k1_pubkey_save(secp256k1_pubkey* pubkey, secp256k1_ge* ge) {
     if (sizeof(secp256k1_ge_storage) == 64) {
         secp256k1_ge_storage s;
         secp256k1_ge_to_storage(&s, ge);
+#ifdef __SANITIZE_ADDRESS__
+/* Workaround ASan false positives seen in GitHub's Ubuntu 24.04 runner */
+        memcpy(&pubkey->data[0], &s, 32);
+        memcpy(&pubkey->data[32], (uint8_t *)&s + 32, 32);
+#else
         memcpy(&pubkey->data[0], &s, 64);
+#endif
     } else {
         VERIFY_CHECK(!secp256k1_ge_is_infinity(ge));
         secp256k1_fe_normalize_var(&ge->x);
