@@ -107,6 +107,7 @@ static void release_clobj(void);
 
 static void create_clobj_kpc(size_t kpc)
 {
+	global_work_size = kpc;
 	release_clobj_kpc();
 
 	pinned_saved_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, BUFSIZE * kpc, NULL, &ret_code);
@@ -786,7 +787,6 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 	size_t lws_limit, lws_init;
 
 	struct timeval startc, endc;
-	struct s_salt new_salt;
 	long double time_ms = 0, old_time_ms = 0;
 
 	size_t pcount, count;
@@ -846,10 +846,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 		tune_gws = 0;
 
 	/* Auto tune start.*/
-	new_salt.len = strlen("Hello");
-	memset(&new_salt, 0, SALT_SIZE);
-	memcpy(new_salt.data.c, "Hello", new_salt.len);
-	set_salt(&new_salt);
+	set_salt(get_salt(fmt_opencl_salted_sha1.params.tests[0].ciphertext));
 	pcount = gws_init;
 	count = 0;
 #define calc_ms(start, end)	\
