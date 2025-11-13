@@ -207,8 +207,11 @@ INLINE uint funnel_shift_right_imm(uint hi, uint lo, uint s)
 #endif
 #endif
 
-#define block_swap32(W, len)	for (uint i = 0; i < len; i++) W[i] = SWAP32(W[i])
-#define block_swap64(W, len)	for (uint i = 0; i < len; i++) W[i] = SWAP64(W[i])
+#define block_swap32(W, LEN)	  \
+	do { for (uint i_ = 0; i_ < (LEN); i_++) (W)[i_] = SWAP32((W)[i_]); } while (0)
+
+#define block_swap64(W, LEN)	  \
+	do { for (uint i_ = 0; i_ < (LEN); i_++) (W)[i_] = SWAP64((W)[i_]); } while (0)
 
 INLINE ushort SWAP16(ushort x)
 {
@@ -418,9 +421,9 @@ INLINE int check_pkcs_pad(const uchar *data, int len, int blocksize)
  * If src and dst are different size types, you will get what you asked for...
  */
 #define memcpy_macro(dst, src, count) do {	  \
-		uint _memcpy_c = count; \
-		for (uint _memcpy_i = 0; _memcpy_i < _memcpy_c; _memcpy_i++) \
-			(dst)[_memcpy_i] = (src)[_memcpy_i]; \
+		uint count_ = count; \
+		for (uint i_ = 0; i_ < count_; i_++) \
+			(dst)[i_] = (src)[i_]; \
 	} while (0)
 
 /*
@@ -601,20 +604,21 @@ INLINE int memmem_pc(const void *haystack, size_t haystack_len,
 #define STRINGIZE(s) STRINGIZE2(s)
 
 /*
- * The below macros need to be called with pointer already cast to
- * uchar pointer of its type - such as "(__constant uchar*)salt->u"
- * because type is unknown to us so void* can't help us.
+ * The below macros need to be called with pointer already cast to uchar
+ * pointer of its memory type - such as "(__constant uchar*)salt->u"
+ * because the memory type is unknown to us so void* can't help us.
  */
 
+#define dump(x) dump_stuff_msg(STRINGIZE(x), x, sizeof(x))
 #define dump_le(x, size) dump_stuff_msg(STRINGIZE(x), x, size)
 #define dump_be(x, size) dump_stuff_be_msg(STRINGIZE(x), x, size)
 #define dump_be64(x, size) dump_stuff_be64_msg(STRINGIZE(x), x, size)
 
 #define dump_stuff_msg(msg, x, size) do {	  \
 		printf("%s : ", msg); \
-		for (uint xedni_ = 0; xedni_ < (uint)size; xedni_++) { \
-			printf("%02x", (x)[xedni_]); \
-			if (xedni_ % 4 == 3) \
+		for (uint i_ = 0; i_ < (uint)(size); i_++) { \
+			printf("%02x", (x)[i_]); \
+			if (i_ % 4 == 3) \
 				printf(" "); \
 		} \
 		printf("\n"); \
@@ -622,9 +626,9 @@ INLINE int memmem_pc(const void *haystack, size_t haystack_len,
 
 #define dump_stuff_be_msg(msg, x, size) do {	  \
 		printf("%s : ", msg); \
-		for (uint xedni_ = 0; xedni_ < (uint)size; xedni_++) { \
-			printf("%02x", (x)[xedni_ ^ 3]); \
-			if (xedni_ % 4 == 3) \
+		for (uint i_ = 0; i_ < (uint)(size); i_++) { \
+			printf("%02x", (x)[i_ ^ 3]); \
+			if (i_ % 4 == 3) \
 				printf(" "); \
 		} \
 		printf("\n"); \
@@ -632,9 +636,9 @@ INLINE int memmem_pc(const void *haystack, size_t haystack_len,
 
 #define dump_stuff_be64_msg(msg, x, size) do {	  \
 		printf("%s : ", msg); \
-		for (uint xedni_ = 0; xedni_ < (uint)size; xedni_++) { \
-			printf("%02x", (x)[xedni_ ^ 7]); \
-			if (xedni_ % 4 == 3) \
+		for (uint i_ = 0; i_ < (uint)(size); i_++) { \
+			printf("%02x", (x)[i_ ^ 7]); \
+			if (i_ % 4 == 3) \
 				printf(" "); \
 		} \
 		printf("\n"); \
