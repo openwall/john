@@ -135,33 +135,55 @@ INLINE uint lut3(uint x, uint y, uint z, uchar m)
 #define HAVE_ANDNOT 1
 #endif
 
+/*
+ * This affects all our inline PTX for nvidia. Try defining to
+ * "volatile" for tracking down problems.
+ */
+#define ASM_VOLATILE
+
+#if 0 //SCALAR && gpu_nvidia(DEVICE_INFO)
+/*
+ * This ensures a ulong lives in a paired 64-bit virtual register.
+ */
+inline ulong mov_b64(ulong x)
+{
+    ulong y;
+    asm ASM_VOLATILE ("mov.b64 %0, %1;" : "=l"(y) : "l"(x));
+    return y;
+}
+#else
+#define mov_b64(x)	(x)
+#endif
+
 #if SCALAR && SM_MAJOR >= 5 && (DEV_VER_MAJOR > 352 || (DEV_VER_MAJOR == 352 && DEV_VER_MINOR >= 21))
 #define HAVE_LUT3	1
-INLINE uint lut3(uint a, uint b, uint c, uint imm)
+INLINE uint lut3(uint a, uint b, uint c, uchar imm)
 {
 	uint r;
-	asm("lop3.b32 %0, %1, %2, %3, %4;"
-	    : "=r" (r)
-	    : "r" (a), "r" (b), "r" (c), "i" (imm));
+	asm ASM_VOLATILE ("lop3.b32 %0, %1, %2, %3, %4;"
+	                  : "=r"(r)
+	                  : "r"(a), "r"(b), "r"(c), "n"(imm));
 	return r;
 }
 
-#if 0 /* This does no good */
 #define HAVE_LUT3_64	1
-INLINE ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
+INLINE ulong lut3_64(ulong a, ulong b, ulong c, uchar imm)
 {
-	ulong t, r;
+	uint alo = (uint)a, ahi = (uint)(a >> 32);
+	uint blo = (uint)b, bhi = (uint)(b >> 32);
+	uint clo = (uint)c, chi = (uint)(c >> 32);
 
-	asm("lop3.b32 %0, %1, %2, %3, %4;"
-	    : "=r" (t)
-	    : "r" ((uint)a), "r" ((uint)b), "r" ((uint)c), "i" (imm));
-	r = t;
-	asm("lop3.b32 %0, %1, %2, %3, %4;"
-	    : "=r" (t)
-	    : "r" ((uint)(a >> 32)), "r" ((uint)(b >> 32)), "r" ((uint)(c >> 32)), "i" (imm));
-	return r + (t << 32);
+	uint rlo, rhi;
+	asm ASM_VOLATILE ("lop3.b32 %0, %1, %2, %3, %4;"
+	                  : "=r"(rlo)
+	                  : "r"(alo), "r"(blo), "r"(clo), "n"(imm));
+
+	asm ASM_VOLATILE ("lop3.b32 %0, %1, %2, %3, %4;"
+	                  : "=r"(rhi)
+	                  : "r"(ahi), "r"(bhi), "r"(chi), "n"(imm));
+
+	return mov_b64(((ulong)rhi << 32) | rlo);
 }
-#endif
 #endif
 
 #if defined cl_amd_media_ops && !__MESA__ && gpu_amd(DEVICE_INFO)
@@ -171,18 +193,18 @@ INLINE ulong lut3_64(ulong a, ulong b, ulong c, uint imm)
 INLINE uint funnel_shift_right(uint hi, uint lo, uint s)
 {
 	uint r;
-	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
-	    : "=r" (r)
-	    : "r" (lo), "r" (hi), "r" (s));
+	asm ASM_VOLATILE ("shf.r.wrap.b32 %0, %1, %2, %3;"
+	                  : "=r"(r)
+	                  : "r"(lo), "r"(hi), "r"(s));
 	return r;
 }
 
-INLINE uint funnel_shift_right_imm(uint hi, uint lo, uint s)
+INLINE uint funnel_shift_right_imm(uint hi, uint lo, uchar s)
 {
 	uint r;
-	asm("shf.r.wrap.b32 %0, %1, %2, %3;"
-	    : "=r" (r)
-	    : "r" (lo), "r" (hi), "i" (s));
+	asm ASM_VOLATILE ("shf.r.wrap.b32 %0, %1, %2, %3;"
+	                  : "=r"(r)
+	                  : "r"(lo), "r"(hi), "n"(s));
 	return r;
 }
 #define BITALIGN(hi, lo, s) funnel_shift_right(hi, lo, s)
@@ -333,7 +355,6 @@ INLINE MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
  */
 #if gpu_nvidia(DEVICE_INFO)
 #define ALLOW_ALIASING_VIOLATIONS	1
-#if __ENDIAN_LITTLE__
 #define GET_UINT32_ALIGNED(n, b, i)	(n) = ((uint*)(b))[(i) >> 2]
 #define PUT_UINT32_ALIGNED(n, b, i)	((uint*)(b))[(i) >> 2] = (n)
 #define GET_UINT32BE_ALIGNED(n, b, i)	(n) = SWAP32(((uint*)(b))[(i) >> 2])
@@ -341,15 +362,6 @@ INLINE MAYBE_VECTOR_UINT VSWAP32(MAYBE_VECTOR_UINT x)
 #define PUT_UINT64_ALIGNED(n, b, i)	((ulong*)(b))[(i) >> 3] = (n)
 #define GET_UINT64BE_ALIGNED(n, b, i)	(n) = SWAP64(((ulong*)(b))[(i) >> 3])
 #define PUT_UINT64BE_ALIGNED(n, b, i)	((ulong*)(b))[(i) >> 3] = SWAP64(n)
-#else
-#define GET_UINT32_ALIGNED(n, b, i)	(n) = SWAP32(((uint*)(b))[(i) >> 2])
-#define PUT_UINT32_ALIGNED(n, b, i)	((uint*)(b))[(i) >> 2] = SWAP32(n)
-#define GET_UINT32BE_ALIGNED(n, b, i)	(n) = ((uint*)(b))[(i) >> 2]
-#define PUT_UINT32BE_ALIGNED(n, b, i)	((uint*)(b))[(i) >> 2] = (n)
-#define PUT_UINT64_ALIGNED(n, b, i)	((ulong*)(b))[(i) >> 3] = SWAP64(n)
-#define GET_UINT64BE_ALIGNED(n, b, i)	(n) = ((ulong*)(b))[(i) >> 3]
-#define PUT_UINT64BE_ALIGNED(n, b, i)	((ulong*)(b))[(i) >> 3] = (n)
-#endif
 #endif
 
 /* Any device can do 8-bit reads BUT these macros are scalar only! */

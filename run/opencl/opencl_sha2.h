@@ -28,7 +28,7 @@
 #endif
 
 #define SHA256_LUT3 HAVE_LUT3
-#define SHA512_LUT3 HAVE_LUT3_64
+//#define SHA512_LUT3 HAVE_LUT3_64
 
 #if SHA256_LUT3
 #define Ch(x, y, z) lut3(x, y, z, 0xca)
@@ -521,16 +521,16 @@ __constant ulong K[] = {
 #define SHA512_INIT_H	0x5be0cd19137e2179UL
 
 #define ROUND512_A(a, b, c, d, e, f, g, h, ki, wi)	\
-	t = (ki) + (wi) + (h) + Sigma1_64(e) + Ch((e), (f), (g)); \
+	t = mov_b64((ki) + (wi) + (h) + Sigma1_64(e) + Ch((e), (f), (g))); \
 	d += (t); h = (t) + Sigma0_64(a) + Maj((a), (b), (c));
 
 #define ROUND512_Z(a, b, c, d, e, f, g, h, ki)	\
-	t = (ki) + (h) + Sigma1_64(e) + Ch((e), (f), (g)); \
+	t = mov_b64((ki) + (h) + Sigma1_64(e) + Ch((e), (f), (g))); \
 	d += (t); h = (t) + Sigma0_64(a) + Maj((a), (b), (c));
 
 #define ROUND512_B(a, b, c, d, e, f, g, h, ki, wi, wj, wk, wl, wm)	  \
 	wi = sigma1_64(wj) + sigma0_64(wk) + wl + wm; \
-	t = (ki) + (wi) + (h) + Sigma1_64(e) + Ch((e), (f), (g)); \
+	t = mov_b64((ki) + (wi) + (h) + Sigma1_64(e) + Ch((e), (f), (g))); \
 	d += (t); h = (t) + Sigma0_64(a) + Maj((a), (b), (c));
 
 #define SHA512_16to31(A,B,C,D,E,F,G,H,W) \
@@ -691,14 +691,14 @@ INLINE void sha512_single_s(ulong *W, ulong *output)
 {
 	ulong A, B, C, D, E, F, G, H, t;
 
-	A = SHA512_INIT_A;
-	B = SHA512_INIT_B;
-	C = SHA512_INIT_C;
-	D = SHA512_INIT_D;
-	E = SHA512_INIT_E;
-	F = SHA512_INIT_F;
-	G = SHA512_INIT_G;
-	H = SHA512_INIT_H;
+	A = mov_b64(SHA512_INIT_A);
+	B = mov_b64(SHA512_INIT_B);
+	C = mov_b64(SHA512_INIT_C);
+	D = mov_b64(SHA512_INIT_D);
+	E = mov_b64(SHA512_INIT_E);
+	F = mov_b64(SHA512_INIT_F);
+	G = mov_b64(SHA512_INIT_G);
+	H = mov_b64(SHA512_INIT_H);
 
 	SHA512(A, B, C, D, E, F, G, H, W)
 
@@ -728,14 +728,14 @@ INLINE void sha512_single_s(ulong *W, ulong *output)
 #define sha512_block(pad, ctx)\
  {	  \
 	ulong A, B, C, D, E, F, G, H, t; \
-	A = (ctx)[0]; \
-	B = (ctx)[1]; \
-	C = (ctx)[2]; \
-	D = (ctx)[3]; \
-	E = (ctx)[4]; \
-	F = (ctx)[5]; \
-	G = (ctx)[6]; \
-	H = (ctx)[7]; \
+	A = mov_b64((ctx)[0]); \
+	B = mov_b64((ctx)[1]); \
+	C = mov_b64((ctx)[2]); \
+	D = mov_b64((ctx)[3]); \
+	E = mov_b64((ctx)[4]); \
+	F = mov_b64((ctx)[5]); \
+	G = mov_b64((ctx)[6]); \
+	H = mov_b64((ctx)[7]); \
 	SHA512(A, B, C, D, E, F, G, H, pad); \
 	(ctx)[0] += A; \
 	(ctx)[1] += B; \
@@ -752,14 +752,14 @@ INLINE void sha512_single(MAYBE_VECTOR_ULONG *W, MAYBE_VECTOR_ULONG *output)
 {
 	MAYBE_VECTOR_ULONG A, B, C, D, E, F, G, H, t;
 
-	A = SHA512_INIT_A;
-	B = SHA512_INIT_B;
-	C = SHA512_INIT_C;
-	D = SHA512_INIT_D;
-	E = SHA512_INIT_E;
-	F = SHA512_INIT_F;
-	G = SHA512_INIT_G;
-	H = SHA512_INIT_H;
+	A = mov_b64(SHA512_INIT_A);
+	B = mov_b64(SHA512_INIT_B);
+	C = mov_b64(SHA512_INIT_C);
+	D = mov_b64(SHA512_INIT_D);
+	E = mov_b64(SHA512_INIT_E);
+	F = mov_b64(SHA512_INIT_F);
+	G = mov_b64(SHA512_INIT_G);
+	H = mov_b64(SHA512_INIT_H);
 
 	SHA512(A, B, C, D, E, F, G, H, W)
 
@@ -778,14 +778,14 @@ INLINE void sha512_single_zeros(MAYBE_VECTOR_ULONG *W,
 {
 	MAYBE_VECTOR_ULONG A, B, C, D, E, F, G, H, t;
 
-	A = SHA512_INIT_A;
-	B = SHA512_INIT_B;
-	C = SHA512_INIT_C;
-	D = SHA512_INIT_D;
-	E = SHA512_INIT_E;
-	F = SHA512_INIT_F;
-	G = SHA512_INIT_G;
-	H = SHA512_INIT_H;
+	A = mov_b64(SHA512_INIT_A);
+	B = mov_b64(SHA512_INIT_B);
+	C = mov_b64(SHA512_INIT_C);
+	D = mov_b64(SHA512_INIT_D);
+	E = mov_b64(SHA512_INIT_E);
+	F = mov_b64(SHA512_INIT_F);
+	G = mov_b64(SHA512_INIT_G);
+	H = mov_b64(SHA512_INIT_H);
 
 	SHA512_ZEROS(A, B, C, D, E, F, G, H, W)
 
