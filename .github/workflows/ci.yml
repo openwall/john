@@ -96,6 +96,18 @@ jobs:
     - name: build check
       run: .ci/run-build-and-tests.sh --enable-asan --enable-simd=avx
 
+  asan-avx2:
+    runs-on: ubuntu-latest
+    env:
+      CC: gcc
+      TARGET: x86_64
+    steps:
+    - uses: actions/checkout@v5
+    - name: install dependencies
+      run: .ci/install-dependencies.sh
+    - name: build check
+      run: .ci/run-build-and-tests.sh --enable-asan --enable-simd=avx2
+
   gcc14-x86-without-openssl:
     runs-on: ubuntu-24.04
     env:
