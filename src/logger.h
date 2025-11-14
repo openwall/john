@@ -51,6 +51,43 @@ extern int log_lock(int fd, int cmd, int type, const char *name,
 		&& defined(F_RDLCK) && defined(F_WRLCK) */
 
 /*
+ * Macro for warning/notice AND logging.  Arguments are like to fprintf_color
+ * but with no ending linefeed (will be added here to screen but not to log).
+ */
+#define WARN_AND_LOG(color, stream, ...)	  \
+	do { \
+		fprintf_color(color, stream, __VA_ARGS__); \
+		fputc('\n', stream); \
+		if (stream == stdout) \
+			fflush(stdout); \
+		log_event(__VA_ARGS__); \
+	} while (0)
+
+/*
+ * Macro to only log something once per session.
+ */
+#define LOG_ONCE(...)	  \
+	do { \
+		static int warned; \
+		if (!warned) { \
+			log_event(__VA_ARGS__); \
+			warned = 1; \
+		} \
+	} while (0)
+
+/*
+ * Like WARN_AND_LOG, but once per session.
+ */
+#define WARN_AND_LOG_ONCE(color, stream, ...)	  \
+	do { \
+		static int warned; \
+		if (!warned) { \
+			WARN_AND_LOG(color, stream, __VA_ARGS__); \
+			warned = 1; \
+		} \
+	} while (0)
+
+/*
  * Initializes the logger (opens john.pot and a log file).
  */
 extern void log_init(char *log_name, char *pot_name, char *session);

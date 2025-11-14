@@ -18,7 +18,9 @@
 #define _JOHN_MISC_H
 
 #include <stdio.h>
+
 #include "jumbo.h"
+#include "color.h"
 
 #if !AC_BUILT
  #include <string.h>
@@ -62,7 +64,15 @@ extern void real_error_msg(const char *file, int line, const char *format, ...)
 	;
 #endif
 
-#define error_msg(...) real_error_msg(__FILE__, __LINE__,  __VA_ARGS__)
+#define error_msg(...) real_error_msg(__FILE__, __LINE__, __VA_ARGS__)
+
+#define error_msg_main(...)	  \
+	do { \
+		if (john_main_process) \
+			real_error_msg(__FILE__, __LINE__, __VA_ARGS__); \
+		else \
+			real_error(__FILE__, __LINE__); \
+	} while(0)
 
 /*
  * Similar to perror(), but supports formatted output, and calls error().

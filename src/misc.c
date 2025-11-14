@@ -32,6 +32,7 @@
 #include "logger.h"
 #include "params.h"
 #include "misc.h"
+#include "color.h"
 #include "options.h"
 
 #include "john_mpi.h"
@@ -40,8 +41,9 @@
 void real_error(const char *file, int line)
 {
 #ifndef _JOHN_MISC_NO_LOG
-	log_event("Terminating on error, %s:%d", file, line);
+	log_event("! Terminating on error, %s:%d", file, line);
 	log_done();
+	fputs(color_end, stderr);
 #else
 	fprintf(stderr, "Terminating on error, %s:%d\n", file, line);
 #endif
@@ -49,17 +51,20 @@ void real_error(const char *file, int line)
 	exit(1);
 }
 
-void real_error_msg(const char *file, int line,  const char *format, ...)
+void real_error_msg(const char *file, int line, const char *format, ...)
 {
 	va_list args;
 
-#if defined(HAVE_MPI) && !defined(_JOHN_MISC_NO_LOG)
+#if !defined(_JOHN_MISC_NO_LOG)
+	fputs(color_error, stderr);
+#ifdef HAVE_MPI
 	if (mpi_p > 1)
 		fprintf(stderr, "%u@%s: ", mpi_id + 1, mpi_name);
 	else
-#elif OS_FORK && !defined(_JOHN_MISC_NO_LOG)
+#elif OS_FORK
 	if (options.fork)
 		fprintf(stderr, "%u: ", options.node_min);
+#endif
 #endif
 	va_start(args, format);
 	vfprintf(stderr, format, args);
@@ -73,6 +78,7 @@ void real_pexit(const char *file, int line, const char *format, ...)
 	va_list args;
 
 #if !defined(_JOHN_MISC_NO_LOG)
+	fputs(color_error, stderr);
 #if HAVE_MPI
 	if (mpi_p > 1)
 		fprintf(stderr, "%u@%s: ", mpi_id + 1, mpi_name);

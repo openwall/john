@@ -488,6 +488,8 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Add support to keepass2john for the current format of KeePass XML keyfiles.
   The formats needed no changes.  [magnum; 2025]
 
+- Optionally add colors to many warning/error messages.  [magnum; 2026]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
