@@ -13,19 +13,19 @@ jobs:
       run: git diff-index --check --cached b1b622f691d40196815939e4736a5da71befd206
 
   asan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       CC: gcc
       TARGET: x86_64
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: install dependencies
       run: .ci/install-dependencies.sh
     - name: build check
       run: .ci/run-build-and-tests.sh --enable-fuzz --enable-asan
 
   asan-disable-all:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       CC: gcc
       TARGET: x86_64
@@ -37,7 +37,7 @@ jobs:
       run: .ci/run-build-and-tests.sh --enable-asan --disable-openmp --disable-simd --without-openssl
 
   asan-disable-openmp:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       CC: gcc
       TARGET: x86_64
@@ -49,7 +49,7 @@ jobs:
       run: .ci/run-build-and-tests.sh --enable-asan --disable-openmp
 
   asan-without-openssl:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       CC: gcc
       TARGET: x86_64
