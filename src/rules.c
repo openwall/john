@@ -106,7 +106,7 @@ int rules_mute, stack_rules_mute;
 static int fmt_case;
 
 static struct {
-	unsigned int vars[0x100];
+	int vars[0x100]; /* may be negative */
 /*
  * pass == -2	initial syntax checking of rules
  * pass == -1	optimization of rules (no-ops are removed)
@@ -192,8 +192,8 @@ static char *conv_source = CONV_SOURCE;
 static char *conv_shift, *conv_invert, *conv_vowels, *conv_right, *conv_left;
 static char *conv_tolower, *conv_toupper;
 
-#define INVALID_LENGTH			0x81
-#define INFINITE_LENGTH			0xFF
+#define INFINITE_LENGTH			(MAX_PLAINTEXT_LENGTH * 2)
+#define INVALID_LENGTH			(INFINITE_LENGTH + 1)
 
 #define RULE				(*rule++)
 #define LAST				(*(rule - 1))
@@ -527,7 +527,7 @@ static void rules_init_length(int max_length)
 {
 	int c;
 
-	memset(rules_vars, INVALID_LENGTH, sizeof(rules_vars));
+	for (c = 0; c < 0x100; c++) rules_vars[c] = INVALID_LENGTH;
 
 	for (c = '0'; c <= '9'; c++) rules_vars[c] = c - '0';
 	for (c = 'A'; c <= 'Z'; c++) rules_vars[c] = c - ('A' - 10);
@@ -806,7 +806,7 @@ char *rules_apply(char *word_in, char *rule, int split)
  * exceed INVALID_LENGTH.
  */
 	rules_vars['l'] = length;
-	rules_vars['m'] = (unsigned char)length - 1;
+	rules_vars['m'] = length - 1; /* may be -1 if hc_logic or rules_pass */
 
 	if (rules_stacked_after != length_initiated_as) {
 		if (rules_stacked_after) {
@@ -848,7 +848,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case '<':
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
 				if (length >= pos) REJECT
 			}
@@ -856,7 +856,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case '>':
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
 				if (length <= pos) REJECT
 			}
@@ -912,9 +912,9 @@ char *rules_apply(char *word_in, char *rule, int split)
 		case 'p':
 			if (hc_logic || (*rule >= '1' && *rule <= '9')) {
 				/* HC rule: duplicate word N times */
-				unsigned char x, y;
+				unsigned int x, y;
 				POSITION(x)
-				if (x * length > RULE_WORD_SIZE - 1)
+				if (x > RULE_WORD_SIZE - 1 || x * length > RULE_WORD_SIZE - 1)
 					x = (RULE_WORD_SIZE - 1) / length;
 				y = x;
 				in[length*(x + 1)] = 0;
@@ -999,7 +999,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 		case 'x':
 			if (hc_logic) {
 				/* Slightly different edge logic for HC */
-				int pos, pos2;
+				unsigned int pos, pos2;
 				POSITION(pos)
 				POSITION(pos2)
 				if (pos < length && pos+pos2 <= length) {
@@ -1013,7 +1013,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 				break;
 			} else
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
 				if (pos < length) {
 					char *out;
@@ -1031,7 +1031,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case 'i':
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
 				if (pos < length) {
 					char *p = in + pos;
@@ -1057,7 +1057,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case 'o':
 			{
-				int pos;
+				unsigned int pos;
 				char value;
 				POSITION(pos)
 				VALUE(value);
@@ -1096,7 +1096,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case '=':
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
 				if (pos >= length) {
 					SKIP_CLASS
@@ -1169,7 +1169,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case '\'':
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
 				if (pos < length)
 					in[length = pos] = 0;
@@ -1178,7 +1178,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case '%':
 			{
-				int count = 0, required, pos;
+				unsigned int count = 0, required, pos;
 				POSITION(required)
 				CLASS_export_pos(0,
 				    if (++count >= required) break, {})
@@ -1190,13 +1190,13 @@ char *rules_apply(char *word_in, char *rule, int split)
 /* Rules added in John */
 		case 'A': /* append/insert/prepend string */
 			{
-				int pos;
+				unsigned int pos;
 				char term;
 				POSITION(pos)
 				VALUE(term)
 				if (pos >= length) { /* append */
 					char *start, *end, *p;
-					start = p = &in[pos = length];
+					start = p = &in[length];
 					end = &in[RULE_WORD_SIZE - 1];
 					do {
 						char c = RULE;
@@ -1238,15 +1238,16 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case 'T':
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
-				in[pos] = conv_invert[ARCH_INDEX(in[pos])];
+				if (pos < length)
+					in[pos] = conv_invert[ARCH_INDEX(in[pos])];
 			}
 			break;
 
 		case 'D':
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
 				if (pos < length) {
 					memmove(&in[pos], &in[pos + 1],
@@ -1312,7 +1313,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 		case 'R':
 			if (hc_logic || (*rule >= '0' && *rule <= '9')) {
 				/* HC rule: bit-shift character right */
-				unsigned char n;
+				unsigned int n;
 				unsigned char val;
 				POSITION(n)
 				if (n < length) {
@@ -1328,7 +1329,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 		case 'L':
 			if (hc_logic || (*rule >= '0' && *rule <= '9')) {
 				/* HC rule: bit-shift character left */
-				unsigned char n;
+				unsigned int n;
 				unsigned char val;
 				POSITION(n)
 				if (n < length) {
@@ -1382,7 +1383,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case 'M':
 			memcpy(memory = memory_buffer, in, length + 1);
-			rules_vars['m'] = (unsigned char)length - 1;
+			rules_vars['m'] = length - 1;
 			break;
 
 		case 'Q':
@@ -1395,14 +1396,16 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case 'X': /* append/insert/prepend substring from memory */
 			{
-				int mpos, count, ipos, mleft;
+				unsigned int mpos, count, ipos, mleft;
 				char *inp;
 				const char *mp;
 				POSITION(mpos)
 				POSITION(count)
 				POSITION(ipos)
-				mleft = (int)(unsigned char)
-				    (rules_vars['m'] + 1) - mpos;
+				mleft = rules_vars['m'] + 1;
+				if (mleft < mpos)
+					break;
+				mleft -= mpos;
 				if (count > mleft)
 					count = mleft;
 				if (count <= 0)
@@ -1423,14 +1426,14 @@ char *rules_apply(char *word_in, char *rule, int split)
 		case 'v': /* assign value to numeric variable */
 			{
 				char var;
-				unsigned char a, s;
+				int a, s; /* may be negative */
 				VALUE(var)
 				if (var < 'a' || var > 'k')
 					goto out_ERROR_POSITION;
 				rules_vars['l'] = length;
 				POSITION(a)
 				POSITION(s)
-				rules_vars[ARCH_INDEX(var)] = a - s;
+				rules_vars[ARCH_INDEX(var)] = a - s; /* may be negative */
 			}
 			break;
 
@@ -1476,7 +1479,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 		case '+':
 			if (hc_logic || !which) {
 				/* HC rule: increment character */
-				unsigned char x;
+				unsigned int x;
 				POSITION(x)
 				if (x < length)
 					++in[x];
@@ -1508,7 +1511,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 /* Rules added in Jumbo */
 		case 'a':
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
 				if (!rules_stacked_after) {
 					if (length + pos > rules_max_length)
@@ -1521,7 +1524,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case 'b':
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
 				if (!rules_stacked_after) {
 					if (length - pos > rules_max_length)
@@ -1534,9 +1537,10 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case 'W':
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
-				in[pos] = conv_shift[ARCH_INDEX(in[pos])];
+				if (pos < length)
+					in[pos] = conv_shift[ARCH_INDEX(in[pos])];
 			}
 			break;
 
@@ -1548,7 +1552,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 /* Hashcat rules added to Jumbo */
 		case '_': /* reject unless length equals to N */
 			{
-				int pos;
+				unsigned int pos;
 				POSITION(pos)
 				if (length != pos) REJECT
 			}
@@ -1556,7 +1560,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case '-': /* decrement character */
 			{
-				unsigned char x;
+				unsigned int x;
 				POSITION(x)
 				if (x < length)
 					--in[x];
@@ -1575,7 +1579,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case '*': /* swap any two characters */
 			{
-				unsigned char x, y;
+				unsigned int x, y;
 				POSITION(x)
 				POSITION(y)
 				if (length > x && length > y)
@@ -1585,9 +1589,10 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case 'z': /* duplicate first char N times */
 			{
-				unsigned char x;
-				int y;
+				unsigned int x, y;
 				POSITION(x)
+				if (x > MAX_PLAINTEXT_LENGTH)
+					break;
 				y = length;
 				while (y) {
 					in[y + x] = in[y];
@@ -1602,10 +1607,12 @@ char *rules_apply(char *word_in, char *rule, int split)
 			}
 			break;
 
-		case 'Z': /* duplicate char char N times */
+		case 'Z': /* duplicate last char N times */
 			{
-				unsigned char x;
+				unsigned int x;
 				POSITION(x)
+				if (x > MAX_PLAINTEXT_LENGTH)
+					break;
 				while (x) {
 					in[length] = in[length - 1];
 					++length;
@@ -1629,7 +1636,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case '.': /* replace character with next */
 			{
-				unsigned char n;
+				unsigned int n;
 				POSITION(n)
 				if (n < length - 1 && length > 1)
 					in[n] = in[n + 1];
@@ -1638,7 +1645,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case ',': /* replace character with prior */
 			{
-				unsigned char n;
+				unsigned int n;
 				POSITION(n)
 				if (n >= 1 && length > 1 && n < length)
 					in[n] = in[n - 1];
@@ -1647,7 +1654,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case 'y': /* duplicate first n characters */
 			{
-				unsigned char n;
+				unsigned int n;
 				POSITION(n)
 				if (n <= length) {
 					memmove(&in[n], in, length);
@@ -1659,7 +1666,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case 'Y': /* duplicate last n characters */
 			{
-				unsigned char n;
+				unsigned int n;
 				POSITION(n)
 				if (n <= length) {
 					memmove(&in[length], &in[length - n], n);
@@ -1690,13 +1697,13 @@ char *rules_apply(char *word_in, char *rule, int split)
 
 		case 'O': /*  Omit */
 			{
-				int pos, pos2;
+				unsigned int pos, pos2;
 				POSITION(pos)
 				POSITION(pos2)
-				if (pos < length && pos+pos2 <= length) {
+				if (pos < length && pos2 <= length && pos + pos2 <= length) {
 					char *out;
 					GET_OUT
-					strncpy(out, in, pos);
+					memcpy(out, in, pos);
 					in += pos + pos2;
 					strnzcpy(out + pos, in, length - (pos + pos2) + 1);
 					length -= pos2;
