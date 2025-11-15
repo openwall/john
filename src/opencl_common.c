@@ -56,9 +56,6 @@
 #include "john_mpi.h"
 #include "timer.h"
 
-/* Set this to eg. 3 for some added debug and retry stuff */
-#define RACE_CONDITION_DEBUG 0
-
 #define LOG_SIZE 1024*16
 
 /* Only output OpenCL build log if there was a fatal error
@@ -341,11 +338,6 @@ static char *opencl_driver_info(int sequential_id)
 		if (recommendation && strstr(recommendation, "N"))
 		if (conf_major <= major && conf_minor <= minor)
 			break;
-
-#ifdef OCL_DEBUG
-		fprintf(stderr, "Driver: %i, %i -> %s , %s\n",
-			conf_major, conf_minor, name, recommendation);
-#endif
 	} while ((line = line->next));
 
 	if (gpu_amd(device_info[sequential_id]) &&
@@ -456,19 +448,6 @@ static void load_opencl_environment()
 
 		// Point to the end of the list
 		device_pos += num_devices;
-
-#ifdef OCL_DEBUG
-	{
-		char opencl_data[LOG_SIZE];
-
-		SOFT_CLERROR(clGetPlatformInfo(platform_list[i],
-			CL_PLATFORM_NAME, sizeof(opencl_data), opencl_data, NULL),
-			"clGetPlatformInfo for CL_PLATFORM_NAME");
-
-		fprintf(stderr, "%u: OpenCL platform %d: %s, %d device(s).\n",
-		        NODE, i, opencl_data, num_devices);
-	}
-#endif
 	}
 
 	// Set NULL to the final buffer position.
@@ -535,7 +514,6 @@ static int start_opencl_device(int sequential_id, int *err_type)
 {
 	cl_context_properties properties[3];
 	char opencl_data[LOG_SIZE];
-	int retry = 0;
 
 	// Get the detailed information about the device
 	// (populate device_info[d] bitfield).
@@ -585,37 +563,24 @@ static int start_opencl_device(int sequential_id, int *err_type)
 
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "%u: Error creating context for device %d "
-			        "(%d:%d): %s, %s\n",
+			        "(%d:%d): %s\n",
 			        NODE, sequential_id + 1,
 			        get_platform_id(sequential_id),
-			        get_device_id(sequential_id), get_error_name(ret_code),
-			        retry < RACE_CONDITION_DEBUG ? "retrying" : "giving up");
-			if (++retry > RACE_CONDITION_DEBUG)
-				error();
-			usleep((retry + NODE) * 100);
+			        get_device_id(sequential_id), get_error_name(ret_code));
 		}
 	} while (ret_code != CL_SUCCESS);
 
-	retry = 0;
 	do {
 		queue[sequential_id] = clCreateCommandQueue(context[sequential_id],
 		                       devices[sequential_id], 0, &ret_code);
 
 		if (ret_code != CL_SUCCESS) {
 			fprintf(stderr, "%u: Error creating command queue for "
-			        "device %d (%d:%d): %s, %s\n", NODE,
+			        "device %d (%d:%d): %s\n", NODE,
 			        sequential_id + 1, get_platform_id(sequential_id),
-			        get_device_id(sequential_id), get_error_name(ret_code),
-			        retry < RACE_CONDITION_DEBUG ? "retrying" : "giving up");
-			if (++retry > RACE_CONDITION_DEBUG)
-				error();
-			usleep((retry + NODE) * 100);
+			        get_device_id(sequential_id), get_error_name(ret_code));
 		}
 	} while (ret_code != CL_SUCCESS);
-
-#ifdef OCL_DEBUG
-	fprintf(stderr, "  Device %d: %s\n", sequential_id + 1, opencl_data);
-#endif
 
 	// Success.
 	return 1;
@@ -1242,20 +1207,10 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	int kludge_file = 0;
 
 	if (mpi_p > 1) {
-#if RACE_CONDITION_DEBUG
-		if (options.verbosity == VERB_DEBUG)
-			fprintf(stderr, "Node %d %s kludge locking %s...\n",
-			        NODE, __FUNCTION__, kernel_source_file);
-#endif
 		if ((kludge_file = open(kernel_source_file, O_RDWR | O_APPEND)) < 0)
 			pexit("Error opening %s", kernel_source_file);
 		else
 			jtr_lock(kludge_file, F_SETLKW, F_WRLCK, kernel_source_file);
-
-#if RACE_CONDITION_DEBUG
-		if (options.verbosity == VERB_DEBUG)
-			fprintf(stderr, "Node %d got a kludge lock\n", NODE);
-#endif
 	}
 #endif /* HAVE_MPI */
 
@@ -1375,32 +1330,16 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 		if (file == NULL)
 			perror("Error creating binary cache file");
 		else {
-#if RACE_CONDITION_DEBUG
-			if (options.verbosity == VERB_DEBUG)
-				fprintf(stderr, "Node %d %s locking %s...\n", NODE, __FUNCTION__, file_name);
-#endif
 			jtr_lock(fileno(file), F_SETLKW, F_WRLCK, file_name);
 
-#if RACE_CONDITION_DEBUG
-			if (options.verbosity == VERB_DEBUG)
-				fprintf(stderr, "Node %d got a lock on %s\n", NODE, file_name);
-#endif
 			if (fwrite(source, source_size, 1, file) != 1)
 				perror("Error caching kernel binary");
-#if RACE_CONDITION_DEBUG
-			if (options.verbosity == VERB_DEBUG)
-				fprintf(stderr, "Node %d closing %s\n", NODE, file_name);
-#endif
 			fclose(file);
 		}
 		MEM_FREE(source);
 	}
 
 #if HAVE_MPI
-#if RACE_CONDITION_DEBUG
-	if (mpi_p > 1 && options.verbosity == VERB_DEBUG)
-		fprintf(stderr, "Node %d releasing kludge lock\n", NODE);
-#endif
 	if (mpi_p > 1)
 		close(kludge_file);
 #endif /* HAVE_MPI */
@@ -2236,17 +2175,7 @@ size_t opencl_read_source(const char *kernel_filename, char **kernel_source)
 	if (!fp)
 		pexit("Can't read source kernel");
 
-#if RACE_CONDITION_DEBUG
-	if (options.verbosity == VERB_DEBUG)
-		fprintf(stderr, "Node %d %s() locking (shared) %s...\n", NODE, __FUNCTION__, kernel_filename);
-#endif
-
 	jtr_lock(fileno(fp), F_SETLKW, F_RDLCK, kernel_filename);
-
-#if RACE_CONDITION_DEBUG
-	if (options.verbosity == VERB_DEBUG)
-		fprintf(stderr, "Node %d got a shared lock on %s\n", NODE, kernel_filename);
-#endif
 
 	fseek(fp, 0, SEEK_END);
 	source_size = ftell(fp);
@@ -2259,10 +2188,6 @@ size_t opencl_read_source(const char *kernel_filename, char **kernel_source)
 		        "Error reading source: expected "Zu", got "Zu" bytes (%s).\n",
 		        source_size, read_size,
 		        feof(fp) ? "EOF" : strerror(errno));
-#if RACE_CONDITION_DEBUG
-	if (options.verbosity == VERB_DEBUG)
-		fprintf(stderr, "Node %d closing %s\n", NODE, kernel_filename);
-#endif
 	fclose(fp);
 	return source_size;
 }
@@ -2401,10 +2326,6 @@ void opencl_build_kernel(const char *kernel_filename, int sequential_id, const c
 
 #if HAVE_MPI
 	if (mpi_p > 1 && !once++) {
-#if RACE_CONDITION_DEBUG || MPI_DEBUG
-		if (options.verbosity == VERB_DEBUG)
-			fprintf(stderr, "Node %d reached %s() MPI build barrier\n", NODE, __FUNCTION__);
-#endif
 		MPI_Barrier(MPI_COMM_WORLD);
 		if (mpi_id == 0 && options.verbosity >= VERB_DEFAULT)
 			fprintf(stderr, "All nodes done OpenCL build\n");
@@ -2433,7 +2354,7 @@ int opencl_prepare_dev(int sequential_id)
 #if HAVE_MPI
 	if (mpi_p > 1 && !once++) {
 		// Avoid silly race conditions seen with nvidia
-#if RACE_CONDITION_DEBUG || MPI_DEBUG
+#if MPI_DEBUG
 		if (options.verbosity == VERB_DEBUG)
 			fprintf(stderr, "Node %d reached MPI prep barrier\n", NODE);
 #endif
