@@ -428,12 +428,6 @@ extern unsigned int password_hash_thresholds[PASSWORD_HASH_SIZES];
 #define RULE_RANGES_MAX			30
 
 /*
- * Buffer size for words while applying rules, should be at least as large
- * as PLAINTEXT_BUFFER_SIZE.
- */
-#define RULE_WORD_SIZE			320
-
-/*
  * By default we mute some rules logging in pipe mode, if number of rules
  * (after PP and dupe rule suppression) is larger than this threshold.
  */

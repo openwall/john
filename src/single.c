@@ -654,7 +654,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 	struct list_entry *global_head = single_seed->head;
 	int first_global, second_global;
 	int first_number, second_number;
-	char pair[RULE_WORD_SIZE];
+	char pair[PLAINTEXT_BUFFER_SIZE];
 	int split;
 	char *key;
 
@@ -689,8 +689,8 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 			if (first == second || (first_global && second_global))
 				continue;
 			if ((split = strlen(first->data)) < length) {
-				strnzcpy(pair, first->data, RULE_WORD_SIZE);
-				strnzcat(pair, second->data, RULE_WORD_SIZE);
+				strnzcpy(pair, first->data, PLAINTEXT_BUFFER_SIZE);
+				strnzcat(pair, second->data, PLAINTEXT_BUFFER_SIZE);
 
 				if ((key = rules_apply(pair, rule, split)))
 				if (ext_filter(key))
@@ -705,7 +705,7 @@ static int single_process_pw(struct db_salt *salt, struct db_password *pw,
 			if (!first_global && first->data[1]) {
 				pair[0] = first->data[0];
 				pair[1] = 0;
-				strnzcat(pair, second->data, RULE_WORD_SIZE);
+				strnzcat(pair, second->data, PLAINTEXT_BUFFER_SIZE);
 
 				if ((key = rules_apply(pair, rule, 1)))
 				if (ext_filter(key))

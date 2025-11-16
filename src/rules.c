@@ -25,6 +25,13 @@
 #include "encoding_data.h"
 
 /*
+ * Buffer size for words while applying rules, should be at least as large
+ * as PLAINTEXT_BUFFER_SIZE, but not large enough that fitting strings could
+ * reach or exceed INFINITE_LENGTH or INVALID_LENGTH defined further below.
+ */
+#define RULE_WORD_SIZE			PLAINTEXT_BUFFER_SIZE
+
+/*
  * Error codes.
  */
 #define RULES_ERROR_NONE		0
