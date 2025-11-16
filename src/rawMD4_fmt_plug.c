@@ -1,13 +1,10 @@
 /*
- * This file is part of John the Ripper password cracker,
- * Copyright (c) 2010 by Solar Designer
- * Copyright (c) 2011, 2012 by magnum
- *
- * Use of Bartavelle's mmx/sse2/intrinsics and reduced binary size by
- * magnum in 2011-2012.
- *
- * OMP added May 2013, JimF
- * BE SIMD logic added 2017, JimF
+ * This software is
+ * Copyright (c) 2011-2025 magnum
+ * Copyright (c) 2013-2017 by JimF
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #if FMT_EXTERNS_H
@@ -20,7 +17,6 @@ john_register_one(&fmt_rawMD4);
 
 #include "arch.h"
 
-
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
@@ -32,6 +28,7 @@ john_register_one(&fmt_rawMD4);
 #include "common.h"
 #include "johnswap.h"
 #include "formats.h"
+#include "base64_convert.h"
 #define REVERSE_STEPS
 #include "simd-intrinsics.h"
 
@@ -63,6 +60,8 @@ john_register_one(&fmt_rawMD4);
 
 #define FORMAT_TAG				"$MD4$"
 #define TAG_LENGTH				(sizeof(FORMAT_TAG) - 1)
+#define FORMAT_TAG2				"{MD4}"
+#define FORMAT_TAG2_LEN			(sizeof(FORMAT_TAG2) - 1)
 
 static struct fmt_tests tests[] = {
 	{"8a9d093f14f8701df17732b2bb182c74", "password"},
@@ -85,6 +84,7 @@ static struct fmt_tests tests[] = {
 	{"114c5a33b8d4127fbe492bd6583aeb4d", "12"},
 	{"c58cda49f00748a3bc0fcfa511d516cb", "123"},
 	{"f375f401ddc698af533f16f8ac1e91c1", "1234"},
+	{"{MD4}2zRtaR16zE3CYl2xn54/Ug==", "test"},
 	{NULL}
 };
 
@@ -135,12 +135,30 @@ static void done(void)
 #endif
 }
 
+/* Convert {MD4}2zRtaR16zE3CYl2xn54/Ug== to db346d691d7acc4dc2625db19f9e3f52 */
+static char *prepare(char *fields[10], struct fmt_main *self)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	if (!strncmp(fields[1], FORMAT_TAG2, FORMAT_TAG2_LEN) && strlen(fields[1]) == FORMAT_TAG2_LEN+24) {
+		int res;
+
+		res = base64_convert(&fields[1][FORMAT_TAG2_LEN], e_b64_mime, 24,
+		                     out, e_b64_hex, sizeof(out),
+		                     flg_Base64_HEX_LOCASE, 0);
+		if (res >= 0)
+			return out;
+	}
+
+	return fields[1];
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
 
 	p = ciphertext;
-	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
+	if (*p == '$' && !strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
 
 	q = p;
@@ -158,6 +176,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 		ciphertext += TAG_LENGTH;
 
 	memcpylwr(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
+
 	return out;
 }
 
@@ -360,13 +379,13 @@ struct fmt_main fmt_rawMD4 = {
 #endif
 		FMT_CASE | FMT_8_BIT | FMT_SPLIT_UNIFIES_CASE,
 		{ NULL },
-		{ FORMAT_TAG },
+		{ FORMAT_TAG, FORMAT_TAG2 },
 		tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
 		get_binary,

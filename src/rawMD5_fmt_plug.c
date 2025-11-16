@@ -1,11 +1,10 @@
 /*
- * Raw-MD5 (thick) based on Raw-MD4 w/ mmx/sse/intrinsics
- * This software is Copyright (c) 2011 magnum, and it is hereby released to the
- * general public under the following terms:  Redistribution and use in source
- * and binary forms, with or without modification, are permitted.
- *
- * OMP added May 2013, JimF
- * BE SIMD logic added 2017, JimF
+ * This software is
+ * Copyright (c) 2011-2025 magnum
+ * Copyright (c) 2013-2017 by JimF
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
  */
 
 #if FMT_EXTERNS_H
@@ -17,6 +16,7 @@ john_register_one(&fmt_rawMD5);
 #include <string.h>
 
 #include "arch.h"
+
 #if !FAST_FORMATS_OMP
 #undef _OPENMP
 #endif
@@ -33,7 +33,7 @@ john_register_one(&fmt_rawMD5);
 #include "simd-intrinsics.h"
 
 #ifndef OMP_SCALE
-#define OMP_SCALE				16 // Tuned after MKPC for core i7 incl non-SIMD
+#define OMP_SCALE				16
 #endif
 
 #define FORMAT_LABEL			"Raw-MD5"
@@ -254,7 +254,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 {
 	const int count = *pcount;
 	int index;
-
 	int loops = (count + MIN_KEYS_PER_CRYPT - 1) / MIN_KEYS_PER_CRYPT;
 
 #ifdef _OPENMP
@@ -270,6 +269,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		MD5_Final((unsigned char *)crypt_key[index], &ctx);
 #endif
 	}
+
 	return count;
 }
 
@@ -283,6 +283,7 @@ static int cmp_all(void *binary, int count) {
 			if ( ((uint32_t*)binary)[0] == ((uint32_t*)crypt_key)[y*SIMD_COEF_32*4+x] )
 				return 1;
 		}
+
 	return 0;
 #else
 	unsigned int index;

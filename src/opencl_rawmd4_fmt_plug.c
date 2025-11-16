@@ -1,9 +1,10 @@
 /*
  * MD4 OpenCL code is based on Alain Espinosa's OpenCL patches.
  *
- * This software is Copyright (c) 2010, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012, magnum
- * and Copyright (c) 2015, Sayantan Datta <std2048@gmail.com>
+ * This software is
+ * Copyright (c) 2010, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * Copyright (c) 2012-2025, magnum
+ * Copyright (c) 2015, Sayantan Datta <std2048@gmail.com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -26,6 +27,7 @@ john_register_one(&FMT_STRUCT);
 #include "path.h"
 #include "common.h"
 #include "formats.h"
+#include "base64_convert.h"
 #include "config.h"
 #include "options.h"
 #include "mask_ext.h"
@@ -41,12 +43,14 @@ john_register_one(&FMT_STRUCT);
 #define CIPHERTEXT_LENGTH   32
 #define DIGEST_SIZE         16
 #define BINARY_SIZE         16
-#define BINARY_ALIGN        sizeof(int)
+#define BINARY_ALIGN        sizeof(uint32_t)
 #define SALT_SIZE           0
 #define SALT_ALIGN          1
 
 #define FORMAT_TAG          "$MD4$"
 #define TAG_LENGTH          (sizeof(FORMAT_TAG) - 1)
+#define FORMAT_TAG2         "{MD4}"
+#define FORMAT_TAG2_LEN     (sizeof(FORMAT_TAG2) - 1)
 
 static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_int_key_loc;
 static cl_mem buffer_keys, buffer_idx, buffer_int_keys, buffer_int_key_loc;
@@ -78,6 +82,7 @@ static struct fmt_tests tests[] = {
 	{FORMAT_TAG "41f92cf74e3d2c3ba79183629a929915", "rockyou" },
 	{FORMAT_TAG "012d73e0fab8d26e0f4d65e36077511e", "12345678" },
 	{FORMAT_TAG "0ceb1fd260c35bd50005341532748de6", "abc123" },
+	{"{MD4}2zRtaR16zE3CYl2xn54/Ug==", "test"},
 	{NULL}
 };
 
@@ -260,6 +265,25 @@ static void init(struct fmt_main *_self)
 	mask_int_cand_target = opencl_speed_index(gpu_id) / 300;
 }
 
+/* Convert {MD4}2zRtaR16zE3CYl2xn54/Ug== to db346d691d7acc4dc2625db19f9e3f52 */
+static char *prepare(char *fields[10], struct fmt_main *self)
+{
+	static char out[CIPHERTEXT_LENGTH + 1];
+
+	if (!strncmp(fields[1], FORMAT_TAG2, FORMAT_TAG2_LEN) &&
+	    strlen(fields[1]) == FORMAT_TAG2_LEN + 24) {
+		int res;
+
+		res = base64_convert(&fields[1][FORMAT_TAG2_LEN], e_b64_mime, 24,
+		                     out, e_b64_hex, sizeof(out),
+		                     flg_Base64_HEX_LOCASE, 0);
+		if (res >= 0)
+			return out;
+	}
+
+	return fields[1];
+}
+
 static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p, *q;
@@ -280,12 +304,17 @@ static int valid(char *ciphertext, struct fmt_main *self)
 static char *split(char *ciphertext, int index, struct fmt_main *self)
 {
 	static char out[TAG_LENGTH + CIPHERTEXT_LENGTH + 1];
+	int len;
 
 	if (!strncmp(ciphertext, FORMAT_TAG, TAG_LENGTH))
 		return ciphertext;
 
+	memset(out, 0, sizeof(out));
 	memcpy(out, FORMAT_TAG, TAG_LENGTH);
-	memcpy(out + TAG_LENGTH, ciphertext, CIPHERTEXT_LENGTH + 1);
+	len = strlen(ciphertext)+1;
+	if (len > CIPHERTEXT_LENGTH + 1)
+		len = CIPHERTEXT_LENGTH + 1;
+	memcpy(out + TAG_LENGTH, ciphertext, len);
 	return out;
 }
 
@@ -364,7 +393,6 @@ static char *get_key(int index)
 	}
 
 	if (t >= global_work_size) {
-		//fprintf(stderr, "Get key error! %d %d\n", t, index);
 		t = 0;
 	}
 
@@ -395,8 +423,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
-
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand %d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
 	if (key_idx)
@@ -621,13 +647,13 @@ struct fmt_main FMT_STRUCT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_REMOVE | FMT_MASK,
 		{ NULL },
-		{ FORMAT_TAG },
+		{ FORMAT_TAG, FORMAT_TAG2 },
 		tests
 	}, {
 		init,
 		done,
 		reset,
-		fmt_default_prepare,
+		prepare,
 		valid,
 		split,
 		get_binary,

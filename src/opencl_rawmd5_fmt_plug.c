@@ -1,9 +1,10 @@
 /*
  * MD5 OpenCL code is based on Alain Espinosa's OpenCL patches.
  *
- * This software is Copyright (c) 2010, Dhiru Kholia <dhiru.kholia at gmail.com>
- * and Copyright (c) 2012, magnum
- * and Copyright (c) 2015, Sayantan Datta <std2048@gmail.com>
+ * This software is
+ * Copyright (c) 2010, Dhiru Kholia <dhiru.kholia at gmail.com>
+ * Copyright (c) 2012-2025, magnum
+ * Copyright (c) 2015, Sayantan Datta <std2048@gmail.com>
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -46,10 +47,10 @@ john_register_one(&FMT_STRUCT);
 #define SALT_SIZE           0
 #define SALT_ALIGN          1
 
-#define FORMAT_TAG				"$dynamic_0$"
-#define TAG_LENGTH				(sizeof(FORMAT_TAG) - 1)
-#define FORMAT_TAG2				"{MD5}"
-#define FORMAT_TAG2_LEN			(sizeof(FORMAT_TAG2) - 1)
+#define FORMAT_TAG			"$dynamic_0$"
+#define TAG_LENGTH			(sizeof(FORMAT_TAG) - 1)
+#define FORMAT_TAG2			"{MD5}"
+#define FORMAT_TAG2_LEN		(sizeof(FORMAT_TAG2) - 1)
 
 static cl_mem pinned_saved_keys, pinned_saved_idx, pinned_int_key_loc;
 static cl_mem buffer_keys, buffer_idx, buffer_int_keys, buffer_int_key_loc;
@@ -389,7 +390,6 @@ static char *get_key(int index)
 	}
 
 	if (t >= global_work_size) {
-		//fprintf(stderr, "Get key error! %d %d\n", t, index);
 		t = 0;
 	}
 
@@ -420,8 +420,6 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 
 	global_work_size = GET_NEXT_MULTIPLE(count, local_work_size);
-
-	//fprintf(stderr, "%s(%d) lws "Zu" gws "Zu" idx %u int_cand%d\n", __FUNCTION__, count, local_work_size, global_work_size, key_idx, mask_int_cand.num_int_cand);
 
 	// copy keys to the device
 	if (key_idx)
