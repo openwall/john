@@ -158,7 +158,7 @@ edata:
 
 	/* Now build dynamic salt and return a pointer to a pointer to it */
 	static krb5tgs_salt *psalt;
-	psalt = mem_calloc(1, sizeof(krb5tgs_salt) + edata2len);
+	psalt = mem_calloc(1, sizeof(krb5tgs_salt) + edata2len - 1);
 	memcpy(psalt->edata1, edata1, 16);
 	psalt->edata2len = edata2len;
 

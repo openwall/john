@@ -99,7 +99,7 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	intkeysize = sizeof(cl_uint) * gws;
 	statesize = sizeof(krb5tgs_state) * gws * mask_int_cand.num_int_cand;
 	outsize = sizeof(krb5tgs_out) * gws * mask_int_cand.num_int_cand;
-	saltsize = sizeof(krb5tgs_salt) + krb5tgs_max_data_len;
+	saltsize = sizeof(krb5tgs_salt) + krb5tgs_max_data_len - 1;
 
 	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_HOST_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, insize, NULL, &ret_code);
 	if (ret_code == CL_SUCCESS)
@@ -284,12 +284,13 @@ static void reset(struct db_main *db)
 static void set_salt(void *salt)
 {
 	cur_salt = *(krb5tgs_salt**)salt;
+	size_t cur_salt_size = sizeof(krb5tgs_salt) + cur_salt->edata2len - 1;
 
 	if (cur_salt->edata2len > krb5tgs_max_data_len)
 		error_msg("This should not happen, please report.");
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_salt, CL_FALSE, 0,
-	                                    saltsize, cur_salt, 0, NULL, NULL),
+	                                    cur_salt_size, cur_salt, 0, NULL, NULL),
 	               "Failed transferring salt");
 	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");
 }

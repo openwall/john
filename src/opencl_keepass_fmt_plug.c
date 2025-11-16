@@ -265,13 +265,15 @@ static char *get_key(int index)
 	return ret;
 }
 
+/* The logic below is duplicated in opencl_argon2_fmt_plug.c: kp_set_salt() */
 static void set_salt(void *salt)
 {
 	keepass_salt = *((keepass_salt_t**)salt);
+	size_t cur_salt_size = sizeof(keepass_salt_t) + keepass_salt->content_size - 1;
 
-	if (sizeof(keepass_salt_t) + keepass_salt->content_size - 1 > saltsize) {
+	if (cur_salt_size > saltsize) {
 		CLRELEASEBUFFER(mem_salt);
-		saltsize = sizeof(keepass_salt_t) + keepass_salt->content_size - 1;
+		saltsize = cur_salt_size;
 		CLCREATEBUFFER(mem_salt, CL_RO, saltsize);
 		CLKERNELARG(kernel_init, 1, mem_salt);
 		CLKERNELARG(kernel_loop_aes, 1, mem_salt);
@@ -281,7 +283,7 @@ static void set_salt(void *salt)
 #endif
 	}
 
-	CLWRITE(mem_salt, CL_FALSE, 0, saltsize, keepass_salt, NULL);
+	CLWRITE(mem_salt, CL_FALSE, 0, cur_salt_size, keepass_salt, NULL);
 	CLWRITE(mem_autotune, CL_FALSE, 0, sizeof(ocl_autotune_running),
 	        &ocl_autotune_running, NULL);
 	HANDLE_CLERROR(clFlush(queue[gpu_id]), "clFlush failed in set_salt()");

@@ -383,7 +383,8 @@ struct fmt_methods {
  * The count is passed by reference and must be updated by crypt_all() if it
  * computes other than the requested count (such as if it generates additional
  * candidate passwords on its own).  The updated count is used for c/s rate
- * calculation.  The return value is thus in the 0 to updated *count range. */
+ * calculation.  The return value is thus in the 0 to updated *count range.
+ * As an exception, a -1 return is used on error during OpenCL auto-tune. */
 	int (*crypt_all)(int *count, struct db_salt *salt);
 
 /* These functions calculate a hash out of a ciphertext that has just been

@@ -298,7 +298,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		for (int i = count; i <= gws; i++)
 			key_idx[i] = key_buf_end;
 
-		CLWRITE_CRYPT(cl_key_buf, CL_FALSE, key_offset, key_buf_end - key_offset, key_buf + key_offset, multi_profilingEvent[0]);
+		if (key_buf_end != key_offset)
+			CLWRITE_CRYPT(cl_key_buf, CL_FALSE, key_offset, key_buf_end - key_offset, key_buf + key_offset, multi_profilingEvent[0]);
 		CLWRITE_CRYPT(cl_key_idx, CL_FALSE, idx_offset, 4 * (gws + 1) - idx_offset, key_idx + (idx_offset / 4), multi_profilingEvent[1]);
 
 		if (!mask_gpu_is_static)

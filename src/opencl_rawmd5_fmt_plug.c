@@ -316,7 +316,7 @@ static char *split(char *ciphertext, int index, struct fmt_main *self)
 
 static void *get_binary(char *ciphertext)
 {
-	static uint32_t out[DIGEST_SIZE];
+	static uint32_t out[DIGEST_SIZE / 4];
 	char *p;
 	int i;
 	p = ciphertext + TAG_LENGTH;

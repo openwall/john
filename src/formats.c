@@ -602,11 +602,11 @@ static char* is_key_right(struct fmt_main *format, int index,
 		return err_buf;
 	}
 
-	if (match == 0) {
+	if (match <= 0) {
 		if (options.verbosity > VERB_LEGACY)
-			snprintf(err_buf, sizeof(err_buf), "crypt_all(%d) zero return %s", index + 1, ciphertext);
+			snprintf(err_buf, sizeof(err_buf), "crypt_all(%d) = %d for %s", index + 1, match, ciphertext);
 		else
-			sprintf(err_buf, "crypt_all(%d) zero return", index + 1);
+			sprintf(err_buf, "crypt_all(%d) = %d", index + 1, match);
 		return err_buf;
 	}
 
