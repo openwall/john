@@ -408,6 +408,8 @@ static int w_block_precomputed(unsigned char *salt)
 
 	HANDLE_CLERROR(clFinish(queue[gpu_id]), "clFinish");
 
+	MEM_FREE(padding);
+
 	return 1;
 }
 
