@@ -419,9 +419,7 @@ void opt_init(char *name, int argc, char **argv)
 		}
 		exit(0);
 	} else if (argc > 10000000 && !rec_restored) {
-		if (john_main_process)
-			fprintf(stderr, "Too many command-line arguments\n");
-		error();
+		error_msg_main("Too many command-line arguments\n");
 	}
 
 	/*
@@ -461,9 +459,7 @@ void opt_init(char *name, int argc, char **argv)
 		options.flags |= FLG_MASK_SET;
 
 	if ((options.flags & (FLG_TEST_CHK | FLG_NOTESTS)) == (FLG_TEST_CHK | FLG_NOTESTS) && !benchmark_time) {
-		if (john_main_process)
-			fprintf(stderr, "Can't run a self-test-only while also skipping self-test!\n");
-		error();
+		error_msg_main("Can't run a self-test-only while also skipping self-test!\n");
 	}
 
 #if HAVE_REXGEN
@@ -483,8 +479,7 @@ void opt_init(char *name, int argc, char **argv)
 				options.flags |= FLG_MASK_STACKED;
 
 			if (!benchmark_time) {
-				fprintf(stderr, "Currently can't self-test with mask\n");
-				error();
+				error_msg_main("Currently can't self-test with mask\n");
 			}
 
 			if (benchmark_time == 1)
@@ -508,8 +503,7 @@ void opt_init(char *name, int argc, char **argv)
 			    !(options.flags & FLG_CRACKING_CHK))
 				options.flags |= FLG_REGEX_STACKED;
 			else if (!(options.flags & FLG_CRACKING_CHK)) {
-				fprintf(stderr, "\\0 is only used with hybrid regex\n");
-				error();
+				error_msg_main("\\0 is only used with hybrid regex\n");
 			}
 		}
 		if (!(options.flags & FLG_REGEX_STACKED)) {
@@ -567,9 +561,7 @@ void opt_init(char *name, int argc, char **argv)
 			}
 		}
 		if (bad) {
-			fprintf(stderr,
-			    "Invalid session name: all-digits suffix\n");
-			error();
+			error_msg_main("Invalid session name: all-digits suffix\n");
 		}
 #endif
 		rec_name = options.session;
@@ -580,19 +572,13 @@ void opt_init(char *name, int argc, char **argv)
 	if (mpi_p > 1) {
 		if (options.flags & FLG_RESTORE_CHK || rec_restored) {
 			if (options.fork && options.fork != mpi_p) {
-				if (john_main_process)
-				fprintf(stderr,
-				        "Node count in session file is %d.\n",
-				        options.fork);
-				error();
+				error_msg_main("Node count in session file is %d.\n", options.fork);
 			}
 			options.fork = 0;
 			options.flags &= ~FLG_FORK;
 		} else
 		if (options.fork) {
-			if (john_main_process)
-				fprintf(stderr, "Can't use --fork with MPI.\n");
-			error();
+			error_msg_main("Can't use --fork with MPI.\n");
 		}
 	}
 #endif
@@ -621,7 +607,7 @@ void opt_init(char *name, int argc, char **argv)
 	}
 
 	if (options.catchup && options.max_cands)
-		error_msg("Can't combine --max-candidates and --catch-up options\n");
+		error_msg_main("Can't combine --max-candidates and --catch-up options\n");
 
 	if (options.flags & FLG_STATUS_CHK) {
 #if OS_FORK
@@ -677,10 +663,7 @@ void opt_init(char *name, int argc, char **argv)
 		}
 		dummy = strtok(NULL, ",");
 		if (dummy) {
-			if (john_main_process)
-				fprintf(stderr, "max. %d different tunable cost parameters"
-				                " supported\n", FMT_TUNABLE_COSTS);
-			error();
+			error_msg_main("Max. %d different tunable cost parameters supported\n", FMT_TUNABLE_COSTS);
 		}
 		for ( i = 0; i < FMT_TUNABLE_COSTS; i++) {
 			int negative;
@@ -701,18 +684,12 @@ void opt_init(char *name, int argc, char **argv)
 				           &options.loader.min_cost[i], &options.loader.max_cost[i]) == 2)
 					two_values = 1;
 				if (two_values && negative) {
-					if (john_main_process)
-						fprintf(stderr, "Usage of negative --cost is not valid"
-						                " for cost range (min:max)\n");
-					error();
+					error_msg_main("Usage of negative --cost is not valid for cost range (min:max)\n");
 				}
 				if (!two_values)
 					sscanf(range[i], "%u", &options.loader.min_cost[i]);
 				if (negative && options.loader.min_cost[i] == 0) {
-					if (john_main_process)
-						fprintf(stderr, "Usage of negative --cost is not valid"
-								" for value 0\n");
-					error();
+					error_msg_main("Usage of negative --cost is not valid for value 0\n");
 				}
 				if (!two_values) {
 					if (negative) {
@@ -724,9 +701,7 @@ void opt_init(char *name, int argc, char **argv)
 					}
 				}
 				if (options.loader.max_cost[i] < options.loader.min_cost[i]) {
-					if (john_main_process)
-						fprintf(stderr, "Max. cost value must be >= min. cost value\n");
-					error();
+					error_msg_main("Max. cost value must be >= min. cost value\n");
 				}
 			}
 		}
@@ -744,7 +719,7 @@ void opt_init(char *name, int argc, char **argv)
 		if (strcmp(options.tune, "auto") &&
 		    strcmp(options.tune, "report") &&
 		    !isdec(options.tune))
-			error_msg("Allowed arguments to --tune is auto, report or N, where N is a positive number");
+			error_msg_main("Allowed arguments to --tune is auto, report or N, where N is a positive number");
 	}
 
 	if (salts_str) {
@@ -774,60 +749,37 @@ void opt_init(char *name, int argc, char **argv)
 			else
 				options.loader.max_pps = 0x7fffffff;
 		} else if (options.loader.min_pps < 0) {
-			if (john_main_process)
-				fprintf(stderr, "Usage of negative -salt min "
-				        "is not 'valid' if using Min and Max "
-				        "salt range of values\n");
-			error();
+			error_msg_main("Usage of negative -salt min is not 'valid' if using Min and Max salt range of values\n");
 		}
 		if (options.loader.min_pps > options.loader.max_pps) {
-			if (john_main_process)
-				fprintf(stderr, "Min number salts wanted is "
-				        "less than Max salts wanted\n");
-			error();
+			error_msg_main("Min number salts wanted is less than Max salts wanted\n");
 		}
 	}
 
-	if (john_main_process && options.flags & FLG_VERBOSITY &&
-	    (options.verbosity < 1 || options.verbosity > VERB_DEBUG)) {
-		fprintf(stderr, "Invalid --verbosity level, use 1-"
-		        "%u (default %u) or %u for debug\n",
-		        VERB_MAX, VERB_DEFAULT, VERB_DEBUG);
-		error();
+	if (options.flags & FLG_VERBOSITY && (options.verbosity < 1 || options.verbosity > VERB_DEBUG)) {
+		error_msg_main("Invalid --verbosity level, use 1-%u (default %u) or %u for debug\n", VERB_MAX, VERB_DEFAULT, VERB_DEBUG);
 	}
 	if (options.length < 0)
 		options.length = MAX_PLAINTEXT_LENGTH;
 	else
 	if (options.length < 1 || options.length > MAX_PLAINTEXT_LENGTH) {
-		if (john_main_process)
-			fprintf(stderr, "Invalid plaintext length requested\n");
-		error();
+		error_msg_main("Invalid plaintext length requested\n");
 	}
 	if (options.req_length) {
 		if (!rec_restored &&
 		    (options.req_minlength != -1 || options.req_maxlength != 0)) {
-			if (john_main_process)
-				fprintf(stderr, "Invalid options: --length can't be used together with --min/max-length\n");
-			error();
+			error_msg_main("Invalid options: --length can't be used together with --min/max-length\n");
 		}
 		options.req_minlength = options.req_maxlength = options.req_length;
 	}
 	if (options.req_maxlength && options.req_maxlength < options.req_minlength) {
-		if (john_main_process)
-			fprintf(stderr, "Invalid options: --min-length larger "
-			        "than --max-length\n");
-		error();
+		error_msg_main("Invalid options: --min-length larger than --max-length\n");
 	}
 	if (options.req_maxlength < 0 || options.req_maxlength > MAX_PLAINTEXT_LENGTH) {
-		if (john_main_process)
-			fprintf(stderr, "Invalid max length requested\n");
-		error();
+		error_msg_main("Invalid max length requested\n");
 	}
 	if (options.force_maxkeys != 0 && options.force_maxkeys < 1) {
-		if (john_main_process)
-			fprintf(stderr,
-			        "Invalid options: --mkpc must be at least 1\n");
-		error();
+		error_msg_main("Invalid options: --mkpc must be at least 1\n");
 	}
 
 	/*
@@ -848,8 +800,7 @@ void opt_init(char *name, int argc, char **argv)
 #if OS_FORK
 	if ((options.flags & FLG_FORK) &&
 	    (options.fork < 2 || options.fork > 1024)) {
-		fprintf(stderr, "--fork number must be between 2 and 1024\n");
-		error();
+		error_msg_main("--fork number must be between 2 and 1024\n");
 	}
 #endif
 
@@ -897,10 +848,7 @@ void opt_init(char *name, int argc, char **argv)
 		    range == options.node_count)
 			msg = "node numbers can't span the whole range";
 		if (msg) {
-			if (john_main_process)
-			fprintf(stderr, "Invalid node specification: %s: %s\n",
-			    options.node_str, msg);
-			error();
+			error_msg_main("Invalid node specification: %s: %s\n", options.node_str, msg);
 		}
 #if OS_FORK
 	} else if (options.fork) {
@@ -953,14 +901,11 @@ void opt_init(char *name, int argc, char **argv)
 		if (options.v_width != 1 && options.v_width != 2 &&
 		    options.v_width != 3 && options.v_width != 4 &&
 		    options.v_width != 8 && options.v_width != 16) {
-			if (john_main_process)
-				fprintf(stderr, "Vector width must be one of"
-				        " 1, 2, 3, 4, 8 or 16\n");
-			error();
+			error_msg_main("Vector width must be one of 1, 2, 3, 4, 8 or 16\n");
 		}
 		if (options.v_width == 3 && john_main_process)
-			fprintf(stderr, "Warning: vector width 3 is not "
-			        "expected to work well with all formats\n");
+			fprintf_color(color_warning, stderr,
+			              "Warning: vector width 3 is not expected to work well with all formats\n");
 	}
 #endif
 	/*
@@ -970,17 +915,11 @@ void opt_init(char *name, int argc, char **argv)
 	if (!(options.subformat && !strcasecmp(options.subformat, "list")) &&
 	    (!options.listconf))
 	if ((options.flags & (FLG_PASSWD | FLG_PWD_REQ)) == FLG_PWD_REQ) {
-		if (john_main_process)
-			fprintf(stderr, "Password files required, "
-			        "but none specified\n");
-		error();
+		error_msg_main("Password files required, but none specified\n");
 	}
 
 	if ((options.flags & (FLG_PASSWD | FLG_PWD_SUP)) == FLG_PASSWD) {
-		if (john_main_process)
-			fprintf(stderr, "Password files specified, "
-			        "but no option would use them\n");
-		error();
+		error_msg_main("Password files specified, but no option would use them\n");
 	}
 
 	if ( (options.flags & FLG_SHOW_CHK) && show_uncracked_str) {
@@ -1003,9 +942,8 @@ void opt_init(char *name, int argc, char **argv)
 			options.loader.showinvalid = 1;
 		}
 		else {
-			fprintf(stderr, "Invalid option in --show switch. Valid options:\n"
+			error_msg_main("Invalid option in --show switch. Valid options:\n"
 			        "--show, --show=left, --show=formats, --show=types, --show=invalid\n");
-			error();
 		}
 	}
 
@@ -1036,7 +974,7 @@ void opt_init(char *name, int argc, char **argv)
 			if (!options.format)
 				options.format = s;
 			else if (strcmp(options.format, s))
-				error_msg("Error: --regen-lost-salts parameter not matching --format option\n");
+				error_msg_main("Error: --regen-lost-salts parameter not matching --format option\n");
 		}
 	}
 
@@ -1053,29 +991,18 @@ void opt_init(char *name, int argc, char **argv)
 
 			sscanf(&field_sep_char_str[2], "%x", &xTmp);
 			if (!xTmp || xTmp > 255) {
-				if (john_main_process)
-					fprintf(stderr, "trying to use an "
-					         "invalid field separator char:"
-					         " %s\n",
-					         field_sep_char_str);
-				error();
+				error_msg_main("Trying to use an invalid field separator char: %s\n",field_sep_char_str);
 			}
 			options.loader.field_sep_char = (char)xTmp;
 		} else {
-				if (john_main_process)
-					fprintf(stderr, "trying to use an "
-					         "invalid field separator char:"
-					         " %s (must be single byte "
-					         "character)\n",
-					         field_sep_char_str);
-				error();
+				error_msg_main("Trying to use an invalid field separator char: %s (must be single byte character)\n", field_sep_char_str);
 		}
 
 		if (options.loader.field_sep_char != ':')
 			if (john_main_process)
-				fprintf(stderr, "using field sep char '%c' "
-				         "(0x%02x)\n", options.loader.field_sep_char,
-				         options.loader.field_sep_char);
+				fprintf_color(color_notice, stderr, "using field separator char '%c' (0x%02x)\n",
+				              options.loader.field_sep_char,
+				              options.loader.field_sep_char);
 	}
 
 	rec_argc = argc; rec_argv = argv;

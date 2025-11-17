@@ -1,7 +1,7 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2001,2006,2008,2010-2013,2015 by Solar Designer
- * Copyright (c) 2011-2025, magnum
+ * Copyright (c) 2011-2026, magnum
  * Copyright (c) 2009-2018, JimF
  */
 
@@ -384,14 +384,14 @@ int fmt_check_custom_list(void)
 					char *exclude_fmt = &(req_format->data[1]);
 
 					if (!exclude_fmt[0])
-						error_msg("Error: '%s' in format list doesn't make sense\n", req_format->data);
+						error_msg_main("Error: '%s' in format list doesn't make sense\n", req_format->data);
 					num_e += exclude_formats_up_to(exclude_fmt, &full_fmt_list);
 				}
 				else if (req_format->data[0] == '-') {
 					char *exclude_fmt = &(req_format->data[1]);
 
 					if (!exclude_fmt[0])
-						error_msg("Error: '%s' in format list doesn't make sense\n", req_format->data);
+						error_msg_main("Error: '%s' in format list doesn't make sense\n", req_format->data);
 					num_e += exclude_formats(exclude_fmt, &full_fmt_list);
 				}
 			} while ((req_format = req_format->next));
@@ -422,7 +422,7 @@ int fmt_check_custom_list(void)
 					char *require_fmt = &(req_format->data[1]);
 
 					if (!require_fmt[0])
-						error_msg("Error: '%s' in format list doesn't make sense\n", req_format->data);
+						error_msg_main("Error: '%s' in format list doesn't make sense\n", req_format->data);
 					prune_formats(require_fmt, had_i);
 
 					if (!fmt_list) {
@@ -442,7 +442,7 @@ int fmt_check_custom_list(void)
 
 			return 1;
 		} else
-			error_msg("Error: Format list '%s' made no sense\n", options.format_list);
+			error_msg_main("Error: Format list '%s' made no sense\n", options.format_list);
 	}
 
 	return 0;
@@ -483,7 +483,7 @@ void fmt_init(struct fmt_main *format)
 		if (john_main_process && !(options.flags & FLG_TEST_CHK) &&
 		    !options.listconf && options.target_enc != UTF_8 &&
 		    format->params.flags & FMT_UTF8)
-			fprintf(stderr, "Warning: %s format should always be "
+			fprintf_color(color_warning, stderr, "Warning: %s format should always be "
 			        "UTF-8. Use --target-encoding=utf8\n",
 				format->params.label);
 
@@ -1129,7 +1129,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (!binary_align_warned &&
 			!is_aligned(binary, format->params.binary_align) &&
 		    format->params.binary_size > 0) {
-			puts("Warning: binary() returned misaligned pointer");
+			puts_color(color_warning, "Warning: binary() returned misaligned pointer");
 			binary_align_warned = 1;
 		}
 
@@ -1146,7 +1146,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 				if (((unsigned char*)binary)[format->params.binary_size-1] == 0xCC)
 				{
 					/* possibly did not clean the binary. */
-					puts("Warning: binary() not pre-cleaning buffer");
+					puts_color(color_warning, "Warning: binary() not pre-cleaning buffer");
 					binary_cleaned_warned = 1;
 				}
 			}
@@ -1170,7 +1170,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 		if (!salt_align_warned &&
 			!is_aligned(salt, format->params.salt_align) &&
 		    format->params.salt_size > 0) {
-			puts("Warning: salt() returned misaligned pointer");
+			puts_color(color_warning, "Warning: salt() returned misaligned pointer");
 			salt_align_warned = 1;
 		}
 
@@ -1183,7 +1183,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 			dyna_salt_create(salt);
 			if (dyna_salt_cmp(copy, salt, format->params.salt_size))
 			{
-				puts("Warning: No dupe-salt detection");
+				puts_color(color_warning, "Warning: No dupe-salt detection");
 				salt_dupe_warned = 1;
 				// These can be useful in tracking down salt
 				// dupe problems.
@@ -1212,7 +1212,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 					p3 = *((dyna_salt_t**)salt);
 					if (dyna_salt_smash_check(salt, 0xC3)) {
 						/* possibly did not clean the salt. */
-						puts("Warning: salt() not pre-cleaning buffer");
+						puts_color(color_warning, "Warning: salt() not pre-cleaning buffer");
 						salt_cleaned_warned = 1;
 					}
 				}
@@ -1229,7 +1229,7 @@ static char *fmt_self_test_body(struct fmt_main *format,
 					salt = format->methods.salt(ciphertext);
 					if (((unsigned char*)salt)[format->params.salt_size-1] == 0xC3) {
 						/* possibly did not clean the salt. */
-						puts("Warning: salt() not pre-cleaning buffer");
+						puts_color(color_warning, "Warning: salt() not pre-cleaning buffer");
 						salt_cleaned_warned = 1;
 					}
 				}

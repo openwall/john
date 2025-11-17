@@ -329,7 +329,10 @@ static void status_print_cracking(char *p, double percent)
 
 	if (john_main_process && status.guess_count > last_count &&
 	    cfg_get_bool(SECTION_OPTIONS, NULL, "ShowRemainOnStatus", 0)) {
-		n = sprintf(p, "%s\n", crk_loaded_counts());
+		n = sprintf(p, "%s%s%s\n",
+		            isatty(fileno(stderr)) ? color_notice : color_none,
+		            crk_loaded_counts(),
+		            isatty(fileno(stderr)) ? color_end : color_none);
 		if (n > 0)
 			p += n;
 		status_update_counts();
@@ -478,7 +481,7 @@ void status_print(int level)
 		suppressor_time -= status.suppressor_start_time;
 	fprintf(stderr,
 	    "%s"
-	    "Remaining hashes    %u (%u removed)\n"
+	    "%sRemaining hashes    %u (%u removed)\n"
 	    "Remaining salts     %u (%u removed)\n"
 	    "Time in seconds     %.2f (%.2f new)\n"
 	    "Successful guesses  %u (%u new, %s g/s)\n"
@@ -488,8 +491,9 @@ void status_print(int level)
 	    "        rejected    %llu (%.2f%%, %s p/s)\n"
 	    "    out of total    %llu (%s p/s)\n"
 	    "Hash computations   %llu (%llu new, %s c/s)\n"
-	    "Hash combinations   %s (%s new, %s C/s)\n",
+	    "Hash combinations   %s (%s new, %s C/s)%s\n",
 	    s_line,
+	    isatty(fileno(stderr)) ? color_notice : color_none,
 	    status.password_count, prev.password_count ? prev.password_count - status.password_count : 0,
 	    status.salt_count, prev.salt_count ? prev.salt_count - status.salt_count : 0,
 	    time, new_time,
@@ -508,7 +512,8 @@ void status_print(int level)
 	    status_get_cps(s_crypts_ps, status.crypts - prev.crypts, 0, new_time),
 	    status_get_c(s_combs, status.combs, status.combs_ehi),
 	    status.combs_ehi ? "N/A" : status_get_c(s_combs_new, status.combs - prev.combs, 0),
-	    status.combs_ehi ? "N/A" : status_get_cps(s_combs_ps, status.combs - prev.combs, 0, new_time));
+	    status.combs_ehi ? "N/A" : status_get_cps(s_combs_ps, status.combs - prev.combs, 0, new_time),
+	    isatty(fileno(stderr)) ? color_end : color_none);
 	prev = status;
 	prev_time = time;
 }

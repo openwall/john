@@ -1,7 +1,7 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2000,2003,2005,2010-2012,2015 by Solar Designer
- * Copyright (c) 2012-2025, magnum
+ * Copyright (c) 2012-2026, magnum
  * Copyright (c) 2009-2018, JimF
  */
 #if AC_BUILT
@@ -113,20 +113,17 @@ static MAYBE_INLINE char *check_bom(char *string)
 		return string;
 
 	if (!memcmp(string, "\xEF\xBB\xBF", 3)) {
-		static int warned;
-
 		if (options.input_enc == UTF_8)
 			string += 3;
-		else if (john_main_process && !warned++)
-			fprintf(stderr,
+		else if (john_main_process)
+			WARN_ONCE(color_warning, stderr,
 			        "Warning: UTF-8 BOM seen in password hash file. You probably want --input-encoding=UTF8\n");
 	}
 	if (options.input_enc == UTF_8 && (!memcmp(string, "\xFE\xFF", 2) || !memcmp(string, "\xFF\xFE", 2))) {
-		static int warned;
-
-		if (john_main_process && !warned++)
-			fprintf(stderr, "Warning: UTF-16 BOM seen in password hash file. "
-			        "File may not be read properly unless you re-encode it\n");
+		if (john_main_process)
+			WARN_ONCE(color_warning, stderr,
+			          "Warning: UTF-16 BOM seen in password hash file. "
+			          "File may not be read properly unless you re-encode it\n");
 	}
 	return string;
 }
@@ -212,7 +209,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 	char line_buf[LINE_BUFFER_SIZE], *line, *ex_size_line;
 	int warn_enc;
 
-	warn_enc = (john_main_process && (options.target_enc != ENC_RAW) &&
+	warn_enc = (!ldr_in_pot && john_main_process && (options.target_enc != ENC_RAW) &&
 	            cfg_get_bool(SECTION_OPTIONS, NULL, "WarnEncoding", 0));
 
 	if (stat(path_expand(name), &file_stat)) {
@@ -225,9 +222,7 @@ static void read_file(struct db_main *db, char *name, int flags,
 		return;
 
 	if (ldr_in_pot && S_ISFIFO(file_stat.st_mode)) {
-		if (john_main_process)
-			fprintf(stderr, "Error, cannot use FIFO as pot file: %s\n", path_expand(name));
-		error();
+		error_msg_main("Error: Cannot use FIFO as pot file: %s\n", path_expand(name));
 	}
 
 	if (!(file = fopen(path_expand(name), "r"))) {
@@ -254,13 +249,17 @@ static void read_file(struct db_main *db, char *name, int flags,
 			     options.input_enc == UTF_8)) {
 				if (!valid_utf8((UTF8*)u8check)) {
 					warn_enc = 0;
-					fprintf(stderr, "Warning: invalid UTF-8 seen reading %s\n", path_expand(name));
+					fprintf_color(color_warning, stderr,
+					              "Warning: Invalid UTF-8 seen reading %s\n",
+					              path_expand(name));
 				}
 			} else if (options.input_enc != UTF_8 &&
 			           (line != line_buf ||
 			            valid_utf8((UTF8*)u8check) > 1)) {
 				warn_enc = 0;
-				fprintf(stderr, "Warning: UTF-8 seen reading %s\n", path_expand(name));
+				fprintf_color(color_warning, stderr,
+				              "Warning: UTF-8 seen reading %s\n",
+				              path_expand(name));
 			}
 		}
 		process_line(db, line);
@@ -386,9 +385,7 @@ static int wild_cmp(const char *search_str, const char *full_str)
 
 	if (pos) {
 		if (pos != strrchr(search_str, '*')) {
-			if (john_main_process)
-				fprintf(stderr, "Only one wildcard allowed in name\n");
-			error();
+			error_msg_main("Only one wildcard allowed in name\n");
 		}
 
 		/* Check string before wildcard, if any */
@@ -714,7 +711,7 @@ find_format:
 				alt->params.flags |= FMT_WARNED;
 				if (john_main_process)
 				fprintf(stderr,
-				    "Warning: only loading hashes of type "
+				    "Warning: Only loading hashes of type "
 				    "\"%s\", but also saw type \"%s\"\n"
 				    "Use the \"--format=%s\" option to force "
 				    "loading hashes of that type instead\n",
@@ -778,7 +775,7 @@ find_format:
 #ifdef LDR_WARN_AMBIGUOUS
 		if (john_main_process)
 		fprintf(stderr,
-		    "Warning: detected hash type \"%s\", but the string is "
+		    "Warning: Detected hash type \"%s\", but the string is "
 		    "also recognized as \"%s\"\n"
 		    "Use the \"--format=%s\" option to force loading these "
 		    "as that type instead\n",
@@ -1012,18 +1009,13 @@ static void ldr_load_pw_line(struct db_main *db, char *line)
 
 				if (john_main_process) {
 					if (format->params.binary_size)
-					fprintf(stderr, "Warning: "
-					    "excessive partial hash "
-					    "collisions detected\n%s",
-					    db->password_hash_func !=
-					    fmt_default_binary_hash ? "" :
-					    "(cause: the \"format\" lacks "
-					    "proper binary_hash() function "
-					    "definitions)\n");
+					fprintf_color(color_warning, stderr,
+					              "Warning: Excessive partial hash collisions detected\n%s",
+					              db->password_hash_func != fmt_default_binary_hash ? "" :
+					              "(cause: the \"format\" lacks proper binary_hash() function definitions)\n");
 					else
-					fprintf(stderr, "Warning: "
-					    "check for duplicates partially "
-					    "bypassed to speedup loading\n");
+					fprintf_color(color_warning, stderr,
+					              "Warning: Check for duplicates partially bypassed to speedup loading\n");
 				}
 				dupe_checking = 0;
 				current_pw = NULL; /* no match */
@@ -1887,9 +1879,7 @@ static void ldr_fill_user_words(struct db_main *db)
 		pexit(STR_MACRO(jtr_ftell64));
 	jtr_fseek64(file, 0, SEEK_SET);
 	if (file_len < 3) {
-		if (john_main_process)
-			fprintf(stderr, "Error, per-user seed file is empty\n");
-		error();
+		error_msg_main("Error: Per-user seed file is empty\n");
 	}
 
 #ifdef HAVE_MMAP

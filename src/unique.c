@@ -2,7 +2,7 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1998,1999,2002,2003,2005,2006,2011,2020 by Solar Designer
  * Copyright (c) 2011 by Jim Fougeron
- * Copyright (c) 2016-2019 by magnum
+ * Copyright (c) 2016-2026 by magnum
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -461,7 +461,7 @@ int unique(int argc, char **argv)
 			if (sscanf(argv[i], "-mem=%d%c", &log, &nul) < 1 || nul)
 				log = 0;
 			buf = ((1ULL << log) * UNIQUE_AVG_LEN) >> 30ULL;
-			fprintf(stderr,
+			fprintf_color(color_warning, stderr,
 "Warning: The -mem=%u option is deprecated, use -hash-size=%u (log2 of hash\n"
 "         table size) and/or -buf=%u (total buffer size, in GB) instead\n",
 			        log, log, (uint32_t)MAX(1, buf));

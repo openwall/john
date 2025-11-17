@@ -118,11 +118,11 @@ static void cfg_add_section(const char *name)
 			if (!strcmp(last->name, name)) {
 				if (!cfg_loading_john_local) {
 					if (john_main_process)
-						fprintf(stderr, "Warning! john.conf section [%s] is multiple declared.\n", name);
+						fprintf_color(color_warning, stderr, "Warning! john.conf section [%s] is multiple declared.\n", name);
 				}
 #ifndef BENCH_BUILD
 				else if (john_main_process && options.verbosity >= VERB_DEFAULT)
-					fprintf(stderr, "Warning! Section [%s] overridden by john-local.conf\n", name);
+					fprintf_color(color_warning, stderr, "Warning! Section [%s] overridden by john-local.conf\n", name);
 #endif
 				break;
 			}

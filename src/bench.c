@@ -279,7 +279,7 @@ static void bench_set_keys(struct fmt_main *format,
 		}
 
 		if (warn == 1) {
-			fprintf(stderr, "Warning: not enough candidates under "
+			fprintf_color(color_warning, stderr, "Warning: not enough candidates under "
 			    "benchmark length %d\n", length);
 			warn = 2;
 		}

@@ -2,7 +2,7 @@
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2003,2006,2010-2013,2015,2017 by Solar Designer
  * Copyright (c) 2009-2018 by JimF
- * Copyright (c) 2011-2025 by magnum
+ * Copyright (c) 2011-2026 by magnum
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -303,7 +303,7 @@ static void crk_remove_salt(struct db_salt *salt)
 
 		if (crk_db->salt_hash[hash] == salt) {
 			if (options.verbosity >= VERB_DEBUG) {
-				fprintf(stderr, "Got rid of %s, %s\n", strncasecmp(crk_params->label, "wpapsk", 6) ? "a salt" : (char*)(salt->salt) + 4, crk_loaded_counts());
+				fprintf_color(color_notice, stderr, "Got rid of %s, %s\n", strncasecmp(crk_params->label, "wpapsk", 6) ? "a salt" : (char*)(salt->salt) + 4, crk_loaded_counts());
 				status_update_counts();
 			}
 			if (salt->next &&
@@ -720,7 +720,7 @@ int crk_reload_pot(void)
 
 		if (salts && cfg_get_bool(SECTION_OPTIONS, NULL,
 		                          "ShowSaltProgress", 0)) {
-			fprintf(stderr, "%s after pot sync\n", crk_loaded_counts());
+			fprintf_color(color_notice, stderr, "%s after pot sync\n", crk_loaded_counts());
 			status_update_counts();
 		}
 	}

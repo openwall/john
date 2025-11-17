@@ -1,7 +1,7 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2024 by Solar Designer
- * Copyright (c) 2009-2025, magnum
+ * Copyright (c) 2009-2026, magnum
  * Copyright (c) 2021, Claudio
  * Copyright (c) 2009-2018, JimF
  *
@@ -283,11 +283,11 @@ static void john_register_all(void)
 
 	/* Do we have --format=LIST? If so, re-build fmt_list from it, in requested order. */
 	if (options.format_list && !fmt_check_custom_list())
-		error_msg("Could not parse format list '%s'\n", options.format_list);
+		error_msg_main("Could not parse format list '%s'\n", options.format_list);
 
 	if (!fmt_list) {
 		if (john_main_process) {
-			fprintf(stderr, "Error: No format matched requested %s '%s'\n", fmt_type(options.format), options.format);
+			fprintf_color(color_error, stderr, "Error: No format matched requested %s '%s'\n", fmt_type(options.format), options.format);
 		}
 		error();
 	}
@@ -432,13 +432,12 @@ static void john_omp_show_info(void)
 		if (msg) {
 #if OS_FORK
 		if (!(options.flags & (FLG_PIPE_CHK | FLG_STDIN_CHK)))
-			fprintf(stderr, "Warning: %s for this hash type, "
+			fprintf_color(color_warning, stderr, "Warning: %s for this hash type, "
 			    "consider --fork=%d\n",
 			    msg, john_omp_threads_orig);
 		else
 #endif
-			fprintf(stderr, "Warning: %s for this hash type\n",
-			    msg);
+			fprintf_color(color_warning, stderr, "Warning: %s for this hash type\n", msg);
 		}
 	}
 
@@ -477,32 +476,32 @@ static void john_omp_show_info(void)
 		                "MPIOMPmutex", 1)) {
 			if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
 			                "MPIOMPverbose", 1) && mpi_id == 0)
-				fprintf(stderr, "MPI in use, disabling OMP "
+				fprintf_color(color_notice, stderr, "MPI in use, disabling OMP "
 				        "(see doc/README.mpi)\n");
 			omp_set_num_threads(1);
 			john_omp_threads_orig = 0; /* Mute later warning */
 		} else if (john_omp_threads_orig > 1 &&
 		        cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI,
 		                "MPIOMPverbose", 1) && mpi_id == 0)
-			fprintf(stderr, "Note: Running both MPI and OMP"
+			fprintf_color(color_notice, stderr, "Note: Running both MPI and OMP"
 			        " (see doc/README.mpi)\n");
 	} else
 #endif
 	if (options.fork) {
 #if OS_FORK
 		if (john_omp_threads_new > 1)
-			fprintf(stderr,
+			fprintf_color(color_notice, stderr,
 			    "Will run %d OpenMP threads per process "
 			    "(%u total across %u processes)\n",
 			    john_omp_threads_new,
 			    john_omp_threads_new * options.fork, options.fork);
 		else if (john_omp_threads_orig > 1)
-			fputs("Warning: OpenMP was disabled due to --fork; "
+			fputs_color(color_warning, "Warning: OpenMP was disabled due to --fork; "
 			    "a non-OpenMP build may be faster\n", stderr);
 #endif
 	} else {
 		if (john_omp_threads_new > 1)
-			fprintf(stderr,
+			fprintf_color(color_notice, stderr,
 			    "Will run %d OpenMP threads\n",
 			    john_omp_threads_new);
 	}
@@ -513,10 +512,10 @@ static void john_omp_show_info(void)
 		const char *format = database.format ?
 			database.format->params.label : options.format;
 		if (format && strstr(format, "-opencl"))
-			fputs("Warning: OpenMP is disabled; "
+			fputs_color(color_warning, "Warning: OpenMP is disabled; "
 			      "GPU may be under-utilized\n", stderr);
 		else
-			fputs("Warning: OpenMP is disabled; "
+			fputs_color(color_warning, "Warning: OpenMP is disabled; "
 			      "a non-OpenMP build may be faster\n", stderr);
 	}
 }
@@ -684,9 +683,7 @@ static void john_wait(void)
 
 	int waiting_for = john_child_count;
 
-	log_event("Waiting for %d child%s to terminate",
-	    waiting_for, waiting_for == 1 ? "" : "ren");
-	fprintf(stderr, "Waiting for %d child%s to terminate\n",
+	WARN_AND_LOG(color_notice, stderr, "Waiting for %d child%s to terminate",
 	    waiting_for, waiting_for == 1 ? "" : "ren");
 
 /*
@@ -737,9 +734,7 @@ static void john_mpi_wait(void)
 	}
 
 	if (john_main_process) {
-		log_event("Waiting for other node%s to terminate",
-		          mpi_p > 2 ? "s" : "");
-		fprintf(stderr, "Waiting for other node%s to terminate session%s\n",
+		WARN_AND_LOG(color_notice, stderr, "Waiting for other node%s to terminate session%s",
 		        mpi_p > 2 ? "s" : "", john_session_name);
 		mpi_teardown();
 	}
@@ -805,7 +800,7 @@ static void john_load_conf(void)
 
 		if (options.verbosity < 1 || options.verbosity > VERB_DEBUG) {
 			if (john_main_process)
-				fprintf(stderr, "Invalid verbosity level in "
+				fprintf_color(color_error, stderr, "Invalid verbosity level in "
 				        "config file, use 1-%u (default %u)"
 				        " or %u for debug\n",
 				        VERB_MAX, VERB_DEFAULT, VERB_DEBUG);
@@ -926,7 +921,7 @@ static void john_load_conf_db(void)
 	if (database.format && options.target_enc != ENC_RAW && options.target_enc != ISO_8859_1 &&
 	    database.format->params.flags & FMT_UNICODE && !(database.format->params.flags & FMT_ENC)) {
 		if (john_main_process)
-			fprintf(stderr, "This format does not yet support"
+			fprintf_color(color_error, stderr, "This format does not yet support"
 			        " other encodings than ISO-8859-1\n");
 		error();
 	}
@@ -940,7 +935,7 @@ static void john_load_conf_db(void)
 	if (options.target_enc != options.input_enc &&
 	    options.input_enc != UTF_8) {
 		if (john_main_process)
-			fprintf(stderr, "Target encoding can only be specified"
+			fprintf_color(color_error, stderr, "Target encoding can only be specified"
 			        " if input encoding is UTF-8\n");
 		error();
 	}
@@ -1084,13 +1079,14 @@ static void john_load(void)
 
 		if (!(options.flags & FLG_LOOPBACK_CHK) &&
 		    options.req_maxlength > options.length) {
-			fprintf(stderr, "Can't set max length larger than %u "
+			fprintf_color(color_error, stderr, "Can't set max length larger than %u "
 			        "for stdout format\n", options.length);
 			error();
 		}
 		if (options.verbosity <= 1)
 			if (john_main_process)
-				fprintf(stderr, "Warning: Verbosity decreased to minimum, candidates will not be printed!\n");
+				fprintf_color(color_warning, stderr,
+				              "Warning: Verbosity decreased to minimum, candidates will not be printed!\n");
 		john_load_conf_db();
 	}
 
@@ -1128,7 +1124,7 @@ static void john_load(void)
 			        database.password_count != 1 ? "es" : "");
 			else
 			if (john_main_process && !options.loader.showformats)
-			printf("%s%d password hash%s cracked, %d left\n",
+			printf_color(color_notice, "%s%d password hash%s cracked, %d left\n",
 				database.guess_count ? "\n" : "",
 				database.guess_count,
 				database.guess_count != 1 ? "es" : "",
@@ -1183,7 +1179,7 @@ static void john_load(void)
 			  !(strstr(database.format->params.label, "-opencl") ||
 			    strstr(database.format->params.label, "-ztex"))) {
 				if (john_main_process)
-					fprintf(stderr,
+					fprintf_color(color_error, stderr,
 					        "The \"--devices\" option is valid only for OpenCL or ZTEX formats\n");
 				error();
 			}
@@ -1193,19 +1189,19 @@ static void john_load(void)
 			if (!strstr(database.format->params.label, "-opencl")) {
 				if (options.lws) {
 					if (john_main_process)
-						fprintf(stderr,
+						fprintf_color(color_error, stderr,
 						        "The \"--lws\" option is valid only for OpenCL formats\n");
 					error();
 				}
 				if (options.gws) {
 					if (john_main_process)
-						fprintf(stderr,
+						fprintf_color(color_error, stderr,
 						        "The \"--gws\" option is valid only for OpenCL formats\n");
 					error();
 				}
 				if (options.flags & (FLG_SCALAR | FLG_VECTOR)) {
 					if (john_main_process)
-						fprintf(stderr,
+						fprintf_color(color_error, stderr,
 						        "The \"--force-scalar\" and \"--force-vector\" options are valid only for OpenCL formats\n");
 					error();
 				}
@@ -1216,13 +1212,13 @@ static void john_load(void)
 			if (strstr(database.format->params.label, "-ztex")
 					&& options.fork) {
 				if (ztex_detected_list->count == 1) {
-					fprintf(stderr, "Number of ZTEX devices must be "
+					fprintf_color(color_error, stderr, "Number of ZTEX devices must be "
 						"a multiple of forks. "
 						"With 1 device \"--fork\" is useless.\n");
 					error();
 				}
 				if (ztex_detected_list->count % options.fork) {
-					fprintf(stderr, "Number of ZTEX devices must be "
+					fprintf_color(color_error, stderr, "Number of ZTEX devices must be "
 						"a multiple of forks. "
 						"Suggesting to use \"--fork=%d\".\n",
 						ztex_detected_list->count);
@@ -1239,7 +1235,7 @@ static void john_load(void)
 #endif
 			fmt_init(database.format);
 			if (john_main_process)
-			printf("%s (%s%s%s [%s])\n",
+			printf_color(color_notice, "%s (%s%s%s [%s])\n",
 			    john_loaded_counts(&database, "Loaded"),
 			    database.format->params.label,
 			    database.format->params.format_name[0] ? ", " : "",
@@ -1262,7 +1258,7 @@ static void john_load(void)
 			build_fake_salts_for_regen_lost(&database);
 
 		if (john_main_process && cracked) {
-			printf("Cracked %d password hash%s%s%s%s, use \"--show\"\n",
+			printf_color(color_notice, "Cracked %d password hash%s%s%s%s, use \"--show\"\n",
 			    cracked, cracked != 1 ? "es" : "",
 			    loaded_extra_pots ? "" : (cracked != 1 ? " (are in " : " (is in "),
 			    loaded_extra_pots ? "" : path_expand(options.activepot),
@@ -1272,14 +1268,13 @@ static void john_load(void)
 		if (!database.password_count) {
 			log_discard();
 			if (john_main_process)
-			printf("No password hashes %s (see FAQ)\n",
+			printf_color(color_notice, "No password hashes %s (see FAQ)\n",
 			    total ? "left to crack" : "loaded");
 			/* skip tunable cost reporting if no hashes were loaded */
 			i = FMT_TUNABLE_COSTS;
 		} else
 		if (john_main_process && database.password_count < total) {
-			log_event("%s", john_loaded_counts(&database, "Remaining"));
-			printf("%s\n", john_loaded_counts(&database, "Remaining"));
+			WARN_AND_LOG(color_notice, stdout, "%s", john_loaded_counts(&database, "Remaining"));
 		}
 
 		if (john_main_process)
@@ -1350,7 +1345,7 @@ static void john_load(void)
 			          "loopback", loop_db.plaintexts->count);
 			if (john_main_process &&
 			    options.verbosity >= VERB_DEFAULT)
-				fprintf(stderr,
+				fprintf_color(color_notice, stderr,
 				        "Reassembled %ld split passwords for "
 				        "loopback\n",
 				        loop_db.plaintexts->count);
@@ -1380,7 +1375,7 @@ static void john_load(void)
 			    options.node_count, options.fork ? " (fork)" :
 				    mpi_p > 1 ? " (MPI)" : "");
 #endif
-			fprintf(stderr, "Node numbers %u-%u of %u%s\n",
+			fprintf_color(color_notice, stderr, "Node numbers %u-%u of %u%s\n",
 			    options.node_min, options.node_max,
 #ifndef HAVE_MPI
 			    options.node_count, options.fork ? " (fork)" : "");
@@ -1391,7 +1386,7 @@ static void john_load(void)
 		} else if (john_main_process) {
 			log_event("- Node number %u of %u",
 			    options.node_min, options.node_count);
-			fprintf(stderr, "Node number %u of %u\n",
+			fprintf_color(color_notice, stderr, "Node number %u of %u\n",
 			    options.node_min, options.node_count);
 		}
 
@@ -1438,7 +1433,8 @@ static void john_load(void)
 		}
 
 		if (john_main_process)
-		fprintf(stderr, "%s: To fully use the %d devices %s, "
+		fprintf_color(dev_as_number ? color_error : color_warning, stderr,
+		        "%s: To fully use the %d devices %s, "
 		        "you must specify --fork=%d\n"
 #if HAVE_MPI
 		        "or run %d MPI processes per node "
@@ -1460,7 +1456,7 @@ static void john_load(void)
 	    strstr(database.format->params.label, "-opencl") &&
 	    !strstr(database.format->params.label, "mscash2-opencl") &&
 	    get_number_of_devices_in_use() > 1) {
-		fprintf(stderr, "The usage of multiple OpenCL devices at once "
+		fprintf_color(color_error, stderr, "The usage of multiple OpenCL devices at once "
 		      "is unsupported in this build for the selected format\n");
 		error();
 	}
@@ -1624,7 +1620,7 @@ static void john_init(char *name, int argc, char **argv)
 		if (options.internal_cp != options.input_enc &&
 		    options.input_enc != UTF_8) {
 			if (john_main_process)
-			fprintf(stderr, "-internal-codepage can only be "
+			fprintf_color(color_error, stderr, "-internal-codepage can only be "
 			        "specified if input encoding is UTF-8\n");
 			error();
 		}
@@ -1724,7 +1720,7 @@ static void john_run(void)
 		if (options.abort_file &&
 		    stat(path_expand(options.abort_file), &trigger_stat) == 0) {
 			if (john_main_process)
-			fprintf(stderr, "Abort file %s present, "
+			fprintf_color(color_error, stderr, "Abort file %s present, "
 			        "refusing to start\n", options.abort_file);
 			error();
 		}
@@ -1742,7 +1738,7 @@ static void john_run(void)
 			if (!(options.flags & FLG_NOTESTS))
 				ldr_free_db(test_db, 1);
 			if (where) {
-				fprintf(stderr, "Self test failed (%s)\n",
+				fprintf_color(color_error, stderr, "Self test failed (%s)\n",
 				    where);
 				error();
 			}
@@ -1767,7 +1763,7 @@ static void john_run(void)
 		/* Format supports internal (eg. GPU-side) mask */
 		if (database.format->params.flags & FMT_MASK &&
 		    !(options.flags & FLG_MASK_CHK) && john_main_process)
-			fprintf(stderr, "Note: This format may be a lot faster with --mask acceleration (see doc/MASK).\n");
+			fprintf_color(color_notice, stderr, "Note: This format may be a lot faster with --mask acceleration (see doc/MASK).\n");
 
 		/* Some formats truncate at max. length */
 		if (!(database.format->params.flags & FMT_TRUNC) &&
@@ -1796,7 +1792,7 @@ static void john_run(void)
 		/* Some formats have a minimum plaintext length */
 		if (options.eff_maxlength < options.eff_minlength) {
 			if (john_main_process)
-				fprintf(stderr, "Invalid option: "
+				fprintf_color(color_error, stderr, "Invalid option: "
 				        "--max-length smaller than "
 				        "minimum length\n");
 			error();
@@ -1805,12 +1801,12 @@ static void john_run(void)
 			if (options.req_minlength <
 			    database.format->params.plaintext_min_length) {
 				if (john_main_process)
-					fprintf(stderr, "Note: --min-length set smaller than "
+					fprintf_color(color_notice, stderr, "Note: --min-length set smaller than "
 					        "normal minimum length for format\n");
 			}
 		} else if (database.format->params.plaintext_min_length)
 			if (john_main_process)
-				fprintf(stderr,
+				fprintf_color(color_notice, stderr,
 				        "Note: Minimum length forced to %d "
 				        "by format\n",
 				        options.eff_minlength);
@@ -1910,24 +1906,24 @@ static void john_run(void)
 			switch (database.options->flags &
 			    (DB_SPLIT | DB_NODUP)) {
 			case DB_SPLIT:
-				fprintf(stderr, "%s%s\n", might, partial);
+				fprintf_color(color_notice, stderr, "%s%s\n", might, partial);
 				break;
 			case DB_NODUP:
-				fprintf(stderr, "%s%s\n", might, not_all);
+				fprintf_color(color_notice, stderr, "%s%s\n", might, not_all);
 				break;
 			case (DB_SPLIT | DB_NODUP):
-				fprintf(stderr, "%s%s and%s\n",
+				fprintf_color(color_notice, stderr, "%s%s and%s\n",
 				    might, partial, not_all);
 			}
 			if (database.format->methods.prepare !=
 			    fmt_default_prepare)
-				fprintf(stderr,
+				fprintf_color(color_notice, stderr,
 				        "Use the \"--show --format=%s\" options"
 				        " to display all of the cracked "
 				        "passwords reliably\n",
 				        database.format->params.label);
 			else
-				fputs("Use the \"--show\" option to display all"
+				fputs_color(color_notice, "Use the \"--show\" option to display all"
 				      " of the cracked passwords reliably\n",
 				      stderr);
 		}
@@ -1948,7 +1944,7 @@ static void john_done(void)
 			log_event("Warning: Incremental mask started at length %d",
 			          mask_iter_warn);
 			if (john_main_process)
-				fprintf(stderr,
+				fprintf_color(color_notice, stderr,
 				        "Warning: incremental mask started at length %d"
 				        " - try the CPU format for shorter lengths.\n",
 				        mask_iter_warn);
@@ -1957,7 +1953,7 @@ static void john_done(void)
 			event_abort = 0;
 			log_event("Done catching up with '%s'", options.catchup);
 			if (john_main_process)
-				fprintf(stderr, "Done catching up with '%s'\n", options.catchup);
+				fprintf_color(color_notice, stderr, "Done catching up with '%s'\n", options.catchup);
 		}
 		if (event_abort) {
 			char *abort_msg = (aborted_by_timer) ?
@@ -1978,7 +1974,7 @@ static void john_done(void)
 				fprintf(stderr, "Session%s completed\n", john_session_name);
 		} else {
 			log_event("Main process session completed, but some child processes failed");
-			fprintf(stderr, "Main process session%s completed, but some child processes failed\n", john_session_name);
+			fprintf_color(color_error, stderr, "Main process session%s completed, but some child processes failed\n", john_session_name);
 			exit_status = 1;
 		}
 		fmt_done(database.format);
@@ -2142,7 +2138,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)  // size is actuall
 	static uint8_t buffer[8192];
 
 	if (size > sizeof(buffer) - 1) {
-		fprintf(stderr, "size (-max_len) is greater than supported value, aborting!\n");
+		fprintf_color(color_error, stderr, "size (-max_len) is greater than supported value, aborting!\n");
 		exit(-1);
 	}
 	memcpy(buffer, data, size);
