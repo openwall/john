@@ -5,7 +5,7 @@
  *
  *
  * Copyright (c) 2013-2015 Claudio André <claudioandre.br at gmail.com>,
- * Copyright (c) 2012-2013 magnum,
+ * Copyright (c) 2012-2026 magnum,
  * Others and
  * is hereby released to the general public under the following terms:
  *    Redistribution and use in source and binary forms, with or without
@@ -250,10 +250,10 @@ void opencl_process_event(void);
 	do { cl_int __err = (cl_error); \
 		if (__err != CL_SUCCESS) { \
 			if (!ocl_autotune_running || options.verbosity >= VERB_MAX) \
-				fprintf(stderr, "%u: OpenCL %s error in %s:%d - %s\n", \
+				fprintf_color(color_error, stderr, "%u: OpenCL %s error in %s:%d - %s\n", \
 					NODE, get_error_name(__err), __FILE__, __LINE__, message); \
 			else if (options.verbosity > VERB_LEGACY) \
-				fprintf(stderr, " %u: %s\n", NODE, get_error_name(__err)); \
+				fprintf_color(color_error, stderr, " %u: %s\n", NODE, get_error_name(__err)); \
 			if (ocl_autotune_running) \
 				return -1; \
 			else if (bench_or_test_running) \
@@ -267,7 +267,7 @@ void opencl_process_event(void);
 #define HANDLE_CLERROR(cl_error, message)	  \
 	do { cl_int __err = (cl_error); \
 		if (__err != CL_SUCCESS) { \
-			fprintf(stderr, "%u: OpenCL %s error in %s:%d - %s\n", \
+			fprintf_color(color_error, stderr, "%u: OpenCL %s error in %s:%d - %s\n", \
 				NODE, get_error_name(__err), __FILE__, __LINE__, (message)); \
 			error(); \
 		} \
@@ -277,7 +277,7 @@ void opencl_process_event(void);
 #define SOFT_CLERROR(cl_error, message)	  \
 	do { cl_int __err = (cl_error); \
 		if (__err != CL_SUCCESS) { \
-			fprintf(stderr, "%u: OpenCL %s error in %s:%d - %s\n", \
+			fprintf_color(color_error, stderr, "%u: OpenCL %s error in %s:%d - %s\n", \
 			    NODE, get_error_name(__err), __FILE__, __LINE__, (message)); \
 		} \
 	} while (0)

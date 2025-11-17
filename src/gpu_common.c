@@ -6,7 +6,7 @@
  * This software is
  * Copyright (c) 2010-2012 Samuele Giovanni Tonon <samu at linuxasylum dot net>
  * Copyright (c) 2010-2013 Lukas Odzioba <ukasz@openwall.net>
- * Copyright (c) 2010-2013 magnum
+ * Copyright (c) 2010-2026 magnum
  * Copyright (c) 2012-2015 Claudio André <claudioandre.br at gmail.com>
  * and is hereby released to the general public under the following terms:
  *    Redistribution and use in source and binary forms, with or without
@@ -458,7 +458,7 @@ int id2adl(const hw_bus busInfo) {
 void gpu_check_temp(void)
 {
 #if HAVE_LIBDL
-	static int warned, warnedTemperature;
+	static int warnedTemperature;
 	int i, hot_gpu = 0, alerts = 0;
 
 	if (gpu_temp_limit < 0)
@@ -472,13 +472,8 @@ void gpu_check_temp(void)
 		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util, &cl, &ml);
 
 		if (temp > 125 || temp < 10) {
-			if (!warned++) {
-				log_event("Device %d probably invalid temp reading (%d%sC).",
-				          dev + 1, temp, gpu_degree_sign);
-				fprintf(stderr,
-				        "Device %d probably invalid temp reading (%d%sC).\n",
-				        dev + 1, temp, gpu_degree_sign);
-			}
+			WARN_AND_LOG_ONCE(color_warning, stderr, "GPU device %d probably invalid temp reading (%d%sC)",
+			                  dev + 1, temp, gpu_degree_sign);
 			return;
 		}
 
@@ -492,15 +487,10 @@ void gpu_check_temp(void)
 				if (cool_gpu_down == 1)
 					warnedTemperature++;
 
-				log_event("Device %d overheat (%d%sC, fan %s), %s%s.",
-				          dev + 1, temp, gpu_degree_sign, s_fan,
-				          (cool_gpu_down > 0) ? "sleeping" : "aborting job",
-				          (hot_gpu) ? " again" : "");
-				fprintf(stderr,
-				        "Device %d overheat (%d%sC, fan %s), %s%s.\n",
-				        dev + 1, temp, gpu_degree_sign, s_fan,
-				        (cool_gpu_down > 0) ? "sleeping" : "aborting job",
-				        (hot_gpu) ? " again" : "");
+				WARN_AND_LOG(color_warning, stderr, "GPU device %d overheat (%d%sC, fan %s), %s%s",
+				             dev + 1, temp, gpu_degree_sign, s_fan,
+				             (cool_gpu_down > 0) ? "sleeping" : "aborting job",
+				             (hot_gpu) ? " again" : "");
 			}
 			hot_gpu = 1;
 			/***
@@ -532,11 +522,9 @@ void gpu_check_temp(void)
 				if (fan >= 0)
 					sprintf(s_fan, "%u%%", fan);
 
-				log_event("Device %d is waking up (%d%sC, fan %s).",
-				          dev + 1, temp, gpu_degree_sign, s_fan);
-				fprintf(stderr,
-				        "Device %d is waking up (%d%sC, fan %s).\n",
-				        dev + 1, temp, gpu_degree_sign, s_fan);
+				WARN_AND_LOG(color_warning, stderr,
+				             "GPU device %d is waking up (%d%sC, fan %s)",
+				             dev + 1, temp, gpu_degree_sign, s_fan);
 			}
 			hot_gpu = 0;
 		}
@@ -557,7 +545,7 @@ void gpu_log_temp(void)
 
 		fan = temp = util = -1;
 		dev_get_temp[dev](temp_dev_id[dev], &temp, &fan, &util, &cl, &ml);
-		n = sprintf(s_gpu, "Device %d:", dev + 1);
+		n = sprintf(s_gpu, "GPU device %d:", dev + 1);
 		if (temp >= 0)
 			n += sprintf(s_gpu + n, " temp: %u%sC", temp, gpu_degree_sign);
 		if (util > 0)
@@ -565,7 +553,7 @@ void gpu_log_temp(void)
 		if (fan >= 0)
 			n += sprintf(s_gpu + n, " fan: %u%%", fan);
 		if (temp >= 0 || util > 0 || fan > 0)
-			log_event("- %s", s_gpu);
+			log_event("%s", s_gpu);
 	}
 #endif
 }

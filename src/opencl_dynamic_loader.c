@@ -20,6 +20,8 @@
 #include <dlfcn.h>
 #include <stdio.h>
 
+#include "color.h"
+
 /* DLL handle */
 static void *opencl_dll;
 static void load_opencl_dll(void);
@@ -614,387 +616,387 @@ static void load_opencl_dll(void)
 	ptr_clGetPlatformIDs = dlsym(opencl_dll, "clGetPlatformIDs");
 	if (!ptr_clGetPlatformIDs) {
 		ptr_clGetPlatformIDs = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetPlatformIDs function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetPlatformIDs function\n");
 	}
 	ptr_clGetPlatformInfo = dlsym(opencl_dll, "clGetPlatformInfo");
 	if (!ptr_clGetPlatformInfo) {
 		ptr_clGetPlatformInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetPlatformInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetPlatformInfo function\n");
 	}
 	ptr_clGetDeviceIDs = dlsym(opencl_dll, "clGetDeviceIDs");
 	if (!ptr_clGetDeviceIDs) {
 		ptr_clGetDeviceIDs = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetDeviceIDs function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetDeviceIDs function\n");
 	}
 	ptr_clGetDeviceInfo = dlsym(opencl_dll, "clGetDeviceInfo");
 	if (!ptr_clGetDeviceInfo) {
 		ptr_clGetDeviceInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetDeviceInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetDeviceInfo function\n");
 	}
 	ptr_clCreateSubDevices = dlsym(opencl_dll, "clCreateSubDevices");
 	if (!ptr_clCreateSubDevices) {
 		ptr_clCreateSubDevices = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateSubDevices function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateSubDevices function\n");
 	}
 	ptr_clRetainDevice = dlsym(opencl_dll, "clRetainDevice");
 	if (!ptr_clRetainDevice) {
 		ptr_clRetainDevice = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clRetainDevice function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clRetainDevice function\n");
 	}
 	ptr_clReleaseDevice = dlsym(opencl_dll, "clReleaseDevice");
 	if (!ptr_clReleaseDevice) {
 		ptr_clReleaseDevice = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clReleaseDevice function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clReleaseDevice function\n");
 	}
 	ptr_clCreateContext = dlsym(opencl_dll, "clCreateContext");
 	if (!ptr_clCreateContext) {
 		ptr_clCreateContext = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateContext function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateContext function\n");
 	}
 	ptr_clCreateContextFromType = dlsym(opencl_dll, "clCreateContextFromType");
 	if (!ptr_clCreateContextFromType) {
 		ptr_clCreateContextFromType = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateContextFromType function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateContextFromType function\n");
 	}
 	ptr_clRetainContext = dlsym(opencl_dll, "clRetainContext");
 	if (!ptr_clRetainContext) {
 		ptr_clRetainContext = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clRetainContext function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clRetainContext function\n");
 	}
 	ptr_clReleaseContext = dlsym(opencl_dll, "clReleaseContext");
 	if (!ptr_clReleaseContext) {
 		ptr_clReleaseContext = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clReleaseContext function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clReleaseContext function\n");
 	}
 	ptr_clGetContextInfo = dlsym(opencl_dll, "clGetContextInfo");
 	if (!ptr_clGetContextInfo) {
 		ptr_clGetContextInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetContextInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetContextInfo function\n");
 	}
 	ptr_clRetainCommandQueue = dlsym(opencl_dll, "clRetainCommandQueue");
 	if (!ptr_clRetainCommandQueue) {
 		ptr_clRetainCommandQueue = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clRetainCommandQueue function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clRetainCommandQueue function\n");
 	}
 	ptr_clReleaseCommandQueue = dlsym(opencl_dll, "clReleaseCommandQueue");
 	if (!ptr_clReleaseCommandQueue) {
 		ptr_clReleaseCommandQueue = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clReleaseCommandQueue function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clReleaseCommandQueue function\n");
 	}
 	ptr_clGetCommandQueueInfo = dlsym(opencl_dll, "clGetCommandQueueInfo");
 	if (!ptr_clGetCommandQueueInfo) {
 		ptr_clGetCommandQueueInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetCommandQueueInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetCommandQueueInfo function\n");
 	}
 	ptr_clCreateBuffer = dlsym(opencl_dll, "clCreateBuffer");
 	if (!ptr_clCreateBuffer) {
 		ptr_clCreateBuffer = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateBuffer function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateBuffer function\n");
 	}
 	ptr_clCreateSubBuffer = dlsym(opencl_dll, "clCreateSubBuffer");
 	if (!ptr_clCreateSubBuffer) {
 		ptr_clCreateSubBuffer = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateSubBuffer function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateSubBuffer function\n");
 	}
 	ptr_clRetainMemObject = dlsym(opencl_dll, "clRetainMemObject");
 	if (!ptr_clRetainMemObject) {
 		ptr_clRetainMemObject = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clRetainMemObject function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clRetainMemObject function\n");
 	}
 	ptr_clReleaseMemObject = dlsym(opencl_dll, "clReleaseMemObject");
 	if (!ptr_clReleaseMemObject) {
 		ptr_clReleaseMemObject = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clReleaseMemObject function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clReleaseMemObject function\n");
 	}
 	ptr_clGetMemObjectInfo = dlsym(opencl_dll, "clGetMemObjectInfo");
 	if (!ptr_clGetMemObjectInfo) {
 		ptr_clGetMemObjectInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetMemObjectInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetMemObjectInfo function\n");
 	}
 	ptr_clSetMemObjectDestructorCallback = dlsym(opencl_dll, "clSetMemObjectDestructorCallback");
 	if (!ptr_clSetMemObjectDestructorCallback) {
 		ptr_clSetMemObjectDestructorCallback = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clSetMemObjectDestructorCallback function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clSetMemObjectDestructorCallback function\n");
 	}
 	ptr_clRetainSampler = dlsym(opencl_dll, "clRetainSampler");
 	if (!ptr_clRetainSampler) {
 		ptr_clRetainSampler = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clRetainSampler function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clRetainSampler function\n");
 	}
 	ptr_clReleaseSampler = dlsym(opencl_dll, "clReleaseSampler");
 	if (!ptr_clReleaseSampler) {
 		ptr_clReleaseSampler = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clReleaseSampler function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clReleaseSampler function\n");
 	}
 	ptr_clGetSamplerInfo = dlsym(opencl_dll, "clGetSamplerInfo");
 	if (!ptr_clGetSamplerInfo) {
 		ptr_clGetSamplerInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetSamplerInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetSamplerInfo function\n");
 	}
 	ptr_clCreateProgramWithSource = dlsym(opencl_dll, "clCreateProgramWithSource");
 	if (!ptr_clCreateProgramWithSource) {
 		ptr_clCreateProgramWithSource = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateProgramWithSource function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateProgramWithSource function\n");
 	}
 	ptr_clCreateProgramWithBinary = dlsym(opencl_dll, "clCreateProgramWithBinary");
 	if (!ptr_clCreateProgramWithBinary) {
 		ptr_clCreateProgramWithBinary = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateProgramWithBinary function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateProgramWithBinary function\n");
 	}
 	ptr_clCreateProgramWithBuiltInKernels = dlsym(opencl_dll, "clCreateProgramWithBuiltInKernels");
 	if (!ptr_clCreateProgramWithBuiltInKernels) {
 		ptr_clCreateProgramWithBuiltInKernels = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateProgramWithBuiltInKernels function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateProgramWithBuiltInKernels function\n");
 	}
 	ptr_clRetainProgram = dlsym(opencl_dll, "clRetainProgram");
 	if (!ptr_clRetainProgram) {
 		ptr_clRetainProgram = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clRetainProgram function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clRetainProgram function\n");
 	}
 	ptr_clReleaseProgram = dlsym(opencl_dll, "clReleaseProgram");
 	if (!ptr_clReleaseProgram) {
 		ptr_clReleaseProgram = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clReleaseProgram function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clReleaseProgram function\n");
 	}
 	ptr_clBuildProgram = dlsym(opencl_dll, "clBuildProgram");
 	if (!ptr_clBuildProgram) {
 		ptr_clBuildProgram = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clBuildProgram function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clBuildProgram function\n");
 	}
 	ptr_clCompileProgram = dlsym(opencl_dll, "clCompileProgram");
 	if (!ptr_clCompileProgram) {
 		ptr_clCompileProgram = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCompileProgram function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCompileProgram function\n");
 	}
 	ptr_clLinkProgram = dlsym(opencl_dll, "clLinkProgram");
 	if (!ptr_clLinkProgram) {
 		ptr_clLinkProgram = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clLinkProgram function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clLinkProgram function\n");
 	}
 	ptr_clUnloadPlatformCompiler = dlsym(opencl_dll, "clUnloadPlatformCompiler");
 	if (!ptr_clUnloadPlatformCompiler) {
 		ptr_clUnloadPlatformCompiler = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clUnloadPlatformCompiler function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clUnloadPlatformCompiler function\n");
 	}
 	ptr_clGetProgramInfo = dlsym(opencl_dll, "clGetProgramInfo");
 	if (!ptr_clGetProgramInfo) {
 		ptr_clGetProgramInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetProgramInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetProgramInfo function\n");
 	}
 	ptr_clGetProgramBuildInfo = dlsym(opencl_dll, "clGetProgramBuildInfo");
 	if (!ptr_clGetProgramBuildInfo) {
 		ptr_clGetProgramBuildInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetProgramBuildInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetProgramBuildInfo function\n");
 	}
 	ptr_clCreateKernel = dlsym(opencl_dll, "clCreateKernel");
 	if (!ptr_clCreateKernel) {
 		ptr_clCreateKernel = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateKernel function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateKernel function\n");
 	}
 	ptr_clCreateKernelsInProgram = dlsym(opencl_dll, "clCreateKernelsInProgram");
 	if (!ptr_clCreateKernelsInProgram) {
 		ptr_clCreateKernelsInProgram = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateKernelsInProgram function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateKernelsInProgram function\n");
 	}
 	ptr_clRetainKernel = dlsym(opencl_dll, "clRetainKernel");
 	if (!ptr_clRetainKernel) {
 		ptr_clRetainKernel = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clRetainKernel function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clRetainKernel function\n");
 	}
 	ptr_clReleaseKernel = dlsym(opencl_dll, "clReleaseKernel");
 	if (!ptr_clReleaseKernel) {
 		ptr_clReleaseKernel = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clReleaseKernel function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clReleaseKernel function\n");
 	}
 	ptr_clSetKernelArg = dlsym(opencl_dll, "clSetKernelArg");
 	if (!ptr_clSetKernelArg) {
 		ptr_clSetKernelArg = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clSetKernelArg function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clSetKernelArg function\n");
 	}
 	ptr_clGetKernelInfo = dlsym(opencl_dll, "clGetKernelInfo");
 	if (!ptr_clGetKernelInfo) {
 		ptr_clGetKernelInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetKernelInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetKernelInfo function\n");
 	}
 	ptr_clGetKernelArgInfo = dlsym(opencl_dll, "clGetKernelArgInfo");
 	if (!ptr_clGetKernelArgInfo) {
 		ptr_clGetKernelArgInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetKernelArgInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetKernelArgInfo function\n");
 	}
 	ptr_clGetKernelWorkGroupInfo = dlsym(opencl_dll, "clGetKernelWorkGroupInfo");
 	if (!ptr_clGetKernelWorkGroupInfo) {
 		ptr_clGetKernelWorkGroupInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetKernelWorkGroupInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetKernelWorkGroupInfo function\n");
 	}
 	ptr_clWaitForEvents = dlsym(opencl_dll, "clWaitForEvents");
 	if (!ptr_clWaitForEvents) {
 		ptr_clWaitForEvents = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clWaitForEvents function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clWaitForEvents function\n");
 	}
 	ptr_clGetEventInfo = dlsym(opencl_dll, "clGetEventInfo");
 	if (!ptr_clGetEventInfo) {
 		ptr_clGetEventInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetEventInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetEventInfo function\n");
 	}
 	ptr_clCreateUserEvent = dlsym(opencl_dll, "clCreateUserEvent");
 	if (!ptr_clCreateUserEvent) {
 		ptr_clCreateUserEvent = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateUserEvent function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateUserEvent function\n");
 	}
 	ptr_clRetainEvent = dlsym(opencl_dll, "clRetainEvent");
 	if (!ptr_clRetainEvent) {
 		ptr_clRetainEvent = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clRetainEvent function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clRetainEvent function\n");
 	}
 	ptr_clReleaseEvent = dlsym(opencl_dll, "clReleaseEvent");
 	if (!ptr_clReleaseEvent) {
 		ptr_clReleaseEvent = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clReleaseEvent function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clReleaseEvent function\n");
 	}
 	ptr_clSetUserEventStatus = dlsym(opencl_dll, "clSetUserEventStatus");
 	if (!ptr_clSetUserEventStatus) {
 		ptr_clSetUserEventStatus = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clSetUserEventStatus function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clSetUserEventStatus function\n");
 	}
 	ptr_clSetEventCallback = dlsym(opencl_dll, "clSetEventCallback");
 	if (!ptr_clSetEventCallback) {
 		ptr_clSetEventCallback = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clSetEventCallback function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clSetEventCallback function\n");
 	}
 	ptr_clGetEventProfilingInfo = dlsym(opencl_dll, "clGetEventProfilingInfo");
 	if (!ptr_clGetEventProfilingInfo) {
 		ptr_clGetEventProfilingInfo = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetEventProfilingInfo function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetEventProfilingInfo function\n");
 	}
 	ptr_clFlush = dlsym(opencl_dll, "clFlush");
 	if (!ptr_clFlush) {
 		ptr_clFlush = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clFlush function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clFlush function\n");
 	}
 	ptr_clFinish = dlsym(opencl_dll, "clFinish");
 	if (!ptr_clFinish) {
 		ptr_clFinish = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clFinish function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clFinish function\n");
 	}
 	ptr_clEnqueueReadBuffer = dlsym(opencl_dll, "clEnqueueReadBuffer");
 	if (!ptr_clEnqueueReadBuffer) {
 		ptr_clEnqueueReadBuffer = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueReadBuffer function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueReadBuffer function\n");
 	}
 	ptr_clEnqueueReadBufferRect = dlsym(opencl_dll, "clEnqueueReadBufferRect");
 	if (!ptr_clEnqueueReadBufferRect) {
 		ptr_clEnqueueReadBufferRect = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueReadBufferRect function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueReadBufferRect function\n");
 	}
 	ptr_clEnqueueWriteBuffer = dlsym(opencl_dll, "clEnqueueWriteBuffer");
 	if (!ptr_clEnqueueWriteBuffer) {
 		ptr_clEnqueueWriteBuffer = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueWriteBuffer function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueWriteBuffer function\n");
 	}
 	ptr_clEnqueueWriteBufferRect = dlsym(opencl_dll, "clEnqueueWriteBufferRect");
 	if (!ptr_clEnqueueWriteBufferRect) {
 		ptr_clEnqueueWriteBufferRect = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueWriteBufferRect function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueWriteBufferRect function\n");
 	}
 	ptr_clEnqueueFillBuffer = dlsym(opencl_dll, "clEnqueueFillBuffer");
 	if (!ptr_clEnqueueFillBuffer) {
 		ptr_clEnqueueFillBuffer = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueFillBuffer function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueFillBuffer function\n");
 	}
 	ptr_clEnqueueCopyBuffer = dlsym(opencl_dll, "clEnqueueCopyBuffer");
 	if (!ptr_clEnqueueCopyBuffer) {
 		ptr_clEnqueueCopyBuffer = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueCopyBuffer function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueCopyBuffer function\n");
 	}
 	ptr_clEnqueueCopyBufferRect = dlsym(opencl_dll, "clEnqueueCopyBufferRect");
 	if (!ptr_clEnqueueCopyBufferRect) {
 		ptr_clEnqueueCopyBufferRect = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueCopyBufferRect function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueCopyBufferRect function\n");
 	}
 	ptr_clEnqueueMapBuffer = dlsym(opencl_dll, "clEnqueueMapBuffer");
 	if (!ptr_clEnqueueMapBuffer) {
 		ptr_clEnqueueMapBuffer = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueMapBuffer function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueMapBuffer function\n");
 	}
 	ptr_clEnqueueUnmapMemObject = dlsym(opencl_dll, "clEnqueueUnmapMemObject");
 	if (!ptr_clEnqueueUnmapMemObject) {
 		ptr_clEnqueueUnmapMemObject = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueUnmapMemObject function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueUnmapMemObject function\n");
 	}
 	ptr_clEnqueueMigrateMemObjects = dlsym(opencl_dll, "clEnqueueMigrateMemObjects");
 	if (!ptr_clEnqueueMigrateMemObjects) {
 		ptr_clEnqueueMigrateMemObjects = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueMigrateMemObjects function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueMigrateMemObjects function\n");
 	}
 	ptr_clEnqueueNDRangeKernel = dlsym(opencl_dll, "clEnqueueNDRangeKernel");
 	if (!ptr_clEnqueueNDRangeKernel) {
 		ptr_clEnqueueNDRangeKernel = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueNDRangeKernel function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueNDRangeKernel function\n");
 	}
 	ptr_clEnqueueNativeKernel = dlsym(opencl_dll, "clEnqueueNativeKernel");
 	if (!ptr_clEnqueueNativeKernel) {
 		ptr_clEnqueueNativeKernel = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueNativeKernel function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueNativeKernel function\n");
 	}
 	ptr_clEnqueueMarkerWithWaitList = dlsym(opencl_dll, "clEnqueueMarkerWithWaitList");
 	if (!ptr_clEnqueueMarkerWithWaitList) {
 		ptr_clEnqueueMarkerWithWaitList = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueMarkerWithWaitList function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueMarkerWithWaitList function\n");
 	}
 	ptr_clEnqueueBarrierWithWaitList = dlsym(opencl_dll, "clEnqueueBarrierWithWaitList");
 	if (!ptr_clEnqueueBarrierWithWaitList) {
 		ptr_clEnqueueBarrierWithWaitList = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueBarrierWithWaitList function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueBarrierWithWaitList function\n");
 	}
 	ptr_clGetExtensionFunctionAddressForPlatform = dlsym(opencl_dll, "clGetExtensionFunctionAddressForPlatform");
 	if (!ptr_clGetExtensionFunctionAddressForPlatform) {
 		ptr_clGetExtensionFunctionAddressForPlatform = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetExtensionFunctionAddressForPlatform function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetExtensionFunctionAddressForPlatform function\n");
 	}
 	ptr_clSetCommandQueueProperty = dlsym(opencl_dll, "clSetCommandQueueProperty");
 	if (!ptr_clSetCommandQueueProperty) {
 		ptr_clSetCommandQueueProperty = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clSetCommandQueueProperty function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clSetCommandQueueProperty function\n");
 	}
 	ptr_clEnqueueMarker = dlsym(opencl_dll, "clEnqueueMarker");
 	if (!ptr_clEnqueueMarker) {
 		ptr_clEnqueueMarker = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueMarker function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueMarker function\n");
 	}
 	ptr_clEnqueueWaitForEvents = dlsym(opencl_dll, "clEnqueueWaitForEvents");
 	if (!ptr_clEnqueueWaitForEvents) {
 		ptr_clEnqueueWaitForEvents = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueWaitForEvents function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueWaitForEvents function\n");
 	}
 	ptr_clEnqueueBarrier = dlsym(opencl_dll, "clEnqueueBarrier");
 	if (!ptr_clEnqueueBarrier) {
 		ptr_clEnqueueBarrier = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueBarrier function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueBarrier function\n");
 	}
 	ptr_clUnloadCompiler = dlsym(opencl_dll, "clUnloadCompiler");
 	if (!ptr_clUnloadCompiler) {
 		ptr_clUnloadCompiler = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clUnloadCompiler function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clUnloadCompiler function\n");
 	}
 	ptr_clGetExtensionFunctionAddress = dlsym(opencl_dll, "clGetExtensionFunctionAddress");
 	if (!ptr_clGetExtensionFunctionAddress) {
 		ptr_clGetExtensionFunctionAddress = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clGetExtensionFunctionAddress function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clGetExtensionFunctionAddress function\n");
 	}
 	ptr_clCreateCommandQueue = dlsym(opencl_dll, "clCreateCommandQueue");
 	if (!ptr_clCreateCommandQueue) {
 		ptr_clCreateCommandQueue = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateCommandQueue function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateCommandQueue function\n");
 	}
 	ptr_clCreateSampler = dlsym(opencl_dll, "clCreateSampler");
 	if (!ptr_clCreateSampler) {
 		ptr_clCreateSampler = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clCreateSampler function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clCreateSampler function\n");
 	}
 	ptr_clEnqueueTask = dlsym(opencl_dll, "clEnqueueTask");
 	if (!ptr_clEnqueueTask) {
 		ptr_clEnqueueTask = (void *)unimplemented_function;
-		fprintf(stderr, "Warning: Cannot find the clEnqueueTask function\n");
+		fprintf_color(color_warning, stderr, "Warning: Cannot find the clEnqueueTask function\n");
 	}
 }
 

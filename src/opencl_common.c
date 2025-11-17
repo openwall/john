@@ -6,7 +6,7 @@
  * This software is
  * Copyright (c) 2010-2012 Samuele Giovanni Tonon <samu at linuxasylum dot net>
  * Copyright (c) 2010-2013 Lukas Odzioba <ukasz@openwall.net>
- * Copyright (c) 2010-2022 magnum
+ * Copyright (c) 2010-2026 magnum
  * Copyright (c) 2012-2015 Claudio André <claudioandre.br at gmail.com>
  *
  * and is hereby released to the general public under the following terms:
@@ -423,7 +423,7 @@ static void load_opencl_environment()
 		num_platforms = 0;
 
 	if (num_platforms < 1 && options.verbosity > VERB_LEGACY)
-		fprintf(stderr, "%u: No OpenCL platforms were found: %s\n",
+		fprintf_color(color_warning, stderr, "%u: OpenCL: No platforms were found: %s\n",
 		        NODE, get_error_name(ret));
 
 	for (i = 0; i < num_platforms; i++) {
@@ -439,7 +439,7 @@ static void load_opencl_environment()
 
 		if (num_devices < 1 && options.verbosity > VERB_LEGACY)
 			fprintf(stderr,
-			        "%u: No OpenCL devices were found on platform #%d: %s\n",
+			        "%u: OpenCL: No devices were found on platform #%d: %s\n",
 			        NODE, i, get_error_name(ret));
 
 		// Save platform and devices information
@@ -562,7 +562,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 			&devices[sequential_id], NULL, NULL, &ret_code);
 
 		if (ret_code != CL_SUCCESS) {
-			fprintf(stderr, "%u: Error creating context for device %d "
+			fprintf_color(color_warning, stderr, "%u: Error creating OpenCL context for device %d "
 			        "(%d:%d): %s\n",
 			        NODE, sequential_id + 1,
 			        get_platform_id(sequential_id),
@@ -575,7 +575,7 @@ static int start_opencl_device(int sequential_id, int *err_type)
 		                       devices[sequential_id], 0, &ret_code);
 
 		if (ret_code != CL_SUCCESS) {
-			fprintf(stderr, "%u: Error creating command queue for "
+			fprintf_color(color_warning, stderr, "%u: Error creating OpenCL command queue for "
 			        "device %d (%d:%d): %s\n", NODE,
 			        sequential_id + 1, get_platform_id(sequential_id),
 			        get_device_id(sequential_id), get_error_name(ret_code));
@@ -599,12 +599,12 @@ static void add_device_to_list(int sequential_id)
 	if (found < 0) {
 #if HAVE_MPI
 		if (mpi_p > 1)
-			fprintf(stderr, "%u@%s: ", mpi_id + 1, mpi_name);
+			fprintf_color(color_warning, stderr, "%u@%s: ", mpi_id + 1, mpi_name);
 #elif OS_FORK
 		if (options.fork)
-			fprintf(stderr, "%u: ", options.node_min);
+			fprintf_color(color_warning, stderr, "%u: ", options.node_min);
 #endif
-		fprintf(stderr, "Error: --device must be between 1 and %d "
+		fprintf_color(color_error, stderr, "Error: --device must be between 1 and %d "
 		        "(the number of devices available).\n",
 		        get_number_of_available_devices());
 		error();
@@ -615,12 +615,12 @@ static void add_device_to_list(int sequential_id)
 		if (! start_opencl_device(sequential_id, &i)) {
 #if HAVE_MPI
 			if (mpi_p > 1)
-				fprintf(stderr, "%u@%s: ", mpi_id + 1, mpi_name);
+				fprintf_color(color_warning, stderr, "%u@%s: ", mpi_id + 1, mpi_name);
 #elif OS_FORK
 			if (options.fork)
-				fprintf(stderr, "%u: ", options.node_min);
+				fprintf_color(color_warning, stderr, "%u: ", options.node_min);
 #endif
-			fprintf(stderr, "Device id %d not working correctly,"
+			fprintf_color(color_warning, stderr, "OpenCL device id %d not working correctly,"
 			        " skipping.\n", sequential_id + 1);
 			return;
 		}
@@ -736,12 +736,12 @@ static void build_device_list(const char *device_list[MAX_GPU_DEVICES])
 			         trial_list[i] != CL_DEVICE_TYPE_DEFAULT);
 		}
 		else if (!isdigit(ARCH_INDEX(device_list[n][0]))) {
-			fprintf(stderr, "Error: --device must be numerical, "
+			fprintf_color(color_error, stderr, "Error: --device must be numerical, "
 			        "or one of \"all\", \"cpu\", \"gpu\" and\n"
 			        "\"acc[elerator]\".\n");
 			error();
 		} else if (device_list[n][0] == '0') {
-			fprintf(stderr, "Error: --device must be between 1 and %d "
+			fprintf_color(color_error, stderr, "Error: --device must be between 1 and %d "
 			          "(the number of devices available).\n",
 			          get_number_of_available_devices());
 			error();
@@ -813,7 +813,7 @@ void opencl_load_environment(void)
 
 		// Ensure that there is at least one OpenCL device available
 		if (get_number_of_available_devices() == 0) {
-			fprintf(stderr, "No OpenCL devices found\n");
+			fprintf_color(color_error, stderr, "No OpenCL devices found\n");
 			if (benchmark_running) {
 				opencl_initialized = 1;
 				opencl_unavailable = 1;
@@ -859,7 +859,7 @@ void opencl_load_environment(void)
 
 		// No working OpenCL device was found
 		if (get_number_of_devices_in_use() == 0) {
-			fprintf(stderr, "No OpenCL devices found\n");
+			fprintf_color(color_error, stderr, "No OpenCL devices found\n");
 			error();
 		}
 #if OS_FORK
@@ -961,7 +961,7 @@ unsigned int opencl_get_vector_width(int sequential_id, int size)
 			               "clGetDeviceInfo for long vector width");
 			break;
 		default:
-			fprintf(stderr, "%s() called with unknown type\n", __FUNCTION__);
+			fprintf_color(color_error, stderr, "%s() called with unknown type\n", __FUNCTION__);
 			error();
 		}
 		ocl_v_width = v_width;
@@ -1123,7 +1123,7 @@ static void print_device_info(int sequential_id)
 		        "", "",
 #endif
 		        device_name, board_name);
-	log_event("Device %d: %s%s", sequential_id + 1, device_name, board_name);
+	log_event("OpenCL: Device %d: %s%s", sequential_id + 1, device_name, board_name);
 }
 
 static char *get_build_opts(int sequential_id, const char *opts)
@@ -1240,7 +1240,7 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 		if (!getcwd(old_cwd, sizeof(old_cwd))) {
 			old_cwd[0] = 0;
 			if (old_cwd_fd < 0)
-				fprintf(stderr, "Warning: Cannot save current directory: %s\n", strerror(errno));
+				fprintf_color(color_warning, stderr, "Warning: Cannot save current directory: %s\n", strerror(errno));
 		}
 		if (chdir(john_home))
 			pexit("chdir: %s", john_home);
@@ -1249,7 +1249,7 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	build_code = clBuildProgram(*program, 0, NULL, build_opts, NULL, NULL);
 	if ((old_cwd_fd >= 0 || old_cwd[0]) && /* We'll only have errno when we attempt a *chdir() here */
 	    (old_cwd_fd < 0 || fchdir(old_cwd_fd)) && (!old_cwd[0] || chdir(old_cwd)))
-		fprintf(stderr, "Warning: Cannot restore current directory: %s\n", strerror(errno));
+		fprintf_color(color_warning, stderr, "Warning: Cannot restore current directory: %s\n", strerror(errno));
 	if (old_cwd_fd >= 0)
 		close(old_cwd_fd);
 
@@ -1267,7 +1267,7 @@ void opencl_build(int sequential_id, const char *opts, int save, const char *fil
 	               "clGetProgramBuildInfo II");
 
 	uint64_t end = john_get_nano();
-	log_event("- build time: %ss", ns2string(end - start));
+	log_event("OpenCL: Kernel build time: %ss", ns2string(end - start));
 
 	char *cleaned_log = build_log;
 	if (cfg_get_bool(SECTION_OPTIONS, SUBSECTION_OPENCL, "MuteBogusWarnings", 1) &&
@@ -1380,9 +1380,9 @@ cl_int opencl_build_from_binary(int sequential_id, cl_program *program, const ch
 	}
 	// Nvidia may return a single '\n' that we ignore
 	else if (options.verbosity >= LOG_VERB && strlen(build_log) > 1)
-		fprintf(stderr, "Binary Build log: %s\n", build_log);
+		fprintf(stderr, "Binary build log: %s\n", build_log);
 
-	log_event("- build time: %ss", ns2string(end - start));
+	log_event("OpenCL: Kernel build time: %ss", ns2string(end - start));
 	if (options.verbosity >= VERB_MAX)
 		fprintf(stderr, "Build time: %ss\n", ns2string(end - start));
 	MEM_FREE(build_log);
@@ -1771,7 +1771,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		 */
 		if ((endTime - submitTime) > 10 * (endTime - startTime)) {
 			if (options.verbosity > VERB_LEGACY)
-				fprintf(stderr, "Note: Profiling timers seem buggy\n");
+				fprintf_color(color_notice, stderr, "Note: Profiling timers seem buggy\n");
 			startTime = submitTime;
 		}
 
@@ -1782,7 +1782,7 @@ void opencl_find_best_lws(size_t group_size_limit, int sequential_id,
 		 */
 		if ((wc_end - wc_start) > 10 * (endTime - startTime)) {
 			if (options.verbosity > VERB_LEGACY)
-				fprintf(stderr, "Note: Profiling timers seem to be way off\n");
+				fprintf_color(color_notice, stderr, "Note: Profiling timers seem to be way off\n");
 			startTime = wc_start;
 			endTime = wc_end;
 		}
@@ -2185,7 +2185,7 @@ size_t opencl_read_source(const char *kernel_filename, char **kernel_source)
 	read_size = fread(*kernel_source, sizeof(char), source_size, fp);
 	if (read_size != source_size)
 		fprintf(stderr,
-		        "Error reading source: expected "Zu", got "Zu" bytes (%s).\n",
+		        "OpenCL error reading kernel source: expected "Zu", got "Zu" bytes (%s).\n",
 		        source_size, read_size,
 		        feof(fp) ? "EOF" : strerror(errno));
 	fclose(fp);
@@ -2285,12 +2285,12 @@ void opencl_build_kernel(const char *kernel_filename, int sequential_id, const c
 	 */
 	if (gpu_nvidia(device_info[sequential_id]) && !platform_apple(get_platform_id(sequential_id))) {
 		if (john_main_process || !cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0))
-			log_event("- Kernel binary caching disabled for this platform/device");
+			LOG_ONCE("OpenCL: Kernel binary caching disabled for this platform/device");
 		use_cache = 0;
 	} else
 #endif
 	if (getenv("DUMP_BINARY")) {
-		log_event("- DUMP_BINARY is set, ignoring cached kernel");
+		LOG_ONCE("OpenCL: DUMP_BINARY is set, ignoring cached kernel");
 		use_cache = 0;
 	} else {
 		use_cache = !stat(path_expand(bin_name), &bin_stat);
@@ -2298,7 +2298,7 @@ void opencl_build_kernel(const char *kernel_filename, int sequential_id, const c
 		if (use_cache && !stat(path_expand(kernel_filename), &source_stat) &&
 		    source_stat.st_mtime > bin_stat.st_mtime) {
 			use_cache = 0;
-			log_event("- cached kernel may be stale, ignoring");
+			log_event("OpenCL: Cached kernel may be stale, ignoring");
 		}
 	}
 
@@ -2306,17 +2306,17 @@ void opencl_build_kernel(const char *kernel_filename, int sequential_id, const c
 	if (use_cache) {
 		size_t program_size = opencl_read_source(bin_name, &kernel_source);
 
-		log_event("- Building kernel from cached binary");
+		log_event("OpenCL: Building kernel from cached binary");
 		ret_code = opencl_build_from_binary(sequential_id, &program[sequential_id], kernel_source, program_size);
 		if (ret_code != CL_SUCCESS)
-			log_event("- Build from cached binary failed");
+			log_event("OpenCL: Build from cached binary failed");
 	}
 
 	if (!use_cache || ret_code != CL_SUCCESS) {
-		log_event("- Building kernel from source and caching binary");
+		log_event("OpenCL: Building kernel from source and caching binary");
 		if (warn && options.verbosity > VERB_DEFAULT) {
 			fflush(stdout);
-			fprintf(stderr, "Building the kernel, this could take a while\n");
+			fprintf(stderr, "Building the OpenCL kernel, this could take a while\n");
 		}
 		opencl_read_source(kernel_filename, &kernel_source);
 		opencl_build(sequential_id, opts, 1, bin_name, &program[sequential_id], kernel_filename, kernel_source);
@@ -2374,14 +2374,9 @@ int opencl_prepare_dev(int sequential_id)
 	if (gpu_nvidia(device_info[sequential_id])) {
 		opencl_avoid_busy_wait[sequential_id] = cfg_get_bool(SECTION_OPTIONS, SUBSECTION_GPU,
 		                                                     "AvoidBusyWait", 1);
-		static int warned;
-
 		/* Remove next line once (nearly) all formats has got the macros */
 		if (!opencl_avoid_busy_wait[sequential_id])
-		if (!warned) {
-			warned = 1;
-			log_event("- Busy-wait reduction %sabled", opencl_avoid_busy_wait[sequential_id] ? "en" : "dis");
-		}
+			LOG_ONCE("OpenCL: Busy-wait reduction %sabled", opencl_avoid_busy_wait[sequential_id] ? "en" : "dis");
 	}
 #endif
 
@@ -2900,11 +2895,10 @@ void opencl_list_devices(void)
 	ret = clGetPlatformIDs(MAX_PLATFORMS, platform_list, &num_platforms);
 
 	if (!num_platforms)
-		fprintf(stderr, "Error: No OpenCL-capable platforms were detected"
-		        " by the installed OpenCL driver.\n");
+		fprintf_color(color_error, stderr, "Error: No platforms were detected by the installed OpenCL driver.\n");
 
 	if (ret != CL_SUCCESS && options.verbosity > VERB_LEGACY)
-		fprintf(stderr, "Throw clError: clGetPlatformIDs() = %s\n",
+		fprintf_color(color_warning, stderr, "Throw clError: clGetPlatformIDs() = %s\n",
 		        get_error_name(ret));
 
 	for (i = 0; i < num_platforms; i++) {
@@ -2915,7 +2909,7 @@ void opencl_list_devices(void)
 
 		if ((ret != CL_SUCCESS || num_devices < 1) &&
 		     options.verbosity > VERB_LEGACY)
-			fprintf(stderr, "No OpenCL devices was found on platform #%d"
+			fprintf_color(color_warning, stderr, "No OpenCL devices was found on platform #%d"
 			                 ", clGetDeviceIDs() = %s\n",
 			        i, get_error_name(ret));
 
@@ -2940,8 +2934,7 @@ void opencl_list_devices(void)
 					printf("    Platform extensions:    %s\n", dname);
 			}
 		}
-		fprintf(stderr, "Error: No OpenCL-capable devices were detected"
-		        " by the installed OpenCL driver.\n\n");
+		fprintf_color(color_error, stderr, "Error: No devices were detected by the installed OpenCL driver.\n\n");
 		return;
 	}
 	/* Initialize OpenCL environment */

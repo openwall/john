@@ -48,6 +48,8 @@ dynamic_loader.write(
 #include <dlfcn.h>
 #include <stdio.h>
 
+#include "color.h"
+
 /* DLL handle */
 static void *opencl_dll;
 static void load_opencl_dll(void);
@@ -166,7 +168,7 @@ for x in funtions:
         dynamic_loader.write(f'\tptr_{function_name} = dlsym(opencl_dll, "{function_name}");\n')
         dynamic_loader.write(f'\tif (!ptr_{function_name}) {{\n')
         dynamic_loader.write(f'\t\tptr_{function_name} = (void *)unimplemented_function;\n')
-        dynamic_loader.write(f'\t\tfprintf(stderr, "Warning: Cannot find the {function_name} function\\n");\n')
+        dynamic_loader.write(f'\t\tfprintf_color(color_warning, stderr, "Warning: Cannot find the {function_name} function\\n");\n')
         dynamic_loader.write('\t}\n')
 
 dynamic_loader.write('''}

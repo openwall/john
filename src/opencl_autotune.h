@@ -156,10 +156,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 
 		default:
 			if (cfg_lws < 0) {
-				fprintf(stderr,
-				    "Error: AutotuneLWS must be a positive number (now set to %d)\n",
-				    cfg_lws);
-				error();
+				error_msg("Error: AutotuneLWS must be a positive number (now set to %d)\n", cfg_lws);
 			}
 			if (cpu(device_info[gpu_id]))
 				local_work_size =
@@ -234,7 +231,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 		uint32_t lws, gws, mpi_lws, mpi_gws;
 
 		if (john_main_process)
-			log_event("- Enforcing same work sizes on all MPI nodes");
+			log_event("OpenCL: Enforcing same work sizes on all MPI nodes");
 		lws = local_work_size;
 		gws = global_work_size;
 		MPI_Allreduce(&lws, &mpi_lws, 1, MPI_UNSIGNED, MPI_MIN, MPI_COMM_WORLD);
@@ -276,7 +273,7 @@ static void autotune_run_extra(struct fmt_main *self, unsigned int rounds,
 	create_clobj(global_work_size, self);
 
 	if (!self_test_running && (!homogenous || john_main_process))
-		log_event("- OpenCL LWS: "Zu"%s, GWS: "Zu" %s("Zu" blocks)",
+		log_event("OpenCL: LWS: "Zu"%s, GWS: "Zu" %s("Zu" blocks)",
 		          local_work_size,
 		          (need_best_lws && !needed_best_gws) ? " (auto-tuned)" : "",
 		          global_work_size,
