@@ -1727,7 +1727,7 @@ void SIMDSHA1body(vtype* _data, uint32_t *out, uint32_t *reload_state,
 #define Maj(x,y,z) vor(vand(x, y), vand(vor(x, y), z))
 #endif
 
-#define Ch(x,y,z) vcmov(y, z, x)
+#define Ch(x,y,z) vcmov(y, z, x) // Same as vternarylogic(x, y, z, 0xCA)
 
 #undef R
 #define R(t)                                                \

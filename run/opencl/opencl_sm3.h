@@ -1,4 +1,9 @@
 /*
+ * This software is Copyright (c) 2025 magnum,
+ * and it is hereby released to the general public under the following terms:
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted.
+ *
  *  Copyright 2014-2023 The GmSSL Project. All Rights Reserved.
  *
  *  Licensed under the Apache License, Version 2.0 (the License); you may
@@ -6,17 +11,23 @@
  *
  *  http://www.apache.org/licenses/LICENSE-2.0
  */
- /*
-  *  Original taken from https://github.com/guanzhi/GmSSL.
-  *  Modified slightly.
-  *
-  *  SM3 specification: https://datatracker.ietf.org/doc/html/draft-sca-cfrg-sm3
-  *  Standardized in GM/T 0004-2012, GB/T 32905-201 and ISO/IEC 10118-3:2018
-  */
-#include "sm3.h"
-#include "int-util.h"
+#ifndef OPENCL_SM3_H
+#define OPENCL_SM3_H
 
-static const uint32_t K[64] = {
+#include "opencl_misc.h"
+
+#define SM3_BLOCK_SIZE  64
+#define SM3_HASH_LENGTH 32
+
+/* algorithm context */
+typedef struct sm3_ctx {
+	uint32_t hash[8];       /* 256-bit hash */
+	uchar block[SM3_BLOCK_SIZE];    /* 512-bit message block */
+	uint64_t num_blocks;    /* processed number of blocks */
+	uint64_t num;           /* index in the buffer of the last byte stored */
+} sm3_ctx;
+
+__constant uint32_t K[64] = {
 	0x79cc4519U, 0xf3988a32U, 0xe7311465U, 0xce6228cbU,
 	0x9cc45197U, 0x3988a32fU, 0x7311465eU, 0xe6228cbcU,
 	0xcc451979U, 0x988a32f3U, 0x311465e7U, 0x6228cbceU,
@@ -42,23 +53,29 @@ static const uint32_t K[64] = {
      (uint32_t)(x)[3])
 
 #define PUTU32(x,y)                 \
-    ((x)[0] = (uint8_t)((y) >> 24), \
-     (x)[1] = (uint8_t)((y) >> 16), \
-     (x)[2] = (uint8_t)((y) >>  8), \
-     (x)[3] = (uint8_t)(y))
+    ((x)[0] = (uchar)((y) >> 24), \
+     (x)[1] = (uchar)((y) >> 16), \
+     (x)[2] = (uchar)((y) >>  8), \
+     (x)[3] = (uchar)(y))
 
 #define P0(x) ((x) ^ rol32((x), 9) ^ rol32((x),17))
 #define P1(x) ((x) ^ rol32((x),15) ^ rol32((x),23))
 
-/*
- * FF00 and GG00 are same as MD4/MD5 H:          lut3(x, y, z, 0x96)
- * FF16 is same as MD4 G, SHA-1 G, SHA-2 Maj:    lut3(x, y, z, 0xE8)
- * GG16 is same as MD4/MD5 F, SHA-1 F, SHA-2 Ch: lut3(x, y, z, 0xCA)
- */
+#define SM3_LUT3	HAVE_LUT3
+
+#if SM3_LUT3
+#define FF00(x, y, z)  lut3(x, y, z, 0x96)
+#define FF16(x, y, z)  lut3(x, y, z, 0xE8)
+#define GG00(x, y, z)  lut3(x, y, z, 0x96)
+#define GG16(x, y, z)  lut3(x, y, z, 0xCA)
+#else
 #define FF00(x,y,z)  ((x) ^ (y) ^ (z))
-#define FF16(x,y,z)  (((x)&(y)) | ((x)&(z)) | ((y)&(z)))
+#define FF16(x,y,z)  (((x) & (y)) | ((x) & (z)) | ((y) & (z)))
 #define GG00(x,y,z)  ((x) ^ (y) ^ (z))
-#define GG16(x,y,z)  ((((y)^(z)) & (x)) ^ (z))
+#define GG16(x,y,z)  ((((y) ^ (z)) & (x)) ^ (z))
+#endif
+
+#define rol32(a, b)	rotate((a), (uint)(b))
 
 #define SM3_ROUND_0(j,A,B,C,D,E,F,G,H)              \
     SS0 = rol32(A, 12);                             \
@@ -93,7 +110,7 @@ static const uint32_t K[64] = {
     F = rol32(F, 19);
 
 
-void sm3_compress_blocks(uint32_t hash[8], const uint8_t *data, size_t blocks)
+INLINE void sm3_compress_blocks(uint32_t *hash, const uchar *data, size_t blocks)
 {
 	uint32_t A, B, C, D, E, F, G, H;
 	uint32_t W[68];
@@ -193,22 +210,23 @@ void sm3_compress_blocks(uint32_t hash[8], const uint8_t *data, size_t blocks)
 	}
 }
 
-void sm3_init(sm3_ctx *ctx)
+INLINE void sm3_init(sm3_ctx *ctx)
 {
-	memset(ctx, 0, sizeof(sm3_ctx));
+	memset_p(ctx, 0, sizeof(sm3_ctx));
 	/* Set IV */
-	ctx->hash[0] = 0x7380166f;
-	ctx->hash[1] = 0x4914b2b9;
-	ctx->hash[2] = 0x172442d7;
-	ctx->hash[3] = 0xda8a0600;
-	ctx->hash[4] = 0xa96f30bc;
-	ctx->hash[5] = 0x163138aa;
-	ctx->hash[6] = 0xe38dee4d;
-	ctx->hash[7] = 0xb0fb0e4e;
+	ctx->hash[0] = 0x7380166fU;
+	ctx->hash[1] = 0x4914b2b9U;
+	ctx->hash[2] = 0x172442d7U;
+	ctx->hash[3] = 0xda8a0600U;
+	ctx->hash[4] = 0xa96f30bcU;
+	ctx->hash[5] = 0x163138aaU;
+	ctx->hash[6] = 0xe38dee4dU;
+	ctx->hash[7] = 0xb0fb0e4eU;
 }
 
-void sm3_update(sm3_ctx *ctx, const unsigned char *data, size_t size)
+INLINE void sm3_update(sm3_ctx *ctx, const void *_data, size_t size)
 {
+	const uchar *data = _data;
 	size_t blocks;
 
 	ctx->num &= 0x3f;
@@ -216,11 +234,11 @@ void sm3_update(sm3_ctx *ctx, const unsigned char *data, size_t size)
 		size_t left = SM3_BLOCK_SIZE - ctx->num;
 
 		if (size < left) {
-			memcpy(ctx->block + ctx->num, data, size);
+			memcpy_pp(ctx->block + ctx->num, data, size);
 			ctx->num += size;
 			return;
 		} else {
-			memcpy(ctx->block + ctx->num, data, left);
+			memcpy_pp(ctx->block + ctx->num, data, left);
 			sm3_compress_blocks(ctx->hash, ctx->block, 1);
 			ctx->num_blocks++;
 			data += left;
@@ -238,23 +256,24 @@ void sm3_update(sm3_ctx *ctx, const unsigned char *data, size_t size)
 
 	ctx->num = size;
 	if (size) {
-		memcpy(ctx->block, data, size);
+		memcpy_pp(ctx->block, data, size);
 	}
 }
 
-void sm3_final(sm3_ctx *ctx, unsigned char *result)
+INLINE void sm3_final(sm3_ctx *ctx, void *_result)
 {
+	uchar *result = _result;
 	int i;
 
 	ctx->num &= 0x3f;
 	ctx->block[ctx->num] = 0x80;
 
 	if (ctx->num <= SM3_BLOCK_SIZE - 9) {
-		memset(ctx->block + ctx->num + 1, 0, SM3_BLOCK_SIZE - ctx->num - 9);
+		memset_p(ctx->block + ctx->num + 1, 0, SM3_BLOCK_SIZE - ctx->num - 9);
 	} else {
-		memset(ctx->block + ctx->num + 1, 0, SM3_BLOCK_SIZE - ctx->num - 1);
+		memset_p(ctx->block + ctx->num + 1, 0, SM3_BLOCK_SIZE - ctx->num - 1);
 		sm3_compress_blocks(ctx->hash, ctx->block, 1);
-		memset(ctx->block, 0, SM3_BLOCK_SIZE - 8);
+		memset_p(ctx->block, 0, SM3_BLOCK_SIZE - 8);
 	}
 
 	PUTU32(ctx->block + 56, ctx->num_blocks >> 23);
@@ -265,3 +284,5 @@ void sm3_final(sm3_ctx *ctx, unsigned char *result)
 		PUTU32(result + i * 4, ctx->hash[i]);
 	}
 }
+
+#endif	/* OPENCL_SM3_H */
