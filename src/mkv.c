@@ -391,11 +391,8 @@ void get_markov_options(struct db_main *db,
 
 		dummy_token = strtokm(NULL, ":");
 		if (dummy_token) {
-			if (john_main_process)
-				fprintf(stderr,
-				        "Too many markov parameters specified:"
-				        " %s\n", dummy_token);
-			error();
+			error_msg_main("Error: Too many markov parameters specified: %s\n",
+			               dummy_token);
 		}
 	}
 
@@ -403,10 +400,7 @@ void get_markov_options(struct db_main *db,
 		mode = SUBSECTION_DEFAULT;
 
 	if (cfg_get_section(SECTION_MARKOV, mode) == NULL) {
-		if (john_main_process)
-			fprintf(stderr,
-			        "Section [" SECTION_MARKOV "%s] not found\n", mode);
-		error();
+		error_msg_main("Error: Section [" SECTION_MARKOV "%s] not found\n", mode);
 	}
 
 	if (options.mkv_stats == NULL)
@@ -415,12 +409,7 @@ void get_markov_options(struct db_main *db,
 		*statfile = options.mkv_stats;
 
 	if (*statfile == NULL) {
-		log_event("Statsfile not defined");
-		if (john_main_process)
-			fprintf(stderr,
-			        "Statsfile not defined in section ["
-			        SECTION_MARKOV "%s]\n", mode);
-		error();
+		error_msg_main("Error: Statsfile not defined in section [" SECTION_MARKOV "%s]\n", mode);
 	}
 	/* treat 'empty' level token same as NULL, i.e. pull in from config */
 	if (NULL != lvl_token && !strlen(lvl_token))
@@ -428,9 +417,7 @@ void get_markov_options(struct db_main *db,
 	if (lvl_token != NULL) {
 		if (sscanf(lvl_token, "%d-%d", &minlevel, &level) != 2) {
 			if (sscanf(lvl_token, "%d", &level) != 1) {
-				if (john_main_process)
-					fprintf(stderr, "Could not parse markov" " level\n");
-				error();
+				error_msg_main("Error: Could not parse markov level\n");
 			}
 			if (level == 0)
 				/* get min. and max. level from markov section */
@@ -452,19 +439,14 @@ void get_markov_options(struct db_main *db,
 
 	if (level <= 0)
 		if ((level = cfg_get_int(SECTION_MARKOV, mode, "MkvLvl")) == -1) {
-			log_event("no markov level defined!");
-			if (john_main_process)
-				fprintf(stderr,
-				        "no markov level defined in section ["
-				        SECTION_MARKOV "%s]\n", mode);
-			error();
+			error_msg_main("Error: No markov level defined in section [" SECTION_MARKOV "%s]\n", mode);
 		}
 
 	if (level > MAX_MKV_LVL) {
-		log_event("! Level = %d is too large (max=%d)", level, MAX_MKV_LVL);
 		if (john_main_process)
-			fprintf(stderr, "Warning: Level = %d is too large "
-			        "(max = %d)\n", level, MAX_MKV_LVL);
+			WARN_AND_LOG(color_warning, stderr,
+			             "Warning: Level = %d is too large (max = %d)",
+			             level, MAX_MKV_LVL);
 		level = MAX_MKV_LVL;
 	}
 
@@ -474,7 +456,7 @@ void get_markov_options(struct db_main *db,
 
 	if (level < minlevel) {
 		if (john_main_process)
-			fprintf(stderr, "Warning: max level(%d) < min level(%d)"
+			fprintf_color(color_warning, stderr, "Warning: max level(%d) < min level(%d)"
 			        ", min level set to %d\n", level, minlevel, level);
 		minlevel = level;
 	}
@@ -491,12 +473,7 @@ void get_markov_options(struct db_main *db,
 
 	if (maxlen <= 0) {
 		if ((maxlen = cfg_get_int(SECTION_MARKOV, mode, "MkvMaxLen")) == -1) {
-			log_event("no markov max length defined!");
-			if (john_main_process)
-				fprintf(stderr,
-				        "no markov max length defined in "
-				        "section [" SECTION_MARKOV "%s]\n", mode);
-			error();
+			error_msg_main("Error: No markov max length defined in section [" SECTION_MARKOV "%s]\n", mode);
 		} else {
 			maxlen -= mask_add_len;
 			if (mask_num_qw > 1)
@@ -505,17 +482,16 @@ void get_markov_options(struct db_main *db,
 	}
 
 	if (our_fmt_len <= MAX_MKV_LEN && maxlen > our_fmt_len) {
-		log_event("! MaxLen = %d is too large for this hash type", maxlen);
 		if (john_main_process)
-			fprintf(stderr, "Warning: "
-			        "MaxLen = %d is too large for the current hash"
-			        " type, reduced to %d\n", maxlen, our_fmt_len);
+			WARN_AND_LOG(color_warning, stderr, "Warning: "
+			             "MaxLen = %d is too large for the current hash"
+			             " type, reduced to %d", maxlen, our_fmt_len);
 		maxlen = our_fmt_len;
 	} else if (maxlen > MAX_MKV_LEN) {
-		log_event("! MaxLen = %d is too large (max=%d)", maxlen, MAX_MKV_LEN);
 		if (john_main_process)
-			fprintf(stderr, "Warning: Maxlen = %d is too large (max"
-			        " = %d)\n", maxlen, MAX_MKV_LEN);
+			WARN_AND_LOG(color_warning, stderr,
+			             "Warning: Maxlen = %d is too large (max = %d)",
+			             maxlen, MAX_MKV_LEN);
 		maxlen = MAX_MKV_LEN;
 	}
 
@@ -531,7 +507,7 @@ void get_markov_options(struct db_main *db,
 
 	if (minlen > maxlen) {
 		if (john_main_process)
-			fprintf(stderr, "Warning: minimum length(%d) > maximum"
+			fprintf_color(color_warning, stderr, "Warning: minimum length(%d) > maximum"
 			        " length(%d), minimum length set to %d\n",
 			        minlen, maxlen, maxlen);
 		minlen = maxlen;
@@ -568,9 +544,7 @@ void get_markov_start_end(char *start_token, char *end_token,
 		}
 		/* NOTE, end_token can be an empty string. Treat "" and mkv_max as equal */
 		else if (end_token != NULL && *end_token) {
-			if (john_main_process)
-				fprintf(stderr, "invalid end: %s\n", end_token);
-			error();
+			error_msg_main("Error: Invalid end: %s\n", end_token);
 		}
 	}
 	/*
@@ -584,26 +558,20 @@ void get_markov_start_end(char *start_token, char *end_token,
 	 */
 	/* NOTE, start_token can be an empty string. Treat "" and "0" equal */
 	else if (start_token != NULL && *start_token) {
-		if (john_main_process)
-			fprintf(stderr, "invalid start: %s\n", start_token);
-		error();
+		error_msg_main("Error: Invalid start: %s\n", start_token);
 	}
 
 	if (start_token != NULL && strlen(start_token) &&
 	        start_token[strlen(start_token) - 1] == '%') {
 		if (*mkv_start >= 100) {
-			log_event("! Start = %s is too large (max < 100%%)", end_token);
-			if (john_main_process)
-				fprintf(stderr, "Error: Start = %s is too large"
-				        " (max < 100%%)\n", start_token);
-			exit(1);
+			error_msg_main("Error: Start = %s is too large (max < 100%%)\n",
+			               start_token);
 		} else if (*mkv_start > 0) {
 			*mkv_start *= mkv_max / 100;
-			log_event("- Start: %s converted to %" PRId64, start_token,
-			          *mkv_start);
 			if (john_main_process)
-				fprintf(stderr, "Start: %s converted to %" PRId64
-				        "\n", start_token, *mkv_start);
+				WARN_AND_LOG(color_notice, stderr,
+				             "Start: %s converted to %" PRId64,
+				             start_token, *mkv_start);
 		}
 	}
 	if (end_token != NULL && strlen(end_token) &&
@@ -611,37 +579,32 @@ void get_markov_start_end(char *start_token, char *end_token,
 		if (*mkv_end >= 100) {
 			if (*mkv_end > 100) {
 				if (john_main_process)
-					fprintf(stderr, "Warning: End = %s is "
+					fprintf_color(color_warning, stderr, "Warning: End = %s is "
 					        "too large (max = 100%%)\n", end_token);
 			}
 			*mkv_end = 0;
 		} else if (*mkv_end > 0) {
 			*mkv_end *= mkv_max / 100;
-			log_event("- End: %s converted to %" PRId64 "", end_token, *mkv_end);
 			if (john_main_process)
-				fprintf(stderr, "End: %s converted to %" PRId64
-				        "\n", end_token, *mkv_end);
+				WARN_AND_LOG(color_notice, stderr,
+				             "End: %s converted to %" PRId64,
+				             end_token, *mkv_end);
 		}
 	}
 	if (*mkv_end == 0)
 		*mkv_end = mkv_max;
 
 	if (*mkv_end > mkv_max) {
-		log_event("! End = %" PRId64 " is too large (max=%" PRId64 ")", *mkv_end,
-		          mkv_max);
 		if (john_main_process)
-			fprintf(stderr, "Warning: End = %" PRId64 " is too large "
-			        "(max = %" PRId64 ")\n", *mkv_end, mkv_max);
+			WARN_AND_LOG(color_warning, stderr,
+			             "Warning: End = %" PRId64 " is too large (max = %" PRId64 ")",
+			             *mkv_end, mkv_max);
 		*mkv_end = mkv_max;
 	}
 
 	if (*mkv_start > *mkv_end) {
-		log_event("! MKV start > end (%" PRId64 " > %" PRId64 ")", *mkv_start,
-		          *mkv_end);
-		if (john_main_process)
-			fprintf(stderr, "Error: MKV start > end (%" PRId64 " > %" PRId64
-			        ")\n", *mkv_start, *mkv_end);
-		error();
+		error_msg_main("Error: MKV start > end (%" PRId64 " > %" PRId64 ")\n",
+		               *mkv_start, *mkv_end);
 	}
 }
 

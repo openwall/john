@@ -1,5 +1,5 @@
 /*
- * Implementation in John the Ripper Copyright (c) 2015, magnum
+ * Implementation in John the Ripper Copyright (c) 2015-2026, magnum
  * This software is hereby released to the general public under
  * the following terms: Redistribution and use in source and binary
  * forms, with or without modification, are permitted.
@@ -934,16 +934,14 @@ static int get_bits(mpz_t *op)
  */
 static MAYBE_INLINE char *check_bom(char *string)
 {
-  static int warned;
-
   if (((unsigned char*)string)[0] < 0xef)
     return string;
   if (!memcmp(string, "\xEF\xBB\xBF", 3))
     string += 3;
   if (options.input_enc == UTF_8 &&
       (!memcmp(string, "\xFE\xFF", 2) || !memcmp(string, "\xFF\xFE", 2))) {
-    if (john_main_process && !warned++)
-      fprintf(stderr, "Warning: UTF-16 BOM seen in wordlist.\n");
+    if (john_main_process)
+      WARN_ONCE(color_warning, stderr, "Warning: UTF-16 BOM seen in wordlist.\n");
     string += 2;
   }
   return string;
@@ -1220,7 +1218,7 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
     log_event("! MaxLen = %d is too large for this hash type",
               pw_max);
     if (john_main_process)
-      fprintf(stderr, "Warning: MaxLen = %d is too large "
+      fprintf_color(color_warning, stderr, "Warning: MaxLen = %d is too large "
               "for the current hash type, reduced to %d\n",
               pw_max,
               our_fmt_len);
@@ -1574,11 +1572,11 @@ void do_prince_crack(struct db_main *db, const char *wordlist, int rules)
       if (options.input_enc == UTF_8) {
         if (!valid_utf8((UTF8*)line)) {
           warn = 0;
-          fprintf(stderr, "Warning: invalid UTF-8 seen reading %s\n", wordlist);
+          fprintf_color(color_warning, stderr, "Warning: invalid UTF-8 seen reading %s\n", wordlist);
         }
       } else if (line != input_buf || valid_utf8((UTF8*)line) > 1) {
         warn = 0;
-        fprintf(stderr, "Warning: UTF-8 seen reading %s\n", wordlist);
+        fprintf_color(color_warning, stderr, "Warning: UTF-8 seen reading %s\n", wordlist);
       }
     }
 

@@ -77,7 +77,7 @@ int rexgen_restore_state_hybrid(const char *sig, FILE *file)
 		if (ret != 1) return 1;
 		restore_str = mem_alloc_tiny(len+2, 8);
 		fgetl(restore_str, len+1, file);
-		log_event("resuming a regex expr or %s and state of %s\n", restore_regex, restore_str);
+		log_event("- Resuming a regex expr of %s and state of %s\n", restore_regex, restore_str);
 		return 0;
 	}
 	return 1;
@@ -131,7 +131,7 @@ static void rexgen_setlocale()
 		if (ret)
 			fprintf(stderr, "regex: Locale set to %s\n", ret);
 		else
-			fprintf(stderr, "regex: Failed to set locale \"%s\"\n", john_locale);
+			fprintf_color(color_warning, stderr, "regex: Failed to set locale \"%s\"\n", john_locale);
 	}
 }
 
@@ -185,7 +185,7 @@ void SetupAlpha(const char *regex_alpha)
 }
 
 void parser_error(const char* msg) {
-	fprintf(stderr, "%s\n", msg);
+	fprintf_color(color_error, stderr, "Error in regex: %s\n", msg);
 }
 
 int do_regex_hybrid_crack(struct db_main *db, const char *regex,
@@ -225,10 +225,8 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		regex_ptr = c_regex_cb_mb(regex, callback, parser_error);
 		if (!regex_ptr) {
 			c_simplestring_delete(buffer);
-			fprintf(stderr,
-				"Error, invalid regex expression.  John exiting now  base_word=%s  Regex= %s\n",
+			error_msg_main("Error: invalid regex expression.  Base_word=%s  Regex=%s\n",
 				base_word, regex);
-			error();
 		}
 		iter = c_regex_iterator(regex_ptr);
 
@@ -250,7 +248,7 @@ int do_regex_hybrid_crack(struct db_main *db, const char *regex,
 		}
 		*cp = 0;
 #if DEBUG
-		fprintf(stderr, "buf=%s\n", Buf);
+		fprintf_color(color_notice, stderr, "buf=%s\n", Buf);
 #endif
 		if (*regex == 0)
 			regex = Buf;
@@ -339,9 +337,7 @@ void do_regex_crack(struct db_main *db, const char *regex)
 
 	regex_ptr = c_regex_cb_mb(regex, callback, parser_error);
 	if (!regex_ptr) {
-		fprintf(stderr,
-		        "Error, invalid regex expression.  John exiting now\n");
-		error();
+		error_msg_main("Error: invalid regex expression\n");
 	}
 
 	if (rec_restored && john_main_process) {
@@ -435,11 +431,9 @@ char *prepare_regex(char *regex, int *bCase, char **regex_alpha)
 	if (*regex == '=')
 		++regex;
 	if (!strstr(regex, "\\0") && !(*regex_alpha)) {
-		fprintf(stderr,
-		        "--regex need to contain \"\\0\" in hybrid mode (or an alpha option)\n");
-		error();
+		error_msg_main("Error: Regex need to contain \"\\0\" in hybrid mode (or an alpha option)\n");
 	} else {
-		log_event("- Rexgen (after rules): %s", regex);
+		log_event("- Regex (after rules): %s", regex);
 	}
 	return regex;
 }

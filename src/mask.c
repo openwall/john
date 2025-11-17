@@ -1,6 +1,6 @@
 /*
  * This file is part of John the Ripper password cracker,
- * Copyright (c) 2013-2018 by magnum
+ * Copyright (c) 2013-2026 by magnum
  * Copyright (c) 2014 by Sayantan Datta
  *
  * Redistribution and use in source and binary forms, with or without
@@ -97,7 +97,6 @@ uint64_t mask_parent_keys;
  */
 static char* parse_hex(char *string)
 {
-	static int warned;
 	unsigned char *s = (unsigned char*)string;
 	unsigned char *d = s;
 
@@ -111,8 +110,8 @@ static char* parse_hex(char *string)
 	} else if (*s == '\\' && s[1] == 'x' &&
 	    atoi16[s[2]] != 0x7f && atoi16[s[3]] != 0x7f) {
 		char c = (atoi16[s[2]] << 4) + atoi16[s[3]];
-		if (!c && !warned++ && john_main_process)
-			fprintf(stderr, "Warning: \\x00 in mask terminates the string\n");
+		if (!c && john_main_process)
+			WARN_ONCE(color_warning, stderr, "Warning: \\x00 in mask terminates the string\n");
 		if (strchr("\\[]?-", c))
 			*d++ = '\\';
 		*d++ = c;
@@ -159,7 +158,7 @@ static char* expand_cplhdr(char *string, int *conv_err)
 
 			if (conv_err[pidx]) {
 				if (john_main_process)
-					fprintf(stderr,
+					fprintf_color(color_error, stderr,
 					        "Error: Selected internal codepage can't hold all chars of mask placeholder ?%d\n",
 					        pidx + 1);
 				error();
@@ -2341,14 +2340,14 @@ void mask_init(struct db_main *db, char *unprocessed_mask)
 			mask_int_cand.int_cpu_mask_ctx->ranges[mask_max_skip_loc].pos + 1;
 		if (inc_min > options.eff_maxlength) {
 			if (john_main_process)
-				fprintf(stderr, "Error: %s cannot use internal mask under these premises,\n"
+				fprintf_color(color_error, stderr, "Error: %s cannot use internal mask under these premises,\n"
 				        "try using --mask-internal-target=0 option.\n", mask_fmt->params.label);
 			error();
 		}
 		if (options.eff_minlength < inc_min) {
 			mask_iter_warn = inc_min;
 			if (john_main_process)
-				fprintf(stderr, "Note: %s format can't currently increment length from %d, using %d instead\n",
+				fprintf_color(color_warning, stderr, "Note: %s format can't currently increment length from %d, using %d instead\n",
 			        mask_fmt->params.label, options.eff_minlength, inc_min);
 			options.eff_minlength = inc_min;
 		}
@@ -2425,7 +2424,7 @@ static void finalize_mask(int len)
 		}
 	} else {
 		if (mask_num_qw && john_main_process)
-			fprintf(stderr, "Warning: ?w has no special meaning unless running hybrid mask\n");
+			fprintf_color(color_warning, stderr, "Warning: ?w has no special meaning unless running hybrid mask\n");
 		if (mask_add_len > len)
 			mask_add_len = len;
 	}
@@ -2435,13 +2434,13 @@ static void finalize_mask(int len)
 		mask_fmt->params.flags &= ~FMT_MASK;
 		format_cannot_reset = 0;
 		if (john_main_process) {
-			fprintf(stderr, "Note: Disabling internal mask due to stacked rules\n");
-			log_event("- Disabling internal mask due to stacked rules");
+			WARN_ONCE(color_notice, stderr, "Note: Disabling internal mask due to stacked rules\n");
+			LOG_ONCE("- Disabling internal mask due to stacked rules");
 		}
 	}
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
 	else if ((mask_fmt->params.flags & FMT_MASK) && options.req_int_cand_target > 0) {
-		log_event("- Overriding format's target internal mask factor of %d with user requested %d",
+		LOG_ONCE("- Overriding format's target internal mask factor of %d with user requested %d",
 		          mask_int_cand_target, options.req_int_cand_target);
 		mask_int_cand_target = options.req_int_cand_target;
 	}
@@ -2464,9 +2463,7 @@ static void finalize_mask(int len)
 		        options.eff_minlength, options.eff_maxlength, mask_num_qw, mask_add_len, options.eff_maxlength * mask_num_qw + mask_add_len);
 #endif
 		if (options.eff_maxlength == 0) {
-			if (john_main_process)
-				fprintf(stderr, "Error: Hybrid mask would truncate input to length 0!\n");
-			error();
+			error_msg_main("Error: Hybrid mask would truncate input to length 0!\n");
 		}
 	}
 
@@ -2514,9 +2511,14 @@ static void finalize_mask(int len)
 	mask_tot_cand = cand * mask_int_cand.num_int_cand;
 
 	if ((john_main_process || !cfg_get_bool(SECTION_OPTIONS, SUBSECTION_MPI, "MPIAllGPUsSame", 0)) &&
-		mask_int_cand.num_int_cand > 1)
-		log_event("- Requested internal mask factor: %d, actual now %d",
-		          mask_int_cand_target, mask_int_cand.num_int_cand);
+	    mask_int_cand.num_int_cand > 1) {
+		static int old_factor = -1;
+		if (mask_int_cand.num_int_cand != old_factor) {
+			log_event("- Requested internal mask factor: %d, actual now %d",
+			          mask_int_cand_target, mask_int_cand.num_int_cand);
+			old_factor = mask_int_cand.num_int_cand;
+		}
+	}
 }
 
 void mask_crk_init(struct db_main *db)
@@ -2633,6 +2635,7 @@ int do_mask_crack(const char *extern_key)
 			}
 
 			mask_cur_len = i;
+			log_event("- Mask length now %u", mask_cur_len);
 
 			if (format_cannot_reset)
 				save_restore(&cpu_mask_ctx, 0, RESTORE);

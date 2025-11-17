@@ -59,7 +59,7 @@ int rpp_init(struct rpp_context *ctx, const char *subsection)
 		while (cp) {
 			struct cfg_line *lp;
 			if ((list = cfg_get_list(SECTION_RULES, cp)) == NULL) {
-				fprintf(stderr, "\"%s\" not found; ", cp);
+				fprintf_color(color_error, stderr, "\"%s\" not found\n", cp);
 				return 1;
 			}
 			lp = list->head;
@@ -134,10 +134,7 @@ static void rpp_process_rule(struct rpp_context *ctx)
 			if (strlen(conv) == strlen8(input))
 				strcpy(ctx->input->data, conv); /* Always shorter than original */
 			else {
-				static int warned;
-
-				if (!warned++)
-					log_event("- Rule preprocessor: Rejected rule(s) not fitting current internal codepage");
+				LOG_ONCE("- Rule preprocessor: Rejected rule(s) not fitting current internal codepage");
 				input[1] = '-';
 			}
 		}

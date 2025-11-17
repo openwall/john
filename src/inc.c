@@ -133,10 +133,7 @@ void inc_hybrid_fix_state(void)
 
 static void inc_format_error(const char *charset)
 {
-	log_event("! Incorrect charset file format: %.100s", charset);
-	if (john_main_process)
-		fprintf(stderr, "Incorrect charset file format: %s\n", charset);
-	error();
+	error_msg_main("Incorrect charset file format: %.100s\n", charset);
 }
 
 static int is_mixedcase(char *chars)
@@ -505,19 +502,11 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 					fprintf(stderr, "Using charset file supplied as option: %s\n", mode);
 				charset = mode;
 			} else {
-				log_event("! Unknown incremental mode: %s", mode);
-				if (john_main_process)
-					fprintf(stderr, "Unknown incremental mode: %s\n",
-					        mode);
-				error();
+				error_msg_main("Unknown incremental mode: %s\n", mode);
 			}
 		}
 		else {
-			log_event("! No charset defined");
-			if (john_main_process)
-				fprintf(stderr, "No charset defined for mode: %s\n",
-				    mode);
-			error();
+			error_msg_main("No charset defined for mode: %s\n", mode);
 		}
 	}
 
@@ -531,7 +520,7 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 		log_event("! MaxLen = %d is too large%s, reduced", max_length,
 		    options.force_maxlength ? "" : " for this hash type");
 		if (john_main_process && !options.force_maxlength)
-			fprintf(stderr, "Warning: MaxLen = %d is too large "
+			fprintf_color(color_warning, stderr, "Warning: MaxLen = %d is too large "
 			    "for the current hash type, reduced to %d\n",
 			    max_length, our_fmt_len);
 		max_length = our_fmt_len;
@@ -587,33 +576,20 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	}
 
 	if (min_length > max_length) {
-		log_event("! MinLen = %d exceeds MaxLen = %d",
-		    min_length, max_length);
-		if (john_main_process)
-			fprintf(stderr, "MinLen = %d exceeds MaxLen = %d; "
+		error_msg_main("MinLen = %d exceeds MaxLen = %d; "
 			    "MaxLen can be increased up to %d\n",
 			    min_length, max_length, CHARSET_LENGTH);
-		error();
 	}
 
 	if (min_length > our_fmt_len) {
-		log_event("! MinLen = %d is too large for this hash type",
-		    min_length);
-		if (john_main_process)
-			fprintf(stderr,
-			    "MinLen = %d exceeds the maximum possible "
+		error_msg_main("MinLen = %d exceeds the maximum possible "
 			    "length for the current hash type (%d)\n",
 			    min_length, db->format->params.plaintext_length);
-		error();
 	}
 
 	if (max_length > CHARSET_LENGTH) {
-		log_event("! MaxLen = %d exceeds the compile-time limit of %d",
-		    max_length, CHARSET_LENGTH);
-		if (john_main_process)
-			fprintf(stderr, "MaxLen = %d exceeds the compile-time "
+		error_msg_main("MaxLen = %d exceeds the compile-time "
 			    "limit of %d\n", max_length, CHARSET_LENGTH);
-		error();
 	}
 
 	if (!(file = fopen(path_expand(charset), "rb")))
@@ -633,11 +609,7 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 
 	if (header->min != CHARSET_MIN || header->max != CHARSET_MAX ||
 	    header->length != CHARSET_LENGTH) {
-		log_event("! Incompatible charset file: %.100s", charset);
-		if (john_main_process)
-			fprintf(stderr, "Incompatible charset file: %s\n",
-			    charset);
-		error();
+		error_msg_main("Incompatible charset file: %s\n", charset);
 	}
 
 #if CHARSET_SIZE < 0xff
@@ -653,11 +625,7 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	if (!rec_restoring_now)
 		rec_check = check;
 	if (rec_check != check) {
-		log_event("! Charset file has changed: %.100s", charset);
-		if (john_main_process)
-			fprintf(stderr, "Charset file has changed: %s\n",
-			    charset);
-		error();
+		error_msg_main("Charset file has changed: %s\n", charset);
 	}
 
 	if (fread(allchars, header->count, 1, file) != 1) {
@@ -672,14 +640,9 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	if (expand(allchars, "", sizeof(allchars)))
 		inc_format_error(charset);
 	if (extra && expand(allchars, extra, sizeof(allchars))) {
-		log_event("! Extra characters not in compile-time "
-		    "specified range ('\\x%02x' to '\\x%02x')",
-		    CHARSET_MIN, CHARSET_MAX);
-		if (john_main_process)
-			fprintf(stderr, "Extra characters not in compile-time "
+		error_msg_main("Extra characters not in compile-time "
 			    "specified range ('\\x%02x' to '\\x%02x')\n",
 			    CHARSET_MIN, CHARSET_MAX);
-		error();
 	}
 
 /* Calculate the actual real_* based on sanitized and expanded allchars */
@@ -714,7 +677,7 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 
 		if ((unsigned int)max_count > real_count) {
 			log_event("! Only %u characters available", real_count);
-			fprintf(stderr, "Warning: only %u characters available\n",
+			fprintf_color(color_warning, stderr, "Warning: only %u characters available\n",
 			        real_count);
 		}
 	}
@@ -728,7 +691,7 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 		log_event("! Mixed-case charset, "
 		    "but the hash type is case-insensitive");
 		if (john_main_process)
-			fprintf(stderr, "Warning: mixed-case charset, "
+			fprintf_color(color_warning, stderr, "Warning: mixed-case charset, "
 			    "but the current hash type is case-insensitive;\n"
 			    "some candidate passwords may be unnecessarily "
 			    "tried more than once.\n");
@@ -737,7 +700,7 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 	if (!(db->format->params.flags & FMT_8_BIT) && has_8bit(allchars)) {
 		log_event("! 8-bit charset, but the hash type is 7-bit");
 		if (john_main_process)
-			fprintf(stderr, "Warning: 8-bit charset, but the current"
+			fprintf_color(color_warning, stderr, "Warning: 8-bit charset, but the current"
 			    " hash type is 7-bit;\n"
 			    "some candidate passwords may be redundant.\n");
 	}
@@ -783,11 +746,8 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 			counts[length][fixed]++;
 
 		if (counts[length][fixed] != count) {
-			log_event("! Unexpected count: %d != %d",
+			error_msg_main("Unexpected count: %d != %d\n",
 			    counts[length][fixed] + 1, count + 1);
-			fprintf(stderr, "Unexpected count: %d != %d\n",
-			    counts[length][fixed] + 1, count + 1);
-			error();
 		}
 	}
 
@@ -877,11 +837,8 @@ void do_incremental_crack(struct db_main *db, const char *mode)
 			counts[length][fixed]++;
 
 		if (counts[length][fixed] != count) {
-			log_event("! Unexpected count: %d != %d",
+			error_msg_main("Unexpected count: %d != %d\n",
 			    counts[length][fixed] + 1, count + 1);
-			fprintf(stderr, "Unexpected count: %d != %d\n",
-			    counts[length][fixed] + 1, count + 1);
-			error();
 		}
 
 		if (skip)

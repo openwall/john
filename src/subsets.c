@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2018 magnum
+ * This software is Copyright (c) 2018-2026 magnum
  * and is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -227,7 +227,6 @@ static void remove_dupes(UTF32 *string)
 /* Parse \U+HHHH and \U+HHHHH notation to characters, in place. */
 static void parse_unicode(char *string)
 {
-	static int warned;
 	unsigned char *s = (unsigned char*)string;
 	unsigned char *d = s;
 
@@ -249,9 +248,9 @@ static void parse_unicode(char *string)
 			wc[0] = (atoi16[s[3]] << 16) + (atoi16[s[4]] << 12) +
 				(atoi16[s[5]] << 8) + (atoi16[s[6]] << 4) + atoi16[s[7]];
 			wc[1] = 0;
-			if (!wc[0] && !warned++ && john_main_process)
-				fprintf(stderr,
-				        "Warning: \\U+00000 in mask terminates the string\n");
+			if (!wc[0] && john_main_process)
+				WARN_ONCE(color_warning, stderr,
+				          "Warning: \\U+00000 in mask terminates the string\n");
 			if (wc[0] == '\\')
 				*d++ = '\\';
 
@@ -270,9 +269,9 @@ static void parse_unicode(char *string)
 			wc[0] = (atoi16[s[3]] << 12) + (atoi16[s[4]] << 8) +
 				(atoi16[s[5]] << 4) + atoi16[s[6]];
 			wc[1] = 0;
-			if (!wc[0] && !warned++ && john_main_process)
-				fprintf(stderr,
-				        "Warning: \\U+0000 in mask terminates the string\n");
+			if (!wc[0] && john_main_process)
+				WARN_ONCE(color_warning, stderr,
+				          "Warning: \\U+0000 in mask terminates the string\n");
 			if (wc[0] == '\\')
 				*d++ = '\\';
 
@@ -478,7 +477,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 
 	if (options.eff_minlength > maxlength) {
 		if (john_main_process)
-			fprintf(stderr, "Subsets: Too large min. length\n");
+			fprintf_color(color_error, stderr, "Subsets: Too large min. length\n");
 		error();
 	}
 
@@ -520,7 +519,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 	else if (options.input_enc == UTF_8) {
 		if (!valid_utf8((UTF8*)charset)) {
 			if (john_main_process)
-				fprintf(stderr, "Error in Unicode conversion. "
+				fprintf_color(color_error, stderr, "Error in Unicode conversion. "
 				        "Ensure --input-encoding is correct\n");
 			error();
 		} else {
@@ -548,7 +547,7 @@ int do_subsets_crack(struct db_main *db, char *req_charset)
 
 	if (required >= charcount) {
 		if (john_main_process)
-			fprintf(stderr, "Error, required part of charset must be smaller "
+			fprintf_color(color_error, stderr, "Error, required part of charset must be smaller "
 			        "than charset (1..%d out of %d)\n",
 			        charcount - 1, charcount);
 		error();

@@ -200,7 +200,7 @@ static void single_init(void)
 			fprintf(stderr, "Will not try cracked passwords against other salts\n");
 
 		if (options.seed_per_user && !retest_guessed && option_retest == -1)
-			fprintf(stderr, "Note: You might want --single-retest-guess when using --single-user-seed\n");
+			fprintf_color(color_notice, stderr, "Note: You might want --single-retest-guess when using --single-user-seed\n");
 	}
 
 	if ((words_pair_max = options.single_pair_max) < 0)
@@ -267,7 +267,7 @@ static void single_init(void)
 
 	if (key_count < single_db->format->params.min_keys_per_crypt) {
 		if (john_main_process) {
-			fprintf(stderr,
+			fprintf_color(color_notice, stderr,
 "Note: Performance for this format/device may be lower due to single mode\n"
 "      constraints. Format wanted %d keys per crypt but was limited to %d.\n",
 			        single_db->format->params.min_keys_per_crypt,
@@ -302,7 +302,7 @@ static void single_init(void)
 
 	if (length < options.eff_maxlength) {
 		if (john_main_process)
-			fprintf(stderr,
+			fprintf_color(color_notice, stderr,
 "Note: Max. length decreased from %d to %d due to single mode buffer size\n"
 "      limit of %sB (%sB needed). Use --max-length=N option to override, or\n"
 "      increase SingleMaxBufferSize in john.conf (if you have enough RAM).\n",
@@ -320,7 +320,7 @@ static void single_init(void)
 
 	if (my_buf_share && calc_buf_size(length, key_count) > my_buf_share) {
 		if (john_main_process) {
-			fprintf(stderr,
+			fprintf_color(color_notice, stderr,
 "Note: Can't run single mode with this many salts due to single mode buffer\n"
 "      size limit of %sB (%d keys per batch would use %sB, decreased to\n"
 "      %d for %sB). To work around this, increase SingleMaxBufferSize in\n"
@@ -349,7 +349,7 @@ static void single_init(void)
 
 	if (key_count < lim_kpc) {
 		if (john_main_process) {
-			fprintf(stderr,
+			fprintf_color(color_notice, stderr,
 "Note: Performance for this many salts may be lower due to single mode buffer\n"
 "      size limit of %sB (%d keys per batch would use %sB, decreased to\n"
 "      %d for %sB). To work around this, ",
@@ -359,10 +359,10 @@ static void single_init(void)
 			        key_count,
 			        human_prefix(calc_buf_size(length, key_count)));
 			if (options.eff_maxlength > 8)
-				fprintf(stderr, "%s --max-length and/or ",
+				fprintf_color(color_notice, stderr, "%s --max-length and/or ",
 				        options.req_maxlength ?
 				        "decrease" : "use");
-			fprintf(stderr,
+			fprintf_color(color_notice, stderr,
 			        "increase%sSingleMaxBufferSize in john.conf.\n",
 			        options.eff_maxlength > 8 ? "\n      " : " ");
 		}
@@ -383,7 +383,7 @@ static void single_init(void)
 		log_event("! No \"%s\" mode rules found",
 		          options.activesinglerules);
 		if (john_main_process)
-			fprintf(stderr, "No \"%s\" mode rules found in %s\n",
+			fprintf_color(color_error, stderr, "No \"%s\" mode rules found in %s\n",
 			        options.activesinglerules, cfg_name);
 		error();
 	}
@@ -584,7 +584,7 @@ static int single_process_buffer(struct db_salt *salt)
 	if (retest_guessed && ++recurse_depth > max_recursion) {
 		log_event("- Disabled SingleRetestGuessed due to deep recursion");
 		if (john_main_process)
-			fprintf(stderr,
+			fprintf_color(color_warning, stderr,
 "Warning: Disabled SingleRetestGuessed due to deep recursion. You can run\n"
 "         '--loopback --rules=none' later on instead.\n");
 
@@ -948,9 +948,9 @@ void do_single_crack(struct db_main *db)
 	if (john_main_process && db->salt_count > 1 &&
 	    status.guess_count && !retest_guessed) {
 		if (single_disabled_recursion)
-			fprintf(stderr, "Warning: Disabled SingleRetestGuessed due to deep recursion. Consider running '--loopback --rules=none' next.\n");
+			fprintf_color(color_warning, stderr, "Warning: Disabled SingleRetestGuessed due to deep recursion. Consider running '--loopback --rules=none' next.\n");
 		else
-			fprintf(stderr, "Consider running '--loopback --rules=none' next.\n");
+			fprintf_color(color_notice, stderr, "Consider running '--loopback --rules=none' next.\n");
 	}
 	return;
 }

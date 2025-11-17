@@ -283,7 +283,7 @@ void ext_init(char *mode, struct db_main *db)
 	    (ext_flags & (EXT_USES_GENERATE | EXT_USES_FILTER)) ==
 	    EXT_USES_FILTER && f_generate)
 	if (john_main_process)
-		fprintf(stderr, "Warning: external mode defines generate(), "
+		fprintf_color(color_warning, stderr, "Warning: external mode defines generate(), "
 		    "but is only used for filter()\n");
 
 	ext_mode = mode;

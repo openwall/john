@@ -1,7 +1,7 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-99,2003,2004,2006,2009,2013,2017 by Solar Designer
- * Copyright (c) 2009-2025, magnum
+ * Copyright (c) 2009-2026, magnum
  * Copyright (c) 2009-2018, JimF
  *
  * Redistribution and use in source and binary forms, with or without
@@ -149,8 +149,7 @@ static void restore_line_number(void)
 	if (skip_lines(rec_pos, line)) {
 		if (ferror(word_file))
 			pexit("fgets");
-		fprintf_color(color_error, stderr, "fgets: Unexpected EOF\n");
-		error();
+		error_msg("fgets: Unexpected EOF\n");
 	}
 }
 
@@ -319,21 +318,16 @@ static MAYBE_INLINE void check_bom(char *line)
 		return;
 
 	if (!memcmp(line, "\xEF\xBB\xBF", 3)) {
-		static int warned;
-
 		if (options.input_enc == UTF_8)
 			memmove(line, line + 3, strlen(line) - 2);
-		else if (!warned++)
-			fprintf_color(color_warning, stderr, "Warning: UTF-8 BOM seen in wordlist. You probably want --input-encoding=UTF8\n");
+		else
+			WARN_ONCE(color_warning, stderr,
+			          "Warning: UTF-8 BOM seen in wordlist. You probably want --input-encoding=UTF8\n");
 	}
 
-	if (options.input_enc == UTF_8  && (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2))) {
-		static int warned;
-
-		if (!warned++)
-			fprintf_color(color_warning, stderr,
-			        "Warning: UTF-16 BOM seen in wordlist. File may not be read properly unless you re-encode it\n");
-	}
+	if (options.input_enc == UTF_8 && (!memcmp(line, "\xFE\xFF", 2) || !memcmp(line, "\xFF\xFE", 2)))
+		WARN_ONCE(color_warning, stderr,
+		          "Warning: UTF-16 BOM seen in wordlist. File may not be read properly unless you re-encode it\n");
 }
 
 /*
@@ -622,9 +616,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 
 #if OS_FORK
 		if (options.fork && file_is_fifo) {
-			if (john_main_process)
-				fprintf_color(color_error, stderr, "Error, cannot use --fork with FIFO as wordlist file.\n");
-			error();
+			error_msg_main("Error, cannot use --fork with FIFO as wordlist file.\n");
 		}
 #endif
 
@@ -643,9 +635,7 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			pexit(STR_MACRO(jtr_ftell64));
 		jtr_fseek64(word_file, 0, SEEK_SET);
 		if (file_len == 0 && !loopBack) {
-			if (john_main_process)
-				fprintf_color(color_error, stderr, "Error, wordlist file is empty\n");
-			error();
+			error_msg_main("Error, wordlist file is empty\n");
 		}
 
 		ourshare = file_len;
@@ -722,15 +712,12 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 					}
 					if (i > my_size) {
 						fprintf_color(color_error, stderr,
-						        "Error: wordlist grew "
-						        "as we read it - "
-						        "aborting\n");
+						        "Error: Wordlist grew as we read it - aborting\n");
 						error();
 					}
 				}
 				if (nWordFileLines != myWordFileLines)
-					fprintf_color(color_warning, stderr, "Warning: wordlist changed as"
-					        " we read it\n");
+					WARN_ONCE(color_warning, stderr, "Warning: Wordlist changed as we read it\n");
 				log_event("- Loaded this node's share of "
 				          "wordlist %s into memory "
 				          "(%"PRIu64" bytes of %"PRId64", max_size="Zu
@@ -763,18 +750,12 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 					               MEM_ALIGN_NONE);
 				if (fread(word_file_str, 1, (size_t)file_len,
 				          word_file) != file_len) {
-					if (ferror(word_file))
-						pexit("fread");
-					fprintf_color(color_error, stderr,
-					        "fread: Unexpected EOF\n");
+					fprintf_color(color_error, stderr, "Wordlist: %s\n",
+					              feof(word_file) ? "Unexpected EOF" : strerror(errno));
 					error();
 				}
-				if (memchr(word_file_str, 0, (size_t)file_len)) {
-					static int warned;
-
-					if (!warned++)
-						fprintf_color(color_warning, stderr, "Warning: Wordlist contains NUL bytes, lines may be truncated.\n");
-				}
+				if (memchr(word_file_str, 0, (size_t)file_len))
+					WARN_ONCE(color_warning, stderr, "Warning: Wordlist contains NUL bytes, lines may be truncated.\n");
 			}
 			aep = word_file_str + file_len;
 			*aep = 0;
@@ -827,13 +808,8 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 			{
 				char *ep, ec;
 				if (i > nWordFileLines) {
-					fprintf_color(color_warning, stderr, "Warning: wordlist "
-					        "contains inconsequent "
-					        "newlines, some words may be "
-					        "skipped\n");
-					log_event("- Warning: wordlist contains"
-					          " inconsequent newlines, some"
-					          " words may be skipped");
+					WARN_AND_LOG_ONCE(color_warning, stderr,
+					              "Warning: Wordlist contains inconsequent newlines, some words may be skipped");
 					i--;
 					break;
 				}
