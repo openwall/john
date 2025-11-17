@@ -4,12 +4,14 @@
 # The partition table is parsed to find the boot volume, often named 'Recovery HD'. The boot volume can be identified by its type GUID: 426F6F74-0000-11AA-AA11-00306543ECAC.
 # The boot volume contains a file called `EncryptedRoot.plist.wipekey`. This is stored on the volume at `/com.apple.boot.X/System/Library/Caches/com.apple.corestorage/EncryptedRoot.plist.wipekey`, where `X` is variable but is often `P` or `R`. This plist file is encrypted with AES-XTS; the key is found in the CoreStorage volume header, and the tweak is b'\x00' * 16.
 # The decrypted plist contains information relating to the user(s). This includes the salt, kek and iterations required to construct the hash as well as information such as username and password hints (if present).
+# For non-system drives, the plist file is found in the encrypted metadata, in block type 0x19.
 
 import plistlib
 import os
 import argparse
 import sys
 import re
+import base64
 
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -24,8 +26,11 @@ except ImportError:
 
 HEX_CORE_STORAGE_TYPE_GUID = '53746F72-6167-11AA-AA11-00306543ECAC'
 HEX_APPLE_BOOT_STORAGE_TYPE_GUID = '426F6F74-0000-11AA-AA11-00306543ECAC'
-LOCAL_USER_TYPE_ID = 0x10060002
+LOCAL_USER_TYPE_ID = [0x10060002, 0x10000001] # added 0x10000001 for removable drives
 BOOT_DIR_REGEX = re.compile(r'com.apple.boot.(?P<boot_letter>[A-Z])')
+
+# long regex for CryptoUsers dict (removable drives only) because difficult to parse with plistlib
+CRYPTO_USERS_REGEX = re.compile(r'<key>CryptoUsers<\/key>.*?<key>PassphraseWrappedKEKStruct<\/key><data.*?>(?P<PassphraseWrappedKEKStruct>.*?)<\/data><key>WrapVersion<\/key><integer.*?>(?P<wrap_version>.*?)<\/integer><key>UserType<\/key><integer.*?>(?P<UserType>.*?)<\/integer><key>UserIdent<\/key><string.*?>(?P<UserIdent>.+?)<\/string><key>UserNamesData<\/key><string.*?>(?P<UserNamesData>.*?)<\/string><key>PassphraseHint<\/key><reference.*?><key>KeyEncryptingKeyIdent<\/key><string.*?>(?P<KeyEncryptingKeyIdent>.*?)<\/string><key>UserFullName<\/key><reference.*?><key>EFILoginGraphics<\/key><data.*?>(?P<EFILoginGraphics>.*?)<\/data>')
 
 def uint_to_int(b):
     return int(b[::-1].hex(), 16)
@@ -100,17 +105,39 @@ def parse_partition_entry(partition_entry):
     return part_GUID, type_GUID, start_LBA, partition_name
 
 def parse_corestorage_header(fp, start_pos):
-    fp.seek(start_pos + 176)
-    aes_key = try_read_fp(fp, 0x10)
-    return aes_key
+    fp.seek(start_pos)
+    cs_header = try_read_fp(fp, 0x200) # Physical volume header is 512 bytes
+    physical_volume_size = cs_header[64:72]
+    cs_signature = cs_header[88:90]
+    assert cs_signature == b'CS'
 
-def AES_XTS_decrypt(aes_key, tweak, ct):
+    block_size = uint_to_int(cs_header[96:100])
+    metadata_block_numbers = cs_header[104:136] # array of 4x8 metadata block numbers
+    offsets = [uint_to_int(metadata_block_numbers[start: start+8]) for start in range(0, 32, 8)]
+
+    aes_key = cs_header[176:192]
+    physical_UUID = cs_header[304:320]
+    logical_UUID  = cs_header[320:336]
+    return aes_key, offsets, block_size, physical_UUID
+
+def AES_XTS_decrypt(aes_key1, aes_key2, tweak, ct):
     decryptor = Cipher(
-        algorithms.AES(key=aes_key + b'\x00' * 16),
+        algorithms.AES(key=aes_key1 + aes_key2),
         modes.XTS(tweak=tweak),
     ).decryptor()
     pt = decryptor.update(ct)
     return pt
+
+def AES_XTS_decrypt_metadata_block(aes_key1, aes_key2, block_number, enc_metadata):
+    block_start = block_number * 8192
+    block_end = block_start + 8192
+
+    # tweak = block number
+    tweak = hex(block_number)[2:].zfill(32)
+    tweak = bytearray.fromhex(tweak)[::-1]
+
+    decrypted_block = AES_XTS_decrypt(aes_key1, aes_key2, tweak, enc_metadata[block_start:block_end])
+    return decrypted_block
 
 def parse_keybag_entry(uuid, pt):
     uuid_iterator = findall(uuid, pt)
@@ -141,6 +168,7 @@ def get_boot_dir(fs_object):
         entry_name = entry.info.name.name.decode()
         if re.match(BOOT_DIR_REGEX, entry_name):
             return entry_name
+    return None
 
 def recover_file(fs_object, file_path):
     file_obj = fs_object.open(file_path)
@@ -154,12 +182,13 @@ def get_EncryptedRoot_plist_wipekey(image_file, start_pos):
     fs = pytsk3.FS_Info(img, offset=start_pos)
     boot_dir = get_boot_dir(fs)
 
-    file_path = os.path.join(f"{boot_dir}/System/Library/Caches/com.apple.corestorage/EncryptedRoot.plist.wipekey")
-    EncryptedRoot_data = recover_file(fs, file_path)
+    if boot_dir:
+        file_path = os.path.join(f"{boot_dir}/System/Library/Caches/com.apple.corestorage/EncryptedRoot.plist.wipekey")
+        EncryptedRoot_data = recover_file(fs, file_path)
 
-    if not EncryptedRoot_data:
-        sys.stderr.write("EncryptedRoot.plist.wipekey not found in image file, exiting.")
-        sys.exit(1)
+    else:
+        # EncryptedRoot.plist.wipekey not found in image file, will search metadata blocks for encryption context plist
+        return None
 
     return EncryptedRoot_data
 
@@ -176,6 +205,123 @@ def format_hash_str(user_part):
         return ''
     # remove colons so that hash format is consistent and strip newlines
     return user_part.replace("\n","").replace("\r","").replace(":","")
+
+def parse_metadata_block(metadata_block):
+    metadata_block_header = metadata_block[:64] # metadata block header is 64 bytes
+    metadata_block_data = metadata_block[64:]
+
+    block_type, block_size, possibly_lvfwiped = parse_metadata_block_header(metadata_block_header)
+
+    if block_type == 0x11:
+        volume_group_xml_offset, volume_group_xml_size, volume_groups_descriptor_offset = parse_metadata_block_0x11(metadata_block_data)
+
+    return volume_group_xml_offset, volume_group_xml_size, volume_groups_descriptor_offset
+
+# return block_type so we know what to parse
+def parse_metadata_block_header(metadata_block_header):
+    crc32 = metadata_block_header[0:4]
+    possibly_lvfwiped = metadata_block_header[0:8] # have seen lvfwiped here, the rest of the block is zero
+    version = uint_to_int(metadata_block_header[8:10])
+    block_type = uint_to_int(metadata_block_header[10:12])
+    block_size = uint_to_int(metadata_block_header[48:52])
+
+    return block_type, block_size, possibly_lvfwiped
+
+def parse_metadata_block_0x11(metadata_block):
+    metadata_size                   = uint_to_int(metadata_block[0:4])
+    volume_groups_descriptor_offset = uint_to_int(metadata_block[156:160])
+    volume_group_xml_offset         = uint_to_int(metadata_block[160:164])
+    volume_group_xml_size           = uint_to_int(metadata_block[164:168])
+
+    return volume_group_xml_offset, volume_group_xml_size, volume_groups_descriptor_offset
+
+def parse_metadata_block_0x19(metadata_block):
+    xml_plist_data_offset = uint_to_int(metadata_block[48:52])
+    xml_plist_data_size   = uint_to_int(metadata_block[52:56])
+    xml_plist = metadata_block[xml_plist_data_offset - 64: xml_plist_data_offset + xml_plist_data_size - 64]
+    return xml_plist
+
+def parse_volume_group_descriptor(volume_group_descriptor):
+    enc_metadata_size = uint_to_int(volume_group_descriptor[8:16]) # in no. of blocks
+    primary_enc_metadata_block_no = uint_to_int(volume_group_descriptor[32:38])
+    plist_data = volume_group_descriptor[48:]
+
+    return primary_enc_metadata_block_no, enc_metadata_size
+
+def parse_CryptoUsers_dict(CryptoUsers_dict, EncryptedRoot):
+    for user_index in range(len(CryptoUsers_dict)):
+        # We want the local user login details i.e. not iCloud
+        if CryptoUsers_dict[user_index].get('UserType') in LOCAL_USER_TYPE_ID:
+            passphrase_hint = CryptoUsers_dict[user_index].get('PassphraseHint')
+
+            name_info = CryptoUsers_dict[user_index].get('UserNamesData')
+            full_name_info = ''
+            username_info  = ''
+            if len(name_info) == 2:
+                full_name_info, username_info = name_info[0].decode(), name_info[1].decode()
+
+            full_name_info = format_hash_str(full_name_info)
+            passphrase_hint = format_hash_str(passphrase_hint)
+
+            # Hash info stored in the PassphraseWrappedKEKStruct in decrypted plist
+            # Stored in base64 in metadata block plist, but already decoded in EncryptedRoot plist
+            PassphraseWrappedKEKStruct = CryptoUsers_dict[user_index].get('PassphraseWrappedKEKStruct')
+            if not EncryptedRoot:
+                PassphraseWrappedKEKStruct = base64.b64decode(PassphraseWrappedKEKStruct)
+            fvde_hash = construct_fvde_hash(PassphraseWrappedKEKStruct)
+
+            sys.stdout.write(f"{username_info}:{fvde_hash}:::{full_name_info} {passphrase_hint}::\n")
+    return
+
+def get_CryptoUsers_dict_from_EncryptedRoot(EncryptedRoot_data, aes_key1):
+    aes_key2 = b'\x00' * 16
+    tweak = b'\x00' * 16
+    pt = AES_XTS_decrypt(aes_key1, aes_key2, tweak, EncryptedRoot_data)
+    CryptoUsers_dict = load_plist_dict(pt)['CryptoUsers']
+
+    return CryptoUsers_dict
+
+def get_CryptoUsers_dict_from_encrypted_metadata(cs_start_pos, offsets, block_size, fp, physical_UUID, aes_key1):
+    o = offsets[0] # all metadata blocks equal so just use first
+    metadata_block_start = cs_start_pos + o * block_size
+    fp.seek(metadata_block_start)
+    metadata_block = try_read_fp(fp, 0x200)
+
+    volume_group_xml_offset, volume_group_xml_size, volume_groups_descriptor_offset = parse_metadata_block(metadata_block)
+    # fp.seek(metadata_block_start + volume_group_xml_offset)
+    # xml = try_read_fp(fp, volume_group_xml_size)
+
+    fp.seek(metadata_block_start + volume_groups_descriptor_offset)
+    volume_group_descriptor = try_read_fp(fp, 0x200)
+    primary_enc_metadata_block_no, enc_metadata_size = parse_volume_group_descriptor(volume_group_descriptor)
+
+    fp.seek(cs_start_pos + primary_enc_metadata_block_no * block_size)
+    enc_metadata = try_read_fp(fp, enc_metadata_size * block_size)
+
+    for block_number in range(0, 64):  # change to the number
+        aes_key2 = physical_UUID
+        decrypted_block = AES_XTS_decrypt_metadata_block(aes_key1, aes_key2, block_number, enc_metadata)
+
+        decrypted_metadata_block_header = decrypted_block[:64]
+        block_type, metadata_block_size, possibly_lvfwiped = parse_metadata_block_header(decrypted_metadata_block_header)
+
+        # iterate through blocks until find block_type 0x19 - containing encryption context
+        if block_type == 0x19:
+            xml_plist = parse_metadata_block_0x19(decrypted_block[64:metadata_block_size]).decode('latin-1')
+
+            matches = []
+            for m in re.finditer(CRYPTO_USERS_REGEX, xml_plist):
+                matches.append(m.groupdict())
+
+            CryptoUsers_dict = {}
+            for user_index in range(len(matches)):
+                CryptoUsers_dict[user_index] = matches[user_index]
+                # if present convert user type from string to hex
+                user_type = CryptoUsers_dict[user_index].get('UserType')
+                if user_type:
+                    CryptoUsers_dict[user_index]['UserType'] = int(CryptoUsers_dict[user_index]['UserType'], 16)
+
+            return CryptoUsers_dict
 
 def main():
 
@@ -196,37 +342,16 @@ def main():
         # Unlikely to have more than one boot volume, but loop anyway
         for boot_start_pos in boot_volumes:
             EncryptedRoot_data = get_EncryptedRoot_plist_wipekey(image_file, boot_start_pos)
-
             for cs_start_pos in core_storage_volumes:
-                aes_key = parse_corestorage_header(fp, cs_start_pos)
+                aes_key1, offsets, block_size, physical_UUID = parse_corestorage_header(fp, cs_start_pos)
+                if EncryptedRoot_data:
+                    CryptoUsers_dict = get_CryptoUsers_dict_from_EncryptedRoot(EncryptedRoot_data, aes_key1)
+                else:
+                    CryptoUsers_dict = get_CryptoUsers_dict_from_encrypted_metadata(cs_start_pos, offsets, block_size, fp, physical_UUID, aes_key1)
 
-                tweak = b'\x00' * 16
-                pt = AES_XTS_decrypt(aes_key, tweak, EncryptedRoot_data)
-                d = load_plist_dict(pt)
+                parse_CryptoUsers_dict(CryptoUsers_dict, EncryptedRoot_data)
 
-                user_index = 0
-                for i in range(len(d['CryptoUsers'])):
-                    # We want the local user login details i.e. not iCloud
-                    if d['CryptoUsers'][i].get('UserType') == LOCAL_USER_TYPE_ID:
-                        user_index = i
-                        passphrase_hint = d['CryptoUsers'][user_index].get('PassphraseHint')
-
-                        name_info = d['CryptoUsers'][user_index].get('UserNamesData')
-                        full_name_info = ''
-                        username_info  = ''
-                        if len(name_info) == 2:
-                            full_name_info, username_info = name_info[0].decode(), name_info[1].decode()
-
-                        full_name_info = format_hash_str(full_name_info)
-                        passphrase_hint = format_hash_str(passphrase_hint)
-
-                        # Hash info stored in the PassphraseWrappedKEKStruct in decrypted plist
-                        PassphraseWrappedKEKStruct = d['CryptoUsers'][user_index].get('PassphraseWrappedKEKStruct')
-                        fvde_hash = construct_fvde_hash(PassphraseWrappedKEKStruct)
-
-                        sys.stdout.write(f"{username_info}:{fvde_hash}:::{full_name_info} {passphrase_hint}::\n")
-
-    return
+            return
 
 
 if __name__ == "__main__":
