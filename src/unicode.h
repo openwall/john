@@ -403,6 +403,12 @@ extern void utf8_to_utf8_32(UTF32 *dst, UTF8 *src);
 /* Convert UTF-32 to UTF-8-32, in place */
 extern void utf32_to_utf8_32(UTF32 *in_place_string);
 
+/* Return codepage class (eg. CP_DOS) of a specific encoding */
+extern int cp_class(int encoding);
+
+/* Convert numerical encoding ID to canonical name */
+char *cp_id2name(int encoding);
+
 /*
  * NOTE! Please read the comments in formats.h for FMT_UNICODE and FMT_ENC
  */

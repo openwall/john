@@ -20,6 +20,8 @@ john_register_one(&fmt_opencl_lm);
 #include "common.h"
 #include "formats.h"
 #include "config.h"
+#include "color.h"
+#include "unicode.h"
 #include "../run/opencl/opencl_lm_hst_dev_shared.h"
 
 #define FORMAT_NAME			""
@@ -50,6 +52,7 @@ static struct fmt_tests tests[] = {
 	{"$LM$1d91a081d4b37861", "Z"},
 	{"$LM$" LM_EMPTY, ""},
 	{"$LM$fea4ab7d7b7d0452", "0688648"},
+	/* tests[16] and up may be disabled in init() */
 	{"$LM$2734832a3bee748c", "273.15\xf8"}, /* 8-bit, 273.15° using DOS codepage */
 	{"$LM$db82323cb0693862", "2275490"},
 	{"$LM$44b3b60db75c15c1", "2716388"},
@@ -116,6 +119,16 @@ static void init(struct fmt_main *pFmt)
 	opencl_prepare_dev(gpu_id);
 	opencl_lm_b_register_functions(pFmt);
 	opencl_lm_init_global_variables();
+
+	static int warned;
+	if (!warned && options.target_enc > CP_DOS_HI && !options.listconf &&
+		sizeof(tests) / sizeof(tests[0]) > 16) {
+		fprintf_color(color_warning, stderr,
+		              "Warning: LM formats incompatible with %s encoding, disabling some self-tests\n",
+		              cp_id2name(options.target_enc));
+		tests[16].ciphertext = NULL; // Truncates the array after 16 entries
+		warned = 1;
+	}
 }
 
 static char *prepare(char *fields[10], struct fmt_main *self)
