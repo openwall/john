@@ -198,7 +198,7 @@ static char* get_key(int index)
 
 static void init(struct fmt_main *_self)
 {
-	static char valgo[32] = "";
+	static char valgo[sizeof(ALGORITHM_NAME) + 12] = "";
 
 	self = _self;
 
