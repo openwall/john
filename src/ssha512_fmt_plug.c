@@ -30,15 +30,15 @@ john_register_one(&fmt_saltedsha2);
 #include "rawSHA512_common.h"
 
 #define FORMAT_LABEL                    "SSHA512"
-#define FORMAT_NAME                     "LDAP"
+#define FORMAT_NAME                     "LDAP {SSHA512}"
 
 #ifdef SIMD_COEF_64
-#define ALGORITHM_NAME					"SHA512 " SHA512_ALGORITHM_NAME
+#define ALGORITHM_NAME					"SHA512 ($p.$s) " SHA512_ALGORITHM_NAME
 #else
 #if ARCH_BITS >= 64
-#define ALGORITHM_NAME					"SHA512 64/" ARCH_BITS_STR
+#define ALGORITHM_NAME					"SHA512 ($p.$s) 64/" ARCH_BITS_STR
 #else
-#define ALGORITHM_NAME					"SHA512 32/" ARCH_BITS_STR
+#define ALGORITHM_NAME					"SHA512 ($p.$s) 32/" ARCH_BITS_STR
 #endif
 #endif
 

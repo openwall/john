@@ -37,7 +37,7 @@ static unsigned int threads = 1;
 #define FORMAT_LABEL			"xsha"
 #define FORMAT_NAME			"Mac OS X 10.4 - 10.6"
 
-#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME			"SHA1 ($s.$p)" SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		7

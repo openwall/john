@@ -33,7 +33,7 @@ john_register_one(&FMT_STRUCT);
 
 #define FORMAT_LABEL			"salted-SHA1-opencl"
 #define FORMAT_NAME			""
-#define ALGORITHM_NAME			"SHA1 OpenCL"
+#define ALGORITHM_NAME			"SHA1 ($p.$s) OpenCL"
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		7

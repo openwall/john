@@ -34,8 +34,8 @@ john_register_one(&fmt_opencl_xsha512);
 #include "rawSHA512_common.h"
 
 #define FORMAT_LABEL			"XSHA512-free-opencl"
-#define FORMAT_NAME			"Mac OS X 10.7+"
-#define ALGORITHM_NAME			"SHA512 OpenCL (efficient at \"many salts\" only)"
+#define FORMAT_NAME			"Mac OS X 10.7"
+#define ALGORITHM_NAME			"SHA512 ($s.$p) OpenCL (efficient at \"many salts\" only)"
 
 #define BENCHMARK_COMMENT		""
 

@@ -24,7 +24,7 @@ john_register_one(&fmt_XSHA512);
 
 #define FORMAT_LABEL			"xsha512"
 #define FORMAT_NAME			"Mac OS X 10.7"
-#define ALGORITHM_NAME			"SHA512 " SHA512_ALGORITHM_NAME
+#define ALGORITHM_NAME			"SHA512 ($s.$p) " SHA512_ALGORITHM_NAME
 
 #define PLAINTEXT_LENGTH		107
 

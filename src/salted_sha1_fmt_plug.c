@@ -33,7 +33,7 @@ john_register_one(&fmt_saltedsha);
 #define FORMAT_LABEL			"Salted-SHA1"
 #define FORMAT_NAME			""
 
-#define ALGORITHM_NAME			"SHA1 " SHA1_ALGORITHM_NAME
+#define ALGORITHM_NAME			"SHA1 ($p.$s) " SHA1_ALGORITHM_NAME
 
 #define BENCHMARK_COMMENT		""
 #define BENCHMARK_LENGTH		7
