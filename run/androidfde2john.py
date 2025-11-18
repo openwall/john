@@ -185,7 +185,7 @@ def parse_footer(data):
 
 
 def note():
-    print("Note: This script only works for old Android <= 4.3 disk images and only aes256/cbc-essiv:sha256 images are supported!")
+    sys.stderr.write("Note: This script only works for old Android <= 4.3 disk images and only aes256/cbc-essiv:sha256 images are supported!\n")
 
 
 def main(args):
