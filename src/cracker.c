@@ -182,11 +182,15 @@ void crk_init(struct db_main *db, void (*fix_state)(void),
  * or if the format has a custom reset() method (we've already called reset(db)
  * from john.c, and we don't want to mess with the format's state).
  */
-	if (db->loaded && db->format->methods.reset == fmt_default_reset)
-	if ((where = fmt_self_test(db->format, db))) {
-		log_event("! Self test failed (%s)", where);
-		fprintf(stderr, "Self test failed (%s)\n", where);
-		error();
+	if (db->loaded && db->format->methods.reset == fmt_default_reset && !(options.flags & FLG_NOTESTS)) {
+		struct db_main *test_db = ldr_init_test_db(db->format, db);
+
+		if ((where = fmt_self_test(db->format, test_db))) {
+			log_event("! Self test failed (%s)", where);
+			fprintf(stderr, "Self test failed (%s)\n", where);
+			error();
+		}
+		ldr_free_db(test_db, 1);
 	}
 
 #if HAVE_OPENCL
