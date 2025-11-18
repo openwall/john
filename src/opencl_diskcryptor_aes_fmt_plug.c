@@ -171,14 +171,11 @@ static void create_clobj(size_t kpc, struct fmt_main *self)
 
 static void init(struct fmt_main *_self)
 {
-	static int warned = 0;
-
 	self = _self;
 	opencl_prepare_dev(gpu_id);
 
-	if (!warned++ && !(options.flags & FLG_TEST_CHK) && !options.listconf) {
-		fprintf(stderr, "[ATTENTION] This format (%s) can only crack AES XTS DiskCryptor hashes.\n", FORMAT_LABEL);
-	}
+	if (!(options.flags & FLG_TEST_CHK) && !options.listconf)
+		WARN_ONCE(color_warning, stderr, "Warning: %s can only crack AES XTS DiskCryptor hashes.\n", FORMAT_LABEL);
 }
 
 static void reset(struct db_main *db)

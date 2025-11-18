@@ -1074,16 +1074,14 @@ static char *get_key(int index)
 static void *get_binary(char *ciphertext)
 {
 	static uchar *binary;
-	static int warned = 0, loaded = 0;
+	static int loaded = 0;
 	DES_cblock *challenge = my->methods.salt(ciphertext);
 	int i, j;
 
 	if (!binary) binary = mem_alloc_tiny(FULL_BINARY_SIZE, BINARY_ALIGN);
 
-	if (john_main_process)
-	if (!warned && !ldr_in_pot && !bench_or_test_running && ++loaded > 100) {
-		warned = 1;
-		fprintf(stderr, "%s: Note: slow loading. For short runs, try "
+	if (john_main_process && !ldr_in_pot && !bench_or_test_running && ++loaded > 100) {
+		WARN_ONCE(color_warning, stderr, "%s: Note: slow loading. For short runs, try "
 		        "--format=%s-naive\ninstead. That version loads "
 		        "faster but runs slower.\n", my->params.label,
 		        my->params.label);

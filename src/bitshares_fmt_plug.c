@@ -300,7 +300,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 						any_cracked |= 1;
 
 						if (memcmp(km, out_full, 4) != 0) {
-							fprintf(stderr, "Warning: " FORMAT_LABEL ": Good padding, but bad checksum"
+							fprintf_color(color_warning, stderr, "Warning: " FORMAT_LABEL ": Good padding, but bad checksum"
 							    " (corrupted data or false positive?) - will keep guessing\n");
 							fmt_bitshares.params.flags |= FMT_NOT_EXACT;
 						}

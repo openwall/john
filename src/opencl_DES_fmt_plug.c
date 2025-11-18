@@ -23,6 +23,7 @@ john_register_one(&fmt_opencl_cryptdes);
 #include "opencl_DES_bs.h"
 #include "../run/opencl/opencl_DES_hst_dev_shared.h"
 #include "logger.h"
+#include "john.h"
 
 #define FORMAT_NAME			"traditional crypt(3)"
 
@@ -111,13 +112,16 @@ static void init(struct fmt_main *pFmt)
 	opencl_prepare_dev(gpu_id);
 
 	if (force_kernel && !strcmp(force_kernel, "bs_b")) {
-		fprintf(stderr, "Using basic kernel (bs_b)\n");
+		if (john_main_process)
+			WARN_AND_LOG_ONCE(color_notice, stderr, "Using basic kernel (bs_b)\n");
 		opencl_DES_bs_b_register_functions(pFmt);
 	} else if (force_kernel && !strcmp(force_kernel, "bs_f")) {
-		fprintf(stderr, "Using fully unrolled, salt-specific kernels (bs_f)\n");
+		if (john_main_process)
+			WARN_AND_LOG_ONCE(color_notice, stderr, "Using fully unrolled, salt-specific kernels (bs_f)\n");
 		opencl_DES_bs_f_register_functions(pFmt);
 	} else if (force_kernel && !strcmp(force_kernel, "bs_h")) {
-		fprintf(stderr, "Using salt-specific kernels (bs_h)\n");
+		if (john_main_process)
+			WARN_AND_LOG_ONCE(color_notice, stderr, "Using salt-specific kernels (bs_h)\n");
 		opencl_DES_bs_h_register_functions(pFmt);
 	} else if ((USE_BASIC_KERNEL && !OVERRIDE_AUTO_CONFIG) ||
 	    (OVERRIDE_AUTO_CONFIG && !HARDCODE_SALT && !FULL_UNROLL)) {

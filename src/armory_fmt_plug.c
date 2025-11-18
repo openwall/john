@@ -125,8 +125,7 @@ static void init(struct fmt_main *self)
 	 * calls that take a const pointer.
 	 */
 	if (!(secp256k1_ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN))) {
-		fprintf(stderr, "Failed to create secp256k1 context\n");
-		error();
+		error_msg("Failed to create secp256k1 context\n");
 	}
 }
 
@@ -439,12 +438,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (failed) {
 #ifdef _OPENMP
 		if (failed < 0) {
-			fprintf(stderr, "OpenMP thread number out of range\n");
-			error();
+			error_msg("OpenMP thread number out of range\n");
 		}
 #endif
-		fprintf(stderr, "Memory allocation failed: %s\n", strerror(failed));
-		error();
+		error_msg("Memory allocation failed: %s\n", strerror(failed));
 	}
 
 	return cracked ? count : 0;

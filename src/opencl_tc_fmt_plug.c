@@ -333,7 +333,7 @@ static void* get_salt(char *ciphertext)
 		if (len > sizeof(tpath) - 1) {
 			// should never get here!  valid() should catch all lines with overly long paths
 			if (john_main_process)
-				fprintf(stderr, "Error, path is too long in truecrypt_opencl::get_salt(), [%.10s...]\n", p);
+				fprintf_color(color_error, stderr, "Error, path is too long in truecrypt_opencl::get_salt(), [%.10s...]\n", p);
 			error();
 		}
 		memcpy(tpath, p, len);
@@ -355,7 +355,7 @@ static void* get_salt(char *ciphertext)
 
 		if (sz > MAX_KFILE_SZ) {
 			if (john_main_process)
-				fprintf(stderr, "Error: keyfile '%s' is bigger than maximum size (MAX_KFILE_SZ is %d).\n", tpath, MAX_KFILE_SZ);
+				fprintf_color(color_error, stderr, "Error: keyfile '%s' is bigger than maximum size (MAX_KFILE_SZ is %d).\n", tpath, MAX_KFILE_SZ);
 			error();
 		}
 

@@ -135,24 +135,18 @@ static int keepass_valid(char *ciphertext, struct fmt_main *self)
 			goto err;
 #if !KEEPASS_ARGON2
 		if (!strcmp(p, "ef636ddf") || !strcmp(p, "9e298b19")) {
-			static int warned;
-
-			if (!ldr_in_pot && john_main_process && !warned) {
-				fprintf(stderr, "%s: Argon2 hash(es) not supported, skipping.\n",
+			if (!ldr_in_pot && john_main_process) {
+				WARN_ONCE(color_warning, stderr, "%s: Argon2 hash(es) not supported, skipping.\n",
 				        self->params.label);
-				warned = 1;
 			}
 			goto err;
 		}
 #endif
 #if !KEEPASS_AES
 		if (!strcmp(p, "c9d9f39a")) {
-			static int warned;
-
-			if (!ldr_in_pot && john_main_process && !warned) {
-				fprintf(stderr, "%s: AES hash(es) not supported, skipping.\n",
+			if (!ldr_in_pot && john_main_process) {
+				WARN_ONCE(color_warning, stderr, "%s: AES hash(es) not supported, skipping.\n",
 				        self->params.label);
-				warned = 1;
 			}
 			goto err;
 		}
@@ -202,7 +196,7 @@ static int keepass_valid(char *ciphertext, struct fmt_main *self)
 			static int warned;
 
 			if (!ldr_in_pot && john_main_process && warned < content_size) {
-				fprintf(stderr,
+				fprintf_color(color_warning, stderr,
 				        "%s: Input rejected due to larger size than compile-time limit.\n"
 				        "Bump KEEPASS_MAX_CONTENT_SIZE in keepass_common.h to >= 0x%x, and rebuild\n",
 				        self->params.label, content_size);
@@ -244,7 +238,7 @@ static int keepass_valid(char *ciphertext, struct fmt_main *self)
 				static int warned;
 
 				if (!ldr_in_pot && john_main_process && warned < content_size) {
-					fprintf(stderr,
+					fprintf_color(color_warning, stderr,
 					        "%s: Input rejected due to larger size than compile-time limit.\n"
 					        "Bump KEEPASS_MAX_CONTENT_SIZE in keepass_common.h to >= 0x%x, and rebuild\n",
 					        self->params.label, content_size);
@@ -419,7 +413,7 @@ static void *keepass_get_salt(char *ciphertext)
 		p = strtokm(NULL, "*");
 		int keyfilesize = atoi(p);
 		if (keyfilesize != 64)
-			fprintf(stderr, "Warning: keepass possible bug indication %s:%d size %d\n",
+			fprintf_color(color_warning, stderr, "Warning: keepass possible bug indication %s:%d size %d\n",
 			        __FILE__, __LINE__, keyfilesize);
 		p = strtokm(NULL, "*");
 		for (i = 0; i < keyfilesize / 2; i++)

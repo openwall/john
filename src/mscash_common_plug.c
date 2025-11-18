@@ -19,7 +19,7 @@
 #include "unicode.h"
 #include "johnswap.h"
 #include "mscash_common.h"
-
+#include "john.h"
 
 /**************************************
  * Common stuff for mscash(1) hashes
@@ -101,22 +101,17 @@ int mscash1_common_valid(char *ciphertext, struct fmt_main *self)
 	// This is tricky: Max supported salt length is 19 characters of Unicode
 	saltlen = enc_to_utf16(realsalt, MSCASH1_MAX_SALT_LENGTH+1, (UTF8*)strnzcpy(insalt, &ciphertext[FORMAT_TAG_LEN], l - FORMAT_TAG_LEN), l - 3);
 	if (saltlen < 0) {
-		static int error_shown = 0;
 #ifdef HAVE_FUZZ
 		if (options.flags & (FLG_FUZZ_CHK | FLG_FUZZ_DUMP_CHK))
 			return 0;
 #endif
-		if (!error_shown)
-			fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
-		error_shown = 1;
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_error, stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
 		return 0;
 	}
 	if (saltlen > MSCASH1_MAX_SALT_LENGTH) {
-		static int warned = 0;
-
-		if (!ldr_in_pot)
-		if (!warned++)
-			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", self->params.label);
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr, "%s: One or more hashes rejected due to salt length limitation\n", self->params.label);
 		return 0;
 	}
 	return 1;
@@ -330,22 +325,17 @@ int mscash2_common_valid(char *ciphertext, int max_salt_length, struct fmt_main 
 	++i;
 	saltlen = enc_to_utf16(realsalt, max_salt_length, (UTF8*)strnzcpy(insalt, &ciphertext[i], l-i), l-(i+1));
 	if (saltlen < 0) {
-		static int error_shown = 0;
 #ifdef HAVE_FUZZ
 		if (options.flags & (FLG_FUZZ_CHK | FLG_FUZZ_DUMP_CHK))
 			return 0;
 #endif
-		if (!error_shown)
-			fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
-		error_shown = 1;
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_error, stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
 		return 0;
 	}
 	if (saltlen > max_salt_length) {
-		static int warned = 0;
-
-		if (!ldr_in_pot)
-		if (!warned++)
-			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", self->params.label);
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr, "%s: One or more hashes rejected due to salt length limitation\n", self->params.label);
 
 		return 0;
 	}

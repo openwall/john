@@ -38,6 +38,8 @@ john_register_one(&fmt_sapH);
 #include "sha.h"
 #include "sha2.h"
 #include "johnswap.h"
+#include "loader.h"
+#include "john.h"
 
 /*
  * Assumption is made that SIMD_COEF_32*SIMD_PARA_SHA1 is >= than
@@ -200,11 +202,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (len < 1)
 		goto err;
 	if (len > SALT_LENGTH) {
-		static int warned;
-		if (!warned) {
-			fprintf(stderr, "Warning: " FORMAT_LABEL " salt longer than max supported\n");
-			warned = 1;
-		}
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr, "Warning: " FORMAT_LABEL " salt longer than max supported\n");
 		goto err;
 	}
 

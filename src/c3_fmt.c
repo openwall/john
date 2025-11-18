@@ -142,14 +142,11 @@ static void init(struct fmt_main *self)
 		 * That's why, don't require FLG_TEST_CHK to be set.
 		 */
 		if (options.flags & FLG_PASSWD) {
-			fprintf(stderr,
-			        "\n%s: --subformat option is only for --test or --list=format-tests\n", FORMAT_LABEL);
-			error();
+			error_msg_main("\n%s: --subformat option is only for --test or --list=format-tests\n", FORMAT_LABEL);
 		}
 
 		if (!strcmp(options.subformat, "?")) {
-			fprintf(stderr, "Subformat may either be a verbatim salt, or: descrypt, md5crypt, bcrypt, sha256crypt, sha512crypt, sunmd5, scrypt, yescrypt, gost-yescrypt\n\n");
-			error();
+			error_msg_main("Subformat may either be a verbatim salt, or: descrypt, md5crypt, bcrypt, sha256crypt, sha512crypt, sunmd5, scrypt, yescrypt, gost-yescrypt\n\n");
 		} else if (!strcasecmp(options.subformat, "md5crypt") ||
 		    !strcasecmp(options.subformat, "md5")) {
 			static struct fmt_tests tests[] = {
@@ -263,9 +260,8 @@ static void init(struct fmt_main *self)
 			if (c && strlen(c) >= 13)
 				tests[i].ciphertext = xstrdup(c);
 			else {
-				fprintf(stderr, "%s not supported on this system\n",
+				error_msg_main("%s not supported on this system\n",
 				       options.subformat);
-				error();
 			}
 
 			/* No need to replace tests that we're not going to use */
@@ -274,9 +270,8 @@ static void init(struct fmt_main *self)
 		}
 
 		if (strlen(tests[0].ciphertext) == 13) {
-			fprintf(stderr, "%s not supported on this system\n",
+			error_msg_main("%s not supported on this system\n",
 			       options.subformat);
-			error();
 		}
 	}
 }
@@ -371,7 +366,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (id != 10 && !ldr_in_pot)
 	if (john_main_process)
-		fprintf(stderr, "Warning: "
+		fprintf_color(color_warning, stderr, "Warning: "
 		    "hash encoding string length %d, type id %c%c\n"
 		    "appears to be unsupported on this system; "
 		    "will not load such hashes.\n",

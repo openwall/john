@@ -209,7 +209,7 @@ static void init(struct fmt_main *_self)
 			if ((t = strrchr(pf, '-')))
 				*t = 0;
 
-			fprintf(stderr,
+			fprintf_color(color_error, stderr,
 "The \"%s\" format takes hex keys of length 64 as input. Most normal\n"
 "cracking approaches does not make sense. You probably wanted to use the\n"
 "\"%s\" format (even for PMKID hashes).\n",

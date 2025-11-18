@@ -33,6 +33,7 @@ john_register_one(&fmt_oracle);
 #include "common.h"
 #include "formats.h"
 #include "unicode.h"
+#include "john.h"
 
 #define FORMAT_LABEL            "oracle"
 #define FORMAT_NAME             "Oracle 10"
@@ -135,14 +136,12 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		len = enc_to_utf16(name16, MAX_USERNAME_LEN + 1,
 		                   (UTF8*)name, strlen(name));
 		if (len < 0) {
-			static int error_shown = 0;
 #ifdef HAVE_FUZZ
 			if (options.flags & (FLG_FUZZ_CHK | FLG_FUZZ_DUMP_CHK))
 				return 0;
 #endif
-			if (!error_shown)
-				fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
-			error_shown = 1;
+			if (john_main_process)
+				WARN_ONCE(color_error, stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
 			return 0;
 		}
 		if (len > MAX_USERNAME_LEN)

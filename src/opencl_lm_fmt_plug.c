@@ -120,14 +120,12 @@ static void init(struct fmt_main *pFmt)
 	opencl_lm_b_register_functions(pFmt);
 	opencl_lm_init_global_variables();
 
-	static int warned;
-	if (!warned && options.target_enc > CP_DOS_HI && !options.listconf &&
+	if (options.target_enc > CP_DOS_HI && !options.listconf &&
 		sizeof(tests) / sizeof(tests[0]) > 16) {
-		fprintf_color(color_warning, stderr,
+		WARN_ONCE(color_warning, stderr,
 		              "Warning: LM formats incompatible with %s encoding, disabling some self-tests\n",
 		              cp_id2name(options.target_enc));
 		tests[16].ciphertext = NULL; // Truncates the array after 16 entries
-		warned = 1;
 	}
 }
 

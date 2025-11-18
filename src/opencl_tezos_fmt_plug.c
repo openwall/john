@@ -231,6 +231,26 @@ static void done(void)
 	}
 }
 
+static void set_key(char *key, int index)
+{
+	size_t saved_len = strnlen(key, PLAINTEXT_LENGTH);
+	memcpy(host_pass[index].v, key, saved_len);
+	host_pass[index].length = saved_len;
+	new_keys = 1;
+	if (saved_len > max_key_length)
+		max_key_length = saved_len;
+}
+
+static char *get_key(int index)
+{
+	static char ret[PLAINTEXT_LENGTH + 1];
+
+	memcpy(ret, host_pass[index].v, host_pass[index].length);
+	ret[host_pass[index].length] = 0;
+
+	return ret;
+}
+
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt*)salt;
@@ -264,11 +284,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		BENCH_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
 	}
 
-	static int warned;
-	if (!warned && 8 + cur_salt->email_length + max_key_length > 107) {
-		warned = 1;
-		fprintf(stderr, "Warning: over-long combination(s) of e-mail address and candidate password\n");
-	}
+	if (8 + cur_salt->email_length + max_key_length > 107)
+		WARN_ONCE(color_warning, stderr, "Warning: over-long combination(s) of e-mail address and candidate password\n");
 
 	if (new_keys || ocl_autotune_running) {
 		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_in, CL_FALSE, 0,
@@ -331,33 +348,13 @@ static int cmp_one(void *binary, int index)
 	uint32_t magic = cracked[1 + index];
 	if (!magic || magic == 0x486954)
 		return magic;
-	fprintf(stderr, FORMAT_LABEL ": Cracked something, but the magic 0x%08x is bad, skipping\n", magic);
+	fprintf_color(color_warning, stderr, FORMAT_LABEL ": Cracked something with password '%s', but the magic 0x%08x is bad, skipping\n", get_key(index), magic);
 	return 0;
 }
 
 static int cmp_exact(char *source, int index)
 {
 	return 1;
-}
-
-static void set_key(char *key, int index)
-{
-	size_t saved_len = strnlen(key, PLAINTEXT_LENGTH);
-	memcpy(host_pass[index].v, key, saved_len);
-	host_pass[index].length = saved_len;
-	new_keys = 1;
-	if (saved_len > max_key_length)
-		max_key_length = saved_len;
-}
-
-static char *get_key(int index)
-{
-	static char ret[PLAINTEXT_LENGTH + 1];
-
-	memcpy(ret, host_pass[index].v, host_pass[index].length);
-	ret[host_pass[index].length] = 0;
-
-	return ret;
 }
 
 struct fmt_main fmt_opencl_tezos = {

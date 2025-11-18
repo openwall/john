@@ -18,6 +18,7 @@
 #include "bt_interface.h"
 #include "mask_ext.h"
 #include "logger.h"
+#include "john.h"
 
 #define PADDING 	2048
 
@@ -443,7 +444,7 @@ static void release_kernels();
 
 static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s_mem_lws, unsigned int use_local_mem, unsigned int use_last_build_opt)
 {
-	static unsigned int warned, last_build_opts[3];
+	static unsigned int last_build_opts[3];
 	char build_opts[500];
 	cl_ulong const_cache_size;
 	unsigned int i;
@@ -453,22 +454,24 @@ static void init_kernels(char *bitmap_params, unsigned int full_unroll, size_t s
 	char *kernel, *lm_kernel, *force_kernel = getenv("JOHN_DES_KERNEL");
 
 	if (force_kernel && !strcmp(force_kernel, "bs_f")) {
-		if (!warned++) fprintf(stderr, "Using fully unrolled kernel (lm_bs_f)\n");
+		if (john_main_process)
+			WARN_AND_LOG_ONCE(color_notice, stderr, "Using fully unrolled kernel (lm_bs_f)");
 		full_unroll = 1;
 		lm_kernel = "lm_bs_f";
 		kernel = "$JOHN/opencl/lm_kernel_f.cl";
 	} else if (force_kernel && !strcmp(force_kernel, "bs_b")) {
-		if (!warned++) fprintf(stderr, "Using basic kernel (lm_bs_b)\n");
+		if (john_main_process)
+			WARN_AND_LOG_ONCE(color_notice, stderr, "Using basic kernel (lm_bs_b)");
 		full_unroll = 0;
 		lm_kernel = "lm_bs_b";
 		kernel = "$JOHN/opencl/lm_kernel_b.cl";
 	} else
 	if (use_last_build_opt ? last_build_opts[0] : full_unroll) {
-		if (!warned++) log_event("- Using fully unrolled kernel (lm_bs_f)");
+		LOG_ONCE("Using fully unrolled kernel (lm_bs_f)");
 		lm_kernel = "lm_bs_f";
 		kernel = "$JOHN/opencl/lm_kernel_f.cl";
 	} else {
-		if (!warned++) log_event("- Using basic kernel (lm_bs_b)");
+		LOG_ONCE("Using basic kernel (lm_bs_b)");
 		lm_kernel = "lm_bs_b";
 		kernel = "$JOHN/opencl/lm_kernel_b.cl";
 	}

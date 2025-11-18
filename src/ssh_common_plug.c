@@ -11,6 +11,8 @@
 #include "arch.h"
 #include "misc.h"
 #include "common.h"
+#include "john.h"
+#include "loader.h"
 #include "ssh_common.h"
 
 int ssh_valid(char *ciphertext, struct fmt_main *self)
@@ -52,8 +54,9 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 
 	if (cipher < 0 || cipher > 6) {
-		fprintf(stderr, "%s: Cipher value of %d is not supported\n",
-		        self->params.label, cipher);
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr, "%s: Cipher value of %d is not supported\n",
+			          self->params.label, cipher);
 		goto err;
 	}
 
@@ -76,15 +79,17 @@ int ssh_valid(char *ciphertext, struct fmt_main *self)
 
 #if !HAVE_LIBCRYPTO
 	if (!strcasestr(self->params.label, "-opencl") && (cipher == 0 || cipher == 7)) {
-		fprintf(stderr, "%s: [3]DES is not supported in this build (need OpenSSL)\n",
-		        self->params.label);
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr, "%s: [3]DES is not supported in this build (need OpenSSL)\n",
+			          self->params.label);
 		goto err;
 	}
 #endif
 
 	if (strcasestr(self->params.label, "-opencl") && (cipher == 2 || cipher == 6)) {
-		fprintf(stderr, "%s: Cipher value of %d is not yet supported with OpenCL\n",
-		        self->params.label, cipher);
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr, "%s: Cipher value of %d is not yet supported with OpenCL\n",
+			          self->params.label, cipher);
 		goto err;
 	}
 

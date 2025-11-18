@@ -283,7 +283,7 @@ static void pdf_compute_user_password(unsigned char *password,  unsigned char *o
 
 		log_event("+ RC4 key: %s", h_key);
 		if (options.verbosity > VERB_DEFAULT)
-			fprintf(stderr, "+ RC4 key: %s\n", h_key);
+			fprintf_color(color_notice, stderr, "+ RC4 key: %s\n", h_key);
 	}
 }
 

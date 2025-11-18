@@ -60,7 +60,8 @@ int winzip_common_valid(char *ciphertext, struct fmt_main *self)
 
 	if (!strncmp(ciphertext, "$zip$", 5)) {
 		if (!old_warn)
-			fprintf(stderr, "Warning, Older unhandled WinZip format hash seen. This hash can not be processed\n");
+			fprintf_color(color_warning, stderr,
+			              "Warning, Older unhandled WinZip format hash seen. This hash can not be processed\n");
 		old_warn = 1;
 		return 0;
 	}

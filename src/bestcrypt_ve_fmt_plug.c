@@ -31,6 +31,7 @@ john_register_one(&fmt_bestcrypt_ve);
 #endif
 
 #include "arch.h"
+#include "john.h"
 #include "misc.h"
 #include "common.h"
 #include "formats.h"
@@ -229,7 +230,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if (atoi(p) != 8 && atoi(p) != 9 && atoi(p) != 10 && atoi(p) != 11 && atoi(p) != 15)
 		goto err;
 	if (atoi(p) == 11) {
-		fprintf(stderr, "Warning: " FORMAT_LABEL ": RC6 encryption not supported yet!\n");
+		if (john_main_process && !ldr_in_pot)
+			fprintf_color(color_warning, stderr, "Warning: " FORMAT_LABEL ": RC6 encryption not supported yet!\n");
 		goto err;
 	}
 	if ((p = strtokm(NULL, "$")) == NULL) // salt
@@ -401,11 +403,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (failed) {
 #ifdef _OPENMP
 		if (failed < 0) {
-			fprintf(stderr, "OpenMP thread number out of range\n");
+			fprintf_color(color_error, stderr, "OpenMP thread number out of range\n");
 			error();
 		}
 #endif
-		fprintf(stderr, "scrypt failed: %s\n", strerror(failed));
+		fprintf_color(color_error, stderr, "scrypt failed: %s\n", strerror(failed));
 		error();
 	}
 

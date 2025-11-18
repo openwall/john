@@ -198,10 +198,8 @@ static struct saltstruct {
 
 static void init(struct fmt_main *self)
 {
-	static int warned = 0;
-
-	if (options.target_enc == UTF_8 && !options.listconf && warned++ == 0)
-		fprintf(stderr, "Warning: SAP-B format should never be UTF-8.\nUse --target-encoding=iso-8859-1 or whatever is applicable.\n");
+	if (options.target_enc == UTF_8 && !options.listconf)
+		WARN_ONCE(color_warning, stderr, "Warning: SAP-B format should never be UTF-8.\nUse --target-encoding=iso-8859-1 or whatever is applicable.\n");
 
 	half_hashes = cfg_get_bool(SECTION_OPTIONS, NULL, "SAPhalfHashes", 0);
 

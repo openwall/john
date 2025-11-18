@@ -11,6 +11,8 @@
  *
  */
 #include "encdatavault_common.h"
+#include "loader.h"
+#include "john.h"
 
 MAYBE_INLINE void enc_xor_block(uint64_t *dst, const uint64_t *src)
 {
@@ -83,9 +85,8 @@ int valid_common(char *ciphertext, struct fmt_main *self, int is_pbkdf2)
 	int version = atoi(p);
 
 	if (version != 3 && version != 1) {
-		static int warned;
-		if (!self_test_running && !warned++)
-			fprintf(stderr, "%s: Warning: version %d not supported, not loading such hashes!\n", self->params.label, version);
+		if (!self_test_running && !ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr, "%s: Warning: version %d not supported, not loading such hashes!\n", self->params.label, version);
 		goto err;
 	}
 	if ((p = strtokm(NULL, "$")) == NULL)   // algorithm id
@@ -93,9 +94,8 @@ int valid_common(char *ciphertext, struct fmt_main *self, int is_pbkdf2)
 	if (!isdec(p))
 		goto err;
 	if (atoi(p) > 4 || atoi(p) < 1) {
-		static int warned;
-		if (!warned++)
-			fprintf(stderr, "%s: Warning: algorithm id %d not supported!\n", self->params.label, atoi(p));
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr, "%s: Warning: algorithm id %d not supported!\n", self->params.label, atoi(p));
 		goto err;
 	}
 	if ((p = strtokm(NULL, "$")) == NULL)   // Nonce
@@ -115,9 +115,8 @@ int valid_common(char *ciphertext, struct fmt_main *self, int is_pbkdf2)
 			goto err;
 		saltlen = atoi(p);
 		if (saltlen > PBKDF2_32_MAX_SALT_SIZE) {
-			static int warned;
-			if (!warned++)
-				fprintf(stderr, "%s: Warning: salt length %d too big!\n", self->params.label, saltlen);
+			if (!ldr_in_pot)
+				WARN_ONCE(color_warning, stderr, "%s: Warning: salt length %d too big!\n", self->params.label, saltlen);
 			goto err;
 		}
 		if ((p = strtokm(NULL, "$")) == NULL)   // Salt

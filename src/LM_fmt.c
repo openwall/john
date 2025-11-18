@@ -124,14 +124,12 @@ static void init(struct fmt_main *self)
 	fmt_LM.params.max_keys_per_crypt = DES_bs_max_kpc;
 #endif
 
-	static int warned;
-	if (!warned && options.target_enc > CP_DOS_HI && !options.listconf &&
+	if (options.target_enc > CP_DOS_HI && !options.listconf &&
 		sizeof(tests) / sizeof(tests[0]) > 16) {
-		fprintf_color(color_warning, stderr,
+		WARN_ONCE(color_warning, stderr,
 		              "Warning: LM formats incompatible with %s encoding, disabling some tests\n",
 		              cp_id2name(options.target_enc));
 		tests[16].ciphertext = NULL; // Truncates the array after 16 entries
-		warned = 1;
 	}
 }
 

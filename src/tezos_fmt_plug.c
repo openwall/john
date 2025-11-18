@@ -155,7 +155,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 #endif
 				{
 					warned = 1;
-					fprintf(stderr,
+					fprintf_color(color_warning, stderr,
 						"Warning: over-long combination(s) of e-mail address and candidate password\n");
 				}
 			}

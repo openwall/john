@@ -336,11 +336,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	// We support a max. total salt length of 52.
 	// We could opt to emit a warning if rejected here.
 	if (saltlen > MAX_SALTLEN) {
-		static int warned = 0;
-
-		if (!ldr_in_pot)
-		if (!warned++)
-			fprintf(stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr, "%s: One or more hashes rejected due to salt length limitation\n", FORMAT_LABEL);
 
 		return 0;
 	}

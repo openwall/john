@@ -18,6 +18,8 @@
 #include "jumbo.h"
 #include "aes.h"
 #include "asn1.h"
+#include "loader.h"
+#include "john.h"
 
 // $PEM$type$cipher$$salt$iterations$iv$blob_length$blob  // type, and cipher should be enough for all possible combinations
 struct fmt_tests pem_tests[] = {
@@ -39,7 +41,6 @@ struct fmt_tests pem_tests[] = {
 
 int pem_valid(char *ciphertext, struct fmt_main *self)
 {
-	static int kdf_warned, prf_warned;
 	char *ctcopy, *keeptr, *p;
 	int len, value, extra;
 
@@ -56,18 +57,14 @@ int pem_valid(char *ciphertext, struct fmt_main *self)
 		if ((p = strtokm(NULL, "$")) == NULL)
 			goto err;
 		if (strcmp(p, "pbkdf2") != 0) {
-			if (!self_test_running && !kdf_warned) {
-				fprintf(stderr, "Warning: %s kdf algorithm <%s> is not supported currently!\n", self->params.label, p);
-				kdf_warned = 1;
-			}
+			if (!ldr_in_pot && !self_test_running && john_main_process)
+				WARN_ONCE(color_warning, stderr, "Warning: %s kdf algorithm <%s> is not supported currently!\n", self->params.label, p);
 			goto err;
 		}
 		if ((p = strtokm(NULL, "$")) == NULL)
 			goto err;
-		if (!self_test_running && !prf_warned) {
-			fprintf(stderr, "Warning: %s prf algorithm <%s> is not supported currently!\n", self->params.label, p);
-			prf_warned = 1;
-		}
+		if (!ldr_in_pot && !self_test_running && john_main_process)
+			WARN_ONCE(color_warning, stderr, "Warning: %s prf algorithm <%s> is not supported currently!\n", self->params.label, p);
 		goto err;
 	}
 	if (!isdec(p))

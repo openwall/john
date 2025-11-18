@@ -473,14 +473,10 @@ static void *get_salt(char *ciphertext)
 		}
 	}
 
-	if (cs.type == 5 && !ldr_in_pot) {
-		static int warned;
-
-		if (john_main_process && !warned++) {
-			fprintf(stderr, "Note: The support for OldOffice type 5 is experimental and may be incorrect.\n");
-			fprintf(stderr, "      For latest news see https://github.com/openwall/john/issues/4705\n");
-		}
-	}
+	if (cs.type == 5 && !ldr_in_pot && john_main_process)
+		WARN_ONCE(color_warning, stderr,
+		          "Note: The support for OldOffice type 5 is experimental and may be incorrect.\n"
+		          "      For latest news see https://github.com/openwall/john/issues/4705\n");
 
 	MEM_FREE(keeptr);
 

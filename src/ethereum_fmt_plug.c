@@ -256,15 +256,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (failed) {
 #ifdef _OPENMP
 		if (failed < 0) {
-			fprintf(stderr, "OpenMP thread number out of range\n");
-			error();
+			error_msg("OpenMP thread number out of range\n");
 		}
 #endif
 #ifndef _OPENMP
 fail_with_errno:
 #endif
-		fprintf(stderr, "scrypt failed: %s\n", strerror(failed));
-		error();
+		error_msg("scrypt failed: %s\n", strerror(failed));
 	}
 
 	return count;

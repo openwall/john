@@ -165,10 +165,8 @@ int telegram_valid(char *ciphertext, struct fmt_main *self)
 	if (version != 1 && version != 2)
 		goto err;
 	if (version == 2 && strstr(self->params.label, "-opencl")) {
-		static int warned;
-
-		if (john_main_process && !warned++)
-			fprintf(stderr, "Warning: Telegram-opencl currently doesn't support v2 hashes.\n");
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr, "Warning: Telegram-opencl currently doesn't support v2 hashes.\n");
 		goto err;
 	}
 	if ((p = strtokm(NULL, "*")) == NULL)  // rounds

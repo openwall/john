@@ -273,8 +273,6 @@ static uint32_t (*crypt_out)[BINARY_SIZE / sizeof(uint32_t)];
 
 static void init(struct fmt_main *self)
 {
-	static int warned = 0;
-
 	omp_autotune(self, OMP_SCALE);
 
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
@@ -293,12 +291,10 @@ static void init(struct fmt_main *self)
  * to re-run luks2john and retry the passwords that have been stored for the current LUKS hashes
  * once the redesign of john's LUKS format implementation has been completed.)
  */
-	if (!options.listconf && !(options.flags & FLG_TEST_CHK) && !warned) {
-		warned = 1;
-		fprintf(stderr,
+	if (!options.listconf && !(options.flags & FLG_TEST_CHK)) {
+		WARN_ONCE(color_warning, stderr,
 		        "WARNING, LUKS format hash representation will change in future releases,\n"
 		        "see doc/README.LUKS\n"); // FIXME: address github issue #557 after 1.8.0-jumbo-1
-		fflush(stderr);
 	}
 
 //	 This printf will 'help' debug a system that truncates that monster hash, but does not cause compiler to die.

@@ -36,10 +36,6 @@ static unsigned char *aes_iv;
 #define FORMAT_TAG          "$RAR3$*"
 #define FORMAT_TAG_LEN      (sizeof(FORMAT_TAG)-1)
 
-#define YEL	"\x1b[0;33m"
-#define RED	"\x1b[0;31m"
-#define NRM	"\x1b[0m"
-
 static struct fmt_tests cpu_tests[] = {
 	{"$RAR3$*0*b109105f5fe0b899*d4f96690b1a8fe1f120b0290a85a2121", "test"},
 	{"$RAR3$*0*42ff7e92f24fb2f8*9d8516c8c847f1b941a0feef064aaf0d", "1234"},
@@ -298,12 +294,12 @@ static void *get_binary(char *ciphertext)
 #endif
 	if (options.verbosity > VERB_DEFAULT && john_main_process && !ldr_in_pot && !bench_or_test_running) {
 		if (file->method == 0x30) {
-			fprintf(stderr, YEL "%.32s(...) 0x30 size %"PRIu64", pad size %d\n" NRM,
+			fprintf_color(color_warning, stderr, "%.32s(...) 0x30 size %"PRIu64", pad size %d\n",
 			        ciphertext, file->unp_size, (int)(16 - (file->unp_size & 15)) & 15);
 		} else if (file->type == 0)
-			fprintf(stderr, YEL "%.32s(...) solid\n" NRM, ciphertext);
+			fprintf_color(color_warning, stderr, "%.32s(...) solid\n", ciphertext);
 		else
-			fprintf(stderr, YEL "%.32s(...) 0x%02x size %"PRIu64" unp_size %"PRIu64"\n" NRM, ciphertext, file->method, file->pack_size, file->unp_size);
+			fprintf_color(color_warning, stderr, "%.32s(...) 0x%02x size %"PRIu64" unp_size %"PRIu64"\n", ciphertext, file->method, file->pack_size, file->unp_size);
 	}
 
 
@@ -437,10 +433,8 @@ static int valid(char *ciphertext, struct fmt_main *self)
 			goto error;
 #if !HAVE_UNRAR
 		if (atoi(ptr) != 30) {
-			static int warned;
-
-			if (!warned++ && john_main_process)
-				fprintf(stderr, "Warning: Packed RAR hash(es) seen but ignored, this build does not support them.\n");
+			if (!ldr_in_pot && john_main_process)
+				WARN_ONCE(color_warning, stderr, "Warning: Packed RAR hash(es) seen but ignored, this build does not support them.\n");
 			goto error;
 		}
 #endif
@@ -556,7 +550,7 @@ static MAYBE_INLINE int check_huffman(unsigned char *next) {
 
 HUFFMAN_FAIL:
 #ifdef DEBUG
-	fprintf(stderr, RED "failed early reject checks for Huffman encoding\n" NRM);
+	fprintf_color(color_error, stderr, "failed early reject checks for Huffman encoding\n");
 #endif
 	return 0;
 }
@@ -643,7 +637,7 @@ inline static void check_rar(rar_file *cur_file, int index, unsigned char *key, 
 				if (!(plain[0] & 0x20) ||    // Reset bit must be set
 				    (plain[1] & 0x80)) {     // MaxMB must be < 128
 #ifdef DEBUG
-					fprintf(stderr, RED "failed PPM early reject check\n" NRM);
+					fprintf_color(color_error, stderr, "failed PPM early reject check\n");
 #endif
 					cracked[index] = 0;
 					return;
@@ -653,7 +647,7 @@ inline static void check_rar(rar_file *cur_file, int index, unsigned char *key, 
 				if ((plain[0] & 0x40) ||     // KeepOldTable can't be set
 				    !check_huffman(plain)) { // Huffman table check
 #ifdef DEBUG
-					fprintf(stderr, RED "failed LZ early reject check\n" NRM);
+					fprintf_color(color_error, stderr, "failed LZ early reject check\n");
 #endif
 					cracked[index] = 0;
 					return;
@@ -678,15 +672,15 @@ inline static void check_rar(rar_file *cur_file, int index, unsigned char *key, 
 				cracked[index] = !memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4);
 #ifdef DEBUG
 				if (!cracked[index])
-					fprintf(stderr, RED "'%s' passed unpack29 but failed CRC, %08x != %08x\n" NRM, get_key(index), ~JOHNSWAP(unpack_t->unp_crc), ~JOHNSWAP(cur_file->crc.w));
+					fprintf_color(color_error, stderr, "'%s' passed unpack29 but failed CRC, %08x != %08x\n", get_key(index), ~JOHNSWAP(unpack_t->unp_crc), ~JOHNSWAP(cur_file->crc.w));
 #endif
 			} else {
 				cracked[index] = 0;
 #ifdef DEBUG
 				if (!memcmp(&unpack_t->unp_crc, &cur_file->crc.c, 4))
-					fprintf(stderr, RED "Note: '%s' failed unpack29 yet passed CRC check (%08x)\n" NRM, get_key(index), ~JOHNSWAP(unpack_t->unp_crc));
+					fprintf_color(color_error, stderr, "Note: '%s' failed unpack29 yet passed CRC check (%08x)\n", get_key(index), ~JOHNSWAP(unpack_t->unp_crc));
 				else
-					fprintf(stderr, RED "failed unpack29\n" NRM);
+					fprintf_color(color_error, stderr, "failed unpack29\n");
 #endif
 			}
 		}

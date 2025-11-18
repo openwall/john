@@ -46,6 +46,7 @@ john_register_one(&fmt_AS400_ssha1);
 #include "options.h"
 #include "unicode.h"
 #include "base64_convert.h"
+#include "john.h"
 
 #define FORMAT_LABEL            "as400-ssha1"
 #define FORMAT_NAME             "AS400-SaltedSHA1"
@@ -150,14 +151,12 @@ static int our_valid(char *ciphertext, struct fmt_main *self)
 	if (strlen(&ciphertext[FORMAT_TAG_LEN + 2 * BINARY_SIZE + 1]) > 10)
 		return 0;
 	if (options.input_enc == UTF_8 && !valid_utf8((UTF8*)ciphertext)) {
-		static int error_shown = 0;
 #ifdef HAVE_FUZZ
 		if (options.flags & (FLG_FUZZ_CHK | FLG_FUZZ_DUMP_CHK))
 			return 0;
 #endif
-		if (!error_shown)
-			fprintf(stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
-		error_shown = 1;
+		if (john_main_process)
+			WARN_ONCE(color_error, stderr, "%s: Input file is not UTF-8. Please use --input-enc to specify a codepage.\n", self->params.label);
 		return 0;
 	}
 	return pDynamic->methods.valid(Convert(Conv_Buf, ciphertext), pDynamic);

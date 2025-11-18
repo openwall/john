@@ -273,11 +273,11 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (failed) {
 #ifdef _OPENMP
 		if (failed < 0) {
-			fprintf(stderr, "OpenMP thread number out of range\n");
+			fprintf_color(color_error, stderr, "OpenMP thread number out of range\n");
 			error();
 		}
 #endif
-		fprintf(stderr, "Memory allocation failed\n");
+		fprintf_color(color_error, stderr, "Memory allocation failed\n");
 		error();
 	}
 

@@ -436,15 +436,11 @@ static int valid(char *ciphertext, struct fmt_main *self)
 		return 0;
 
 	if (saltlen < 0 || saltlen > SALT_MAX_LENGTH) {
-		static int warned = 0;
-
-		if (!ldr_in_pot)
-		if (!warned++)
-			fprintf(stderr, "%s: One or more hashes rejected due "
-			        "to salt length limitation.\nMax supported sum"
-			        " of Username + Domainname lengths is %d"
-			         " characters.\nTry the CPU format for "
-			        "those.\n", FORMAT_LABEL, SALT_MAX_LENGTH);
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr,
+			          "%s: One or more hashes rejected due to salt length limitation.\nMax supported sum"
+			          " of Username + Domainname lengths is %d characters.\nTry the CPU format for those.\n",
+			          FORMAT_LABEL, SALT_MAX_LENGTH);
 		return 0;
 	}
 	return 1;

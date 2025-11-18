@@ -30,6 +30,7 @@ john_register_one(&fmt_django_scrypt);
 #include "options.h"
 #include "base64_convert.h"
 #include "yescrypt/yescrypt.h"
+#include "john.h"
 
 #define FORMAT_LABEL		"django-scrypt"
 #define FORMAT_NAME		""
@@ -236,12 +237,10 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	if (failed) {
 #ifdef _OPENMP
 		if (failed < 0) {
-			fprintf(stderr, "OpenMP thread number out of range\n");
-			error();
+			error_msg_main("OpenMP thread number out of range\n");
 		}
 #endif
-		fprintf(stderr, "scrypt failed: %s\n", strerror(failed));
-		error();
+		error_msg_main("scrypt failed: %s\n", strerror(failed));
 	}
 
 	return count;

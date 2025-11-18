@@ -116,11 +116,11 @@ static void done(void)
 static int allocate(uint8_t **memory, size_t size)
 {
 	if (THREAD_NUMBER < 0 || THREAD_NUMBER > NUM_THREADS) {
-		fprintf(stderr, "Error: KeePass: Thread number %d out of range\n", THREAD_NUMBER);
+		fprintf_color(color_error, stderr, "Error: KeePass: Thread number %d out of range\n", THREAD_NUMBER);
 		goto fail;
 	}
 	if (thread_mem[THREAD_NUMBER].used) {
-		fprintf(stderr, "Error: KeePass: Thread %d: Memory allocated twice\n", THREAD_NUMBER);
+		fprintf_color(color_error, stderr, "Error: KeePass: Thread %d: Memory allocated twice\n", THREAD_NUMBER);
 		goto fail;
 	}
 
@@ -143,15 +143,15 @@ fail:
 static void deallocate(uint8_t *memory, size_t size)
 {
 	if (THREAD_NUMBER < 0 || THREAD_NUMBER > NUM_THREADS) {
-		fprintf(stderr, "Error: KeePass: Thread number %d out of range\n", THREAD_NUMBER);
+		fprintf_color(color_error, stderr, "Error: KeePass: Thread number %d out of range\n", THREAD_NUMBER);
 		return;
 	}
 
 	if (!thread_mem[THREAD_NUMBER].used)
-		fprintf(stderr, "Error: KeePass: Thread %d: Freed memory not in use\n", THREAD_NUMBER);
+		fprintf_color(color_error, stderr, "Error: KeePass: Thread %d: Freed memory not in use\n", THREAD_NUMBER);
 
 	if (thread_mem[THREAD_NUMBER].region.aligned_size < size)
-		fprintf(stderr, "Error: KeePass: Thread %d: Freeing incorrect size %zu, was %zu\n",
+		fprintf_color(color_error, stderr, "Error: KeePass: Thread %d: Freeing incorrect size %zu, was %zu\n",
 		    THREAD_NUMBER, size, thread_mem[THREAD_NUMBER].region.aligned_size);
 
 	thread_mem[THREAD_NUMBER].used = 0;
@@ -243,7 +243,7 @@ static int transform_key(char *masterkey, unsigned char *final_key)
 		error_code = argon2_ctx(&context, cur_salt->type);
 		if (error_code != ARGON2_OK) {
 			ret = -1;
-			fprintf(stderr, "Error: Keepass: Argon2 failed: %s\n",
+			fprintf_color(color_error, stderr, "Error: Keepass: Argon2 failed: %s\n",
 			        argon2_error_message(error_code));
 		}
 	}
@@ -420,7 +420,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	}
 	if (failed) {
 #ifdef _OPENMP
-		fprintf(stderr, "Error: Keepass: Argon2 or alloc_region failed in some threads\n");
+		fprintf_color(color_error, stderr, "Error: Keepass: Argon2 or alloc_region failed in some threads\n");
 #endif
 		error();
 	}

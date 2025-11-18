@@ -101,9 +101,6 @@ struct fmt_tests sevenzip_tests[] = {
 
 sevenzip_salt_t *sevenzip_salt;
 
-#define YEL	"\x1b[0;33m"
-#define NRM	"\x1b[0m"
-
 int sevenzip_trust_padding;
 
 static char *comp_type[16] = { "stored", "LZMA1", "LZMA2", "PPMD", NULL, NULL, "BZIP2", "DEFLATE" };
@@ -140,15 +137,15 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 			    && type != 128) {
 		if (john_main_process && !warned[type]) {
 			warned[type] = 1;
-			fprintf(stderr, YEL "Warning: Not loading files with unsupported compression type %s (0x%02x)\n" NRM,
+			fprintf_color(color_warning, stderr, "Warning: Not loading files with unsupported compression type %s (0x%02x)\n",
 			        comp_type[c_type] ? comp_type[c_type] : "(unknown)", type);
 #if !HAVE_LIBBZ2
 			if (type == 6)
-				fprintf(stderr, YEL "Rebuild with libbz2 to get support for that type.\n" NRM);
+				fprintf_color(color_warning, stderr, "Rebuild with libbz2 to get support for that type.\n");
 #endif
 #if !HAVE_LIBZ
 			if (type == 7)
-				fprintf(stderr, YEL "Rebuild with libz (zlib) to get support for that type.\n" NRM);
+				fprintf_color(color_warning, stderr, "Rebuild with libz (zlib) to get support for that type.\n");
 #endif
 		}
 		goto err;
@@ -156,7 +153,7 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 	if (john_main_process && !ldr_in_pot && !self_test_running &&
 	    options.verbosity > VERB_DEFAULT && !warned[type]) {
 		warned[type] = 1;
-		fprintf(stderr, YEL "Saw file(s) with compression type %s%s%s (0x%02x)\n" NRM,
+		fprintf_color(color_notice, stderr, "Saw file(s) with compression type %s%s%s (0x%02x)\n",
 		        precomp_type[p_type], p_type ? "+" : "", comp_type[c_type], type);
 	}
 	if ((p = strtokm(NULL, "$")) == NULL) /* NumCyclesPower */
@@ -174,11 +171,8 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	len = atoi(p);
 	if (len > 0 && strstr(self->params.label, "-opencl")) {
-		static int warned;
-
-		if (!warned++)
-			fprintf(stderr, YEL "%s: Warning: Not loading hashes with salt due to optimizations. Please report!\n" NRM,
-			        self->params.label);
+		if (!ldr_in_pot && john_main_process)
+			WARN_ONCE(color_warning, stderr, "%s: Warning: Not loading hashes with salt due to optimizations. Please report!\n", self->params.label);
 		goto err;
 	}
 	if (len > 16)
@@ -355,7 +349,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 
 #if DEBUG
 	if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-		fprintf(stderr, "\nType %02x (%s%s%s) AES length %zu, packed len %zu, pad size %d, crc len %zu\n",
+		fprintf_color(color_notice, stderr, "\nType %02x (%s%s%s) AES length %zu, packed len %zu, pad size %d, crc len %zu\n",
 		        sevenzip_salt->type, precomp_type[p_type] ? precomp_type[p_type] : "",
 		        p_type ? "+" : "",
 		        comp_type[c_type] ? comp_type[c_type] : "(unknown)",
@@ -379,12 +373,11 @@ int sevenzip_decrypt(unsigned char *derived_key)
 			if (buf[i] != 0) {
 #if DEBUG
 				if (!benchmark_running && options.verbosity >= VERB_DEBUG) {
-					fprintf(stderr, YEL "Early padding check failed, ");
+					fprintf_color(color_warning, stderr, "Early padding check failed, ");
 					dump_stderr_msg("padding", buf + 16 - pad_size, pad_size);
-					fprintf(stderr, NRM);
 				}
 				if (sevenzip_salt->type == 0x80)
-					fprintf(stderr, YEL "We don't have data for complete decryption\n");
+					WARN_ONCE(color_warning, stderr, "We don't have data for complete decryption\n");
 				break;
 #else
 				return 0;
@@ -395,13 +388,13 @@ int sevenzip_decrypt(unsigned char *derived_key)
 		}
 #if DEBUG
 		if (!nbytes && !benchmark_running && options.verbosity >= VERB_DEBUG)
-			fprintf(stderr, "Early padding check passed\n");
+			fprintf_color(color_notice, stderr, "Early padding check passed\n");
 		else
 			nbytes = 0;
-#else
+		if (self_test_running)
+#endif
 		if (sevenzip_salt->type == 0x80) /* We only have truncated data */
 			return 1;
-#endif
 	}
 
 	/* Complete decryption */
@@ -417,9 +410,8 @@ int sevenzip_decrypt(unsigned char *derived_key)
 			if (out[i] != 0) {
 #if DEBUG
 				if (!benchmark_running && options.verbosity >= VERB_DEBUG) {
-					fprintf(stderr, YEL "Full data padding check failed, ");
+					fprintf_color(color_warning, stderr, "Full data padding check failed, ");
 					dump_stderr_msg("padding", out + sevenzip_salt->aes_length - pad_size, pad_size);
-					fprintf(stderr, NRM);
 				}
 				break;
 #else
@@ -431,7 +423,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 		}
 #if DEBUG
 		if (!nbytes && !benchmark_running && options.verbosity >= VERB_DEBUG)
-			fprintf(stderr, "Padding check passed\n");
+			fprintf_color(color_notice, stderr, "Padding check passed\n");
 #endif
 	}
 
@@ -456,7 +448,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 		    out_size == crc_len) {
 #if DEBUG
 			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-				fprintf(stderr, "LZMA decoding passed, %zu/%zu -> %zu/%zu, props %02x%02x%02x%02x\n",
+				fprintf_color(color_notice, stderr, "LZMA decoding passed, %zu/%zu -> %zu/%zu, props %02x%02x%02x%02x\n",
 				        in_size, sevenzip_salt->packed_size, out_size, crc_len, sevenzip_salt->decoder_props[0],
 				        sevenzip_salt->decoder_props[1], sevenzip_salt->decoder_props[2], sevenzip_salt->decoder_props[3]);
 #endif
@@ -465,7 +457,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 		} else {
 #if DEBUG
 			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-				fprintf(stderr, YEL "LZMA decoding failed, %zu/%zu -> %zu/%zu, props %02x%02x%02x%02x\n" NRM,
+				fprintf_color(color_warning, stderr, "LZMA decoding failed, %zu/%zu -> %zu/%zu, props %02x%02x%02x%02x\n",
 				        in_size, sevenzip_salt->packed_size, out_size, crc_len, sevenzip_salt->decoder_props[0],
 				        sevenzip_salt->decoder_props[1], sevenzip_salt->decoder_props[2], sevenzip_salt->decoder_props[3]);
 #endif
@@ -488,7 +480,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 		    out_size == crc_len) {
 #if DEBUG
 			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-				fprintf(stderr, "LZMA2 decoding passed, %zu/%zu -> %zu/%zu, props %02x\n",
+				fprintf_color(color_notice, stderr, "LZMA2 decoding passed, %zu/%zu -> %zu/%zu, props %02x\n",
 				        in_size, sevenzip_salt->packed_size, out_size, crc_len, sevenzip_salt->decoder_props[0]);
 #endif
 			MEM_FREE(out);
@@ -496,7 +488,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 		} else {
 #if DEBUG
 			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-				fprintf(stderr, YEL "LZMA2 decoding failed, %zu/%zu -> %zu/%zu, props %02x\n" NRM,
+				fprintf_color(color_warning, stderr, "LZMA2 decoding failed, %zu/%zu -> %zu/%zu, props %02x\n",
 				        in_size, sevenzip_salt->packed_size, out_size, crc_len, sevenzip_salt->decoder_props[0]);
 #endif
 			MEM_FREE(new_out);
@@ -526,7 +518,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 		if (ret == BZ_STREAM_END) {
 #if DEBUG
 			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-				fprintf(stderr, "BZIP2 decoding passed, %zu/%zu -> %zu/%zu\n",
+				fprintf_color(color_notice, stderr, "BZIP2 decoding passed, %zu/%zu -> %zu/%zu\n",
 				        sevenzip_salt->packed_size - inf_stream.avail_in, sevenzip_salt->packed_size,
 				        crc_len - inf_stream.avail_out, crc_len);
 #endif
@@ -535,7 +527,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 		} else {
 #if DEBUG
 			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-				fprintf(stderr, YEL "BZIP2 decoding failed, %zu/%zu -> %zu/%zu\n" NRM,
+				fprintf_color(color_warning, stderr, "BZIP2 decoding failed, %zu/%zu -> %zu/%zu\n",
 				        sevenzip_salt->packed_size - inf_stream.avail_in, sevenzip_salt->packed_size,
 				        crc_len - inf_stream.avail_out, crc_len);
 #endif
@@ -564,7 +556,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 		if (ret == Z_STREAM_END) {
 #if DEBUG
 			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-				fprintf(stderr, "DEFLATE decoding passed, %zu/%zu -> %zu/%zu\n",
+				fprintf_color(color_notice, stderr, "DEFLATE decoding passed, %zu/%zu -> %zu/%zu\n",
 				        sevenzip_salt->packed_size - inf_stream.avail_in, sevenzip_salt->packed_size,
 				        crc_len - inf_stream.avail_out, crc_len);
 #endif
@@ -573,7 +565,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 		} else {
 #if DEBUG
 			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-				fprintf(stderr, YEL "DEFLATE decoding failed, %zu/%zu -> %zu/%zu\n" NRM,
+				fprintf_color(color_warning, stderr, "DEFLATE decoding failed, %zu/%zu -> %zu/%zu\n",
 				        sevenzip_salt->packed_size - inf_stream.avail_in, sevenzip_salt->packed_size,
 				        crc_len - inf_stream.avail_out, crc_len);
 #endif
@@ -586,7 +578,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 	if (p_type) {
 #if DEBUG
 		if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-			fprintf(stderr, "Decoding %s, props %02x\n", precomp_type[p_type], sevenzip_salt->preproc_props);
+			fprintf_color(color_notice, stderr, "Decoding %s, props %02x\n", precomp_type[p_type], sevenzip_salt->preproc_props);
 #endif
 		if (p_type == 1) {
 			uint32_t state;
@@ -596,10 +588,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 		}
 		else if (p_type == 2) {
 			if (!benchmark_running && options.verbosity >= VERB_DEFAULT) {
-				static int warned;
-
-				if (!warned++)
-					fprintf(stderr, YEL "Can't decode BCJ2, so skipping CRC check" NRM);
+				WARN_ONCE(color_warning, stderr, "Can't decode BCJ2, so skipping CRC check");
 			}
 			goto exit_good;
 		}
@@ -620,7 +609,7 @@ int sevenzip_decrypt(unsigned char *derived_key)
 			Delta_Decode(state, sevenzip_salt->preproc_props + 1, out, crc_len);
 #if DEBUG
 			if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-				fprintf(stderr, YEL "DELTA decoding can't fail so result unknown\n" NRM);
+				fprintf_color(color_notice, stderr, "DELTA decoding can't fail so result unknown\n");
 #endif
 		}
 	}
@@ -636,13 +625,13 @@ int sevenzip_decrypt(unsigned char *derived_key)
 	if (ccrc == sevenzip_salt->crc) {
 #if DEBUG
 		if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-			fprintf(stderr, "CRC check passed (%08x)\n", ccrc);
+			fprintf_color(color_notice, stderr, "CRC check passed (%08x)\n", ccrc);
 #endif
 		goto exit_good;
 	}
 #if DEBUG
 	if (!benchmark_running && options.verbosity >= VERB_DEBUG)
-		fprintf(stderr, YEL "CRC failed, %08x vs %08x\n" NRM, ccrc, sevenzip_salt->crc);
+		fprintf_color(color_warning, stderr, "CRC failed, %08x vs %08x\n", ccrc, sevenzip_salt->crc);
 #endif
 
 exit_bad:
