@@ -25,6 +25,7 @@ struct fmt_tests iterated_sha1_tests[] = {
 	// 8 bytes salt, 1024 iterations
 	{"$sisha1$1024$6f77746f6f77746f5fa823ad3c2dc9b58893df73d52b2108b2efce45", "magnum"},
 	{"$sisha1$1024$6a6f686e72697070a3a2baadacf154dca88a9ea31400481748e253bb", "password"},
+	{"$sisha1$1024$6a6f686e72697070a48cd538757a88deaf12b93f4758e27017852ba3", "John the Ripper"},
 	// 6 bytes salt, 512 iterations
 	{"$sisha1$512$cafe80babe000cd885f153e249671f703039a5dce8a4ad771175", "ripper"},
 	// 3 bytes salt, 2 iterations
@@ -33,46 +34,29 @@ struct fmt_tests iterated_sha1_tests[] = {
 	{"$sisha1$1$73616c74d46dd115de9a2f3bf32d42b38d1b437e5f8b92a7", "clear"},
 	// Raw SHA-1 (just for testing)
 	{"$sisha1$1$2fbf0eba37de1d1d633bc1ed943b907f9b360d4c", "azertyuiop1"},
-	// Raw ciphertexts:
-	// 1024 iterations (default)
-	{"6a6f686e72697070a48cd538757a88deaf12b93f4758e27017852ba3", "John the Ripper"},
-	// XSHA: 4 bytes salt, 1 iteration (implicit for length 48 only)
-	{"474379622bd7b9f84bd6e4bb52abf9d01705efb0a2426655", "passWOrd"},
+
+	// XSHA: uppercase, 4 bytes salt, 1 iteration (implicit for length 48 only)
+	{"474379622BD7B9F84BD6E4BB52ABF9D01705EFB0A2426655", "passWOrd"},
 	{NULL}
 };
 
 /*
- * Convert raw ciphertext to canonical ciphertext with inferred salt length
- * and 1024 iterations (with exception for XSHA).
+ * $sisha1$<iter>$<hex_salt><hex_hash>
+ *
+ * No separator between salt and hash.
  */
-char *iterated_sha1_prepare(char *fields[10], struct fmt_main *self)
-{
-	static char out[FORMAT_TAG_LEN + 4 + 1 + 2 * 8 + 40 + 1];
-
-	if (!strncasecmp(fields[1], FORMAT_TAG, FORMAT_TAG_LEN))
-		return fields[1];
-
-	int len = strnlen(fields[1], 56 + 1);
-	int iter, extra;
-
-	if (len < MIN_CIPHERTEXT_LEN || len > MAX_CIPHERTEXT_LEN)
-		return fields[1];
-	if (hexlenl(fields[1], &extra) != len || extra)
-		return fields[1];
-
-	if (len == 48) // XSHA
-		iter = 1;
-	else
-		iter = 1024;
-
-	sprintf(out, "%s%d$%s", FORMAT_TAG, iter, fields[1]);
-	return out;
-}
-
 int iterated_sha1_valid(char *ciphertext, struct fmt_main *self)
 {
-	if (strncasecmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) {
+		/* Handle XSHA, untagged 48 chars uc hex */
+		int extra;
+
+		if (strnlen(ciphertext, 48 + 1) == 48 && hexlenu(ciphertext, &extra) == 48 && !extra)
+			return 1;
+
 		return 0;
+	}
+
 	ciphertext += FORMAT_TAG_LEN;
 
 	int iter = getdec(ciphertext, '$');
@@ -82,11 +66,11 @@ int iterated_sha1_valid(char *ciphertext, struct fmt_main *self)
 	ciphertext = strchr(ciphertext, '$') + 1;
 
 	int len = strnlen(ciphertext, MAX_CIPHERTEXT_LEN + 1);
-	if (len & 1 || len > MAX_CIPHERTEXT_LEN)
+	if (len & 1 || len < MIN_CIPHERTEXT_LEN || len > MAX_CIPHERTEXT_LEN)
 		return 0;
 
 	int extra;
-	if (hexlenl(ciphertext, &extra) < MIN_CIPHERTEXT_LEN || extra)
+	if (hexlenl(ciphertext, &extra) != len || extra)
 		return 0;
 
 	return 1;
@@ -95,8 +79,10 @@ int iterated_sha1_valid(char *ciphertext, struct fmt_main *self)
 void* iterated_sha1_get_binary(char* ciphertext)
 {
 	static uint8_t binary[BINARY_SIZE];
+	int len = strlen(ciphertext);
 
-	ciphertext += strlen(ciphertext) - 2 * BINARY_SIZE;
+	ciphertext += len - 2 * BINARY_SIZE;
+
 	base64_convert(ciphertext, e_b64_hex, 2 * BINARY_SIZE, binary, e_b64_raw, BINARY_SIZE, flg_Base64_DONOT_NULL_TERMINATE, 0);
 
 #if defined(SIMD_COEF_32) && ARCH_LITTLE_ENDIAN
@@ -112,10 +98,12 @@ void* iterated_sha1_get_salt(char* ciphertext)
 
 	memset(&salt_blob, 0, sizeof(salt_blob));
 
-	ciphertext += FORMAT_TAG_LEN;
-
-	salt_blob.iter = atoi(ciphertext);
-	ciphertext = strchr(ciphertext, '$') + 1;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN)) {
+		ciphertext += FORMAT_TAG_LEN;
+		salt_blob.iter = atoi(ciphertext);
+		ciphertext = strchr(ciphertext, '$') + 1;
+	} else /* XSHA */
+		salt_blob.iter = 1;
 
 	char* bin = ciphertext + strlen(ciphertext) - 40;
 	salt_blob.len = (bin - ciphertext) / 2;

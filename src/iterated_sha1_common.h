@@ -37,7 +37,6 @@ typedef struct {
 
 extern struct fmt_tests iterated_sha1_tests[];
 
-extern char *iterated_sha1_prepare(char *fields[10], struct fmt_main *self);
 extern int iterated_sha1_valid(char *ciphertext, struct fmt_main *self);
 extern void* iterated_sha1_get_binary(char* ciphertext);
 extern void* iterated_sha1_get_salt(char* ciphertext);

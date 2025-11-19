@@ -231,13 +231,16 @@ struct fmt_main FMT_STRUCT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_OMP_BAD,
 		{ "iterations" },
-		{ FORMAT_TAG },
+		{
+			FORMAT_TAG,
+			""
+		},
 		iterated_sha1_tests
 	}, {
 		init,
 		done,
 		fmt_default_reset,
-		iterated_sha1_prepare,
+		fmt_default_prepare,
 		iterated_sha1_valid,
 		fmt_default_split,
 		iterated_sha1_get_binary,

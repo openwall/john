@@ -783,9 +783,7 @@ static void auto_tune(struct db_main *db, long double kernel_run_ms)
 		tune_gws = 0;
 
 	/* Auto tune start.*/
-	char *fields[10];
-	fields[1]= fmt_opencl_sha1_iterated.params.tests[0].ciphertext;
-	char *ciphertext = iterated_sha1_prepare(fields, &fmt_opencl_sha1_iterated);
+	char *ciphertext = fmt_opencl_sha1_iterated.params.tests[0].ciphertext;
 	set_salt(iterated_sha1_get_salt(ciphertext));
 	pcount = gws_init;
 	count = 0;
@@ -937,13 +935,16 @@ struct fmt_main FMT_STRUCT = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_REMOVE | FMT_MASK,
 		{ "iterations" },
-		{ FORMAT_TAG },
+		{
+			FORMAT_TAG,
+			""
+		},
 		iterated_sha1_tests
 	}, {
 		init,
 		done,
 		reset,
-		iterated_sha1_prepare,
+		fmt_default_prepare,
 		iterated_sha1_valid,
 		fmt_default_split,
 		iterated_sha1_get_binary,
