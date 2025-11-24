@@ -184,7 +184,7 @@ void sm3_compress_blocks(uint32_t hash[8], const uint8_t *data, size_t blocks)
 		hash[6] ^= G;
 		hash[7] ^= H;
 
-		data += sm3_block_size;
+		data += SM3_BLOCK_SIZE;
 	}
 }
 
@@ -208,7 +208,7 @@ void sm3_update(sm3_ctx *ctx, const unsigned char *data, size_t size)
 
 	ctx->num &= 0x3f;
 	if (ctx->num) {
-		size_t left = sm3_block_size - ctx->num;
+		size_t left = SM3_BLOCK_SIZE - ctx->num;
 
 		if (size < left) {
 			memcpy(ctx->block + ctx->num, data, size);
@@ -223,12 +223,12 @@ void sm3_update(sm3_ctx *ctx, const unsigned char *data, size_t size)
 		}
 	}
 
-	blocks = size / sm3_block_size;
+	blocks = size / SM3_BLOCK_SIZE;
 	if (blocks) {
 		sm3_compress_blocks(ctx->hash, data, blocks);
 		ctx->num_blocks += blocks;
-		data += sm3_block_size * blocks;
-		size -= sm3_block_size * blocks;
+		data += SM3_BLOCK_SIZE * blocks;
+		size -= SM3_BLOCK_SIZE * blocks;
 	}
 
 	ctx->num = size;
@@ -244,12 +244,12 @@ void sm3_final(sm3_ctx *ctx, unsigned char *result)
 	ctx->num &= 0x3f;
 	ctx->block[ctx->num] = 0x80;
 
-	if (ctx->num <= sm3_block_size - 9) {
-		memset(ctx->block + ctx->num + 1, 0, sm3_block_size - ctx->num - 9);
+	if (ctx->num <= SM3_BLOCK_SIZE - 9) {
+		memset(ctx->block + ctx->num + 1, 0, SM3_BLOCK_SIZE - ctx->num - 9);
 	} else {
-		memset(ctx->block + ctx->num + 1, 0, sm3_block_size - ctx->num - 1);
+		memset(ctx->block + ctx->num + 1, 0, SM3_BLOCK_SIZE - ctx->num - 1);
 		sm3_compress_blocks(ctx->hash, ctx->block, 1);
-		memset(ctx->block, 0, sm3_block_size - 8);
+		memset(ctx->block, 0, SM3_BLOCK_SIZE - 8);
 	}
 
 	PUTU32(ctx->block + 56, ctx->num_blocks >> 23);

@@ -38,7 +38,7 @@ john_register_one(&fmt_sm3);
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   0x107
 #define PLAINTEXT_LENGTH   MAX_PLAINTEXT_LENGTH
-#define BINARY_SIZE        sm3_hash_length
+#define BINARY_SIZE        SM3_HASH_LENGTH
 #define BINARY_ALIGN       4
 #define SALT_SIZE          0
 #define SALT_ALIGN         1
@@ -85,7 +85,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 
 	if (!strncmp(p, FORMAT_TAG, TAG_LENGTH))
 		p += TAG_LENGTH;
-	if (hexlenl(p, &extra) != (2 * sm3_hash_length) || extra)
+	if (hexlenl(p, &extra) != (2 * SM3_HASH_LENGTH) || extra)
 		return 0;
 
 	return 1;

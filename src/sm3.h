@@ -19,13 +19,13 @@
 extern "C" {
 #endif
 
-#define sm3_block_size 64
-#define sm3_hash_length 32
+#define SM3_BLOCK_SIZE 64
+#define SM3_HASH_LENGTH 32
 
 /* algorithm context */
 typedef struct sm3_ctx {
 	uint32_t hash[8];       /* 256-bit hash */
-	unsigned char block[sm3_block_size];    /* 512-bit message block */
+	unsigned char block[SM3_BLOCK_SIZE];    /* 512-bit message block */
 	uint64_t num_blocks;    /* processed number of blocks */
 	uint64_t num;           /* index in the buffer of the last byte stored */
 } sm3_ctx;
