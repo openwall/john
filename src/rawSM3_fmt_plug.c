@@ -30,10 +30,11 @@ john_register_one(&fmt_sm3);
 
 #include "sm3.h"
 
-#define FORMAT_LABEL       "SM3"
+#define FORMAT_LABEL       "Raw-SM3"
+#define FORMAT_NAME        "ShangMi 3"
 #define FORMAT_TAG         "$raw-sm3$"
 #define TAG_LENGTH         (sizeof(FORMAT_TAG)-1)
-#define ALGORITHM_NAME     "32/" ARCH_BITS_STR
+#define ALGORITHM_NAME     "SM3 32/" ARCH_BITS_STR
 #define BENCHMARK_COMMENT  ""
 #define BENCHMARK_LENGTH   0x107
 #define PLAINTEXT_LENGTH   MAX_PLAINTEXT_LENGTH
@@ -179,7 +180,7 @@ static char *get_key(int index)
 struct fmt_main fmt_sm3 = {
 	{
 		FORMAT_LABEL,
-		"",
+		FORMAT_NAME,
 		ALGORITHM_NAME,
 		BENCHMARK_COMMENT,
 		BENCHMARK_LENGTH,
