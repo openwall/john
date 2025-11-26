@@ -38,8 +38,8 @@
  * 		(...)
  * 	CLRELEASEPINNED(data_blob);
  *
- * If the buffer can't be pinned, we silently fallback to a normal buffer,
- * handle it accordingly on release.
+ * If the buffer can't be pinned, we silently fallback to a plain malloc
+ * and handle it accordingly on release.
  */
 #define CLCREATEPINNED(VAR, FLAGS, SIZE)	  \
 	do { \
@@ -90,9 +90,9 @@
 			HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_##VAR, VAR, 0, NULL, NULL), \
 			               "Error Unmapping buffer"); \
 			CLFINISH(); \
-			VAR = NULL; \
 			HANDLE_CLERROR(clReleaseMemObject(pinned_##VAR), "Error releasing pinned buffer"); \
 			pinned_##VAR = NULL; \
+			VAR = NULL; \
 		} else \
 			MEM_FREE(VAR); \
 		HANDLE_CLERROR(clReleaseMemObject(cl_##VAR), "Error releasing buffer"); \

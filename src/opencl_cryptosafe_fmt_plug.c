@@ -1,5 +1,5 @@
 /*
- * This software is Copyright (c) 2021, magnum
+ * This software is Copyright (c) 2021-2025, magnum
  * and it is hereby released to the general public under the following terms:
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -30,6 +30,7 @@ john_register_one(&FORMAT_STRUCT);
 #include "options.h"
 #include "cryptosafe_common.h"
 #include "mask_ext.h"
+#include "opencl_helper_macros.h"
 
 #define FORMAT_LABEL        "cryptosafe-opencl"
 #define FORMAT_NAME         ""
@@ -40,16 +41,16 @@ john_register_one(&FORMAT_STRUCT);
 
 static struct custom_salt *cur_salt;
 
-static char *saved_key;
+static char *keys;
 static int new_keys;
 
-static unsigned int *saved_idx, key_idx;
+static unsigned int *idx, key_idx;
 static unsigned int *cracked, crack_count_ret;
 static size_t key_offset, idx_offset;
-static cl_mem cl_saved_key, cl_saved_idx, cl_salt, cl_result, cl_crack_count_ret;
-static cl_mem pinned_key, pinned_idx, pinned_result;
-static cl_mem pinned_int_key_loc, buffer_int_keys, buffer_int_key_loc;
-static cl_uint *saved_int_key_loc;
+static cl_mem cl_keys, cl_idx, cl_salt, cl_cracked, cl_crack_count_ret;
+static cl_mem pinned_keys, pinned_idx, pinned_cracked;
+static cl_mem pinned_int_key_loc, cl_int_keys, cl_int_key_loc;
+static cl_uint *int_key_loc;
 static int static_gpu_locations[MASK_FMT_INT_PLHDR];
 static struct fmt_main *self;
 
@@ -77,26 +78,10 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	release_clobj();
 
-	pinned_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, PLAINTEXT_LENGTH * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
-	cl_saved_key = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, PLAINTEXT_LENGTH * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	saved_key = clEnqueueMapBuffer(queue[gpu_id], pinned_key, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, PLAINTEXT_LENGTH * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping saved_key");
-
-	pinned_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * (gws + 1), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
-	cl_saved_idx = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cl_uint) * (gws + 1), NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	saved_idx = clEnqueueMapBuffer(queue[gpu_id], pinned_idx, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * (gws + 1), 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping saved_idx");
-
-	pinned_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, sizeof(unsigned int) * gws * mask_int_cand.num_int_cand, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked buffer");
-	cl_result = clCreateBuffer(context[gpu_id], CL_MEM_READ_WRITE, sizeof(unsigned int) * gws * mask_int_cand.num_int_cand, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating device buffer");
-	cracked = clEnqueueMapBuffer(queue[gpu_id], pinned_result, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(unsigned int) * gws * mask_int_cand.num_int_cand, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping cracked");
+	CLCREATEPINNED(keys, CL_RO, PLAINTEXT_LENGTH * gws);
+	CLCREATEPINNED(idx, CL_RO, sizeof(cl_uint) * (gws + 1));
+	CLCREATEPINNED(cracked, CL_RW, sizeof(unsigned int) * gws * mask_int_cand.num_int_cand);
+	CLCREATEPINNED(int_key_loc, CL_RO, sizeof(cl_uint) * gws);
 
 	cl_salt = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(struct custom_salt), NULL, &ret_code);
 	HANDLE_CLERROR(ret_code, "Error creating device buffer");
@@ -106,46 +91,29 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 	crack_count_ret = 0;
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &crack_count_ret, 0, NULL, NULL), "Failed resetting crack return");
 
-	pinned_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, sizeof(cl_uint) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating page-locked memory pinned_int_key_loc.");
-	saved_int_key_loc = (cl_uint *) clEnqueueMapBuffer(queue[gpu_id], pinned_int_key_loc, CL_TRUE, CL_MAP_READ | CL_MAP_WRITE, 0, sizeof(cl_uint) * gws, 0, NULL, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error mapping page-locked memory saved_int_key_loc.");
+	cl_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand ? mask_int_cand.int_cand : (void *)&dummy, &ret_code);
+	HANDLE_CLERROR(ret_code, "Error creating buffer argument cl_int_keys.");
 
-	buffer_int_key_loc = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY, sizeof(cl_uint) * gws, NULL, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer_int_key_loc.");
-
-	buffer_int_keys = clCreateBuffer(context[gpu_id], CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, 4 * mask_int_cand.num_int_cand, mask_int_cand.int_cand ? mask_int_cand.int_cand : (void *)&dummy, &ret_code);
-	HANDLE_CLERROR(ret_code, "Error creating buffer argument buffer_int_keys.");
-
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_saved_key), "Error setting argument 0");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_saved_idx), "Error setting argument 1");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 0, sizeof(cl_mem), (void*)&cl_keys), "Error setting argument 0");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 1, sizeof(cl_mem), (void*)&cl_idx), "Error setting argument 1");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 2, sizeof(cl_mem), (void*)&cl_salt), "Error setting argument 2");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_result), "Error setting argument 3");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 3, sizeof(cl_mem), (void*)&cl_cracked), "Error setting argument 3");
 	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 4, sizeof(cl_mem), (void*)&cl_crack_count_ret), "Error setting argument 4");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(buffer_int_key_loc), (void *) &buffer_int_key_loc), "Error setting argument 5.");
-	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(buffer_int_keys), (void *) &buffer_int_keys), "Error setting argument 6.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 5, sizeof(cl_int_key_loc), (void*)&cl_int_key_loc), "Error setting argument 5.");
+	HANDLE_CLERROR(clSetKernelArg(crypt_kernel, 6, sizeof(cl_int_keys), (void*)&cl_int_keys), "Error setting argument 6.");
 }
 
 static void release_clobj(void)
 {
 	if (cl_salt) {
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_result, cracked, 0, NULL, NULL), "Error Unmapping cracked");
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_key, saved_key, 0, NULL, NULL), "Error Unmapping saved_key");
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_idx, saved_idx, 0, NULL, NULL), "Error Unmapping saved_idx");
-		HANDLE_CLERROR(clEnqueueUnmapMemObject(queue[gpu_id], pinned_int_key_loc, saved_int_key_loc, 0, NULL, NULL), "Error Unmapping saved_int_key_loc.");
-		HANDLE_CLERROR(clFinish(queue[gpu_id]), "Error releasing memory mappings");
+		CLRELEASEPINNED(keys);
+		CLRELEASEPINNED(idx);
+		CLRELEASEPINNED(cracked);
+		CLRELEASEPINNED(int_key_loc);
 
-		HANDLE_CLERROR(clReleaseMemObject(pinned_result), "Release pinned result buffer");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_key), "Release pinned key buffer");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_idx), "Release pinned index buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_crack_count_ret), "Release crack flag buffer");
 		HANDLE_CLERROR(clReleaseMemObject(cl_salt), "Release salt buffer");
-		HANDLE_CLERROR(clReleaseMemObject(cl_result), "Release result buffer");
-		HANDLE_CLERROR(clReleaseMemObject(cl_saved_key), "Release key buffer");
-		HANDLE_CLERROR(clReleaseMemObject(cl_saved_idx), "Release index buffer");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_int_keys), "Error Releasing buffer_int_keys.");
-		HANDLE_CLERROR(clReleaseMemObject(buffer_int_key_loc), "Error Releasing buffer_int_key_loc.");
-		HANDLE_CLERROR(clReleaseMemObject(pinned_int_key_loc), "Error Releasing pinned_int_key_loc.");
+		HANDLE_CLERROR(clReleaseMemObject(cl_int_keys), "Error Releasing cl_int_keys.");
 
 		cl_salt = NULL;
 	}
@@ -242,7 +210,7 @@ static void reset(struct db_main *db)
 static void clear_keys(void)
 {
 	key_idx = 0;
-	saved_idx[0] = 0;
+	idx[0] = 0;
 	key_offset = 0;
 	idx_offset = 0;
 }
@@ -252,32 +220,32 @@ static void set_key(char *key, int index)
 	if (mask_int_cand.num_int_cand > 1 && !mask_gpu_is_static) {
 		int i;
 
-		saved_int_key_loc[index] = 0;
+		int_key_loc[index] = 0;
 		for (i = 0; i < MASK_FMT_INT_PLHDR; i++) {
 			if (mask_skip_ranges[i] != -1)  {
-				saved_int_key_loc[index] |= ((mask_int_cand.
+				int_key_loc[index] |= ((mask_int_cand.
 				int_cpu_mask_ctx->ranges[mask_skip_ranges[i]].offset +
 				mask_int_cand.int_cpu_mask_ctx->
 				ranges[mask_skip_ranges[i]].pos) & 0xff) << (i << 3);
 			}
 			else
-				saved_int_key_loc[index] |= 0x80 << (i << 3);
+				int_key_loc[index] |= 0x80 << (i << 3);
 		}
 	}
 
 	while (*key)
-		saved_key[key_idx++] = *key++;
+		keys[key_idx++] = *key++;
 
-	saved_idx[index + 1] = key_idx;
+	idx[index + 1] = key_idx;
 	new_keys = 1;
 
 	/* Early partial transfer to GPU */
 	if (index && !(index & (256*1024 - 1))) {
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, NULL), "Failed transferring keys");
-		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (index + 2) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_keys, CL_FALSE, key_offset, key_idx - key_offset, keys + key_offset, 0, NULL, NULL), "Failed transferring keys");
+		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_idx, CL_FALSE, idx_offset, 4 * (index + 2) - idx_offset, idx + (idx_offset / 4), 0, NULL, NULL), "Failed transferring index");
 
 		if (!mask_gpu_is_static)
-			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * (index + 1) - idx_offset, saved_int_key_loc + (idx_offset / 4), 0, NULL, NULL), "failed transferring buffer_int_key_loc.");
+			HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_int_key_loc, CL_FALSE, idx_offset, 4 * (index + 1) - idx_offset, int_key_loc + (idx_offset / 4), 0, NULL, NULL), "failed transferring cl_int_key_loc.");
 
 		HANDLE_CLERROR(clFlush(queue[gpu_id]), "failed in clFlush");
 
@@ -302,8 +270,8 @@ static char *get_key(int index)
 	else if (t >= global_work_size)
 		t = 0;
 
-	len = saved_idx[t + 1] - saved_idx[t];
-	key = (char*)&saved_key[saved_idx[t]];
+	len = idx[t + 1] - idx[t];
+	key = (char*)&keys[idx[t]];
 
 	for (i = 0; i < len; i++)
 		out[i] = *key++;
@@ -316,7 +284,7 @@ static char *get_key(int index)
 				out[static_gpu_locations[i]] =
 					mask_int_cand.int_cand[int_index].x[i];
 			else
-				out[(saved_int_key_loc[t] & (0xff << (i * 8))) >> (i * 8)] =
+				out[(int_key_loc[t] & (0xff << (i * 8))) >> (i * 8)] =
 					mask_int_cand.int_cand[int_index].x[i];
 	}
 
@@ -348,13 +316,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 		/* Safety for when count < GWS */
 		for (int i = count; i <= gws; i++)
-			saved_idx[i] = key_idx;
+			idx[i] = key_idx;
 
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_key, CL_FALSE, key_offset, key_idx - key_offset, saved_key + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
-		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_saved_idx, CL_FALSE, idx_offset, 4 * (gws + 1) - idx_offset, saved_idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_keys, CL_FALSE, key_offset, key_idx - key_offset, keys + key_offset, 0, NULL, multi_profilingEvent[0]), "Failed transferring keys");
+		BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_idx, CL_FALSE, idx_offset, 4 * (gws + 1) - idx_offset, idx + (idx_offset / 4), 0, NULL, multi_profilingEvent[1]), "Failed transferring index");
 
 		if (!mask_gpu_is_static)
-			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], buffer_int_key_loc, CL_FALSE, idx_offset, 4 * gws - idx_offset, saved_int_key_loc + (idx_offset / 4), 0, NULL, NULL), "failed transferring buffer_int_key_loc.");
+			BENCH_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_int_key_loc, CL_FALSE, idx_offset, 4 * gws - idx_offset, int_key_loc + (idx_offset / 4), 0, NULL, NULL), "failed transferring cl_int_key_loc.");
 
 		new_keys = 0;
 	}
@@ -368,7 +336,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		if (crack_count_ret > *pcount)
 			crack_count_ret = *pcount;
 
-		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_result, CL_TRUE, 0, sizeof(unsigned int) * crack_count_ret, cracked, 0, NULL, NULL), "failed reading results back");
+		BENCH_CLERROR(clEnqueueReadBuffer(queue[gpu_id], cl_cracked, CL_TRUE, 0, sizeof(unsigned int) * crack_count_ret, cracked, 0, NULL, NULL), "failed reading results back");
 
 		static const cl_uint zero = 0;
 		HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], cl_crack_count_ret, CL_FALSE, 0, sizeof(cl_uint), &zero, 0, NULL, NULL), "Failed resetting crack return");
