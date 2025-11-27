@@ -195,8 +195,8 @@ static void set_key(char *key, int index) {
 #endif
 	orig_len = strlen(key);
 	utf8len = enc_uc(utf8, sizeof(utf8), (unsigned char*)key, orig_len);
-	if (utf8len <= 0 && *key)
-		return;
+	if (utf8len < 0)
+		utf8len = -utf8len;
 
 #ifdef SIMD_COEF_32
 	((unsigned int *)saved_key)[15*SIMD_COEF_32 + (index&(SIMD_COEF_32-1)) + (unsigned int)index/SIMD_COEF_32*SHA_BUF_SIZ*SIMD_COEF_32] = (2*utf8len+SALT_SIZE)<<3;
