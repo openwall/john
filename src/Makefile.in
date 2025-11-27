@@ -588,7 +588,7 @@ kernel-cache-clean-john:
 kernel-cache-clean: kernel-cache-clean-nvidia kernel-cache-clean-john
 
 clean:
-	$(RM) $(PROJ)
+	$(RM) $(PROJ) fmt_registers.h fmt_externs.h
 	@for exe in ${PROJ}; do \
 	  ($(RM) $$exe.exe) \
 	done
