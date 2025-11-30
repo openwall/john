@@ -1,0 +1,6 @@
+services:
+  john:
+    image: john
+    build:
+      context: .
+      dockerfile: ./Dockerfile

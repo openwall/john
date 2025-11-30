@@ -1,5 +1,5 @@
 FROM fedora:rawhide
-MAINTAINER dhiru
+LABEL maintainer="dhiru"
 
 RUN rpm -e --nodeps gdbm
 
