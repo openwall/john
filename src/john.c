@@ -1995,7 +1995,6 @@ static void john_done(void)
 	path_done();
 
 	ldr_free_db(&database, 0);
-	cleanup_tiny_memory();
 	check_abort(0);
 }
 
@@ -2034,6 +2033,8 @@ int main(int argc, char **argv)
 	if (strlen(name) > 4 && !strcmp(name + strlen(name) - 4, ".exe"))
 		name[strlen(name) - 4] = 0;
 #endif
+
+	atexit(cleanup_tiny_memory);
 
 #ifdef _MSC_VER
 /*

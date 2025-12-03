@@ -58,7 +58,7 @@ static void add_memory_link(void *v) {
 	p->mem = v;
 	mem_alloc_tiny_memory = p;
 }
-// call at program exit.
+
 void cleanup_tiny_memory()
 {
 	struct rm_list *p = mem_alloc_tiny_memory, *p2;

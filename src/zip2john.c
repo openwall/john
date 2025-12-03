@@ -1186,7 +1186,5 @@ int zip2john(int argc, char **argv)
 		}
 	}
 
-	cleanup_tiny_memory();
-
 	return EXIT_SUCCESS;
 }

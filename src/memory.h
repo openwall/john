@@ -177,7 +177,7 @@ extern char *str_alloc_copy(const char *src);
 /*
  * This will 'cleanup' the memory allocated by mem_alloc_tiny().  All
  * of that memory was 'blindly' allocated, and not freed up during
- * the run of john.  Now, it is 'cleaned' up.
+ * the run of john.  Called via atexit().
  */
 extern void cleanup_tiny_memory();
 

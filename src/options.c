@@ -653,7 +653,6 @@ void opt_init(char *name, int argc, char **argv)
 		}
 #endif
 		path_done();
-		cleanup_tiny_memory();
 		exit(0);
 	}
 	if (costs_str) {

@@ -489,7 +489,6 @@ void rec_done(int save)
 static void rec_format_error(char *fn)
 {
 	path_done();
-	cleanup_tiny_memory();
 
 	if (fn && errno && ferror(rec_file))
 		pexit("%s", fn);
