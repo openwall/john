@@ -25,7 +25,7 @@ int zed_valid(char *ciphertext, struct fmt_main *self)
 	char *p = ciphertext, *ctcopy, *keeptr;
 	int version, algo, extra;
 
-	if (strncasecmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		return 0;
 	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;

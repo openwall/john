@@ -51,7 +51,7 @@ int salted_sha1_common_valid(char *ciphertext, struct fmt_main *self)
 	int len, real_len;
 	char buf[MAX_SALT_LEN+BINARY_SIZE+8];
 
-	if (strncasecmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH))
+	if (strncmp(ciphertext, NSLDAP_MAGIC, NSLDAP_MAGIC_LENGTH))
 		return 0;
 	ciphertext += NSLDAP_MAGIC_LENGTH;
 

@@ -648,10 +648,10 @@ static void *get_binary(char *ciphertext)
 	char *cp = ciphertext;
 
 	memset(b.cp, 0, sizeof(b.cp));
-	if (!strncasecmp(cp, FORMAT_TAG, FORMAT_TAG_LEN)) { cp += FORMAT_TAG_LEN; }
-	else if (!strncasecmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN)) { cp += FORMAT_TAG256_LEN; }
-	else if (!strncasecmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN)) { cp += FORMAT_TAG384_LEN; }
-	else if (!strncasecmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN)) { cp += FORMAT_TAG512_LEN; }
+	if (!strncmp(cp, FORMAT_TAG, FORMAT_TAG_LEN)) { cp += FORMAT_TAG_LEN; }
+	else if (!strncmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN)) { cp += FORMAT_TAG256_LEN; }
+	else if (!strncmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN)) { cp += FORMAT_TAG384_LEN; }
+	else if (!strncmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN)) { cp += FORMAT_TAG512_LEN; }
 	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); error(); }
 	while (*cp != '}') ++cp;
 	++cp;
@@ -669,10 +669,10 @@ static void *get_salt(char *ciphertext)
 	int total_len, hash_len = 0;
 
 	memset(&s, 0, sizeof(s));
-	if (!strncasecmp(cp, FORMAT_TAG, FORMAT_TAG_LEN)) { s.type = 1; cp += FORMAT_TAG_LEN; hash_len = SHA1_BINARY_SIZE; }
-	else if (!strncasecmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN)) { s.type = 2; cp += FORMAT_TAG256_LEN; hash_len = SHA256_BINARY_SIZE; }
-	else if (!strncasecmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN)) { s.type = 3; cp += FORMAT_TAG384_LEN; hash_len = SHA384_BINARY_SIZE; }
-	else if (!strncasecmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN)) { s.type = 4; cp += FORMAT_TAG512_LEN; hash_len = SHA512_BINARY_SIZE; }
+	if (!strncmp(cp, FORMAT_TAG, FORMAT_TAG_LEN)) { s.type = 1; cp += FORMAT_TAG_LEN; hash_len = SHA1_BINARY_SIZE; }
+	else if (!strncmp(cp, FORMAT_TAG256, FORMAT_TAG256_LEN)) { s.type = 2; cp += FORMAT_TAG256_LEN; hash_len = SHA256_BINARY_SIZE; }
+	else if (!strncmp(cp, FORMAT_TAG384, FORMAT_TAG384_LEN)) { s.type = 3; cp += FORMAT_TAG384_LEN; hash_len = SHA384_BINARY_SIZE; }
+	else if (!strncmp(cp, FORMAT_TAG512, FORMAT_TAG512_LEN)) { s.type = 4; cp += FORMAT_TAG512_LEN; hash_len = SHA512_BINARY_SIZE; }
 	else { fprintf(stderr, "error, bad signature in sap-H format!\n"); error(); }
 	sscanf(cp, "%u", &s.iter);
 	while (*cp != '}') ++cp;

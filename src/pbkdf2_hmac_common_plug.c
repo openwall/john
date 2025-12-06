@@ -382,7 +382,7 @@ int pbkdf2_hmac_sha1_valid(char *ciphertext, struct fmt_main *self) {
 	size_t len;
 	char *delim;
 
-	if (strncasecmp(ciphertext, PBKDF2_SHA1_FORMAT_TAG, PBKDF2_SHA1_TAG_LEN))
+	if (strncmp(ciphertext, PBKDF2_SHA1_FORMAT_TAG, PBKDF2_SHA1_TAG_LEN))
 		return 0;
 	if (strlen(ciphertext) > PBKDF2_SHA1_MAX_CIPHERTEXT_LENGTH)
 		return 0;

@@ -152,7 +152,7 @@ int sha512_common_valid_nsldap(char *ciphertext, struct fmt_main *self)
 {
 	int len;
 
-	if (strncasecmp(ciphertext, NSLDAP_FORMAT_TAG, NSLDAP_TAG_LENGTH))
+	if (strncmp(ciphertext, NSLDAP_FORMAT_TAG, NSLDAP_TAG_LENGTH))
 		return 0;
 	ciphertext += NSLDAP_TAG_LENGTH;
 

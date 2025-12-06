@@ -100,7 +100,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 {
 	char *p = ciphertext;
 
-	if (strncasecmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
+	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LENGTH))
 		return 0;
 
 	if (strlen(ciphertext) > (FORMAT_TAG_LENGTH + CIPHERTEXT_LENGTH))
