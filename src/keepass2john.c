@@ -133,11 +133,11 @@ static off_t get_file_size(char *filename)
 	return sb.st_size;
 }
 
-static void print_hex(unsigned char *str, int len)
+static void print_hex(void *str, int len)
 {
 	int i;
 	for (i = 0; i < len; ++i)
-		printf("%02x", str[i]);
+		printf("%02x", ((unsigned char*)str)[i]);
 }
 
 static uint64_t BytesToInt(unsigned char *s, const int s_size)
@@ -433,7 +433,7 @@ static void process_database(char* encryptedDatabase)
 	uint64_t Argon2_M = 0;
 
 	/* specific to keyfile handling */
-	unsigned char *buffer;
+	char *buffer;
 	int64_t filesize_keyfile = 0;
 	char *p;
 	char *data;
@@ -847,7 +847,7 @@ static void process_database(char* encryptedDatabase)
 	}
 
 	if (keyfile) {
-		buffer = mem_alloc(filesize_keyfile * sizeof(char));
+		buffer = mem_alloc(filesize_keyfile + 1);
 		printf("*1*64*"); /* inline keyfile content or hash - always 32 bytes */
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1) {
 			warn("%s: Error: read failed: %s.",
@@ -857,19 +857,54 @@ static void process_database(char* encryptedDatabase)
 
 		/*
 		 * As in Keepass 2.x implementation:
-		 *  if keyfile is an xml, get <Data> content
+		 *  if keyfile is Version 1 XML, get <Data> content in Base64
+		 *  if keyfile is Version 2 XML, get <Data> content in hex
 		 *  if filesize_keyfile == 32 then assume byte_array
 		 *  if filesize_keyfile == 64 then assume hex(byte_array)
 		 *  else byte_array = sha256(keyfile_content)
 		 */
+		buffer[filesize_keyfile] = 0;
 
-		if (!memcmp((char*) buffer, "<?xml", 5) &&
-		    ((p = strstr((char*) buffer, "<Key>")) != NULL) &&
-		    ((p = strstr(p, "<Data>")) != NULL)) {
+		if (!strncmp(buffer, "<?xml", 5) &&
+		    (p = strstr(buffer, "<KeyFile>")) &&
+		    (p = strstr(p, "<Version>1.0")) &&
+		    (p = strstr(p, "<Key>")) &&
+		    (p = strstr(p, "<Data>"))) {
 			p += strlen("<Data>");
+			while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
+				p++;
 			data = p;
 			p = strstr(p, "</Data>");
-			printf ("%s", base64_convert_cp(data, e_b64_mime, p - data, b64_decoded, e_b64_hex, sizeof(b64_decoded), flg_Base64_NO_FLAGS, 0));
+			if (p == NULL || p - buffer < 44) {
+				warn("Broken keyfile, can't find 32 bytes worth of Base64 for the key");
+				exit(1);
+			}
+			printf ("%s", base64_convert_cp(data, e_b64_mime, 44, b64_decoded, e_b64_hex, sizeof(b64_decoded), flg_Base64_NO_FLAGS, 0));
+		}
+		else if (!strncmp(buffer, "<?xml", 5) &&
+		         (p = strstr(buffer, "<KeyFile>")) &&
+		         (p = strstr(p, "<Version>2.0")) &&
+		         (p = strstr(p, "<Key>")) &&
+		         (p = strstr(p, "<Data")) &&
+		         (p = strchr(p, '>'))) {
+			char hex[64 + 1];
+			int hidx = 0;
+			p++;
+			while (hidx < 64 && p - buffer < filesize_keyfile) {
+				if ((*p >= '0' && *p <= '9') || (*p >= 'A' && *p <= 'F') || (*p >= 'a' && *p <= 'f'))
+					hex[hidx++] = *p++;
+				else if (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
+					p++;
+				else
+					break;
+			}
+			if (hidx != 64) {
+				warn("Broken keyfile, can't find 32 bytes worth of hex for the key");
+				exit(1);
+			}
+			hex[hidx] = 0;
+			strlwr(hex);
+			printf ("%s", hex);
 		}
 		else if (filesize_keyfile == 32)
 			print_hex(buffer, filesize_keyfile);
