@@ -264,8 +264,8 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - OpenCL on NVIDIA (Linux only): Reduce the amount of CPU busy-wait in a number
   of OpenCL formats.  [Solar, magnum; 2021]
 
-- OpenCL LM/DEScrypt: Override kernel selection with env. variable.  [magnum;
-  2021]
+- OpenCL LM/DEScrypt: Override kernel selection with env. variable.
+  [magnum; 2021]
 
 - Added support for ENCDataVault and encdatavault2john.py script
   [sylvainpelissier; 2021]
@@ -408,10 +408,6 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   M1 (those are for the KeePass format with AES-KDF, which is extreme because
   all the heavy lifting is AES).  [magnum, Solar; 2024]
 
-- Revised shared OpenCL AES code for a 3-6x boost (depending on device), again
-  affecting many formats but only significant for a handful of them.  [magnum;
-  2024]
-
 - Add fvde2john.py to improve FileVault 2 hash extraction.  [holly-o; 2024]
 
 - Add oracle2john.py and fix the o5logon format to support passwords longer
@@ -454,12 +450,19 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   project in August 2020 by supporting (and distinguishing) both our meaning
   (bcrypt-pbkdf + AES-256-CTR) and theirs (MD5 + single DES).  [Solar; 2025]
 
+- o5logon formats: Add support for Oracle 12, and implement GPU-side mask.
+  [magnum; 2025]
+
 - bitcoin2john.py: add support SQLite3 format [Maxim Kuleshov; 2025]
 
 - Added support for H3C/Huawei/HPE hashes.  [SamuraiOcto; 2025]
 
 - Added gitea2john.py: Convert Gitea database fields to the pbkdf2-hmac-sha256
   format.  [isaac-app-dev; 2025]
+
+- Revised shared OpenCL AES code for a 2-12x boost (depending on device and
+  format), affecting many formats but significant for few (currently KeePass,
+  Axcrypt and CryptoSafe).  [magnum; 2024, 2025]
 
 - KWallet format update to support files produced by newer distro builds of
   KWalletManager with endianness-corrected Blowfish.  [Solar, exploide; 2025]
@@ -472,6 +475,18 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Maximum supported password length for many formats increased from 125 to 319
   bytes (but many other formats still have lower limits).  [Solar; 2025]
+
+- Add generic iterated-sha1 formats, optionally salted ($s.$p) and as the
+  iterations can be set to 1 they are optional as well.  The formats will
+  also recognize bare XSHA hashes, which previously only had CPU support.
+  [magnum; 2025]
+
+- Add SM3crypt formats, seen in CMIYC 2024 and also available in libxcrypt.
+  They are Drepper-style crypt(3) using Shang Mi 3 (SM3) hash, a Chinese
+  replacement for SHA-256.  [magnum; 2025]
+
+- Add support to keepass2john for the current format of KeePass XML keyfiles.
+  The formats needed no changes.  [magnum; 2025]
 
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
