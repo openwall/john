@@ -53,8 +53,8 @@ my %Alphabets = (
 
 sub usage {
 	my $dn = $0; $dn =~ s/(.*)\/cisco2john.pl/$1/;
-	print "Usage:\t$0 [cisco config file(s)] >>hashfile 2>>seed.txt\n";
-	print "\t${dn}/john -format:md5 -wordlist:seed.txt -rules hashfile\n\n";
+	print STDERR "Usage:\t$0 [cisco config file(s)] >>hashfile 2>>seed.txt\n";
+	print STDERR "\t${dn}/john -format:md5 -wordlist:seed.txt -rules hashfile\n\n";
 	exit 1;
 }
 

@@ -51,17 +51,17 @@ exit (!!$cato);
 
 
 sub usage {
-	print "usage:  $0 [args]\n";
-	print "\targs:\n";
-	print "\t -? | -help    Provide this help screen\n";
-#	print "\t -quiet        Less output (multiple -q allowed)\n";
-	print "\t -verbose      More output\n";
-	print "\t -validate     Returns 0 if .pot valid, or 1 if any lines are problems\n";
-#	print "\t -stoponerror  If there is any fatal problem, stop\n";
-#	print "\t -canonize_fix Apply canonizaton rules to convert formats\n";
-#	print "\t -encode_fix   Fix encoding issues (cannonize to utf8)\n";
-	print "\t -longline_fix Overlong lines are converted to short .pot format\n";
-	print "\nThe program is a filter. stdin/stdout are used for input and output\n";
+	print STDERR "usage:  $0 [args]\n";
+	print STDERR "\targs:\n";
+	print STDERR "\t -? | -help    Provide this help screen\n";
+#	print STDERR "\t -quiet        Less output (multiple -q allowed)\n";
+	print STDERR "\t -verbose      More output\n";
+	print STDERR "\t -validate     Returns 0 if .pot valid, or 1 if any lines are problems\n";
+#	print STDERR "\t -stoponerror  If there is any fatal problem, stop\n";
+#	print STDERR "\t -canonize_fix Apply canonizaton rules to convert formats\n";
+#	print STDERR "\t -encode_fix   Fix encoding issues (cannonize to utf8)\n";
+	print STDERR "\t -longline_fix Overlong lines are converted to short .pot format\n";
+	print STDERR "\nThe program is a filter. stdin/stdout are used for input and output\n";
 	exit (0);
 }
 

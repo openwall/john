@@ -181,35 +181,35 @@ sub itunes_plist_get_hash
 
     if (! defined ($WPKY))
     {
-      print "ERROR: WPKY could not be found in '$file_name'\n";
+      print STDERR "ERROR: WPKY could not be found in '$file_name'\n";
 
       return "";
     }
 
     if (! defined ($SALT))
     {
-      print "ERROR: SALT could not be found in '$file_name'\n";
+      print STDERR "ERROR: SALT could not be found in '$file_name'\n";
 
       return "";
     }
 
     if (! defined ($ITER))
     {
-      print "ERROR: ITER could not be found in '$file_name'\n";
+      print STDERR "ERROR: ITER could not be found in '$file_name'\n";
 
       return "";
     }
 
     if (length ($WPKY) != 40)
     {
-      print "ERROR: the WPKY within the file '$file_name' should be exactly 40 bytes long\n";
+      print STDERR "ERROR: the WPKY within the file '$file_name' should be exactly 40 bytes long\n";
 
       return "";
     }
 
     if (length ($SALT) != 20)
     {
-      print "ERROR: the SALT within the file '$file_name' should be exactly 20 bytes long\n";
+      print STDERR "ERROR: the SALT within the file '$file_name' should be exactly 20 bytes long\n";
 
       return "";
     }
@@ -218,14 +218,14 @@ sub itunes_plist_get_hash
     {
       if (int ($DPIC) < 1)
       {
-        print "ERROR: the DPIC within the file '$file_name' has an invalid value ($DPIC)\n";
+        print STDERR "ERROR: the DPIC within the file '$file_name' has an invalid value ($DPIC)\n";
 
         return "";
       }
 
       if (length ($DPSL) != 20)
       {
-        print "ERROR: the DPSL within the file '$file_name' should be exactly 20 bytes long\n";
+        print STDERR "ERROR: the DPSL within the file '$file_name' should be exactly 20 bytes long\n";
 
         return "";
       }

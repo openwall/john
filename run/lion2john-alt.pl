@@ -16,7 +16,7 @@ use Data::Plist;
 use Data::Plist::BinaryReader;
 
 sub usage {
-  print "Usage: $0 <plist file> ...\n";
+  print STDERR "Usage: $0 <plist file> ...\n";
   exit(1);
 }
 

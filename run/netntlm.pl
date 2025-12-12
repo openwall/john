@@ -37,18 +37,18 @@ GetOptions (
 );
 
 sub showUsage {
-  print "john-netntlm.pl v$VERSION\n\n";
-  print "JoMo-Kun <jmk\@foofus.net>\n\n";
-  print "Usage: $0 [OPTIONS]\n";
-  print " $0\n";
-  print "   --seed [RainbowCrack/HalfLM Response Password]\n";
-  print "   --file [File Containing LM/NTLM challenge/responses (.lc format)]\n";
-  print "          Ex: Domain\\User:::LM response:NTLM response:challenge";
-  print "\n";
-  print " Ex:\n";
-  print " $0 --file capture.lc\n";
-  print " $0 --seed \"GERGE!!\"--file capture.lc\n";
-  print "\n";
+  print STDERR "john-netntlm.pl v$VERSION\n\n";
+  print STDERR "JoMo-Kun <jmk\@foofus.net>\n\n";
+  print STDERR "Usage: $0 [OPTIONS]\n";
+  print STDERR " $0\n";
+  print STDERR "   --seed [RainbowCrack/HalfLM Response Password]\n";
+  print STDERR "   --file [File Containing LM/NTLM challenge/responses (.lc format)]\n";
+  print STDERR "          Ex: Domain\\User:::LM response:NTLM response:challenge";
+  print STDERR "\n";
+  print STDERR " Ex:\n";
+  print STDERR " $0 --file capture.lc\n";
+  print STDERR " $0 --seed \"GERGE!!\"--file capture.lc\n";
+  print STDERR "\n";
   exit(1);
 }
 
