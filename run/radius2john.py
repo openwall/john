@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 # This software is Copyright (c) 2024, k4amos <k4amos at proton.me>
+# and (c) 2025, magnum,
 # and it is hereby released to the general public under the following terms:
 #
 # Redistribution and use in source and binary forms, with or without
@@ -71,8 +72,9 @@ def process_radius(args, ip, udpdata):
             user_name, user_hash = None, None
 
             for attr in radius_packet.attributes:
+
                 if attr.name == "User-Name":
-                    user_name = attr.value.decode("utf-8")
+                    user_name = attr.value.decode("utf-8", errors="replace")
 
                 if attr.name == "User-Password":
                     user_hash = attr.value
@@ -80,19 +82,28 @@ def process_radius(args, ip, udpdata):
             if user_hash is not None:
                 if args['login'] is None or user_name == args['login']:
                     dump_access_request(
-                        args, ip.src, radius_packet.authenticator, user_hash
+                        args, user_name, ip.src, ip.dst, radius_packet.authenticator, user_hash
                     )
 
         all_requests[f"{ip.src}-{radius_packet.id}"] = radius_packet.authenticator
 
     elif radius_packet.code in [2, 11, 3, 5]:  # Access-Accept, Access-Challenge, Access-Reject, Accounting-Response
+        user_name = None
+
+        for attr in radius_packet.attributes:
+            if attr.name == "User-Name":
+                user_name = attr.value.decode("utf-8", errors="replace")
+
+        if user_name == None:
+            user_name = ip.dst
+
         key = f"{ip.dst}-{radius_packet.id}"
         if key in all_requests:
-            dump_response(args, ip.dst, all_requests[key], radius_packet.authenticator, udpdata)
+            dump_response(args, user_name, ip.src, ip.dst, all_requests[key], radius_packet.authenticator, udpdata)
 
 
-def dump_response(args, ip, req_ra, ra, udpdata):  # 3.1 attack
-    if args["single"] and ip in dumped_ips:
+def dump_response(args, login, ips, ipd, req_ra, ra, udpdata):  # 3.1 attack
+    if args["single"] and ipd in dumped_ips:
         return
 
     salt = bytearray(udpdata)
@@ -100,23 +111,23 @@ def dump_response(args, ip, req_ra, ra, udpdata):  # 3.1 attack
 
     response_type = "1009" if len(salt) <= 16 else "1017"
     print(
-        f"{ip}:$dynamic_{response_type}${binascii.hexlify(ra).decode()}$HEX${binascii.hexlify(salt).decode('utf-8')}"
+        f"{login}:$dynamic_{response_type}${binascii.hexlify(ra).decode()}$HEX${binascii.hexlify(salt).decode('utf-8')}:{ipd}:{ips}:"
     )
 
-    dumped_ips[ip] = "reply"
+    dumped_ips[ipd] = "reply"
 
 
-def dump_access_request(args, ip, ra, hashed):  # 3.3 attack
-    if args["single"] and ip in dumped_ips and dumped_ips[ip] == "request":
+def dump_access_request(args, login, ips, ipd, ra, hashed):  # 3.3 attack
+    if args["single"] and ips in dumped_ips and dumped_ips[ips] == "request":
         return
 
     xor_result = bytes(a ^ b for a, b in zip(hashed, args['password'][:16].encode('utf-8').ljust(16, b'\x00')))
 
     print(
-        f"{ip}:$dynamic_1008${binascii.hexlify(xor_result).decode()}$HEX${binascii.hexlify(ra).decode('utf-8')}"
+        f"{login}:$dynamic_1008${binascii.hexlify(xor_result).decode()}$HEX${binascii.hexlify(ra).decode('utf-8')}:{ips}:{ipd}:"
     )
 
-    dumped_ips[ip] = "request"
+    dumped_ips[ips] = "request"
 
 
 if __name__ == "__main__":
