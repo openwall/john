@@ -1,6 +1,6 @@
 -- #!/usr/bin/env lua -> shebang line seems to be breaking tshark :-(
 
--- Usage: tshark -q -Xlua_script:network2john.lua -r selected.pcap
+-- Usage: tshark -q -X lua_script:network2john.lua -r selected.pcap
 --
 -- Wireshark in Fedora 25 doesn't have Lua enabled. Use Fedora 27 / Ubuntu or
 -- something else which has Wireshark with Lua support or compile Wireshark
@@ -9,13 +9,46 @@
 -- tshark -r selected.pcap -T pdml > data.pdml # use this for development!
 
 
+-- Helper function
+local function get_hostname()
+	local v
+
+	-- RADIUS / EAP sources
+	v = f_nas_id and f_nas_id()
+	if v then return tostring(v.value or v) end
+
+	v = f_calling and f_calling()
+	if v then return tostring(v.value or v) end
+
+	v = f_eap_id and f_eap_id()
+	if v then return tostring(v.value or v) end
+
+	v = f_vsa and f_vsa()
+	if v then return tostring(v.value or v) end
+
+	-- Resolved IP hostnames (requires tshark -N dNns)
+	v = f_src_host4 and f_src_host4()
+	if v then return tostring(v.value or v) end
+
+	v = f_dst_host4 and f_dst_host4()
+	if v then return tostring(v.value or v) end
+
+	v = f_src_host6 and f_src_host6()
+	if v then return tostring(v.value or v) end
+
+	v = f_dst_host6 and f_dst_host6()
+	if v then return tostring(v.value or v) end
+
+	return ""
+end
+
 -- Extract RADIUS CHAP hashes from .pcap files.
 -- https://tools.ietf.org/html/rfc2865 -> The CHAP challenge value is found in
 -- the CHAP-Challenge Attribute (60) if present in the packet, otherwise in the
 -- Request Authenticator field. NOTE: We don't handle the former case yet.
 
 if not Listener then
-	print("Usage: tshark -q -Xlua_script:network2john.lua -r target.pcap")
+	print("Usage: tshark -q -X lua_script:network2john.lua -r target.pcap")
 	os.exit(0)
 end
 tap_radius = Listener.new(nil, "radius")
@@ -27,9 +60,27 @@ local f_authenticator = Field.new("radius.authenticator")
 local f_username = Field.new("radius.User_Name")
 local f_ident = Field.new("radius.CHAP_Ident")
 local f_hash = Field.new("radius.CHAP_String")
+local f_src4 = Field.new("ip.src")
+local f_dst4 = Field.new("ip.dst")
+local f_src6 = Field.new("ipv6.src")
+local f_dst6 = Field.new("ipv6.dst")
+local f_nas_id = Field.new("radius.NAS_Identifier")
+local f_calling = Field.new("radius.Calling_Station_Id")
+local f_eap_id = Field.new("eap.identity")
+local f_vsa = Field.new("radius.Vendor_Specific")
+local f_src_host4 = Field.new("ip.src_host")
+local f_dst_host4 = Field.new("ip.dst_host")
+local f_src_host6 = Field.new("ipv6.src_host")
+local f_dst_host6 = Field.new("ipv6.dst_host")
 
 function tap_radius.packet(pinfo,tvb,tapdata)
 	local code = f_code()
+	local src = (f_src4 and f_src4()) or (f_src6 and f_src6())
+	local dst = (f_dst4 and f_dst4()) or (f_dst6 and f_dst6())
+
+	if not src or not dst then
+		return
+	end
 
 	if code.value == 1 then  -- Access-Request
 		local canary = f_ident()
@@ -38,7 +89,10 @@ function tap_radius.packet(pinfo,tvb,tapdata)
 			local id = tostring(f_ident().value):lower()
 			local response =  tostring(f_hash().value):lower()
 			local username = tostring(f_username().value)
-			local hash = string.format("%s:$chap$%s*%s*%s", username, id, challenge, response)
+			local ips = tostring(src.value)
+			local ipd = tostring(dst.value)
+			local hostname = get_hostname()
+			local hash = string.format("%s:$chap$%s*%s*%s:%s:%s:%s", username, id, challenge, response, ips, ipd)
 			print(hash)
 			canary = nil
 		end
@@ -55,6 +109,18 @@ local f_code = Field.new("radius.code")
 local f_authenticator = Field.new("radius.authenticator")
 local f_username = Field.new("radius.User_Name")
 local f_upe = Field.new("radius.User_Password_encrypted")
+local f_src4 = Field.new("ip.src")
+local f_dst4 = Field.new("ip.dst")
+local f_src6 = Field.new("ipv6.src")
+local f_dst6 = Field.new("ipv6.dst")
+local f_nas_id = Field.new("radius.NAS_Identifier")
+local f_calling = Field.new("radius.Calling_Station_Id")
+local f_eap_id = Field.new("eap.identity")
+local f_vsa = Field.new("radius.Vendor_Specific")
+local f_src_host4 = Field.new("ip.src_host")
+local f_dst_host4 = Field.new("ip.dst_host")
+local f_src_host6 = Field.new("ipv6.src_host")
+local f_dst_host6 = Field.new("ipv6.dst_host")
 
 -- put the passed-in args into a table
 local args = {...}
@@ -65,9 +131,15 @@ end
 
 function tap_radius.packet(pinfo,tvb,tapdata)
 	local code = f_code()
+	local src = (f_src4 and f_src4()) or (f_src6 and f_src6())
+	local dst = (f_dst4 and f_dst4()) or (f_dst6 and f_dst6())
+
+	if not src or not dst then
+		return
+	end
 
 	if count < 2 then
-		print("Usage: tshark -q -Xlua_script:network2john.lua -X lua_script1:<secret-or-password-value-here> -X lua_script1:0 -r target.pcap\n")
+		print("Usage: tshark -q -X lua_script:network2john.lua -X lua_script1:<secret-or-password-value-here> -X lua_script1:0 -r target.pcap\n")
 		print("Note: -X lua_script1:<secret-or-password-value-here> -> this is used as either the user password or the shared secrert\n")
 		print("Note: Use -X lua_script1:0 to attack RADIUS shared secret\n")
 		print("Note: Use -X lua_script1:1 to attack user password")
@@ -83,7 +155,10 @@ function tap_radius.packet(pinfo,tvb,tapdata)
 			local username = tostring(f_username().value)
 			local secret = args[1]
 			local mode = args[2]
-			local hash = string.format("%s:$radius$1*%s*%s*%s*%s", username, mode, secret, challenge, upe)
+			local ips = tostring(src.value):gsub(":", ".")
+			local ipd = tostring(dst.value):gsub(":", ".")
+			local hostname = get_hostname()
+			local hash = string.format("%s:$radius$1*%s*%s*%s*%s:%s:%s:%s", username, mode, secret, challenge, upe, ips, ipd, hostname)
 			print(hash)
 			canary = nil
 		end
@@ -103,6 +178,11 @@ local f_etype = Field.new("eap.type")
 local f_identity = Field.new("eap.identity")
 local f_challenge = Field.new("eap.md5.value")
 local f_response = Field.new("eap.md5.value")
+local f_src4 = Field.new("ip.src")
+local f_dst4 = Field.new("ip.dst")
+local f_src6 = Field.new("ipv6.src")
+local f_dst6 = Field.new("ipv6.dst")
+local f_eap_id = Field.new("eap.identity")
 
 local username = nil
 local challenge = nil
@@ -112,6 +192,14 @@ local id = nil
 function tap_eap.packet(pinfo,tvb,tapdata)
 	local code = f_code()
 	local etype = f_etype()
+	local src = (f_src4 and f_src4()) or (f_src6 and f_src6())
+	local dst = (f_dst4 and f_dst4()) or (f_dst6 and f_dst6())
+	local hostname = get_hostname()
+
+	if not src or not dst then
+		return
+	end
+
 
 	if code.value == 2 and etype.value == 1 then -- Response, Identity (extract username)
 		username = tostring(f_identity())
@@ -127,7 +215,10 @@ function tap_eap.packet(pinfo,tvb,tapdata)
 	end
 
 	if username and challenge and response then
-		local hash = string.format("%s:$chap$%s*%s*%s", username, id, challenge, response)
+		local ips = tostring(src.value)
+		local ipd = tostring(dst.value)
+		local hostname = get_hostname()
+		local hash = string.format("%s:$chap$%s*%s*%s:%s:%s:%s", username, id, challenge, response, ips, ipd, hostname)
 		print(hash)
 		username = nil
 		challenge = nil
@@ -258,9 +349,15 @@ end
 
 tap_dhcpv4 = Listener.new(nil, "bootp")
 
-local f_algorithm = Field.new("bootp.option.dhcp_authentication.alg_delay")
-local f_hash= Field.new("bootp.option.dhcp_authentication.hmac_md5_hash")
-local f_dhcpv4 = Field.new("bootp")
+local f_algorithm = Field.new("dhcp.option.dhcp_authentication.alg_delay", true)
+if f_algorithm then
+   local f_hash= Field.new("dhcp.option.dhcp_authentication.hmac_md5_hash")
+   local f_dhcpv4 = Field.new("dhcp")
+else
+   local f_algorithm = Field.new("bootp.option.dhcp_authentication.alg_delay")
+   local f_hash= Field.new("bootp.option.dhcp_authentication.hmac_md5_hash")
+   local f_dhcpv4 = Field.new("bootp")
+end
 
 function tap_dhcpv4.packet(pinfo,tvb,tapdata)
 	local canary = f_hash()
@@ -296,6 +393,10 @@ tap_iscsi = Listener.new(nil, "iscsi")
 
 local f_opcode = Field.new("iscsi.opcode")
 local f_kv = Field.new("iscsi.keyvalue")
+local f_src4 = Field.new("ip.src")
+local f_dst4 = Field.new("ip.dst")
+local f_src6 = Field.new("ipv6.src")
+local f_dst6 = Field.new("ipv6.dst")
 
 local username = nil
 local challenge = nil
@@ -304,6 +405,15 @@ local id = nil
 
 function tap_iscsi.packet(pinfo,tvb,tapdata)
 	local opcode = f_opcode()
+	local ips = tostring(src.value):gsub(":", ".")
+	local ipd = tostring(dst.value):gsub(":", ".")
+	local src = (f_src4 and f_src4()) or (f_src6 and f_src6())
+	local dst = (f_dst4 and f_dst4()) or (f_dst6 and f_dst6())
+
+	if not src or not dst then
+		return
+	end
+
 
 	if opcode.value == 0x23 then  -- extract CHAP_C, and CHAP_I
 		items = {f_kv()}
@@ -332,7 +442,9 @@ function tap_iscsi.packet(pinfo,tvb,tapdata)
 	end
 
 	if username and challenge and response then
-		local hash = string.format("%s:$chap$%s*%s*%s", username, id, challenge, response)
+		local ips = tostring(src.value)
+		local ipd = tostring(dst.value)
+		local hash = string.format("%s:$chap$%s*%s*%s:%s:%s", username, id, challenge, response, ips, ipd)
 		print(hash)
 		username = nil
 		challenge = nil
