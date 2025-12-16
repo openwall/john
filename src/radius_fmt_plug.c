@@ -4,6 +4,7 @@
  * http://www.untruth.org/~josh/security/radius/radius-auth.html
  *
  * This software is Copyright (c) 2018, Dhiru Kholia <dhiru [at] openwall.com>,
+ * and (c) 2025 magnum,
  * and it is hereby released to the general public under the following terms:
  *
  * Redistribution and use in source and binary forms, with or without
@@ -35,6 +36,7 @@ john_register_one(&fmt_radius);
 #include "params.h"
 #include "options.h"
 #include "md5.h"
+#include "unicode.h"
 
 #define FORMAT_LABEL            "radius"
 #define FORMAT_NAME             "RADIUS authentication"
@@ -57,6 +59,11 @@ john_register_one(&fmt_radius);
 #define MD5_DIGEST_LENGTH       16
 #endif
 
+/*
+ * 0 -> attack shared secret (3.3), 1 -> attack user password
+ * password2 is the shared secret, Passw0rd2 is the password.
+ * Hashes are <authenticator>*<ciphertext>.
+ */
 static struct fmt_tests tests[] = {
 	// tshark -q -Xlua_script:network2john.lua -X lua_script1:Passw0rd2 -X lua_script1:0 -r freeradius.pcap
 	{"$radius$1*0*Passw0rd2*acf627289be7e214c8e328d0d01fcea2*fe18a76eec4abeeea09eb90e99b359f7", "password2"},
@@ -68,6 +75,7 @@ static struct fmt_tests tests[] = {
 };
 
 static char (*saved_key)[PLAINTEXT_LENGTH + 1];
+static char (*recovered_key)[MD5_DIGEST_LENGTH + 1];
 static int *saved_len;
 static int any_cracked, *cracked;
 static size_t cracked_size;
@@ -88,6 +96,7 @@ static void init(struct fmt_main *self)
 	omp_autotune(self, OMP_SCALE);
 
 	saved_key = mem_calloc(sizeof(*saved_key), self->params.max_keys_per_crypt);
+	recovered_key = mem_calloc(sizeof(*recovered_key), self->params.max_keys_per_crypt);
 	saved_len = mem_calloc(self->params.max_keys_per_crypt, sizeof(*saved_len));
 	cracked_size = sizeof(*cracked) * self->params.max_keys_per_crypt;
 	any_cracked = 0;
@@ -96,6 +105,7 @@ static void init(struct fmt_main *self)
 
 static void done(void)
 {
+	MEM_FREE(recovered_key);
 	MEM_FREE(saved_key);
 	MEM_FREE(saved_len);
 	MEM_FREE(cracked);
@@ -188,52 +198,56 @@ static int check_password(int index, struct custom_salt *cs)
 {
 	int i;
 
-	if (cs->mode == 1) { // recover user password
-		unsigned char out[16], rec[17];
+	if (cs->mode == 1) {
+		int has_8bit = 0;
 
-		memset(out, 0, 16);
-		memcpy(out, saved_key[index], saved_len[index] > 16 ? 16: saved_len[index]);
-		for (i = 0; i < 16; i++)
-			rec[i] = cs->ciphertext[i] ^ cs->precalculated_digest[i];
-		if (!memcmp(out, rec, 16))
+		/*
+		 * Just recover (decode) user password.
+		 * precalculated_digest = md5(secret.authenticator)
+		 */
+		for (i = 0; i < MD5_DIGEST_LENGTH; i++) {
+			char c = cs->ciphertext[i] ^ cs->precalculated_digest[i];
+			if (!c)
+				break;
+			else if (c < ' ' || c == 0x7f) {
+				recovered_key[index][0] = 0;
+				return 0;
+			}
+			else if (c >= 0x80)
+				has_8bit = 1;
+			recovered_key[index][i] = c;
+		}
+		recovered_key[index][i] = 0;
+
+		/*
+		 * Try to avoid some false negatives (from incorrect shared secret).
+		 */
+		if (!has_8bit)
+			return 1;
+		else if (options.target_enc == UTF_8)
+			return valid_utf8((UTF8*)recovered_key[index]);
+		else if (options.target_enc != ASCII)
 			return 1;
 
-/*
- * This is silly: we could just output all plaintext passwords, but we have no
- * mechanism to get them into john.pot from here.  Arguably, this isn't a task
- * for JtR at all.
- */
-		if (!bench_or_test_running) {
-#ifdef _OPENMP
-#pragma omp critical
-#endif
-			{
-				static int rec_count = 0;
-				int rec_max = 10;
-				rec_count++;
-				if (rec_count <= rec_max) {
-					rec[16] = 0;
-					printf("%s: Recovered password '%s'\n", FORMAT_LABEL, (char *)rec);
-				} else if (rec_count == rec_max + 1) {
-					printf("%s: Further messages suppressed\n", FORMAT_LABEL);
-				}
-			}
-		}
-	} else if (cs->mode == 0) { // recover shared secret
+		recovered_key[index][0] = 0;
+		return 0;
+	} else if (cs->mode == 0) { // 3.3 recover shared secret
 		MD5_CTX ctx;
-		unsigned char digest[16];
-		unsigned char out[16];
+		unsigned char out[MD5_DIGEST_LENGTH];
+
+		/* Clear any remains of previous mode 1 crack */
+		recovered_key[index][0] = 0;
 
 		MD5_Init(&ctx);
 		MD5_Update(&ctx, saved_key[index], saved_len[index]);
 		MD5_Update(&ctx, cs->authenticator, cs->authenticator_len);
-		MD5_Final(digest, &ctx);
-		memset(out, 0, 16);
-		memcpy(out, cs->secret_or_password, cs->secret_or_password_len > 16 ? 16: cs->secret_or_password_len);
-		for (i = 0; i < 16; i++)
-			out[i] = out[i] ^ digest[i];
-		if (!memcmp(out, cs->ciphertext, 16))
-			return 1;
+		MD5_Final(out, &ctx);
+
+		for (i = 0; i < MD5_DIGEST_LENGTH; i++)
+			if ((out[i] ^ cs->secret_or_password[i]) != cs->ciphertext[i])
+				return 0;
+
+		return 1;
 	}
 
 	return 0;
@@ -291,7 +305,14 @@ static void set_key(char *key, int index)
 
 static char *get_key(int index)
 {
+	if (*recovered_key[index])
+		return recovered_key[index];
+
 	return saved_key[index];
+}
+
+static unsigned int mode_cost(void *salt) {
+	return ((struct custom_salt*)salt)->mode;
 }
 
 struct fmt_main fmt_radius = {
@@ -310,7 +331,9 @@ struct fmt_main fmt_radius = {
 		MIN_KEYS_PER_CRYPT,
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP,
-		{ NULL },
+		{
+			"mode [0=find secret 1=find password]"
+		},
 		{ FORMAT_TAG },
 		tests
 	}, {
@@ -322,7 +345,9 @@ struct fmt_main fmt_radius = {
 		fmt_default_split,
 		fmt_default_binary,
 		get_salt,
-		{ NULL },
+		{
+			mode_cost
+		},
 		fmt_default_source,
 		{
 			fmt_default_binary_hash
