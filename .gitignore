@@ -9,6 +9,7 @@
 *.tmp
 *~
 *.old
+\#*#
 *.bak
 *.in
 *.dlst
@@ -47,6 +48,7 @@ run/keepass2john
 run/kernels/
 run/opencl/*.bin
 run/opencl/*.config
+run/opencl/descrypt-cache/
 run/keychain2john
 run/keyring2john
 run/kwallet2john
@@ -122,3 +124,4 @@ __pycache__/
 *.pyo
 *.pyd
 **/venv/
+**/.venv/
