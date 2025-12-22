@@ -5,3 +5,10 @@ parsimonious
 asn1crypto
 dpkt
 pyhanko
+pytsk3
+cbor2
+cryptography
+simplejson
+idna
+lxml
+ldap3

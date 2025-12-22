@@ -132,3 +132,25 @@ build CPU fallback chains for any x86-64 CPU.
 === Benchmark your build (this also performs self-tests)
 
     ./john --test
+
+=== Install all Python modules required for things like pcap2john.py
+
+    Install most of them as Ubuntu packages (if you like):
+
+    sudo apt-get -y install python3-pycryptodome python3-scapy python3-parsimonious python3-asn1crypto python3-dpkt python3-cbor2 python3-cryptography python3-simplejson python3-idna python3-lxml python3-ldap3
+
+    Alternatively, use pip3 to install all of them into a virtual environment:
+
+    sudo apt-get install python3 python3-venv python3-pip
+    cd ~/src/john/run
+    python3 -m venv venv
+    . venv/bin/activate
+    pip3 install -r requirements.txt
+    deactivate
+
+    Later use:
+
+    cd ~/src/john/run
+    . venv/bin/activate
+     (run tools as needed)
+    deactivate
