@@ -1,0 +1,43 @@
+# cpanfile for John the Ripper pass_gen.pl
+#
+# You should probably install the normal cpanfile too:
+#   cpanm --installdeps .
+#
+# Then install this file:
+#   cpanm --installdeps --cpanfile cpanfile.pass_gen .
+#
+requires 'Convert::EBCDIC';
+requires 'Crypt::AuthEnc::CCM';
+requires 'Crypt::CBC';
+requires 'Crypt::Cipher::AES';
+requires 'Crypt::Cipher::Blowfish';
+requires 'Crypt::DES';
+requires 'Crypt::DES_EDE3';
+requires 'Crypt::Digest::RIPEMD128';
+requires 'Crypt::Digest::RIPEMD160';
+requires 'Crypt::Digest::RIPEMD256';
+requires 'Crypt::Digest::RIPEMD320';
+requires 'Crypt::ECB';
+requires 'Crypt::Eksblowfish::Bcrypt';
+requires 'Crypt::Eksblowfish::Uklblowfish';
+requires 'Crypt::Mode::CFB';
+requires 'Crypt::RC4';
+requires 'Crypt::Rhash';
+requires 'Crypt::ScryptKDF';
+requires 'Crypt::UnixCrypt_XS';
+requires 'Digest';
+requires 'Digest::BLAKE2';
+requires 'Digest::GOST';
+requires 'Digest::Haval256';
+requires 'Digest::Keccak';
+requires 'Digest::MD2';
+requires 'Digest::MD4';
+requires 'Digest::MD5';
+requires 'Digest::SHA';
+requires 'Digest::SHA3';
+requires 'Digest::Tiger';
+requires 'Encode';
+requires 'Getopt::Long';
+requires 'MIME::Base64';
+requires 'Math::BigInt';
+requires 'Net::SSLeay';

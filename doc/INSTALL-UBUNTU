@@ -133,6 +133,18 @@ build CPU fallback chains for any x86-64 CPU.
 
     ./john --test
 
+=== Install all Perl libs required for things like keepass2john.pl
+
+    A few are available as Ubuntu packages:
+
+    sudo apt-get install libcompress-raw-lzma-perl libdigest-md5-perl libimage-exiftool-perl libmime-base64-perl libnet-ldap-perl libnet-pcap-perl
+
+    To get everything needed, you have to install from CPAN:
+
+    sudo apt install cpanminus
+    cd ~/src/john/run
+    cpanm --installdeps .
+
 === Install all Python modules required for things like pcap2john.py
 
     Install most of them as Ubuntu packages (if you like):
