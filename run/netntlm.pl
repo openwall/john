@@ -126,9 +126,8 @@ sub showUsage {
       print STDERR "LM response is not unique from NTLM response (skipping):\n\t$credential_set\n";
       push  @{ $data{'pairs-ntlm'} }, $credential_set;
     }
-    elsif ( @cracked = grep(/^$account:/i, @{ $data{'cracked-ntlm'} }) ) {
+    elsif ( grep(/^$account:/i, @{ $data{'cracked-ntlm'} }) ) {
       print STDERR "Account $account NTLM response previously cracked.\n";
-      #print "@cracked";
     }
     else {
       print STDERR "Account $account LM response added to cracking list.\n";
@@ -214,7 +213,6 @@ sub createConf {
 
   # Add external filter to handle uncracked characters
   if ($opt{'seed'} ne "") {
-    my $i; $j;
     my @seed = split(//, $opt{'seed'});
 
     print CONF "[List.External:HalfLM]\n";
@@ -227,7 +225,7 @@ sub createConf {
     print CONF "{\n";
 
     my $len = length($opt{'seed'});
-    for ($i = 13, $j = 13 - $len; $i>=0; $i--) {
+    for (my $i = 13, my $j = 13 - $len; $i>=0; $i--) {
       if ($i >= $len) {
         print CONF "  word[$i] = word[$j];\n";
         $j--;

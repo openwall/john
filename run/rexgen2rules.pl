@@ -1,7 +1,7 @@
 #! /usr/bin/env perl
 # Script to generate rules for John the Ripper from rexgen rules
 
-# Copyright © 2014 Aleksey Cherepanov <aleksey.4erepanov@gmail.com>
+# Copyright (c) 2014 Aleksey Cherepanov <aleksey.4erepanov@gmail.com>
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
 
@@ -74,7 +74,7 @@ sub check_parity {
             # Though possible but undefined back references are just skipped.
             # Good: (a)\1, (a\1)
             # Bad: \1(a)
-            if (/\\g{(\d+)}/ && $1 > $k) {
+            if (/\\g\{(\d+)}/ && $1 > $k) {
                 die "wrong back reference $_"
             }
         }
@@ -426,7 +426,7 @@ sub out {
 # perl -le '@a = (q#asdf !a(b|c)\10! !<(b|i)>\0</\\1>!#, q#!\0END! !\0\0asdf\0\0qwer\0\0!#, q#!(a(?:\1|b)){2}! !(a|(b|c))\2!#); for (@a) { s/!/'"'"'/g; print q{\$ $0 } . $_; system qq{perl rexgen2rules.pl $_ 2>&1}; print "" }' | perl -pe 's/\\/\\\\/g; s/^\\\\\$/\\\$/'
 
 my $doc = <<EOT;
-Copyright © 2014 Aleksey Cherepanov <aleksey.4erepanov\@gmail.com>
+Copyright (c) 2014 Aleksey Cherepanov <aleksey.4erepanov\@gmail.com>
 
 Support subset of PCRE:
 [123&(a-z...] Bracketed Character class,

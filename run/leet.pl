@@ -1,8 +1,8 @@
-#! /usr/bin/env perl -l
+#! /usr/bin/perl -l
 # John rules generator for combination of 1337-speak substitutions.
 # Proof of concept
 
-# Copyright © 2014 Aleksey Cherepanov <aleksey.4erepanov@gmail.com>
+# Copyright (c) 2014 Aleksey Cherepanov <aleksey.4erepanov@gmail.com>
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
 
