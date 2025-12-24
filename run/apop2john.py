@@ -43,15 +43,15 @@ for filename in filenames:
 
         pkt = bytes(packet[TCP].payload)
 
-        if packet.sport == 110 and re.search(b'\+OK\ .*\ \<.+\>', pkt):
+        if packet.sport == 110 and re.search(br'\+OK .* <.+>', pkt):
             src_ip = packet[IP].src
             dst_ip = packet[IP].dst
-            res = re.search(b'\+OK\ .*\ (\<.+\>)', pkt)
+            res = re.search(br'\+OK .* (<.+>)', pkt)
             apop_salt[(src_ip, dst_ip)] = res.group(1).strip()
-        elif packet.dport == 110 and re.search(b'APOP\ .+\ (.+)', pkt):
+        elif packet.dport == 110 and re.search(b'APOP .+ (.+)', pkt):
             src_ip = packet[IP].dst
             dst_ip = packet[IP].src
-            res = re.search(b'APOP\ (.+)\ (.+)', pkt)
+            res = re.search(b'APOP (.+) (.+)', pkt)
             apop_user[(src_ip, dst_ip)] = res.group(1).strip()
             apop_hash[(src_ip, dst_ip)] = res.group(2).strip()
 
