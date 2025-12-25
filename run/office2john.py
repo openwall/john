@@ -334,7 +334,8 @@ else:
 # command line to change it.
 DEBUG_MODE = False
 def debug_print(msg):
-    print(msg)
+    # Debug output currently disabled
+    pass
 def debug_pass(msg):
     pass
 debug = debug_pass
@@ -664,16 +665,12 @@ class OleMetadata:
 
     def dump(self):
         """
-        Dump all metadata, for debugging purposes.
+        Dump all metadata, for debugging purposes (currently disabled).
         """
-        print('Properties from SummaryInformation stream:')
         for prop in self.SUMMARY_ATTRIBS:
             value = getattr(self, prop)
-            print('- %s: %s' % (prop, repr(value)))
-        print('Properties from DocumentSummaryInformation stream:')
         for prop in self.DOCSUM_ATTRIBS:
             value = getattr(self, prop)
-            print('- %s: %s' % (prop, repr(value)))
 
 
 #--- _OleStream ---------------------------------------------------------------
@@ -718,7 +715,7 @@ class _OleStream(io.BytesIO):
         #[PL] To detect malformed documents with FAT loops, we compute the
         # expected number of sectors in the stream:
         unknown_size = False
-        if size==0x7FFFFFFF:
+        if size is None:
             # this is the case when called from OleFileIO._open(), and stream
             # size is not known in advance (for example when reading the
             # Directory stream). Then we can only guess maximum size:
@@ -1027,16 +1024,9 @@ class _OleDirectoryEntry:
 
 
     def dump(self, tab = 0):
-        "Dump this entry, and all its subentries (for debug purposes only)"
+        "Dump this entry, and all its subentries, for debug purposes only (currently disabled)."
         TYPES = ["(invalid)", "(storage)", "(stream)", "(lockbytes)",
                  "(property)", "(root)"]
-        print(" "*tab + repr(self.name), TYPES[self.entry_type], end=' ')
-        if self.entry_type in (STGTY_STREAM, STGTY_ROOT):
-            print(self.size, "bytes", end=' ')
-        print()
-        if self.entry_type in (STGTY_STORAGE, STGTY_ROOT) and self.clsid:
-            print(" "*tab + "{%s}" % self.clsid)
-
         for kid in self.kids:
             kid.dump(tab + 2)
 
@@ -1435,7 +1425,7 @@ class OleFileIO:
 
 
     def dumpfat(self, fat, firstindex=0):
-        "Displays a part of FAT in human-readable form for debugging purpose"
+        "Displays a part of FAT in human-readable form for debugging purposes (currently disabled)."
         # [PL] added only for debug
         if not DEBUG_MODE:
             return
@@ -1449,13 +1439,8 @@ class OleFileIO:
             }
         nbsect = len(fat)
         nlines = (nbsect+VPL-1)//VPL
-        print("index", end=" ")
-        for i in range(VPL):
-            print("%8X" % i, end=" ")
-        print()
         for l in range(nlines):
             index = l*VPL
-            print("%8X:" % (firstindex+index), end=" ")
             for i in range(index, index+VPL):
                 if i>=nbsect:
                     break
@@ -1468,12 +1453,11 @@ class OleFileIO:
                         name = "    --->"
                     else:
                         name = "%8X" % sect
-                print(name, end=" ")
-            print()
+
 
 
     def dumpsect(self, sector, firstindex=0):
-        "Displays a sector in a human-readable form, for debugging purpose."
+        "Displays a sector in a human-readable form, for debugging purposes (currently disabled)."
         if not DEBUG_MODE:
             return
         VPL=8 # number of values per line (8+1 * 8+1 = 81)
@@ -1482,20 +1466,14 @@ class OleFileIO:
             tab.byteswap()
         nbsect = len(tab)
         nlines = (nbsect+VPL-1)//VPL
-        print("index", end=" ")
-        for i in range(VPL):
-            print("%8X" % i, end=" ")
-        print()
         for l in range(nlines):
             index = l*VPL
-            print("%8X:" % (firstindex+index), end=" ")
             for i in range(index, index+VPL):
                 if i>=nbsect:
                     break
                 sect = tab[i]
                 name = "%8X" % sect
-                print(name, end=" ")
-            print()
+               
 
     def sect2array(self, sect):
         """
@@ -1778,7 +1756,7 @@ class OleFileIO:
         self.root.dump()
 
 
-    def _open(self, start, size = 0x7FFFFFFF, force_FAT=False):
+    def _open(self, start, size = None, force_FAT=False):
         """
         Open a stream, either in FAT or MiniFAT according to its size.
         (openstream helper)
@@ -2078,7 +2056,7 @@ class OleFileIO:
         """
         #REFERENCE: [MS-OLEPS] https://msdn.microsoft.com/en-us/library/dd942421.aspx
         # make sure no_conversion is a list, just to simplify code below:
-        if no_conversion == None:
+        if no_conversion is None:
             no_conversion = []
         # stream path as a string to report exceptions:
         streampath = filename
@@ -2237,19 +2215,6 @@ if __name__ == "__main__disabled":
 
     # [PL] display quick usage info if launched from command-line
     if len(sys.argv) <= 1:
-        print('olefile version %s %s - %s' % (__version__, __date__, __author__))
-        print(
-"""
-Launched from the command line, this script parses OLE files and prints info.
-
-Usage: olefile.py [-d] [-c] <file> [file2 ...]
-
-Options:
--d : debug mode (displays a lot of debug information, for developers only)
--c : check all streams (for debugging purposes)
-
-For more information, see http://www.decalage.info/olefile
-""")
         sys.exit()
 
     check_streams = False
@@ -2266,13 +2231,9 @@ For more information, see http://www.decalage.info/olefile
                 continue
 
             ole = OleFileIO(filename)#, raise_defects=DEFECT_INCORRECT)
-            print("-" * 68)
-            print(filename)
-            print("-" * 68)
             ole.dumpdirectory()
             for streamname in ole.listdir():
                 if streamname[-1][0] == "\005":
-                    print(streamname, ": properties")
                     props = ole.getproperties(streamname, convert_time=True)
                     props = sorted(props.items())
                     for k, v in props:
@@ -2287,22 +2248,15 @@ For more information, see http://www.decalage.info/olefile
                                 if c in bytearray(v):
                                     v = '(binary data)'
                                     break
-                        print("   ", k, v)
 
             if check_streams:
                 # Read all streams to check if there are errors:
-                print('\nChecking streams...')
                 for streamname in ole.listdir():
                     # print name using repr() to convert binary chars to \xNN:
-                    print('-', repr('/'.join(streamname)),'-', end=' ')
                     st_type = ole.get_type(streamname)
                     if st_type == STGTY_STREAM:
-                        print('size %d' % ole.get_size(streamname))
                         # just try to read stream in memory:
                         ole.openstream(streamname)
-                    else:
-                        print('NOT a stream : type=%d' % st_type)
-                print()
 
 ##            for streamname in ole.listdir():
 ##                # print name using repr() to convert binary chars to \xNN:
@@ -2310,34 +2264,6 @@ For more information, see http://www.decalage.info/olefile
 ##                print(ole.getmtime(streamname))
 ##            print()
 
-            print('Modification/Creation times of all directory entries:')
-            for entry in ole.direntries:
-                if entry is not None:
-                    print('- %s: mtime=%s ctime=%s' % (entry.name,
-                        entry.getmtime(), entry.getctime()))
-            print()
-
-            # parse and display metadata:
-            meta = ole.get_metadata()
-            meta.dump()
-            print()
-            #[PL] Test a few new methods:
-            root = ole.get_rootentry_name()
-            print('Root entry name: "%s"' % root)
-            if ole.exists('worddocument'):
-                print("This is a Word document.")
-                print("type of stream 'WordDocument':", ole.get_type('worddocument'))
-                print("size :", ole.get_size('worddocument'))
-                if ole.exists('macros/vba'):
-                    print("This document may contain VBA macros.")
-
-            # print parsing issues:
-            print('\nNon-fatal issues raised during parsing:')
-            if ole.parsing_issues:
-                for exctype, msg in ole.parsing_issues:
-                    print('- %s: %s' % (exctype.__name__, msg))
-            else:
-                print('None')
 ##      except IOError as v:
 ##          print("***", "cannot read", file, "-", v)
 
