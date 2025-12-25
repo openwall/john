@@ -184,7 +184,6 @@ __version__ = '0.42.1'
 
 #-----------------------------------------------------------------------------
 # TODO (for version 1.0):
-# + get rid of print statements, to simplify Python 2.x and 3.x support
 # + add is_stream and is_storage
 # + remove leading and trailing slashes where a path is used
 # + add functions path_list2str and path_str2list
@@ -211,8 +210,6 @@ __version__ = '0.42.1'
 #   http://msdn.microsoft.com/en-us/library/dd945671%28v=office.12%29.aspx
 
 # IDEAS:
-# - in OleFileIO._open and _OleStream, use size=None instead of 0x7FFFFFFF for
-#   streams with unknown size
 # - use arrays of int instead of long integers for FAT/MiniFAT, to improve
 #   performance and reduce memory usage ? (possible issue with values >2^31)
 # - provide tests with unittest (may need write support to create samples)
