@@ -331,7 +331,6 @@ else:
 # command line to change it.
 DEBUG_MODE = False
 def debug_print(msg):
-    # Debug output currently disabled
     pass
 def debug_pass(msg):
     pass
@@ -662,7 +661,7 @@ class OleMetadata:
 
     def dump(self):
         """
-        Dump all metadata, for debugging purposes (currently disabled).
+        Dump all metadata, for debugging purposes.
         """
         for prop in self.SUMMARY_ATTRIBS:
             value = getattr(self, prop)
@@ -1021,7 +1020,7 @@ class _OleDirectoryEntry:
 
 
     def dump(self, tab = 0):
-        "Dump this entry, and all its subentries, for debug purposes only (currently disabled)."
+        "Dump this entry, and all its subentries (for debug purposes only)."
         TYPES = ["(invalid)", "(storage)", "(stream)", "(lockbytes)",
                  "(property)", "(root)"]
         for kid in self.kids:
@@ -1422,7 +1421,7 @@ class OleFileIO:
 
 
     def dumpfat(self, fat, firstindex=0):
-        "Displays a part of FAT in human-readable form for debugging purposes (currently disabled)."
+        "Displays a part of FAT in human-readable form for debugging purposes."
         # [PL] added only for debug
         if not DEBUG_MODE:
             return
@@ -1454,7 +1453,7 @@ class OleFileIO:
 
 
     def dumpsect(self, sector, firstindex=0):
-        "Displays a sector in a human-readable form, for debugging purposes (currently disabled)."
+        "Displays a sector in a human-readable form, for debugging purposes."
         if not DEBUG_MODE:
             return
         VPL=8 # number of values per line (8+1 * 8+1 = 81)
