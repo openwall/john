@@ -12,3 +12,4 @@ simplejson
 idna
 lxml
 ldap3
+olefile
