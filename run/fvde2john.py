@@ -16,12 +16,12 @@ import base64
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 except ImportError:
-    sys.stderr.write("cryptography is missing, run 'pip install --user cryptography' to install it!")
+    sys.stderr.write("cryptography is missing, run 'pip install --user cryptography' to install it!\n")
     sys.exit(1)
 try:
     import pytsk3
 except ImportError:
-    sys.stderr.write("pytsk3 is missing, run 'pip install --user pytsk3' to install it!")
+    sys.stderr.write("pytsk3 is missing, run 'pip install --user pytsk3' to install it!\n")
     sys.exit(1)
 
 HEX_CORE_STORAGE_TYPE_GUID = '53746F72-6167-11AA-AA11-00306543ECAC'
@@ -50,7 +50,7 @@ def guid_to_hex(guid):
 def try_read_fp(fp, bytes_to_read):
     out = fp.read(bytes_to_read)
     if len(out) != bytes_to_read:
-        sys.stderr.write("Error reading out of bounds of file, exiting.")
+        sys.stderr.write("Error reading out of bounds of file, exiting.\n")
         sys.exit(1)
 
     return out
@@ -72,7 +72,7 @@ def parse_partition_table(fp):
             sector_size = 0x1000
 
     if not sector_size:
-        sys.stderr.write(f"[!] Invalid sector size {sector_size} (not 512 or 4096 bytes). Exiting.")
+        sys.stderr.write(f"[!] Invalid sector size {sector_size} (not 512 or 4096 bytes). Exiting.\n")
         sys.exit(1)
 
     fp.seek(2 * sector_size) # go to sector 2
@@ -335,7 +335,7 @@ def main():
 
         core_storage_volumes = get_all_partitions_of_type(partition_dict, HEX_CORE_STORAGE_TYPE_GUID)
         if core_storage_volumes == []:
-            sys.stderr.write("[!] No CoreStorage volumes found, exiting.")
+            sys.stderr.write("[!] No CoreStorage volumes found, exiting\n")
             sys.exit(1)
         boot_volumes = get_all_partitions_of_type(partition_dict, HEX_APPLE_BOOT_STORAGE_TYPE_GUID)
 

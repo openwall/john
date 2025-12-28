@@ -159,7 +159,7 @@ def process_file(filename):
             certsize = struct.unpack("> I", buf)[0]
             certdata = fd.read(certsize)
         else:
-            sys.stderr.write("Unrecognized keystore entry")
+            sys.stderr.write("Unrecognized keystore entry\n")
             fd.close()
             return
 

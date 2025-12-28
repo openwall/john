@@ -58,7 +58,7 @@ def process_folder(folder):
     if not cipher or not keySize or not iterations or not salt or \
        not saltLen or not dataLen or not data:
         sys.stderr.write("%s contains bad data, please report this " \
-            "if target contains valid EncFS data" % filename)
+            "if target contains valid EncFS data\n" % filename)
         return
 
     if cipher.upper().find("AES") > -1:
