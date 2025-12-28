@@ -223,7 +223,7 @@ def read_private_key(filename):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stdout.write("Usage: %s <RSA/DSA/EC/OpenSSH private key file(s)>\n" %
+        sys.stderr.write("Usage: %s <RSA/DSA/EC/OpenSSH private key file(s)>\n" %
                          sys.argv[0])
 
     for filename in sys.argv[1:]:

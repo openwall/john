@@ -46,20 +46,20 @@ def process_file(filename):
         salt = data["salt"]
         ct = data["ct"]
     except:
-        sys.stdout.write("%s: json parsing failed\n" % filename)
+        sys.stderr.write("%s: json parsing failed\n" % filename)
         return -1
 
     if mode != "ccm":
-        sys.stdout.write("%s: unexpected mode '%s' found\n" % (filename, mode))
+        sys.stderr.write("%s: unexpected mode '%s' found\n" % (filename, mode))
         return -2
 
     if cipher != "AES":
-        sys.stdout.write("%s: unexpected cipher '%s' found\n" % (filename,
+        sys.stderr.write("%s: unexpected cipher '%s' found\n" % (filename,
                                                                  cipher))
         return -2
 
     if str(key_size) != "256":
-        sys.stdout.write("%s: unexpected key size '%s' found\n" % (filename,
+        sys.stderr.write("%s: unexpected key size '%s' found\n" % (filename,
                                                                    key_size))
         return -2
 
@@ -76,7 +76,7 @@ def process_file(filename):
 
     tlb = int(tag_len) / 8
     if ctlen - tlb == 2:  # empty padlock database, plaintext is "[]"
-        sys.stdout.write("%s: empty database found, expect false positives!\n" %
+        sys.stderr.write("%s: empty database found, expect false positives!\n" %
                          (filename))
 
     sys.stdout.write("%s:$padlock$%s$%s$%s$%s$%s$%s$%s$%s$%s$%s\n" %

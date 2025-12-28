@@ -40,14 +40,15 @@ def process_file(filename):
 
     iterations = struct.unpack("<I", f.read(4))[0]
 
-    sys.stdout.write("%s:$pwsafe$*3*" %
-                     os.path.basename(filename).rstrip(".psafe3"))
-    sys.stdout.write(hexlify(buf).decode('ascii'))
-    sys.stdout.write("*%s*" % iterations)
     hsh = f.read(32)
     if len(hsh) != 32:
         sys.stderr.write("Error: hash read failed.\n")
         return
+
+    sys.stdout.write("%s:$pwsafe$*3*" %
+                     os.path.basename(filename).rstrip(".psafe3"))
+    sys.stdout.write(hexlify(buf).decode('ascii'))
+    sys.stdout.write("*%s*" % iterations)
     sys.stdout.write(hexlify(hsh).decode('ascii'))
     sys.stdout.write("\n")
 
@@ -56,7 +57,7 @@ def process_file(filename):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stdout.write("Usage: %s [.psafe3 files]\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s [.psafe3 files]\n" % sys.argv[0])
         sys.exit(1)
 
     for f in sys.argv[1:]:

@@ -531,7 +531,7 @@ def pcap_parser_ntp(fname):
             elif length == 64:
                 print("%s:$dynamic_82$%s$HEX$%s" % (index, h.encode("hex"), salt.encode("hex")))
             else:
-                print("Unsupported hash of length %s found!" % len(data))
+                print("Unsupported hash of length %s found!" % len(data), file=sys.stderr)
 
     f.close()
 
@@ -900,11 +900,11 @@ def pcap_parser_wlccp(fname):
                                 iden = eap_id
                                 chall = data[:8]
                                 user = data[8:16]
-                                print("[DEBUG] WLCCP: EAP-AUTH challenge from authenticator seen for %s" % host)
+                                print("[DEBUG] WLCCP: EAP-AUTH challenge from authenticator seen for %s" % host, file=sys.stderr)
                                 comms[host] = ((iden, chall, user), leap_auth_resp, leap_supp_chall, leap_supp_resp)
                             elif leap_auth_chall and leap_auth_resp and not leap_supp_chall and not leap_supp_resp:
                                 chall = data[:8]
-                                print("[DEBUG] WLCCP: EAP-AUTH challenge from supplicant seen for %s" % host)
+                                print("[DEBUG] WLCCP: EAP-AUTH challenge from supplicant seen for %s" % host, file=sys.stderr)
                                 comms[host] = (leap_auth_chall, leap_auth_resp, chall, leap_supp_resp)
                     elif eap_code == 0x02:
                             (leap_type, leap_version, leap_reserved, leap_count) = struct.unpack("!BBBB", data[:4])
@@ -914,11 +914,11 @@ def pcap_parser_wlccp(fname):
                                 (leap_auth_chall, leap_auth_resp, leap_supp_chall, leap_supp_resp) = leap
                                 if leap_auth_chall and not leap_auth_resp and not leap_supp_chall and not leap_supp_resp:
                                     resp = data[:24]
-                                    print("[DEBUG] WLCCP: EAP-AUTH response from authenticator seen for %s" % host)
+                                    print("[DEBUG] WLCCP: EAP-AUTH response from authenticator seen for %s" % host, file=sys.stderr)
                                     comms[host] = (leap_auth_chall, resp, leap_supp_chall, leap_supp_resp)
                                 elif leap_auth_chall and leap_auth_resp and leap_supp_chall and not leap_supp_resp:
                                     resp = data[:24]
-                                    print("[DEBUG] WLCCP: EAP-AUTH response from supplicant seen for %s" % host)
+                                    print("[DEBUG] WLCCP: EAP-AUTH response from supplicant seen for %s" % host, file=sys.stderr)
                                     comms[host] = (leap_auth_chall, leap_auth_resp, leap_supp_chall, resp)
 
     for entry in comms:
@@ -1128,7 +1128,7 @@ def pcap_parser_tgsrep(fname):
                     unfinished[(p[IP].src, p[IP].dst, p[TCP].dport)] = (ticketdata, size)
                 else:
                     # OH NO! Oversized!
-                    print('Too much data received! Source: %s Dest: %s DPort %i' % (p[IP].src, p[IP].dst, p[TCP].dport))
+                    print('Too much data received! Source: %s Dest: %s DPort %i' % (p[IP].src, p[IP].dst, p[TCP].dport), file=sys.stderr)
 
     for p in kploads:
         print("%s:$tgsrep$%s" % (index, p.encode("hex")))

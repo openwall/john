@@ -103,10 +103,10 @@ if __name__ == '__main__':
              if re.search(':',line):
                data=data.split(':',1) # line contains :
              else:
-                 print("\n\n\n")
-                 print("Error in input file.")
-                 print("The input file must have either a \",\" or \":\" separator on each line.")
-                 print("Also it should not contain any blank lines. Please correct the input file.")
+                 print("\n\n\n", file=sys.stderr)
+                 print("Error in input file.", file=sys.stderr)
+                 print("The input file must have either a \",\" or \":\" separator on each line.", file=sys.stderr)
+                 print("Also it should not contain any blank lines. Please correct the input file.", file=sys.stderr)
                  break
           username = data[0]
           password = data[1]
@@ -114,7 +114,7 @@ if __name__ == '__main__':
           output_file.write ("%s:%s$%s" % (username,username,ciphertext))
           output_file.write ("\n")
        input_file.close()
-       print("\nThe output file has been created.")
+       print("\nThe output file has been created.", file=sys.stderr)
        output_file.close()
     else:   # We are not reading from a file
       username = sys.argv[1]
@@ -122,13 +122,13 @@ if __name__ == '__main__':
       ciphertext = net(username,password)
       print(("%s:%s$%s" % (username,username,ciphertext)))
   else:   # User did not input the required two commandline arguments
-    print("\n\n")
-    print("This program requires two commandline arguments:")
-    print("The first argument is a username, or -f to indicate reading from a file.")
-    print("The second argument is a plaintext password, or the name of the file to read from.")
-    print("See the additional text at the beginning of this script for more details.\n")
-    print("Output will be the username and the (Netscreen algorithm based) hashed password, in John the Ripper format. \n\n")
-    print("Example")
-    print("Input: netscreen.py admin netscreen")
-    print("Output: admin:admin$nKv3LvrdAVtOcE5EcsGIpYBtniNbUn")
-    print("(Netscreen uses the username as the salt)")
+    print("\n\n", file=sys.stderr)
+    print("This program requires two commandline arguments:", file=sys.stderr)
+    print("The first argument is a username, or -f to indicate reading from a file.", file=sys.stderr)
+    print("The second argument is a plaintext password, or the name of the file to read from.", file=sys.stderr)
+    print("See the additional text at the beginning of this script for more details.\n", file=sys.stderr)
+    print("Output will be the username and the (Netscreen algorithm based) hashed password, in John the Ripper format. \n\n", file=sys.stderr)
+    print("Example", file=sys.stderr)
+    print("Input: netscreen.py admin netscreen", file=sys.stderr)
+    print("Output: admin:admin$nKv3LvrdAVtOcE5EcsGIpYBtniNbUn", file=sys.stderr)
+    print("(Netscreen uses the username as the salt, file=sys.stderr)")

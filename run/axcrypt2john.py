@@ -98,7 +98,7 @@ def parse_axxfile(axxfile):
     sizeof_file = len(axxdata)
 
     if axxdata[:16] != GUID:
-        print("Be careful, GUID is different from AxCrypt's one...")
+        print("Be careful, GUID is different from AxCrypt's one...", file=sys.stderr)
 
     header_datalen_offset = 16
     headertype = b'\x02' # first type encountered
@@ -133,7 +133,7 @@ def parse_axxfile(axxfile):
         header_datalen_offset += header_datalen
 
         if header_datalen_offset >= sizeof_file:
-            print("Could not parse file, exiting...")
+            print("Could not parse file, exiting...", file=sys.stderr)
             sys.exit(0)
 
     return version, StructKeys[0]['KeyData'], StructKeys[0]['salt'], StructKeys[0]['Iteration'], None, None

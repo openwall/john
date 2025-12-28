@@ -216,8 +216,8 @@ def process_file(f):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stdout.write("Usage: %s <.pdml files>\n" % sys.argv[0])
-        sys.stdout.write("\ntshark -r sample.pcap -T pdml > sample.pdml; %s sample.pdml\n" % sys.argv[0])
+        sys.stderr.write("Usage: %s <.pdml files>\n" % sys.argv[0])
+        sys.stderr.write("\ntshark -r sample.pcap -T pdml > sample.pdml; %s sample.pdml\n" % sys.argv[0])
         sys.exit(1)
 
     for i in range(1, len(sys.argv)):

@@ -14,7 +14,7 @@
 try:
     from scapy.all import *
 except ImportError:
-    print("scapy is missing, run 'pip install --user scapy' to install it!")
+    print("scapy is missing, run 'pip install --user scapy' to install it!", file=sys.stderr)
     exit(1)
 
 from binascii import hexlify
@@ -23,7 +23,7 @@ import os
 import re
 
 if len(argv) < 2:
-    print('Usage: ./apop2john.py <pcap files>')
+    print('Usage: ./apop2john.py <pcap files>', file=sys.stderr)
     exit(1)
 
 filenames = argv[1:]

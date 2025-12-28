@@ -66,7 +66,7 @@ def process_file(filename):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stdout.write("Usage: mozilla2john [key3.db file(s)]\n")
+        sys.stderr.write("Usage: mozilla2john [key3.db file(s)]\n")
         sys.exit(1)
 
     for i in range(1, len(sys.argv)):

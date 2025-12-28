@@ -71,7 +71,7 @@ def process_file(filename):
         typ = 1
 
     if typ == 0:
-        sys.stdout.write("%s: md5 crypto / old money file format found!\n" % (bname))
+        sys.stderr.write("%s: md5 crypto / old money file format found!\n" % (bname))
 
     sys.stdout.write("%s:$money$%s*%s*%s\n" % (bname, typ, salt, encrypted4BytesCheck))
 

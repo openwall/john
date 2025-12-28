@@ -187,7 +187,7 @@ def process_file(filename):
     N = DATA_BLOCK_64_size
     data = f.read(N)
     if len(data) != N:
-        sys.stdout.write("%s : parsing failed\n" % filename)
+        sys.stderr.write("%s : parsing failed\n" % filename)
         return -1
 
     data = struct.unpack(DATA_BLOCK_64_fmt, data)
@@ -200,7 +200,7 @@ def process_file(filename):
     # libs/multi-lib/keygens/kgghost/datablock.cpp -> DataBlock_DecodeKey
     # libs/multi-lib/keygens/kgghost/datablock.cpp -> walkNotEncrypted
     if signature != DB_HEADER_SIGNATURE or volumeLabel != b"BC_KeyGenID":
-        print("%s: encrypted header found, not yet supported, patches welcome!" % os.path.basename(filename))
+        print("%s: encrypted header found, not yet supported, patches welcome!" % os.path.basename(filename), file=sys.stderr)
         # look at libs/multi-lib/keygens/kgghost/datablock.cpp -> DataBlock_DecodeKey
         return
 
@@ -211,20 +211,20 @@ def process_file(filename):
     else:
         resolved_version = iterations  # union of iterations and version
         if (resolved_version != 3) or wKeyGenId != kKGID:
-            print("Invalid header version %s, id %s" % (resolved_version, wKeyGenId))
+            print("Invalid header version %s, id %s" % (resolved_version, wKeyGenId), file=sys.stderr)
             return
 
     if alg_id != bcsaRIJN:
-        print("%s: cipher alg_id %s not supported, patches welcome!" % (os.path.basename(filename), alg_id))
+        print("%s: cipher alg_id %s not supported, patches welcome!" % (os.path.basename(filename), alg_id), file=sys.stderr)
         return
 
     if mode_id != kBCMode_CBC and mode_id != kBCMode_XTS:
-        print("%s: cipher mode_id %s not supported, patches welcome!" % (os.path.basename(filename), hex(mode_id)))
+        print("%s: cipher mode_id %s not supported, patches welcome!" % (os.path.basename(filename), hex(mode_id)), file=sys.stderr)
         return
 
     # handle hash_id and salt
     if hash_id != bchaWhirlpool512 and hash_id != bchaSHA256 and hash_id != pgphaSHA512:
-        print("%s: hash_id %s not supported, patches welcome!" % (os.path.basename(filename), hash_id))
+        print("%s: hash_id %s not supported, patches welcome!" % (os.path.basename(filename), hash_id), file=sys.stderr)
         return 0
     salt_size = -1
     if hash_id == bchaWhirlpool512:
@@ -236,7 +236,7 @@ def process_file(filename):
     salt = hexlify(keys[0:salt_size]).decode("ascii")  # this uses data from keys corresponding to slotnum = 0
     size, _type, param = struct.unpack(keymap_fmt, keymap[:keymap_size])  # this uses data from keymap with slotnum = 0
     if _type != kBCKeyType_Salt:
-        print("%s: internal error while processing salt, please report this problem!" % os.path.basename(filename))
+        print("%s: internal error while processing salt, please report this problem!" % os.path.basename(filename), file=sys.stderr)
         return
 
     dbsize = kBCV8_InitialDataBlockSize

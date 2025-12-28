@@ -55,7 +55,7 @@ def orion2john(f_in, f_out, sep=','):
 
 
 def usage():
-    sys.stdout.write('usage: %s [dbo.OrionUsers CSV extracts]\n' % sys.argv[0])
+    sys.stderr.write('usage: %s [dbo.OrionUsers CSV extracts]\n' % sys.argv[0])
     sys.exit(1)
 
 

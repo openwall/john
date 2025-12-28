@@ -548,7 +548,7 @@ class MasterKeyFile(DataStruct):
         if context == "domain1607-" or context == "domain":
             self.decryptWithHash(userSID, hashlib.new("md4", pwd.encode('UTF-16LE')).digest())
             if self.decrypted:
-                print("Decrypted succesfully as domain1607-")
+                print("Decrypted succesfully as domain1607-", file=sys.stderr)
                 return
         if context == "domain1607+" or context == "domain":
             SIDenc = userSID.encode("UTF-16LE")
@@ -557,7 +557,7 @@ class MasterKeyFile(DataStruct):
             derived = pbkdf2(derived, SIDenc, 16, 1, digest='sha256')
             self.decryptWithHash(userSID, derived)
             if self.decrypted:
-                print("Decrypted succesfully as domain1607+")
+                print("Decrypted succesfully as domain1607+", file=sys.stderr)
                 return
         if context == "local":
             self.decryptWithHash(userSID, hashlib.new("sha1", pwd.encode('UTF-16LE')).digest())
@@ -656,10 +656,10 @@ if __name__ == "__main__":
     debug = options.debug
 
     if options.preferred and (options.masterkey or options.sid or options.context):
-        print("'Preferred' option cannot be used combined with any other, exiting.")
+        print("'Preferred' option cannot be used combined with any other, exiting.", file=sys.stderr)
         sys.exit(1)
     elif not options.preferred and not (options.masterkey and options.sid and options.context):
-        print("masterkey file, SID and context are mandatory in order to extract hash from masterkey file, exiting.")
+        print("masterkey file, SID and context are mandatory in order to extract hash from masterkey file, exiting.", file=sys.stderr)
         sys.exit(1)
     elif options.preferred:
         Preferred = open(options.preferred,'rb')

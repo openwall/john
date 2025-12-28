@@ -115,7 +115,7 @@ def unwrap_pkcs8_data(blob):
 if __name__ == "__main__":
 
     if len(sys.argv) < 2:
-        sys.stdout.write("Usage: %s <.pem files using PCKS #8 format>\n" %
+        sys.stderr.write("Usage: %s <.pem files using PCKS #8 format>\n" %
                          sys.argv[0])
 
     for filename in sys.argv[1:]:

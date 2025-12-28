@@ -30,27 +30,27 @@ from ccl_chrome_indexeddb import ccl_leveldb
 
 # Welcome message
 prog = os.path.basename(sys.argv[0])
-print('Data extractor for Keplr wallet (only works with Chrome extension data)\n')
+print('Data extractor for Keplr wallet (only works with Chrome extension data)\n', file=sys.stderr)
 
 #######################################################################################
 # Check program params
 #######################################################################################
 if len(sys.argv) < 2 or len(sys.argv) > 3 or sys.argv[1].startswith("-"):
-    print('Error: Too few or too much parameters')
+    print('Error: Too few or too much parameters', file=sys.stderr)
     print(f"usage: {prog} <Keplr_wallet_folder> <password>", file=sys.stderr)
     print(f"       where <password> is optional\n", file=sys.stderr)
 
-    print('You can find the <Keplr_wallet_folder> where Google Chrome may save the extension settings:')
-    print(' - On Windows you can check the following folders:')
-    print('     * %AppData%\\Local\\Google\\Chrome\\User Data\\Default\\Local Extension Settings\\dmkamcknogkgcdfhhbddcghachkejeap')
-    print('     * %AppData%\\Local\\Google\\Chrome\\User Data\\Default\\Local Storage')
-    print('     * %AppData%\\Local\\Google\\Chrome\\User Data\\Default\\IndexedDB\\chrome-extension_dmkamcknogkgcdfhhbddcghachkejeap_0.indexeddb.leveldb')
+    print('You can find the <Keplr_wallet_folder> where Google Chrome may save the extension settings:', file=sys.stderr)
+    print(' - On Windows you can check the following folders:', file=sys.stderr)
+    print('     * %AppData%\\Local\\Google\\Chrome\\User Data\\Default\\Local Extension Settings\\dmkamcknogkgcdfhhbddcghachkejeap', file=sys.stderr)
+    print('     * %AppData%\\Local\\Google\\Chrome\\User Data\\Default\\Local Storage', file=sys.stderr)
+    print('     * %AppData%\\Local\\Google\\Chrome\\User Data\\Default\\IndexedDB\\chrome-extension_dmkamcknogkgcdfhhbddcghachkejeap_0.indexeddb.leveldb', file=sys.stderr)
 
     # TODO: Check on Linux
     # TODO: Support Firefox
     # print(' - On Linux you can check the following folders:')
     # print('     * ~/.google-chrome/Default/Local Extension Settings/dmkamcknogkgcdfhhbddcghachkejeap')
-    print('')
+    print('', file=sys.stderr)
     sys.exit(0)
 
 #######################################################################################
@@ -60,7 +60,7 @@ try:
     wallet_folder = sys.argv[1]
     leveldb_records = ccl_leveldb.RawLevelDb(wallet_folder)
 except Exception as e:
-    print(f'Error loading database: {e}')
+    print(f'Error loading database: {e}', file=sys.stderr)
     sys.exit(0)
 
 found_something = False
@@ -75,7 +75,7 @@ for record in leveldb_records.iterate_records_raw():
     google = True
 
     if os.getenv('JOHN_VERBOSE') == '2':
-        print(f"{record}\n")
+        print(f"{record}\n", file=sys.stderr)
 
     # Check keyring store
     if b"keyring/key-store" == record.user_key or b"keyring/key-multi-store" == record.user_key:
@@ -84,7 +84,7 @@ for record in leveldb_records.iterate_records_raw():
         key_store = json.loads(record.value.decode('utf-8', 'ignore'))
 
         if os.getenv('JOHN_VERBOSE') == '1':
-            print(f"{kv_db_key} : {key_store}\n")
+            print(f"{kv_db_key} : {key_store}\n", file=sys.stderr)
 
         if key_store is None:
             continue
@@ -122,75 +122,75 @@ for record in leveldb_records.iterate_records_raw():
             global found_something
             # General checks
             if 'crypto' not in key_store:
-                print("Error: No crypto found")
+                print("Error: No crypto found", file=sys.stderr)
                 return
             if 'version' not in key_store or key_store['version'] != '1.2':
-                print(f"Warning: Version {key_store['version']} different from 1.2")
+                print(f"Warning: Version {key_store['version']} different from 1.2", file=sys.stderr)
 
             if 'cipher' not in key_store['crypto']:
-                print("Warning: No cipher found")
+                print("Warning: No cipher found", file=sys.stderr)
             elif key_store['crypto']['cipher'] != 'aes-128-ctr':
-                print(f"Warning: cipher '{key_store['crypto']['cipher']}' different from 'aes-128-ctr'")
+                print(f"Warning: cipher '{key_store['crypto']['cipher']}' different from 'aes-128-ctr'", file=sys.stderr)
 
             if 'kdf' not in key_store['crypto']:
-                print("Warning: No kdf found")
+                print("Warning: No kdf found", file=sys.stderr)
             elif key_store['crypto']['kdf'] != 'scrypt':
-                print(f"Error: kdf '{key_store['crypto']['kdf']}' different from 'scrypt'")
+                print(f"Error: kdf '{key_store['crypto']['kdf']}' different from 'scrypt'", file=sys.stderr)
                 return
 
             if 'kdfparams' not in key_store['crypto']:
-                print("Warning: No kdfparams found")
+                print("Warning: No kdfparams found", file=sys.stderr)
             else:
                 if 'dklen' in key_store['crypto']['kdfparams'] and key_store['crypto']['kdfparams']['dklen'] != 32:
-                    print(f"Error: kdfparams:dklen '{key_store['crypto']['kdfparams']['dklen']}' different from 32")
+                    print(f"Error: kdfparams:dklen '{key_store['crypto']['kdfparams']['dklen']}' different from 32", file=sys.stderr)
                     return
                 if 'n' in key_store['crypto']['kdfparams'] and key_store['crypto']['kdfparams']['n'] != 131072:
-                    print(f"Error: kdfparams:n '{key_store['crypto']['kdfparams']['n']}' different from 131072")
+                    print(f"Error: kdfparams:n '{key_store['crypto']['kdfparams']['n']}' different from 131072", file=sys.stderr)
                     return
                 if 'p' in key_store['crypto']['kdfparams'] and key_store['crypto']['kdfparams']['p'] != 1:
-                    print(f"Error: kdfparams:p '{key_store['crypto']['kdfparams']['p']}' different from 1")
+                    print(f"Error: kdfparams:p '{key_store['crypto']['kdfparams']['p']}' different from 1", file=sys.stderr)
                     return
                 if 'r' in key_store['crypto']['kdfparams'] and key_store['crypto']['kdfparams']['r'] != 8:
-                    print(f"Error: kdfparams:r '{key_store['crypto']['kdfparams']['r']}' different from 8")
+                    print(f"Error: kdfparams:r '{key_store['crypto']['kdfparams']['r']}' different from 8", file=sys.stderr)
                     return
 
             # Username
             if 'meta' not in key_store or 'name' not in key_store['meta']:
-                print("Error: No username found")
+                print("Error: No username found", file=sys.stderr)
                 return
             username = key_store['meta']['name']
 
             # Ciphertext
             if 'ciphertext' not in key_store['crypto']:
-                print("Error: No ciphertext found")
+                print("Error: No ciphertext found", file=sys.stderr)
                 return
             ciphertext_hex = key_store['crypto']['ciphertext']
             if not check_hex(ciphertext_hex):
-                print("Error: Ciphertext not in hexadecimal format")
+                print("Error: Ciphertext not in hexadecimal format", file=sys.stderr)
                 return
 
             # Salt
             if 'kdfparams' not in key_store['crypto'] or 'salt' not in key_store['crypto']['kdfparams']:
-                print("Error: No salt found")
+                print("Error: No salt found", file=sys.stderr)
                 return
             salt_hex = key_store['crypto']['kdfparams']['salt']
             if not check_hex(salt_hex):
-                print("Error: Salt not in hexadecimal format")
+                print("Error: Salt not in hexadecimal format", file=sys.stderr)
                 return
             if len(salt_hex) != 64:
-                print(f"Error: Salt size is {len(salt_hex)//2} and should be 32")
+                print(f"Error: Salt size is {len(salt_hex)//2} and should be 32", file=sys.stderr)
                 return
 
             # Mac
             if 'mac' not in key_store['crypto']:
-                print("Error: No mac found")
+                print("Error: No mac found", file=sys.stderr)
                 return
             mac_hex = key_store['crypto']['mac']
             if not check_hex(mac_hex):
-                print("Error: MAC not in hexadecimal format")
+                print("Error: MAC not in hexadecimal format", file=sys.stderr)
                 return
             if len(mac_hex) != 64:
-                print(f"Error: Salt size is {len(mac_hex)//2} and should be 32")
+                print(f"Error: Salt size is {len(mac_hex)//2} and should be 32", file=sys.stderr)
                 return
 
             # IV
@@ -210,19 +210,21 @@ for record in leveldb_records.iterate_records_raw():
                 load_user_hash(store)
 
 if not found_something:
-    print('Error:')
-    print(f' - No valid data found in "{sys.argv[1]}" folder.')
+    print('Error:', file=sys.stderr)
+    print(f' - No valid data found in "{sys.argv[1]}" folder.', file=sys.stderr)
 
     if not google:
-        print(' - The file was not detected as valid ccl_chrome_indexeddb (LevelDB) technology.')
+        print(' - The file was not detected as valid ccl_chrome_indexeddb (LevelDB) technology.', file=sys.stderr)
     sys.exit(1)
 
 #######################################################################################
 # Show users
 #######################################################################################
-print('#################################################################################')
-print('Users found on the database in the format -> username:$keplr$salt*ciphertext*mac')
-print('#################################################################################')
+if sys.stdout.isatty():
+    print('#################################################################################')
+    print('Users found on the database in the format -> username:$keplr$salt*ciphertext*mac')
+    print('#################################################################################')
+
 for user in users:
     print(f'{user[0]}:$keplr${user[1]}*{user[2]}*{user[3]}')
 
@@ -235,12 +237,12 @@ if len(sys.argv) < 3:
     sys.exit(0)
 
 password_str = sys.argv[2]
-print('')
-print('#################################################################################')
-print(f'Simple test of password: {password_str}')
-print('Result in the format -> username:<Match>|<NotMatch>:decrypted_data')
-print('                        where decrypted_data can be the mnemonic seed')
-print('#################################################################################')
+print('', file=sys.stderr)
+print('#################################################################################', file=sys.stderr)
+print(f'Simple test of password: {password_str}', file=sys.stderr)
+print('Result in the format -> username:<Match>|<NotMatch>:decrypted_data', file=sys.stderr)
+print('                        where decrypted_data can be the mnemonic seed', file=sys.stderr)
+print('#################################################################################', file=sys.stderr)
 try:
     import hashlib, scrypt
     from Crypto.Cipher import AES
@@ -261,8 +263,8 @@ try:
         plain_text = decrypt_cipher.decrypt(ciphertext_bytes)
 
         # Show results
-        print(f'{user[0]}:{"<Match>" if calculated_mac == mac_hex else "<NotMatch>"}:{plain_text}')
+        print(f'{user[0]}:{"<Match>" if calculated_mac == mac_hex else "<NotMatch>"}:{plain_text}', file=sys.stderr)
 
 except Exception as e:
-    print(f'Error testing supplied password: {e}')
+    print(f'Error testing supplied password: {e}', file=sys.stderr)
     sys.exit(0)

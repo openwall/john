@@ -140,7 +140,7 @@ def parse_footer(data):
         while True:
             footer = fh.read(CryptMntFtr.struct_size())
             if len(footer) < CryptMntFtr.struct_size():
-                print("Cannot read disk image footer")
+                print("Cannot read disk image footer", file=sys.stderr)
                 return
             idx = footer.find(b"\xC4\xB1\xB5\xD0")
             if idx == 0:
@@ -151,13 +151,12 @@ def parse_footer(data):
         crypt_ftr = CryptMntFtr(footer)
 
         if crypt_ftr.magic != CRYPT_MNT_MAGIC:
-            print(
-                    data, crypt_ftr, "Bad magic in disk image footer")
+            print(data, crypt_ftr, "Bad magic in disk image footer", file=sys.stderr)
         if crypt_ftr.major_version != 1:
             print(data, crypt_ftr,
                                 "Cannot understand major version {} in "
                                 "disk image footer".format(
-                                    crypt_ftr.major_version))
+                                    crypt_ftr.major_version), file=sys.stderr)
         if crypt_ftr.minor_version != 0:
             warn("crypto footer minor version {}, expected 0".format(
                 crypt_ftr.minor_version), UserWarning)
@@ -169,17 +168,17 @@ def parse_footer(data):
         if crypt_ftr.keysize != KEY_LEN_BYTES:
             print(data, crypt_ftr,
                                 "Keysize of {} bits not supported".format(
-                                    crypt_ftr.keysize*8))
+                                    crypt_ftr.keysize*8), file=sys.stderr)
         key = fh.read(crypt_ftr.keysize)
         if len(key) != crypt_ftr.keysize:
             print(data, crypt_ftr,
-                                "Cannot read key from disk image footer")
+                                "Cannot read key from disk image footer", file=sys.stderr)
 
         fh.seek(KEY_TO_SALT_PADDING, os.SEEK_CUR)
         salt = fh.read(SALT_LEN)
         if len(salt) != SALT_LEN:
             print(data, crypt_ftr,
-                                "Cannot read salt from disk image footer")
+                                "Cannot read salt from disk image footer", file=sys.stderr)
 
         return (crypt_ftr, key, salt)
 

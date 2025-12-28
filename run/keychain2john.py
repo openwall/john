@@ -107,7 +107,7 @@ def process_file(filename):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        sys.stdout.write("Usage: keychain2john [keychain files]\n")
+        sys.stderr.write("Usage: keychain2john [keychain files]\n")
         sys.exit(1)
 
     for i in range(1, len(sys.argv)):

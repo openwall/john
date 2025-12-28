@@ -745,8 +745,8 @@ TKT_FLG_INITIAL = 0x00400000
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: {0} <input credential cache file>".format(sys.argv[0]))
-        print("\nExample: {0} /tmp/krb5cc_1000".format(sys.argv[0]))
+        print("Usage: {0} <input credential cache file>".format(sys.argv[0]), file=sys.stderr)
+        print("\nExample: {0} /tmp/krb5cc_1000".format(sys.argv[0]), file=sys.stderr)
         sys.exit(0)
 
     with open(sys.argv[1], 'rb') as f:
@@ -885,5 +885,5 @@ if __name__ == "__main__":
                 o.write(credential.tostring())
                 sys.exit(0)
         else:
-            print('Unknown File Type!')
+            print('Unknown File Type!', file=sys.stderr)
             sys.exit(0)

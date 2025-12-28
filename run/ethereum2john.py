@@ -35,14 +35,14 @@ def process_presale_wallet(filename, data):
     try:
         bkp = data["bkp"]
     except KeyError:
-        sys.stdout.write("%s: presale wallet is missing 'bkp' field, this is unsupported!\n" % filename)
+        sys.stderr.write("%s: presale wallet is missing 'bkp' field, this is unsupported!\n" % filename)
         return
 
     try:
         encseed = data["encseed"]
         ethaddr = data["ethaddr"]
     except KeyError:
-        sys.stdout.write("%s: presale wallet is missing necessary fields!\n" % filename)
+        sys.stderr.write("%s: presale wallet is missing necessary fields!\n" % filename)
         return
 
     # 16 bytes of bkp should be enough
@@ -74,7 +74,7 @@ def process_file(filename):
                 return
         cipher = crypto["cipher"]
         if cipher != "aes-128-ctr":
-            sys.stdout.write("%s: unexpected cipher '%s' found\n" % (filename, cipher))
+            sys.stderr.write("%s: unexpected cipher '%s' found\n" % (filename, cipher))
             return -2
         kdf = crypto["kdf"]
         ciphertext = crypto["ciphertext"]
@@ -93,7 +93,7 @@ def process_file(filename):
             n = kdfparams["c"]
             prf = kdfparams["prf"]
             if prf != 'hmac-sha256':
-                sys.stdout.write("%s: unexpected prf '%s' found\n" % (filename, prf))
+                sys.stderr.write("%s: unexpected prf '%s' found\n" % (filename, prf))
                 return
             salt = kdfparams["salt"]
             sys.stdout.write("%s:$ethereum$p*%s*%s*%s*%s\n" %
@@ -102,7 +102,7 @@ def process_file(filename):
         else:
             assert 0
     except:
-        sys.stdout.write("%s: json parsing failed\n" % filename)
+        sys.stderr.write("%s: json parsing failed\n" % filename)
         traceback.print_exc()
         return -1
 

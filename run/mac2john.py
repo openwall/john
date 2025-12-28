@@ -623,10 +623,10 @@ def process_file(filename):
     try:
         p1 = readPlist(filename)
     except IOError as e:
-        print("%s : %s" % (filename, str(e)))
+        print("%s : %s" % (filename, str(e)), file=sys.stderr)
         return False
     except (InvalidPlistException, NotBinaryPlistException):
-        print("%s is not a plist file!" % filename)
+        print("%s is not a plist file!" % filename, file=sys.stderr)
         return False
 
     s = p1.get('ShadowHashData', [None])[0]
@@ -640,7 +640,7 @@ def process_file(filename):
         # -convert xml1 username.plist".
         s = StringIO(s)
         if not s:
-            print("%s: could not find ShadowHashData" % filename)
+            print("%s: could not find ShadowHashData" % filename, file=sys.stderr)
             return -2
         try:
             p2 = readPlist(s)
@@ -683,9 +683,9 @@ def process_file(filename):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("This program helps in extracting password hashes from OS X / macOS systems (>= Mountain Lion -> 10.8+).\n")
-        print("Run this program against .plist file(s) obtained from /var/db/dslocal/nodes/Default/users/<username>.plist location.\n")
-        print("Usage: %s <OS X / macOS .plist files>" % sys.argv[0])
+        print("This program helps in extracting password hashes from OS X / macOS systems (>= Mountain Lion -> 10.8+).\n", file=sys.stderr)
+        print("Run this program against .plist file(s) obtained from /var/db/dslocal/nodes/Default/users/<username>.plist location.\n", file=sys.stderr)
+        print("Usage: %s <OS X / macOS .plist files>" % sys.argv[0], file=sys.stderr)
         sys.exit(1)
 
     for i in range(1, len(sys.argv)):

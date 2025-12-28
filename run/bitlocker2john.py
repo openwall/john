@@ -60,29 +60,29 @@ def uint_to_int(b):
 def try_read_fp(fp, bytes_to_read):
     out = fp.read(bytes_to_read)
     if len(out) != bytes_to_read:
-        print("Error reading out of bounds of file, exiting.")
+        print("Error reading out of bounds of file, exiting.", file=sys.stderr)
         sys.exit(1)
 
     return out
 
 def parse_FVEK(fvek_data):
-    print("\nParsing FVEK...")
+    print("\nParsing FVEK...", file=sys.stderr)
     nonce    = fvek_data[:12]
     mac      = fvek_data[12:28]
     enc_data = fvek_data[28:]
 
-    print("Mac:", mac.hex())
-    print("Nonce:", nonce.hex())
-    print("Encrypted data:", enc_data.hex())
+    print("Mac:", mac.hex(), file=sys.stderr)
+    print("Nonce:", nonce.hex(), file=sys.stderr)
+    print("Encrypted data:", enc_data.hex(), file=sys.stderr)
 
     return nonce, mac, enc_data
 
 def parse_stretch_key(data):
-    print("\nParsing stretch key...")
+    print("\nParsing stretch key...", file=sys.stderr)
     encryption_method = hex(uint_to_int(data[0:4]))
     salt = data[4:20]
-    print("Encryption method:", encryption_method)
-    print("Salt:", salt.hex())
+    print("Encryption method:", encryption_method, file=sys.stderr)
+    print("Salt:", salt.hex(), file=sys.stderr)
     current_pos = 0
     aes_ccm_data = data[20:]
     current_pos, data, value_type = parse_fve_metadata_entry(current_pos, aes_ccm_data)
@@ -91,7 +91,7 @@ def parse_stretch_key(data):
     return salt, nonce, mac, enc_data
 
 def generate_hash(salt, nonce, mac, enc_data, protection_type):
-    print("\nFound hash!")
+    print("\nFound hash!", file=sys.stderr)
     if protection_type == 0x2000:
         versions = BITLOCKER_PASSWORD_HASH_VERSIONS
     if protection_type == 0x800:
@@ -102,29 +102,29 @@ def generate_hash(salt, nonce, mac, enc_data, protection_type):
         HASHES.append(generated_hash)
 
 def parse_aes_ccm_encrypted_key(data):
-    print("Parsing AES CCM key...")
+    print("Parsing AES CCM key...", file=sys.stderr)
     nonce, mac, enc_data = parse_FVEK(data)
     return nonce, mac, enc_data
 
 def parse_description(data):
-    print("\nParsing description...")
-    print(f"Info: {data.decode('utf-16')}")
+    print("\nParsing description...", file=sys.stderr)
+    print(f"Info: {data.decode('utf-16')}", file=sys.stderr)
     return
 
 def parse_volume_header_block(data):
-    print("\nParsing volume header block...")
+    print("\nParsing volume header block...", file=sys.stderr)
     block_offset = uint_to_int(data[0:8])
     block_size   = uint_to_int(data[8:16])
-    print(f"Block offset: {hex(block_offset)}")
-    print(f"Block size: {block_size}")
+    print(f"Block offset: {hex(block_offset)}", file=sys.stderr)
+    print(f"Block size: {block_size}", file=sys.stderr)
 
 def parse_VMK(VMK_data):
-    print("\nParsing VMK...")
+    print("\nParsing VMK...", file=sys.stderr)
     guid = hex_to_guid(VMK_data[:16].hex())
     protection_type = uint_to_int(VMK_data[26:28])
     properties = VMK_data[28:]
-    print("GUID:", guid)
-    print(f"Protection type: {hex(protection_type)} = {PROTECTION_TYPES.get(protection_type)}")
+    print("GUID:", guid, file=sys.stderr)
+    print(f"Protection type: {hex(protection_type)} = {PROTECTION_TYPES.get(protection_type)}", file=sys.stderr)
 
     # only try parse properties if correct protection type
     protection_type_str = PROTECTION_TYPES.get(protection_type)
@@ -143,7 +143,7 @@ def parse_VMK(VMK_data):
     return
 
 def parse_fve_metadata_block(block):
-    print('\nParsing FVE block...')
+    print('\nParsing FVE block...', file=sys.stderr)
     metadata_size = len(block)
 
     entry_size = uint_to_int(block[112:114])
@@ -166,16 +166,16 @@ def parse_fve_metadata_block(block):
             return
 
 def parse_fve_metadata_entry(current_pos, block):
-    print("\nParsing FVE metadata entry...")
+    print("\nParsing FVE metadata entry...", file=sys.stderr)
     entry_size = uint_to_int(block[0:2])
     entry_type = uint_to_int(block[2:4])
     value_type = uint_to_int(block[4:6])
     version = hex(uint_to_int(block[6:8]))
     data = block[8:entry_size]
 
-    print(f"Entry size: {entry_size}")
-    print(f"Entry type: {hex(entry_type)} = {FVE_ENTRY_TYPES.get(entry_type)}")
-    print(f"Value type: {hex(value_type)} = {FVE_VALUE_TYPES.get(value_type)}")
+    print(f"Entry size: {entry_size}", file=sys.stderr)
+    print(f"Entry type: {hex(entry_type)} = {FVE_ENTRY_TYPES.get(entry_type)}", file=sys.stderr)
+    print(f"Value type: {hex(value_type)} = {FVE_VALUE_TYPES.get(value_type)}", file=sys.stderr)
 
     current_pos = current_pos + entry_size
 
@@ -189,15 +189,15 @@ def parse_fve_metadata_header_data(header_data):
     return metadata_size
 
 def parse_fve_metadata_header(block):
-    print("\nParsing FVE metadata header...")
+    print("\nParsing FVE metadata header...", file=sys.stderr)
     metadata_size = uint_to_int(block[0:4])
     volume_guid = hex_to_guid(block[16:32].hex())
     nonce_counter = uint_to_int(block[32:36])
     encryption_method = hex(uint_to_int(block[36:40]))
 
-    print("Metadata size:", metadata_size)
-    print("Volume GUID:", volume_guid)
-    print("Encryption method:", encryption_method)
+    print("Metadata size:", metadata_size, file=sys.stderr)
+    print("Volume GUID:", volume_guid, file=sys.stderr)
+    print("Encryption method:", encryption_method, file=sys.stderr)
 
     return metadata_size
 
@@ -222,9 +222,9 @@ def main():
 
         header = try_read_fp(fp, 8)
         if header.decode('latin-1') not in [BITLOCKER_SIGNATURE, BITLOCKER_TO_GO_SIGNATURE]:
-            print("[!] Supplied image path is not a BitLocker partition. Try specifiying the offset of the BitLocker partition with -o")
+            print("[!] Supplied image path is not a BitLocker partition. Try specifiying the offset of the BitLocker partition with -o", file=sys.stderr)
             exit()
-        print(f'[+] BitLocker signature found: {header.decode()}')
+        print(f'[+] BitLocker signature found: {header.decode()}', file=sys.stderr)
         sector_size = uint_to_int(try_read_fp(fp, 2))
 
         if header.decode('latin-1') == BITLOCKER_SIGNATURE:
@@ -237,13 +237,13 @@ def main():
         volume_guid = hex_to_guid(volume_guid.hex())
         volume_guid_id = BITLOCKER_GUIDS.get(volume_guid)
         if volume_guid_id == None:
-            print("[!] Volume GUID not recognised. Exiting.")
+            print("[!] Volume GUID not recognised. Exiting.", file=sys.stderr)
             sys.exit(1)
-        print(f'[+] Identified volume GUID: {volume_guid} = {volume_guid_id}')
+        print(f'[+] Identified volume GUID: {volume_guid} = {volume_guid_id}', file=sys.stderr)
 
         # get FVE metadata block addresses
         FVE_metadata_offsets = [hex(uint_to_int(try_read_fp(fp, 8)) + bitlocker_offset) for _ in range(3)]
-        print(f'[+] FVE metadata info found at offsets {FVE_metadata_offsets}')
+        print(f'[+] FVE metadata info found at offsets {FVE_metadata_offsets}', file=sys.stderr)
 
         # all metadata blocks should be the same
         for f in FVE_metadata_offsets:
@@ -259,9 +259,10 @@ def main():
             break
 
     if HASHES == []:
-        print("\nNo hashes associated with the user password or recovery password found. Exiting...")
+        print("\nNo hashes associated with the user password or recovery password found. Exiting...", file=sys.stderr)
     else:
-        print("\nThe following hashes were found:")
+        if sys.stdout.isatty():
+            print("\nThe following hashes were found:")
         for bitlocker_hash in HASHES:
             print(bitlocker_hash)
 

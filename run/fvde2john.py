@@ -335,7 +335,7 @@ def main():
 
         core_storage_volumes = get_all_partitions_of_type(partition_dict, HEX_CORE_STORAGE_TYPE_GUID)
         if core_storage_volumes == []:
-            sys.stderr.write("[!] No CoreStorage volumes found, exiting\n")
+            sys.stderr.write("[!] No CoreStorage volumes found, exiting.\n")
             sys.exit(1)
         boot_volumes = get_all_partitions_of_type(partition_dict, HEX_APPLE_BOOT_STORAGE_TYPE_GUID)
 

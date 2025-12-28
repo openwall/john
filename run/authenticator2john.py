@@ -13,7 +13,7 @@ import sys
 from binascii import hexlify
 
 if len(sys.argv) < 2:
-    print('Usage: ./authenticator2john.py <authenticator.data files>')
+    print('Usage: ./authenticator2john.py <authenticator.data files>', file=sys.stderr)
     exit(1)
 
 filenames = sys.argv[1:]

@@ -17,7 +17,7 @@ import sys
 
 
 def usage():
-    sys.stdout.write("""Usage: %s [dump]\n""" % sys.argv[0])
+    sys.stderr.write("""Usage: %s [dump]\n""" % sys.argv[0])
 
 if (len(sys.argv) < 2):
     usage()

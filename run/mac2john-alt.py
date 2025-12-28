@@ -21,7 +21,7 @@ import plistlib
 
 
 if sys.version_info[0] < 3 or sys.version_info[1] < 4:
-    print("This script requires Python version >= 3.4. Try ../run/mac2john.py script instead of this for older Python versions.")
+    print("This script requires Python version >= 3.4. Try ../run/mac2john.py script instead of this for older Python versions.", file=sys.stderr)
     sys.exit(1)
 
 
@@ -30,7 +30,7 @@ def process_file(filename):
         try:
             plist = plistlib.load(fp, use_builtin_types=True)
         except:
-            print("%s: unable to process as a plist file!" % filename)
+            print("%s: unable to process as a plist file!" % filename, file=sys.stderr)
             return
 
         hints = ""
@@ -44,7 +44,7 @@ def process_file(filename):
         try:
             data = plistlib.loads(plist['ShadowHashData'][0])
         except:
-            print("%s: could not find ShadowHashData" % filename)
+            print("%s: could not find ShadowHashData" % filename, file=sys.stderr)
             return
 
         d = data.get('SALTED-SHA512-PBKDF2', None)
@@ -63,9 +63,9 @@ def process_file(filename):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("This program helps in extracting password hashes from OS X / macOS systems (>= Mountain Lion -> 10.8+).\n")
-        print("Run this program against .plist file(s) obtained from /var/db/dslocal/nodes/Default/users/<username>.plist location.\n")
-        print("Usage: %s <OS X / macOS .plist files>" % sys.argv[0])
+        print("This program helps in extracting password hashes from OS X / macOS systems (>= Mountain Lion -> 10.8+).\n", file=sys.stderr)
+        print("Run this program against .plist file(s) obtained from /var/db/dslocal/nodes/Default/users/<username>.plist location.\n", file=sys.stderr)
+        print("Usage: %s <OS X / macOS .plist files>" % sys.argv[0], file=sys.stderr)
         sys.exit(1)
 
     for i in range(1, len(sys.argv)):
