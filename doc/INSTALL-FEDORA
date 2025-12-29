@@ -84,3 +84,27 @@ build CPU fallback chains for any x86-64 CPU.
 === Benchmark your build (this also performs self-tests)
 
     ./john --test
+
+=== Install all Perl libs required for things like keepass2john.pl
+
+    To get everything needed, you have to install from CPAN:
+
+    cd ~/src/john/run
+    cpanm --installdeps .
+
+=== Install all Python modules required for things like pcap2john.py
+
+    Use pip3 to install all of them into a virtual environment:
+
+    cd ~/src/john/run
+    python3 -m venv venv
+    . venv/bin/activate
+    pip3 install -r requirements.txt
+    deactivate
+
+    Later use:
+
+    cd ~/src/john/run
+    . venv/bin/activate
+     (run tools as needed)
+    deactivate

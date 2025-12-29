@@ -38,9 +38,29 @@ For building with OpenSSL, not only the runtime libraries are needed but also
 "development" stuff like header files.  This is often a separate package, so,
 e.g., for Ubuntu you need "libssl-dev" as well as "libssl".
 
-Some helper tools are written in Python.  A couple helper tools (vncpcap2john
-and SIPdump) need libpcap.  A couple of formats need extra libraries in order
-to get included:
+Some helper tools are written in Perl or Python.  To get everything needed
+for Perl, you have to install from CPAN - for example like this:
+
+	cd ~/src/john/run
+	cpanm --installdeps .
+
+Install all Python modules using pip3 into a virtual environment:
+
+	cd ~/src/john/run
+	python3 -m venv venv
+	. venv/bin/activate
+	pip3 install -r requirements.txt
+	deactivate
+
+Later use:
+
+	cd ~/src/john/run
+	. venv/bin/activate
+	 (run tools as needed)
+	deactivate
+
+A couple helper tools (vncpcap2john and SIPdump) need libpcap.  A couple of
+formats need extra libraries in order to get included:
 
 	mozilla		libnss
 	krb5-18/23	libkrb5
