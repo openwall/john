@@ -13,3 +13,4 @@ idna
 lxml
 ldap3
 olefile
+bsddb3
