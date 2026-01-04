@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 #
 # This software is Copyright (c) 2012-2013 Dhiru Kholia <dhiru at openwall.com>
-# and Copyright (c) 2013-2025 magnum,
+# and Copyright (c) 2013-2026 magnum,
 # and is hereby released to the general public under the following terms:
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted.
 
-from olefile import isOleFile, OleFileIO
 import sys
 import os
+
+try:
+    from olefile import isOleFile, OleFileIO
+except ImportError:
+    print(f"{os.path.basename(sys.argv[0])}: olefile python module is missing, please install your distro's", file=sys.stderr)
+    print("package, eg. 'sudo apt-get install python3-olefile' if available, otherwise", file=sys.stderr)
+    print("'pip install --user olefile' (activate your venv if you already did that)", file=sys.stderr)
+    sys.exit(1)
 
 PY3 = sys.version_info[0] == 3
 
