@@ -318,7 +318,7 @@ int cn_slow_hash(const void *data, size_t length, char *hash, void *memory)
 		"paddq %%xmm3,%%xmm0\n\t"
 		"movdqa %%xmm0,(%%rbx,%%rcx)\n\t"
 		"pxor %%xmm1,%%xmm0\n\t"
-		"vmovdqa (%%rbx,%%rdx),%%xmm1\n\t"
+		"movdqa (%%rbx,%%rdx),%%xmm1\n\t"
 		"aesenc %%xmm0,%%xmm1\n\t"
 		"movq %%xmm1,%%rcx\n\t"
 		"movq %%xmm1,%%rax\n\t"
