@@ -12,6 +12,7 @@ import argparse
 import sys
 import re
 import base64
+import zlib
 
 try:
     from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -30,7 +31,12 @@ LOCAL_USER_TYPE_ID = [0x10060002, 0x10000001] # added 0x10000001 for removable d
 BOOT_DIR_REGEX = re.compile(r'com.apple.boot.(?P<boot_letter>[A-Z])')
 
 # long regex for CryptoUsers dict (removable drives only) because difficult to parse with plistlib
-CRYPTO_USERS_REGEX = re.compile(r'<key>CryptoUsers<\/key>.*?<key>PassphraseWrappedKEKStruct<\/key><data.*?>(?P<PassphraseWrappedKEKStruct>.*?)<\/data><key>WrapVersion<\/key><integer.*?>(?P<wrap_version>.*?)<\/integer><key>UserType<\/key><integer.*?>(?P<UserType>.*?)<\/integer><key>UserIdent<\/key><string.*?>(?P<UserIdent>.+?)<\/string><key>UserNamesData<\/key><string.*?>(?P<UserNamesData>.*?)<\/string><key>PassphraseHint<\/key><reference.*?><key>KeyEncryptingKeyIdent<\/key><string.*?>(?P<KeyEncryptingKeyIdent>.*?)<\/string><key>UserFullName<\/key><reference.*?><key>EFILoginGraphics<\/key><data.*?>(?P<EFILoginGraphics>.*?)<\/data>')
+CRYPTO_USERS_REGEX_STR  = r'<key>CryptoUsers<\/key>.*?'
+for EntryName in ["PassphraseWrappedKEKStruct", "WrapVersion", "UserType", "UserIdent",
+                  "UserNamesData", "PassphraseHint", "KeyEncryptingKeyIdent", "UserFullName", "EFILoginGraphics"]:
+    CRYPTO_USERS_REGEX_STR += r'<key>' + EntryName + r'<\/key><.*?>(?P<' + EntryName + r'>.*?)(<.*?>)*?'
+CRYPTO_USERS_REGEX_STR += r'<.*?>'
+CRYPTO_USERS_REGEX   = re.compile(CRYPTO_USERS_REGEX_STR)
 
 def uint_to_int(b):
     return int(b[::-1].hex(), 16)
@@ -236,9 +242,15 @@ def parse_metadata_block_0x11(metadata_block):
     return volume_group_xml_offset, volume_group_xml_size, volume_groups_descriptor_offset
 
 def parse_metadata_block_0x19(metadata_block):
+    compressed_data_size = uint_to_int(metadata_block[40:44])
+    uncompressed_data_size = uint_to_int(metadata_block[44:48])
     xml_plist_data_offset = uint_to_int(metadata_block[48:52])
     xml_plist_data_size   = uint_to_int(metadata_block[52:56])
     xml_plist = metadata_block[xml_plist_data_offset - 64: xml_plist_data_offset + xml_plist_data_size - 64]
+
+    if compressed_data_size < uncompressed_data_size:
+        xml_plist = decompress_xml_plist(xml_plist)
+
     return xml_plist
 
 def parse_volume_group_descriptor(volume_group_descriptor):
@@ -269,9 +281,18 @@ def parse_CryptoUsers_dict(CryptoUsers_dict, EncryptedRoot):
             if not EncryptedRoot:
                 PassphraseWrappedKEKStruct = base64.b64decode(PassphraseWrappedKEKStruct)
             fvde_hash = construct_fvde_hash(PassphraseWrappedKEKStruct)
-
             sys.stdout.write(f"{username_info}:{fvde_hash}:::{full_name_info} {passphrase_hint}::\n")
     return
+
+def decompress_xml_plist(xml_plist):
+    # sometimes the xml plist in metadata block type 0x19 is compressed with zlib
+    try:
+        decompressed_xml_plist = zlib.decompress(xml_plist)
+        return decompressed_xml_plist
+    except zlib.error:
+            sys.stderr.write("[!] Zlib decompression error, exiting.\n")
+            sys.exit(1)
+
 
 def get_CryptoUsers_dict_from_EncryptedRoot(EncryptedRoot_data, aes_key1):
     aes_key2 = b'\x00' * 16
@@ -288,8 +309,8 @@ def get_CryptoUsers_dict_from_encrypted_metadata(cs_start_pos, offsets, block_si
     metadata_block = try_read_fp(fp, 0x200)
 
     volume_group_xml_offset, volume_group_xml_size, volume_groups_descriptor_offset = parse_metadata_block(metadata_block)
-    # fp.seek(metadata_block_start + volume_group_xml_offset)
-    # xml = try_read_fp(fp, volume_group_xml_size)
+    fp.seek(metadata_block_start + volume_group_xml_offset)
+    xml = try_read_fp(fp, volume_group_xml_size)
 
     fp.seek(metadata_block_start + volume_groups_descriptor_offset)
     volume_group_descriptor = try_read_fp(fp, 0x200)
@@ -298,30 +319,35 @@ def get_CryptoUsers_dict_from_encrypted_metadata(cs_start_pos, offsets, block_si
     fp.seek(cs_start_pos + primary_enc_metadata_block_no * block_size)
     enc_metadata = try_read_fp(fp, enc_metadata_size * block_size)
 
-    for block_number in range(0, 64):  # change to the number
+    for block_number in range(0, enc_metadata_size):
         aes_key2 = physical_UUID
-        decrypted_block = AES_XTS_decrypt_metadata_block(aes_key1, aes_key2, block_number, enc_metadata)
 
+        decrypted_block = AES_XTS_decrypt_metadata_block(aes_key1, aes_key2, block_number, enc_metadata)
         decrypted_metadata_block_header = decrypted_block[:64]
         block_type, metadata_block_size, possibly_lvfwiped = parse_metadata_block_header(decrypted_metadata_block_header)
 
+        # data block is wiped, skip
+        if possibly_lvfwiped == b'LVFwiped':
+            continue
+
         # iterate through blocks until find block_type 0x19 - containing encryption context
         if block_type == 0x19:
-            xml_plist = parse_metadata_block_0x19(decrypted_block[64:metadata_block_size]).decode('latin-1')
+            xml_plist = parse_metadata_block_0x19(decrypted_block[64:metadata_block_size]).decode()
 
             matches = []
             for m in re.finditer(CRYPTO_USERS_REGEX, xml_plist):
                 matches.append(m.groupdict())
 
-            CryptoUsers_dict = {}
-            for user_index in range(len(matches)):
-                CryptoUsers_dict[user_index] = matches[user_index]
-                # if present convert user type from string to hex
-                user_type = CryptoUsers_dict[user_index].get('UserType')
-                if user_type:
-                    CryptoUsers_dict[user_index]['UserType'] = int(CryptoUsers_dict[user_index]['UserType'], 16)
+            if matches:
+                CryptoUsers_dict = {}
+                for user_index in range(len(matches)):
+                    CryptoUsers_dict[user_index] = matches[user_index]
+                    # if present convert user type from string to hex
+                    user_type = CryptoUsers_dict[user_index].get('UserType')
+                    if user_type:
+                        CryptoUsers_dict[user_index]['UserType'] = int(CryptoUsers_dict[user_index]['UserType'], 16)
 
-            return CryptoUsers_dict
+                return CryptoUsers_dict
 
 def main():
 
