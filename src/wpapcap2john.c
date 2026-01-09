@@ -1994,16 +1994,6 @@ static int process_ng(FILE *in)
 				break;
 			}
 			fseek(in, pcapngbh.total_length - BH_SIZE - PB_SIZE - pcapngpb.caplen, SEEK_CUR);
-
-			MEM_FREE(full_packet);
-			safe_malloc(full_packet, pcapngpb.caplen);
-			res = fread(full_packet, 1, pcapngpb.caplen, in);
-			if (res != pcapngpb.caplen) {
-				printf("failed to read packet: %s truncated?\n", filename);
-				break;
-			}
-
-			fseek(in, pcapngbh.total_length - BH_SIZE - PB_SIZE - pcapngpb.caplen, SEEK_CUR);
 		}
 
 		else if (pcapngbh.block_type == 3) {
