@@ -15,7 +15,6 @@ jobs:
           - libssl-dev
           - zlib1g-dev
           # Extra formats and performance
-          - yasm
           - libgmp-dev
           - libpcap-dev
           - pkg-config
@@ -41,7 +40,6 @@ jobs:
           - libssl-dev
           - zlib1g-dev
           # Extra formats and performance
-          - yasm
           - libgmp-dev
           - libpcap-dev
           - pkg-config

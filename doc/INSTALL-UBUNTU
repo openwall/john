@@ -27,7 +27,7 @@ build CPU fallback chains for any x86-64 CPU.
 
 ==== Recommended (extra formats and performance)
 
-    sudo apt-get -y install yasm pkg-config libgmp-dev libpcap-dev libbz2-dev
+    sudo apt-get -y install pkg-config libgmp-dev libpcap-dev libbz2-dev
 
 ==== If you have NVIDIA GPU(s) (OpenCL support)
 

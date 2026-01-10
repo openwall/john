@@ -78,7 +78,7 @@ case "$CC" in
 		esac
 		;;
 	clang*)
-		apt_get_install $packages "$CC" yasm
+		apt_get_install $packages "$CC"
 		;;
 	*)
 		apt_get_install $packages

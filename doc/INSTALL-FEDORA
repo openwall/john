@@ -30,7 +30,7 @@ build CPU fallback chains for any x86-64 CPU.
 
 ==== Recommended (extra formats and performance)
 
-    sudo dnf install yasm gmp-devel libpcap-devel bzip2-devel
+    sudo dnf install gmp-devel libpcap-devel bzip2-devel
 
 ==== Optional MPI support
 
