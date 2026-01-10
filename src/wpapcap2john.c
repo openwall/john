@@ -1898,10 +1898,10 @@ static int process_ng(FILE *in)
 	int aktseek;
 
 	while (1) {
-		block_header_t pcapngbh;
-		interface_description_block_t pcapngidb;
+		block_header_t pcapng_bh;
+		interface_description_block_t pcapng_idb;
 
-		res = fread(&pcapngbh, 1, BH_SIZE, in);
+		res = fread(&pcapng_bh, 1, BH_SIZE, in);
 		if (res == 0) {
 			break;
 		}
@@ -1912,175 +1912,177 @@ static int process_ng(FILE *in)
 		}
 
 		if (verbosity >= 4)
-			fprintf(stderr, "pcap-ng block type %u\n", pcapngbh.block_type);
+			fprintf(stderr, "pcap-ng block type %u\n", pcapng_bh.block_type);
 
 		/* SHB, Section Header Block */
-		if (pcapngbh.block_type == PCAPNGBLOCKTYPE) {
-			section_header_block_t pcapngshb;
+		if (pcapng_bh.block_type == PCAPNGBLOCKTYPE) {
+			section_header_block_t pcapng_shb;
 
-			res = fread(&pcapngshb, 1, SHB_SIZE, in);
+			res = fread(&pcapng_shb, 1, SHB_SIZE, in);
 			if (res != SHB_SIZE) {
-				fprintf(stderr, "%s: Failed to read pcapng SHB: %s\n",
+				fprintf(stderr, "%s: Failed to read pcap-ng SHB: %s\n",
 				       filename, feof(in) ? "EOF" : strerror(errno));
 				break;
 			}
 
-			swap_needed = (pcapngshb.byte_order_magic == PCAPNGMAGICNUMBERBE);
+			swap_needed = (pcapng_shb.byte_order_magic == PCAPNGMAGICNUMBERBE);
 			swap_needed ^= !ARCH_LITTLE_ENDIAN;
 
 			if (swap_needed) {
-				pcapngbh.block_type = swap32u(pcapngbh.block_type);
-				pcapngbh.total_length = swap32u(pcapngbh.total_length);
-				pcapngshb.byte_order_magic	= swap32u(pcapngshb.byte_order_magic);
-				pcapngshb.major_version		= swap16u(pcapngshb.major_version);
-				pcapngshb.minor_version		= swap16u(pcapngshb.minor_version);
-				pcapngshb.section_length	= swap64u(pcapngshb.section_length);
+				pcapng_bh.block_type        = swap32u(pcapng_bh.block_type);
+				pcapng_bh.total_length      = swap32u(pcapng_bh.total_length);
+				pcapng_shb.byte_order_magic = swap32u(pcapng_shb.byte_order_magic);
+				pcapng_shb.major_version	= swap16u(pcapng_shb.major_version);
+				pcapng_shb.minor_version	= swap16u(pcapng_shb.minor_version);
+				pcapng_shb.section_length	= swap64u(pcapng_shb.section_length);
 			}
 
 			aktseek = ftell(in);
-			if (pcapngbh.total_length > (SHB_SIZE + BH_SIZE + 4)) {
-				pcapng_option_walk(in, pcapngbh.total_length);
+			if (pcapng_bh.total_length > (SHB_SIZE + BH_SIZE + 4)) {
+				pcapng_option_walk(in, pcapng_bh.total_length);
 			}
-			fseek_chk(in, aktseek + pcapngbh.total_length - BH_SIZE - SHB_SIZE, SEEK_SET);
-			memset(&pcapngidb, 0, sizeof(pcapngidb));
+
+			memset(&pcapng_idb, 0, sizeof(pcapng_idb));
+
+			fseek_chk(in, aktseek + pcapng_bh.total_length - BH_SIZE - SHB_SIZE, SEEK_SET);
 		}
 
 		/* IDB, Interface Description Block */
-		else if (pcapngbh.block_type == 1) {
-			res = fread(&pcapngidb, 1, IDB_SIZE, in);
+		else if (pcapng_bh.block_type == 1) {
+			res = fread(&pcapng_idb, 1, IDB_SIZE, in);
 			if (res != IDB_SIZE) {
-				fprintf(stderr, "%s: Failed to get pcapng IDB: %s\n",
+				fprintf(stderr, "%s: Failed to get pcap-ng IDB: %s\n",
 				       filename, feof(in) ? "EOF" : strerror(errno));
 				break;
 			}
 			if (swap_needed) {
-				pcapngidb.linktype	= swap16u(pcapngidb.linktype);
-				pcapngidb.snaplen	= swap32u(pcapngidb.snaplen);
+				pcapng_idb.linktype = swap16u(pcapng_idb.linktype);
+				pcapng_idb.snaplen  = swap32u(pcapng_idb.snaplen);
 			}
 
-			fseek_chk(in, pcapngbh.total_length - BH_SIZE - IDB_SIZE, SEEK_CUR);
+			fseek_chk(in, pcapng_bh.total_length - BH_SIZE - IDB_SIZE, SEEK_CUR);
 		}
 
 		/* PB, Packet Block (deprecated) */
-		else if (pcapngbh.block_type == 2) {
-			packet_block_t pcapngpb;
+		else if (pcapng_bh.block_type == 2) {
+			packet_block_t pcapng_pb;
 
-			res = fread(&pcapngpb, 1, PB_SIZE, in);
+			res = fread(&pcapng_pb, 1, PB_SIZE, in);
 			if (res != PB_SIZE) {
-				fprintf(stderr, "%s: Failed to get pcapng PB: %s\n",
+				fprintf(stderr, "%s: Failed to get pcap-ng PB: %s\n",
 				       filename, feof(in) ? "EOF" : strerror(errno));
 				break;
 			}
 			if (swap_needed) {
-				pcapngpb.interface_id	= swap16u(pcapngpb.interface_id);
-				pcapngpb.drops_count	= swap16u(pcapngpb.drops_count);
-				pcapngpb.timestamp_high	= swap32u(pcapngpb.timestamp_high);
-				pcapngpb.timestamp_low	= swap32u(pcapngpb.timestamp_low);
-				pcapngpb.caplen		= swap32u(pcapngpb.caplen);
-				pcapngpb.len		= swap32u(pcapngpb.len);
+				pcapng_pb.interface_id   = swap16u(pcapng_pb.interface_id);
+				pcapng_pb.drops_count    = swap16u(pcapng_pb.drops_count);
+				pcapng_pb.timestamp_high = swap32u(pcapng_pb.timestamp_high);
+				pcapng_pb.timestamp_low  = swap32u(pcapng_pb.timestamp_low);
+				pcapng_pb.caplen         = swap32u(pcapng_pb.caplen);
+				pcapng_pb.len            = swap32u(pcapng_pb.len);
 			}
 
-			if ((pcapngpb.timestamp_high == 0) &&
-			    (pcapngpb.timestamp_low == 0) && !warn_wpaclean++)
+			if ((pcapng_pb.timestamp_high == 0) &&
+			    (pcapng_pb.timestamp_low == 0) && !warn_wpaclean++)
 				fprintf(stderr,
 "**\n** Warning: %s seems to be processed with some dubious tool like\n"
 "** 'wpaclean'. Important information may be lost.\n**\n", filename);
 
 			MEM_FREE(full_packet);
-			safe_malloc(full_packet, pcapngpb.caplen);
-			res = fread(full_packet, 1, pcapngpb.caplen, in);
-			if (res != pcapngpb.caplen) {
+			safe_malloc(full_packet, pcapng_pb.caplen);
+			res = fread(full_packet, 1, pcapng_pb.caplen, in);
+			if (res != pcapng_pb.caplen) {
 				fprintf(stderr, "%s: Failed to read packet: %s\n",
 				        filename, feof(in) ? "EOF" : strerror(errno));
 				break;
 			}
-			fseek_chk(in, pcapngbh.total_length - BH_SIZE - PB_SIZE - pcapngpb.caplen, SEEK_CUR);
+			fseek_chk(in, pcapng_bh.total_length - BH_SIZE - PB_SIZE - pcapng_pb.caplen, SEEK_CUR);
 
-			if (pcapngpb.caplen > 0) {
-				snap_len = pcapngpb.caplen;
-				orig_len = pcapngpb.len;
-				abs_ts64 = (((uint64_t)pcapngpb.timestamp_high << 32) +
-				            pcapngpb.timestamp_low);
+			if (pcapng_pb.caplen > 0) {
+				snap_len = pcapng_pb.caplen;
+				orig_len = pcapng_pb.len;
+				abs_ts64 = (((uint64_t)pcapng_pb.timestamp_high << 32) +
+				            pcapng_pb.timestamp_low);
 				if (!start_ts64)
 					start_ts64 = abs_ts64;
 				cur_ts64 = abs_ts64 - start_ts64;
-				if (!process_packet(pcapngidb.linktype))
+				if (!process_packet(pcapng_idb.linktype))
 					break;
 			}
 		}
 
 		/* SPB, Simple Packet Block (legacy/limited) */
-		else if (pcapngbh.block_type == 3) {
-			simple_packet_block_t pcapngspb;
+		else if (pcapng_bh.block_type == 3) {
+			simple_packet_block_t pcapng_spb;
 
-			res = fread(&pcapngspb, 1, SPB_SIZE, in);
+			res = fread(&pcapng_spb, 1, SPB_SIZE, in);
 			if (res != SPB_SIZE) {
-				fprintf(stderr, "%s: Failed to read pcapng SPB: %s\n",
+				fprintf(stderr, "%s: Failed to read pcap-ng SPB: %s\n",
 				       filename, feof(in) ? "EOF" : strerror(errno));
 				break;
 			}
 			if (swap_needed) {
-				pcapngspb.len = swap32u(pcapngspb.len);
+				pcapng_spb.len = swap32u(pcapng_spb.len);
 			}
 
 			MEM_FREE(full_packet);
-			safe_malloc(full_packet, pcapngspb.len);
-			res = fread(full_packet, 1, pcapngspb.len, in);
-			if (res != pcapngspb.len) {
+			safe_malloc(full_packet, pcapng_spb.len);
+			res = fread(full_packet, 1, pcapng_spb.len, in);
+			if (res != pcapng_spb.len) {
 				fprintf(stderr, "%s: Failed to read packet: %s\n",
 				        filename, feof(in) ? "EOF" : strerror(errno));
 				break;
 			}
-			fseek_chk(in, pcapngbh.total_length - BH_SIZE - SPB_SIZE - pcapngspb.len, SEEK_CUR);
+			fseek_chk(in, pcapng_bh.total_length - BH_SIZE - SPB_SIZE - pcapng_spb.len, SEEK_CUR);
 
-			if (pcapngspb.len > 0) {
-				snap_len = pcapngspb.len;
-				orig_len = pcapngspb.len;
+			if (pcapng_spb.len > 0) {
+				snap_len = pcapng_spb.len;
+				orig_len = pcapng_spb.len;
 				abs_ts64 = cur_ts64 = 0;
-				if (!process_packet(pcapngidb.linktype))
+				if (!process_packet(pcapng_idb.linktype))
 					break;
 			}
 		}
 
 		/* EPB, Enhanced Packet Block */
-		else if (pcapngbh.block_type == 6) {
-			enhanced_packet_block_t pcapngepb;
+		else if (pcapng_bh.block_type == 6) {
+			enhanced_packet_block_t pcapng_epb;
 
-			res = fread(&pcapngepb, 1, EPB_SIZE, in);
+			res = fread(&pcapng_epb, 1, EPB_SIZE, in);
 			if (res != EPB_SIZE) {
-				fprintf(stderr, "%s: Failed to get pcapng EPB: %s\n",
+				fprintf(stderr, "%s: Failed to get pcap-ng EPB: %s\n",
 				       filename, feof(in) ? "EOF" : strerror(errno));
 				break;
 			}
 
 			if (swap_needed) {
-				pcapngepb.interface_id		= swap32u(pcapngepb.interface_id);
-				pcapngepb.timestamp_high	= swap32u(pcapngepb.timestamp_high);
-				pcapngepb.timestamp_low		= swap32u(pcapngepb.timestamp_low);
-				pcapngepb.caplen		= swap32u(pcapngepb.caplen);
-				pcapngepb.len			= swap32u(pcapngepb.len);
+				pcapng_epb.interface_id   = swap32u(pcapng_epb.interface_id);
+				pcapng_epb.timestamp_high = swap32u(pcapng_epb.timestamp_high);
+				pcapng_epb.timestamp_low  = swap32u(pcapng_epb.timestamp_low);
+				pcapng_epb.caplen         = swap32u(pcapng_epb.caplen);
+				pcapng_epb.len            = swap32u(pcapng_epb.len);
 			}
 
 			MEM_FREE(full_packet);
-			safe_malloc(full_packet, pcapngepb.caplen);
-			res = fread(full_packet, 1, pcapngepb.caplen, in);
-			if (res != pcapngepb.caplen) {
+			safe_malloc(full_packet, pcapng_epb.caplen);
+			res = fread(full_packet, 1, pcapng_epb.caplen, in);
+			if (res != pcapng_epb.caplen) {
 				fprintf(stderr, "%s: Failed to read packet: %s\n",
 				        filename, feof(in) ? "EOF" : strerror(errno));
 				break;
 			}
-			fseek_chk(in, pcapngbh.total_length - BH_SIZE - EPB_SIZE - pcapngepb.caplen, SEEK_CUR);
+			fseek_chk(in, pcapng_bh.total_length - BH_SIZE - EPB_SIZE - pcapng_epb.caplen, SEEK_CUR);
 
-			if (pcapngepb.caplen > 0) {
-				snap_len = pcapngepb.caplen;
-				orig_len = pcapngepb.len;
+			if (pcapng_epb.caplen > 0) {
+				snap_len = pcapng_epb.caplen;
+				orig_len = pcapng_epb.len;
 				// FIXME: Honor if_tsresol from Interface Description Block
-				abs_ts64 = (((uint64_t)pcapngepb.timestamp_high << 32) +
-				            pcapngepb.timestamp_low);
+				abs_ts64 = (((uint64_t)pcapng_epb.timestamp_high << 32) +
+				            pcapng_epb.timestamp_low);
 				if (!start_ts64)
 					start_ts64 = abs_ts64;
 				cur_ts64 = abs_ts64 - start_ts64;
-				if (!process_packet(pcapngidb.linktype))
+				if (!process_packet(pcapng_idb.linktype))
 					break;
 			}
 		}
@@ -2090,7 +2092,7 @@ static int process_ng(FILE *in)
 			if (verbosity >= 4)
 				fprintf(stderr, "Skipping (unhandled block type)\n");
 
-			fseek_chk(in, pcapngbh.total_length - BH_SIZE, SEEK_CUR);
+			fseek_chk(in, pcapng_bh.total_length - BH_SIZE, SEEK_CUR);
 		}
 	}
 
@@ -2114,8 +2116,8 @@ static int get_next_packet(FILE *in)
 	}
 
 	if (swap_needed) {
-		pkt_hdr.ts_sec = swap32u(pkt_hdr.ts_sec);
-		pkt_hdr.ts_usec = swap32u(pkt_hdr.ts_usec);
+		pkt_hdr.ts_sec   = swap32u(pkt_hdr.ts_sec);
+		pkt_hdr.ts_usec  = swap32u(pkt_hdr.ts_usec);
 		pkt_hdr.snap_len = swap32u(pkt_hdr.snap_len);
 		pkt_hdr.orig_len = swap32u(pkt_hdr.orig_len);
 	}
@@ -2176,12 +2178,12 @@ static int process(FILE *in)
 	swap_needed ^= !ARCH_LITTLE_ENDIAN;
 
 	if (swap_needed) {
-		main_hdr.magic_number = swap32u(main_hdr.magic_number);
+		main_hdr.magic_number  = swap32u(main_hdr.magic_number);
 		main_hdr.version_major = swap16u(main_hdr.version_major);
 		main_hdr.version_minor = swap16u(main_hdr.version_minor);
-		main_hdr.sigfigs = swap32u(main_hdr.sigfigs);
-		main_hdr.snaplen = swap32u(main_hdr.snaplen);
-		main_hdr.network = swap32u(main_hdr.network);
+		main_hdr.sigfigs       = swap32u(main_hdr.sigfigs);
+		main_hdr.snaplen       = swap32u(main_hdr.snaplen);
+		main_hdr.network       = swap32u(main_hdr.network);
 	}
 
 
