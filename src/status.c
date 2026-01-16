@@ -50,6 +50,10 @@ static const char* timeFmt24 = NULL;
 static int showcand, last_count;
 double (*status_get_progress)(void) = NULL;
 
+/* Detailed status previous values */
+static struct status_main prev;
+static double prev_time;
+
 clock_t status_get_raw_time(void)
 {
 #if !HAVE_SYS_TIMES_H
@@ -66,12 +70,17 @@ void status_update_counts(void)
 	last_count = status.guess_count;
 }
 
+static double status_get_timef(void);
+
 void status_init(double (*get_progress)(void), int start)
 {
 	if (start) {
 		if (!status_restored_time)
 			memset(&status, 0, sizeof(status));
 		status.start_time = status_get_raw_time();
+
+		prev_time = status_get_timef();
+		prev = status;
 	}
 
 	status_get_progress = get_progress;
@@ -456,8 +465,6 @@ void status_print(int level)
 		return;
 	}
 
-	static struct status_main prev;
-	static double prev_time;
 	double time = status_get_timef();
 	double new_time = time - prev_time;
 	char s_gps[32], s_pps[32], s_crypts_ps[32], s_combs_ps[32];
