@@ -956,6 +956,7 @@ void test_strtokm() {
 	_test_strtokm(" \t\r\n", 5, "1", "2", "3", "4", "5");
 	_test_strtokm(" \t\r\n", 9, "1", "2", "", "", "", "", "3", "4", "5");
 	_test_strtokm("  *", 9, "11", "22", "3", "", "6", "", "33", "44", "55");
+	_test_strtokm("*", 2, "trailing", "");
 	end_test();
 }
 // unsigned int atou(const char *src)

@@ -204,7 +204,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "$")) == NULL) /* nonce */
 		goto err;
 	nonce_len = strlen(p);
-	if ((p = strtokm(NULL, "$")) == NULL) /* End of legacy HDAA or noncecount */
+	if ((p = strtokm(NULL, "$")) == NULL || !*p) /* End of legacy HDAA or noncecount */
 		goto end_hdaa_legacy;
 	noncecount_len = strlen(p);
 	if ((p = strtokm(NULL, "$")) == NULL) /* clientnonce */
@@ -213,7 +213,7 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(NULL, "$")) == NULL) /* qop */
 		goto err;
 	qop_len = strlen(p);
-	if ((p = strtokm(NULL, "$")) != NULL)
+	if ((p = strtokm(NULL, "$")) && *p)
 		goto err;
 	if (nonce_len + noncecount_len + clientnonce_len + qop_len + 32 + 5 > HTMP - CIPHERTEXT_LENGTH - 1)
 		goto err;

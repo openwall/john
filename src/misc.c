@@ -414,11 +414,20 @@ char *strtokm(char *s1, const char *delims)
 {
 	static char *last = NULL;
 	char *endp;
+	char *orig_s1 = s1;
 
 	if (!s1)
 		s1 = last;
-	if (!s1 || *s1 == 0)
-		return last = NULL;
+	if (!s1)
+		return NULL;
+
+	/* If we're at the end of a string, we might have a trailing empty
+	 * token. We should return it, and then NULL next time. */
+	if (*s1 == '\0' && orig_s1 == NULL) { /* orig_s1==NULL means s1 came from last */
+		last = NULL;
+		return s1;
+	}
+
 	endp = strpbrk(s1, delims);
 	if (endp) {
 		*endp = '\0';
