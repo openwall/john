@@ -97,7 +97,7 @@ static void *skey_salt(char *ciphertext);
 static int
 skey_valid(char *ciphertext, struct fmt_main *self)
 {
-	char *p, buf[128];
+	char *p, *saveptr, buf[128];
 	int extra;
 
 	if (*ciphertext == '#')
@@ -105,13 +105,13 @@ skey_valid(char *ciphertext, struct fmt_main *self)
 
 	strnzcpy(buf, ciphertext, sizeof(buf));
 
-	if ((p = strtok(buf, " \t")) == NULL)
+	if ((p = strtok_r(buf, " \t", &saveptr)) == NULL)
 		return 0;
 
 	if (isalpha((int)(unsigned char)*p)) {
 		if (skey_set_algorithm(p) == NULL)
 			return 0;
-		if ((p = strtok(NULL, " \t")) == NULL)
+		if ((p = strtok_r(NULL, " \t", &saveptr)) == NULL)
 			return 0;
 	}
 
@@ -119,11 +119,11 @@ skey_valid(char *ciphertext, struct fmt_main *self)
 		if (!isdigit((int)(unsigned char)*p))
 			return 0;
 	}
-	if ((p = strtok(NULL, " \t")) == NULL)
+	if ((p = strtok_r(NULL, " \t", &saveptr)) == NULL)
 		return 0;
 	if (strlen(p) > SKEY_MAX_SEED_LEN)
 		return 0;
-	if ((p = strtok(NULL, " \t")) == NULL)
+	if ((p = strtok_r(NULL, " \t", &saveptr)) == NULL)
 		return 0;
 	if (hexlenl(p, &extra) != (2 * SKEY_BINKEY_SIZE) || extra)
 		return 0;
@@ -167,23 +167,23 @@ skey_salt(char *ciphertext)
 {
 	static struct skey_salt_st salt;
 	static char buf[128];
-	char *p;
+	char *p, *saveptr;
 
 	strnzcpy(buf, ciphertext, sizeof(buf));
 	memset(&salt, 0, sizeof(salt));
-	if ((p = strtok(buf, " \t")) == NULL)
+	if ((p = strtok_r(buf, " \t", &saveptr)) == NULL)
 		return (NULL);
 
 	if (isalpha((int)(unsigned char)*p)) {
 		strnzcpy(salt.type, p, sizeof(salt.type));
-		if ((p = strtok(NULL, " \t")) == NULL)
+		if ((p = strtok_r(NULL, " \t", &saveptr)) == NULL)
 			return (NULL);
 	}
 	else strnzcpy(salt.type, "md4", sizeof(salt.type));
 
 	salt.num = atoi(p);
 
-	if ((p = strtok(NULL, " \t")) == NULL)
+	if ((p = strtok_r(NULL, " \t", &saveptr)) == NULL)
 		return (NULL);
 
 	strnzcpy(salt.seed, p, sizeof(salt.seed));
@@ -197,17 +197,17 @@ skey_salt(char *ciphertext)
 static void *get_binary(char *ciphertext)
 {
 	static unsigned char *realcipher;
-	char *ctcopy, *p;
+	char *ctcopy, *p, *saveptr;
 
 	if (!realcipher)
 		realcipher = mem_alloc_tiny(SKEY_BINKEY_SIZE, MEM_ALIGN_WORD);
 	ctcopy = xstrdup(ciphertext);
-	p = strtok(ctcopy, " \t");
+	p = strtok_r(ctcopy, " \t", &saveptr);
 
 	if (isalpha((int)(unsigned char)*p))
-		strtok(NULL, " \t");
-	strtok(NULL, " \t");
-	p = strtok(NULL, " \t");
+		strtok_r(NULL, " \t", &saveptr);
+	strtok_r(NULL, " \t", &saveptr);
+	p = strtok_r(NULL, " \t", &saveptr);
 
 	memset(realcipher, 0, SKEY_BINKEY_SIZE);
 	hex_decode(p, realcipher,SKEY_BINKEY_SIZE);
