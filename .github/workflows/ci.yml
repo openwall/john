@@ -2,6 +2,8 @@ name: CI
 
 on: [push, pull_request]
 
+permissions: {}
+
 jobs:
   whitespace-errors:
     runs-on: ubuntu-latest
