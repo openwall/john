@@ -9,6 +9,7 @@ jobs:
     - uses: actions/checkout@v6
       with:
         fetch-depth: 0
+        persist-credentials: false
     - name: check
       run: git diff-index --check --cached b1b622f691d40196815939e4736a5da71befd206
 
@@ -53,6 +54,8 @@ jobs:
       TARGET: ${{ matrix.target }}
     steps:
     - uses: actions/checkout@v6
+      with:
+        persist-credentials: false
 
     - name: Set build arguments
       env:
