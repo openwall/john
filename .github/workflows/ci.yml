@@ -10,6 +10,7 @@ concurrency:
 
 jobs:
   whitespace-errors:
+    name: Check for whitespace errors
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6
