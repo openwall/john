@@ -36,7 +36,8 @@ jobs:
           - { cc: gcc-11, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: gcc-10, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: gcc-9, runs_on: ubuntu-latest, target: x86_64, variant: base }
-          # Clang 14–18 (ubuntu-latest)
+          # Clang 14–19 (ubuntu-latest)
+          - { cc: clang-19, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: clang-18, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: clang-17, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: clang-16, runs_on: ubuntu-latest, target: x86_64, variant: base }
