@@ -12,290 +12,69 @@ jobs:
     - name: check
       run: git diff-index --check --cached b1b622f691d40196815939e4736a5da71befd206
 
-  asan:
-    runs-on: ubuntu-22.04
+  build-check:
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # ASAN variants (gcc, x86_64)
+          - { cc: gcc, runs_on: ubuntu-22.04, target: x86_64, variant: asan }
+          - { cc: gcc, runs_on: ubuntu-22.04, target: x86_64, variant: asan-disable-all }
+          - { cc: gcc, runs_on: ubuntu-22.04, target: x86_64, variant: asan-disable-openmp }
+          - { cc: gcc, runs_on: ubuntu-22.04, target: x86_64, variant: asan-without-openssl }
+          - { cc: gcc, runs_on: ubuntu-latest, target: x86_64, variant: asan-disable-simd }
+          - { cc: gcc, runs_on: ubuntu-latest, target: x86_64, variant: asan-sse2 }
+          - { cc: gcc, runs_on: ubuntu-latest, target: x86_64, variant: asan-avx }
+          - { cc: gcc, runs_on: ubuntu-latest, target: x86_64, variant: asan-avx2 }
+          # GCC 9–14 (ubuntu-latest)
+          - { cc: gcc-14, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          - { cc: gcc-14, runs_on: ubuntu-latest, target: x86, variant: without-openssl }
+          - { cc: gcc-14, runs_on: ubuntu-latest, target: x86, variant: disable-all }
+          - { cc: gcc-13, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          - { cc: gcc-12, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          - { cc: gcc-11, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          - { cc: gcc-10, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          - { cc: gcc-9, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          # Clang 14–18 (ubuntu-latest)
+          - { cc: clang-18, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          - { cc: clang-17, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          - { cc: clang-16, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          - { cc: clang-15, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          - { cc: clang-14, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          # Clang 11–13 (ubuntu-22.04)
+          - { cc: clang-13, runs_on: ubuntu-22.04, target: x86_64, variant: base }
+          - { cc: clang-12, runs_on: ubuntu-22.04, target: x86_64, variant: base }
+          - { cc: clang-11, runs_on: ubuntu-22.04, target: x86_64, variant: base }
+    name: Build ${{ matrix.cc }}-${{ matrix.target }}-${{ matrix.variant }}
     env:
-      CC: gcc
-      TARGET: x86_64
+      CC: ${{ matrix.cc }}
+      TARGET: ${{ matrix.target }}
     steps:
     - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh --enable-fuzz --enable-asan
 
-  asan-disable-all:
-    runs-on: ubuntu-22.04
-    env:
-      CC: gcc
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh --enable-asan --disable-openmp --disable-simd --without-openssl
+    - name: Set build arguments
+      env:
+        VARIANT: ${{ matrix.variant }}
+      run: |
+        case "$VARIANT" in
+          base) BUILD_ARGS="" ;;
+          without-openssl) BUILD_ARGS="--without-openssl" ;;
+          disable-all) BUILD_ARGS="--disable-openmp --disable-simd --without-openssl" ;;
+          asan) BUILD_ARGS="--enable-fuzz --enable-asan" ;;
+          asan-disable-all) BUILD_ARGS="--enable-asan --disable-openmp --disable-simd --without-openssl" ;;
+          asan-disable-openmp) BUILD_ARGS="--enable-asan --disable-openmp" ;;
+          asan-without-openssl) BUILD_ARGS="--enable-asan --without-openssl" ;;
+          asan-disable-simd) BUILD_ARGS="--enable-asan --disable-simd" ;;
+          asan-sse2) BUILD_ARGS="--enable-asan --enable-simd=sse2" ;;
+          asan-avx) BUILD_ARGS="--enable-asan --enable-simd=avx" ;;
+          asan-avx2) BUILD_ARGS="--enable-asan --enable-simd=avx2" ;;
+          *) echo "Unknown variant: $VARIANT"; exit 1 ;;
+        esac
+        echo "BUILD_ARGS=$BUILD_ARGS" >> "$GITHUB_ENV"
 
-  asan-disable-openmp:
-    runs-on: ubuntu-22.04
-    env:
-      CC: gcc
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
     - name: install dependencies
       run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh --enable-asan --disable-openmp
 
-  asan-without-openssl:
-    runs-on: ubuntu-22.04
-    env:
-      CC: gcc
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
     - name: build check
-      run: .ci/run-build-and-tests.sh --enable-asan --without-openssl
-
-  asan-disable-simd:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh --enable-asan --disable-simd
-
-  asan-sse2:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh --enable-asan --enable-simd=sse2
-
-  asan-avx:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh --enable-asan --enable-simd=avx
-
-  asan-avx2:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh --enable-asan --enable-simd=avx2
-
-  gcc14-x86-without-openssl:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc-14
-      TARGET: x86
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh --without-openssl
-
-  gcc14-x86-disable-all:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc-14
-      TARGET: x86
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh --disable-openmp --disable-simd --without-openssl
-
-  gcc14-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc-14
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  gcc13-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc-13
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  gcc12-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc-12
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  gcc11-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc-11
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  gcc10-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc-10
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  gcc9-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: gcc-9
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  clang18-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: clang-18
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  clang17-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: clang-17
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  clang16-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: clang-16
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  clang15-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: clang-15
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  clang14-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: clang-14
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  clang13-x86_64:
-    runs-on: ubuntu-22.04
-    env:
-      CC: clang-13
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  clang12-x86_64:
-    runs-on: ubuntu-22.04
-    env:
-      CC: clang-12
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
-
-  clang11-x86_64:
-    runs-on: ubuntu-22.04
-    env:
-      CC: clang-11
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
+      run: .ci/run-build-and-tests.sh $BUILD_ARGS
