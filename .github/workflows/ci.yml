@@ -299,15 +299,3 @@ jobs:
       run: .ci/install-dependencies.sh
     - name: build check
       run: .ci/run-build-and-tests.sh
-
-  clang10-x86_64:
-    runs-on: ubuntu-latest
-    env:
-      CC: clang
-      TARGET: x86_64
-    steps:
-    - uses: actions/checkout@v6
-    - name: install dependencies
-      run: .ci/install-dependencies.sh
-    - name: build check
-      run: .ci/run-build-and-tests.sh
