@@ -109,7 +109,7 @@ jobs:
       run: .ci/run-build-and-tests.sh --enable-asan --enable-simd=avx2
 
   gcc14-x86-without-openssl:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       CC: gcc-14
       TARGET: x86
@@ -121,7 +121,7 @@ jobs:
       run: .ci/run-build-and-tests.sh --without-openssl
 
   gcc14-x86-disable-all:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       CC: gcc-14
       TARGET: x86
@@ -133,7 +133,7 @@ jobs:
       run: .ci/run-build-and-tests.sh --disable-openmp --disable-simd --without-openssl
 
   gcc14-x86_64:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       CC: gcc-14
       TARGET: x86_64
@@ -205,7 +205,7 @@ jobs:
       run: .ci/run-build-and-tests.sh
 
   clang18-x86_64:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       CC: clang-18
       TARGET: x86_64
@@ -217,7 +217,7 @@ jobs:
       run: .ci/run-build-and-tests.sh
 
   clang17-x86_64:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       CC: clang-17
       TARGET: x86_64
@@ -229,7 +229,7 @@ jobs:
       run: .ci/run-build-and-tests.sh
 
   clang16-x86_64:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     env:
       CC: clang-16
       TARGET: x86_64
