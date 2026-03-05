@@ -1,0 +1,387 @@
+name: 🔐 Password Audit
+
+# Triggers whenever a new issue is opened whose title is exactly "crack".
+# The issue body should contain the password (phrase) to audit, optionally
+# followed by flag lines such as --hash=sha512crypt or --time=60.
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write   # needed to post comments, update, and close the issue
+
+jobs:
+  audit:
+    name: Audit password from issue
+    # Only run when the issue title is exactly "crack" (case-sensitive)
+    if: github.event.issue.title == 'crack'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # ── 0. Acknowledge the issue ──────────────────────────────────────────
+      - name: Add 👀 reaction to acknowledge
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            await github.rest.reactions.createForIssue({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.issue.number,
+              content: 'eyes',
+            });
+
+      # ── 1. Parse issue body ───────────────────────────────────────────────
+      # The first non-empty, non-flag line is treated as the password.
+      # Subsequent lines may contain optional flags:
+      #   --hash=<sha512crypt|sha256crypt|md5crypt>
+      #   --time=<seconds, 10-120>
+      #   --mode=<auto|wordlist|incremental|single>
+      - name: Parse options and mask password
+        id: opts
+        env:
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          # Extract password: first non-blank, non-flag line, max 256 chars
+          PASSWORD=$(printf '%s' "$BODY" \
+            | grep -v '^[[:space:]]*--' \
+            | grep -v '^[[:space:]]*$' \
+            | head -1 \
+            | tr -d '\r\n' \
+            | cut -c1-256)
+
+          # Mask in all subsequent log output
+          echo "::add-mask::$PASSWORD"
+
+          # Store safely to file (avoids shell-expansion risk in later steps)
+          printf '%s' "$PASSWORD" > /tmp/password.txt
+
+          # Parse optional flags — values are validated by the case statements below,
+          # so injected characters in the raw flag values are harmless.
+          HASH=$(printf '%s' "$BODY" | grep -oP '(?<=--hash=)\S+' | head -1 || true)
+          TLIM=$(printf '%s' "$BODY" | grep -oP '(?<=--time=)\d+'  | head -1 || true)
+          MODE=$(printf '%s' "$BODY" | grep -oP '(?<=--mode=)\S+' | head -1 || true)
+
+          # Defaults
+          [ -z "$HASH" ] && HASH="sha512crypt"
+          [ -z "$TLIM" ] && TLIM="30"
+          [ -z "$MODE" ] && MODE="auto"
+
+          # Clamp time limit: 10 – 120 seconds
+          if [ "$TLIM" -lt 10 ] 2>/dev/null; then TLIM=10; fi
+          if [ "$TLIM" -gt 120 ] 2>/dev/null; then TLIM=120; fi
+
+          # Map user-facing hash name to john format + openssl passwd option
+          case "$HASH" in
+            sha512|sha512crypt) JOHN_FMT="sha512crypt"; SSL_OPT="-6" ;;
+            sha256|sha256crypt) JOHN_FMT="sha256crypt"; SSL_OPT="-5" ;;
+            md5|md5crypt)       JOHN_FMT="md5crypt";   SSL_OPT="-1" ;;
+            *)
+              HASH="sha512crypt"
+              JOHN_FMT="sha512crypt"
+              SSL_OPT="-6"
+              ;;
+          esac
+
+          # Validate mode
+          case "$MODE" in
+            auto|wordlist|incremental|single) ;;
+            *) MODE="auto" ;;
+          esac
+
+          echo "hash=$HASH"         >> "$GITHUB_OUTPUT"
+          echo "john_fmt=$JOHN_FMT" >> "$GITHUB_OUTPUT"
+          echo "ssl_opt=$SSL_OPT"   >> "$GITHUB_OUTPUT"
+          echo "time=$TLIM"         >> "$GITHUB_OUTPUT"
+          echo "mode=$MODE"         >> "$GITHUB_OUTPUT"
+
+          # Guard against empty password
+          if [ -z "$PASSWORD" ]; then
+            echo "empty=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "empty=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── 2. Handle empty body ──────────────────────────────────────────────
+      - name: Post error on empty body
+        if: steps.opts.outputs.empty == 'true'
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.issue.number,
+              body: [
+                '## ❌ No password provided',
+                '',
+                `Hi @${context.payload.issue.user.login}! It looks like the issue body is empty.`,
+                '',
+                'Please open a **new issue** with:',
+                '- **Title:** `crack`',
+                '- **Body:** the password you want to audit (one per line), e.g.:',
+                '  ```',
+                '  MySecretP@ss1!',
+                '  ```',
+                '',
+                `> 📖 See the [usage guide](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/index.html) for all available flags.`,
+              ].join('\n'),
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed',
+            });
+
+      - name: Stop if empty body
+        if: steps.opts.outputs.empty == 'true'
+        run: exit 0
+
+      # ── 3. Analyse password complexity ───────────────────────────────────
+      - name: Analyse password complexity
+        id: stats
+        run: |
+          python3 - << 'PYEOF'
+          import re, math, os
+
+          with open('/tmp/password.txt') as f:
+              p = f.read()
+
+          n  = len(p)
+          lo = bool(re.search(r'[a-z]', p))
+          up = bool(re.search(r'[A-Z]', p))
+          di = bool(re.search(r'\d',    p))
+          sp = bool(re.search(r'[^A-Za-z0-9]', p))
+
+          pool = (26 * lo) + (26 * up) + (10 * di) + (33 * sp)
+          ent  = round(n * math.log2(max(pool, 1)), 1)
+
+          if   ent < 28:  grade = "Very Weak"
+          elif ent < 36:  grade = "Weak"
+          elif ent < 60:  grade = "Moderate"
+          elif ent < 128: grade = "Strong"
+          else:           grade = "Very Strong"
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"len={n}\n")
+              out.write(f"lo={'t' if lo else 'f'}\n")
+              out.write(f"up={'t' if up else 'f'}\n")
+              out.write(f"di={'t' if di else 'f'}\n")
+              out.write(f"sp={'t' if sp else 'f'}\n")
+              out.write(f"pool={pool}\n")
+              out.write(f"ent={ent}\n")
+              out.write(f"grade={grade}\n")
+          PYEOF
+
+      # ── 4. Install John the Ripper ────────────────────────────────────────
+      - name: Install John the Ripper
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends john
+
+      # ── 5. Create password hash ───────────────────────────────────────────
+      # We use openssl passwd (OpenSSL 3+) which accepts a password via an
+      # environment variable to avoid any shell-injection risk.
+      - name: Create password hash
+        env:
+          SSL_OPT: ${{ steps.opts.outputs.ssl_opt }}
+        run: |
+          PASSPHRASE=$(cat /tmp/password.txt)
+          HASH=$(PASSPHRASE="$PASSPHRASE" openssl passwd "$SSL_OPT" -pass env:PASSPHRASE)
+          unset PASSPHRASE
+          printf 'audit:%s\n' "$HASH" > /tmp/hash.txt
+
+      # ── 6. Run John the Ripper ────────────────────────────────────────────
+      - name: Run John the Ripper audit
+        id: john
+        env:
+          JOHN_FMT: ${{ steps.opts.outputs.john_fmt }}
+          TLIM:     ${{ steps.opts.outputs.time }}
+          MODE:     ${{ steps.opts.outputs.mode }}
+        run: |
+          START=$(date +%s%3N)
+          CRACKED=false
+          CRACK_METHOD="Not cracked within time limit"
+          HALF=$(( TLIM / 2 ))
+
+          # Runs john and swallows non-zero exit (timeout / no crack)
+          do_john() {
+            timeout "$1" john --format="$JOHN_FMT" $2 /tmp/hash.txt 2>&1 || true
+          }
+
+          # Returns 1 if at least one hash was cracked, 0 otherwise
+          is_cracked() {
+            john --show --format="$JOHN_FMT" /tmp/hash.txt 2>&1 \
+              | grep -c "1 password hash cracked" || true
+          }
+
+          case "$MODE" in
+            wordlist)
+              do_john "$TLIM" "--wordlist=/usr/share/john/password.lst"
+              ;;
+            incremental)
+              do_john "$TLIM" "--incremental"
+              ;;
+            single)
+              do_john "$TLIM" "--single"
+              ;;
+            auto|*)
+              # 1st half: wordlist attack
+              do_john "$HALF" "--wordlist=/usr/share/john/password.lst"
+              if [ "$(is_cracked)" -eq 0 ]; then
+                # 2nd half: incremental brute-force
+                do_john "$HALF" "--incremental"
+              fi
+              ;;
+          esac
+
+          END=$(date +%s%3N)
+          TOTAL_MS=$(( END - START ))
+
+          # Determine crack result
+          SHOW=$(john --show --format="$JOHN_FMT" /tmp/hash.txt 2>&1)
+          if echo "$SHOW" | grep -q "1 password hash cracked"; then
+            CRACKED=true
+            CRACK_METHOD="Cracked"
+          fi
+
+          # Quick benchmark: run for 3 s to report hardware speed
+          BENCH=$(timeout 10 john --test=3 --format="$JOHN_FMT" 2>&1 \
+            | grep -oP '\d+ c/s' | tail -1 || echo "N/A")
+
+          echo "cracked=$CRACKED"       >> "$GITHUB_OUTPUT"
+          echo "method=$CRACK_METHOD"   >> "$GITHUB_OUTPUT"
+          echo "total_ms=$TOTAL_MS"     >> "$GITHUB_OUTPUT"
+          echo "bench=$BENCH"           >> "$GITHUB_OUTPUT"
+
+      # ── 7. Post report and close issue ───────────────────────────────────
+      - name: Post audit report and close issue
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          LEN:      ${{ steps.stats.outputs.len }}
+          LO:       ${{ steps.stats.outputs.lo }}
+          UP:       ${{ steps.stats.outputs.up }}
+          DI:       ${{ steps.stats.outputs.di }}
+          SP:       ${{ steps.stats.outputs.sp }}
+          POOL:     ${{ steps.stats.outputs.pool }}
+          ENT:      ${{ steps.stats.outputs.ent }}
+          GRADE:    ${{ steps.stats.outputs.grade }}
+          CRACKED:  ${{ steps.john.outputs.cracked }}
+          METHOD:   ${{ steps.john.outputs.method }}
+          TOTAL_MS: ${{ steps.john.outputs.total_ms }}
+          BENCH:    ${{ steps.john.outputs.bench }}
+          HASH:     ${{ steps.opts.outputs.hash }}
+          TLIM:     ${{ steps.opts.outputs.time }}
+          MODE:     ${{ steps.opts.outputs.mode }}
+        with:
+          script: |
+            const ent      = parseFloat(process.env.ENT)  || 0;
+            const len      = parseInt(process.env.LEN)    || 0;
+            const grade    = process.env.GRADE;
+            const cracked  = process.env.CRACKED === 'true';
+            const totalSec = (parseInt(process.env.TOTAL_MS) / 1000).toFixed(1);
+            const bench    = process.env.BENCH || 'N/A';
+
+            // Grade → emoji
+            const gradeEmoji = {
+              'Very Weak':   '🔴',
+              'Weak':        '🟠',
+              'Moderate':    '🟡',
+              'Strong':      '🟢',
+              'Very Strong': '💪',
+            };
+            const emoji = gradeEmoji[grade] || '⚪';
+
+            // Entropy progress bar (128 bits = full bar, 20 chars wide)
+            const filled  = Math.round(Math.min(ent / 128, 1) * 20);
+            const bar     = '█'.repeat(filled) + '░'.repeat(20 - filled);
+
+            // Character-class rows
+            const b = v => v === 't' ? '✅' : '❌';
+            const classRows = [
+              `| Lowercase letters \`a–z\`       | ${b(process.env.LO)} |`,
+              `| Uppercase letters \`A–Z\`       | ${b(process.env.UP)} |`,
+              `| Digits \`0–9\`                  | ${b(process.env.DI)} |`,
+              `| Special characters \`!@#$…\`    | ${b(process.env.SP)} |`,
+            ].join('\n');
+
+            const comment = [
+              `## 🔐 Password Audit Results`,
+              ``,
+              `Hi @${context.payload.issue.user.login}! Your password audit is complete. Here are the results:`,
+              ``,
+              `---`,
+              ``,
+              `### 📊 Audit Statistics`,
+              ``,
+              `| Property | Value |`,
+              `|---|---|`,
+              `| **Password length** | \`${len}\` characters |`,
+              `| **Character pool** | \`${process.env.POOL}\` possible characters |`,
+              `| **Entropy** | \`${ent}\` bits |`,
+              `| **Hash format used** | \`${process.env.HASH}\` |`,
+              `| **Audit mode** | \`${process.env.MODE}\` |`,
+              `| **Time limit** | \`${process.env.TLIM}s\` |`,
+              `| **Total audit time** | \`${totalSec}s\` |`,
+              `| **Hardware speed** | \`${bench}\` |`,
+              ``,
+              `---`,
+              ``,
+              `### 🔡 Character Class Checklist`,
+              ``,
+              `| Class | Present |`,
+              `|---|---|`,
+              classRows,
+              ``,
+              `---`,
+              ``,
+              `### 💪 Strength Verdict`,
+              ``,
+              `| Metric | Result |`,
+              `|---|---|`,
+              `| **Overall grade** | ${emoji} **${grade}** |`,
+              `| **Cracked by John** | ${cracked ? '💀 **Yes — password found in audit**' : '✅ Not cracked within time limit'} |`,
+              `| **Crack method** | ${process.env.METHOD} |`,
+              ``,
+              `---`,
+              ``,
+              `### 📈 Entropy Meter`,
+              ``,
+              `\`\`\``,
+              `[${bar}] ${ent} / 128 bits`,
+              ``,
+              `  🔴 Very Weak   < 28 bits`,
+              `  🟠 Weak        28 – 36 bits`,
+              `  🟡 Moderate    36 – 60 bits`,
+              `  🟢 Strong      60 – 128 bits`,
+              `  💪 Very Strong 128+ bits`,
+              `\`\`\``,
+              ``,
+              `---`,
+              ``,
+              `> ⚠️ **Privacy reminder:** Never share real passwords publicly.`,
+              `> This tool is for **educational purposes only**. Use a fictional`,
+              `> or already-changed password when testing.`,
+              `>`,
+              `> 📖 See the [usage guide](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/main/index.html) for available flags and examples.`,
+              ``,
+              `*Audit powered by [John the Ripper](https://www.openwall.com/john/) · ${new Date().toUTCString()}*`,
+            ].join('\n');
+
+            // Post the comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment,
+            });
+
+            // Redact the original password from the issue body, then close
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.issue.number,
+              body:  '[Password redacted after audit completed]',
+              state: 'closed',
+            });
