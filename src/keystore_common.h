@@ -9,6 +9,7 @@
 #define SALT_LENGTH_CPU			819200
 #define BINARY_SIZE				20
 #define BINARY_ALIGN			4
+#define KEYPASS_BINARY			0x6b657931U
 #define FORMAT_TAG			"$keystore$"
 #define FORMAT_TAG_LEN		(sizeof(FORMAT_TAG)-1)
 
@@ -16,5 +17,9 @@
 void *keystore_common_get_binary(char *ciphertext);
 int keystore_common_valid_cpu(char *ciphertext, struct fmt_main *self);
 int keystore_common_valid_gpu(char *ciphertext, struct fmt_main *self);
+int keystore_common_extract_encrypted_data(const unsigned char *der, int der_len,
+                                           const unsigned char **out, int *out_len);
+int keystore_common_verify_key_password(const char *password, int pass_len,
+                                        const unsigned char *keydata, int keysize);
 
 extern struct fmt_tests keystore_common_tests[];

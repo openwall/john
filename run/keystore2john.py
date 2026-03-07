@@ -23,13 +23,6 @@ Where,
 target == 0 if container password is to be cracked
 target == 1 if private key password(s) are to be cracked
 
-TODO:
-
-1. Private Keys can be encrypted with a password different from the container
-   password. Add support for cracking such keys.
-
-2. Add ability to select any key for cracking in case multiple keys are present.
-
 KEYSTORE FORMAT:
 
 Magic number (big-endian integer),
@@ -75,12 +68,20 @@ VERSION_1 = 0x01
 VERSION_2 = 0x02
 
 
+def read_utf_string(fd):
+    buf = fd.read(2)
+    if len(buf) < 2:
+        return b""
+    length = struct.unpack(">H", buf)[0]
+    return fd.read(length)
+
+
 def process_file(filename):
     try:
         fd = open(filename, "rb")
     except IOError:
         e = sys.exc_info()[1]
-        sys.stderr.write("! %s: %s\n" % filename, str(e))
+        sys.stderr.write("! %s: %s\n" % (filename, str(e)))
         return
 
     # read the entire file into data variable
@@ -89,27 +90,33 @@ def process_file(filename):
 
     # start actual processing
     buf = fd.read(4)
+    if len(buf) < 4:
+        return
     xMagic = struct.unpack("> I", buf)[0]
     buf = fd.read(4)
+    if len(buf) < 4:
+        return
     xVersion = struct.unpack("> I", buf)[0]
 
     if (xMagic != MAGIC or (xVersion != VERSION_1 and xVersion != VERSION_2)):
-        sys.stderr.write("Invalid keystore format\n")
+        sys.stderr.write("%s: Invalid keystore format\n" % filename)
         return
 
     buf = fd.read(4)
+    if len(buf) < 4:
+        return
     count = struct.unpack("> I", buf)[0]
 
+    keys = []
     for i in range(0, count):
         buf = fd.read(4)
+        if len(buf) < 4:
+            break
         tag = struct.unpack("> I", buf)[0]
 
         if (tag == 1):  # key entry
             # Read the alias
-            p = ord(fd.read(1))
-            length = ord(fd.read(1))
-            buf = fd.read(length)
-            assert(len(buf) == length)
+            alias = read_utf_string(fd)
 
             # Read the (entry creation) date
             buf = fd.read(8)
@@ -119,6 +126,7 @@ def process_file(filename):
             buf = fd.read(4)
             keysize = struct.unpack("> I", buf)[0]
             protectedPrivKey = fd.read(keysize)
+            assert(len(protectedPrivKey) == keysize)
 
             # read certificates
             buf = fd.read(4)
@@ -127,10 +135,7 @@ def process_file(filename):
                 for j in range(0, numOfCerts):
                     if xVersion == 2:
                         # read the certificate type
-                        p = ord(fd.read(1))
-                        assert(p == 1 or p == 0)
-                        length = ord(fd.read(1))
-                        buf = fd.read(length)
+                        read_utf_string(fd)
 
                     # read certificate data
                     buf = fd.read(4)
@@ -138,12 +143,11 @@ def process_file(filename):
                     certdata = fd.read(certsize)
                     assert(len(certdata) == certsize)
 
-            # We can be sure now that numOfCerts of certs are read
+            keys.append((alias, protectedPrivKey))
+
         elif (tag == 2):  # trusted certificate entry
             # Read the alias
-            p = fd.read(1)
-            length = ord(fd.read(1))
-            buf = fd.read(length)
+            read_utf_string(fd)
 
             # Read the (entry creation) date
             buf = fd.read(8)
@@ -151,15 +155,14 @@ def process_file(filename):
             # Read the trusted certificate
             if xVersion == 2:
                 # read the certificate type
-                p = fd.read(1)
-                length = ord(fd.read(1))
-                buf = fd.read(length)
+                read_utf_string(fd)
 
             buf = fd.read(4)
             certsize = struct.unpack("> I", buf)[0]
             certdata = fd.read(certsize)
+            assert(len(certdata) == certsize)
         else:
-            sys.stderr.write("Unrecognized keystore entry\n")
+            sys.stderr.write("%s: Unrecognized keystore entry\n" % filename)
             fd.close()
             return
 
@@ -170,12 +173,45 @@ def process_file(filename):
     md = fd.read(20)
     assert(len(md) == 20)
 
-    sys.stdout.write("%s:$keystore$0$%d$%s" % (os.path.basename(filename), pos,
-                                               hexlify(data[0:pos]).decode('utf-8')))
+    # Output for container password (target 0)
+    if keys:
+        # Use the first key for the container password hash
+        alias, protectedPrivKey = keys[0]
+        keysize = len(protectedPrivKey)
+        keydata = hexlify(protectedPrivKey).decode('ascii')
+        nkeys = 1
+    else:
+        keysize = 0
+        keydata = ""
+        nkeys = 0
 
-    sys.stdout.write("$%s" % hexlify(md).decode('utf-8'))
-    sys.stdout.write("$%d$%d$%s" % (count, keysize, hexlify(protectedPrivKey).decode('utf-8')))
+    sys.stdout.write("%s:$keystore$0$%d$%s" % (os.path.basename(filename), pos,
+                                               hexlify(data[0:pos]).decode('ascii')))
+
+    sys.stdout.write("$%s" % hexlify(md).decode('ascii'))
+    sys.stdout.write("$%d$%d$%s" % (nkeys, keysize, keydata))
     sys.stdout.write(":::::%s\n" % filename)
+
+    # Output for each key password (target 1)
+    for alias, protectedPrivKey in keys:
+        try:
+            alias_str = alias.decode('utf-8', 'replace')
+        except:
+            alias_str = str(alias)
+
+        # JtR label shouldn't contain ':'
+        alias_str = alias_str.replace(':', '_')
+
+        keysize = len(protectedPrivKey)
+        keydata = hexlify(protectedPrivKey).decode('ascii')
+
+        sys.stdout.write("%s-%s:$keystore$1$%d$%s" % (os.path.basename(filename), alias_str, pos,
+                                                      hexlify(data[0:pos]).decode('ascii')))
+        sys.stdout.write("$%s" % hexlify(md).decode('ascii'))
+        sys.stdout.write("$1$%d$%s" % (keysize, keydata))
+        sys.stdout.write(":::::%s\n" % filename)
+
+    fd.close()
 
 
 if __name__ == "__main__":

@@ -67,6 +67,7 @@ typedef struct {
 
 // this for use here
 static struct custom_salt {
+	int target;
 	int length;
 	unsigned char salt[SALT_LENGTH_GPU];
 } *cur_salt;
@@ -94,6 +95,16 @@ static cl_int cl_err;
 static const char *warn[] = {
 	"key xfer: ",  ", idx xfer: ",  ", crypt: ",  ", xfer: "
 };
+
+static int verify_key_password_index(int index)
+{
+	int len = saved_idx[index] & 127;
+	const char *key = (char*)&saved_plain[saved_idx[index] >> 7];
+
+	return keystore_common_verify_key_password(key, len,
+	                                           cur_salt->salt,
+	                                           cur_salt->length);
+}
 
 /* ------- Helper functions ------- */
 static size_t get_task_max_work_group_size()
@@ -247,16 +258,39 @@ static void *get_salt(char *ciphertext)
 	memset(cs, 0, sizeof(struct custom_salt));
 
 	ctcopy += FORMAT_TAG_LEN; 				// skip over "$keystore$"
-	p = strtokm(ctcopy, "$");   // skip target
+	p = strtokm(ctcopy, "$");
+	cs->target = atoi(p);
 	p = strtokm(NULL, "$");
 	cs->length = atoi(p);
 	p = strtokm(NULL, "$");
-	// Before each salt from the ciphertext, prepend "Mighty Aphrodite":
-	memcpy(cs->salt, magic, maglen);
-	for (i = 0; i < cs->length; ++i)
-		cs->salt[maglen + i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			        + atoi16[ARCH_INDEX(p[i * 2 + 1])];
-	cs->length += maglen;
+	if (cs->target == 0) {
+		// Before each salt from the ciphertext, prepend "Mighty Aphrodite":
+		memcpy(cs->salt, magic, maglen);
+		for (i = 0; i < cs->length; ++i)
+			cs->salt[maglen + i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				        + atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		cs->length += maglen;
+	}
+
+	p = strtokm(NULL, "$"); /* hash */
+	p = strtokm(NULL, "$"); /* nkeys */
+	p = strtokm(NULL, "$"); /* key length */
+	i = atoi(p);
+	p = strtokm(NULL, "$"); /* key data */
+	if (cs->target == 1) {
+		const unsigned char *extracted;
+		int extracted_len;
+		cs->length = i;
+		for (i = 0; i < cs->length; ++i)
+			cs->salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				   + atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		if (keystore_common_extract_encrypted_data(cs->salt, cs->length,
+		                                           &extracted, &extracted_len)) {
+			memmove(cs->salt, extracted, extracted_len);
+			cs->length = extracted_len;
+		}
+	}
+
 	MEM_FREE(keeptr);
 	return (void*)cs;
 }
@@ -264,6 +298,8 @@ static void *get_salt(char *ciphertext)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt*)salt;
+	if (cur_salt->target == 1)
+		return;
 	saltbuffer.length = cur_salt->length;
 	memcpy(saltbuffer.salt, cur_salt->salt, cur_salt->length);
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
@@ -315,6 +351,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	const int count = *pcount;
 	size_t *lws = local_work_size ? &local_work_size : NULL;
 	size_t gws = GET_NEXT_MULTIPLE(count, local_work_size);
+	int i;
+
+	if (cur_salt->target == 1) {
+		for (i = 0; i < count; ++i)
+			outbuffer[i].gpu_out = verify_key_password_index(i) ? KEYPASS_BINARY : 0;
+		return count;
+	}
 
 	if (new_keys) {
 		if (key_idx)
@@ -364,20 +407,22 @@ static int cmp_exact(char *source, int index)
 {
 	// we do a CPU check here.
 	unsigned char *binary = (unsigned char*)keystore_common_get_binary(source);
-	unsigned char out[20];
+	unsigned char out[20], pass[PLAINTEXT_LENGTH * 2];
 	SHA_CTX ctx;
-	unsigned char Pass[PLAINTEXT_LENGTH * 2];
 	int i;
 	int len = saved_idx[index] & 127;
 	char *key = (char*)&saved_plain[saved_idx[index] >> 7];
 
+	if (((uint32_t*)binary)[0] == KEYPASS_BINARY)
+		return ((uint32_t*)binary)[0] == outbuffer[index].gpu_out;
+
 	// This is NOT a crappy UTF-16 conversion although it look like it
 	for (i = 0; i < len; ++i) {
-		Pass[i << 1] = 0;
-		Pass[(i << 1) + 1] = key[i];
+		pass[i << 1] = 0;
+		pass[(i << 1) + 1] = key[i];
 	}
 	SHA1_Init(&ctx);
-	SHA1_Update(&ctx, Pass, len << 1);
+	SHA1_Update(&ctx, pass, len << 1);
 	SHA1_Update(&ctx, cur_salt->salt, cur_salt->length);
 	SHA1_Final(out, &ctx);
 	return !memcmp(binary, out, 20);
@@ -408,7 +453,7 @@ struct fmt_main fmt_opencl_keystore = {
 		done,
 		reset,
 		fmt_default_prepare,
-		keystore_common_valid_cpu,
+		keystore_common_valid_gpu,
 		fmt_default_split,
 		keystore_common_get_binary,
 		get_salt,

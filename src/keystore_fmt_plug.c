@@ -106,6 +106,7 @@ typedef struct keystore_salt_t {
 	int count;
 	int keysize;
 	unsigned char data_hash[20]; // this is the SHA of the data block.
+	unsigned char keydata_hash[20];
 	unsigned char *data;
 	unsigned char *keydata;
 	void *ptr;	// points to a pre-built salt record (only SIMD)
@@ -113,26 +114,68 @@ typedef struct keystore_salt_t {
 
 static keystore_salt *keystore_cur_salt;
 
+static int keystore_verify_key_password(int idx)
+{
+	return keystore_common_verify_key_password(saved_key[idx], saved_len[idx],
+	                                           keystore_cur_salt->keydata,
+	                                           keystore_cur_salt->keysize);
+}
+
+static void *get_binary(char *ciphertext)
+{
+	static union {
+		unsigned char c[BINARY_SIZE];
+		ARCH_WORD dummy;
+	} buf;
+	char *ctcopy = xstrdup(ciphertext);
+	char *keeptr = ctcopy;
+	char *p;
+	int i, target;
+
+	memset(buf.c, 0, sizeof(buf.c));
+
+	ctcopy += FORMAT_TAG_LEN; /* skip "$keystore$" */
+	p = strtokm(ctcopy, "$");
+	target = p ? atoi(p) : 0;
+	if (target == 1) {
+		((uint32_t*)buf.c)[0] = KEYPASS_BINARY;
+		MEM_FREE(keeptr);
+		return buf.c;
+	}
+
+	p = strtokm(NULL, "$");
+	p = strtokm(NULL, "$");
+	p = strtokm(NULL, "$"); /* at hash now */
+	for (i = 0; i < BINARY_SIZE; i++) {
+		buf.c[i] =
+		    (atoi16[ARCH_INDEX(*p)] << 4) |
+		    atoi16[ARCH_INDEX(p[1])];
+		p += 2;
+	}
+	MEM_FREE(keeptr);
+	return buf.c;
+}
+
 /* To guard against tampering with the keystore, we append a keyed
  * hash with a bit of whitener. */
 inline static void getPreKeyedHash(int idx)
 {
 	int i, j;
-        unsigned char passwdBytes[PLAINTEXT_LENGTH * 2];
+	unsigned char passwdBytes[PLAINTEXT_LENGTH * 2];
 	const char *magic = "Mighty Aphrodite";
 	char *password = saved_key[idx];
 	SHA_CTX *ctxp = &saved_ctx[idx];
 
-        for (i=0, j=0; i < strlen(password); i++) {
-            // should this be proper LE UTF16 encoded???  NOPE. We now have
-            // a utf-8 encoded test hash, and the below method works.
-            // actually tried utf8_to_utf16_be, and the ascii passwords
-            // work fine, but the utf8 hash FAILS.
+	for (i=0, j=0; i < strlen(password); i++) {
+		// should this be proper LE UTF16 encoded???  NOPE. We now have
+		// a utf-8 encoded test hash, and the below method works.
+		// actually tried utf8_to_utf16_be, and the ascii passwords
+		// work fine, but the utf8 hash FAILS.
 
-            //passwdBytes[j++] = (password[i] >> 8);
-            passwdBytes[j++] = 0;
-            passwdBytes[j++] = password[i];
-        }
+		//passwdBytes[j++] = (password[i] >> 8);
+		passwdBytes[j++] = 0;
+		passwdBytes[j++] = password[i];
+	}
 	SHA1_Init(ctxp);
 	SHA1_Update(ctxp, passwdBytes, saved_len[idx] * 2);
 	SHA1_Update(ctxp, magic, 16);
@@ -293,15 +336,28 @@ static void *get_salt(char *ciphertext)
 	cs.count = atoi(p);
 	p = strtokm(NULL, "$");
 	cs.keysize = atoi(p);
+	p = strtokm(NULL, "$");
 	cs.keydata = mem_alloc_tiny(cs.keysize, 1);
 	for (i = 0; i < cs.keysize; i++)
 		cs.keydata[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	if (cs.target == 1) {
+		const unsigned char *extracted;
+		int extracted_len;
+		if (keystore_common_extract_encrypted_data(cs.keydata, cs.keysize, &extracted, &extracted_len)) {
+			cs.keydata = mem_alloc_tiny(extracted_len, 1);
+			memcpy(cs.keydata, extracted, extracted_len);
+			cs.keysize = extracted_len;
+		}
+	}
+	SHA1_Init(&ctx);
+	SHA1_Update(&ctx, cs.keydata, cs.keysize);
+	SHA1_Final(cs.keydata_hash, &ctx);
 	MEM_FREE(keeptr);
 
 	// setup the dyna_salt_t stuff.
-	cs.dsalt.salt_cmp_offset = SALT_CMP_OFF(keystore_salt, data_length);
-	cs.dsalt.salt_cmp_size = SALT_CMP_SIZE(keystore_salt, data_length, data, 0);
+	cs.dsalt.salt_cmp_offset = SALT_CMP_OFF(keystore_salt, target);
+	cs.dsalt.salt_cmp_size = SALT_CMP_SIZE(keystore_salt, target, keydata_hash, 20);
 	cs.dsalt.salt_alloc_needs_free = 0;
 
 	ptr = mem_alloc_tiny(sizeof(keystore_salt), MEM_ALIGN_WORD);
@@ -374,7 +430,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		tid = omp_get_thread_num();
 #endif
 		len = saved_len[MixOrder[index]];
-		if (len >= 4 && len <= 24) {
+		if (keystore_cur_salt->target == 0 && len >= 4 && len <= 24) {
 			unsigned char *po;
 			po = (unsigned char*)cursimd->first_blk[tid][len-4];
 			for (x = 0; x < MIN_KEYS_PER_CRYPT; ++x) {
@@ -411,14 +467,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		}
 
 #endif
-		if (dirty)
-			getPreKeyedHash(MixOrder[index]);
-		if (saved_len[MixOrder[index]] == 0)
-			memcpy(crypt_out[MixOrder[index]], keystore_cur_salt->data_hash, 20);
-		else {
-			memcpy(&ctx, &saved_ctx[MixOrder[index]], sizeof(ctx));
-			SHA1_Update(&ctx, keystore_cur_salt->data, keystore_cur_salt->data_length);
-			SHA1_Final((unsigned char*)crypt_out[MixOrder[index]], &ctx);
+		if (keystore_cur_salt->target == 0) {
+			if (dirty)
+				getPreKeyedHash(MixOrder[index]);
+			if (saved_len[MixOrder[index]] == 0)
+				memcpy(crypt_out[MixOrder[index]], keystore_cur_salt->data_hash, 20);
+			else {
+				memcpy(&ctx, &saved_ctx[MixOrder[index]], sizeof(ctx));
+				SHA1_Update(&ctx, keystore_cur_salt->data, keystore_cur_salt->data_length);
+				SHA1_Final((unsigned char*)crypt_out[MixOrder[index]], &ctx);
+			}
+		} else {
+			int x;
+			for (x = 0; x < MIN_KEYS_PER_CRYPT; x++) {
+				int idx = MixOrder[index + x];
+				if (idx < count)
+					crypt_out[idx][0] = keystore_verify_key_password(idx) ? KEYPASS_BINARY : 0;
+			}
 		}
 	}
 	dirty = 0;
@@ -444,17 +509,21 @@ static int cmp_one(void *binary, int index)
 
 static int cmp_exact(char *source, int index)
 {
-	unsigned char *binary = (unsigned char *)keystore_common_get_binary(source);
+	unsigned char *binary = (unsigned char *)get_binary(source);
+	if (keystore_cur_salt->target == 0) {
 #ifdef SIMD_COEF_32
-	// in SIMD, we only have the first 4 bytes copied into the binary buffer.
-	// to for a cmp_one, so we do a full CTX type check
-	SHA_CTX ctx;
-	getPreKeyedHash(index);
-	memcpy(&ctx, &saved_ctx[index], sizeof(ctx));
-	SHA1_Update(&ctx, keystore_cur_salt->data, keystore_cur_salt->data_length);
-	SHA1_Final((unsigned char*)crypt_out[index], &ctx);
+		// in SIMD, we only have the first 4 bytes copied into the binary buffer.
+		// to for a cmp_one, so we do a full CTX type check
+		SHA_CTX ctx;
+		getPreKeyedHash(index);
+		memcpy(&ctx, &saved_ctx[index], sizeof(ctx));
+		SHA1_Update(&ctx, keystore_cur_salt->data, keystore_cur_salt->data_length);
+		SHA1_Final((unsigned char*)crypt_out[index], &ctx);
 #endif
-	return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+		return !memcmp(binary, crypt_out[index], BINARY_SIZE);
+	} else {
+		return ((uint32_t*)binary)[0] == crypt_out[index][0];
+	}
 }
 
 static void keystore_set_key(char *key, int index)
@@ -495,7 +564,7 @@ struct fmt_main fmt_keystore = {
 		fmt_default_prepare,
 		keystore_common_valid_cpu,
 		fmt_default_split,
-		keystore_common_get_binary,
+		get_binary,
 		get_salt,
 		{ NULL },
 		fmt_default_source,
