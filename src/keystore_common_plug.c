@@ -28,7 +28,7 @@ MAYBE_INLINE static int keystore_common_valid(char *ciphertext, struct fmt_main 
 	char *p;
 	char *ctcopy;
 	char *keeptr;
-	int target;
+	int target, nkeys;
 	int v, extra;
 	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
 		return 0;
@@ -59,19 +59,25 @@ MAYBE_INLINE static int keystore_common_valid(char *ciphertext, struct fmt_main 
 		goto bail;
 	if (!isdec(p))
 		goto bail;
-	/* currently we support only 1 key */
-	if (atoi(p) != 1)
+	nkeys = atoi(p);
+	/* target 0 supports empty keystores, target 1 requires a key blob */
+	if ((target == 0 && nkeys != 0 && nkeys != 1) ||
+	    (target == 1 && nkeys != 1))
 		goto bail;
 	if ((p = strtokm(NULL, "$")) == NULL) /* key length */
 		goto bail;
 	if (!isdec(p))
 		goto bail;
 	v = atoi(p);
+	if (nkeys == 0 && v != 0)
+		goto bail;
 	if (v > MAX_SALT_SIZE)
 		goto bail;
-	if ((p = strtokm(NULL, "$")) == NULL) /* key data */
-		goto bail;
-	if (hexlenl(p, &extra) != v*2 || extra)
+	p = strtokm(NULL, "$"); /* key data */
+	if (p == NULL) {
+		if (nkeys != 0 || v != 0)
+			goto bail;
+	} else if (hexlenl(p, &extra) != v*2 || extra)
 		goto bail;
 	MEM_FREE(keeptr);
 	return 1;

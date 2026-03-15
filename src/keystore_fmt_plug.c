@@ -337,10 +337,12 @@ static void *get_salt(char *ciphertext)
 	p = strtokm(NULL, "$");
 	cs.keysize = atoi(p);
 	p = strtokm(NULL, "$");
-	cs.keydata = mem_alloc_tiny(cs.keysize, 1);
-	for (i = 0; i < cs.keysize; i++)
-		cs.keydata[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
-			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	cs.keydata = mem_alloc_tiny(cs.keysize ? cs.keysize : 1, 1);
+	if (p) {
+		for (i = 0; i < cs.keysize; i++)
+			cs.keydata[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	}
 	if (cs.target == 1) {
 		const unsigned char *extracted;
 		int extracted_len;
@@ -430,7 +432,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		tid = omp_get_thread_num();
 #endif
 		len = saved_len[MixOrder[index]];
-		if (keystore_cur_salt->target == 0 && len >= 4 && len <= 24) {
+		if (keystore_cur_salt->target == 0 && keystore_cur_salt->count > 0 &&
+		    len >= 4 && len <= 24) {
 			unsigned char *po;
 			po = (unsigned char*)cursimd->first_blk[tid][len-4];
 			for (x = 0; x < MIN_KEYS_PER_CRYPT; ++x) {
@@ -468,14 +471,20 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 
 #endif
 		if (keystore_cur_salt->target == 0) {
-			if (dirty)
-				getPreKeyedHash(MixOrder[index]);
-			if (saved_len[MixOrder[index]] == 0)
-				memcpy(crypt_out[MixOrder[index]], keystore_cur_salt->data_hash, 20);
-			else {
-				memcpy(&ctx, &saved_ctx[MixOrder[index]], sizeof(ctx));
-				SHA1_Update(&ctx, keystore_cur_salt->data, keystore_cur_salt->data_length);
-				SHA1_Final((unsigned char*)crypt_out[MixOrder[index]], &ctx);
+			int x;
+			for (x = 0; x < MIN_KEYS_PER_CRYPT; x++) {
+				int idx = MixOrder[index + x];
+				if (idx >= count)
+					continue;
+				if (dirty)
+					getPreKeyedHash(idx);
+				if (saved_len[idx] == 0)
+					memcpy(crypt_out[idx], keystore_cur_salt->data_hash, 20);
+				else {
+					memcpy(&ctx, &saved_ctx[idx], sizeof(ctx));
+					SHA1_Update(&ctx, keystore_cur_salt->data, keystore_cur_salt->data_length);
+					SHA1_Final((unsigned char*)crypt_out[idx], &ctx);
+				}
 			}
 		} else {
 			int x;
