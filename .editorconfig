@@ -273,9 +273,4 @@ indent_size = 8
 
 [openbsdsoftraid_variable_code.h]
 indent_size = 8
-
-[agilekeychain_common_plug.c]
-indent_size = 8
-
-[bks_fmt_plug.c]
-indent_size = 8
+max_line_length = 80
