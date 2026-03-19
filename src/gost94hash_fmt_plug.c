@@ -258,7 +258,8 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		/* Start computation of S byte sequence. */
 		john_gost_init(&alt_ctx);
 
-		/* For every character in the password add the entire password. */
+		/* Repeat the following 16+A[0] times, where A[0] represents the
+		   first byte in digest A interpreted as an 8-bit unsigned value */
 		for (cnt = 0; cnt < 16 + ((unsigned char*)crypt_out[index])[0]; ++cnt)
 			john_gost_update(&alt_ctx, cur_salt->salt, cur_salt->len);
 
