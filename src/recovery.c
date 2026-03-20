@@ -1,8 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2003,2005,2006,2009,2010,2013,2017 by Solar Designer
- *
- * ...with changes in the jumbo patch, by JimF and magnum.
+ * Copyright (c) 2009-2026, magnum
+ * Copyright (c) 2009-2018, JimF
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -762,4 +762,83 @@ uint64_t rec_read_cands(char *session)
 		error_msg("Error: Catch-up session file '%s' had zero cands count\n", other_name);
 
 	return ret;
+}
+
+void rec_add_files(char *session)
+{
+	char *catchup_name;
+	FILE *catchup_file;
+	int64_t catchup_size = 0;
+	char suffix[1 + 20 + sizeof(RECOVERY_SUFFIX)];
+	const char *sfx = RECOVERY_SUFFIX;
+
+	if (!john_main_process && options.node_min) {
+		snprintf(suffix, sizeof(suffix), ".%u%s", options.node_min, RECOVERY_SUFFIX);
+		sfx = suffix;
+	}
+	catchup_name = path_session(session, sfx);
+
+	if (!(catchup_file = fopen(catchup_name, "r+")))
+		pexit("fopen catch-up file: '%s'", catchup_name);
+
+#if !(__MINGW32__ || _MSC_VER)
+	if (jtr_lock(fileno(catchup_file), F_SETLK, F_WRLCK, catchup_name))
+		error_msg("Error: Catch-up session-file '%s' is locked\n", catchup_name);
+#endif
+
+	/* Check the original session-file's size */
+	if (jtr_fseek64(catchup_file, 0, SEEK_END))
+		pexit("fseek");
+	if ((catchup_size = jtr_ftell64(catchup_file)) == -1)
+		pexit("ftell");
+	if (jtr_fseek64(catchup_file, 0, SEEK_SET))
+		pexit("fseek");
+	if (catchup_size <= 0 || catchup_size > SIZE_MAX)
+		error_msg("Error: %s invalid size", catchup_name);
+
+	/* Read original session-file data into memory */
+	char *catchup_data = mem_alloc_tiny(catchup_size + 1, MEM_ALIGN_NONE);
+	catchup_data[catchup_size] = '\0';
+
+	if (fread(catchup_data, 1, (size_t)catchup_size, catchup_file) != catchup_size) {
+		if (ferror(catchup_file))
+			pexit("fread");
+		error_msg("Error: fread: Unexpected EOF in %s\n", rec_name);
+	}
+
+	/* Parse session header */
+	char magic[16];
+	int argc, offset;
+	if (sscanf(catchup_data, "%15s\n%d\n%n", magic, &argc, &offset) != 2 || argc < 2)
+		error_msg("Error: %s invalid session-file format\n", rec_name);
+
+	if (offset > catchup_size)
+		error_msg("Error: %s corrupt offset\n", rec_name);
+
+	if (jtr_fseek64(catchup_file, 0, SEEK_SET))
+		pexit("fseek");
+
+	/* Rewrite header */
+	fprintf(catchup_file, "%s\n%d\n", magic, argc + (int)options.passwd->count);
+
+	/* Append new file entries */
+	struct list_entry *current;
+	for (current = options.passwd->head; current; current = current->next)
+		fprintf(catchup_file, "%s\n", current->data);
+
+	/* Append original tail */
+	fprintf(catchup_file, "%s", catchup_data + offset);
+	fclose(catchup_file);
+
+	/* Delete this session's file */
+	const char *full_rec_name = path_expand(rec_name);
+	if (unlink(full_rec_name))
+		pexit("unlink: %s", full_rec_name);
+
+	/* Close this session's file */
+	if (rec_file) {
+		if (fclose(rec_file))
+			pexit("fclose");
+		rec_file = NULL;
+	}
 }
