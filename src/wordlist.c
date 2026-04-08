@@ -710,6 +710,9 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 
 					if (!mgetl(line))
 						break;
+
+					check_bom(line);
+
 					if (!strncmp(line, "#!comment", 9))
 						continue;
 					lp = convert(line);
