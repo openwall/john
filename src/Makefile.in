@@ -263,9 +263,9 @@ fmt_registers.h: .plugin_fmt_list
 	$(CC) -DFMT_REGISTERS_H -E -P $(CFLAGS) $(filter-out opencl_%_fmt_plug.c, $(wildcard *_fmt_plug.c)) | grep -F "john_register_one" | $(SORT) -f > $@ || true
 	$(CC) -DFMT_REGISTERS_H -E -P $(CFLAGS) $(wildcard opencl_*_fmt_plug.c) | grep -F "john_register_one" | $(SORT) -f >> $@ || true
 
-.PHONY: subdirs $(SUBDIRS)
-
 SUBDIRS = mbedtls secp256k1 ed25519-donna poly1305-donna @ZTEX_SUBDIRS@
+
+.PHONY: subdirs $(SUBDIRS)
 
 subdirs: $(SUBDIRS)
 

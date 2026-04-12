@@ -1224,7 +1224,7 @@ static void john_load(void)
 				if (ztex_detected_list->count % options.fork) {
 					fprintf(stderr, "Number of ZTEX devices must be "
 						"a multiple of forks. "
-						"Suggesting to use \"--fork=%d\".\n",
+						"Suggesting to use \"--fork=%ld\".\n",
 						ztex_detected_list->count);
 					error();
 				}
