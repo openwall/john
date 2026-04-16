@@ -1424,7 +1424,35 @@ char *rules_apply(char *word_in, char *rule, int split)
 			break;
 
 		case 'v': /* assign value to numeric variable */
+			if (hc_logic)
 			{
+				/* HC rule: insert char X every N chars */
+				unsigned int n, i, out_len = 0;
+				char value;
+				char *out;
+				POSITION(n)
+				VALUE(value)
+				if (!n)
+					break;
+				GET_OUT
+				for (i = 0; i < length; i++) 
+				{
+					if (out_len >= RULE_WORD_SIZE - 1)
+						break;
+					out[out_len++] = in[i];
+					if (((i + 1) % n) == 0) {
+						if (out_len >= RULE_WORD_SIZE - 1)
+							break;
+						out[out_len++] = value;
+					}
+				}
+				out[out_len] = 0;
+				in = out;
+				length = out_len;
+				break;
+			} 
+			else 
+			{ /*Original JtR rule */
 				char var;
 				int a, s; /* may be negative */
 				VALUE(var)
@@ -1436,6 +1464,45 @@ char *rules_apply(char *word_in, char *rule, int split)
 				rules_vars[ARCH_INDEX(var)] = a - s; /* may be negative */
 			}
 			break;
+		
+		case 'h': /*convert the entire password to lowercase hex */
+			{
+				char outbuf[RULE_WORD_SIZE * 2];
+				int i;
+				if (length * 2 >= RULE_WORD_SIZE)
+					break;
+				for (i = 0; i < length; i++)
+					sprintf(&outbuf[i * 2], "%02x", (unsigned char)in[i]);
+				strcpy(in, outbuf);
+				length *= 2;
+			}
+			break;
+
+		case 'H': /*convert the entire password to uppercase hex*/
+		{
+			char outbuf[RULE_WORD_SIZE * 2];
+			int i;
+			if (length * 2 >= RULE_WORD_SIZE)
+				break;
+			for (i = 0; i < length; i++)
+				sprintf(&outbuf[i * 2], "%02X", (unsigned char)in[i]);
+			strcpy(in, outbuf);
+			length *= 2;
+		}
+		break;
+
+		case 'B': /* add byte value of X at pos N, bytewise. Format: BNX */
+		{
+			unsigned int pos;
+			unsigned char val;
+			POSITION(pos)
+			VALUE(val)
+			if (pos < length)
+			{
+				in[pos] = (unsigned char)(in[pos] + val);
+			}
+		}
+		break;
 
 /* Additional "single crack" mode rules */
 		case '1':
