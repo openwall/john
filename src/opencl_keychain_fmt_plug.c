@@ -62,6 +62,9 @@ typedef struct {
 	pbkdf2_salt pbkdf2;
 	unsigned char iv[8];
 	unsigned char ct[CTLEN];
+	uint32_t has_symkey;
+	uint32_t symkey_ct_len;
+	unsigned char symkey_ct[SYMKEY_MAX_CTLEN];
 } keychain_salt;
 
 typedef struct {
@@ -173,13 +176,14 @@ static void init(struct fmt_main *_self)
 static void reset(struct db_main *db)
 {
 	if (!program[gpu_id]) {
-		char build_opts[96];
+		char build_opts[128];
 
 		snprintf(build_opts, sizeof(build_opts),
-		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d -DCTLEN=%d",
+		         "-DKEYLEN=%d -DSALTLEN=%d -DOUTLEN=%d -DCTLEN=%d "
+		         "-DSYMKEY_MAX_CTLEN=%d",
 		         PLAINTEXT_LENGTH,
 		         (int)sizeof(currentsalt.pbkdf2.salt),
-		         (int)sizeof(pbkdf2_hash), CTLEN);
+		         (int)sizeof(pbkdf2_hash), CTLEN, SYMKEY_MAX_CTLEN);
 		opencl_init("$JOHN/opencl/keychain_kernel.cl",
 		            gpu_id, build_opts);
 
@@ -199,6 +203,7 @@ static void reset(struct db_main *db)
 static void set_salt(void *salt)
 {
 	cur_salt = (struct custom_salt *)salt;
+	memset(&currentsalt, 0, sizeof(currentsalt));
 	memcpy(currentsalt.pbkdf2.salt, cur_salt->salt, 20);
 	currentsalt.pbkdf2.length = 20;
 	currentsalt.pbkdf2.iterations = 1000;
@@ -206,6 +211,11 @@ static void set_salt(void *salt)
 	currentsalt.pbkdf2.skip_bytes = 0;
 	memcpy(currentsalt.iv, cur_salt->iv, 8);
 	memcpy(currentsalt.ct, cur_salt->ct, CTLEN);
+	currentsalt.has_symkey = cur_salt->has_symkey;
+	currentsalt.symkey_ct_len = cur_salt->symkey_ct_len;
+	if (cur_salt->has_symkey)
+		memcpy(currentsalt.symkey_ct, cur_salt->symkey_ct,
+		       cur_salt->symkey_ct_len);
 
 	HANDLE_CLERROR(clEnqueueWriteBuffer(queue[gpu_id], mem_salt,
 		CL_FALSE, 0, saltsize, &currentsalt, 0, NULL, NULL),
@@ -298,7 +308,7 @@ struct fmt_main fmt_opencl_keychain = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_NOT_EXACT,
 		{ NULL },
-		{ FORMAT_TAG },
+		{ FORMAT_TAG, FORMAT_TAG_V2 },
 		keychain_tests
 	}, {
 		init,
