@@ -1464,7 +1464,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 				rules_vars[ARCH_INDEX(var)] = a - s; /* may be negative */
 			}
 			break;
-		
+
 		case 'h': /*convert the entire password to lowercase hex */
 			{
 				char outbuf[RULE_WORD_SIZE * 2];
@@ -1498,9 +1498,7 @@ char *rules_apply(char *word_in, char *rule, int split)
 			POSITION(pos)
 			VALUE(val)
 			if (pos < length)
-			{
 				in[pos] = (unsigned char)(in[pos] + val);
-			}
 		}
 		break;
 
