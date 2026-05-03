@@ -42,6 +42,7 @@
 #include "jumbo.h"
 #include "memory.h"
 #include "johnswap.h"
+#include "2john_common.h"
 
 #define inplace_ntohl(x) do { (x) = john_ntohl((x)); } while (0)
 
@@ -514,8 +515,11 @@ int main(int argc, char **argv)
 		puts("Usage: dmg2john [DMG files]");
 		return -1;
 	}
-	for (i = 1; i < argc; i++)
+	for (i = 1; i < argc; i++) {
+		large_output_note_if_input_large("dmg2john", argv[i],
+						 LARGE_OUTPUT_THRESHOLD_BYTES);
 		hash_plugin_parse_hash(argv[i]);
+	}
 
 	return 0;
 }
