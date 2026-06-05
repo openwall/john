@@ -14,11 +14,11 @@
 #
 # NOTE: the 'Official OpenCL runtime for Intel CPUs' is unfree software and
 # therefore, when invoking this shell, nix will require the $NIXPKGS_ALLOW_UNFREE=1
-# environment variable to be set. If you wish to create your shell with free software
-# only, then you can remove 'intel-ocl' entry from 'nativeBuildInputs' below. Please
-# note however if you are running and intel based system and remove intel-ocl then
-# you will not have opencl support when building openwall/john. For the avoidance of
-# doubt, this file does not contain any unfree software.
+# environment variable to be set. If you wish to create your shell with it,
+# then you can add 'intel-ocl' entry to 'nativeBuildInputs' below.
+#
+# Add 'rocm-opencl-runtime' entry to 'nativeBuildInputs' below for AMD GPU support.
+# The 'ocl-icd' entry is used by default and should suffice in most cases.
 #
 # More information about Nixos: https://nixos.org/
 # More information about nix-shell: https://nixos.org/manual/nix/stable/command-ref/nix-shell.html
@@ -39,13 +39,17 @@ let
 		scapy
 		lxml
 		wrapPython
+		olefile
 	]);
 in
 pkgs.mkShell {
+    LD_LIBRARY_PATH= pkgs.lib.makeLibraryPath [
+      pkgs.ocl-icd
+    ];
 	nativeBuildInputs = with pkgs.buildPackages;
 		[
-			openssl libzip rocm-opencl-runtime opencl-headers
-			bzip2 libpcap libgmpris libxcrypt gmp intel-ocl
+			openssl libzip opencl-headers ocl-icd clinfo
+			bzip2 libpcap libgmpris libxcrypt gmp
 			gcc zlib nss nspr libkrb5 re2 makeWrapper
 			perlEnv pythonEnv
 		];
