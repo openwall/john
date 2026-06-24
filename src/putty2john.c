@@ -31,6 +31,7 @@
 
 #include "memory.h"
 #include "jumbo.h"
+#include "common.h"
 #if _MSC_VER
 #include <io.h>
 #endif
@@ -63,10 +64,15 @@ static const char *putty_error = NULL;
 static int i, is_mac, old_fmt;
 static char alg[32];
 static int cipher, cipherblk;
+static int ppk_version;
+static char *key_derivation;
+static int argon2_memory, argon2_passes, argon2_parallelism;
+static unsigned char argon2_salt[64] = {0};
+static int argon2_salt_len;
 static unsigned char *public_blob, *private_blob;
 static int public_blob_len, private_blob_len;
 
-static char *read_body(FILE * fp)
+static char *read_body(FILE *fp)
 {
 	char *text;
 	int len;
@@ -176,8 +182,14 @@ static int read_header(FILE * fp, char *header)
 static int init_LAME(const char *filename) {
 	FILE *fp;
 
+	common_init();
+
+	argon2_memory = argon2_passes = argon2_parallelism = 0;
+	argon2_salt_len = 0;
 	encryption = comment = mac = NULL;
+	key_derivation = NULL;
 	public_blob = private_blob = NULL;
+	ppk_version = 0;
 
 	fp = fopen(filename, "rb");
 	if (!fp) {
@@ -188,9 +200,14 @@ static int init_LAME(const char *filename) {
 	/* Read the first header line which contains the key type. */
 	if (!read_header(fp, header))
 		goto error;
-	if (0 == strcmp(header, "PuTTY-User-Key-File-2")) {
+	if (0 == strcmp(header, "PuTTY-User-Key-File-3")) {
+		ppk_version = 3;
+		old_fmt = 0;
+	} else if (0 == strcmp(header, "PuTTY-User-Key-File-2")) {
+		ppk_version = 2;
 		old_fmt = 0;
 	} else if (0 == strcmp(header, "PuTTY-User-Key-File-1")) {
+		ppk_version = 1;
 		/* this is an old key file; warn and then continue */
 		// old_keyfile_warning();
 		old_fmt = 1;
@@ -239,15 +256,77 @@ static int init_LAME(const char *filename) {
 		goto error;
 	if ((b = read_body(fp)) == NULL)
 		goto error;
+	if (!isdec(b))
+		goto error;
 	i = atoi(b);
 	MEM_FREE(b);
 	if ((public_blob = read_blob(fp, i, &public_blob_len)) == NULL)
 		goto error;
 
+	if (ppk_version >= 3 && cipher) {
+		/* Parse Argon2 KDF section used in PPK v3 encrypted keys. */
+		if (!read_header(fp, header) || 0 != strcmp(header, "Key-Derivation"))
+			goto error;
+		if ((key_derivation = read_body(fp)) == NULL)
+			goto error;
+		if (strcmp(key_derivation, "Argon2d") && strcmp(key_derivation, "Argon2i") && strcmp(key_derivation, "Argon2id"))
+			goto error;
+
+		if (!read_header(fp, header) || 0 != strcmp(header, "Argon2-Memory"))
+			goto error;
+		if ((b = read_body(fp)) == NULL)
+			goto error;
+		if (!isdec(b))
+			goto error;
+		argon2_memory = atoi(b);
+		MEM_FREE(b);
+		if (argon2_memory <= 0)
+			goto error;
+
+		if (!read_header(fp, header) || 0 != strcmp(header, "Argon2-Passes"))
+			goto error;
+		if ((b = read_body(fp)) == NULL)
+			goto error;
+		if (!isdec(b))
+			goto error;
+		argon2_passes = atoi(b);
+		MEM_FREE(b);
+		if (argon2_passes <= 0)
+			goto error;
+
+		if (!read_header(fp, header) || 0 != strcmp(header, "Argon2-Parallelism"))
+			goto error;
+		if ((b = read_body(fp)) == NULL)
+			goto error;
+		if (!isdec(b))
+			goto error;
+		argon2_parallelism = atoi(b);
+		MEM_FREE(b);
+		if (argon2_parallelism <= 0)
+			goto error;
+
+		if (!read_header(fp, header) || 0 != strcmp(header, "Argon2-Salt"))
+			goto error;
+		if ((b = read_body(fp)) == NULL)
+			goto error;
+		int extra;
+		int argon2_salt_hex_len = hexlenl(b, &extra);
+		argon2_salt_len = argon2_salt_hex_len / 2;
+		if (extra || argon2_salt_len > (int)sizeof(argon2_salt))
+			goto error;
+		for (i = 0; i < argon2_salt_len; i++)
+			argon2_salt[i] = atoi16[ARCH_INDEX(b[i * 2])] * 16 + atoi16[ARCH_INDEX(b[i * 2 + 1])];
+		MEM_FREE(b);
+		if (argon2_salt_len <= 0 || argon2_salt_hex_len % 2)
+			goto error;
+	}
+
 	/* Read the Private-Lines header line and the Private blob. */
 	if (!read_header(fp, header) || 0 != strcmp(header, "Private-Lines"))
 		goto error;
 	if ((b = read_body(fp)) == NULL)
+		goto error;
+	if (!isdec(b))
 		goto error;
 	i = atoi(b);
 	MEM_FREE(b);
@@ -277,6 +356,7 @@ error:
 		fclose(fp);
 	MEM_FREE(comment);
 	MEM_FREE(encryption);
+	MEM_FREE(key_derivation);
 	MEM_FREE(mac);
 	MEM_FREE(public_blob);
 	MEM_FREE(private_blob);
@@ -304,23 +384,38 @@ static void LAME_ssh2_load_userkey(const char *path, const char **errorstr)
 
 	{
 		fname = strip_suffixes(basename(path), ext, 1);
-		printf("%s:$putty$%d*%d*%d*%d*%s*%d*", fname, cipher, cipherblk, is_mac, old_fmt, mac, public_blob_len);
-		print_hex(public_blob, public_blob_len);
-		printf("*%d*", private_blob_len);
-		print_hex(private_blob, private_blob_len);
-		if (!old_fmt) {
+		if (ppk_version >= 3) {
+			printf("%s:$putty$3*%d*%d*%d*%d*%s*%d*%d*%d*", fname,
+			       cipher, cipherblk, is_mac, old_fmt,
+			       key_derivation ? key_derivation : "none",
+			       argon2_memory, argon2_passes, argon2_parallelism);
+			print_hex(argon2_salt, argon2_salt_len);
+			printf("*%s*%d*", mac, public_blob_len);
+			print_hex(public_blob, public_blob_len);
+			printf("*%d*", private_blob_len);
+			print_hex(private_blob, private_blob_len);
 			printf("*%s*%s*%s\n", alg, encryption, comment);
-		}
-		else {
-			printf("\n");
+		} else {
+			printf("%s:$putty$%d*%d*%d*%d*%s*%d*", fname, cipher, cipherblk, is_mac, old_fmt, mac, public_blob_len);
+			print_hex(public_blob, public_blob_len);
+			printf("*%d*", private_blob_len);
+			print_hex(private_blob, private_blob_len);
+			if (!old_fmt) {
+				printf("*%s*%s*%s\n", alg, encryption, comment);
+			}
+			else {
+				printf("\n");
+			}
 		}
 		MEM_FREE(comment);
+		MEM_FREE(key_derivation);
 		return;
 	}
 error:
 	fprintf(stderr, "Something failed!\n");
 	MEM_FREE(comment);
 	MEM_FREE(encryption);
+	MEM_FREE(key_derivation);
 	MEM_FREE(mac);
 	MEM_FREE(public_blob);
 	MEM_FREE(private_blob);
@@ -374,7 +469,8 @@ static int ssh2_userkey_encrypted(const char *filename, char **commentptr)
 	if (!fp)
 		return 0;
 	if (!read_header(fp, header)
-			|| (0 != strcmp(header, "PuTTY-User-Key-File-2") &&
+			|| (0 != strcmp(header, "PuTTY-User-Key-File-3") &&
+				0 != strcmp(header, "PuTTY-User-Key-File-2") &&
 				0 != strcmp(header, "PuTTY-User-Key-File-1"))) {
 		fclose(fp);
 		return 0;
@@ -522,6 +618,7 @@ out:
 
 	MEM_FREE(comment);
 	MEM_FREE(encryption);
+	MEM_FREE(key_derivation);
 	MEM_FREE(mac);
 	MEM_FREE(public_blob);
 	MEM_FREE(private_blob);
