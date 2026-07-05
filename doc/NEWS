@@ -488,6 +488,11 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 - Add support to keepass2john for the current format of KeePass XML keyfiles.
   The formats needed no changes.  [magnum; 2025]
 
+- Added RAKP-MD5 and RAKP-SHA256 CPU and OpenCL formats for IPMI 2.0 RAKP
+  (RMCP+) challenge-response hashes in the existing "$rakp$<salt>$<hmac>"
+  syntax, where digest length selects MD5 (32), SHA1 (40), or SHA256 (64).
+  [HD Moore; 2026]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
