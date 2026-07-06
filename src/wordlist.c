@@ -831,11 +831,11 @@ void do_wordlist_crack(struct db_main *db, const char *name, int rules)
 				char *ep, ec;
 				if (i > nWordFileLines) {
 					fprintf_color(color_warning, stderr, "Warning: wordlist "
-					        "contains inconsequent "
+					        "contains inconsistent "
 					        "newlines, some words may be "
 					        "skipped\n");
 					log_event("- Warning: wordlist contains"
-					          " inconsequent newlines, some"
+					          " inconsistent newlines, some"
 					          " words may be skipped");
 					i--;
 					break;
