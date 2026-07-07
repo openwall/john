@@ -289,6 +289,8 @@ static void process_KDBX2_database(FILE *fp, char* encryptedDatabase)
 		warn("%s: Error: read failed: %s.",
 		          encryptedDatabase, feof(fp) ? "Unexpected end of file" : strerror(errno));
 		MEM_FREE(buffer);
+		if (kfp)
+			fclose(kfp);
 		return;
 	}
 
@@ -301,6 +303,8 @@ static void process_KDBX2_database(FILE *fp, char* encryptedDatabase)
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1) {
 			warn("%s: Error: read failed: %s.",
 				encryptedDatabase, feof(kfp) ? "Unexpected end of file" : strerror(errno));
+			MEM_FREE(buffer);
+			fclose(kfp);
 			return;
 		}
 
@@ -852,7 +856,9 @@ static void process_database(char* encryptedDatabase)
 		if (fread(buffer, filesize_keyfile, 1, kfp) != 1) {
 			warn("%s: Error: read failed: %s.",
 				encryptedDatabase, feof(kfp) ? "Unexpected end of file" : strerror(errno));
-			return;
+			MEM_FREE(buffer);
+			fclose(kfp);
+			goto bailout;
 		}
 
 		/*
