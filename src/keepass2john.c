@@ -329,6 +329,7 @@ static void process_KDBX2_database(FILE *fp, char* encryptedDatabase)
 		  print_hex(hash, 32);
 		}
 		MEM_FREE(buffer);
+		fclose(kfp);
 	}
 	printf("\n");
 }
