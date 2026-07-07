@@ -299,8 +299,17 @@ static void release_clobj(void)
 		HANDLE_CLERROR(clReleaseMemObject(d_salt), "Release");
 		HANDLE_CLERROR(clReleaseMemObject(d_pad), "Release");
 
+		MEM_FREE(h_pswC);
+		MEM_FREE(h_pswI);
+		MEM_FREE(h_pswSize);
 		MEM_FREE(h_found);
 		MEM_FREE(h_wblocks);
+		MEM_FREE(hash_zero);
+		MEM_FREE(h_attack);
+		MEM_FREE(h_mac);
+		MEM_FREE(h_vmkIV);
+		MEM_FREE(h_macIV);
+		MEM_FREE(h_cMacIV);
 		MEM_FREE(h_numPsw);
 	}
 }
