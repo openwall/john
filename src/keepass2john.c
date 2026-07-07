@@ -630,7 +630,8 @@ static void process_database(char* encryptedDatabase)
 				if ((version >> 8) != 1) {
 					fprintf(stderr, "! %s : Unsupported VariantDictionary version (%04x)!\n",
 					        encryptedDatabase, version);
-					return;
+					MEM_FREE(pbData);
+					goto bailout;
 				}
 				uint8_t type;
 				while ((type = *pos++)) {
@@ -773,7 +774,7 @@ static void process_database(char* encryptedDatabase)
 		kfp = fopen(keyfile, "rb");
 		if (!kfp) {
 			fprintf(stderr, "! %s : %s\n", keyfile, strerror(errno));
-			return;
+			goto bailout;
 		}
 		filesize_keyfile = (int64_t)get_file_size(keyfile);
 	}
@@ -884,7 +885,8 @@ static void process_database(char* encryptedDatabase)
 			p = strstr(p, "</Data>");
 			if (p == NULL || p - buffer < 44) {
 				warn("Broken keyfile, can't find 32 bytes worth of Base64 for the key");
-				exit(1);
+				MEM_FREE(buffer);
+				goto bailout;
 			}
 			printf ("%s", base64_convert_cp(data, e_b64_mime, 44, b64_decoded, e_b64_hex, sizeof(b64_decoded), flg_Base64_NO_FLAGS, 0));
 		}
@@ -907,7 +909,8 @@ static void process_database(char* encryptedDatabase)
 			}
 			if (hidx != 64) {
 				warn("Broken keyfile, can't find 32 bytes worth of hex for the key");
-				exit(1);
+				MEM_FREE(buffer);
+				goto bailout;
 			}
 			hex[hidx] = 0;
 			strlwr(hex);
@@ -940,6 +943,7 @@ bailout:
 	MEM_FREE(transformSeed);
 	MEM_FREE(initializationVectors);
 	MEM_FREE(expectedStartBytes);
+	if (kfp) fclose(kfp);
 	fclose(fp);
 }
 
