@@ -225,6 +225,7 @@ static void release_clobj(void)
 		MEM_FREE(host_pass);
 		MEM_FREE(host_salt);
 		MEM_FREE(host_crack);
+		MEM_FREE(orig_key);
 	}
 }
 
