@@ -5,9 +5,9 @@
  */
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_rakp;
+extern struct fmt_main fmt_rakp_sha1;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_rakp);
+john_register_one(&fmt_rakp_sha1);
 #else
 
 #include <string.h>
@@ -24,7 +24,7 @@ john_register_one(&fmt_rakp);
 #include "johnswap.h"
 #include "simd-intrinsics.h"
 
-#define FORMAT_LABEL            "RAKP"
+#define FORMAT_LABEL            "RAKP-SHA1"
 #define FORMAT_NAME             "IPMI 2.0 RAKP (RMCP+)"
 #ifdef SIMD_COEF_32
 #define SHA1_N                  (SIMD_PARA_SHA1 * SIMD_COEF_32)
@@ -451,7 +451,7 @@ static void *get_salt(char *ciphertext)
 #endif
 }
 
-struct fmt_main fmt_rakp = {
+struct fmt_main fmt_rakp_sha1 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,

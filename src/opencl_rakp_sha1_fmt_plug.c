@@ -15,9 +15,9 @@
 #ifdef HAVE_OPENCL
 
 #if FMT_EXTERNS_H
-extern struct fmt_main fmt_opencl_rakp;
+extern struct fmt_main fmt_opencl_rakp_sha1;
 #elif FMT_REGISTERS_H
-john_register_one(&fmt_opencl_rakp);
+john_register_one(&fmt_opencl_rakp_sha1);
 #else
 
 #include <string.h>
@@ -33,7 +33,7 @@ john_register_one(&fmt_opencl_rakp);
 #include "opencl_common.h"
 #include "options.h"
 
-#define FORMAT_LABEL            "RAKP-opencl"
+#define FORMAT_LABEL            "RAKP-SHA1-opencl"
 #define FORMAT_NAME             "IPMI 2.0 RAKP (RMCP+)"
 #define ALGORITHM_NAME          "HMAC-SHA1 OpenCL"
 
@@ -409,7 +409,7 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 	return count;
 }
 
-struct fmt_main fmt_opencl_rakp = {
+struct fmt_main fmt_opencl_rakp_sha1 = {
 	{
 		FORMAT_LABEL,
 		FORMAT_NAME,
