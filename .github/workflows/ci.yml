@@ -35,10 +35,11 @@ jobs:
           - { cc: gcc, runs_on: ubuntu-latest, target: x86_64, variant: asan-sse2 }
           - { cc: gcc, runs_on: ubuntu-latest, target: x86_64, variant: asan-avx }
           - { cc: gcc, runs_on: ubuntu-latest, target: x86_64, variant: asan-avx2 }
-          # GCC 9–14 (ubuntu-latest)
+          # GCC 9–15 (ubuntu-latest)
+          - { cc: gcc-15, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          - { cc: gcc-15, runs_on: ubuntu-latest, target: x86, variant: without-openssl }
+          - { cc: gcc-15, runs_on: ubuntu-latest, target: x86, variant: disable-all }
           - { cc: gcc-14, runs_on: ubuntu-latest, target: x86_64, variant: base }
-          - { cc: gcc-14, runs_on: ubuntu-latest, target: x86, variant: without-openssl }
-          - { cc: gcc-14, runs_on: ubuntu-latest, target: x86, variant: disable-all }
           - { cc: gcc-13, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: gcc-12, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: gcc-11, runs_on: ubuntu-latest, target: x86_64, variant: base }
