@@ -1815,7 +1815,8 @@ XRef:
                 my $i;
                 for ($i=0; $i<$num; ++$i) {
                     $raf->Read($buff, 20) == 20 or return -6;
-                    $buff =~ /^\s*(\d{10}) (\d{5}) (f|n)/s or return -4;
+                    # relax fixed \d{10}/\d{5} widths: some PDFs space-pad offsets instead of zero-padding
+                    $buff =~ /^\s*(\d+)\s+(\d+)\s+(f|n)/s or return -4;
                     my $num = $start + $i;
                     # save offset for newest copy of all objects
                     # (or next object number for free objects)
