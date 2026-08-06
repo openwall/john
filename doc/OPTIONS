@@ -229,9 +229,11 @@ numbers printed on the status line mean?"
 Limit the session to running only until it reaches the candidates tried
 count of a different, existing and paused session NAME.  This can be
 used for adding more hashes to an existing job:  After the new session
-finishes, just concatenate the new hashes to the older session's hash
-file and resume the old session.  This will end up more or less as if
-both sets of hashes were in the original session to start with.
+finishes, the new hashes (file names) will be added to the older session
+file so you can just resume that session.  This will end up just as if both
+sets of hashes were in the original session to start with, with no wasted
+resources or time (assuming salted hashes).  If you do not wish the original
+session file to be touched, also add the --no-catch-up-add option.
 
 --make-charset=FILE		make a charset, overwriting FILE
 
