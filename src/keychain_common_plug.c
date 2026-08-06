@@ -25,16 +25,30 @@ struct fmt_tests keychain_tests[] = {
 	{NULL}
 };
 
+static int keychain_tag_len(const char *ciphertext)
+{
+	if (!strncmp(ciphertext, FORMAT_TAG_V2, FORMAT_TAG_V2_LEN))
+		return FORMAT_TAG_V2_LEN;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		return FORMAT_TAG_LEN;
+	return 0;
+}
+
 int keychain_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int extra;
+	int tag_len;
+	int is_v2;
 
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
+	tag_len = keychain_tag_len(ciphertext);
+	if (!tag_len)
 		return 0;
+	is_v2 = (tag_len == FORMAT_TAG_V2_LEN);
+
 	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LEN;
+	ctcopy += tag_len;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
 	if (hexlenl(p, &extra) != SALTLEN * 2 || extra)
@@ -47,6 +61,16 @@ int keychain_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (hexlenl(p, &extra) != CTLEN * 2 || extra)
 		goto err;
+
+	if (is_v2) {
+		int symkey_ct_hexlen;
+
+		if ((p = strtokm(NULL, "*")) == NULL)	/* symmetric key blob ciphertext */
+			goto err;
+		symkey_ct_hexlen = hexlenl(p, &extra);
+		if (extra || symkey_ct_hexlen < 16 || symkey_ct_hexlen > SYMKEY_MAX_CTLEN * 2 || symkey_ct_hexlen % 16)
+			goto err;
+	}
 
 	MEM_FREE(keeptr);
 	return 1;
@@ -63,8 +87,12 @@ void *keychain_get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+	int tag_len;
 
-	ctcopy += FORMAT_TAG_LEN;
+	memset(&cs, 0, sizeof(cs));
+	tag_len = keychain_tag_len(ciphertext);
+	ctcopy += tag_len;
+
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -77,6 +105,15 @@ void *keychain_get_salt(char *ciphertext)
 	for (i = 0; i < CTLEN; i++)
 		cs.ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+
+	if (tag_len == FORMAT_TAG_V2_LEN) {
+		cs.has_symkey = 1;
+		p = strtokm(NULL, "*");
+		cs.symkey_ct_len = strlen(p) / 2;
+		for (i = 0; i < cs.symkey_ct_len; i++)
+			cs.symkey_ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	}
 
 	MEM_FREE(keeptr);
 	return (void *)&cs;
