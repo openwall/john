@@ -118,7 +118,7 @@ def read_private_key(filename):
         try:
             data = ''.join(lines[start:end]).encode()
             data = base64.b64decode(data)
-        except base64.binascii.Error:
+        except binascii.Error:
             e = sys.exc_info()[1]
             raise Exception('base64 decoding error: ' + str(e))
 
@@ -178,7 +178,7 @@ def read_private_key(filename):
             rounds = data[rounds_offset: rounds_offset+4]
             rounds = unpack(">I", rounds)[0]
             if rounds == 0:
-                rounds == 16
+                rounds = 16
 
         keysize = CIPHER_TABLE[encryption_type]['keysize']
         salt = binascii.unhexlify(saltstr)
