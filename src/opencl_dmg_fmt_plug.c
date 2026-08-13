@@ -52,7 +52,8 @@ typedef struct {
 	unsigned int ivlen;
 	unsigned char iv[32];
 	uint32_t encrypted_keyblob_size;
-	uint8_t encrypted_keyblob[32];
+	uint8_t encrypted_keyblob[64];
+	unsigned int blob_enc_keybits;
 	unsigned int len_wrapped_aes_key;
 	unsigned char wrapped_aes_key[296];
 	unsigned int len_hmac_sha1_key;
@@ -78,7 +79,7 @@ static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static int new_keys;
 static struct fmt_main *self;
 
-static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final, dmg_final[3];
+static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final, dmg_final[4];
 
 /*
  * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should
@@ -108,6 +109,7 @@ static size_t get_task_max_work_group_size()
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_final));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, dmg_final[1]));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, dmg_final[2]));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, dmg_final[3]));
 	return s;
 }
 
@@ -151,6 +153,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	HANDLE_CLERROR(clSetKernelArg(dmg_final[2], 0, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(dmg_final[2], 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
+
+	HANDLE_CLERROR(clSetKernelArg(dmg_final[3], 0, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(dmg_final[3], 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 }
 
 static void release_clobj(void)
@@ -177,6 +182,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(pbkdf2_final), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(dmg_final[1]), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(dmg_final[2]), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(dmg_final[3]), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		program[gpu_id] = NULL;
@@ -223,6 +229,8 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 		dmg_final[2] = clCreateKernel(program[gpu_id], "dmg_final_v2", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
+		dmg_final[3] = clCreateKernel(program[gpu_id], "dmg_final_v3", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
 	}
 
 	// FIXME: Share in opencl_autotune.h
@@ -253,7 +261,38 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(ctcopy, "*")) == NULL)
 		goto err;
 	headerver = atoi(p);
-	if (headerver == 2) {
+	if (headerver == 3) {
+		if ((p = strtokm(NULL, "*")) == NULL) /* salt len */
+			goto err;
+		if (!isdec(p))
+			goto err;
+		res = atoi(p);
+		if (res > 20)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) /* salt */
+			goto err;
+		if (hexlenl(p, &extra) != res*2 || extra)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) /* blob key bits */
+			goto err;
+		if (!isdec(p) || atoi(p) != 192)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) /* encrypted keyblob size */
+			goto err;
+		if (!isdec(p) || atoi(p) != 64)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) /* encrypted keyblob */
+			goto err;
+		if (hexlenl(p, &extra) != 128 || extra)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) /* iterations */
+			goto err;
+		if (!isdec(p) || !atoi(p))
+			goto err;
+		if (strtokm(NULL, "*") != NULL)
+			goto err;
+	}
+	else if (headerver == 2) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
 			goto err;
 		if (!isdec(p))
@@ -370,7 +409,25 @@ static void *get_salt(char *ciphertext)
 	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*");
 	cs.headerver = atoi(p);
-	if (cs.headerver == 2) {
+	if (cs.headerver == 3) {
+		p = strtokm(NULL, "*");
+		cs.pbkdf2.length = atoi(p);
+		p = strtokm(NULL, "*");
+		for (i = 0; i < cs.pbkdf2.length; i++)
+			cs.pbkdf2.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		cs.blob_enc_keybits = atoi(p);
+		p = strtokm(NULL, "*");
+		cs.encrypted_keyblob_size = atoi(p);
+		p = strtokm(NULL, "*");
+		for (i = 0; i < cs.encrypted_keyblob_size; i++)
+			cs.encrypted_keyblob[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		cs.pbkdf2.iterations = atoi(p);
+	}
+	else if (cs.headerver == 2) {
 		p = strtokm(NULL, "*");
 		cs.pbkdf2.length = atoi(p);
 		p = strtokm(NULL, "*");

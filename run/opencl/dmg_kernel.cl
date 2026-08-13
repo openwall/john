@@ -24,7 +24,8 @@ typedef struct {
 	uint ivlen;
 	uchar iv[32];
 	uint32_t encrypted_keyblob_size;
-	uint8_t encrypted_keyblob[32];
+	uint8_t encrypted_keyblob[64];
+	uint blob_enc_keybits;
 	uint len_wrapped_aes_key;
 	uchar wrapped_aes_key[296];
 	uint len_hmac_sha1_key;
@@ -136,6 +137,24 @@ INLINE int check_v2hash(const uchar *derived_key,
 	return 0;
 }
 
+INLINE int check_v3hash(const uchar *derived_key,
+                        MAYBE_CONSTANT dmg_salt *salt, __local aes_local_t *lt)
+{
+	AES_KEY aes_decrypt_key; aes_decrypt_key.lt = lt;
+	uchar last_block[16];
+	int i;
+
+	AES_set_decrypt_key(derived_key, salt->blob_enc_keybits, &aes_decrypt_key);
+	memcpy_mcp(last_block, &salt->encrypted_keyblob[48], sizeof(last_block));
+	AES_decrypt(last_block, last_block, &aes_decrypt_key);
+	for (i = 0; i < 16; i++)
+		last_block[i] ^= salt->encrypted_keyblob[32 + i];
+
+	return last_block[4] == 'C' && last_block[5] == 'K' &&
+	       last_block[6] == 'I' && last_block[7] == 'E' &&
+	       !last_block[8] && check_pkcs_pad(last_block, 16, 16) == 9;
+}
+
 __kernel
 void dmg_final_v1(MAYBE_CONSTANT dmg_salt *salt,
                   __global dmg_out *out)
@@ -159,4 +178,17 @@ void dmg_final_v2(MAYBE_CONSTANT dmg_salt *salt,
 	memcpy_gp(dk, out[gid].dk, OUTLEN);
 
 	out[gid].cracked = check_v2hash((uchar*)dk, salt, &lt);
+}
+
+__kernel
+void dmg_final_v3(MAYBE_CONSTANT dmg_salt *salt,
+                  __global dmg_out *out)
+{
+	__local aes_local_t lt;
+	uint gid = get_global_id(0);
+	uint dk[OUTLEN / 4];
+
+	memcpy_gp(dk, out[gid].dk, OUTLEN);
+
+	out[gid].cracked = check_v3hash((uchar*)dk, salt, &lt);
 }

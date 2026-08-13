@@ -134,6 +134,7 @@ static struct custom_salt {
 	unsigned char chunk[8192];
 	uint32_t encrypted_keyblob_size;
 	uint8_t encrypted_keyblob[128];
+	unsigned int blob_enc_keybits;
 	unsigned int len_wrapped_aes_key;
 	unsigned char wrapped_aes_key[296];
 	unsigned int len_hmac_sha1_key;
@@ -177,7 +178,38 @@ static int valid(char *ciphertext, struct fmt_main *self)
 	if ((p = strtokm(ctcopy, "*")) == NULL)
 		goto err;
 	headerver = atoi(p);
-	if (headerver == 2) {
+	if (headerver == 3) {
+		if ((p = strtokm(NULL, "*")) == NULL) /* salt len */
+			goto err;
+		if (!isdec(p))
+			goto err;
+		res = atoi(p);
+		if (res > 20)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) /* salt */
+			goto err;
+		if (hexlenl(p, &extra) / 2 != res || extra)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) /* blob key bits */
+			goto err;
+		if (!isdec(p) || atoi(p) != 192)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) /* encrypted keyblob size */
+			goto err;
+		if (!isdec(p) || atoi(p) != 64)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) /* encrypted keyblob */
+			goto err;
+		if (hexlenl(p, &extra) != 128 || extra)
+			goto err;
+		if ((p = strtokm(NULL, "*")) == NULL) /* iterations */
+			goto err;
+		if (!isdec(p) || !atoi(p))
+			goto err;
+		if (strtokm(NULL, "*") != NULL)
+			goto err;
+	}
+	else if (headerver == 2) {
 		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
 			goto err;
 		if (!isdec(p))
@@ -294,7 +326,25 @@ static void *get_salt(char *ciphertext)
 	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*");
 	cs.headerver = atoi(p);
-	if (cs.headerver == 2) {
+	if (cs.headerver == 3) {
+		p = strtokm(NULL, "*");
+		cs.saltlen = atoi(p);
+		p = strtokm(NULL, "*");
+		for (i = 0; i < cs.saltlen; i++)
+			cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		cs.blob_enc_keybits = atoi(p);
+		p = strtokm(NULL, "*");
+		cs.encrypted_keyblob_size = atoi(p);
+		p = strtokm(NULL, "*");
+		for (i = 0; i < cs.encrypted_keyblob_size; i++)
+			cs.encrypted_keyblob[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		cs.iterations = atoi(p);
+	}
+	else if (cs.headerver == 2) {
 		p = strtokm(NULL, "*");
 		cs.saltlen = atoi(p);
 		p = strtokm(NULL, "*");
@@ -402,7 +452,54 @@ static void hash_plugin_check_hash(int index)
 	unsigned char aes_key_[32];
 	int j;
 
-	if (cur_salt->headerver == 1) {
+	if (cur_salt->headerver == 3) {
+#ifdef SIMD_COEF_32
+		unsigned char *derived_key, Derived_key[SSE_GROUP_SZ_SHA1][32];
+		int lens[SSE_GROUP_SZ_SHA1], i;
+		unsigned char *pin[SSE_GROUP_SZ_SHA1];
+		union {
+			uint32_t *pout[SSE_GROUP_SZ_SHA1];
+			unsigned char *poutc;
+		} x;
+		for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			x.pout[i] = (uint32_t*)(Derived_key[i]);
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt,
+			cur_salt->saltlen,
+			cur_salt->iterations, &(x.poutc), 32, 0);
+#else
+		unsigned char derived_key[32];
+		const char *password = saved_key[index];
+		pbkdf2_sha1((const unsigned char*)password, strlen(password),
+		       cur_salt->salt, cur_salt->saltlen, cur_salt->iterations,
+		       derived_key, 32, 0);
+#endif
+		j = 0;
+#ifdef SIMD_COEF_32
+		for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+			derived_key = Derived_key[j];
+#endif
+			AES_KEY aes_decrypt_key;
+			unsigned char last_block[16];
+			int i;
+
+			AES_set_decrypt_key(derived_key, cur_salt->blob_enc_keybits,
+			                    &aes_decrypt_key);
+			AES_decrypt(&cur_salt->encrypted_keyblob[48], last_block,
+			            &aes_decrypt_key);
+			for (i = 0; i < 16; i++)
+				last_block[i] ^= cur_salt->encrypted_keyblob[32 + i];
+
+			if (!memcmp(&last_block[4], "CKIE", 4) && !last_block[8] &&
+			    check_pkcs_pad(last_block, 16, 16) == 9)
+				cracked[index+j] = 1;
+#ifdef SIMD_COEF_32
+		}
+#endif
+	}
+	else if (cur_salt->headerver == 1) {
 #ifdef SIMD_COEF_32
 		unsigned char *derived_key, Derived_key[SSE_GROUP_SZ_SHA1][32];
 		int lens[SSE_GROUP_SZ_SHA1], i;
