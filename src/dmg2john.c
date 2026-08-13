@@ -270,6 +270,7 @@ static void hash_plugin_parse_hash(char *in_filepath)
 		printf("*%u::::%s\n", header.kdf_iteration_count, filename);
 	} else {
 		cencrypted_v2_key_header_pointer header_pointer;
+		int aes_blob = 0;
 		int password_header_found = 0;
 
 		if (lseek(fd, 0, SEEK_SET) < 0) {
@@ -342,6 +343,30 @@ static void hash_plugin_parse_hash(char *in_filepath)
 
 			v2_password_header_byteorder_fix(&v2_password_header);
 
+			aes_blob = v2_password_header.blob_enc_algo == 0x80000001 &&
+			           v2_password_header.blob_enc_keybits == 192 &&
+			           v2_password_header.blob_enc_mode == 6 &&
+			           v2_password_header.blob_enc_padding == 7 &&
+			           v2_password_header.keyblobsize == 64 &&
+			           v2_password_header.salt_size <= 20 &&
+			           v2_password_header.algorithm == 103 &&
+			           v2_password_header.prngalgo == 0 &&
+			           header2.keyBits == 256 &&
+			           header2.prngkeysize == 160;
+
+			if (!aes_blob && (v2_password_header.blob_enc_algo != 17 ||
+			    v2_password_header.blob_enc_keybits != 192 ||
+			    v2_password_header.blob_enc_mode != 6 ||
+			    v2_password_header.blob_enc_padding != 7)) {
+				fprintf(stderr, "%s uses unsupported blob encryption parameters "
+				        "algorithm=%u key_bits=%u mode=%u padding=%u\n", filename,
+				        v2_password_header.blob_enc_algo,
+				        v2_password_header.blob_enc_keybits,
+				        v2_password_header.blob_enc_mode,
+				        v2_password_header.blob_enc_padding);
+				goto bailout;
+			}
+
 			// Allocate the keyblob memory
 			if (v2_password_header.keyblobsize > 1024) {
 				fprintf(stderr, "Unusual keyblobsize found in %s\n", filename);
@@ -382,6 +407,18 @@ static void hash_plugin_parse_hash(char *in_filepath)
 
 		if (v2_password_header.salt_size > 32) {
 			fprintf(stderr, "%s is not a valid DMG file, salt length is too long!\n", filename);
+			free(v2_password_header.keyblob);
+			goto bailout;
+		}
+
+		if (aes_blob) {
+			replace(name, ':', ' ');
+			printf("%s:$dmg$3*%u*", name, v2_password_header.salt_size);
+			print_hex(v2_password_header.salt, v2_password_header.salt_size);
+			printf("*%u*%u*", v2_password_header.blob_enc_keybits,
+			       v2_password_header.keyblobsize);
+			print_hex(v2_password_header.keyblob, v2_password_header.keyblobsize);
+			printf("*%u::::%s\n", v2_password_header.itercount, filename);
 			free(v2_password_header.keyblob);
 			goto bailout;
 		}
