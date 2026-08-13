@@ -92,8 +92,8 @@ def process_file(filename):
             return
 
         data = struct.unpack(v2_header_fmt, data)
-        (sig, version, enc_iv_size, _, _, _, _,
-                unk5, uuid, blocksize, datasize, dataoffset, filler1,
+        (sig, version, enc_iv_size, _, _, data_enc_key_bits, _,
+                hmac_key_bits, uuid, blocksize, datasize, dataoffset, filler1,
                 kdf_algorithm, kdf_prng_algorithm, kdf_iteration_count,
                 kdf_salt_len, kdf_salt, blob_enc_iv_size, blob_enc_iv,
                 blob_enc_key_bits, blob_enc_algorithm, blob_enc_padding,
@@ -109,6 +109,30 @@ def process_file(filename):
         if kdf_salt_len > 32:
             sys.stderr.write("%s is not a valid DMG file. salt length " \
                              "is too long!\n" % filename)
+            return
+
+        legacy_blob = (blob_enc_algorithm == 17 and blob_enc_key_bits == 192 and
+                       blob_enc_mode == 6 and blob_enc_padding == 7)
+        aes_blob = (blob_enc_algorithm == 0x80000001 and
+                    blob_enc_key_bits == 192 and blob_enc_mode == 6 and
+                    blob_enc_padding == 7 and encrypted_keyblob_size == 64 and
+                    kdf_salt_len <= 20 and
+                    data_enc_key_bits == 256 and hmac_key_bits == 160 and
+                    kdf_algorithm == 103 and kdf_prng_algorithm == 0)
+        if not legacy_blob and not aes_blob:
+            sys.stderr.write("%s uses unsupported blob encryption parameters " \
+                             "algorithm=%d key_bits=%d mode=%d padding=%d\n" %
+                             (filename, blob_enc_algorithm, blob_enc_key_bits,
+                              blob_enc_mode, blob_enc_padding))
+            return
+
+        if aes_blob:
+            sys.stdout.write("%s:$dmg$3*%d*%s*%d*%d*%s*%d::::%s\n" %
+                    (os.path.basename(filename), kdf_salt_len,
+                    hexlify(kdf_salt)[0:kdf_salt_len*2].decode("ascii"),
+                    blob_enc_key_bits, encrypted_keyblob_size,
+                    hexlify(encrypted_keyblob)[0:encrypted_keyblob_size*2].decode("ascii"),
+                    kdf_iteration_count, filename))
             return
 
         # read starting chunk(s)
