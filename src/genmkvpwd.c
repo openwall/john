@@ -19,6 +19,22 @@
 #include "memory.h"
 #include "mkvlib.h"
 
+// nb_parts() only ever populates nbparts[c, len, level] for level <= max_lvl, returning 0
+// itself once level goes over. Its terminal case at len == max_len never recurses to len +
+// 1, so nothing past max_len is populated either. show_pwd_r() and show_pwd_rnbs() compute
+// candidate levels and lengths one step ahead of what they currently hold, and used to index
+// nbparts with those before checking either bound, reading whatever memory the resulting
+// offset happened to land on. This gives every caller the same domain nb_parts() has.
+
+static uint64_t get_nbparts(unsigned char c, unsigned int len, unsigned int level)
+{
+	if (level > gmax_level)
+		return 0;
+	if (len > gmax_len)
+		return 0;
+	return nbparts[c + len*256 + level*256*gmax_len];
+}
+
 static void show_pwd_rnbs(struct s_pwd * pwd)
 {
 	uint64_t i;
@@ -26,7 +42,7 @@ static void show_pwd_rnbs(struct s_pwd * pwd)
 	unsigned long lvl;
 
 	k=0;
-	i = nbparts[pwd->password[pwd->len-1] + pwd->len*256 + pwd->level*256*gmax_len];
+	i = get_nbparts(pwd->password[pwd->len-1], pwd->len, pwd->level);
 	pwd->len++;
 	lvl = pwd->level;
 	pwd->password[pwd->len] = 0;
@@ -34,7 +50,7 @@ static void show_pwd_rnbs(struct s_pwd * pwd)
 	{
 		pwd->password[pwd->len-1] = charsorted[ pwd->password[pwd->len-2]*256 + k ];
 		pwd->level = lvl + proba2[ pwd->password[pwd->len-2]*256 + pwd->password[pwd->len-1] ];
-		i -= nbparts[ pwd->password[pwd->len-1] + pwd->len*256 + pwd->level*256*gmax_len ];
+		i -= get_nbparts(pwd->password[pwd->len-1], pwd->len, pwd->level);
 		if (pwd->len<=gmax_len)
 		{
 			show_pwd_rnbs(pwd);
@@ -58,20 +74,20 @@ static void show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 	unsigned char curchar;
 
 	k=0;
-	i = nbparts[pwd->password[pwd->len-1] + pwd->len*256 + pwd->level*256*gmax_len];
+	i = get_nbparts(pwd->password[pwd->len-1], pwd->len, pwd->level);
 	pwd->len++;
 	lvl = pwd->level;
 	if (bs)
 	{
 		while( (curchar=charsorted[ pwd->password[pwd->len-2]*256 + k ]) != pwd->password[pwd->len-1] )
 		{
-			i -= nbparts[ curchar + pwd->len*256 + (pwd->level + proba2[ pwd->password[pwd->len-2]*256 + curchar ])*256*gmax_len  ];
+			i -= get_nbparts(curchar, pwd->len, pwd->level + proba2[ pwd->password[pwd->len-2]*256 + curchar ]);
 			k++;
 		}
 		pwd->level += proba2[ pwd->password[pwd->len-2]*256 + pwd->password[pwd->len-1] ];
 		if (pwd->password[pwd->len]!=0)
 			show_pwd_r(pwd, 1);
-		i -= nbparts[ pwd->password[pwd->len-1] + pwd->len*256 + pwd->level*256*gmax_len ];
+		i -= get_nbparts(pwd->password[pwd->len-1], pwd->len, pwd->level);
 		printf("%s\n", pwd->password);
 		gidx++;
 		k++;
@@ -81,7 +97,7 @@ static void show_pwd_r(struct s_pwd * pwd, unsigned int bs)
 	{
 		pwd->password[pwd->len-1] = charsorted[ pwd->password[pwd->len-2]*256 + k ];
 		pwd->level = lvl + proba2[ pwd->password[pwd->len-2]*256 + pwd->password[pwd->len-1] ];
-		i -= nbparts[ pwd->password[pwd->len-1] + pwd->len*256 + pwd->level*256*gmax_len ];
+		i -= get_nbparts(pwd->password[pwd->len-1], pwd->len, pwd->level);
 		if (pwd->len<=gmax_len)
 		{
 			show_pwd_r(pwd, 0);
@@ -114,6 +130,18 @@ static void show_pwd(uint64_t start, uint64_t end, unsigned int max_level, unsig
 	if (bs)
 	{
 		print_pwd(start, &pwd, max_level, max_len);
+
+		// print_pwd leaves len at 0 and password[0] at the terminator when no character it
+		// tried fit under max_level, which means there is no password at this start index
+		// for these parameters. Without this, what follows forced len back to 1 and set
+		// level from proba1[0], a value never bounded by max_level, and indexed nbparts
+		// with it.
+		if (pwd.len == 0)
+		{
+			fprintf(stderr, "No password reachable at index %"PRIu64" with the given max_lvl and max_len\n", start);
+			return;
+		}
+
 		while(charsorted[i] != pwd.password[0])
 			i++;
 		pwd.len = 1;
@@ -223,6 +251,14 @@ int main(int argc, char * * argv)
 	if (argc>5)
 		end = atoll(argv[5]);
 
+	// This has to happen before either enumeration branch below, and not only in the plain
+	// path after them: max_lvl sizes every nbparts allocation they make too, and an
+	// unclamped value here is what let one of them try to allocate gigabytes.
+	if (max_lvl>MAX_MKV_LVL) {
+		fprintf(stderr, "Warning: Level = %d is too large (max = %d)\n", max_lvl, MAX_MKV_LVL);
+		max_lvl = MAX_MKV_LVL;
+	}
+
 	init_probatables(argv[1]);
 
 	if (max_len == 0)
@@ -265,10 +301,6 @@ int main(int argc, char * * argv)
 			MEM_FREE(nbparts);
 		}
 		goto fin;
-	}
-	if (max_lvl>MAX_MKV_LVL) {
-		fprintf(stderr, "Warning: Level = %d is too large (max = %d)\n", max_lvl, MAX_MKV_LVL);
-		max_lvl = MAX_MKV_LVL;
 	}
 
 	nbparts = mem_alloc(256*(max_lvl+1)*sizeof(long long)*(max_len+1));
