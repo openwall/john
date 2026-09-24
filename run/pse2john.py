@@ -25,8 +25,12 @@ from os import path
 from sys import stderr, stdout
 
 # Custom imports
-import pysap
-from pysap.SAPPSE import (SAPPSEFile, PKCS12_ALGORITHM_PBE1_SHA_3DES_CBC)
+try:
+    import pysap
+    from pysap.SAPPSE import (SAPPSEFile, PKCS12_ALGORITHM_PBE1_SHA_3DES_CBC)
+except ImportError:
+    stderr.write("pysap is missing, run 'pip install --user pysap' to install it!\n")
+    raise SystemExit(1)
 
 
 def parse_options(argv=None):
@@ -56,7 +60,7 @@ def process_file(filename, output_file=stdout, error_file=stderr):
         pse_file = SAPPSEFile(data)
 
         if not pse_file.is_encrypted():
-            raise Exception("Unsupported PSE file type")
+            raise Exception("PSE file is already unencrypted")
 
         if pse_file.enc_cont.algorithm_identifier.alg_id == \
                 PKCS12_ALGORITHM_PBE1_SHA_3DES_CBC:
