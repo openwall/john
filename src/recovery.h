@@ -118,4 +118,10 @@ extern void rec_restore_mode(int (*restore_mode)(FILE *file));
  */
 extern uint64_t rec_read_cands(char *session);
 
+/*
+ * Add the current session's password files to the file we caught up with.
+ * --catch-up=SESSION does this after successfully catching up.
+ */
+extern void rec_add_files(char *session);
+
 #endif

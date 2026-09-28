@@ -210,7 +210,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
 
 - Add new option --catch-up=NAME, for running a new session only until it
   reaches the candidates tried count of a different, existing and paused
-  session, then exit.  [magnum; 2021]
+  session, then exit.  Unless the --no-catch-up-add option is also given,
+  the new input hashes (file names) used for the new session will be added
+  to the old session file once caught up.  [magnum; 2021, 2026]
 
 - Add BestCrypt Volume Encryption V4 format.  [Jean-Christophe Delaunay; 2021]
 

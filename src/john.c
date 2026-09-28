@@ -1,7 +1,7 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2024 by Solar Designer
- * Copyright (c) 2009-2025, magnum
+ * Copyright (c) 2009-2026, magnum
  * Copyright (c) 2021, Claudio
  * Copyright (c) 2009-2018, JimF
  *
@@ -1954,10 +1954,14 @@ static void john_done(void)
 				        mask_iter_warn);
 		}
 		if (event_abort && options.catchup && john_max_cands && status.cands >= john_max_cands) {
+			if (options.catchup_add)
+				rec_add_files(options.catchup);
 			event_abort = 0;
-			log_event("Done catching up with '%s'", options.catchup);
+			log_event("Done catching up with '%s'%s", options.catchup,
+			          options.catchup_add ? ", and added this session's password file(s) to it" : "");
 			if (john_main_process)
-				fprintf(stderr, "Done catching up with '%s'\n", options.catchup);
+				fprintf(stderr, "Done catching up with '%s'%s\n", options.catchup,
+				        options.catchup_add ? ", and added this session's password file(s) to it" : "");
 		}
 		if (event_abort) {
 			char *abort_msg = (aborted_by_timer) ?
