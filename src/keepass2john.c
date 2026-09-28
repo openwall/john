@@ -60,6 +60,7 @@
 #include "aes.h"
 #include "base64_convert.h"
 #include "johnswap.h"
+#include "2john_common.h"
 
 //#define KEEPASS_DEBUG
 
@@ -966,8 +967,13 @@ int main(int argc, char **argv)
 		return usage(argv[0]);
 	argv += optind;
 
-	while (argc--)
-		process_database(*argv++);
+	while (argc--) {
+		char *path = *argv++;
+
+		large_output_note_if_input_large("keepass2john", path,
+						 LARGE_OUTPUT_THRESHOLD_BYTES);
+		process_database(path);
+	}
 
 	return 0;
 }
