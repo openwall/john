@@ -403,11 +403,13 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		// these do not get SIMD usage.
 		for (index = 0; index < count; ++index) {
 			if (saved_len[index] < 4 || saved_len[index] > 24) {
-				MixOrder[tot_todo] = index;
-				++tot;
 				// we only want to do ONE password CTX mode
 				// per loop through the thread.
-				tot_todo += MIN_KEYS_PER_CRYPT;
+				int pad_to = tot_todo + MIN_KEYS_PER_CRYPT;
+				MixOrder[tot_todo++] = index;
+				++tot;
+				while (tot_todo < pad_to)
+					MixOrder[tot_todo++] = count;
 			}
 		}
 	}
