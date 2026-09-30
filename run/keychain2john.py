@@ -44,7 +44,7 @@ def setup_argsparse():
     # Available actions
     dump_actions = arguments.add_argument_group('Dump Actions')
     dump_actions.add_argument('--dump-all', '-a', help='Dump records to the console window.',
-                              action='store_true', dest='dump_all', default=True)
+                              action='store_true', dest='dump_all', default=False)
     dump_actions.add_argument('--dump-keychain-password-hash', help='Dump the keychain password'
                               'hash in a format suitable for hashcat or John The Ripper',
                               action='store_const', dest='dump_keychain_password_hash', const=True)
@@ -197,8 +197,9 @@ def check_args_no_action(args):
             or args.export_private_keys
             or args.export_public_keys
             or args.export_x509_certificates):
-        logger.critical("No action specified.")
-        exit(1)
+        # No explicit action: default to dumping the JtR password hash, preserving
+        # backward compatibility with the old keychain2john.py interface.
+        args.dump_keychain_password_hash = True
 
 
 def args_unlock_option(args, keychain):
