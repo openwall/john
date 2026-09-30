@@ -421,8 +421,8 @@ poly1305-donna/poly1305-donna.a:
 ../run/hccap2john@EXE_EXT@: hccap2john.o common.o jumbo.o
 	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ common.o hccap2john.o jumbo.o @OPENMP_CFLAGS@ -o $@
 
-../run/putty2john@EXE_EXT@: putty2john.o jumbo.o
-	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ putty2john.o jumbo.o @OPENMP_CFLAGS@ -o $@
+../run/putty2john@EXE_EXT@: putty2john.o common.o jumbo.o
+	$(LD) $(LDFLAGS) @PTHREAD_CFLAGS@ @PTHREAD_LIBS@ putty2john.o common.o jumbo.o @OPENMP_CFLAGS@ -o $@
 
 # Note that this is NOT depending on PCAP lib. It is self-contained.
 ../run/wpapcap2john@EXE_EXT@: wpapcap2john.o jumbo.o
