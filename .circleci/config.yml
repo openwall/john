@@ -97,16 +97,16 @@ jobs:
   arm:
     machine:
       image: ubuntu-2204:current
-      environment:
-        DEBIAN_FRONTEND: "noninteractive"
     resource_class: arm.medium
+    environment:
+      DEBIAN_FRONTEND: "noninteractive"
     steps:
       - checkout
       - run:
           name: Preparing
           command: |
             uname -a
-            sudo apt update && sudo apt install -y zlib1g-dev libgmp-dev libpcap-dev libbz2-dev
+            sudo DEBIAN_FRONTEND=noninteractive apt update && sudo DEBIAN_FRONTEND=noninteractive apt install -y zlib1g-dev libgmp-dev libpcap-dev libbz2-dev
       - run:
           name: Building JtR
           command: .circleci/circle-ci.sh BUILD
