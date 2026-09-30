@@ -1183,7 +1183,10 @@ sub DecryptInit($$$)
                         last if defined $cf_len;
                     }
                 }
-                $$encrypt{Length} = defined $cf_len ? $cf_len * 8 : 40;
+                $$encrypt{Length} = defined $cf_len ? $cf_len * 8
+                    : $cryptMeth eq '/AESV2' ? 128
+                    : $cryptMeth eq '/AESV3' ? 256
+                    : 40;
             }
         }
         if ($ver == 5) {
