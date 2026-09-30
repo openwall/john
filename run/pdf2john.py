@@ -71,9 +71,37 @@ class PdfHashExtractor:
                 raise RuntimeError("File not encrypted")
 
             self.algorithm: int = self.encrypt_dict.get("/V")
-            self.length: int = self.encrypt_dict.get("/Length", 40)
             self.permissions: int = self.encrypt_dict["/P"]
             self.revision: int = self.encrypt_dict["/R"]
+
+            if self.algorithm == 4:
+                # For V4 the key length lives in the applicable crypt filter,
+                # not in the top-level /Length (which may be absent or written
+                # in bytes instead of bits by some generators).
+                # /AESV2 and /AESV3 imply fixed sizes; for /V2 (RC4) we read
+                # /Length directly, but must handle the PDF 1.7 (bits) vs
+                # PDF 2.0 (bytes) ambiguity: any value < 40 must be bytes
+                # because 40-bit is the minimum valid key length.
+                cf = self.encrypt_dict.get("/CF") or {}
+                cfm = cf_length = None
+                for fkey in ("/StmF", "/StrF"):
+                    fname = self.encrypt_dict.get(fkey)
+                    if fname and fname != "/Identity":
+                        fdict = cf.get(fname) or {}
+                        cfm = fdict.get("/CFM")
+                        cf_length = fdict.get("/Length")
+                        break
+                if cfm == "/AESV2":
+                    self.length: int = 128
+                elif cfm == "/AESV3":
+                    self.length: int = 256
+                elif cf_length is not None:
+                    self.length: int = cf_length * 8 if cf_length < 40 \
+                                       else cf_length
+                else:
+                    self.length: int = 40
+            else:
+                self.length: int = self.encrypt_dict.get("/Length") or 40
 
     @property
     def document_id(self) -> bytes:
