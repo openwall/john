@@ -47,7 +47,11 @@ jobs:
           # GCC 9–10 (ubuntu-24.04)
           - { cc: gcc-10, runs_on: ubuntu-24.04, target: x86_64, variant: base }
           - { cc: gcc-9, runs_on: ubuntu-24.04, target: x86_64, variant: base }
-          # Clang 17–19 (ubuntu-latest)
+          # Clang 21–22 (ubuntu-26.04)
+          - { cc: clang-22, runs_on: ubuntu-26.04, target: x86_64, variant: base }
+          - { cc: clang-21, runs_on: ubuntu-26.04, target: x86_64, variant: base }
+          # Clang 17–20 (ubuntu-latest)
+          - { cc: clang-20, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: clang-19, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: clang-18, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: clang-17, runs_on: ubuntu-latest, target: x86_64, variant: base }
