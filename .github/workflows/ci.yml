@@ -35,7 +35,7 @@ jobs:
           - { cc: gcc, runs_on: ubuntu-latest, target: x86_64, variant: asan-sse2 }
           - { cc: gcc, runs_on: ubuntu-latest, target: x86_64, variant: asan-avx }
           - { cc: gcc, runs_on: ubuntu-latest, target: x86_64, variant: asan-avx2 }
-          # GCC 9–15 (ubuntu-latest)
+          # GCC 11–15 (ubuntu-latest)
           - { cc: gcc-15, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: gcc-15, runs_on: ubuntu-latest, target: x86, variant: without-openssl }
           - { cc: gcc-15, runs_on: ubuntu-latest, target: x86, variant: disable-all }
@@ -43,15 +43,17 @@ jobs:
           - { cc: gcc-13, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: gcc-12, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: gcc-11, runs_on: ubuntu-latest, target: x86_64, variant: base }
-          - { cc: gcc-10, runs_on: ubuntu-latest, target: x86_64, variant: base }
-          - { cc: gcc-9, runs_on: ubuntu-latest, target: x86_64, variant: base }
-          # Clang 14–19 (ubuntu-latest)
+          # GCC 9–10 (ubuntu-24.04)
+          - { cc: gcc-10, runs_on: ubuntu-24.04, target: x86_64, variant: base }
+          - { cc: gcc-9, runs_on: ubuntu-24.04, target: x86_64, variant: base }
+          # Clang 17–19 (ubuntu-latest)
           - { cc: clang-19, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: clang-18, runs_on: ubuntu-latest, target: x86_64, variant: base }
           - { cc: clang-17, runs_on: ubuntu-latest, target: x86_64, variant: base }
-          - { cc: clang-16, runs_on: ubuntu-latest, target: x86_64, variant: base }
-          - { cc: clang-15, runs_on: ubuntu-latest, target: x86_64, variant: base }
-          - { cc: clang-14, runs_on: ubuntu-latest, target: x86_64, variant: base }
+          # Clang 14–16 (ubuntu-24.04)
+          - { cc: clang-16, runs_on: ubuntu-24.04, target: x86_64, variant: base }
+          - { cc: clang-15, runs_on: ubuntu-24.04, target: x86_64, variant: base }
+          - { cc: clang-14, runs_on: ubuntu-24.04, target: x86_64, variant: base }
           # Clang 11–13 (ubuntu-22.04)
           - { cc: clang-13, runs_on: ubuntu-22.04, target: x86_64, variant: base }
           - { cc: clang-12, runs_on: ubuntu-22.04, target: x86_64, variant: base }
