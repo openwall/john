@@ -71,9 +71,92 @@ class PdfHashExtractor:
                 raise RuntimeError("File not encrypted")
 
             self.algorithm: int = self.encrypt_dict.get("/V")
-            self.length: int = self.encrypt_dict.get("/Length", 40)
+            self.length: int = self._get_key_length()
             self.permissions: int = self.encrypt_dict["/P"]
             self.revision: int = self.encrypt_dict["/R"]
+
+    def _get_key_length(self) -> int:
+        """
+        Determine the effective encryption key length, in bits.
+
+        For V1-V3 encryption, the key length is given directly by the
+        top-level /Length entry (in bits), defaulting to 40 if absent
+        (per PDF 1.7 spec section 7.6.1, Table 20).
+
+        For V4/V5 encryption, PDFs use crypt filters (/CF). The
+        top-level /Length entry is not formally part of the spec for
+        these versions and is frequently omitted -- the *effective*
+        key length is governed by the applicable crypt filter's own
+        /Length entry instead (given in *bytes*, per Table 25).
+        Falling back unconditionally to 40 when /Length is absent
+        silently mis-reports e.g. AES-128 files as 40-bit, which then
+        causes John to derive the wrong key size and fail to crack an
+        otherwise crackable hash.
+
+        See: https://github.com/openwall/john/issues/6033
+
+        Some writers include a top-level /Length on V4/V5 files even
+        though it isn't required. When present, it should agree with
+        the crypt filter's /Length -- if it doesn't, the crypt filter
+        value is treated as authoritative (it's what actually governs
+        the key size for these versions) and a warning is logged, since
+        a mismatch may indicate an unusual or malformed file worth a
+        closer look.
+        """
+        top_level_length = self.encrypt_dict.get("/Length")
+
+        cf_length_bits = None
+        if self.algorithm and self.algorithm >= 4:
+            cf_length_bytes = self._get_crypt_filter_length()
+            if cf_length_bytes is not None:
+                # Crypt filter /Length is in bytes; top-level /Length
+                # (and the rest of this script) works in bits.
+                cf_length_bits = cf_length_bytes * 8
+
+        if top_level_length is not None and cf_length_bits is not None:
+            if top_level_length != cf_length_bits:
+                logger.warning(
+                    "%s: top-level /Length (%s bits) does not match the "
+                    "applicable crypt filter's /Length (%s bits) for V%s "
+                    "encryption -- using the crypt filter value, since it "
+                    "is authoritative for V4/V5. Verify this file by hand "
+                    "if cracking fails.",
+                    self.file_name,
+                    top_level_length,
+                    cf_length_bits,
+                    self.algorithm,
+                )
+            return cf_length_bits
+
+        if top_level_length is not None:
+            return top_level_length
+
+        if cf_length_bits is not None:
+            return cf_length_bits
+
+        return 40
+
+    def _get_crypt_filter_length(self):
+        """
+        Look up the /Length entry (in bytes) of the crypt filter that
+        applies to streams (/StmF), falling back to the one that applies
+        to strings (/StrF) if needed. Returns None if no applicable
+        crypt filter with a /Length entry can be found (e.g. /StmF is
+        /Identity, meaning no encryption filter is used for streams).
+        """
+        cf_dict = self.encrypt_dict.get("/CF")
+        if not cf_dict:
+            return None
+
+        for filter_key in ("/StmF", "/StrF"):
+            cf_name = self.encrypt_dict.get(filter_key)
+            if not cf_name or cf_name == "/Identity":
+                continue
+            crypt_filter = cf_dict.get(cf_name)
+            if crypt_filter and "/Length" in crypt_filter:
+                return crypt_filter["/Length"]
+
+        return None
 
     @property
     def document_id(self) -> bytes:
