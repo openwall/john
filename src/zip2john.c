@@ -139,6 +139,7 @@
 #include "missing_getopt.h"
 #endif
 #include "johnswap.h"
+#include "2john_common.h"
 
 #define _STR_VALUE(arg) #arg
 #define STR_MACRO(n)    _STR_VALUE(n)
@@ -945,9 +946,14 @@ static void print_and_cleanup(zip_context *ctx)
 			"If that is not the case, the hash may be uncrackable. To avoid this, use\n"
 			"option -o to pick a file at a time.\n");
 
-	// Give warning to user for potentially large output of zip2john
-	fprintf(stderr,
-		"Note: It is normal for some outputs to be very large\n");
+	/*
+	 * The "output may be very large" note is now printed up front by
+	 * large_output_note_if_input_large() in zip2john(), only when the
+	 * input archive is big enough that the user is actually going to see
+	 * a confusingly large hash line. This avoids the previous behaviour
+	 * of always printing it after every output, which spammed users who
+	 * fed in many small archives.
+	 */
 
 	for (i = 0; i < ctx->num_candidates; ++i) {
 		MEM_FREE(ctx->best_files[i].hash_data);
@@ -1179,10 +1185,14 @@ int zip2john(int argc, char **argv)
 	argv += optind;
 
 	while(argc--) {
+		const char *path = *argv++;
+
+		large_output_note_if_input_large("zip2john", path,
+						 LARGE_OUTPUT_THRESHOLD_BYTES);
 		if (do_scan) {
-			scan_from_start(*argv++);
+			scan_from_start(path);
 		} else {
-			scan_central_index(*argv++);
+			scan_central_index(path);
 		}
 	}
 

@@ -63,6 +63,7 @@
 #include "base64_convert.h"
 #include "sha2.h"
 #include "rar2john.h"
+#include "2john_common.h"
 #ifdef _MSC_VER
 #include "missing_getopt.h"
 #endif
@@ -997,8 +998,13 @@ int rar2john(int argc, char **argv)
 		return usage(argv[0]);
 	argv += optind;
 
-	while (argc--)
-		process_file(*argv++);
+	while (argc--) {
+		const char *path = *argv++;
+
+		large_output_note_if_input_large("rar2john", path,
+						 LARGE_OUTPUT_THRESHOLD_BYTES);
+		process_file(path);
+	}
 
 	return EXIT_SUCCESS;
 }
