@@ -211,6 +211,8 @@ static void release_clobj(void)
 		MEM_FREE(host_pass);
 		MEM_FREE(host_salt);
 		MEM_FREE(host_crack);
+		MEM_FREE(cracked);
+		MEM_FREE(orig_key);
 
 		HANDLE_CLERROR(clReleaseMemObject(mem_in), "Release mem in");
 		HANDLE_CLERROR(clReleaseMemObject(mem_salt), "Release mem salt");
