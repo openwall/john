@@ -1,8 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-98,2003,2006,2013 by Solar Designer
- *
- * ...with changes in the jumbo patch, by JimF and magnum (and various others?)
+ * Copyright (c) 2009-2026, magnum
+ * Copyright (c) 2009-2015, JimF
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -457,6 +457,8 @@ struct options_main {
 	int crack_status;
 /* --catch-up=oldsession */
 	char *catchup;
+/* --catch-up-add (tri-state) */
+	int catchup_add;
 #if defined(HAVE_OPENCL) || defined(HAVE_ZTEX)
 /* --mask-internal-target=N */
 	int req_int_cand_target;
