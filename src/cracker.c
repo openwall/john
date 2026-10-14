@@ -91,6 +91,14 @@ static unsigned int crk_prefetch;
 #endif
 static int crk_key_index, crk_last_key;
 static void *crk_last_salt;
+
+/*
+ * While crk_salt_loop() walks the salt linked list, keep a pointer to the
+ * link that references the current salt.  Using a pointer-to-pointer lets
+ * crk_remove_salt() update that link directly when unlinking the current
+ * salt, avoiding a scan from the head of the list.
+ */
+static struct db_salt **crk_current_salt_link;
 static struct db_keys *crk_guesses;
 static uint64_t *crk_timestamps;
 static char crk_stdout_key[PLAINTEXT_BUFFER_SIZE];
@@ -292,9 +300,17 @@ static void crk_remove_salt(struct db_salt *salt)
 	crk_db->salt_count--;
 	status.salt_count = crk_db->salt_count;
 
-	current = &crk_db->salts;
-	while (*current != salt)
-		current = &(*current)->next;
+	/*
+	 * Fast path for the salt currently being processed by crk_salt_loop().
+	 * Other callers retain the original list-search fallback.
+	 */
+	if (crk_current_salt_link && *crk_current_salt_link == salt) {
+		current = crk_current_salt_link;
+	} else {
+		current = &crk_db->salts;
+		while (*current != salt)
+			current = &(*current)->next;
+	}
 	*current = salt->next;
 
 	/* If we kept the salt_hash table, update it */
@@ -1093,13 +1109,37 @@ static int crk_salt_loop(void)
 	}
 
 	/* Normal loop over all salts */
+	crk_current_salt_link = &crk_db->salts;
+
+	/*
+	 * Normally we start at the list head.  On resume we may start in the
+	 * middle, so locate that link once here rather than once per crack.
+	 */
+	while (*crk_current_salt_link &&
+	       *crk_current_salt_link != salt)
+		crk_current_salt_link = &(*crk_current_salt_link)->next;
+
 	do {
 		crk_methods.set_salt(salt->salt);
 		status.resume_salt_md5 = (crk_db->salt_count > 1) ?
 			salt->salt_md5 : NULL;
-		if ((done = crk_password_loop(salt)))
+
+		done = crk_password_loop(salt);
+
+		/*
+		 * If this salt survived, advance the pointer-to-link.  If it was
+		 * removed, crk_remove_salt() already changed this link to point at
+		 * salt->next, so leave it where it is.
+		 */
+		if (crk_current_salt_link &&
+		    *crk_current_salt_link == salt)
+			crk_current_salt_link = &salt->next;
+
+		if (done)
 			break;
 	} while ((salt = salt->next));
+
+	crk_current_salt_link = NULL;
 
 	if (event_delayed_status || (crk_db->salt_count < sc && john_main_process &&
 	                             cfg_get_bool(SECTION_OPTIONS, NULL, "ShowSaltProgress", 0))) {
