@@ -96,14 +96,14 @@ static void set_salt(void *salt)
 	cur_salt = (struct custom_salt *)salt;
 }
 
-static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data)
+static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data,
+                     unsigned char *out)
 {
-	unsigned char out[CTLEN];
 	DES_cblock key1, key2, key3;
 	DES_cblock ivec;
 	DES_key_schedule ks1, ks2, ks3;
 
-	memset(out, 0, sizeof(out));
+	memset(out, 0, CTLEN);
 	memcpy(key1, key, 8);
 	memcpy(key2, key + 8, 8);
 	memcpy(key3, key + 16, 8);
@@ -111,10 +111,37 @@ static int kcdecrypt(unsigned char *key, unsigned char *iv, unsigned char *data)
 	DES_set_key_unchecked((DES_cblock *) key2, &ks2);
 	DES_set_key_unchecked((DES_cblock *) key3, &ks3);
 	memcpy(ivec, iv, 8);
-	DES_ede3_cbc_encrypt(data, out, CTLEN, &ks1, &ks2, &ks3, &ivec,  DES_DECRYPT);
+	DES_ede3_cbc_encrypt(data, out, CTLEN, &ks1, &ks2, &ks3, &ivec, DES_DECRYPT);
 
 	/* possible bug here, is this assumption (pad of 4) always valid? */
 	if (out[47] != 4 || check_pkcs_pad(out, CTLEN, 8) < 0)
+		return -1;
+
+	return 0;
+}
+
+/* magicCmsIV from Apple's wrapKeyCms.cpp */
+static const unsigned char MAGIC_CMS_IV[8] = {
+	0x4a, 0xdd, 0xa2, 0x2c, 0x79, 0xe8, 0x21, 0x05
+};
+
+static int symkey_verify(unsigned char *dbkey, unsigned char *data, int len)
+{
+	unsigned char out[SYMKEY_MAX_CTLEN];
+	DES_cblock key1, key2, key3;
+	DES_cblock ivec;
+	DES_key_schedule ks1, ks2, ks3;
+
+	memcpy(key1, dbkey, 8);
+	memcpy(key2, dbkey + 8, 8);
+	memcpy(key3, dbkey + 16, 8);
+	DES_set_key_unchecked((DES_cblock *) key1, &ks1);
+	DES_set_key_unchecked((DES_cblock *) key2, &ks2);
+	DES_set_key_unchecked((DES_cblock *) key3, &ks3);
+	memcpy(ivec, MAGIC_CMS_IV, 8);
+	DES_ede3_cbc_encrypt(data, out, len, &ks1, &ks2, &ks3, &ivec, DES_DECRYPT);
+
+	if (check_pkcs_pad(out, len, 8) < 0)
 		return -1;
 
 	return 0;
@@ -146,10 +173,23 @@ static int crypt_all(int *pcount, struct db_salt *salt)
 		pbkdf2_sha1((unsigned char *)saved_key[index],  strlen(saved_key[index]), cur_salt->salt, SALTLEN, 1000, master[0], 24, 0);
 #endif
 		for (i = 0; i < MIN_KEYS_PER_CRYPT; ++i) {
-			if (kcdecrypt(master[i], cur_salt->iv, cur_salt->ct) == 0)
-				cracked[index+i] = 1;
-			else
+			unsigned char dbblob_out[CTLEN];
+
+			if (kcdecrypt(master[i], cur_salt->iv, cur_salt->ct,
+			              dbblob_out) == 0) {
+				if (cur_salt->has_symkey) {
+					/* Use decrypted DB key to verify symmetric key blob */
+					if (symkey_verify(dbblob_out, cur_salt->symkey_ct,
+					                  cur_salt->symkey_ct_len) == 0)
+						cracked[index+i] = 1;
+					else
+						cracked[index+i] = 0;
+				} else {
+					cracked[index+i] = 1;
+				}
+			} else {
 				cracked[index+i] = 0;
+			}
 		}
 	}
 
@@ -203,7 +243,7 @@ struct fmt_main fmt_keychain = {
 		MAX_KEYS_PER_CRYPT,
 		FMT_CASE | FMT_8_BIT | FMT_OMP | FMT_NOT_EXACT,
 		{ NULL },
-		{ FORMAT_TAG },
+		{ FORMAT_TAG, FORMAT_TAG_V2 },
 		keychain_tests
 	}, {
 		init,

@@ -15,6 +15,8 @@
 
 struct fmt_tests keychain_tests[] = {
 	{"$keychain$*10f7445c8510fa40d9ef6b4e0f8c772a9d37e449*f3d19b2a45cdcccb*8c3c3b1c7d48a24dad4ccbd4fd794ca9b0b3f1386a0a4527f3548bfe6e2f1001804b082076641bbedbc9f3a7c33c084b", "password"},
+	/* Synthetic symmetric-key blob encrypted with the DB key from the test above. */
+	{"$keychainv2$*10f7445c8510fa40d9ef6b4e0f8c772a9d37e449*f3d19b2a45cdcccb*8c3c3b1c7d48a24dad4ccbd4fd794ca9b0b3f1386a0a4527f3548bfe6e2f1001804b082076641bbedbc9f3a7c33c084b*dbcd2a071cd4572a90bb84e7fb20e9d5", "password"},
 	// these were generated with pass_gen.pl.  NOTE, they ALL have the data (which gets encrypted) which was decrypted from the above hash.
 	{"$keychain$*a88cd6fbaaf40bc5437eee015a0f95ab8ab70545*b12372b1b7cb5c1f*1f5c596bcdd015afc126bc86f42dd092cb9d531d14a0aafaa89283f1bebace60562d497332afbd952fd329cc864144ec", "password"},
 	{"$keychain$*23328e264557b93204dc825c46a25f7fb1e17d4a*19a9efde2ca98d30*6ac89184134758a95c61bd274087ae0cffcf49f433c7f91edea98bd4fd60094e2936d99e4d985dec98284379f23259c0", "hhh"},
@@ -25,16 +27,30 @@ struct fmt_tests keychain_tests[] = {
 	{NULL}
 };
 
+static int keychain_tag_len(const char *ciphertext)
+{
+	if (!strncmp(ciphertext, FORMAT_TAG_V2, FORMAT_TAG_V2_LEN))
+		return FORMAT_TAG_V2_LEN;
+	if (!strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN))
+		return FORMAT_TAG_LEN;
+	return 0;
+}
+
 int keychain_valid(char *ciphertext, struct fmt_main *self)
 {
 	char *ctcopy, *keeptr, *p;
 	int extra;
+	int tag_len;
+	int is_v2;
 
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
+	tag_len = keychain_tag_len(ciphertext);
+	if (!tag_len)
 		return 0;
+	is_v2 = (tag_len == FORMAT_TAG_V2_LEN);
+
 	ctcopy = xstrdup(ciphertext);
 	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LEN;
+	ctcopy += tag_len;
 	if ((p = strtokm(ctcopy, "*")) == NULL)	/* salt */
 		goto err;
 	if (hexlenl(p, &extra) != SALTLEN * 2 || extra)
@@ -47,6 +63,16 @@ int keychain_valid(char *ciphertext, struct fmt_main *self)
 		goto err;
 	if (hexlenl(p, &extra) != CTLEN * 2 || extra)
 		goto err;
+
+	if (is_v2) {
+		int symkey_ct_hexlen;
+
+		if ((p = strtokm(NULL, "*")) == NULL)	/* symmetric key blob ciphertext */
+			goto err;
+		symkey_ct_hexlen = hexlenl(p, &extra);
+		if (extra || symkey_ct_hexlen < 16 || symkey_ct_hexlen > SYMKEY_MAX_CTLEN * 2 || symkey_ct_hexlen % 16)
+			goto err;
+	}
 
 	MEM_FREE(keeptr);
 	return 1;
@@ -63,8 +89,12 @@ void *keychain_get_salt(char *ciphertext)
 	int i;
 	char *p;
 	static struct custom_salt cs;
+	int tag_len;
 
-	ctcopy += FORMAT_TAG_LEN;
+	memset(&cs, 0, sizeof(cs));
+	tag_len = keychain_tag_len(ciphertext);
+	ctcopy += tag_len;
+
 	p = strtokm(ctcopy, "*");
 	for (i = 0; i < SALTLEN; i++)
 		cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -77,6 +107,15 @@ void *keychain_get_salt(char *ciphertext)
 	for (i = 0; i < CTLEN; i++)
 		cs.ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
 			+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+
+	if (tag_len == FORMAT_TAG_V2_LEN) {
+		cs.has_symkey = 1;
+		p = strtokm(NULL, "*");
+		cs.symkey_ct_len = strlen(p) / 2;
+		for (i = 0; i < cs.symkey_ct_len; i++)
+			cs.symkey_ct[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+	}
 
 	MEM_FREE(keeptr);
 	return (void *)&cs;
