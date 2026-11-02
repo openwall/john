@@ -219,6 +219,11 @@ my $SEVEN_ZIP_ARMT              = "\x03\x03\x07\x01";
 my $SEVEN_ZIP_SPARC             = "\x03\x03\x08\x05";
 my $SEVEN_ZIP_BZIP2             = "\x04\x02\x02";
 my $SEVEN_ZIP_DEFLATE           = "\x04\x01\x08";
+my $SEVEN_ZIP_DEFLATE64         = "\x04\x01\x09";
+my $SEVEN_ZIP_SWAP2             = "\x02\x03\x02";
+my $SEVEN_ZIP_SWAP4             = "\x02\x03\x04";
+my $SEVEN_ZIP_RISCV             = "\x03\x03\x0b\x01";
+my $SEVEN_ZIP_ARM64             = "\x03\x03\x0a\x01";
 my $SEVEN_ZIP_DELTA             = "\x03";
 my $SEVEN_ZIP_COPY              = "\x00";
 
@@ -234,6 +239,7 @@ my $SEVEN_ZIP_LZMA2_COMPRESSED   =   2;
 my $SEVEN_ZIP_PPMD_COMPRESSED    =   3;
 my $SEVEN_ZIP_BZIP2_COMPRESSED   =   6;
 my $SEVEN_ZIP_DEFLATE_COMPRESSED =   7;
+my $SEVEN_ZIP_DEFLATE64_COMPRESSED = 10;
 
 my $SEVEN_ZIP_BCJ_PREPROCESSED   =   1;
 my $SEVEN_ZIP_BCJ2_PREPROCESSED  =   2;
@@ -244,12 +250,17 @@ my $SEVEN_ZIP_ARMT_PREPROCESSED  =   6;
 my $SEVEN_ZIP_SPARC_PREPROCESSED =   7;
                                  #   8 conflicts with SEVEN_ZIP_TRUNCATED (128 == 0x80 == 8 << 4)
 my $SEVEN_ZIP_DELTA_PREPROCESSED =   9;
+my $SEVEN_ZIP_SWAP2_PREPROCESSED  =  10;
+my $SEVEN_ZIP_SWAP4_PREPROCESSED  =  11;
+my $SEVEN_ZIP_RISCV_PREPROCESSED  =  12;
+my $SEVEN_ZIP_ARM64_PREPROCESSED  =  13;
 
 my $SEVEN_ZIP_TRUNCATED          = 128; # (0x80 or 0b10000000)
 
-my %SEVEN_ZIP_COMPRESSOR_NAMES   = (1 => "LZMA1", 2 => "LZMA2", 3 => "PPMD", 6 => "BZIP2", 7 => "DEFLATE",
+my %SEVEN_ZIP_COMPRESSOR_NAMES   = (1 => "LZMA1", 2 => "LZMA2", 3 => "PPMD", 6 => "BZIP2", 7 => "DEFLATE", 10 => "DEFLATE64",
                                     (1 << 4) => "BCJ", (2 << 4) => "BCJ2", (3 << 4) => "PPC", (4 << 4) => "IA64",
-                                    (5 << 4) => "ARM", (6 << 4) => "ARMT", (7 << 4) => "SPARC", (9 << 4) => "DELTA");
+                                    (5 << 4) => "ARM", (6 << 4) => "ARMT", (7 << 4) => "SPARC", (9 << 4) => "DELTA",
+                                        (10 << 4) => "SWAP2", (11 << 4) => "SWAP4", (12 << 4) => "RISCV", (13 << 4) => "ARM64");
 
 #
 # Helper functions
@@ -707,7 +718,7 @@ sub get_decoder_properties
 
   my $offset = 0;
 
-  my $first_byte = substr ($attributes, 0, 1);
+  my $first_byte = substr ($attributes // "", 0, 1);
   $first_byte = ord ($first_byte);
 
   $offset++;
@@ -986,6 +997,31 @@ sub fill_additional_attribute_list
 
     $is_preprocessor = 1;
   }
+  elsif ($codec_id eq $SEVEN_ZIP_DEFLATE64)
+  {
+    $type = $SEVEN_ZIP_DEFLATE64_COMPRESSED;
+    $is_preprocessor = 0;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_SWAP2)
+  {
+    $type = $SEVEN_ZIP_SWAP2_PREPROCESSED;
+    $is_preprocessor = 1;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_SWAP4)
+  {
+    $type = $SEVEN_ZIP_SWAP4_PREPROCESSED;
+    $is_preprocessor = 1;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_RISCV)
+  {
+    $type = $SEVEN_ZIP_RISCV_PREPROCESSED;
+    $is_preprocessor = 1;
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_ARM64)
+  {
+    $type = $SEVEN_ZIP_ARM64_PREPROCESSED;
+    $is_preprocessor = 1;
+  }
   else
   {
     print STDERR "WARNING: unsupported coder with codec id '0x" . unpack ("H*", $codec_id) . "' in file '" . $file_path . "' found.\n";
@@ -995,7 +1031,7 @@ sub fill_additional_attribute_list
     return $error;
   }
 
-  my $attributes = undef;
+  my $attributes = '';
 
   if ($type != $SEVEN_ZIP_UNCOMPRESSED)
   {
@@ -1532,6 +1568,10 @@ sub extract_hash_from_archive
     print STDERR "but could be probably added easily\n";
 
     return "";
+  }
+  elsif ($codec_id eq $SEVEN_ZIP_DEFLATE64 || $codec_id eq $SEVEN_ZIP_SWAP2 || $codec_id eq $SEVEN_ZIP_SWAP4 || $codec_id eq $SEVEN_ZIP_RISCV || $codec_id eq $SEVEN_ZIP_ARM64)
+  {
+    # New codecs are supported. Continue to hash extraction.
   }
   elsif ($codec_id ne $SEVEN_ZIP_AES)
   {
