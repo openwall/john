@@ -16,8 +16,8 @@
 #endif
 
 #include <stdint.h>
-#include <stddef.h>  /* for size_t */
-#include <string.h>  /* for memcpy() */
+#include <stddef.h>             /* for size_t */
+#include <string.h>             /* for memcpy() */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -31,6 +31,7 @@
 
 #include "memory.h"
 #include "jumbo.h"
+#include "common.h"
 #if _MSC_VER
 #include <io.h>
 #endif
@@ -44,8 +45,8 @@
 
 struct ssh2_userkey {
 	const struct ssh_signkey *alg;  /* the key algorithm */
-	void *data;  /* the key data */
-	char *comment;  /* the key comment */
+	void *data;             /* the key data */
+	char *comment;          /* the key comment */
 };
 
 enum {
@@ -63,10 +64,16 @@ static const char *putty_error = NULL;
 static int i, is_mac, old_fmt;
 static char alg[32];
 static int cipher, cipherblk;
+static int ppk_version;
+static char *key_derivation;
+static int argon2_memory, argon2_passes, argon2_parallelism;
+static unsigned char argon2_salt[64] = { 0 };
+
+static int argon2_salt_len;
 static unsigned char *public_blob, *private_blob;
 static int public_blob_len, private_blob_len;
 
-static char *read_body(FILE * fp)
+static char *read_body(FILE *fp)
 {
 	char *text;
 	int len;
@@ -74,7 +81,7 @@ static char *read_body(FILE * fp)
 	int c;
 
 	size = 128 * 1024;
-	text = (char*)malloc(size);
+	text = (char *)malloc(size);
 	if (!text) {
 		fprintf(stderr, "malloc failed in read_body, exiting!\n");
 		exit(-1);
@@ -101,7 +108,7 @@ static char *read_body(FILE * fp)
 	}
 }
 
-static unsigned char *read_blob(FILE * fp, int nlines, int *bloblen)
+static unsigned char *read_blob(FILE *fp, int nlines, int *bloblen)
 {
 	unsigned char *blob;
 	char *line;
@@ -113,7 +120,7 @@ static unsigned char *read_blob(FILE * fp, int nlines, int *bloblen)
 		return NULL;
 
 	/* We expect at most 64 base64 characters, ie 48 real bytes, per line. */
-	blob = (unsigned char*)malloc(48 * nlines);
+	blob = (unsigned char *)malloc(48 * nlines);
 	if (!blob) {
 		fprintf(stderr, "malloc failed in read_blob, exiting!\n");
 		exit(-1);
@@ -148,7 +155,7 @@ static unsigned char *read_blob(FILE * fp, int nlines, int *bloblen)
 	return blob;
 }
 
-static int read_header(FILE * fp, char *header)
+static int read_header(FILE *fp, char *header)
 {
 	int len = 39;
 	int c;
@@ -156,28 +163,35 @@ static int read_header(FILE * fp, char *header)
 	while (len > 0) {
 		c = fgetc(fp);
 		if (c == '\n' || c == '\r' || c == EOF)
-			return 0;  /* failure */
+			return 0;       /* failure */
 		if (c == ':') {
 			c = fgetc(fp);
 			if (c != ' ')
 				return 0;
 			*header = '\0';
-			return 1;  /* success! */
+			return 1;       /* success! */
 		}
 		if (len == 0)
-			return 0;  /* failure */
+			return 0;       /* failure */
 		*header++ = c;
 		len--;
 	}
-	return 0;  /* failure */
+	return 0;               /* failure */
 }
 
 
-static int init_LAME(const char *filename) {
+static int init_LAME(const char *filename)
+{
 	FILE *fp;
 
+	common_init();
+
+	argon2_memory = argon2_passes = argon2_parallelism = 0;
+	argon2_salt_len = 0;
 	encryption = comment = mac = NULL;
+	key_derivation = NULL;
 	public_blob = private_blob = NULL;
+	ppk_version = 0;
 
 	fp = fopen(filename, "rb");
 	if (!fp) {
@@ -188,9 +202,14 @@ static int init_LAME(const char *filename) {
 	/* Read the first header line which contains the key type. */
 	if (!read_header(fp, header))
 		goto error;
-	if (0 == strcmp(header, "PuTTY-User-Key-File-2")) {
+	if (0 == strcmp(header, "PuTTY-User-Key-File-3")) {
+		ppk_version = 3;
+		old_fmt = 0;
+	} else if (0 == strcmp(header, "PuTTY-User-Key-File-2")) {
+		ppk_version = 2;
 		old_fmt = 0;
 	} else if (0 == strcmp(header, "PuTTY-User-Key-File-1")) {
+		ppk_version = 1;
 		/* this is an old key file; warn and then continue */
 		// old_keyfile_warning();
 		old_fmt = 1;
@@ -239,15 +258,78 @@ static int init_LAME(const char *filename) {
 		goto error;
 	if ((b = read_body(fp)) == NULL)
 		goto error;
+	if (!isdec(b))
+		goto error;
 	i = atoi(b);
 	MEM_FREE(b);
 	if ((public_blob = read_blob(fp, i, &public_blob_len)) == NULL)
 		goto error;
 
+	if (ppk_version >= 3 && cipher) {
+		/* Parse Argon2 KDF section used in PPK v3 encrypted keys. */
+		if (!read_header(fp, header) || 0 != strcmp(header, "Key-Derivation"))
+			goto error;
+		if ((key_derivation = read_body(fp)) == NULL)
+			goto error;
+		if (strcmp(key_derivation, "Argon2d") && strcmp(key_derivation, "Argon2i") && strcmp(key_derivation, "Argon2id"))
+			goto error;
+
+		if (!read_header(fp, header) || 0 != strcmp(header, "Argon2-Memory"))
+			goto error;
+		if ((b = read_body(fp)) == NULL)
+			goto error;
+		if (!isdec(b))
+			goto error;
+		argon2_memory = atoi(b);
+		MEM_FREE(b);
+		if (argon2_memory <= 0)
+			goto error;
+
+		if (!read_header(fp, header) || 0 != strcmp(header, "Argon2-Passes"))
+			goto error;
+		if ((b = read_body(fp)) == NULL)
+			goto error;
+		if (!isdec(b))
+			goto error;
+		argon2_passes = atoi(b);
+		MEM_FREE(b);
+		if (argon2_passes <= 0)
+			goto error;
+
+		if (!read_header(fp, header) || 0 != strcmp(header, "Argon2-Parallelism"))
+			goto error;
+		if ((b = read_body(fp)) == NULL)
+			goto error;
+		if (!isdec(b))
+			goto error;
+		argon2_parallelism = atoi(b);
+		MEM_FREE(b);
+		if (argon2_parallelism <= 0)
+			goto error;
+
+		if (!read_header(fp, header) || 0 != strcmp(header, "Argon2-Salt"))
+			goto error;
+		if ((b = read_body(fp)) == NULL)
+			goto error;
+		int extra;
+		int argon2_salt_hex_len = hexlenl(b, &extra);
+
+		argon2_salt_len = argon2_salt_hex_len / 2;
+		if (extra || argon2_salt_len > (int)sizeof(argon2_salt))
+			goto error;
+		for (i = 0; i < argon2_salt_len; i++)
+			argon2_salt[i] = atoi16[ARCH_INDEX(b[i * 2])] * 16 + atoi16[ARCH_INDEX(b[i * 2 + 1])];
+		MEM_FREE(b);
+		if (argon2_salt_len <= 0 || argon2_salt_hex_len % 2)
+			goto error;
+	}
+
 	/* Read the Private-Lines header line and the Private blob. */
 	if (!read_header(fp, header) || 0 != strcmp(header, "Private-Lines"))
 		goto error;
 	if ((b = read_body(fp)) == NULL)
+		goto error;
+	if (!isdec(b))
 		goto error;
 	i = atoi(b);
 	MEM_FREE(b);
@@ -277,6 +359,7 @@ error:
 		fclose(fp);
 	MEM_FREE(comment);
 	MEM_FREE(encryption);
+	MEM_FREE(key_derivation);
 	MEM_FREE(mac);
 	MEM_FREE(public_blob);
 	MEM_FREE(private_blob);
@@ -286,17 +369,19 @@ error:
 static void print_hex(unsigned char *str, int len)
 {
 	int i;
+
 	for (i = 0; i < len; ++i)
 		printf("%02x", str[i]);
 }
 
 static void LAME_ssh2_load_userkey(const char *path, const char **errorstr)
 {
-	const char *ext[] = {".ppk"};
+	const char *ext[] = { ".ppk" };
 	char *fname;
+
 	/*
-	* Decrypt the private blob.
-	*/
+	 * Decrypt the private blob.
+	 */
 	if (cipher) {
 		if (private_blob_len % cipherblk)
 			goto error;
@@ -304,23 +389,36 @@ static void LAME_ssh2_load_userkey(const char *path, const char **errorstr)
 
 	{
 		fname = strip_suffixes(basename(path), ext, 1);
-		printf("%s:$putty$%d*%d*%d*%d*%s*%d*", fname, cipher, cipherblk, is_mac, old_fmt, mac, public_blob_len);
-		print_hex(public_blob, public_blob_len);
-		printf("*%d*", private_blob_len);
-		print_hex(private_blob, private_blob_len);
-		if (!old_fmt) {
+		if (ppk_version >= 3) {
+			printf("%s:$putty$3*%d*%d*%d*%d*%s*%d*%d*%d*", fname,
+			       cipher, cipherblk, is_mac, old_fmt,
+			       key_derivation ? key_derivation : "none", argon2_memory, argon2_passes, argon2_parallelism);
+			print_hex(argon2_salt, argon2_salt_len);
+			printf("*%s*%d*", mac, public_blob_len);
+			print_hex(public_blob, public_blob_len);
+			printf("*%d*", private_blob_len);
+			print_hex(private_blob, private_blob_len);
 			printf("*%s*%s*%s\n", alg, encryption, comment);
-		}
-		else {
-			printf("\n");
+		} else {
+			printf("%s:$putty$%d*%d*%d*%d*%s*%d*", fname, cipher, cipherblk, is_mac, old_fmt, mac, public_blob_len);
+			print_hex(public_blob, public_blob_len);
+			printf("*%d*", private_blob_len);
+			print_hex(private_blob, private_blob_len);
+			if (!old_fmt) {
+				printf("*%s*%s*%s\n", alg, encryption, comment);
+			} else {
+				printf("\n");
+			}
 		}
 		MEM_FREE(comment);
+		MEM_FREE(key_derivation);
 		return;
 	}
 error:
 	fprintf(stderr, "Something failed!\n");
 	MEM_FREE(comment);
 	MEM_FREE(encryption);
+	MEM_FREE(key_derivation);
 	MEM_FREE(mac);
 	MEM_FREE(public_blob);
 	MEM_FREE(private_blob);
@@ -350,15 +448,15 @@ static int key_type(const char *filename)
 		return SSH_KEYTYPE_UNOPENABLE;
 	if (i < 32)
 		return SSH_KEYTYPE_UNKNOWN;
-	if (!memcmp(buf, rsa_signature, sizeof(rsa_signature)-1))
+	if (!memcmp(buf, rsa_signature, sizeof(rsa_signature) - 1))
 		return SSH_KEYTYPE_SSH1;
-	if (!memcmp(buf, putty2_sig, sizeof(putty2_sig)-1))
+	if (!memcmp(buf, putty2_sig, sizeof(putty2_sig) - 1))
 		return SSH_KEYTYPE_SSH2;
-	if (!memcmp(buf, openssh_sig, sizeof(openssh_sig)-1))
+	if (!memcmp(buf, openssh_sig, sizeof(openssh_sig) - 1))
 		return SSH_KEYTYPE_OPENSSH;
-	if (!memcmp(buf, sshcom_sig, sizeof(sshcom_sig)-1))
+	if (!memcmp(buf, sshcom_sig, sizeof(sshcom_sig) - 1))
 		return SSH_KEYTYPE_SSHCOM;
-	return SSH_KEYTYPE_UNKNOWN;	       /* unrecognised or EOF */
+	return SSH_KEYTYPE_UNKNOWN;     /* unrecognised or EOF */
 }
 
 static int ssh2_userkey_encrypted(const char *filename, char **commentptr)
@@ -374,8 +472,8 @@ static int ssh2_userkey_encrypted(const char *filename, char **commentptr)
 	if (!fp)
 		return 0;
 	if (!read_header(fp, header)
-			|| (0 != strcmp(header, "PuTTY-User-Key-File-2") &&
-				0 != strcmp(header, "PuTTY-User-Key-File-1"))) {
+	                || (0 != strcmp(header, "PuTTY-User-Key-File-3") &&
+	                    0 != strcmp(header, "PuTTY-User-Key-File-2") && 0 != strcmp(header, "PuTTY-User-Key-File-1"))) {
 		fclose(fp);
 		return 0;
 	}
@@ -383,7 +481,7 @@ static int ssh2_userkey_encrypted(const char *filename, char **commentptr)
 		fclose(fp);
 		return 0;
 	}
-	MEM_FREE(b);  /* we don't care about key type here */
+	MEM_FREE(b);            /* we don't care about key type here */
 	/* Read the Encryption header line. */
 	if (!read_header(fp, header) || 0 != strcmp(header, "Encryption")) {
 		fclose(fp);
@@ -440,7 +538,7 @@ static int base64_decode_atom(char *atom, unsigned char *out)
 		else if (c == '=')
 			v = -1;
 		else
-			return 0;  /* invalid atom */
+			return 0;       /* invalid atom */
 		vals[i] = v;
 	}
 
@@ -456,8 +554,7 @@ static int base64_decode_atom(char *atom, unsigned char *out)
 	else
 		len = 1;
 
-	word = ((vals[0] << 18) |
-			(vals[1] << 12) | ((vals[2] & 0x3F) << 6) | (vals[3] & 0x3F));
+	word = ((vals[0] << 18) | (vals[1] << 12) | ((vals[2] & 0x3F) << 6) | (vals[3] & 0x3F));
 	out[0] = (word >> 16) & 0xFF;
 	if (len > 1)
 		out[1] = (word >> 8) & 0xFF;
@@ -512,7 +609,7 @@ static void process_file(const char *filename)
 	if (type == SSH_KEYTYPE_SSH1) {
 		fprintf(stderr, "SSH1 key type not supported!\n");
 		goto out;
-	} else { // SSH_KEYTYPE_SSH2
+	} else {                // SSH_KEYTYPE_SSH2
 		if (realtype == type) {
 			LAME_ssh2_load_userkey(filename, &errmsg);
 		}
@@ -522,6 +619,7 @@ out:
 
 	MEM_FREE(comment);
 	MEM_FREE(encryption);
+	MEM_FREE(key_derivation);
 	MEM_FREE(mac);
 	MEM_FREE(public_blob);
 	MEM_FREE(private_blob);
@@ -551,8 +649,8 @@ int main(int argc, char **argv)
 	int i;
 
 	if (argc < 2) {
-		printf( "Usage: putty2john [.ppk PuTTY-Private-Key-File(s)]\n");
-		printf( "\nKey types supported: RSA, DSA, ECDSA, ED25519\n");
+		printf("Usage: putty2john [.ppk PuTTY-Private-Key-File(s)]\n");
+		printf("\nKey types supported: RSA, DSA, ECDSA, ED25519\n");
 		exit(1);
 	}
 
