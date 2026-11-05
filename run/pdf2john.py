@@ -73,6 +73,8 @@ class PdfHashExtractor:
             self.algorithm: int = self.encrypt_dict.get("/V")
             self.length: int = self.encrypt_dict.get("/Length", 40)
             self.permissions: int = self.encrypt_dict["/P"]
+            if self.permissions >= 2**31:
+                self.permissions -= 2**32
             self.revision: int = self.encrypt_dict["/R"]
 
     @property
