@@ -90,8 +90,7 @@ john_register_one(&fmt_dmg);
 
 #define FORMAT_LABEL        "dmg"
 #define FORMAT_NAME         "Apple DMG"
-#define FORMAT_TAG           "$dmg$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
+/* FORMAT_TAG / FORMAT_TAG_LEN are defined in dmg_common.h */
 #ifdef SIMD_COEF_32
 #define ALGORITHM_NAME      "PBKDF2-SHA1 " SHA1_ALGORITHM_NAME " 3DES/AES"
 #else
@@ -134,6 +133,7 @@ static struct custom_salt {
 	unsigned char chunk[8192];
 	uint32_t encrypted_keyblob_size;
 	uint8_t encrypted_keyblob[128];
+	unsigned int blob_enc_keybits;
 	unsigned int len_wrapped_aes_key;
 	unsigned char wrapped_aes_key[296];
 	unsigned int len_hmac_sha1_key;
@@ -164,122 +164,7 @@ static void done(void)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy, *keeptr;
-	char *p;
-	int headerver;
-	int res, extra;
-
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
-		return 0;
-	ctcopy = xstrdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LEN;	/* skip over "$dmg$" marker */
-	if ((p = strtokm(ctcopy, "*")) == NULL)
-		goto err;
-	headerver = atoi(p);
-	if (headerver == 2) {
-		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (res > 20)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
-			goto err;
-		if (hexlenl(p, &extra) / 2 != res || extra)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (atoi(p) > 32)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
-			goto err;
-		if (hexlenl(p, &extra) / 2 != res || extra)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted_keyblob_size */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (res > 128)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted keyblob */
-			goto err;
-		if (hexlenl(p, &extra) / 2 != res || extra)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk number */
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* data_size */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk */
-			goto err;
-		if (hexlenl(p, &extra) / 2 != res || extra)
-			goto err;
-		if (res > 8192)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* scp */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		/* FIXME: which values are allowed here? */
-		if (res == 1) {
-			if ((p = strtokm(NULL, "*")) == NULL)	/* zchunk */
-				goto err;
-			if (strlen(p) != 4096 * 2)
-				goto err;
-		}
-	}
-	else if (headerver == 1) {
-		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (res > 20)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
-			goto err;
-		if (hexlenl(p, &extra) / 2 != res || extra)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* len_wrapped_aes_key */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (res > 296)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* wrapped_aes_key  */
-			goto err;
-		if (hexlenl(p, &extra) / 2 != res || extra)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (res > 300)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* hmac_sha1_key */
-			goto err;
-		if (strlen(p) / 2 != res)
-			goto err;
-	}
-	else
-		goto err;
-	MEM_FREE(keeptr);
-	return 1;
-
-err:
-	MEM_FREE(keeptr);
-	return 0;
+	return dmg_valid(ciphertext, self);
 }
 
 static void *get_salt(char *ciphertext)
@@ -294,7 +179,25 @@ static void *get_salt(char *ciphertext)
 	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*");
 	cs.headerver = atoi(p);
-	if (cs.headerver == 2) {
+	if (cs.headerver == 3) {
+		p = strtokm(NULL, "*");
+		cs.saltlen = atoi(p);
+		p = strtokm(NULL, "*");
+		for (i = 0; i < cs.saltlen; i++)
+			cs.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		cs.blob_enc_keybits = atoi(p);
+		p = strtokm(NULL, "*");
+		cs.encrypted_keyblob_size = atoi(p);
+		p = strtokm(NULL, "*");
+		for (i = 0; i < cs.encrypted_keyblob_size; i++)
+			cs.encrypted_keyblob[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		cs.iterations = atoi(p);
+	}
+	else if (cs.headerver == 2) {
 		p = strtokm(NULL, "*");
 		cs.saltlen = atoi(p);
 		p = strtokm(NULL, "*");
@@ -402,7 +305,55 @@ static void hash_plugin_check_hash(int index)
 	unsigned char aes_key_[32];
 	int j;
 
-	if (cur_salt->headerver == 1) {
+	if (cur_salt->headerver == 3) {
+#ifdef SIMD_COEF_32
+		unsigned char *derived_key, Derived_key[SSE_GROUP_SZ_SHA1][32];
+		int lens[SSE_GROUP_SZ_SHA1], i;
+		unsigned char *pin[SSE_GROUP_SZ_SHA1];
+		union {
+			uint32_t *pout[SSE_GROUP_SZ_SHA1];
+			unsigned char *poutc;
+		} x;
+		for (i = 0; i < SSE_GROUP_SZ_SHA1; ++i) {
+			lens[i] = strlen(saved_key[index+i]);
+			pin[i] = (unsigned char*)saved_key[index+i];
+			x.pout[i] = (uint32_t*)(Derived_key[i]);
+		}
+		pbkdf2_sha1_sse((const unsigned char **)pin, lens, cur_salt->salt,
+			cur_salt->saltlen,
+			cur_salt->iterations, &(x.poutc), 32, 0);
+#else
+		unsigned char derived_key[32];
+		const char *password = saved_key[index];
+		pbkdf2_sha1((const unsigned char*)password, strlen(password),
+		       cur_salt->salt, cur_salt->saltlen, cur_salt->iterations,
+		       derived_key, 32, 0);
+#endif
+		j = 0;
+#ifdef SIMD_COEF_32
+		for (j = 0; j < SSE_GROUP_SZ_SHA1; ++j) {
+			derived_key = Derived_key[j];
+#endif
+			AES_KEY aes_decrypt_key;
+			unsigned char last_block[16];
+			int i;
+
+			AES_set_decrypt_key(derived_key, cur_salt->blob_enc_keybits,
+			                    &aes_decrypt_key);
+			AES_decrypt(&cur_salt->encrypted_keyblob[48], last_block,
+			            &aes_decrypt_key);
+			for (i = 0; i < 16; i++)
+				last_block[i] ^= cur_salt->encrypted_keyblob[32 + i];
+
+			/* 9 = 4-byte prefix + "CKIE" (4) + null (1); remaining 7 bytes are PKCS#7 padding */
+			if (!memcmp(&last_block[4], "CKIE", 4) && !last_block[8] &&
+			    check_pkcs_pad(last_block, 16, 16) == 9)
+				cracked[index+j] = 1;
+#ifdef SIMD_COEF_32
+		}
+#endif
+	}
+	else if (cur_salt->headerver == 1) {
 #ifdef SIMD_COEF_32
 		unsigned char *derived_key, Derived_key[SSE_GROUP_SZ_SHA1][32];
 		int lens[SSE_GROUP_SZ_SHA1], i;
