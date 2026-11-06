@@ -84,6 +84,7 @@ ifdef AUTODEP
 endif
 
 JOHN_OBJS = \
+    infback9.o inftree9.o infback9_shim.o \
 	jumbo.o john_mpi.o \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \

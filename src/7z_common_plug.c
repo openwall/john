@@ -14,6 +14,45 @@
 #endif
 #if HAVE_LIBZ
 #include <zlib.h>
+#include "infback9.h"
+#include <stdlib.h>
+
+typedef struct {
+    unsigned char *in;
+    size_t in_len;
+    size_t in_pos;
+    unsigned char *out;
+    size_t out_len;
+    size_t out_pos;
+} back9_state;
+
+static voidpf back9_alloc(voidpf opaque, uInt items, uInt size) {
+    (void)opaque;
+    return calloc(items, size);
+}
+
+static void back9_free(voidpf opaque, voidpf address) {
+    (void)opaque;
+    free(address);
+}
+
+static unsigned back9_in(void *desc, z_const unsigned char **buf) {
+    back9_state *s = (back9_state *)desc;
+    if (s->in_pos >= s->in_len) return 0;
+    *buf = s->in + s->in_pos;
+    size_t len = s->in_len - s->in_pos;
+    s->in_pos += len;
+    return len;
+}
+
+static int back9_out(void *desc, unsigned char *buf, unsigned len) {
+    back9_state *s = (back9_state *)desc;
+    if (s->out_pos + len > s->out_len) return 1;
+    memcpy(s->out + s->out_pos, buf, len);
+    s->out_pos += len;
+    return 0;
+}
+
 #else
 #warning "Notice: 7z format will lack DEFLATE support (needs zlib)"
 #endif
@@ -106,7 +145,7 @@ sevenzip_salt_t *sevenzip_salt;
 
 int sevenzip_trust_padding;
 
-static char *comp_type[16] = { "stored", "LZMA1", "LZMA2", "PPMD", NULL, NULL, "BZIP2", "DEFLATE" };
+static char *comp_type[16] = { "stored", "LZMA1", "LZMA2", "PPMD", NULL, NULL, "BZIP2", "DEFLATE", NULL, NULL, "Deflate64" };
 static char *precomp_type[16] = { "", "BCJ", "BCJ2", "PPC", "IA64", "ARM", "ARMT", "SPARC", "DELTA" };
 
 int sevenzip_valid(char *ciphertext, struct fmt_main *self)
@@ -136,6 +175,7 @@ int sevenzip_valid(char *ciphertext, struct fmt_main *self)
 #endif
 #if HAVE_LIBZ
 		    && c_type != 7
+                    && c_type != 10
 #endif
 			    && type != 128) {
 		if (john_main_process && !warned[type]) {
@@ -294,7 +334,7 @@ void *sevenzip_get_salt(char *ciphertext)
 	if (cs.type && cs.type != 128) {
 		p = strtokm(NULL, "$"); /* CRC length */
 		psalt->crc_len = atoi(p);
-		if ((cs.type & 0xf) != 7 && (cs.type & 0xf) != 6) {
+		if ((cs.type & 0xf) != 7 && (cs.type & 0xf) != 6 && (cs.type & 0xf) != 10) {
 			p = strtokm(NULL, "$"); /* Coder properties */
 			for (i = 0; p[i * 2] ; i++)
 				psalt->decoder_props[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
@@ -581,6 +621,46 @@ int sevenzip_decrypt(unsigned char *derived_key)
 			goto exit_bad;
 		}
 	}
+
+        else if (c_type == 10) {
+            int ret;
+            /* Sanity check: prevent huge allocations from malicious hashes */
+            if (crc_len == 0 || crc_len > (size_t)2048 * 1024 * 1024 || sevenzip_salt->packed_size == 0) {
+                goto exit_bad;
+            }
+
+            uint8_t *new_out = mem_alloc(crc_len);
+            unsigned char *window = mem_alloc(65536);
+            z_stream inf_stream = { Z_NULL };
+            inf_stream.zalloc = back9_alloc;
+            inf_stream.zfree = back9_free;
+            back9_state state = { out, sevenzip_salt->packed_size, 0, new_out, crc_len, 0 };
+
+            if (!window || !new_out) {
+                MEM_FREE(window);
+                MEM_FREE(new_out);
+                goto exit_bad;
+            }
+
+            if (inflateBack9Init(&inf_stream, window) != Z_OK) {
+                MEM_FREE(window);
+                MEM_FREE(new_out);
+                goto exit_bad;
+            }
+
+            ret = inflateBack9(&inf_stream, back9_in, &state, back9_out, &state);
+            inflateBack9End(&inf_stream);
+            MEM_FREE(window);
+
+            if (ret == Z_STREAM_END) {
+                MEM_FREE(out);
+                out = new_out;
+            } else {
+                MEM_FREE(new_out);
+                goto exit_bad;
+            }
+        }
+
 #endif
 
 	if (p_type) {

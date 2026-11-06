@@ -115,6 +115,7 @@ PLUGFORMATS_SRCS += $(sort $(wildcard *_plug.c))
 PLUGFORMATS_OBJS = $(PLUGFORMATS_SRCS:.c=.o)
 
 JOHN_OBJS = \
+    infback9.o inftree9.o infback9_shim.o \
 	jumbo.o john_mpi.o \
 	DES_fmt.o DES_std.o DES_bs.o DES_bs_b.o \
 	BSDI_fmt.o \
