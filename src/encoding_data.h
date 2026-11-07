@@ -1192,7 +1192,7 @@ EXTATIC const UTF16 CP1254_to_unicode_high128[]
 
 // 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
-// €�‚ƒ„…†‡ˆ‰�‹�����‘’“”•–—˜™�›���� ¡¢£₪¥¦§¨©×«¬­®¯°±²³´µ¶·¸¹÷»¼½¾¿ְֱֲֳִֵֶַָֹ�ֻּֽ־ֿ׀ׁׂ׃װױײ׳״�������אבגדהוזחטיךכלםמןנסעףפץצקרשת��‎‏�
+// €�‚ƒ„…†‡ˆ‰�‹�����‘’“”•–—˜™�›���� ¡¢£₪¥¦§¨©×«¬­®¯°±²³´µ¶·¸¹÷»¼½¾¿ְֱֲֳִֵֶַָֹ�ֻּֽ־ֿ׀ׁׂ׃װױײ׳״�������אבגדהוזחטיךכלםמןנסעףפץצקרשת��<U+200E><U+200F>�
 
 // here is the CP1255 to Unicode conversion for CP1255 characters from 0x80 to 0xFF
 EXTATIC const UTF16 CP1255_to_unicode_high128[]
@@ -1232,7 +1232,7 @@ EXTATIC const UTF16 CP1255_to_unicode_high128[]
 #define CHARS_PUNCTUATION_CP1255 \
 	"\x82\x84\x85\x86\x87\x89\x8B\x91\x92\x93\x94\x95\x96\x97\x9B\xA1\xA7\xAB\xB6\xB7\xBB\xBF\xCE\xD0\xD3\xD7\xD8"
 
-// €ˆ˜™¢£₪¥¦¨©×¬­®¯°±´¸÷ְֱֲֳִֵֶַָֹֻּֽֿׁׂ‎‏
+// €ˆ˜™¢£₪¥¦¨©×¬­®¯°±´¸÷ְֱֲֳִֵֶַָֹֻּֽֿׁׂ<U+200E><U+200F>
 #define CHARS_SPECIALS_CP1255 \
 	"\x80\x88\x98\x99\xA2\xA3\xA4\xA5\xA6\xA8\xA9\xAA\xAC\xAD\xAE\xAF\xB0\xB1\xB4\xB8\xBA\xC0\xC1\xC2\xC3\xC4\xC5\xC6\xC7\xC8\xC9\xCB\xCC\xCD\xCF\xD1\xD2\xFD\xFE"
 
@@ -1256,7 +1256,7 @@ EXTATIC const UTF16 CP1255_to_unicode_high128[]
 
 // 8               9               A               B               C               D               E               F
 // 0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF
-// €پ‚ƒ„…†‡ˆ‰ٹ‹Œچژڈگ‘’“”•–—ک™ڑ›œ‌‍ں ،¢£¤¥¦§¨©ھ«¬­®¯°±²³´µ¶·¸¹؛»¼½¾؟ہءآأؤإئابةتثجحخدذرزسشصض×طظعغـفقكàلâمنهوçèéêëىيîïًٌٍَôُِ÷ّùْûü‎‏ے
+// €پ‚ƒ„…†‡ˆ‰ٹ‹Œچژڈگ‘’“”•–—ک™ڑ›œ‌‍ں ،¢£¤¥¦§¨©ھ«¬­®¯°±²³´µ¶·¸¹؛»¼½¾؟ہءآأؤإئابةتثجحخدذرزسشصض×طظعغـفقكàلâمنهوçèéêëىيîïًٌٍَôُِ÷ّùْûü<U+200E><U+200F>ے
 
 // here is the CP1256 to Unicode conversion for CP1256 characters from 0x80 to 0xFF
 EXTATIC const UTF16 CP1256_to_unicode_high128[]
@@ -1296,7 +1296,7 @@ EXTATIC const UTF16 CP1256_to_unicode_high128[]
 #define CHARS_PUNCTUATION_CP1256 \
 	"\x82\x84\x85\x86\x87\x89\x8B\x91\x92\x93\x94\x95\x96\x97\x9B\xA1\xA7\xAB\xB6\xB7\xBA\xBB\xBF"
 
-// €ˆ™‌‍¢£¤¥¦¨©¬­®¯°±´¸×ـًٌٍَُِ÷ّْ‎‏
+// €ˆ™‌‍¢£¤¥¦¨©¬­®¯°±´¸×ـًٌٍَُِ÷ّْ<U+200E><U+200F>
 #define CHARS_SPECIALS_CP1256 \
 	"\x80\x88\x99\x9D\x9E\xA2\xA3\xA4\xA5\xA6\xA8\xA9\xAC\xAD\xAE\xAF\xB0\xB1\xB4\xB8\xD7\xDC\xF0\xF1\xF2\xF3\xF5\xF6\xF7\xF8\xFA\xFD\xFE"
 

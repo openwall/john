@@ -382,7 +382,7 @@ static char *ldr_get_field(char **ptr, char field_sep_char)
 
 static int wild_cmp(const char *search_str, const char *full_str)
 {
-	char *pos = strchr(search_str, '*');
+	const char *pos = strchr(search_str, '*');
 
 	if (pos) {
 		if (pos != strrchr(search_str, '*')) {

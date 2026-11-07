@@ -460,7 +460,8 @@ coin_step(unsigned char *digest, int i, int j, int shift)
 static unsigned int
 getrounds(const char *s)
 {
-	char *r, *p, *e;
+	const char *r, *p;
+	char *e;
 	long val;
 
 	if (s == NULL)

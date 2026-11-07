@@ -1048,7 +1048,7 @@ static int mask_len(const char *mask)
 			if (*(++p))
 				p++;
 		} else if (*p == '[') {
-			char *q = strchr(++p, ']');
+			const char *q = strchr(++p, ']');
 			const char *m = p;
 
 			while (q && q > m && q[-1] == '\\') {
