@@ -1902,9 +1902,24 @@ sub ReadPDF($$)
     };
     $raf->Seek(0, 2) or return -2;
     my $fileLen = $raf->Tell();
+    my $base = $$exifTool{PDFBase} || 0;
+    # accept a startxref value only if it points at a real xref table (or
+    # cross-reference stream), so a fake startxref/%%EOF pair planted in
+    # trailing junk can not hijack the entry point
+    my $validXref = sub {
+        my $offset = shift;
+        $raf->Seek($offset + $base, 0) or return 0;
+        my $line = '';
+        for (1..8) {    # tolerate blank lines at the offset (as the walk does)
+            $raf->ReadLine($line) or return 0;
+            last if $line =~ /\S/;
+        }
+        return $line =~ /^\s*(xref\b|\d+\s+\d+\s+obj\b)/s ? 1 : 0;
+    };
     # The PDF spec (appendix H) says the %%EOF lies within the last 1024 bytes of the
     # file, but real-world files may carry junk after %%EOF, so scan backwards in
-    # overlapping chunks for the last startxref/%%EOF pair
+    # overlapping chunks; a file may hold several %%EOF marks from incremental
+    # updates, and the newest VALID startxref/%%EOF pair wins
     my ($nl, $startxref);
     my $pos = $fileLen;
     while ($pos > 0 and not defined $startxref) {
@@ -1912,13 +1927,18 @@ sub ReadPDF($$)
         $raf->Seek($start, 0) or return -2;
         my $len = $pos - $start;
         $raf->Read($buff, $len) == $len or return -3;
-        # find the last xref table in the file (may be multiple %%EOF marks)
-        if ($buff =~ /.*startxref *(\x0d\x0a|\x0d|\x0a)\s*?(\d+)\s+%%EOF/s) {
-            ($nl, $startxref) = ($1, $2);
-        } else {
-            last if $start == 0;
-            $pos = $start + 128;    # next window overlaps this one
+        my @pairs;
+        while ($buff =~ /startxref *(\x0d\x0a|\x0d|\x0a)\s*?(\d+)\s+%%EOF/g) {
+            push @pairs, [ $1, $2 ];
         }
+        foreach my $pair (reverse @pairs) {
+            if ($validXref->($pair->[1])) {
+                ($nl, $startxref) = @$pair;
+                last;
+            }
+        }
+        last if defined $startxref or $start == 0;
+        $pos = $start + 4096;    # next window overlaps this one
     }
     local $/ = $nl if defined $nl;    # set input record separator
     if (defined $startxref) {
