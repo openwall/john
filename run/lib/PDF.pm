@@ -29,7 +29,7 @@ sub ReadToNested($;$);
 sub ProcessDict($$$$;$$);
 sub ProcessAcroForm($$$$;$$);
 sub ReadPDFValue($);
-sub ReconstructXref($$$$$);
+sub ReconstructXref($$$$$$);
 sub CheckPDF($$$);
 
 # $lastFetched - last fetched object reference (used for decryption)
@@ -1720,19 +1720,22 @@ sub ProcessDict($$$$;$$)
 }
 
 #------------------------------------------------------------------------------
-# Rebuild object offsets and encryption information for a damaged PDF file by
-# scanning for "N G obj" markers and trailer keys (like qpdf's xref reconstruction).
+# Rebuild object offsets and trailer information for a damaged PDF file by
+# scanning for "N G obj" markers and the trailer dictionary (like qpdf's
+# cross-reference table reconstruction).
 # Called from ReadPDF() only when the startxref/xref-table parsing fails.
 # Inputs: 0) ExifTool object reference, 1) RAF reference, 2) xref hash reference,
-#         3) reference to the Encrypt value, 4) reference to the ID value
-# Returns: 1 if a trailer dictionary was found, 0 on failure
-sub ReconstructXref($$$$$)
+#         3) reference to the Encrypt value, 4) reference to the ID value,
+#         5) reference to the list of main dictionaries
+# Returns: 1 on success, 0 on failure
+sub ReconstructXref($$$$$$)
 {
-    my ($exifTool, $raf, $xrefPt, $encryptPt, $idPt) = @_;
+    my ($exifTool, $raf, $xrefPt, $encryptPt, $idPt, $mainDictsPt) = @_;
+    my $base = $$exifTool{PDFBase} || 0;
     my $buff;
     $raf->Seek(0, 2) or return 0;
     my $fileLen = $raf->Tell();
-    my (%objOffset, $encryptNum, $encryptGen, $idToken);
+    my (%objOffset, $encryptNum, $encryptGen, $idToken, $infoRef, $rootRef, $trailerPos);
     # scan the whole file in overlapping chunks for object headers and trailer keys
     my $pos = 0;
     while ($pos < $fileLen) {
@@ -1745,16 +1748,40 @@ sub ReconstructXref($$$$$)
         while ($buff =~ /(\d+)\s+(\d+)\s+obj\b/g) {
             push @{$objOffset{$1}}, $pos + $-[0];
         }
-        # /Encrypt and /ID are trailer (or xref stream) dictionary keys only
+        # these keys occur only in trailer (or cross-reference stream) dictionaries
         while ($buff =~ m{/Encrypt\s+(\d+)\s+(\d+)\s+R\b}g) {
             ($encryptNum, $encryptGen) = ($1, $2);
         }
         while ($buff =~ m{/ID\s*\[\s*(<[0-9A-Fa-f\s]*>|\([^)]*\))}g) {
             $idToken = $1;
         }
+        while ($buff =~ m{/Info\s+(\d+)\s+(\d+)\s+R\b}g) {
+            $infoRef = "$1 $2 R";
+        }
+        while ($buff =~ m{/Root\s+(\d+)\s+(\d+)\s+R\b}g) {
+            $rootRef = "$1 $2 R";
+        }
+        # remember the last "trailer" keyword (the newest incremental update)
+        while ($buff =~ /\btrailer\b/g) {
+            $trailerPos = $pos + $-[0];
+        }
         last if $pos + $size >= $fileLen;
         $pos += $size - 4096;   # next chunk overlaps this one
     }
+    # register the newest parseable definition of each object
+    foreach my $num (keys %objOffset) {
+        next if defined $xrefPt->{$num};
+        foreach my $offset (reverse @{$objOffset{$num}}) {
+            $raf->Seek($offset, 0) or next;
+            my $data;
+            $raf->Read($data, 64);
+            $data =~ /^\s*\Q$num\E\s+(\d+)\s+obj\b/s or next;
+            $xrefPt->{$num} = $offset - $base;
+            $xrefPt->{"$num $1 R"} = $offset - $base;
+            last;
+        }
+    }
+    # resolve the Encrypt object (must look like a security handler dictionary)
     if (defined $encryptNum) {
         my $ref = "$encryptNum $encryptGen R";
         my $resolved;
@@ -1762,20 +1789,51 @@ sub ReconstructXref($$$$$)
             $raf->Seek($offset, 0) or next;
             my $data;
             $raf->ReadLine($data) or next;
-            $data =~ s/^$encryptNum $encryptGen obj//s or next;
+            $data =~ s/^\s*\Q$encryptNum\E\s+$encryptGen\s+obj//s or next;
             my $dict = ExtractObject($exifTool, \$data, $raf);
-            # accept only something that looks like a security handler dictionary
             next unless ref $dict eq 'HASH' and $$dict{Filter} and
                         $$dict{O} and $$dict{P} and $$dict{U};
-            $xrefPt->{$ref} = $offset;
-            $xrefPt->{$encryptNum} = $offset;
+            $xrefPt->{$ref} = $offset - $base;
+            $xrefPt->{$encryptNum} = $offset - $base;
             $$encryptPt = \$ref;
             $resolved = 1;
             last;
         }
         return 0 unless $resolved;
-    } elsif (not defined $idToken) {
-        return 0;   # found no trailer dictionary at all
+    }
+    # recover the trailer dictionary so Info/Root metadata can be processed
+    my $mainDict;
+    if (defined $trailerPos) {
+        $raf->Seek($trailerPos, 0) or return 0;
+        $raf->ReadLine($buff) or return 0;
+        $buff =~ s/^.*?\btrailer//s;
+        $mainDict = ExtractObject($exifTool, \$buff, $raf);
+        undef $mainDict unless ref $mainDict eq 'HASH' and
+            ($$mainDict{Info} or $$mainDict{Root} or $$mainDict{Encrypt} or $$mainDict{ID});
+    }
+    # cross-reference stream files have no "trailer" keyword
+    if (not $mainDict and ($infoRef or $rootRef)) {
+        my %dict = ( _tags => [ ] );
+        if ($infoRef) {
+            $dict{Info} = \$infoRef;
+            push @{$dict{_tags}}, 'Info';
+        }
+        if ($rootRef) {
+            $dict{Root} = \$rootRef;
+            push @{$dict{_tags}}, 'Root';
+        }
+        $mainDict = \%dict;
+    }
+    return 0 unless $mainDict or defined $idToken or defined $encryptNum;
+    if ($mainDict) {
+        # use the trailer values if the scan did not find them directly
+        if (not defined $encryptNum and ref $$mainDict{Encrypt} eq 'SCALAR') {
+            $$encryptPt = $$mainDict{Encrypt};
+        }
+        if (not defined $idToken and $$mainDict{ID} and ref $$mainDict{ID} eq 'ARRAY') {
+            $idToken = $$mainDict{ID}->[0];
+        }
+        push @$mainDictsPt, $mainDict, 'Main';
     }
     $$idPt = ReadPDFValue($idToken) if defined $idToken;
     return 1;
@@ -1997,7 +2055,7 @@ XRef:
     # the main xref table (or startxref) was damaged: rebuild the object map and
     # trailer information by scanning the file (reached only for broken files)
     if ($needRecon) {
-        ReconstructXref($exifTool, $raf, \%xref, \$encrypt, \$id) or return $needReconCode;
+        ReconstructXref($exifTool, $raf, \%xref, \$encrypt, \$id, \@mainDicts) or return $needReconCode;
     }
 #
 # extract encryption information if necessary
