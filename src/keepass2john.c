@@ -618,6 +618,11 @@ static void process_database(char* encryptedDatabase)
 			case KdfParameters:
 				;
 				unsigned char *pos = pbData;
+				unsigned char *end = pbData + uSize;
+				if (uSize < 3) {
+					fprintf(stderr, "! %s : KdfParameters too short\n", encryptedDatabase);
+					goto bailout;
+				}
 				uint16_t version = (uint16_t)BytesToInt(pos, 2); pos += 2;
 #if KEEPASS_DEBUG
 				fprintf(stderr, "VariantDictionary version %u.%u\n", version >> 8, version & 0xff);
@@ -628,14 +633,18 @@ static void process_database(char* encryptedDatabase)
 					return;
 				}
 				uint8_t type;
-				while ((type = *pos++)) {
+				while (pos < end && (type = *pos++)) {
+					if (pos + 4 > end) goto bailout;
 					uint32_t k = (uint32_t)BytesToInt(pos, 4); pos += 4;
+					if (k > (uint32_t)(end - pos)) goto bailout;
 					char *keyName = mem_calloc(k + 1, 1);
 					memcpy(keyName, pos, k); pos += k;
 #if KEEPASS_DEBUG
 					fprintf(stderr, "\tKeyName %s\t", keyName);
 #endif
-					uint32_t v = (uint32_t)BytesToInt(pos, 4); pos += 4;
+					if (pos + 4 > end) { MEM_FREE(keyName); goto bailout; }
+				uint32_t v = (uint32_t)BytesToInt(pos, 4); pos += 4;
+				if (v > (uint32_t)(end - pos)) { MEM_FREE(keyName); goto bailout; }
 
 					switch (type)
 					{
