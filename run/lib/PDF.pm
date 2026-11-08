@@ -1731,6 +1731,9 @@ sub ProcessDict($$$$;$$)
 sub ReconstructXref($$$$$$)
 {
     my ($exifTool, $raf, $xrefPt, $encryptPt, $idPt, $mainDictsPt) = @_;
+    # fail closed past this many distinct object numbers so a crafted file
+    # stuffed with fake 'N G obj' markers cannot blow up the table
+    my $MAX_OBJECT_NUMBERS = 100000;
     my $base = $$exifTool{PDFBase} || 0;
     my $buff;
     $raf->Seek(0, 2) or return 0;
@@ -1751,7 +1754,7 @@ sub ReconstructXref($$$$$$)
         # cannot blow up the table or the later registration lookups)
         while ($buff =~ /(\d+)\s+(\d+)\s+obj\b/g) {
             my $num = $1;
-            return 0 if not exists $objOffset{$num} and keys(%objOffset) >= 100000;
+            return 0 if not exists $objOffset{$num} and keys(%objOffset) >= $MAX_OBJECT_NUMBERS;
             push @{$objOffset{$num}}, $pos + $-[0];
             shift @{$objOffset{$num}} if @{$objOffset{$num}} > 8;
         }
@@ -1855,6 +1858,9 @@ sub ReconstructXref($$$$$$)
 sub ReadPDF($$)
 {
     my ($exifTool, $dirInfo) = @_;
+    # maximum bytes the backwards startxref scan may read once the spec's
+    # 1024-byte tail window has failed
+    my $MAX_BACK_SCAN_BYTES = 262144;
     my $raf = $$dirInfo{RAF};
     my $verbose = $exifTool->Options('Verbose');
     my ($buff, $encrypt, $id);
@@ -1926,7 +1932,7 @@ sub ReadPDF($$)
     # updates, and the newest VALID startxref/%%EOF pair wins
     my ($nl, $startxref);
     my ($pos, $scanned) = ($fileLen, 0);
-    while ($pos > 0 and not defined $startxref and $scanned < 262144) {
+    while ($pos > 0 and not defined $startxref and $scanned < $MAX_BACK_SCAN_BYTES) {
         my $start = $pos > 65536 ? $pos - 65536 : 0;
         $raf->Seek($start, 0) or return -2;
         my $len = $pos - $start;
