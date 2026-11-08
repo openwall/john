@@ -1746,10 +1746,14 @@ sub ReconstructXref($$$$$$)
         # remember all candidates: the last definition of an object wins, but
         # streams may contain false markers, so try them newest-first below
         # (only the newest few candidates can win, so cap the lists to bound
-        # memory when a crafted file is stuffed with fake object markers)
+        # memory when a crafted file is stuffed with fake object markers;
+        # also bail out past 100k distinct object numbers so marker stuffing
+        # cannot blow up the table or the later registration lookups)
         while ($buff =~ /(\d+)\s+(\d+)\s+obj\b/g) {
-            push @{$objOffset{$1}}, $pos + $-[0];
-            shift @{$objOffset{$1}} if @{$objOffset{$1}} > 8;
+            my $num = $1;
+            return 0 if not exists $objOffset{$num} and keys(%objOffset) >= 100000;
+            push @{$objOffset{$num}}, $pos + $-[0];
+            shift @{$objOffset{$num}} if @{$objOffset{$num}} > 8;
         }
         # these keys occur only in trailer (or cross-reference stream) dictionaries
         while ($buff =~ m{/Encrypt\s+(\d+)\s+(\d+)\s+R\b}g) {
@@ -1921,12 +1925,13 @@ sub ReadPDF($$)
     # overlapping chunks; a file may hold several %%EOF marks from incremental
     # updates, and the newest VALID startxref/%%EOF pair wins
     my ($nl, $startxref);
-    my $pos = $fileLen;
-    while ($pos > 0 and not defined $startxref) {
+    my ($pos, $scanned) = ($fileLen, 0);
+    while ($pos > 0 and not defined $startxref and $scanned < 262144) {
         my $start = $pos > 65536 ? $pos - 65536 : 0;
         $raf->Seek($start, 0) or return -2;
         my $len = $pos - $start;
         $raf->Read($buff, $len) == $len or return -3;
+        $scanned += $len;
         my @pairs;
         while ($buff =~ /startxref *(\x0d\x0a|\x0d|\x0a)\s*?(\d+)\s+%%EOF/g) {
             push @pairs, [ $1, $2 ];
