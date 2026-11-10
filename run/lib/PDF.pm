@@ -29,6 +29,7 @@ sub ReadToNested($;$);
 sub ProcessDict($$$$;$$);
 sub ProcessAcroForm($$$$;$$);
 sub ReadPDFValue($);
+sub FindStartXref($$);
 sub ReconstructXref($$$$$$);
 sub CheckPDF($$$);
 
@@ -1733,6 +1734,8 @@ sub ReconstructXref($$$$$$)
     my ($exifTool, $raf, $xrefPt, $encryptPt, $idPt, $mainDictsPt) = @_;
     # fail closed past this many distinct object numbers so a crafted file
     # stuffed with fake 'N G obj' markers cannot blow up the table
+    # (see the NOTE at $MAX_BACK_SCAN_BYTES in FindStartXref for the edge
+    # case this shares with the backward scan budget)
     my $MAX_OBJECT_NUMBERS = 100000;
     my $base = $$exifTool{PDFBase} || 0;
     my $buff;
@@ -1852,15 +1855,76 @@ sub ReconstructXref($$$$$$)
 }
 
 #------------------------------------------------------------------------------
+# Find the newest startxref/%%EOF pair that really points at an xref table
+# Inputs: 0) RAF reference, 1) PDF base offset (bytes before "%PDF-")
+# Returns: 0) newline string (undef if no valid pair was found),
+#          1) startxref offset (undef if no valid pair was found),
+#          2) negative error number on I/O failure, 0 otherwise
+# Notes: the PDF spec (appendix H) says the %%EOF lies within the last 1024
+#        bytes of the file, but real-world files may carry junk after %%EOF,
+#        so scan backwards in overlapping chunks. A file may hold several
+#        %%EOF marks from incremental updates, so the newest VALID
+#        startxref/%%EOF pair wins.
+#------------------------------------------------------------------------------
+sub FindStartXref($$)
+{
+    my ($raf, $base) = @_;
+    # maximum bytes the backwards startxref scan may read
+    # NOTE (known edge case): a healthy PDF with more than $MAX_OBJECT_NUMBERS
+    # objects (see ReconstructXref) that also carries more than this many
+    # bytes of junk after %%EOF has its real marker outside the scan budget,
+    # so ReadPDF falls into reconstruction and then fails closed at the
+    # object cap - no hash, even though an unbounded backward scan would
+    # have found the marker. The caps buy bounded worst-case work; raise
+    # the constants (or scan further back) if this shape matters.
+    my $MAX_BACK_SCAN_BYTES = 262144;
+    my $buff;
+    # accept a startxref value only if it points at a real xref table (or
+    # cross-reference stream), so a fake startxref/%%EOF pair planted in
+    # trailing junk can not hijack the entry point
+    my $validXref = sub {
+        my $offset = shift;
+        $raf->Seek($offset + $base, 0) or return 0;
+        my $line = '';
+        for (1..8) {    # tolerate blank lines at the offset (as the walk does)
+            $raf->ReadLine($line) or return 0;
+            last if $line =~ /\S/;
+        }
+        return $line =~ /^\s*(xref\b|\d+\s+\d+\s+obj\b)/s ? 1 : 0;
+    };
+    my ($nl, $startxref);
+    $raf->Seek(0, 2) or return (undef, undef, -2);
+    my $fileLen = $raf->Tell();
+    my ($pos, $scanned) = ($fileLen, 0);
+    while ($pos > 0 and not defined $startxref and $scanned < $MAX_BACK_SCAN_BYTES) {
+        my $start = $pos > 65536 ? $pos - 65536 : 0;
+        $raf->Seek($start, 0) or return (undef, undef, -2);
+        my $len = $pos - $start;
+        $raf->Read($buff, $len) == $len or return (undef, undef, -3);
+        $scanned += $len;
+        my @pairs;
+        while ($buff =~ /startxref *(\x0d\x0a|\x0d|\x0a)\s*?(\d+)\s+%%EOF/g) {
+            push @pairs, [ $1, $2 ];
+        }
+        foreach my $pair (reverse @pairs) {
+            if ($validXref->($pair->[1])) {
+                ($nl, $startxref) = @$pair;
+                last;
+            }
+        }
+        last if defined $startxref or $start == 0;
+        $pos = $start + 4096;    # next window overlaps this one
+    }
+    return ($nl, $startxref, 0);
+}
+
+#------------------------------------------------------------------------------
 # Extract information from PDF file
 # Inputs: 0) ExifTool object reference, 1) dirInfo reference
 # Returns: 0 if not a PDF file, 1 on success, otherwise a negative error number
 sub ReadPDF($$)
 {
     my ($exifTool, $dirInfo) = @_;
-    # maximum bytes the backwards startxref scan may read once the spec's
-    # 1024-byte tail window has failed
-    my $MAX_BACK_SCAN_BYTES = 262144;
     my $raf = $$dirInfo{RAF};
     my $verbose = $exifTool->Options('Verbose');
     my ($buff, $encrypt, $id);
@@ -1910,47 +1974,8 @@ sub ReadPDF($$)
         ($needRecon, $needReconCode) = (1, $code);
         return 1;
     };
-    $raf->Seek(0, 2) or return -2;
-    my $fileLen = $raf->Tell();
-    my $base = $$exifTool{PDFBase} || 0;
-    # accept a startxref value only if it points at a real xref table (or
-    # cross-reference stream), so a fake startxref/%%EOF pair planted in
-    # trailing junk can not hijack the entry point
-    my $validXref = sub {
-        my $offset = shift;
-        $raf->Seek($offset + $base, 0) or return 0;
-        my $line = '';
-        for (1..8) {    # tolerate blank lines at the offset (as the walk does)
-            $raf->ReadLine($line) or return 0;
-            last if $line =~ /\S/;
-        }
-        return $line =~ /^\s*(xref\b|\d+\s+\d+\s+obj\b)/s ? 1 : 0;
-    };
-    # The PDF spec (appendix H) says the %%EOF lies within the last 1024 bytes of the
-    # file, but real-world files may carry junk after %%EOF, so scan backwards in
-    # overlapping chunks; a file may hold several %%EOF marks from incremental
-    # updates, and the newest VALID startxref/%%EOF pair wins
-    my ($nl, $startxref);
-    my ($pos, $scanned) = ($fileLen, 0);
-    while ($pos > 0 and not defined $startxref and $scanned < $MAX_BACK_SCAN_BYTES) {
-        my $start = $pos > 65536 ? $pos - 65536 : 0;
-        $raf->Seek($start, 0) or return -2;
-        my $len = $pos - $start;
-        $raf->Read($buff, $len) == $len or return -3;
-        $scanned += $len;
-        my @pairs;
-        while ($buff =~ /startxref *(\x0d\x0a|\x0d|\x0a)\s*?(\d+)\s+%%EOF/g) {
-            push @pairs, [ $1, $2 ];
-        }
-        foreach my $pair (reverse @pairs) {
-            if ($validXref->($pair->[1])) {
-                ($nl, $startxref) = @$pair;
-                last;
-            }
-        }
-        last if defined $startxref or $start == 0;
-        $pos = $start + 4096;    # next window overlaps this one
-    }
+    my ($nl, $startxref, $scanErr) = FindStartXref($raf, $$exifTool{PDFBase} || 0);
+    return $scanErr if $scanErr;
     local $/ = $nl if defined $nl;    # set input record separator
     if (defined $startxref) {
         push @xrefOffsets, $startxref, 'Main';
