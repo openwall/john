@@ -592,8 +592,9 @@ void listconf_parse_late(void)
 	if (!strcasecmp(options.listconf, "formats")) {
 		struct fmt_main *format;
 		int column = 0, dynamics = 0;
-		int grp_dyna, total = 0, add_comma = 0;
+		int grp_dyna, total = 0;
 		char *format_option = options.format ? options.format : options.format_list;
+		int stdout_is_pipe = !isatty(fileno(stdout));
 
 		grp_dyna = !format_option || (!strcasestr(format_option, "disabled") && !strcasestr(format_option, "dynamic"));
 
@@ -613,11 +614,9 @@ void listconf_parse_late(void)
 
 			length = strlen(label) + 2;
 			column += length;
-			if (add_comma)
+			if (total > 1 && !stdout_is_pipe)
 				printf(", ");
-			else
-				add_comma = 1;
-			if (column > 78) {
+			if (column > 78 || (total > 1 && stdout_is_pipe)) {
 				printf("\n");
 				column = length;
 			}
@@ -625,11 +624,13 @@ void listconf_parse_late(void)
 		} while ((format = format->next));
 		printf("\n");
 
-		fflush(stdout);
-		fprintf(stderr, "%d formats", total);
-		if (dynamics)
-			fprintf(stderr, " (%d dynamic formats shown as just \"dynamic_n\" here)", dynamics);
-		fprintf(stderr, "\n");
+		if (!stdout_is_pipe) {
+			fflush(stdout);
+			fprintf(stderr, "%d formats", total);
+			if (dynamics)
+				fprintf(stderr, " (%d dynamic formats shown as just \"dynamic_n\" here)", dynamics);
+			fprintf(stderr, "\n");
+		}
 
 		exit(EXIT_SUCCESS);
 	}
