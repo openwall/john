@@ -49,7 +49,7 @@ pkgs.mkShell {
 	nativeBuildInputs = with pkgs.buildPackages;
 		[
 			openssl libzip opencl-headers ocl-icd clinfo
-			bzip2 libpcap libgmpris libxcrypt gmp
+			bzip2 libpcap libgmpris libxcrypt-legacy gmp
 			gcc zlib nss nspr libkrb5 re2 makeWrapper
 			perlEnv pythonEnv
 		];
