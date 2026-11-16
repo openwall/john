@@ -197,7 +197,7 @@ static void link_funcs() {
 	private_subformat_data *pPriv = fmt_CompiledDynamic.private.data;
 	int i;
 
-	cp = strrchr(fmt_CompiledDynamic.params.algorithm_name, ')');
+	cp = (char*)strrchr(fmt_CompiledDynamic.params.algorithm_name, ')');
 	if (cp) {
 		fmt_CompiledDynamic.params.label = fmt_CompiledDynamic.params.algorithm_name;
 		++cp;

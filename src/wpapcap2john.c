@@ -2285,7 +2285,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	int fd;
 	char name[] = "/tmp/libFuzzer-XXXXXX";
 	FILE *in;
-	char *base;
+	const char *base;
 
 	fd = mkstemp(name);
 	if (fd < 0) {
@@ -2350,7 +2350,7 @@ int main(int argc, char **argv)
 {
 	FILE *in;
 	int i;
-	char *base;
+	const char *base;
 
 	apsta_db = calloc(max_state, sizeof(WPA4way_t));
 	essid_db = calloc(max_essid, sizeof(essid_t));

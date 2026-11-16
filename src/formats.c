@@ -117,7 +117,7 @@ int fmt_match(const char *req_format, struct fmt_main *format, int override_disa
 #ifndef BENCH_BUILD
 	int enabled = override_disable || !((options.flags & FLG_TEST_CHK) || options.listconf) ||
 		!cfg_get_bool(SECTION_DISABLED, SUBSECTION_FORMATS, format->params.label, 0);
-	char *pos = NULL;
+	const char *pos = NULL;
 
 #ifndef DYNAMIC_DISABLED
 	if (!strncasecmp(req_format, "dynamic=", 8) && !strcasecmp(format->params.label, "dynamic=")) {

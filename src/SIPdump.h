@@ -327,7 +327,8 @@ void update_login_data(login_t * data, const char *pw, const char *file)
 int find_value(const char *value, const char *buffer, char *outbuf,
     size_t outbuf_len)
 {
-	char *ptr1, *tempbuf;
+	const char *ptr1;
+	char *tempbuf;
 	int i, b;
 
 	/* debug(("find_value() %s", value)); */

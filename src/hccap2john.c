@@ -61,7 +61,7 @@ static void print_hccap(hccap_t *cap, const char *filename)
 	int i;
 	unsigned char *w = (unsigned char *)cap;
 	char sta_mac[18], ap_mac[18], gecos[13];
-	char *base;
+	const char *base;
 
 	to_hex(gecos, cap->mac1);
 	to_hex(ap_mac, cap->mac1);

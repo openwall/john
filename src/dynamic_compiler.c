@@ -363,7 +363,7 @@ static char *dynamic_expr_normalize(const char *ct) {
 
 		strnzcpy(Buf, ct, sizeof(Buf));
 		ct = Buf;
-		cp = strstr(ct, ",c");
+		cp = strstr(Buf, ",c");
 		while (cp) {
 			char *ctp = strchr(&cp[1], ',');
 
@@ -549,7 +549,7 @@ static char *find_the_expression(const char *expr) {
 
 static char *find_the_extra_params(const char *expr) {
 	static char buf[512];
-	char *cp;
+	const char *cp;
 
 	if (strncmp(expr, "dynamic=", 8))
 		return "";
@@ -1271,7 +1271,8 @@ SkipSaltCheck:;
 						strcpy(keys_base16_in1_type, cpType);
 						// see if this is a bOffsetHashIn1 type.
 						if (n1 == 1) {
-							p = strchr(pExpr, '(');
+							/* pExpr is const-qualified; p only walks it read-only here */
+							p = (char*)strchr(pExpr, '(');
 							++p;
 							if (!strncmp(p, cpType, strlen(cpType)))
 								bOffsetHashIn1=1;
@@ -2290,12 +2291,12 @@ static DC_HANDLE do_compile(const char *expr, uint32_t crc32) {
 	p->pExtraParams = str_alloc_copy(find_the_extra_params(expr));
 	len = strlen(expr)+3;
 	// start of hexify code for : convert into \x3a
-	cp = strchr(expr, ':');
-	if (cp)
+	cp2 = strchr(expr, ':');
+	if (cp2)
 		do {
-			cp = strchr(&cp[1], ':');
+			cp2 = strchr(&cp2[1], ':');
 			len += 3;	// \x3a is 3 bytes longer than :
-		} while (cp);
+		} while (cp2);
 	cp = mem_calloc_tiny(len, 1);
 	p->pSignature = cp;
 	//snprintf(cp, len, "@%s@", expr); /* switch ':' into \x3a in result */
