@@ -1577,6 +1577,9 @@ static int process_packet(uint32_t link_type)
 		int new_len = snap_len - 12 + sizeof(fake802_11);
 		ieee802_1x_eapol_t *auth;
 
+		if (snap_len < 14 + (int)sizeof(ieee802_1x_eapol_t))
+			return 0;
+
 		//dump_hex("Orig packet", packet, snap_len);
 
 		if (new_len > new_p_sz) {
