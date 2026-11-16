@@ -1204,7 +1204,11 @@ sub DecryptInit($$$)
         $$encrypt{_meta} = 1;
     }
 
-    printf("\$pdf\$%d*%d*%d*%d*%d*%d*", $ver, $rev, $$encrypt{Length} || 40, $$encrypt{P}, $$encrypt{_meta} || 0, length($id));
+    # PDF /P is a signed 32-bit integer
+    my $perm = $$encrypt{P};
+    $perm -= 4294967296 if $perm >= 2147483648;
+
+    printf("\$pdf\$%d*%d*%d*%d*%d*%d*", $ver, $rev, $$encrypt{Length} || 40, $perm, $$encrypt{_meta} || 0, length($id));
     my $str = $id;
     $str =~ s/(.)/ sprintf '%02x', ord $1 /seg;
     printf("%s*", $str);
