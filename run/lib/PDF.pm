@@ -29,6 +29,8 @@ sub ReadToNested($;$);
 sub ProcessDict($$$$;$$);
 sub ProcessAcroForm($$$$;$$);
 sub ReadPDFValue($);
+sub FindStartXref($$);
+sub ReconstructXref($$$$$$);
 sub CheckPDF($$$);
 
 # $lastFetched - last fetched object reference (used for decryption)
@@ -1719,6 +1721,204 @@ sub ProcessDict($$$$;$$)
 }
 
 #------------------------------------------------------------------------------
+# Rebuild object offsets and trailer information for a damaged PDF file by
+# scanning for "N G obj" markers and the trailer dictionary (like qpdf's
+# cross-reference table reconstruction).
+# Called from ReadPDF() only when the startxref/xref-table parsing fails.
+# Inputs: 0) ExifTool object reference, 1) RAF reference, 2) xref hash reference,
+#         3) reference to the Encrypt value, 4) reference to the ID value,
+#         5) reference to the list of main dictionaries
+# Returns: 1 on success, 0 on failure
+sub ReconstructXref($$$$$$)
+{
+    my ($exifTool, $raf, $xrefPt, $encryptPt, $idPt, $mainDictsPt) = @_;
+    # fail closed past this many distinct object numbers so a crafted file
+    # stuffed with fake 'N G obj' markers cannot blow up the table
+    # (see the NOTE at $MAX_BACK_SCAN_BYTES in FindStartXref for the edge
+    # case this shares with the backward scan budget)
+    my $MAX_OBJECT_NUMBERS = 100000;
+    my $base = $$exifTool{PDFBase} || 0;
+    my $buff;
+    $raf->Seek(0, 2) or return 0;
+    my $fileLen = $raf->Tell();
+    my (%objOffset, $encryptNum, $encryptGen, $idToken, $infoRef, $rootRef, $trailerPos);
+    # scan the whole file in overlapping chunks for object headers and trailer keys
+    my $pos = 0;
+    while ($pos < $fileLen) {
+        my $size = $fileLen - $pos;
+        $size = 1024 * 1024 if $size > 1024 * 1024;
+        $raf->Seek($pos, 0) or return 0;
+        $raf->Read($buff, $size) == $size or return 0;
+        # remember all candidates: the last definition of an object wins, but
+        # streams may contain false markers, so try them newest-first below
+        # (only the newest few candidates can win, so cap the lists to bound
+        # memory when a crafted file is stuffed with fake object markers;
+        # also bail out past 100k distinct object numbers so marker stuffing
+        # cannot blow up the table or the later registration lookups)
+        while ($buff =~ /(\d+)\s+(\d+)\s+obj\b/g) {
+            my $num = $1;
+            return 0 if not exists $objOffset{$num} and keys(%objOffset) >= $MAX_OBJECT_NUMBERS;
+            push @{$objOffset{$num}}, $pos + $-[0];
+            shift @{$objOffset{$num}} if @{$objOffset{$num}} > 8;
+        }
+        # these keys occur only in trailer (or cross-reference stream) dictionaries
+        while ($buff =~ m{/Encrypt\s+(\d+)\s+(\d+)\s+R\b}g) {
+            ($encryptNum, $encryptGen) = ($1, $2);
+        }
+        while ($buff =~ m{/ID\s*\[\s*(<[0-9A-Fa-f\s]*>|\([^)]*\))}g) {
+            $idToken = $1;
+        }
+        while ($buff =~ m{/Info\s+(\d+)\s+(\d+)\s+R\b}g) {
+            $infoRef = "$1 $2 R";
+        }
+        while ($buff =~ m{/Root\s+(\d+)\s+(\d+)\s+R\b}g) {
+            $rootRef = "$1 $2 R";
+        }
+        # remember the last "trailer" keyword (the newest incremental update)
+        while ($buff =~ /\btrailer\b/g) {
+            $trailerPos = $pos + $-[0];
+        }
+        last if $pos + $size >= $fileLen;
+        $pos += $size - 4096;   # next chunk overlaps this one
+    }
+    # register the newest parseable definition of each object
+    foreach my $num (keys %objOffset) {
+        next if defined $xrefPt->{$num};
+        foreach my $offset (reverse @{$objOffset{$num}}) {
+            $raf->Seek($offset, 0) or next;
+            my $data;
+            $raf->Read($data, 64);
+            $data =~ /^\s*\Q$num\E\s+(\d+)\s+obj\b/s or next;
+            $xrefPt->{$num} = $offset - $base;
+            $xrefPt->{"$num $1 R"} = $offset - $base;
+            last;
+        }
+    }
+    # recover the trailer dictionary so Info/Root metadata can be processed;
+    # its values take preference over the scanned keys, which a crafted file
+    # could plant inside a stream
+    my $mainDict;
+    if (defined $trailerPos) {
+        if ($raf->Seek($trailerPos, 0) and $raf->ReadLine($buff)) {
+            $buff =~ s/^.*?\btrailer//s;
+            $mainDict = ExtractObject($exifTool, \$buff, $raf);
+            undef $mainDict unless ref $mainDict eq 'HASH' and
+                ($$mainDict{Info} or $$mainDict{Root} or $$mainDict{Encrypt} or $$mainDict{ID});
+        }
+    }
+    if ($mainDict) {
+        if (ref $$mainDict{Encrypt} eq 'SCALAR') {
+            my ($num, $gen) = split ' ', ${$$mainDict{Encrypt}};
+            ($encryptNum, $encryptGen) = ($num, $gen) if defined $num;
+        }
+        if (not defined $idToken and $$mainDict{ID} and ref $$mainDict{ID} eq 'ARRAY') {
+            $idToken = $$mainDict{ID}->[0];
+        }
+    }
+    # resolve the Encrypt object (must look like a security handler dictionary)
+    if (defined $encryptNum) {
+        my $ref = "$encryptNum $encryptGen R";
+        my $resolved;
+        foreach my $offset (reverse @{$objOffset{$encryptNum} || [ ]}) {
+            $raf->Seek($offset, 0) or next;
+            my $data;
+            $raf->ReadLine($data) or next;
+            $data =~ s/^\s*\Q$encryptNum\E\s+$encryptGen\s+obj//s or next;
+            my $dict = ExtractObject($exifTool, \$data, $raf);
+            next unless ref $dict eq 'HASH' and $$dict{Filter} and
+                        $$dict{O} and $$dict{P} and $$dict{U};
+            $xrefPt->{$ref} = $offset - $base;
+            $xrefPt->{$encryptNum} = $offset - $base;
+            $$encryptPt = \$ref;
+            $resolved = 1;
+            last;
+        }
+        return 0 unless $resolved;
+    }
+    # cross-reference stream files have no "trailer" keyword
+    if (not $mainDict and ($infoRef or $rootRef)) {
+        my %dict = ( _tags => [ ] );
+        if ($infoRef) {
+            $dict{Info} = \$infoRef;
+            push @{$dict{_tags}}, 'Info';
+        }
+        if ($rootRef) {
+            $dict{Root} = \$rootRef;
+            push @{$dict{_tags}}, 'Root';
+        }
+        $mainDict = \%dict;
+    }
+    return 0 unless $mainDict or defined $idToken or defined $encryptNum;
+    push @$mainDictsPt, $mainDict, 'Main' if $mainDict;
+    $$idPt = ReadPDFValue($idToken) if defined $idToken;
+    return 1;
+}
+
+#------------------------------------------------------------------------------
+# Find the newest startxref/%%EOF pair that really points at an xref table
+# Inputs: 0) RAF reference, 1) PDF base offset (bytes before "%PDF-")
+# Returns: 0) newline string (undef if no valid pair was found),
+#          1) startxref offset (undef if no valid pair was found),
+#          2) negative error number on I/O failure, 0 otherwise
+# Notes: the PDF spec (appendix H) says the %%EOF lies within the last 1024
+#        bytes of the file, but real-world files may carry junk after %%EOF,
+#        so scan backwards in overlapping chunks. A file may hold several
+#        %%EOF marks from incremental updates, so the newest VALID
+#        startxref/%%EOF pair wins.
+#------------------------------------------------------------------------------
+sub FindStartXref($$)
+{
+    my ($raf, $base) = @_;
+    # maximum bytes the backwards startxref scan may read
+    # NOTE (known edge case): a healthy PDF with more than $MAX_OBJECT_NUMBERS
+    # objects (see ReconstructXref) that also carries more than this many
+    # bytes of junk after %%EOF has its real marker outside the scan budget,
+    # so ReadPDF falls into reconstruction and then fails closed at the
+    # object cap - no hash, even though an unbounded backward scan would
+    # have found the marker. The caps buy bounded worst-case work; raise
+    # the constants (or scan further back) if this shape matters.
+    my $MAX_BACK_SCAN_BYTES = 262144;
+    my $buff;
+    # accept a startxref value only if it points at a real xref table (or
+    # cross-reference stream), so a fake startxref/%%EOF pair planted in
+    # trailing junk can not hijack the entry point
+    my $validXref = sub {
+        my $offset = shift;
+        $raf->Seek($offset + $base, 0) or return 0;
+        my $line = '';
+        for (1..8) {    # tolerate blank lines at the offset (as the walk does)
+            $raf->ReadLine($line) or return 0;
+            last if $line =~ /\S/;
+        }
+        return $line =~ /^\s*(xref\b|\d+\s+\d+\s+obj\b)/s ? 1 : 0;
+    };
+    my ($nl, $startxref);
+    $raf->Seek(0, 2) or return (undef, undef, -2);
+    my $fileLen = $raf->Tell();
+    my ($pos, $scanned) = ($fileLen, 0);
+    while ($pos > 0 and not defined $startxref and $scanned < $MAX_BACK_SCAN_BYTES) {
+        my $start = $pos > 65536 ? $pos - 65536 : 0;
+        $raf->Seek($start, 0) or return (undef, undef, -2);
+        my $len = $pos - $start;
+        $raf->Read($buff, $len) == $len or return (undef, undef, -3);
+        $scanned += $len;
+        my @pairs;
+        while ($buff =~ /startxref *(\x0d\x0a|\x0d|\x0a)\s*?(\d+)\s+%%EOF/g) {
+            push @pairs, [ $1, $2 ];
+        }
+        foreach my $pair (reverse @pairs) {
+            if ($validXref->($pair->[1])) {
+                ($nl, $startxref) = @$pair;
+                last;
+            }
+        }
+        last if defined $startxref or $start == 0;
+        $pos = $start + 4096;    # next window overlaps this one
+    }
+    return ($nl, $startxref, 0);
+}
+
+#------------------------------------------------------------------------------
 # Extract information from PDF file
 # Inputs: 0) ExifTool object reference, 1) dirInfo reference
 # Returns: 0 if not a PDF file, 1 on success, otherwise a negative error number
@@ -1764,20 +1964,27 @@ sub ReadPDF($$)
 # read the xref tables referenced from startxref at the end of the file
 #
     my @xrefOffsets;
-    $raf->Seek(0, 2) or return -2;
-    # the %%EOF must occur within the last 1024 bytes of the file (PDF spec, appendix H)
-    my $len = $raf->Tell();
-    $len = 1024 if $len > 1024;
-    $raf->Seek(-$len, 2) or return -2;
-    $raf->Read($buff, $len) == $len or return -3;
-    # find the last xref table in the file (may be multiple %%EOF marks)
-    $buff =~ /.*startxref *(\x0d\x0a|\x0d|\x0a)\s*?(\d+)\s+%%EOF/s or return -4;
-    local $/ = $1;    # set input record separator
-    push @xrefOffsets, $2, 'Main';
     my (%xref, @mainDicts, %loaded, $mainFree);
+    my ($needRecon, $needReconCode);
+    # record a main-xref failure for later reconstruction; secondary tables keep
+    # their old behaviour (caller returns the code when this returns false)
+    my $reconFail = sub {
+        my $code = shift;
+        return 0 if %loaded;
+        ($needRecon, $needReconCode) = (1, $code);
+        return 1;
+    };
+    my ($nl, $startxref, $scanErr) = FindStartXref($raf, $$exifTool{PDFBase} || 0);
+    return $scanErr if $scanErr;
+    local $/ = $nl if defined $nl;    # set input record separator
+    if (defined $startxref) {
+        push @xrefOffsets, $startxref, 'Main';
+    } else {
+        ($needRecon, $needReconCode) = (1, -4);
+    }
     # initialize variables to capture when rewriting
     if ($capture) {
-        $capture->{startxref} = $2;
+        $capture->{startxref} = $startxref;
         $capture->{xref} = \%xref;
         $capture->{newline} = $/;
         $capture->{mainFree} = $mainFree = { };
@@ -1788,7 +1995,7 @@ XRef:
         my $type = shift @xrefOffsets;
         next if $loaded{$offset};   # avoid infinite recursion
         unless ($raf->Seek($offset, 0)) {
-            %loaded or return -5;
+            last XRef if $reconFail->(-5);
             $exifTool->Warn('Bad offset for secondary xref table');
             next;
         }
@@ -1796,7 +2003,7 @@ XRef:
         # the newline sequence for this table is different than the rest of the file
         for (;;) {
             unless ($raf->ReadLine($buff)) {
-                %loaded or return -6;
+                last XRef if $reconFail->(-6);
                 $exifTool->Warn('Bad offset for secondary xref table');
                 next XRef;
             }
@@ -1807,16 +2014,33 @@ XRef:
             # load xref table
             for (;;) {
                 # read another line if necessary (skipping blank lines)
-                $raf->ReadLine($buff) or return -6 until $buff =~ /\S/;
+                until ($buff =~ /\S/) {
+                    $raf->ReadLine($buff) or do {
+                        last XRef if $reconFail->(-6);
+                        return -6;
+                    };
+                }
                 last if $buff =~ s/^\s*trailer([\s<[(])/$1/s;
-                $buff =~ s/^\s*(\d+)\s+(\d+)\s+//s or return -4;
+                $buff =~ s/^\s*(\d+)\s+(\d+)\s+//s or do {
+                    last XRef if $reconFail->(-4);
+                    return -4;
+                };
                 my ($start, $num) = ($1, $2);
-                $raf->Seek(-length($buff), 1) or return -4;
+                $raf->Seek(-length($buff), 1) or do {
+                    last XRef if $reconFail->(-4);
+                    return -4;
+                };
                 my $i;
                 for ($i=0; $i<$num; ++$i) {
-                    $raf->Read($buff, 20) == 20 or return -6;
+                    $raf->Read($buff, 20) == 20 or do {
+                        last XRef if $reconFail->(-6);
+                        return -6;
+                    };
                     # relax fixed \d{10}/\d{5} widths: some PDFs space-pad offsets instead of zero-padding
-                    $buff =~ /^\s*(\d+)\s+(\d+)\s+(f|n)/s or return -4;
+                    $buff =~ /^\s*(\d+)\s+(\d+)\s+(f|n)/s or do {
+                        last XRef if $reconFail->(-4);
+                        return -4;
+                    };
                     my $num = $start + $i;
                     # save offset for newest copy of all objects
                     # (or next object number for free objects)
@@ -1841,13 +2065,13 @@ XRef:
             # this is a PDF-1.5 cross-reference stream dictionary
             $loadXRefStream = 1;
         } else {
-            %loaded or return -4;
+            last XRef if $reconFail->(-4);
             $exifTool->Warn('Invalid secondary xref table');
             next;
         }
         my $mainDict = ExtractObject($exifTool, \$buff, $raf, \%xref);
         unless (ref $mainDict eq 'HASH') {
-            %loaded or return -8;
+            last XRef if $reconFail->(-8);
             $exifTool->Warn('Error loading secondary dictionary');
             next;
         }
@@ -1888,6 +2112,13 @@ XRef:
         push @mainDicts, $mainDict, $type;
         # load previous xref table if it exists
         push @xrefOffsets, $$mainDict{Prev}, 'Prev' if $$mainDict{Prev};
+    }
+    # the main xref table (or startxref) was damaged: rebuild the object map and
+    # trailer information by scanning the file (reached only for broken files)
+    if ($needRecon) {
+        return $needReconCode if $capture;  # rewriting needs the real xref table
+        ReconstructXref($exifTool, $raf, \%xref, \$encrypt, \$id, \@mainDicts) or return $needReconCode;
+        print STDERR "Warning: Reconstructed cross-reference table (file is damaged)\n";
     }
 #
 # extract encryption information if necessary
