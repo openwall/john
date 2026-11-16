@@ -493,6 +493,9 @@ Major changes from 1.9.0-jumbo-1 (May 2019) in this bleeding-edge version:
   syntax, where digest length selects MD5 (32), SHA1 (40), or SHA256 (64).
   [HD Moore; 2026]
 
+- PuTTY format and putty2john: Add support for PPKv3 with Argon2 KDF.
+  [elipsion; 2026]
+
 
 Major changes from 1.8.0-jumbo-1 (December 2014) to 1.9.0-jumbo-1 (May 2019):
 
