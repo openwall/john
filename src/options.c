@@ -1,8 +1,8 @@
 /*
  * This file is part of John the Ripper password cracker,
  * Copyright (c) 1996-2025 by Solar Designer
- *
- * ...with changes in the jumbo patch, by JimF and magnum (and various others?)
+ * Copyright (c) 2009-2026, magnum
+ * Copyright (c) 2009-2018, JimF
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted.
@@ -139,6 +139,7 @@ static struct opt_entry opt_list[] = {
 	{"restore", FLG_RESTORE_SET, FLG_RESTORE_CHK, 0, ~FLG_RESTORE_SET & ~GETOPT_FLAGS, OPT_FMT_STR_ALLOC, &options.session},
 	{"session", FLG_SESSION, FLG_SESSION, FLG_CRACKING_SUP, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.session},
 	{"catch-up", FLG_ONCE, 0, 0, OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.catchup},
+	{"catch-up-add", FLG_ONCE, 0, 0, USUAL_REQ_CLR | OPT_TRISTATE, NULL, &options.catchup_add},
 	{"status", FLG_STATUS_SET, FLG_STATUS_CHK, 0, ~FLG_STATUS_SET & ~GETOPT_FLAGS, OPT_FMT_STR_ALLOC, &options.session},
 	{"make-charset", FLG_MAKECHR_SET, FLG_MAKECHR_CHK, 0, FLG_CRACKING_CHK | FLG_SESSION | OPT_REQ_PARAM, OPT_FMT_STR_ALLOC, &options.charset},
 	{"show", FLG_SHOW_SET, FLG_SHOW_CHK, 0, FLG_CRACKING_SUP | FLG_MAKECHR_CHK, OPT_FMT_STR_ALLOC, &show_uncracked_str},
@@ -332,6 +333,8 @@ JOHN_USAGE_FORK \
 "--no-log                   Disables creation and writing to john.log file\n"  \
 "--bare-always-valid=Y      Treat bare hashes as valid (Y/N)\n" \
 "--catch-up=NAME            Catch up with existing (paused) session NAME\n" \
+"--no-catch-up-add          Do not add the new hashes (files) to NAME after\n" \
+"                           --catch-up=NAME caught up\n" \
 "--config=FILE              Use FILE instead of john.conf or john.ini\n" \
 "--encoding=NAME            Input encoding (eg. UTF-8, ISO-8859-1). See also\n" \
 "                           doc/ENCODINGS.\n" \
@@ -622,6 +625,10 @@ void opt_init(char *name, int argc, char **argv)
 
 	if (options.catchup && options.max_cands)
 		error_msg("Can't combine --max-candidates and --catch-up options\n");
+
+	if ((options.catchup_add != -1) && !options.catchup)
+		error_msg("The --%scatch-up-add option can only be used with --catch-up\n",
+		          options.catchup_add ? "" : "no-");
 
 	if (options.flags & FLG_STATUS_CHK) {
 #if OS_FORK
