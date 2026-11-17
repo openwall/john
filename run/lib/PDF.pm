@@ -1166,6 +1166,28 @@ sub DecryptInit($$$)
             }
             # set "_aesv2" or "_aesv3" flag in %$encrypt hash if AES encryption was used
             $$encrypt{'_' . lc($1)} = 1 if $cryptMeth =~ /^\/(AESV2|AESV3)$/;
+
+            # V4 PDFs may omit the top-level /Length; derive it from the
+            # applicable crypt filter.  Per the PDF spec, StmF/StrF default
+            # to Identity (no encryption), so resolve the actual filter name
+            # rather than assuming StdCF.
+            # CF /Length is in bytes; top-level /Length is in bits.
+            unless (defined $$encrypt{Length}) {
+                my $cf_len;
+                for my $key ('StmF', 'StrF') {
+                    my $name = $$encrypt{$key} || '';
+                    $name =~ s{^/}{};
+                    next unless $name and $name ne 'Identity';
+                    if (ref $$encrypt{CF}{$name} eq 'HASH') {
+                        $cf_len = $$encrypt{CF}{$name}{Length};
+                        last if defined $cf_len;
+                    }
+                }
+                $$encrypt{Length} = defined $cf_len ? $cf_len * 8
+                    : $cryptMeth eq '/AESV2' ? 128
+                    : $cryptMeth eq '/AESV3' ? 256
+                    : 40;
+            }
         }
         if ($ver == 5) {
             # validate OE and UE entries
