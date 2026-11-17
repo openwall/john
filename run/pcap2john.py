@@ -238,79 +238,55 @@ def pcap_parser_vrrp(fname):
 
 
 def pcap_parser_tcpmd5(fname):
+    """Extract TCP MD5 signatures (RFC 2385), including BGP and MSDP."""
 
-    f = open(fname, "rb")
-    pcap = dpkt.pcap.Reader(f)
+    with open(fname, "rb") as f:
+        pcap = dpkt.pcap.Reader(f)
 
-    for _, buf in pcap:
-        eth = dpkt.ethernet.Ethernet(buf)
-        if eth.type == dpkt.ethernet.ETH_TYPE_IP:
-            ip = eth.data
-
-            if ip.v != 4:
+        for _, buf in pcap:
+            try:
+                eth = dpkt.ethernet.Ethernet(buf)
+            except dpkt.UnpackError:
                 continue
 
-            if ip.p != dpkt.ip.IP_PROTO_TCP:
+            ip = eth.data
+            if not isinstance(ip, dpkt.ip.IP) or ip.v != 4:
+                continue
+            if ip.p != dpkt.ip.IP_PROTO_TCP or not isinstance(ip.data, dpkt.tcp.TCP):
                 continue
 
             tcp = ip.data
-
-            # this packet doesn't have MD5 signature (too small)
-            if tcp.off * 4 < 40:
-                continue
-
-            raw_ip_data = ip.pack()
-            raw_tcp_data = tcp.pack()
+            raw_tcp_data = bytes(tcp)
             length = len(raw_tcp_data)
+            header_length = tcp.off * 4
 
-            # connection_id = (ip.src, tcp.sport, ip.dst, tcp.dport)
-
-            if len(tcp.opts) < 18:  # MD5 signature "option" is 18 bytes long
+            # A signature needs 18 option bytes, padded to a 40-byte header.
+            # Skip fragmented or truncated segments: their digest cannot be rebuilt.
+            if (ip.mf or ip.offset or header_length < 40 or
+                    header_length > length or ip.len != ip.hl * 4 + length):
                 continue
 
-            found = False
-
-            for opt_type, opt_data in dpkt.tcp.parse_opts(tcp.opts):
-                # skip over "undesired" option fields
-                # TCP_OPT_MD5 = 19 implies TCP MD5 signature, RFC 2385
-                if opt_type != 19:
+            for option in dpkt.tcp.parse_opts(tcp.opts):
+                if option is None:  # malformed option
+                    break
+                opt_type, opt_data = option
+                if opt_type == dpkt.tcp.TCP_OPT_EOL:
+                    break
+                if opt_type != 19:  # TCP MD5 signature, RFC 2385
                     continue
+                if len(opt_data) != 16:
+                    break
 
-                found = True
+                # RFC 2385 hashes the pseudo-header, the fixed TCP header with
+                # a zero checksum, and the payload. Options count towards the
+                # segment length but are excluded from the hash input.
+                salt = struct.pack("!4s4sBBH", ip.src, ip.dst, 0, ip.p, length)
+                salt += raw_tcp_data[:16] + b"\x00\x00" + raw_tcp_data[18:20]
+                salt += raw_tcp_data[header_length:]
+
+                print("$tcpmd5$%s$%s" % (hexlify(salt).decode('ascii'),
+                                       hexlify(opt_data).decode('ascii')))
                 break
-
-            if not found:
-                continue
-
-            # MD5 signature "option" is 16 bytes long
-            if len(opt_data) != 16:
-                continue
-
-            # TCP_OPT_MD5 = 19 implies TCP MD5 signature, RFC 2385
-            if opt_type == 19:
-                header_length = tcp.off * 4
-                data_length = length - header_length
-                # print length, header_length, data_length
-
-                # TCP pseudo-header + TCP header + TCP segment data
-                # salt_length = 12 + 20 + data_length
-                # add TCP pseudo-header
-                salt = raw_ip_data[12:12 + 8]  # src. and dest. IP
-                salt = salt + "\x00"  # zero padding
-                salt = salt + raw_ip_data[9]  # protocol
-                salt = salt + "%c" % (length / 256)  # segment length
-                salt = salt + "%c" % (length % 256)  # segment length
-                # add TCP header
-                salt = salt + raw_tcp_data[:16]  # TCP header without checksum
-                salt = salt + ("\x00" * 4)  # add zero checksum
-                # add segment data
-                salt = salt + raw_tcp_data[header_length:header_length + data_length]
-                # print len(salt)
-
-                print("$tcpmd5$%s$%s" % (salt.encode("hex"),
-                                                      opt_data.encode("hex")))
-
-    f.close()
 
 
 def pcap_parser_s7(cfg_pcap_file):
