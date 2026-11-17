@@ -159,6 +159,7 @@ static void release_clobj(void)
 
 		MEM_FREE(inbuffer);
 		MEM_FREE(output);
+		MEM_FREE(final_output);
 	}
 }
 
