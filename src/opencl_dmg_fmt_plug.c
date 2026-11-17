@@ -31,8 +31,7 @@ john_register_one(&fmt_opencl_dmg);
 
 #define FORMAT_LABEL		"dmg-opencl"
 #define FORMAT_NAME		"Apple DMG"
-#define FORMAT_TAG           "$dmg$"
-#define FORMAT_TAG_LEN       (sizeof(FORMAT_TAG)-1)
+/* FORMAT_TAG / FORMAT_TAG_LEN are defined in dmg_common.h */
 #define ALGORITHM_NAME		"PBKDF2-SHA1 3DES/AES OpenCL"
 #define BENCHMARK_COMMENT	""
 #define BENCHMARK_LENGTH	0x107
@@ -52,7 +51,8 @@ typedef struct {
 	unsigned int ivlen;
 	unsigned char iv[32];
 	uint32_t encrypted_keyblob_size;
-	uint8_t encrypted_keyblob[32];
+	uint8_t encrypted_keyblob[64];
+	unsigned int blob_enc_keybits;
 	unsigned int len_wrapped_aes_key;
 	unsigned char wrapped_aes_key[296];
 	unsigned int len_hmac_sha1_key;
@@ -78,7 +78,7 @@ static cl_mem mem_in, mem_out, mem_salt, mem_state;
 static int new_keys;
 static struct fmt_main *self;
 
-static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final, dmg_final[3];
+static cl_kernel pbkdf2_init, pbkdf2_loop, pbkdf2_final, dmg_final[4];
 
 /*
  * HASH_LOOPS is ideally made by factors of (iteration count - 1) and should
@@ -108,6 +108,7 @@ static size_t get_task_max_work_group_size()
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, pbkdf2_final));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, dmg_final[1]));
 	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, dmg_final[2]));
+	s = MIN(s, autotune_get_task_max_work_group_size(FALSE, 0, dmg_final[3]));
 	return s;
 }
 
@@ -151,6 +152,9 @@ static void create_clobj(size_t gws, struct fmt_main *self)
 
 	HANDLE_CLERROR(clSetKernelArg(dmg_final[2], 0, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
 	HANDLE_CLERROR(clSetKernelArg(dmg_final[2], 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
+
+	HANDLE_CLERROR(clSetKernelArg(dmg_final[3], 0, sizeof(mem_salt), &mem_salt), "Error while setting mem_salt kernel argument");
+	HANDLE_CLERROR(clSetKernelArg(dmg_final[3], 1, sizeof(mem_out), &mem_out), "Error while setting mem_out kernel argument");
 }
 
 static void release_clobj(void)
@@ -177,6 +181,7 @@ static void done(void)
 		HANDLE_CLERROR(clReleaseKernel(pbkdf2_final), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(dmg_final[1]), "Release kernel");
 		HANDLE_CLERROR(clReleaseKernel(dmg_final[2]), "Release kernel");
+		HANDLE_CLERROR(clReleaseKernel(dmg_final[3]), "Release kernel");
 		HANDLE_CLERROR(clReleaseProgram(program[gpu_id]), "Release Program");
 
 		program[gpu_id] = NULL;
@@ -223,6 +228,8 @@ static void reset(struct db_main *db)
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
 		dmg_final[2] = clCreateKernel(program[gpu_id], "dmg_final_v2", &ret_code);
 		HANDLE_CLERROR(ret_code, "Error creating kernel");
+		dmg_final[3] = clCreateKernel(program[gpu_id], "dmg_final_v3", &ret_code);
+		HANDLE_CLERROR(ret_code, "Error creating kernel");
 	}
 
 	// FIXME: Share in opencl_autotune.h
@@ -240,122 +247,7 @@ static void reset(struct db_main *db)
 
 static int valid(char *ciphertext, struct fmt_main *self)
 {
-	char *ctcopy, *keeptr;
-	char *p;
-	int headerver;
-	int res, extra;
-
-	if (strncmp(ciphertext, FORMAT_TAG, FORMAT_TAG_LEN) != 0)
-		return 0;
-	ctcopy = xstrdup(ciphertext);
-	keeptr = ctcopy;
-	ctcopy += FORMAT_TAG_LEN;	/* skip over "$dmg$" marker */
-	if ((p = strtokm(ctcopy, "*")) == NULL)
-		goto err;
-	headerver = atoi(p);
-	if (headerver == 2) {
-		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (res > 20)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
-			goto err;
-		if (hexlenl(p, &extra) != res*2 || extra)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* ivlen */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (atoi(p) > sizeof(cur_salt->iv))
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* iv */
-			goto err;
-		if (hexlenl(p, &extra) != res*2 || extra)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted_keyblob_size */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (res > 128) /* This is truncated to 32 anyway, in get_salt */
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* encrypted keyblob */
-			goto err;
-		if (hexlenl(p, &extra) != res*2 || extra)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk number */
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* data_size */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if ((p = strtokm(NULL, "*")) == NULL)	/* chunk */
-			goto err;
-		if (hexlenl(p, &extra) != res*2 || extra)
-			goto err;
-		if (res > sizeof(cur_salt->chunk))
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* scp */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (res == 1) {
-			if ((p = strtokm(NULL, "*")) == NULL)	/* zchunk */
-				goto err;
-			if (strlen(p) != 4096 * 2)
-				goto err;
-		} else if (res != 0)
-			goto err;
-	}
-	else if (headerver == 1) {
-		if ((p = strtokm(NULL, "*")) == NULL)	/* salt len */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (res > 20)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* salt */
-			goto err;
-		if (hexlenl(p, &extra) != res*2 || extra)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* len_wrapped_aes_key */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (res > sizeof(cur_salt->wrapped_aes_key))
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* wrapped_aes_key  */
-			goto err;
-		if (hexlenl(p, &extra) != res*2 || extra)
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* len_hmac_sha1_key */
-			goto err;
-		if (!isdec(p))
-			goto err;
-		res = atoi(p);
-		if (res > sizeof(cur_salt->wrapped_hmac_sha1_key))
-			goto err;
-		if ((p = strtokm(NULL, "*")) == NULL)	/* hmac_sha1_key */
-			goto err;
-		if (strlen(p) / 2 != res)
-			goto err;
-	}
-	else
-		goto err;
-	MEM_FREE(keeptr);
-	return 1;
-
-err:
-	MEM_FREE(keeptr);
-	return 0;
+	return dmg_valid(ciphertext, self);
 }
 
 static void *get_salt(char *ciphertext)
@@ -370,7 +262,25 @@ static void *get_salt(char *ciphertext)
 	ctcopy += FORMAT_TAG_LEN;
 	p = strtokm(ctcopy, "*");
 	cs.headerver = atoi(p);
-	if (cs.headerver == 2) {
+	if (cs.headerver == 3) {
+		p = strtokm(NULL, "*");
+		cs.pbkdf2.length = atoi(p);
+		p = strtokm(NULL, "*");
+		for (i = 0; i < cs.pbkdf2.length; i++)
+			cs.pbkdf2.salt[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		cs.blob_enc_keybits = atoi(p);
+		p = strtokm(NULL, "*");
+		cs.encrypted_keyblob_size = atoi(p);
+		p = strtokm(NULL, "*");
+		for (i = 0; i < cs.encrypted_keyblob_size; i++)
+			cs.encrypted_keyblob[i] = atoi16[ARCH_INDEX(p[i * 2])] * 16
+				+ atoi16[ARCH_INDEX(p[i * 2 + 1])];
+		p = strtokm(NULL, "*");
+		cs.pbkdf2.iterations = atoi(p);
+	}
+	else if (cs.headerver == 2) {
 		p = strtokm(NULL, "*");
 		cs.pbkdf2.length = atoi(p);
 		p = strtokm(NULL, "*");
