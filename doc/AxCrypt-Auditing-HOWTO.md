@@ -7,7 +7,7 @@ compress, encrypt, decrypt, store, send and work with individual files".
 You can whether install it through provided setup or use install-free binaries
 (which provide less features, like caching secrets).
 
-AxCrypt cryptographic scheme relies on symetric cryptography using AES in ECB
+AxCrypt cryptographic scheme relies on symmetric cryptography using AES in ECB
 mode to protect the "Data-Encryption-Key" (DEK) and AES in CBC mode to (un)cipher
 data, using the DEK.
 HMAC-SHA1 is used for integrity.
@@ -27,7 +27,7 @@ salt (stored in the final ciphered file header)
 algorithm, recommended by FIPS, to cipher ('0xa6'*8 | DEK)
 * The previously wrapping algorithm is iterated (minimum number is set to
 10000) and number of iterations depends on ciphering-computer
-capabilites, which means the stronger, the higher number (this is quite odd
+capabilities, which means the stronger, the higher number (this is quite odd
 for a tool mainly used to share ciphered files...). Number of iterations is
 stored in the registry
 
@@ -71,7 +71,7 @@ to be the good key-file :-)
     $ axcrypt2john.py <axxfile> [KEY-FILE]
 
          <axxfile> can either be a .axx ciphered file or a self-decrypting binary
-         [KEY-FILE] is optionnal
+         [KEY-FILE] is optional
 
 
 **How to crack using Jtr cracker:**
@@ -87,7 +87,7 @@ to be the good key-file :-)
 he will not have to type his passphrase again
 * This option is the default one
 * User can clear keys from cache, but if he doesn't, secrets won't
-vanish from memory unless process is explicitely killed (no other method
+vanish from memory unless process is explicitly killed (no other method
 is available to stop the process)
 * Secrets are stored in the raw-SHA1 16 bytes form, "in memory"
 * Theses secrets are sufficient enough to uncipher corresponding
