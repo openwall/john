@@ -193,7 +193,7 @@ pantof           (?)
 Session completed
 ```
 
-See `Sha256.java` from `https://github.com/AuthMe/AuthMeReloaded` for addtional details.
+See `Sha256.java` from `https://github.com/AuthMe/AuthMeReloaded` for additional details.
 
 NOTE: The inbuilt `dynamic_65` format is a bit faster at cracking such hashes.
 
